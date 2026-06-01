@@ -6,8 +6,11 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from typing import Any
+from zoneinfo import ZoneInfo
 
 EMPTY_UI_VALUE = "—"
+
+DISPLAY_TIMEZONE = ZoneInfo("Europe/Rome")
 
 WEEKDAYS_IT = [
     "lunedì",
@@ -43,12 +46,19 @@ class ParsedTemporalValue:
     datetime_value: datetime | None = None
 
 
+def _to_display_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(DISPLAY_TIMEZONE)
+
+
 def parse_temporal_value(value: Any) -> ParsedTemporalValue | None:
     """Best-effort parser for dates/datetimes coming from JSON, ORM or templates."""
     if value in (None, ""):
         return None
 
     if isinstance(value, datetime):
+        value = _to_display_datetime(value)
         return ParsedTemporalValue(date_value=value.date(), datetime_value=value)
 
     if isinstance(value, date):
@@ -68,6 +78,7 @@ def parse_temporal_value(value: Any) -> ParsedTemporalValue | None:
     normalized = text.replace("Z", "+00:00")
     try:
         dt = datetime.fromisoformat(normalized)
+        dt = _to_display_datetime(dt)
         return ParsedTemporalValue(date_value=dt.date(), datetime_value=dt)
     except ValueError:
         pass

@@ -6,7 +6,7 @@
 <div class="admin-page-header">
   <div>
     <h4 class="admin-page-title">Assistenza remota cliente</h4>
-  <p class="admin-page-subtitle">Cabina pronta all'uso per aprire sessioni cliente, condividere schermo e audio con consenso, usare chat e audit, senza configurazioni preliminari.</p>
+  <p class="admin-page-subtitle">Le richieste inviate dallo studio compaiono qui: il SUPERADMIN le prende in carico, apre la stanza operatore e guida il cliente con schermo, chat, audit e controllo PC su consenso esplicito.</p>
   </div>
 </div>
 
@@ -22,88 +22,111 @@
     </div>
   </div>
 </div>
-{% else %}
-<div class="ui-feedback ui-feedback--success mb-3">
-  <div class="ui-feedback__icon"><i class="bi bi-check2-circle"></i></div>
-  <div class="ui-feedback__content">
-    <div class="ui-feedback__title">Pronta per assistenza immediata</div>
-    <div class="ui-feedback__body">
-      Puoi creare una sessione adesso: IUSENTRA genera il link cliente firmato, apre la stanza operatore e registra consensi, chat e audit.
-    </div>
-  </div>
-</div>
 {% endif %}
 
-<div class="row g-3 mb-4 support-readiness-grid">
-  {% for capability in payload.capabilities %}
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card h-100 support-readiness-card {% if capability.ready %}support-readiness-card--ready{% endif %}">
-      <div class="card-body">
-        <div class="support-readiness-card__icon"><i class="bi {{ capability.icon }}"></i></div>
-        <div class="fw-semibold">{{ capability.label }}</div>
-        <div class="small text-muted">{{ capability.state }}</div>
+<div class="card mb-4 support-flow-card">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-diagram-3 me-2 text-primary"></i>Percorso reale di assistenza
+  </div>
+  <div class="card-body">
+    <div class="row g-3 support-flow-steps">
+      <div class="col-12 col-md">
+        <div class="support-flow-step">
+          <span class="support-flow-step__number">1</span>
+          <div>
+            <div class="fw-semibold">Lo studio chiede aiuto</div>
+            <div class="small text-muted">L'utente preme <strong>Assistenza</strong> nella barra alta. IUSENTRA apre la stanza cliente e registra la richiesta.</div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-{% if payload.advisories %}
-<div class="ui-feedback mb-3">
-  <div class="ui-feedback__icon"><i class="bi bi-info-circle"></i></div>
-  <div class="ui-feedback__content">
-    <div class="ui-feedback__title">Ottimizzazioni disponibili</div>
-    <div class="ui-feedback__body">
-      {% for advisory in payload.advisories %}
-      <div class="small">{{ advisory }}</div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<div class="row g-3 mb-4 support-console-stats">
-  <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100">
-      <div class="card-body">
-        <div class="text-muted small">Sessioni totali</div>
-        <div class="fs-2 fw-bold">{{ payload.stats.totale_sessioni }}</div>
+      <div class="col-12 col-md">
+        <div class="support-flow-step">
+          <span class="support-flow-step__number">2</span>
+          <div>
+            <div class="fw-semibold">Il SUPERADMIN la vede qui</div>
+            <div class="small text-muted">La richiesta appare in <strong>Richieste dallo studio</strong>. Selezionala per leggere studio, cliente, stato e audit.</div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100">
-      <div class="card-body">
-        <div class="text-muted small">Aperte</div>
-        <div class="fs-2 fw-bold">{{ payload.stats.aperte }}</div>
+      <div class="col-12 col-md">
+        <div class="support-flow-step">
+          <span class="support-flow-step__number">3</span>
+          <div>
+            <div class="fw-semibold">Apri la stanza operatore</div>
+            <div class="small text-muted">Clicca <strong>Prendi in carico</strong>, poi <strong>Entra</strong> nella stanza operatore.</div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100">
-      <div class="card-body">
-        <div class="text-muted small">Attive</div>
-        <div class="fs-2 fw-bold">{{ payload.stats.attive }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100">
-      <div class="card-body">
-        <div class="text-muted small">Chiuse</div>
-        <div class="fs-2 fw-bold">{{ payload.stats.chiuse }}</div>
+      <div class="col-12 col-md">
+        <div class="support-flow-step">
+          <span class="support-flow-step__number">4</span>
+          <div>
+            <div class="fw-semibold">Cliente autorizza</div>
+            <div class="small text-muted">Il cliente conferma chat, schermo e, solo se serve, controllo PC tramite agente locale.</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="row g-3">
-  <div class="col-12 col-xl-4">
-    <div class="card h-100">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-plus-circle me-2 text-primary"></i>Nuova sessione
+<div class="card mb-4 support-notification-card"
+     data-support-push-panel
+     data-status-url="{{ url_for('support_remote.support_push_status') }}"
+     data-subscribe-url="{{ url_for('support_remote.support_push_subscribe') }}"
+     data-test-url="{{ url_for('support_remote.support_push_test') }}">
+  <div class="card-header fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-phone-vibrate me-2 text-primary"></i>Notifiche cellulare SUPERADMIN</span>
+    <span class="badge bg-secondary" id="supportPushBadge">Verifica in corso</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3 align-items-start">
+      <div class="col-12 col-lg-7">
+        <p class="mb-2">
+          Quando uno studio preme <strong>Assistenza</strong>, il SUPERADMIN riceve una notifica interna e, se questo dispositivo è attivo, una notifica sul cellulare anche senza tenere aperto app.iusentra.it.
+        </p>
+        <div class="small text-muted" id="supportPushMessage">Lettura configurazione notifiche...</div>
+        <div class="small text-muted mt-1" id="supportPushDiagnostics"></div>
+        {% if payload.support_notifications['items'] %}
+        <div class="support-notification-list mt-3">
+          <div class="small fw-semibold mb-2">Ultime notifiche assistenza{% if payload.support_notifications['unread'] %} · {{ payload.support_notifications['unread'] }} da leggere{% endif %}</div>
+          {% for item in payload.support_notifications['items'][:3] %}
+          <a class="support-notification-item" href="{{ item.href or url_for('support_remote.support_console') }}">
+            <span class="fw-semibold">{{ item.title }}</span>
+            <span>{{ item.body }}</span>
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
+      <div class="col-12 col-lg-5">
+        <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
+          <button class="btn btn-sm btn-primary" type="button" id="supportPushActivate" disabled>
+            <i class="bi bi-bell-fill me-1"></i>Attiva questo dispositivo
+          </button>
+          <button class="btn btn-sm btn-outline-primary" type="button" id="supportPushTest" disabled>
+            <i class="bi bi-send me-1"></i>Invia test
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="supportPushDeactivate" disabled>
+            <i class="bi bi-bell-slash me-1"></i>Disattiva
+          </button>
+        </div>
+        <div class="small text-muted mt-2 text-lg-end">
+          La notifica esterna mostra solo che è arrivata una richiesta assistenza e da quale studio proviene.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 support-console-workbench">
+  <div class="col-12 col-xl-3 order-2 order-xl-2 support-secondary-panel">
+    <details class="card h-100 support-advanced-card">
+      <summary class="card-header fw-semibold">
+        <i class="bi bi-plus-circle me-2 text-primary"></i>Sessione manuale, solo se il cliente non usa Assistenza
+      </summary>
       <div class="card-body">
+        <p class="small text-muted mb-3">Nel flusso normale non devi creare nulla qui: selezioni la richiesta arrivata dallo studio e la prendi in carico.</p>
         <div id="supportConsoleFeedback" class="d-none mb-3"></div>
         <form id="supportCreateForm" class="support-create-form" action="{{ payload.create_action }}">
           <div class="mb-3">
@@ -127,16 +150,16 @@
             <textarea class="form-control" name="notes" rows="3" placeholder="Motivo dell'assistenza, anomalia da verificare, canale di contatto."></textarea>
           </div>
           <div class="d-grid gap-2">
-            <button class="btn btn-primary" type="submit">
+            <button class="btn btn-primary w-100" type="submit">
               <i class="bi bi-broadcast-pin me-1"></i>Apri assistenza remota
             </button>
             <div class="small text-muted">{{ payload.operator_rule }}</div>
-            <div class="small text-muted">I campi cliente sono utili per il registro, ma puoi aprire una sessione anche subito e copiare il link.</div>
+            <div class="small text-muted">Questa creazione manuale serve solo quando il cliente non parte dal bottone Assistenza dello studio.</div>
             <div class="small text-muted">
               {% if payload.advanced_ready %}
-              Escalation avanzata pronta: la piattaforma può aprire il controllo remoto esterno solo dopo approvazione esplicita del cliente.
+              Collegamento esterno opzionale configurato: usalo solo dopo approvazione esplicita del cliente.
               {% else %}
-              Escalation avanzata opzionale: questa cabina copre già schermo, audio, chat, audit e consensi.
+              La cabina copre già schermo, audio, chat, audit e controllo PC con consenso cliente.
               {% endif %}
             </div>
           </div>
@@ -154,14 +177,15 @@
           </div>
         </div>
       </div>
-    </div>
+    </details>
   </div>
-  <div class="col-12 col-xl-4">
-    <div class="card h-100">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-sliders me-2 text-primary"></i>Presidio realtime
-      </div>
+  <div class="col-12 col-xl-3 order-3 order-xl-3 support-secondary-panel">
+    <details class="card h-100 support-advanced-card">
+      <summary class="card-header fw-semibold">
+        <i class="bi bi-sliders me-2 text-primary"></i>Impostazioni rete avanzate
+      </summary>
       <div class="card-body">
+        <p class="small text-muted mb-3">Da aprire solo per cambiare STUN/TURN o durata dei link. La connessione standard è già pronta.</p>
         <form method="post" action="{{ payload.config_action }}">
           <div class="mb-3">
             <label class="form-label">Connessione browser già operativa</label>
@@ -195,9 +219,9 @@
             </div>
           </div>
           <div class="mt-3 mb-3">
-            <label class="form-label">URL controllo remoto avanzato</label>
+            <label class="form-label">URL collegamento esterno opzionale</label>
             <input class="form-control" name="advanced_url_template" value="{{ payload.runtime_config.advanced_url_template }}" placeholder="https://support.tuodominio.it/advanced/{public_id}">
-            <div class="small text-muted mt-1">Opzionale: collega la sessione a uno strumento esterno solo dopo consenso cliente.</div>
+            <div class="small text-muted mt-1">Opzionale: il controllo PC integrato resta nella stanza operatore e non richiede questo campo.</div>
           </div>
           <div class="d-flex gap-2 align-items-center flex-wrap">
             <button class="btn btn-primary" type="submit">
@@ -207,12 +231,13 @@
           </div>
         </form>
       </div>
-    </div>
+    </details>
   </div>
-  <div class="col-12 col-xl-4">
+  <div class="col-12 col-xl-6 order-1 order-xl-1 support-primary-panel">
     <div class="card h-100">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span><i class="bi bi-headset me-2 text-primary"></i>Sessioni assistenza</span>
+        <span><i class="bi bi-headset me-2 text-primary"></i>Richieste dallo studio</span>
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
         <form class="d-flex gap-2 flex-wrap" method="get">
           <input type="search" class="form-control form-control-sm" name="q" value="{{ payload.filters.q }}" placeholder="Cerca cliente, pratica o studio">
           <select class="form-select form-select-sm" name="stato">
@@ -223,7 +248,59 @@
           </select>
           <button class="btn btn-sm btn-outline-primary" type="submit">Filtra</button>
         </form>
+        <form method="post" action="{{ url_for('support_remote.delete_test_sessions_from_console') }}">
+          <button class="btn btn-sm btn-outline-danger" type="submit">
+            <i class="bi bi-trash3 me-1"></i>Cancella prove/test
+          </button>
+        </form>
+        </div>
       </div>
+      {% if payload.selected_session %}
+      <div class="support-selected-brief mx-3 mt-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div class="min-width-0">
+            <div class="small text-muted">Richiesta selezionata</div>
+            <div class="fw-semibold text-truncate">{{ payload.selected_session.customer_name or 'Cliente non indicato' }}</div>
+            <div class="small text-muted text-truncate">
+              {{ payload.selected_session.practice_label or 'Nessuna pratica collegata' }}
+              {% if payload.selected_session.studio_nome %} · {{ payload.selected_session.studio_nome }}{% endif %}
+            </div>
+          </div>
+          <div class="support-selected-actions">
+            <span class="badge {% if payload.selected_session.status == 'active' %}bg-success{% elif payload.selected_session.status == 'closed' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+              {{ payload.selected_session.status_label }}
+            </span>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('support_remote.operator_room', public_id=payload.selected_session.public_id) }}">
+              <i class="bi bi-display me-1"></i>Prendi in carico
+            </a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ payload.selected_session.join_path }}" target="_blank" rel="noopener">
+              <i class="bi bi-link-45deg me-1"></i>Stanza cliente
+            </a>
+            <form method="post" action="{{ url_for('support_remote.delete_from_console', public_id=payload.selected_session.public_id) }}">
+              <button class="btn btn-sm btn-outline-danger" type="submit">
+                <i class="bi bi-trash3 me-1"></i>Cancella
+              </button>
+            </form>
+          </div>
+        </div>
+        <div class="support-next-inline mt-3">
+          <i class="bi bi-arrow-right-circle"></i>
+          <span>
+            {% if not payload.selected_session.presence.operator %}
+            Prossimo passo: apri la stanza operatore e premi <strong>Entra</strong>.
+            {% elif not payload.selected_session.presence.client %}
+            Prossimo passo: attendi che il cliente resti nella stanza cliente.
+            {% elif not payload.selected_session.consent_screen %}
+            Prossimo passo: fai autorizzare al cliente la condivisione schermo.
+            {% elif not payload.selected_session.advanced_control_approved %}
+            Schermo e chat disponibili. Per mouse e tastiera richiedi <strong>Controllo PC</strong> nella stanza operatore.
+            {% else %}
+            Controllo PC approvato: puoi guidare mouse, tastiera e testo.
+            {% endif %}
+          </span>
+        </div>
+      </div>
+      {% endif %}
       <div class="card-body p-0">
         {% if payload.sessions %}
         <div class="list-group list-group-flush support-console-list">
@@ -286,7 +363,7 @@
             <span class="badge {% if payload.selected_session.consent_audio %}bg-success{% else %}bg-light text-dark border{% endif %}">Audio</span>
             <span class="badge {% if payload.selected_session.consent_chat %}bg-success{% else %}bg-light text-dark border{% endif %}">Chat</span>
           </dd>
-          <dt class="col-5 text-muted">Controllo avanzato</dt>
+          <dt class="col-5 text-muted">Controllo PC</dt>
           <dd class="col-7">
             {% if payload.selected_session.advanced_control_approved %}
             <span class="badge bg-success">Approvato</span>
@@ -303,20 +380,52 @@
           <dt class="col-5 text-muted">Chiusa</dt>
           <dd class="col-7">{{ payload.selected_session.ended_at|fmt_dataora if payload.selected_session.ended_at else '—' }}</dd>
         </dl>
+        <div class="ui-feedback mt-3 mb-0">
+          <div class="ui-feedback__icon"><i class="bi bi-arrow-right-circle"></i></div>
+          <div class="ui-feedback__content">
+            <div class="ui-feedback__title">Prossimo passo</div>
+            <div class="ui-feedback__body small">
+              {% if not payload.selected_session.presence.operator %}
+              Prendi in carico la richiesta: apri la stanza operatore e premi <strong>Entra</strong>.
+              {% elif not payload.selected_session.presence.client %}
+              Attendi che il cliente resti nella stanza cliente aperta dal bottone Assistenza.
+              {% elif not payload.selected_session.consent_screen %}
+              Chiedi al cliente di autorizzare la condivisione schermo nella stanza cliente.
+              {% elif not payload.selected_session.advanced_control_approved %}
+              Puoi assistere via schermo e chat. Per guidare mouse e tastiera, richiedi <strong>Controllo PC</strong> nella stanza operatore e attendi l'approvazione del cliente.
+              {% else %}
+              Controllo PC approvato: nella stanza operatore puoi usare mouse, tastiera e testo sulla macchina cliente.
+              {% endif %}
+            </div>
+          </div>
+        </div>
         <div class="mt-3">
           <label class="form-label">Note finali sessione</label>
           <textarea class="form-control" id="supportNotes" rows="4">{{ payload.selected_session.notes }}</textarea>
+          <form class="support-status-form mt-3" method="post" action="{{ url_for('support_remote.change_console_status', public_id=payload.selected_session.public_id) }}">
+            <label class="form-label">Cambia stato assistenza</label>
+            <div class="d-flex gap-2 flex-wrap">
+              <select class="form-select form-select-sm" name="status">
+                {% for value, label in [('created','Creata'),('waiting_operator','In attesa operatore'),('waiting_client','In attesa cliente'),('waiting_peer','In attesa dell altra parte'),('active','Attiva'),('closed','Chiusa')] %}
+                <option value="{{ value }}" {% if payload.selected_session.status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-outline-primary" type="submit">
+                <i class="bi bi-arrow-repeat me-1"></i>Aggiorna stato
+              </button>
+            </div>
+          </form>
           <div class="d-flex gap-2 mt-2 flex-wrap">
             <button class="btn btn-sm btn-outline-primary" id="supportSaveNotes" data-public-id="{{ payload.selected_session.public_id }}">Salva note</button>
             <a class="btn btn-sm btn-primary" href="{{ url_for('support_remote.operator_room', public_id=payload.selected_session.public_id) }}" target="_blank" rel="noopener">
-              Apri stanza operatore
+              Prendi in carico nella stanza operatore
             </a>
             <a class="btn btn-sm btn-outline-secondary" href="{{ payload.selected_session.join_path }}" target="_blank" rel="noopener">
               Apri link cliente
             </a>
             {% if payload.selected_session.advanced_url %}
             <a class="btn btn-sm btn-outline-dark" href="{{ payload.selected_session.advanced_url }}" target="_blank" rel="noopener">
-              Controllo avanzato
+              Collegamento esterno opzionale
             </a>
             {% endif %}
             {% if payload.selected_session.status != 'closed' %}
@@ -324,6 +433,9 @@
               <button class="btn btn-sm btn-outline-danger" type="submit">Chiudi sessione</button>
             </form>
             {% endif %}
+            <form method="post" action="{{ url_for('support_remote.delete_from_console', public_id=payload.selected_session.public_id) }}">
+              <button class="btn btn-sm btn-danger" type="submit">Cancella sessione</button>
+            </form>
           </div>
         </div>
       </div>

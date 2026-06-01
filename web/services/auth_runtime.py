@@ -422,6 +422,10 @@ def register_auth_runtime(
         allowed_path_prefixes = (
             "/admin/database",
             "/api/assistente",
+            "/support/join/",
+            "/support/operatore/",
+            "/support/api/",
+            "/support/ws/",
         )
 
         if (
@@ -449,7 +453,7 @@ def register_auth_runtime(
             return None
         if any(
             str(request.path or "").startswith(prefix)
-            for prefix in ("/support/join/", "/support/api/", "/support/ws/", "/web/")
+            for prefix in ("/support/join/", "/support/operatore/", "/support/api/", "/support/ws/", "/web/")
         ):
             return None
         if request.endpoint and request.endpoint.startswith(("api_", "portale")):

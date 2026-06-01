@@ -121,7 +121,7 @@ type Route =
 
 const sortLabels: Record<SortKey, string> = {
   recenti: 'Aggiornati di recente',
-  rg: 'Numero RG',
+  rg: 'Anno e numero RG',
   cliente: 'Cliente',
   scadenza: 'Prossima scadenza',
   documenti: 'Documenti',
@@ -438,9 +438,10 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, onDeleted
   )
 }
 
-function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void}) {
+function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void}) {
   const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
   const total = pagination?.total ?? items.length
+  const totalLabel = filtered ? 'fascicoli filtrati' : 'fascicoli'
   const currentPage = pagination?.page ?? 1
   const totalPages = pagination?.pages ?? (items.length ? 1 : 0)
   const pageNumbers = (() => {
@@ -451,10 +452,11 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   const pageSizeControl = onPageSizeChange ? (
     <label className="iu-fas-page-size">
       <span>Per pagina</span>
-      <select value={pageSize || pagination?.pageSize || 25} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
+      <select value={pageSize || pagination?.pageSize || 5} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
+        <option value={5}>5</option>
+        <option value={10}>10</option>
         <option value={25}>25</option>
         <option value={50}>50</option>
-        <option value={100}>100</option>
       </select>
     </label>
   ) : null
@@ -462,7 +464,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
     <>
       <button type="button" onClick={() => onPageChange(1)} disabled={currentPage <= 1}>Prima</button>
       <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1}>Precedente</button>
-      <span>Pagina {currentPage} di {Math.max(1, totalPages)} - {total} fascicoli</span>
+      <span>Pagina {currentPage} di {Math.max(1, totalPages)} - {total} {totalLabel}</span>
       <div className="iu-fas-page-jump" aria-label="Vai a pagina">
         {pageNumbers.map((value, index) => (
           <button
@@ -483,7 +485,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   ) : null
   return (
     <IusentraDataSurface
-      title={`${total} fascicoli`}
+      title={`${total} ${totalLabel}`}
       subtitle={archive ? 'Archivio pratiche chiuse' : 'Elenco operativo dello studio'}
       toolbar={pageSizeControl}
       footer={paginationControls}
@@ -543,24 +545,28 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   )
 }
 
-function ListFilters({ data, query, setQuery, type, setType, status, setStatus, advancedOpen, setAdvancedOpen, refresh }:{data:FascicoliPageData; query:string; setQuery:(value:string)=>void; type:FascicoloTipo; setType:(value:FascicoloTipo)=>void; status:FascicoloStato; setStatus:(value:FascicoloStato)=>void; advancedOpen:boolean; setAdvancedOpen:(value:boolean)=>void; refresh:()=>void}) {
+function ListFilters({ data, query, setQuery, type, setType, status, setStatus, sort, setSort, advancedOpen, setAdvancedOpen, refresh }:{data:FascicoliPageData; query:string; setQuery:(value:string)=>void; type:FascicoloTipo; setType:(value:FascicoloTipo)=>void; status:FascicoloStato; setStatus:(value:FascicoloStato)=>void; sort:SortKey; setSort:(value:SortKey)=>void; advancedOpen:boolean; setAdvancedOpen:(value:boolean)=>void; refresh:()=>void}) {
   return (
     <IusentraFiltersBar className="iu-fas-toolbar">
       <label className="iu-fas-search">
         <Search size={17}/>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente, n. causa..."/>
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca numero, anno, RG, cliente, titolo..."/>
       </label>
-      <label>
+      <label className="iu-fas-filter-field iu-fas-filter-field--type">
         <span>Tipo</span>
         <select value={type} onChange={(event) => setType(event.target.value as FascicoloTipo)}>
           {data.facets.types.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}
         </select>
       </label>
-      <label>
+      <label className="iu-fas-filter-field iu-fas-filter-field--status">
         <span>Stato</span>
         <select value={status} onChange={(event) => setStatus(event.target.value as FascicoloStato)}>
           {data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}
         </select>
+      </label>
+      <label className="iu-fas-filter-field iu-fas-filter-field--sort">
+        <span>Ordine</span>
+        <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select>
       </label>
       <button className="iu-fas-filter-btn" type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}><Filter size={16}/> Filtri</button>
       <button className="iu-fas-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna fascicoli"><RefreshCw size={17}/></button>
@@ -619,7 +625,7 @@ function FascicoliListPage() {
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [type, setType] = useState<FascicoloTipo>('tutti')
   const [status, setStatus] = useState<FascicoloStato>('tutti')
-  const [sort, setSort] = useState<SortKey>('recenti')
+  const [sort, setSort] = useState<SortKey>('rg')
   const [court, setCourt] = useState('')
   const [debouncedCourt, setDebouncedCourt] = useState('')
   const [alertsOnly, setAlertsOnly] = useState(false)
@@ -627,7 +633,7 @@ function FascicoliListPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const [pageSize, setPageSize] = useState(5)
 
   const refresh = () => {
     setLoading(true)
@@ -653,6 +659,7 @@ function FascicoliListPage() {
   }, [alertsOnly, debouncedCourt, debouncedQuery, page, pageSize, sort, status, type])
 
   const visible = data.items
+  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || alertsOnly)
   const updateType = (value: FascicoloTipo) => { setPage(1); setType(value) }
   const updateStatus = (value: FascicoloStato) => { setPage(1); setStatus(value) }
   const updateSort = (value: SortKey) => { setPage(1); setSort(value) }
@@ -661,12 +668,42 @@ function FascicoliListPage() {
   const updatePage = (value: number) => setPage(Math.max(1, Math.min(Math.max(1, data.pagination.pages || 1), value)))
 
   const selectedVisible = visible.filter((item) => selected.has(item.id)).length
+  const selectedItems = visible.filter((item) => selected.has(item.id))
   const toggle = (id: string) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
   const toggleAll = () => setSelected((current) => {
     const allSelected = visible.length > 0 && visible.every((item) => current.has(item.id))
     if (allSelected) return new Set([...current].filter((id) => !visible.some((item) => item.id === id)))
     return new Set([...current, ...visible.map((item) => item.id)])
   })
+  const handleBulkDelete = async () => {
+    if (!selectedItems.length) return
+    const refs = selectedItems.map((item) => item.ref).join(', ')
+    const message = selectedItems.length === 1
+      ? `Eliminare definitivamente il fascicolo ${selectedItems[0].ref}?`
+      : `Eliminare definitivamente ${selectedItems.length} fascicoli selezionati? ${refs}`
+    if (!window.confirm(message)) return
+    setLoading(true)
+    try {
+      const deleted: string[] = []
+      for (const item of selectedItems) {
+        const response = await fetch(item.deleteHref || `/fascicoli/${encodeURIComponent(item.id)}/elimina`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        const contentType = response.headers.get('content-type') || ''
+        const payload = contentType.includes('application/json') ? await response.json().catch(() => ({} as ActionPayload)) : {} as ActionPayload
+        if (!response.ok || payload.ok === false) throw new Error(String(payload.messaggio || payload.errore || payload.error || `Eliminazione non riuscita: HTTP ${response.status}`))
+        deleted.push(item.id)
+      }
+      setSelected((current) => new Set([...current].filter((id) => !deleted.includes(id))))
+      setToast({ tone: 'success', message: deleted.length === 1 ? 'Fascicolo eliminato.' : `${deleted.length} fascicoli eliminati.` })
+      refresh()
+    } catch (err) {
+      setLoading(false)
+      setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Eliminazione selezione non riuscita.' })
+    }
+  }
   const handleFascicoloDeleted = (id: string, message?: string) => {
     setSelected((current) => { const next = new Set(current); next.delete(id); return next })
     setToast({ tone: 'success', message: message || 'Fascicolo eliminato.' })
@@ -711,11 +748,11 @@ function FascicoliListPage() {
 
       <IusentraMainArea className="iu-fas-layout">
         <IusentraMainSurface className="iu-fas-main-list">
-          <ListFilters data={data} query={query} setQuery={setQuery} type={type} setType={updateType} status={status} setStatus={updateStatus} advancedOpen={advancedOpen} setAdvancedOpen={setAdvancedOpen} refresh={refresh}/>
+          <ListFilters data={data} query={query} setQuery={setQuery} type={type} setType={updateType} status={status} setStatus={updateStatus} sort={sort} setSort={updateSort} advancedOpen={advancedOpen} setAdvancedOpen={setAdvancedOpen} refresh={refresh}/>
 
-      <IusentraContextFilters className={`iu-fas-advanced ${advancedOpen ? 'is-open' : 'is-compact'}`}>
+      {advancedOpen ? (
+      <IusentraContextFilters className="iu-fas-advanced is-open">
         <div className="iu-fas-context-summary">
-          <span>Contesto filtri</span>
           <strong>{sortLabels[sort]}</strong>
           <small>{court ? `Ufficio: ${court}` : 'Tutti gli uffici'}{alertsOnly ? ' · solo alert' : ''}</small>
         </div>
@@ -727,6 +764,7 @@ function FascicoliListPage() {
           </>
         ) : null}
       </IusentraContextFilters>
+      ) : null}
 
       <section className="iu-fas-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione fascicoli...' : 'Dati aggiornati'}</span>
@@ -740,10 +778,11 @@ function FascicoliListPage() {
             <div className="iu-fas-bulkbar">
               <strong>{selectedVisible} fascicoli selezionati</strong>
               <a href="/fascicoli/esporta"><Download size={14}/> Esporta selezione</a>
+              <button className="is-danger" type="button" onClick={() => { void handleBulkDelete() }}><Trash2 size={14}/> Elimina selezionati</button>
               <button type="button" onClick={() => setSelected(new Set())}>Annulla</button>
             </div>
           ) : null}
-          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage}/>
+          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage}/>
         </IusentraMainSurface>
         <InsightPanel data={data} visible={visible}/>
       </IusentraMainArea>
@@ -1449,6 +1488,9 @@ const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
   scadenze: 'idle',
   depositi: 'idle',
   regia: 'idle',
+  relata: 'idle',
+  audit: 'idle',
+  lex: 'idle',
 }
 
 function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; onClose:()=>void}) {
@@ -2546,10 +2588,11 @@ function copyAuditHash(value: string) {
   void navigator.clipboard.writeText(value)
 }
 
-function AuditTrailSection({ audit, bundleHref }:{audit:FascicoloAuditTrail; bundleHref:string}) {
+function AuditTrailSection({ audit, bundleHref, onOpen, loading = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; loading?:boolean}) {
   const effectiveBundleHref = audit.enabled ? (audit.actions.bundle || bundleHref) : ''
   return (
-    <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} defaultOpen>
+    <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} onOpen={onOpen}>
+      {loading ? <p className="iu-empty">Caricamento audit...</p> : null}
       <div className="iu-fas-audit-summary">
         <span><Badge tone={audit.summary.signed === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.signed}</Badge><strong>Firmati</strong></span>
         <span><Badge tone={audit.summary.worm === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.worm}</Badge><strong>WORM</strong></span>
@@ -2651,6 +2694,9 @@ function DetailPage({ id }:{id:string}) {
           appointments: section === 'scadenze' ? payload.appointments : current.appointments,
           deposits: section === 'depositi' ? payload.deposits : current.deposits,
           regia: section === 'regia' ? payload.regia : current.regia,
+          notificationRelata: section === 'relata' ? payload.notificationRelata : current.notificationRelata,
+          auditTrail: section === 'audit' ? payload.auditTrail : current.auditTrail,
+          lexIndexing: section === 'lex' ? payload.lexIndexing : current.lexIndexing,
         }))
         setLazyStatus((current) => ({ ...current, [section]: 'loaded' }))
       })
@@ -2663,7 +2709,7 @@ function DetailPage({ id }:{id:string}) {
     if (message) setToast({ tone: 'success', message })
     getFascicoloDetail(id, { include: 'all' }).then((payload) => {
       setData(payload)
-      setLazyStatus({ documenti: 'loaded', attivita: 'loaded', scadenze: 'loaded', depositi: 'loaded', regia: 'loaded' })
+      setLazyStatus({ documenti: 'loaded', attivita: 'loaded', scadenze: 'loaded', depositi: 'loaded', regia: 'loaded', relata: 'loaded', audit: 'loaded', lex: 'loaded' })
     }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento fascicolo non riuscito.' }))
   }
   const failDetail = (message: string) => setToast({ tone: 'danger', message })
@@ -2711,16 +2757,16 @@ function DetailPage({ id }:{id:string}) {
           <a href="#conformita"><Badge tone={qualityIssues ? 'warning' : 'success'}>Conformità</Badge><strong>{qualityIssues ? `${qualityIssues} verifiche aperte` : 'Presidio OK'}</strong><span>Controlli qualità, parti, sync portale e dati principali.</span></a>
         </div>
       </section>
-          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<MapPin size={19}/>} label="Uffici" value="Cerca" note="competenza per Comune" tone="success" href="#uffici-competenti" onClick={openSection('uffici-competenti')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<FileSignature size={19}/>} label="Relata" value={notificationRelataCount} note={notificationRelata.statusLabel} tone={notificationRelata.tone} href="#relata-notifica" onClick={openSection('relata-notifica')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
+          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<MapPin size={19}/>} label="Uffici" value="Cerca" note="competenza per Comune" tone="success" href="#uffici-competenti" onClick={openSection('uffici-competenti')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<FileSignature size={19}/>} label="Relata" value={notificationRelataCount} note={notificationRelata.statusLabel} tone={notificationRelata.tone} href="#relata-notifica" onClick={openSection('relata-notifica', 'relata')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit', 'audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
           </DetailSection>
           <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail} onOpen={() => loadLazySection('regia')} loading={lazyStatus.regia === 'loading'}/>
-          <DetailSection id="relata-notifica" title="Relata notifica" icon={<FileSignature size={17}/>} count={notificationRelataCount} defaultOpen={notificationRelata.releaseDetected || notificationRelata.status !== 'monitoraggio'}>
+          <DetailSection id="relata-notifica" title="Relata notifica" icon={<FileSignature size={17}/>} count={notificationRelataCount} defaultOpen={notificationRelata.releaseDetected || notificationRelata.status !== 'monitoraggio'} onOpen={() => loadLazySection('relata')}>
             <NotificationRelataMonitor data={data}/>
           </DetailSection>
-          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => loadLazySection('documenti')}>
+          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => { loadLazySection('documenti'); loadLazySection('lex') }}>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             <div className="iu-fas-doc-section-list">
@@ -2801,7 +2847,7 @@ function DetailPage({ id }:{id:string}) {
             </div>
           </DetailSection>
           <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong><span>{item.from} → {item.to}</span><p>{item.notes}</p></article>)}{!data.history.length ? <p className="iu-empty">Nessun avanzamento registrato.</p> : null}</div></DetailSection>
-          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle}/>
+          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} loading={lazyStatus.audit === 'loading'}/>
         </div>
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>}>

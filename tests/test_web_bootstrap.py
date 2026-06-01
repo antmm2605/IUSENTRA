@@ -366,6 +366,7 @@ def test_template_runtime_registers_filters_and_globals(tmp_path: Path):
 
     assert app.jinja_env.filters["fmt_data"]("2026-04-13") == "13/04/2026"
     assert app.jinja_env.filters["fmt_dataora"]("2026-04-13T09:45:00") == "13/04/2026 09:45"
+    assert app.jinja_env.filters["fmt_dataora"]("2026-05-31T21:05:00+00:00") == "31/05/2026 23:05"
     assert app.jinja_env.filters["fmt_data_estesa"]("2026-04-13") == "13 aprile 2026"
     assert (
         app.jinja_env.filters["fmt_data_estesa_con_giorno"]("2026-04-13")

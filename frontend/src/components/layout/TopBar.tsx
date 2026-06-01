@@ -34,9 +34,45 @@ function todayLabel() {
 
 export function TopBar({ onOpenMenu, activePath, supportEnabled = true }: { onOpenMenu: () => void; activePath: string; supportEnabled?: boolean }) {
   const [openPanel, setOpenPanel] = useState<PanelName>(null)
+  const [supportOpening, setSupportOpening] = useState(false)
+  const [supportError, setSupportError] = useState('')
   const context = useMemo(() => currentContext(activePath), [activePath])
   const togglePanel = (panel: Exclude<PanelName, null>) => setOpenPanel((current) => (current === panel ? null : panel))
   const closePanel = () => setOpenPanel(null)
+  const requestSupport = async () => {
+    if (supportOpening) return
+    const contextLabel = `Richiesta aperta dalla barra dello studio: ${activePath || '/'}`
+    setSupportOpening(true)
+    setSupportError('')
+    try {
+      const response = await fetch('/support/studio/sessione', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          context_label: contextLabel,
+          practice_label: contextLabel,
+          notes: contextLabel,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.description || payload?.error || 'Richiesta assistenza non completata.')
+      }
+      if (payload.customer_entry && payload.join_url) {
+        window.location.assign(String(payload.join_url))
+        return
+      }
+      if (payload.operator_url) {
+        window.open(String(payload.operator_url), '_blank', 'noopener')
+        return
+      }
+      throw new Error('Link assistenza non ricevuto.')
+    } catch (error) {
+      setSupportError(error instanceof Error ? error.message : 'Assistenza non avviata.')
+      setSupportOpening(false)
+    }
+  }
 
   return (
     <IusTopBar className="iu-topbar-op">
@@ -45,18 +81,21 @@ export function TopBar({ onOpenMenu, activePath, supportEnabled = true }: { onOp
       </button>
       <TopBarSearch />
       {supportEnabled ? (
-        <button
-          className="iu-new iu-support-request"
-          type="button"
-          data-support-launch
-          data-support-endpoint="/support/studio/sessione"
-          data-support-context-label={`Richiesta aperta dalla barra dello studio: ${activePath || '/'}`}
-          aria-label="Richiedi assistenza remota"
-          title="Richiedi assistenza remota"
-        >
-          <Headphones size={16} />
-          <span>Assistenza</span>
-        </button>
+        <div className="iu-support-request-wrap">
+          <button
+            className="iu-new iu-support-request"
+            type="button"
+            onClick={requestSupport}
+            disabled={supportOpening}
+            aria-busy={supportOpening}
+            aria-label="Richiedi assistenza remota"
+            title="Richiedi assistenza remota"
+          >
+            <Headphones size={16} />
+            <span>{supportOpening ? 'Apro assistenza...' : 'Assistenza'}</span>
+          </button>
+          {supportError ? <div className="iu-support-request-error" role="alert">{supportError}</div> : null}
+        </div>
       ) : null}
       <div className="iu-topbar__actions iu-topbar-op__actions">
         <TopBarTimeTracker

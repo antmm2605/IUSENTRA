@@ -8,7 +8,7 @@ from flask import current_app, request, url_for
 from pct.config_studio import GestioneConfigStudio
 from pct.support_remote import default_support_stun_urls, normalize_ice_url_list
 
-from web.services.support_runtime import support_repository, support_session_payload
+from web.services.support_runtime import platform_push_status, platform_support_notifications, support_repository, support_session_payload
 
 
 def _is_secure_runtime() -> bool:
@@ -121,6 +121,20 @@ def build_support_console_payload(
     selected_payload = support_session_payload(selected) if selected else None
     events = repo.list_events(selected_payload["public_id"]) if selected_payload else []
     current_config = current_support_configuration()
+    try:
+        push_status = platform_push_status()
+    except Exception:
+        push_status = {
+            "ok": False,
+            "enabled": False,
+            "configured": False,
+            "activeSubscriptions": 0,
+            "message": "Stato notifiche cellulare non disponibile.",
+        }
+    try:
+        support_notifications = platform_support_notifications()
+    except Exception:
+        support_notifications = {"unread": 0, "items": []}
     secure_runtime = _is_secure_runtime()
     stun_ready = bool(current_config["stun_urls"])
     turn_ready = _turn_ready()
@@ -137,7 +151,7 @@ def build_support_console_payload(
         )
     if not advanced_ready:
         advisories.append(
-            "Escalation avanzata esterna opzionale: link cliente, schermo, audio, chat e audit restano subito operativi."
+            "Collegamento esterno opzionale non configurato: schermo, audio, chat, audit e controllo PC integrato restano disponibili dalla stanza operatore."
         )
     ready_now = secure_runtime and stun_ready
 
@@ -194,8 +208,10 @@ def build_support_console_payload(
             "advanced_url_template": current_config["advanced_url_template"],
             "config_path": current_config["config_path"],
         },
+        "push_status": push_status,
+        "support_notifications": support_notifications,
         "create_action": url_for("support_remote.create_session_api"),
         "config_action": url_for("support_remote.save_support_config"),
-        "operator_rule": "L'assistenza remota parte sempre dal SUPERADMIN. Il cliente entra solo dal link firmato della sessione.",
+        "operator_rule": "Se la richiesta arriva dal bottone Assistenza dello studio, non creare una nuova sessione: selezionala dall'elenco e prendila in carico.",
         "advanced_ready": advanced_ready,
     }

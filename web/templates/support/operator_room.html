@@ -2,131 +2,49 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B1B3A">
+  <meta name="csrf-token" content="{{ csrf_token if csrf_token is defined else '' }}">
   <title>Stanza operatore - IUSENTRA</title>
   <link rel="icon" href="{{ url_for('static', filename='images/logo-iusentra.png') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
-  <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
-  <link href="/static/css/mobile.css?v={{ app_version }}" rel="stylesheet">
-  <link href="/static/css/theme.css?v={{ app_version }}" rel="stylesheet">
+  {% for css_file in react_assets.css %}
+  <link rel="stylesheet" href="{{ css_file }}">
+  {% endfor %}
+  {% for css_file in react_assets.page_css %}
+  <link rel="stylesheet" href="{{ css_file }}">
+  {% endfor %}
+  {% for preload_file in react_assets.preload_js %}
+  <link rel="modulepreload" href="{{ preload_file }}">
+  {% endfor %}
   <style>
-    body.support-operator-fullscreen{margin:0;min-height:100dvh;overflow:hidden;background:#f4f7fb;color:#0f172a;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.support-operator-shell{height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:.45rem;padding:.5rem}.support-operator-topbar{display:flex;align-items:center;justify-content:space-between;gap:.6rem;border:1px solid rgba(15,23,42,.08);border-radius:.7rem;background:rgba(255,255,255,.97);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:.45rem .6rem}.support-operator-brand{display:flex;align-items:center;gap:.55rem;min-width:0}.support-operator-brand__mark{width:2rem;height:2rem;border-radius:.6rem;display:inline-flex;align-items:center;justify-content:center;background:#111f3d;color:#fff;font-weight:700}.support-operator-brand__title{font-size:1rem;font-weight:700;line-height:1.1}.support-operator-brand__subtitle{font-size:.76rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.support-operator-badges,.support-room__actions{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}.support-room__actions .btn{white-space:nowrap}.support-operator-stage{min-height:0;border:1px solid rgba(15,23,42,.1);border-radius:.85rem;overflow:hidden;background:#111827;box-shadow:0 18px 44px rgba(15,23,42,.14)}.support-room__screen{position:relative;width:100%;height:100%;min-height:0;background:linear-gradient(160deg,#0f172a,#18243b)}.support-room__screen video{width:100%;height:100%;min-height:0;display:block;object-fit:contain;background:transparent}.support-room__screen--control-enabled{cursor:crosshair;outline:2px solid rgba(34,197,94,.9);outline-offset:-2px}.support-room__screen-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:1.5rem;text-align:center;color:rgba(255,255,255,.9);font-weight:600}.support-operator-dock{display:grid;grid-template-columns:minmax(220px,.72fr) minmax(420px,1.55fr) minmax(260px,.85fr);gap:.45rem;align-items:start}.support-operator-panel{min-height:0!important;align-self:start;border:1px solid rgba(15,23,42,.08);border-radius:.65rem;background:rgba(255,255,255,.97);padding:.48rem;box-shadow:0 8px 20px rgba(15,23,42,.06)}.support-operator-panel__title{display:inline-flex;align-items:center;gap:.35rem;font-weight:700;font-size:.86rem}.support-operator-panel__note{margin:.2rem 0 .35rem;color:#64748b;font-size:.74rem;line-height:1.2}.support-control-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.35rem}.support-key-row{display:flex;flex-wrap:wrap;gap:.28rem;margin-top:.32rem}.support-key-row .btn{padding:.16rem .38rem;font-size:.76rem}.support-chat-log{height:3.4rem!important;min-height:3.4rem!important;max-height:3.4rem!important;overflow:auto;border:1px solid rgba(15,23,42,.08);border-radius:.5rem;background:#f8fafc;padding:.28rem!important;display:flex;flex-direction:column;gap:.25rem}.support-chat-log__message{border-radius:.45rem;padding:.22rem .4rem;font-size:.76rem;max-width:92%}.support-chat-log__message--me{align-self:flex-end;background:#dbeafe;color:#173b82}.support-chat-log__message--other{align-self:flex-start;background:#fff;border:1px solid rgba(15,23,42,.08)}.support-operator-mic{min-width:max-content}@media(max-width:1100px){body.support-operator-fullscreen{overflow:auto}.support-operator-shell{height:auto;min-height:100dvh}.support-operator-topbar{align-items:flex-start;flex-direction:column}.support-operator-stage{height:62dvh}.support-operator-dock{grid-template-columns:1fr}.support-chat-log{height:5rem!important;min-height:5rem!important;max-height:5rem!important}}@media(min-width:1101px){.support-operator-stage{height:100%}}@media(max-width:575.98px){.support-operator-shell{padding:.45rem}.support-operator-stage{height:48dvh}.support-room__actions .btn{padding:.35rem .5rem}.support-control-grid{grid-template-columns:1fr}.support-operator-brand__subtitle{white-space:normal}}
+    .support-room__agent-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #020617;
+    }
   </style>
 </head>
-<body class="support-operator-fullscreen support-room--operator">
-  <main class="support-operator-shell">
-    <header class="support-operator-topbar">
-      <div class="support-operator-brand">
-        <span class="support-operator-brand__mark">I</span>
-        <div class="min-w-0">
-          <div class="support-operator-brand__title">Stanza operatore</div>
-          <div class="support-operator-brand__subtitle">
-            Cliente {{ sessione.customer_name or 'non indicato' }}
-            {% if sessione.practice_label %} - {{ sessione.practice_label }}{% endif %}
-          </div>
-        </div>
-      </div>
-      <div class="support-operator-badges">
-        <span class="badge bg-light text-dark border" id="statusBadge">{{ sessione.status_label }}</span>
-        <span class="badge {% if sessione.presence.client %}bg-success{% else %}bg-secondary{% endif %}" id="peerBadge">
-          {% if sessione.presence.client %}Cliente collegato{% else %}Cliente non collegato{% endif %}
-        </span>
-        <span class="badge bg-secondary" id="remoteControlBadge">Controllo PC non attivo</span>
-      </div>
-      <div class="support-room__actions">
-        <button class="btn btn-primary btn-sm" id="joinBtn" type="button">
-          <i class="bi bi-broadcast-pin me-1"></i>Entra
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" id="requestAdvancedBtn" type="button">
-          <i class="bi bi-shield-check me-1"></i>Richiedi controllo PC
-        </button>
-        <button class="btn btn-outline-dark btn-sm" id="fullscreenBtn" type="button">
-          <i class="bi bi-arrows-fullscreen me-1"></i>Schermo intero
-        </button>
-        <button class="btn btn-outline-danger btn-sm" id="closeBtn" type="button">
-          <i class="bi bi-x-circle me-1"></i>Chiudi
-        </button>
-        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('support_remote.support_console') }}">
-          <i class="bi bi-arrow-left me-1"></i>Console
-        </a>
-        <div class="form-check form-switch m-0 support-operator-mic">
-          <input class="form-check-input" type="checkbox" id="operatorMic">
-          <label class="form-check-label small" for="operatorMic">Microfono</label>
-        </div>
-      </div>
-    </header>
-
-    <section class="support-operator-stage" aria-label="Schermo cliente">
-      <div class="support-room__screen support-room__screen--operator" id="remoteScreen">
-        <video id="remoteVideo" autoplay playsinline></video>
-        <div class="support-room__screen-empty" id="remoteVideoFallback">
-          Il video del cliente comparirà qui appena la condivisione schermo è attiva.
-        </div>
-      </div>
-    </section>
-
-    <section class="support-operator-dock" aria-label="Pannello assistenza">
-      <article class="support-operator-panel">
-        <div class="support-operator-panel__title">
-          <i class="bi bi-link-45deg text-primary"></i>
-          <span>Link cliente</span>
-        </div>
-        <div class="input-group input-group-sm">
-          <input class="form-control" id="joinUrlField" readonly value="{{ bootstrap.customerJoinUrl }}">
-          <button class="btn btn-outline-secondary" id="copyLinkBtn" type="button">Copia</button>
-        </div>
-        <p class="support-operator-panel__note mb-0">
-          Il controllo del PC richiede consenso separato del cliente e agente IUSENTRA Assistenza.
-        </p>
-      </article>
-
-      <article class="support-operator-panel support-operator-panel--control">
-        <div class="support-operator-panel__title">
-          <i class="bi bi-mouse2 text-primary"></i>
-          <span>Controllo PC</span>
-        </div>
-        <p class="support-operator-panel__note" id="remoteControlHint">
-          Dopo l'approvazione: clic sinistro, clic destro, doppio clic sul video, testo e tasti rapidi.
-        </p>
-        <div class="support-control-grid">
-          <input class="form-control form-control-sm" id="remoteControlText" placeholder="Testo da digitare sul PC cliente">
-          <button class="btn btn-outline-primary btn-sm" id="sendRemoteTextBtn" type="button">
-            <i class="bi bi-keyboard me-1"></i>Digita
-          </button>
-        </div>
-        <div class="support-key-row" aria-label="Tasti rapidi">
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="Enter">Invio</button>
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="Tab">Tab</button>
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="Escape">Esc</button>
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="Backspace">Cancella</button>
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="ArrowLeft">Sinistra</button>
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="ArrowUp">Su</button>
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="ArrowDown">Giù</button>
-          <button class="btn btn-outline-secondary btn-sm" type="button" data-remote-key="ArrowRight">Destra</button>
-        </div>
-      </article>
-
-      <article class="support-operator-panel support-operator-panel--chat">
-        <div class="support-operator-panel__title">
-          <i class="bi bi-chat-dots text-primary"></i>
-          <span>Chat tecnica</span>
-        </div>
-        <div id="chatLog" class="support-chat-log"></div>
-        <div class="input-group input-group-sm mt-2">
-          <input class="form-control" id="chatInput" placeholder="Scrivi un messaggio operativo">
-          <button class="btn btn-outline-primary" id="sendBtn" type="button">Invia</button>
-        </div>
-      </article>
-    </section>
-  </main>
-
+<body class="support-operator-react-page">
   <script>
     window.SUPPORT_BOOTSTRAP = {{ bootstrap | tojson }};
+    window.SUPPORT_SESSION = {{ sessione | tojson }};
+    window.SUPPORT_ASSET_VERSION = {{ app_version | tojson }};
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ url_for('static', filename='js/support_operator_room.js') }}?v={{ app_version }}"></script>
+  <script id="support-operator-bootstrap" type="application/json">{{ bootstrap | tojson }}</script>
+  <script id="support-operator-session" type="application/json">{{ sessione | tojson }}</script>
+  <div id="support-operator-react-root" data-support-operator-room="1"></div>
+  <noscript>
+    <main class="support-operator-noscript">
+      <h1>Stanza operatore</h1>
+      <p>Abilita JavaScript per usare schermo intero, chat e controllo PC.</p>
+    </main>
+  </noscript>
+  {% for js_file in react_assets.js %}
+  <script type="module" src="{{ js_file }}"></script>
+  {% endfor %}
 </body>
 </html>

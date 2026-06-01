@@ -21,7 +21,7 @@
               <div id="supportLaunchFeedback" class="alert alert-success mb-3">
                 Sessione creata correttamente. Invia il link al cliente e apri la stanza operatore.
               </div>
-              <label class="form-label">Link cliente</label>
+              <label class="form-label" id="supportLaunchJoinLabel">Link cliente</label>
               <div class="input-group mb-3">
                 <input type="text" class="form-control" id="supportLaunchJoinUrl" readonly>
                 <button type="button" class="btn btn-outline-secondary" id="supportLaunchCopyBtn">Copia</button>
@@ -97,6 +97,15 @@
     const copyBtn = document.getElementById("supportLaunchCopyBtn");
     const openOperator = document.getElementById("supportLaunchOpenOperator");
     const openConsole = document.getElementById("supportLaunchOpenConsole");
+    const title = document.querySelector(`#${modalId} .modal-title`);
+    const joinLabel = document.getElementById("supportLaunchJoinLabel");
+
+    if (title) {
+      title.textContent = customerEntry ? "Richiesta inviata al supporto" : "Assistenza remota pronta";
+    }
+    if (joinLabel) {
+      joinLabel.textContent = customerEntry ? "Link stanza cliente" : "Link cliente";
+    }
 
     if (joinInput) joinInput.value = payload.join_url || "";
     if (openOperator) {
@@ -171,7 +180,7 @@
       ensureModal();
       if (result.customer_entry && result.join_url) {
         window.open(result.join_url, "_blank", "noopener");
-        setFeedback("Richiesta inviata. Stanza cliente aperta: conferma i consensi e attendi l'operatore.");
+        setFeedback("Richiesta inviata al SUPERADMIN. Resta nella stanza cliente, conferma i consensi richiesti e attendi che l'operatore prenda in carico la sessione.");
       } else if (result.operator_url) {
         window.open(result.operator_url, "_blank", "noopener");
         try {

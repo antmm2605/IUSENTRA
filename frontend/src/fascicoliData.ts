@@ -19,6 +19,8 @@ export type FascicoloRow = {
   client: string
   court: string
   rg: string
+  rgNumber: number
+  rgYear: number
   nextDeadline: string
   nextDeadlineIso: string
   status: Exclude<FascicoloStato, 'tutti'>
@@ -81,6 +83,8 @@ export type FascicoliPageParams = {
   page?: number
   pageSize?: number
   q?: string
+  client?: string
+  rg?: string
   type?: FascicoloTipo
   status?: FascicoloStato
   court?: string
@@ -468,7 +472,7 @@ export type FascicoloDetailData = {
   }
 }
 
-export type FascicoloDetailSection = 'documenti' | 'attivita' | 'scadenze' | 'depositi' | 'regia'
+export type FascicoloDetailSection = 'documenti' | 'attivita' | 'scadenze' | 'depositi' | 'regia' | 'relata' | 'audit' | 'lex'
 
 export type FascicoloFormGuardrailIssue = {
   code: string
@@ -578,7 +582,7 @@ export const emptyFascicoliPage: FascicoliPageData = {
   contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
   summary: emptySummary,
   items: [],
-  pagination: { page: 1, pageSize: 25, total: 0, pages: 0 },
+  pagination: { page: 1, pageSize: 5, total: 0, pages: 0 },
   facets: {
     types: [{ value: 'tutti', label: 'Tutti i tipi', count: 0 }],
     statuses: [{ value: 'tutti', label: 'Tutti gli stati', count: 0 }],
@@ -639,7 +643,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
   fascicolo: {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
-    nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
+    rgNumber: 0, rgYear: 0, nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
     clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
@@ -769,6 +773,8 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     client,
     court: text(item.court ?? item.tribunale ?? item.ufficio, 'Ufficio non impostato'),
     rg,
+    rgNumber: number(item.rgNumber ?? item.rg_number ?? item.numeroRg ?? item.numero_rg),
+    rgYear: number(item.rgYear ?? item.rg_year ?? item.annoRg ?? item.anno_rg),
     nextDeadline: text(item.nextDeadline ?? item.prossima_scadenza_label ?? item.next_deadline, 'n.d.'),
     nextDeadlineIso: text(item.nextDeadlineIso ?? item.prossima_scadenza ?? item.next_deadline_iso, ''),
     status,
@@ -848,14 +854,14 @@ function normalizeFacets(value: unknown, items: FascicoloRow[]): FascicoliPageDa
 
 function normalizePagination(value: unknown, items: FascicoloRow[], summary: FascicoliSummary): FascicoliPagination {
   if (isRecord(value)) {
-    const pageSize = Math.max(1, number(value.pageSize ?? value.page_size) || 25)
+    const pageSize = Math.max(1, number(value.pageSize ?? value.page_size) || 5)
     const total = Math.max(0, number(value.total ?? summary.total ?? items.length))
     const pages = Math.max(0, number(value.pages) || (total ? Math.ceil(total / pageSize) : 0))
     const page = Math.min(Math.max(1, number(value.page) || 1), Math.max(1, pages || 1))
     return { page, pageSize, total, pages }
   }
   const total = Math.max(0, summary.total || items.length)
-  const pageSize = items.length || 25
+  const pageSize = items.length || 5
   return { page: 1, pageSize, total, pages: total ? Math.ceil(total / pageSize) : 0 }
 }
 
@@ -1351,6 +1357,8 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   if (params.page) query.set('page', String(params.page))
   if (params.pageSize) query.set('page_size', String(params.pageSize))
   if (params.q?.trim()) query.set('q', params.q.trim())
+  if (params.client?.trim()) query.set('client', params.client.trim())
+  if (params.rg?.trim()) query.set('rg', params.rg.trim())
   if (params.type && params.type !== 'tutti') query.set('type', params.type)
   if (params.status && params.status !== 'tutti') query.set('status', params.status)
   if (params.court?.trim()) query.set('court', params.court.trim())
@@ -1383,6 +1391,9 @@ export function getFascicoloDetailSection(id: string, section: FascicoloDetailSe
       (payload) => ({ ...emptyFascicoloDetail, regia: normalizeRegia(payload) }),
       emptyFascicoloDetail,
     )
+  }
+  if (section === 'relata' || section === 'audit' || section === 'lex') {
+    return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload, emptyFascicoloDetail)
   }
   return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload, emptyFascicoloDetail)
 }

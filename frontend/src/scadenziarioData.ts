@@ -1,4 +1,5 @@
 import type { Tone } from './data'
+import { csrfHeader } from './api/csrf'
 
 export type ScadenziarioView =
   | 'aperte'
@@ -135,10 +136,12 @@ export type DeadlineCalculatorState = {
     calculate: string
     explain: string
     validate: string
-    audit: string
-    override: string
-    createDeadline: string
-  }
+      audit: string
+      override: string
+      createDeadline: string
+      pdfPreview: string
+      pdfImport: string
+    }
   scheduler: {
     thresholds: number[]
     channel: string
@@ -202,6 +205,50 @@ export type ScadenziarioQuery = {
   operative?: boolean
 }
 
+export type PdfDeadlineCandidate = {
+  id: string
+  fascicoloId: string
+  fascicoloLabel: string
+  documentId: string
+  documentName: string
+  documentHref: string
+  page: number
+  dueDate: string
+  title: string
+  description: string
+  context: string
+  type: string
+  typeLabel: string
+  confidence: number
+  urls: string[]
+  duplicate: boolean
+  existingDeadlineId: string
+  selected: boolean
+  warnings: string[]
+}
+
+export type PdfDeadlinePreview = {
+  ok: boolean
+  candidates: PdfDeadlineCandidate[]
+  summary: {
+    scannedFascicoli: number
+    scannedDocuments: number
+    skippedDocuments: number
+    newCandidates: number
+    duplicates: number
+    warnings: number
+  }
+  warnings: string[]
+}
+
+export type PdfDeadlineImportResult = {
+  ok: boolean
+  message: string
+  created: number
+  skipped: number
+  items: { id: string; title: string; href: string }[]
+}
+
 export const emptyScadenziarioPage: ScadenziarioPageData = {
   generatedAt: '',
   source: 'empty',
@@ -251,6 +298,8 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
       audit: '/api/v1/ui/scadenziario/termini/audit',
       override: '/api/v1/ui/scadenziario/termini/override',
       createDeadline: '/api/v1/ui/scadenziario/termini/crea-scadenza',
+      pdfPreview: '/api/v1/ui/scadenziario/pdf-scadenze/anteprima',
+      pdfImport: '/api/v1/ui/scadenziario/pdf-scadenze/importa',
     },
     scheduler: {
       thresholds: [30, 15, 7, 1, 0],
@@ -409,6 +458,63 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
   }
 }
 
+const emptyPdfDeadlinePreview: PdfDeadlinePreview = {
+  ok: true,
+  candidates: [],
+  summary: {
+    scannedFascicoli: 0,
+    scannedDocuments: 0,
+    skippedDocuments: 0,
+    newCandidates: 0,
+    duplicates: 0,
+    warnings: 0,
+  },
+  warnings: [],
+}
+
+function normalizePdfDeadlineCandidate(value: unknown): PdfDeadlineCandidate | null {
+  if (!isRecord(value)) return null
+  return {
+    id: asString(value.id),
+    fascicoloId: asString(value.fascicoloId ?? value.fascicolo_id),
+    fascicoloLabel: asString(value.fascicoloLabel ?? value.fascicolo_label, 'Fascicolo'),
+    documentId: asString(value.documentId ?? value.document_id),
+    documentName: asString(value.documentName ?? value.document_name, 'Documento PDF'),
+    documentHref: asString(value.documentHref ?? value.document_href),
+    page: asNumber(value.page),
+    dueDate: asString(value.dueDate ?? value.due_date),
+    title: asString(value.title, 'Scadenza da PDF'),
+    description: asString(value.description),
+    context: asString(value.context),
+    type: asString(value.type, 'ALTRO'),
+    typeLabel: asString(value.typeLabel ?? value.type_label, 'Scadenza'),
+    confidence: asNumber(value.confidence),
+    urls: asArray(value.urls).map((item) => asString(item)).filter(Boolean),
+    duplicate: asBoolean(value.duplicate),
+    existingDeadlineId: asString(value.existingDeadlineId ?? value.existing_deadline_id),
+    selected: value.selected === undefined ? !asBoolean(value.duplicate) : asBoolean(value.selected),
+    warnings: asArray(value.warnings).map((item) => asString(item)).filter(Boolean),
+  }
+}
+
+function normalizePdfDeadlinePreview(value: unknown): PdfDeadlinePreview {
+  const payload = isRecord(value) ? value : {}
+  const summary = isRecord(payload.summary) ? payload.summary : {}
+  return {
+    ok: payload.ok === undefined ? true : asBoolean(payload.ok),
+    candidates: asArray(payload.candidates).map(normalizePdfDeadlineCandidate).filter(Boolean) as PdfDeadlineCandidate[],
+    summary: {
+      scannedFascicoli: asNumber(summary.scannedFascicoli ?? summary.scanned_fascicoli),
+      scannedDocuments: asNumber(summary.scannedDocuments ?? summary.scanned_documents),
+      skippedDocuments: asNumber(summary.skippedDocuments ?? summary.skipped_documents),
+      newCandidates: asNumber(summary.newCandidates ?? summary.new_candidates),
+      duplicates: asNumber(summary.duplicates),
+      warnings: asNumber(summary.warnings),
+    },
+    warnings: asArray(payload.warnings).map((item) => asString(item)).filter(Boolean),
+  }
+}
+
 function normalizeSummary(value: unknown): ScadenziarioSummary {
   if (!isRecord(value)) return emptyScadenziarioPage.summary
   return {
@@ -495,6 +601,8 @@ function normalizeCalculator(value: unknown): DeadlineCalculatorState {
       audit: asString(endpoints.audit, emptyScadenziarioPage.calculator.endpoints.audit),
       override: asString(endpoints.override, emptyScadenziarioPage.calculator.endpoints.override),
       createDeadline: asString(endpoints.createDeadline, emptyScadenziarioPage.calculator.endpoints.createDeadline),
+      pdfPreview: asString(endpoints.pdfPreview, emptyScadenziarioPage.calculator.endpoints.pdfPreview),
+      pdfImport: asString(endpoints.pdfImport, emptyScadenziarioPage.calculator.endpoints.pdfImport),
     },
     scheduler: {
       thresholds: asArray(scheduler.thresholds).map((item) => asNumber(item)).filter((item) => item >= 0),
@@ -649,5 +757,50 @@ export async function createProcessDeadline(endpoint: string, body: Record<strin
     id: asString(record.id),
     href: asString(record.href, '/scadenziario'),
     messaggio: asString(record.messaggio, 'Scadenza creata.'),
+  }
+}
+
+export async function previewPdfDeadlines(endpoint: string, options: { fascicoloId?: string; maxDocuments?: number } = {}): Promise<PdfDeadlinePreview> {
+  const params = new URLSearchParams()
+  if (options.fascicoloId) params.set('fascicoloId', options.fascicoloId)
+  if (options.maxDocuments !== undefined) params.set('maxDocuments', String(options.maxDocuments))
+  const response = await fetch(`${endpoint}${params.toString() ? `?${params.toString()}` : ''}`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  const payload = await response.json() as unknown
+  const record = isRecord(payload) ? payload : {}
+  if (!response.ok || record.ok === false) throw new Error(asString(record.errore ?? record.message, 'Scansione PDF non completata'))
+  return normalizePdfDeadlinePreview(record)
+}
+
+export async function importPdfDeadlines(endpoint: string, selectedIds: string[], options: { fascicoloId?: string; maxDocuments?: number } = {}): Promise<PdfDeadlineImportResult> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...csrfHeader(),
+    },
+    body: JSON.stringify({
+      selectedIds,
+      fascicoloId: options.fascicoloId || '',
+      maxDocuments: options.maxDocuments || 0,
+    }),
+  })
+  const payload = await response.json() as unknown
+  const record = isRecord(payload) ? payload : {}
+  if (!response.ok || record.ok === false) throw new Error(asString(record.errore ?? record.message, 'Importazione PDF non completata'))
+  return {
+    ok: asBoolean(record.ok),
+    message: asString(record.message, 'Importazione completata.'),
+    created: asNumber(record.created),
+    skipped: asNumber(record.skipped),
+    items: asArray(record.items).filter(isRecord).map((item) => ({
+      id: asString(item.id),
+      title: asString(item.title),
+      href: asString(item.href, '/scadenziario'),
+    })),
   }
 }

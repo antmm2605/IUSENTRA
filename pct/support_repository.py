@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,29 @@ from pct.support_remote import (
 
 SCHEMA_SUPPORT_REMOTE_SQL = Path(__file__).with_name("sql") / "20260422_support_remote.sql"
 POSTGRES_SCHEMA_SUPPORT_REMOTE_SQL = Path(__file__).with_name("sql") / "20260422_support_remote_postgres.sql"
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _normalize_utc_timestamp(value: Any) -> str:
+    if value in (None, ""):
+        return ""
+    if isinstance(value, datetime):
+        dt = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat()
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    normalized = text.replace("Z", "+00:00").replace(" ", "T", 1)
+    try:
+        dt = datetime.fromisoformat(normalized)
+    except ValueError:
+        return text
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat()
 
 
 class SupportRemoteRepository:
@@ -90,6 +114,9 @@ class SupportRemoteRepository:
                 payload[key] = bool(payload[key])
         if "payload_json" in payload:
             payload["payload"] = parse_json_payload(payload.get("payload_json"))
+        for key in ("created_at", "updated_at", "started_at", "ended_at"):
+            if key in payload:
+                payload[key] = _normalize_utc_timestamp(payload.get(key))
         return payload
 
     def _sanitize_session(self, row: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -118,13 +145,14 @@ class SupportRemoteRepository:
             "started_at": str(row.get("started_at") or ""),
             "ended_at": str(row.get("ended_at") or ""),
             "notes": str(row.get("notes") or ""),
-            "created_at": str(row.get("created_at") or ""),
-            "updated_at": str(row.get("updated_at") or ""),
+            "created_at": _normalize_utc_timestamp(row.get("created_at")),
+            "updated_at": _normalize_utc_timestamp(row.get("updated_at")),
         }
 
     def create_session(self, payload: dict[str, Any]) -> dict[str, Any]:
         public_id = str(payload.get("public_id") or generate_support_public_id())
         client_token = str(payload.get("client_token") or generate_support_client_token())
+        now = _utc_now_iso()
         with self._connect() as conn:
             conn.execute(
                 """
@@ -133,9 +161,9 @@ class SupportRemoteRepository:
                     client_id, customer_name, customer_email, created_by, assigned_to, status,
                     consent_screen, consent_audio, consent_chat, consent_advanced_control,
                     advanced_control_requested, advanced_control_approved, started_at, ended_at, notes,
-                    updated_at
+                    created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     public_id,
@@ -159,6 +187,8 @@ class SupportRemoteRepository:
                     str(payload.get("started_at") or "").strip(),
                     str(payload.get("ended_at") or "").strip(),
                     str(payload.get("notes") or "").strip(),
+                    _normalize_utc_timestamp(payload.get("created_at")) or now,
+                    _normalize_utc_timestamp(payload.get("updated_at")) or now,
                 ),
             )
             conn.commit()
@@ -213,7 +243,8 @@ class SupportRemoteRepository:
                 params.append(str(value).strip() if value is not None and not isinstance(value, bool) else value)
         if not fields:
             return self.get_session_by_public_id(public_id)
-        fields.append("updated_at = CURRENT_TIMESTAMP")
+        fields.append("updated_at = ?")
+        params.append(_utc_now_iso())
         params.append(str(public_id or "").strip())
         with self._connect() as conn:
             conn.execute(
@@ -236,13 +267,15 @@ class SupportRemoteRepository:
         session_row = self.get_session_by_public_id(public_id)
         if session_row is None:
             return None
+        now = _utc_now_iso()
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO support_event (
-                    session_id, public_id, event_type, actor_role, actor_name, story_line, payload_json
+                    session_id, public_id, event_type, actor_role, actor_name, story_line, payload_json,
+                    created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     int(session_row["id"]),
@@ -252,11 +285,12 @@ class SupportRemoteRepository:
                     str(actor_name or "").strip(),
                     str(story_line or "").strip(),
                     safe_json_payload(payload),
+                    now,
                 ),
             )
             conn.execute(
-                "UPDATE support_session SET updated_at = CURRENT_TIMESTAMP WHERE public_id = ?",
-                (session_row["public_id"],),
+                "UPDATE support_session SET updated_at = ? WHERE public_id = ?",
+                (now, session_row["public_id"]),
             )
             conn.commit()
         return self.get_session_by_public_id(public_id)
@@ -313,11 +347,12 @@ class SupportRemoteRepository:
                 WHERE {' AND '.join(clauses)}
                 ORDER BY
                     CASE status
-                        WHEN 'active' THEN 0
-                        WHEN 'waiting_peer' THEN 1
-                        WHEN 'waiting_operator' THEN 2
-                        WHEN 'waiting_client' THEN 3
-                        ELSE 4
+                        WHEN 'waiting_operator' THEN 0
+                        WHEN 'created' THEN 1
+                        WHEN 'waiting_client' THEN 2
+                        WHEN 'waiting_peer' THEN 3
+                        WHEN 'active' THEN 4
+                        ELSE 5
                     END,
                     updated_at DESC,
                     id DESC
@@ -326,6 +361,52 @@ class SupportRemoteRepository:
                 tuple(params),
             ).fetchall()
         return [self._sanitize_session(self._row_to_dict(row)) or {} for row in rows or []]
+
+    def delete_session(self, public_id: str) -> bool:
+        session_row = self.get_session_by_public_id(public_id)
+        if session_row is None:
+            return False
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM support_session WHERE public_id = ?",
+                (str(public_id or "").strip(),),
+            )
+            conn.commit()
+        return self.get_session_by_public_id(public_id) is None
+
+    @staticmethod
+    def _looks_like_test_session(row: dict[str, Any]) -> bool:
+        haystack = " ".join(
+            str(row.get(key) or "")
+            for key in (
+                "customer_name",
+                "customer_email",
+                "practice_label",
+                "studio_nome",
+                "notes",
+                "created_by",
+            )
+        ).lower()
+        markers = (
+            "test",
+            "prova",
+            "smoke",
+            "e2e",
+            "locale 8080",
+            "reale 8080",
+            "test reale",
+            "controllo pc reale",
+        )
+        return any(marker in haystack for marker in markers)
+
+    def delete_test_sessions(self, *, limit: int = 500) -> int:
+        deleted = 0
+        for row in self.list_sessions(limit=limit):
+            if not self._looks_like_test_session(row):
+                continue
+            if self.delete_session(str(row.get("public_id") or "")):
+                deleted += 1
+        return deleted
 
     def stats(self) -> dict[str, Any]:
         with self._connect() as conn:

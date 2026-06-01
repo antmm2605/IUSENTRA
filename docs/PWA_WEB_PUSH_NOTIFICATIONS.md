@@ -18,6 +18,8 @@ Le notifiche interne restano quelle mostrate nella top bar e nel gestionale. Con
 
 Le Web Push sono solo un richiamo esterno al gestionale. Non devono contenere nomi cliente, codici fiscali, RG, controparti, importi o descrizioni riservate. Il payload inviato al browser contiene solo testo generico, priorita, tipo, `href` sicuro e identificativo notifica.
 
+Per le richieste di assistenza remota il payload puo' indicare lo studio di provenienza, cosi' il `SUPERADMIN` capisce subito quale studio richiede intervento. Cliente, pratica, RG e note operative restano nel centro notifiche interno e nella console autenticata.
+
 Se Web Push non e' configurato o il browser non lo supporta, il centro notifiche interno continua a funzionare.
 
 ## Prerequisiti
@@ -154,6 +156,7 @@ Payload Web Push ammessi:
 - `IUSENTRA: evento urgente da verificare.`
 - `Hai una nuova notifica importante nel gestionale.`
 - `E' disponibile una nuova notifica su IUSENTRA.`
+- `Richiesta assistenza da <nome studio>.`
 
 Payload vietati:
 

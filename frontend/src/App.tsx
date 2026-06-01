@@ -36,6 +36,7 @@ import {
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
   Search,
   Send,
   Settings2,
@@ -1079,7 +1080,19 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
   )
 }
 
-function DashboardPage({ data, loading, mailSyncing = false }:{data:DashboardData; loading:boolean; mailSyncing?:boolean}) {
+function DashboardPage({
+  data,
+  loading,
+  mailSyncing = false,
+  onRefresh,
+  onSyncMailboxes,
+}:{
+  data: DashboardData
+  loading: boolean
+  mailSyncing?: boolean
+  onRefresh: () => void
+  onSyncMailboxes: () => void
+}) {
   return (
     <main className="iu-content">
       <div className="iu-page-heading">
@@ -1087,7 +1100,15 @@ function DashboardPage({ data, loading, mailSyncing = false }:{data:DashboardDat
           <h1>Panoramica</h1>
           <p>Centro operativo dello studio</p>
         </div>
-        <span className={`iu-sync ${loading || mailSyncing?'':'ok'}`}>{loading?'Sincronizzazione dati...':mailSyncing?'Sincronizzazione comunicazioni...':'Dati aggiornati'}</span>
+        <div className="iu-page-heading__actions">
+          <span className={`iu-sync ${loading || mailSyncing?'':'ok'}`}>{loading?'Caricamento dati...':mailSyncing?'Sincronizzazione comunicazioni...':'Dati aggiornati'}</span>
+          <button className="iu-button iu-button--ghost iu-button--compact" type="button" onClick={onRefresh} disabled={loading || mailSyncing}>
+            <RefreshCw size={15}/> Aggiorna
+          </button>
+          <button className="iu-button iu-button--primary iu-button--compact" type="button" onClick={onSyncMailboxes} disabled={loading || mailSyncing}>
+            <Mail size={15}/> Sincronizza comunicazioni
+          </button>
+        </div>
       </div>
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
       <section className="iu-grid">
@@ -1243,29 +1264,31 @@ export default function App() {
       setSidebarCollapsed(false)
     }
   },[guidePanelExpanded,isFascicoliPage])
+  const refreshDashboard = (refresh = false) => {
+    setLoading(true)
+    getDashboard({ refresh })
+      .then(setData)
+      .finally(() => setLoading(false))
+  }
+  const syncMailboxesNow = () => {
+    setMailSyncing(true)
+    syncDashboardMailboxes()
+      .then(() => getDashboard({ refresh: true }))
+      .then(setData)
+      .finally(() => setMailSyncing(false))
+  }
   useEffect(()=>{
     if(effectiveStandalonePage){
       setLoading(false)
       return
     }
     let ok=true
+    setLoading(true)
     getDashboard()
-      .then(d=>{
-        if(ok)setData(d)
-        if(ok && isDashboardPage){
-          window.setTimeout(()=>{
-            if(!ok)return
-            setMailSyncing(true)
-            syncDashboardMailboxes()
-              .then(()=>getDashboard({refresh:true}))
-              .then((fresh)=>{if(ok)setData(fresh)})
-              .finally(()=>{if(ok)setMailSyncing(false)})
-          },0)
-        }
-      })
+      .then(d=>{ if(ok)setData(d) })
       .finally(()=>{if(ok)setLoading(false)})
     return()=>{ok=false}
-  },[isDashboardPage,effectiveStandalonePage])
+  },[effectiveStandalonePage])
   const openMobileLex = () => {
     const detail = {
       ...lexConfig,
@@ -1287,7 +1310,7 @@ export default function App() {
           <TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey} supportEnabled={Boolean(shellBootstrap.user)}/>
           <Suspense fallback={<PageLoading/>}>
             <IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage}>
-              {appV2UnknownRoute?<AppV2NotFoundPage/>:appV2FlagDenied?<FeatureUnavailablePage/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaImportPage?<AgendaImportPage/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isQuickOrganizerImportPage?<QuickOrganizerImportPage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isProfiloPage?<ProfiloPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isWorkflowAgentsRunPage?<AgentRunDetail/>:isWorkflowAgentsApprovalPage?<AgentApprovalQueue/>:isWorkflowAgentsHomePage?<WorkflowAgentsHome/>:isColdStartInterviewPage?<ColdStartInterviewPage/>:isLegalSkillsProfilePage?<PracticeProfilePage/>:isLegalSkillsRunPage?<LegalSkillRunPage/>:isLegalSkillsRunDetailPage?<SkillRunDetailPage/>:isLegalSkillsReviewQueuePage?<ReviewerQueuePage/>:isLegalSkillsCatalogPage?<LegalSkillsCatalogPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing}/>}
+              {appV2UnknownRoute?<AppV2NotFoundPage/>:appV2FlagDenied?<FeatureUnavailablePage/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaImportPage?<AgendaImportPage/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isQuickOrganizerImportPage?<QuickOrganizerImportPage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isProfiloPage?<ProfiloPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isWorkflowAgentsRunPage?<AgentRunDetail/>:isWorkflowAgentsApprovalPage?<AgentApprovalQueue/>:isWorkflowAgentsHomePage?<WorkflowAgentsHome/>:isColdStartInterviewPage?<ColdStartInterviewPage/>:isLegalSkillsProfilePage?<PracticeProfilePage/>:isLegalSkillsRunPage?<LegalSkillRunPage/>:isLegalSkillsRunDetailPage?<SkillRunDetailPage/>:isLegalSkillsReviewQueuePage?<ReviewerQueuePage/>:isLegalSkillsCatalogPage?<LegalSkillsCatalogPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing} onRefresh={()=>refreshDashboard(true)} onSyncMailboxes={syncMailboxesNow}/>}
             </IusentraRoutePresetFrame>
           </Suspense>
         </div>

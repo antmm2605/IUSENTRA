@@ -13,8 +13,10 @@ import {
   Edit3,
   Eye,
   FileDown,
+  FileSearch,
   Filter,
   Gavel,
+  Link2,
   ListChecks,
   MoreHorizontal,
   RefreshCw,
@@ -34,8 +36,11 @@ import {
   calculateProcessDeadline,
   createProcessDeadline,
   getScadenziarioPage,
+  importPdfDeadlines,
+  previewPdfDeadlines,
   type DeadlineCalculatorResult,
   type DeadlineCalculatorTemplate,
+  type PdfDeadlinePreview,
   type ScadenziarioActionCard,
   type ScadenziarioPageData,
   type ScadenziarioPriority,
@@ -479,6 +484,89 @@ function ProcessDeadlineCalculator({
   )
 }
 
+function PdfDeadlineImportPanel({
+  preview,
+  selectedIds,
+  busy,
+  status,
+  onScan,
+  onImport,
+  onToggle,
+  onToggleAll,
+}:{
+  preview: PdfDeadlinePreview | null
+  selectedIds: string[]
+  busy: boolean
+  status: string
+  onScan: () => void
+  onImport: () => void
+  onToggle: (id: string) => void
+  onToggleAll: () => void
+}) {
+  const candidates = preview?.candidates || []
+  const importable = candidates.filter((candidate) => !candidate.duplicate)
+  const allSelected = importable.length > 0 && importable.every((candidate) => selectedIds.includes(candidate.id))
+  return (
+    <section className="iu-scad-pdf-panel" aria-label="Importazione scadenze dai PDF">
+      <header>
+        <div>
+          <span><FileSearch size={16}/> Scadenze dai PDF</span>
+          <h2>Trova termini nei documenti dei fascicoli</h2>
+          <p>Prima mostra un'anteprima: importi solo le righe confermate e le scadenze già presenti vengono saltate.</p>
+        </div>
+        <div>
+          <button type="button" onClick={onScan} disabled={busy}><FileSearch size={15}/> Analizza PDF</button>
+          <button type="button" onClick={onImport} disabled={busy || !selectedIds.length}><CalendarPlus size={15}/> Importa selezionate{selectedIds.length ? ` (${selectedIds.length})` : ''}</button>
+        </div>
+      </header>
+      {status ? <p className="iu-scad-pdf-panel__status">{status}</p> : null}
+      {preview ? (
+        <div className="iu-scad-pdf-panel__summary">
+          <Badge tone="primary">{preview.summary.scannedDocuments} PDF letti</Badge>
+          <Badge tone={preview.summary.newCandidates ? 'success' : 'neutral'}>{preview.summary.newCandidates} nuove</Badge>
+          <Badge tone={preview.summary.duplicates ? 'warning' : 'neutral'}>{preview.summary.duplicates} già presenti</Badge>
+          <Badge tone={preview.summary.warnings ? 'warning' : 'neutral'}>{preview.summary.warnings} avvisi</Badge>
+        </div>
+      ) : null}
+      {candidates.length ? (
+        <div className="iu-scad-pdf-candidates">
+          <label className="iu-scad-pdf-select-all">
+            <input type="checkbox" checked={allSelected} onChange={onToggleAll}/>
+            <span>Seleziona tutte le nuove scadenze</span>
+          </label>
+          {candidates.slice(0, 40).map((candidate) => (
+            <article className={`iu-scad-pdf-candidate ${candidate.duplicate ? 'is-duplicate' : ''}`} key={candidate.id}>
+              <label>
+                <input type="checkbox" disabled={candidate.duplicate} checked={selectedIds.includes(candidate.id)} onChange={() => onToggle(candidate.id)}/>
+                <span>{candidate.dueDate}</span>
+              </label>
+              <div>
+                <strong>{candidate.title}</strong>
+                <p>{candidate.context}</p>
+                <small>{candidate.fascicoloLabel} · {candidate.documentName} · pag. {candidate.page}</small>
+                <div className="iu-scad-pdf-links">
+                  <a href={candidate.documentHref} target="_blank" rel="noreferrer"><FileDown size={13}/> Documento</a>
+                  {candidate.urls.slice(0, 2).map((url) => <a href={url} target="_blank" rel="noreferrer" key={url}><Link2 size={13}/> Link PDF</a>)}
+                </div>
+              </div>
+              <Badge tone={candidate.duplicate ? 'warning' : candidate.confidence >= 0.85 ? 'success' : 'primary'}>
+                {candidate.duplicate ? 'già presente' : `${Math.round(candidate.confidence * 100)}%`}
+              </Badge>
+            </article>
+          ))}
+          {candidates.length > 40 ? <p className="iu-scad-pdf-panel__status">Mostro le prime 40 righe: importa quelle utili o filtra per fascicolo dalla pagina del fascicolo.</p> : null}
+        </div>
+      ) : preview ? (
+        <div className="iu-scad-pdf-empty">
+          <FileSearch size={28}/>
+          <strong>Nessuna nuova scadenza trovata nei PDF letti</strong>
+          <span>Se il PDF è una scansione, serve testo OCR leggibile; se la data non è un termine, resta fuori dall'importazione automatica.</span>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 function OperativeCards({
   cards,
   selectedCount,
@@ -591,6 +679,11 @@ export function ScadenziarioPage() {
   const [sort, setSort] = useState<SortKey>('scadenza')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [statusLine, setStatusLine] = useState('')
+  const [pdfPanelOpen, setPdfPanelOpen] = useState(false)
+  const [pdfPreview, setPdfPreview] = useState<PdfDeadlinePreview | null>(null)
+  const [pdfSelectedIds, setPdfSelectedIds] = useState<string[]>([])
+  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfStatus, setPdfStatus] = useState('')
 
   const buildQuery = (): ScadenziarioQuery => ({ view, q: query, type, priority, from, to, peremptory, advanced, operative })
 
@@ -709,6 +802,50 @@ export function ScadenziarioPage() {
       .catch((error) => setCalculatorStatus(error instanceof Error ? error.message : 'Creazione scadenza non riuscita'))
       .finally(() => setCalculatorBusy(false))
   }
+
+  const runPdfPreview = () => {
+    setPdfPanelOpen(true)
+    setPdfBusy(true)
+    setPdfStatus('Lettura dei PDF dei fascicoli in corso...')
+    previewPdfDeadlines(data.calculator.endpoints.pdfPreview, { maxDocuments: 0 })
+      .then((payload) => {
+        setPdfPreview(payload)
+        setPdfSelectedIds(payload.candidates.filter((candidate) => candidate.selected && !candidate.duplicate).map((candidate) => candidate.id))
+        setPdfStatus(`Analisi completata: ${payload.summary.newCandidates} nuove scadenze e ${payload.summary.duplicates} già presenti.`)
+      })
+      .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Scansione PDF non completata'))
+      .finally(() => setPdfBusy(false))
+  }
+
+  const togglePdfCandidate = (id: string) => {
+    const candidate = pdfPreview?.candidates.find((item) => item.id === id)
+    if (!candidate || candidate.duplicate) return
+    setPdfSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+  }
+
+  const toggleAllPdfCandidates = () => {
+    const importableIds = (pdfPreview?.candidates || []).filter((candidate) => !candidate.duplicate).map((candidate) => candidate.id)
+    setPdfSelectedIds((current) => {
+      const allSelected = importableIds.length > 0 && importableIds.every((id) => current.includes(id))
+      return allSelected ? [] : importableIds
+    })
+  }
+
+  const runPdfImport = () => {
+    if (!pdfSelectedIds.length) return
+    setPdfBusy(true)
+    setPdfStatus('Importazione nello Scadenziario in corso...')
+    importPdfDeadlines(data.calculator.endpoints.pdfImport, pdfSelectedIds, { maxDocuments: 0 })
+      .then((result) => {
+        setPdfStatus(result.message)
+        setPdfSelectedIds([])
+        load()
+        return previewPdfDeadlines(data.calculator.endpoints.pdfPreview, { maxDocuments: 0 })
+      })
+      .then((payload) => setPdfPreview(payload))
+      .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Importazione PDF non completata'))
+      .finally(() => setPdfBusy(false))
+  }
   const focusedId = routeDeadlineId()
   const focusedRow = focusedId ? data.items.find((item) => item.id === focusedId) : undefined
 
@@ -722,6 +859,7 @@ export function ScadenziarioPage() {
         </div>
         <div className="iu-scad-hero__actions">
           <Button href="/workspace-intelligente"><Sparkles size={15}/> Cabina</Button>
+          <button type="button" onClick={() => { setPdfPanelOpen((value) => !value); if (!pdfPreview) runPdfPreview() }}><FileSearch size={15}/> Scadenze PDF</button>
           <Button href={data.actions.exportCsv}><Download size={15}/> CSV</Button>
           <Button href={data.actions.exportPdf}><FileDown size={15}/> PDF</Button>
           <Button href={data.actions.exportIcs}><ChevronDown size={15}/> iCal</Button>
@@ -769,6 +907,19 @@ export function ScadenziarioPage() {
           <label className="iu-scad-check"><input type="checkbox" checked={advanced} onChange={(event) => setAdvanced(event.target.checked)}/><span>Solo calcolo avanzato</span></label>
           <label className="iu-scad-check"><input type="checkbox" checked={operative} onChange={(event) => setOperative(event.target.checked)}/><span>Solo operative</span></label>
         </section>
+      ) : null}
+
+      {pdfPanelOpen ? (
+        <PdfDeadlineImportPanel
+          preview={pdfPreview}
+          selectedIds={pdfSelectedIds}
+          busy={pdfBusy}
+          status={pdfStatus}
+          onScan={runPdfPreview}
+          onImport={runPdfImport}
+          onToggle={togglePdfCandidate}
+          onToggleAll={toggleAllPdfCandidates}
+        />
       ) : null}
 
       <OperativeCards cards={data.operativeCards} selectedCount={selectedIds.length} onFilter={changeView} onBulkComplete={runBulkComplete}/>

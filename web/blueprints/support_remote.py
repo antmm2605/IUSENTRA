@@ -5,17 +5,24 @@ from functools import wraps
 
 from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
+from pct.notifications import NotificationServiceError
 from pct.support_remote import (
     build_advanced_url,
     build_ice_servers,
     build_support_event_story,
     issue_operator_token,
+    verify_operator_token,
 )
 from web.services.support_runtime import (
     audit_support_studio_action,
     audit_support_action,
     authorize_support_http,
     log_support_event,
+    notify_support_request_to_superadmins,
+    platform_push_status,
+    register_platform_push_subscription,
+    revoke_platform_push_subscription,
+    send_platform_push_test,
     support_operator_identity_or_403,
     support_repository,
     support_session_payload,
@@ -35,6 +42,25 @@ def superadmin_required(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+def _json_error(message: str, status: int):
+    return jsonify({"ok": False, "error": message, "message": message}), status
+
+
+def _json_payload() -> dict:
+    payload = request.get_json(silent=True)
+    return payload if isinstance(payload, dict) else {}
+
+
+SUPPORT_SESSION_STATUSES = {
+    "created",
+    "waiting_operator",
+    "waiting_client",
+    "waiting_peer",
+    "active",
+    "closed",
+}
 
 
 @support_remote.get("/admin/supporto-remoto")
@@ -60,6 +86,54 @@ def support_console_api():
     )
 
 
+@support_remote.get("/admin/supporto-remoto/notifiche-dispositivo")
+@superadmin_required
+def support_push_status():
+    try:
+        return jsonify(platform_push_status())
+    except NotificationServiceError as exc:
+        return _json_error(str(exc), exc.status_code)
+    except Exception:
+        current_app.logger.exception("Stato notifiche dispositivo assistenza non disponibile")
+        return _json_error("Stato notifiche dispositivo non disponibile.", 500)
+
+
+@support_remote.post("/admin/supporto-remoto/notifiche-dispositivo/subscribe")
+@superadmin_required
+def support_push_subscribe():
+    try:
+        return jsonify(register_platform_push_subscription(_json_payload(), user_agent=request.headers.get("User-Agent", "")))
+    except NotificationServiceError as exc:
+        return _json_error(str(exc), exc.status_code)
+    except Exception:
+        current_app.logger.exception("Attivazione notifiche dispositivo assistenza non completata")
+        return _json_error("Attivazione notifiche dispositivo non completata.", 500)
+
+
+@support_remote.delete("/admin/supporto-remoto/notifiche-dispositivo/subscribe")
+@superadmin_required
+def support_push_unsubscribe():
+    try:
+        return jsonify(revoke_platform_push_subscription(_json_payload()))
+    except NotificationServiceError as exc:
+        return _json_error(str(exc), exc.status_code)
+    except Exception:
+        current_app.logger.exception("Disattivazione notifiche dispositivo assistenza non completata")
+        return _json_error("Disattivazione notifiche dispositivo non completata.", 500)
+
+
+@support_remote.post("/admin/supporto-remoto/notifiche-dispositivo/test")
+@superadmin_required
+def support_push_test():
+    try:
+        return jsonify(send_platform_push_test())
+    except NotificationServiceError as exc:
+        return _json_error(str(exc), exc.status_code)
+    except Exception:
+        current_app.logger.exception("Test notifiche dispositivo assistenza non completato")
+        return _json_error("Notifica di test non completata.", 500)
+
+
 @support_remote.post("/admin/supporto-remoto/configurazione")
 @superadmin_required
 def save_support_config():
@@ -69,6 +143,80 @@ def save_support_config():
         flash(f"Configurazione assistenza remota non salvata: {exc}", "danger")
         return redirect(url_for("support_remote.support_console"))
     flash("Configurazione assistenza remota aggiornata.", "success")
+    return redirect(url_for("support_remote.support_console"))
+
+
+@support_remote.post("/admin/supporto-remoto/<public_id>/stato")
+@superadmin_required
+def change_console_status(public_id: str):
+    operator = support_operator_identity_or_403()
+    next_status = str(request.form.get("status") or _json_payload().get("status") or "").strip()
+    if next_status not in SUPPORT_SESSION_STATUSES:
+        message = "Stato assistenza non valido."
+        if request.is_json:
+            return _json_error(message, 400)
+        flash(message, "danger")
+        return redirect(url_for("support_remote.support_console", sessione=public_id))
+    repo = support_repository()
+    if repo.get_session_by_public_id(public_id) is None:
+        if request.is_json:
+            return _json_error("Sessione assistenza non trovata.", 404)
+        flash("Sessione assistenza non trovata.", "danger")
+        return redirect(url_for("support_remote.support_console"))
+    updated = repo.update_session(public_id, status=next_status) or {}
+    log_support_event(
+        public_id,
+        event_type="status_changed",
+        actor_role="operator",
+        actor_name=operator["name"],
+        payload={"status": next_status},
+    )
+    audit_support_action(
+        "supporto_remoto.cambia_stato",
+        public_id=public_id,
+        details=f"{operator['name']} ha impostato lo stato assistenza a {next_status}.",
+    )
+    if request.is_json:
+        return jsonify({"ok": True, "session": support_session_payload(updated)})
+    flash("Stato assistenza aggiornato.", "success")
+    return redirect(url_for("support_remote.support_console", sessione=public_id))
+
+
+@support_remote.post("/admin/supporto-remoto/<public_id>/cancella")
+@superadmin_required
+def delete_from_console(public_id: str):
+    operator = support_operator_identity_or_403()
+    repo = support_repository()
+    row = repo.get_session_by_public_id(public_id)
+    if row is None:
+        if request.is_json:
+            return _json_error("Sessione assistenza non trovata.", 404)
+        flash("Sessione assistenza non trovata.", "danger")
+        return redirect(url_for("support_remote.support_console"))
+    deleted = repo.delete_session(public_id)
+    audit_support_action(
+        "supporto_remoto.cancella_sessione",
+        public_id=public_id,
+        details=f"{operator['name']} ha cancellato la sessione assistenza {public_id}.",
+    )
+    if request.is_json:
+        return jsonify({"ok": deleted, "deleted": 1 if deleted else 0})
+    flash("Sessione assistenza cancellata." if deleted else "Sessione assistenza non cancellata.", "success" if deleted else "warning")
+    return redirect(url_for("support_remote.support_console"))
+
+
+@support_remote.post("/admin/supporto-remoto/prove/cancella")
+@superadmin_required
+def delete_test_sessions_from_console():
+    operator = support_operator_identity_or_403()
+    deleted = support_repository().delete_test_sessions()
+    audit_support_action(
+        "supporto_remoto.cancella_prove",
+        details=f"{operator['name']} ha cancellato {deleted} sessioni di prova assistenza remota.",
+    )
+    if request.is_json:
+        return jsonify({"ok": True, "deleted": deleted})
+    flash(f"Sessioni di prova cancellate: {deleted}.", "success")
     return redirect(url_for("support_remote.support_console"))
 
 
@@ -123,7 +271,13 @@ def create_session_api():
             },
         ),
     )
-    operator_url = url_for("support_remote.operator_room", public_id=row["public_id"], _external=True)
+    operator_token = issue_operator_token(row["public_id"], operator["name"], operator["id"])
+    operator_url = url_for(
+        "support_remote.operator_room",
+        public_id=row["public_id"],
+        token=operator_token,
+        _external=True,
+    )
     join_url = url_for("support_remote.customer_room", token=row["client_token"], _external=True)
     return jsonify(
         {
@@ -187,6 +341,7 @@ def create_studio_session_api():
             },
         ),
     )
+    notification_result = notify_support_request_to_superadmins(row)
     join_url = url_for("support_remote.customer_room", token=row["client_token"], _external=True)
     return jsonify(
         {
@@ -195,6 +350,7 @@ def create_studio_session_api():
             "session": support_session_payload(row),
             "operator_url": "",
             "join_url": join_url,
+            "notification": notification_result,
         }
     )
 
@@ -233,13 +389,25 @@ def customer_room(token: str):
 
 
 @support_remote.get("/support/operatore/<public_id>")
-@superadmin_required
 def operator_room(public_id: str):
     row = support_repository().get_session_by_public_id(public_id)
     if row is None:
         abort(404, description="Sessione assistenza non trovata.")
-    operator = support_operator_identity_or_403()
-    if row["status"] == "created":
+    provided_token = str(request.args.get("token") or "").strip()
+    token_payload = verify_operator_token(public_id, provided_token) if provided_token else None
+    if token_payload:
+        operator = {
+            "id": str(token_payload.get("operator_id") or ""),
+            "username": "",
+            "name": str(token_payload.get("actor") or "Operatore"),
+        }
+        operator_token = provided_token
+    else:
+        if getattr(g, "utente_corrente", None) is None:
+            return redirect(url_for("login", next=request.full_path.rstrip("?")))
+        operator = support_operator_identity_or_403()
+        operator_token = issue_operator_token(row["public_id"], operator["name"], operator["id"])
+    if row["status"] in {"created", "waiting_operator"}:
         row = support_repository().update_session(row["public_id"], status="waiting_client") or row
     log_support_event(
         row["public_id"],
@@ -251,7 +419,7 @@ def operator_room(public_id: str):
     bootstrap = {
         "publicId": row["public_id"],
         "role": "operator",
-        "authToken": issue_operator_token(row["public_id"], operator["name"], operator["id"]),
+        "authToken": operator_token,
         "apiPrefix": f"/support/api/{row['public_id']}",
         "wsBase": "/support/ws",
         "customerJoinUrl": url_for("support_remote.customer_room", token=row["client_token"], _external=True),
@@ -260,8 +428,11 @@ def operator_room(public_id: str):
         "status": row["status"],
         "closed": row["status"] == "closed",
     }
+    from web.blueprints.react_shell import _vite_entry
+
     return render_template(
         "support/operator_room.html",
+        react_assets=_vite_entry(request.path),
         bootstrap=bootstrap,
         sessione=support_session_payload(row),
     )
@@ -270,14 +441,14 @@ def operator_room(public_id: str):
 @support_remote.get("/support/api/<public_id>/state")
 def session_state_api(public_id: str):
     row, _, _ = authorize_support_http(public_id)
-    events = support_repository().list_events(public_id, limit=80)
-    return jsonify(
-        {
-            "ok": True,
-            "session": support_session_payload(row),
-            "events": events,
-        }
-    )
+    payload = {
+        "ok": True,
+        "session": support_session_payload(row),
+    }
+    include_events = str(request.args.get("events") or "").strip().lower() in {"1", "true", "yes", "si", "sì"}
+    if include_events:
+        payload["events"] = support_repository().list_events(public_id, limit=80)
+    return jsonify(payload)
 
 
 @support_remote.get("/support/api/<public_id>/events")
@@ -341,6 +512,8 @@ def consent_api(public_id: str):
 @support_remote.post("/support/api/<public_id>/start")
 def start_api(public_id: str):
     row, role, actor_name = authorize_support_http(public_id)
+    if role != "client":
+        abort(403, description="Solo il cliente può avviare l'assistenza dopo il consenso.")
     updated = support_repository().update_session(
         public_id,
         status="active",

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,6 +28,7 @@ SAFE_BODIES = {
     "important": "Hai una nuova notifica importante nel gestionale.",
     "normal": "E' disponibile una nuova notifica su IUSENTRA.",
 }
+SUPPORT_REMOTE_TYPE = "support_remote"
 
 
 @dataclass(frozen=True)
@@ -123,11 +125,24 @@ def safe_href(value: str | None) -> str:
     return href[:500]
 
 
+def _safe_push_fragment(value: Any, *, limit: int = 90) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    text = re.sub(r"[\r\n\t<>]", " ", text).strip()
+    return text[:limit]
+
+
 def safe_web_push_payload(notification: NotificationRecord) -> dict[str, Any]:
     priority = notification.priority if notification.priority in SAFE_BODIES else "normal"
+    title = "IUSENTRA"
+    body = SAFE_BODIES[priority]
+    payload = notification.payload_json if isinstance(notification.payload_json, dict) else {}
+    if str(notification.type or "").strip() == SUPPORT_REMOTE_TYPE:
+        studio_name = _safe_push_fragment(payload.get("studioName") or payload.get("studio_nome"))
+        title = "IUSENTRA Assistenza"
+        body = f"Richiesta assistenza da {studio_name}." if studio_name else "Richiesta assistenza da uno studio."
     return {
-        "title": "IUSENTRA",
-        "body": SAFE_BODIES[priority],
+        "title": title,
+        "body": body,
         "href": safe_href(notification.href),
         "notificationId": notification.id,
         "priority": priority,

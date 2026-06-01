@@ -167,6 +167,48 @@ def _audit_trail(fid: str) -> dict[str, Any]:
     }
 
 
+def _audit_trail_placeholder() -> dict[str, Any]:
+    return {
+        "enabled": True,
+        "available": True,
+        "status": "lazy_non_caricato",
+        "message": "Apri la sezione Audit per caricare le evidenze del fascicolo.",
+        "events": [],
+        "summary": {
+            "total": 0,
+            "signed": 0,
+            "worm": 0,
+            "snapshotted": 0,
+            "tsaVerified": 0,
+        },
+        "actions": {"bundle": ""},
+    }
+
+
+def _empty_notification_relata() -> dict[str, Any]:
+    return {
+        "status": "monitoraggio",
+        "statusLabel": "Monitoraggio attivo",
+        "tone": "neutral",
+        "releaseDetected": False,
+        "pendingPortalDocuments": 0,
+        "portalDocuments": 0,
+        "officeDocuments": 0,
+        "relataDocuments": 0,
+        "signedRelataDocuments": 0,
+        "proofDocuments": 0,
+        "acquisitionHref": "/portali/pst/acquisizione?focus=documenti",
+        "prepareHref": "/notifiche-legali#notifica",
+        "depositHref": "/notifiche-legali#deposito",
+        "primaryHref": "/portali/pst/acquisizione?focus=documenti",
+        "primaryLabel": "Verifica portale",
+        "systemNotification": "Apri la sezione Relata notifica per caricare il presidio.",
+        "releasedDocuments": [],
+        "documents": [],
+        "steps": [],
+    }
+
+
 def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str, str]:
     mode = "laterale"
     place = ""
@@ -493,6 +535,41 @@ def _rg(fascicolo: Any) -> str:
     return _text(getattr(fascicolo, "rg_completo", "")) or _text(getattr(fascicolo, "numero_rg", "")) or "n.d."
 
 
+def _first_int(value: Any) -> int:
+    match = re.search(r"\d+", _text(value))
+    return int(match.group(0)) if match else 0
+
+
+def _rg_order_from_fascicolo(fascicolo: Any) -> dict[str, int]:
+    numero = _first_int(getattr(fascicolo, "numero_rg", ""))
+    anno = _first_int(getattr(fascicolo, "anno_rg", ""))
+    if numero and anno:
+        return {"rgNumber": numero, "rgYear": anno}
+    rg = _rg(fascicolo)
+    if not anno:
+        year_match = re.search(r"(?:19|20)\d{2}", rg)
+        anno = int(year_match.group(0)) if year_match else 0
+    if not numero:
+        parts = rg.rsplit("/", 1)
+        numero = _first_int(parts[0] if parts else rg)
+    return {"rgNumber": numero, "rgYear": anno}
+
+
+def _rg_order_from_item(item: dict[str, Any]) -> tuple[int, int, int, str, str]:
+    anno = _first_int(item.get("rgYear") or item.get("annoRg") or item.get("anno_rg"))
+    numero = _first_int(item.get("rgNumber") or item.get("numeroRg") or item.get("numero_rg"))
+    if not anno or not numero:
+        rg = _text(item.get("rg"))
+        if not anno:
+            year_match = re.search(r"(?:19|20)\d{2}", rg)
+            anno = int(year_match.group(0)) if year_match else 0
+        if not numero:
+            parts = rg.rsplit("/", 1)
+            numero = _first_int(parts[0] if parts else rg)
+    missing = 0 if anno or numero else 1
+    return (missing, -anno, -numero, _text(item.get("rg")).casefold(), _text(item.get("id")))
+
+
 def _next_deadline(fascicolo: Any, scadenze_by_fasc: dict[str, list[Any]] | None = None) -> Any | None:
     prop = getattr(fascicolo, "prossima_scadenza", None)
     if prop:
@@ -510,6 +587,23 @@ def _workspace_counts(fascicolo: Any) -> dict[str, int]:
     return data if isinstance(data, dict) else {}
 
 
+def _fast_documents_count(fascicolo: Any) -> int:
+    source_snapshot = getattr(fascicolo, "source_snapshot", {}) or {}
+    counts = source_snapshot.get("counts") if isinstance(source_snapshot, dict) else {}
+    if isinstance(counts, dict):
+        for key in ("documenti_governati", "documenti", "documents", "documenti_portale"):
+            try:
+                value = int(counts.get(key) or 0)
+            except (TypeError, ValueError):
+                value = 0
+            if value:
+                return value
+    try:
+        return len(getattr(fascicolo, "documenti", []) or [])
+    except TypeError:
+        return 0
+
+
 def _governed_documents_count(fascicolo: Any) -> int:
     counts = _workspace_counts(fascicolo)
     value = counts.get("documenti_governati")
@@ -524,6 +618,7 @@ def _governed_documents_count(fascicolo: Any) -> int:
 def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = None, archived: bool | None = None) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
+    rg_order = _rg_order_from_fascicolo(fascicolo)
     n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
     n_date = _text(getattr(n_scadenza, "data_scadenza", "") or getattr(n_scadenza, "data", "")) if n_scadenza else ""
     docs = _governed_documents_count(fascicolo)
@@ -545,6 +640,7 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
         "client": _text(getattr(fascicolo, "nome_cliente", ""), "Cliente non collegato"),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
         "rg": _rg(fascicolo),
+        **rg_order,
         "nextDeadline": _date_label(n_date) if n_date else "n.d.",
         "nextDeadlineIso": n_date,
         "status": "archiviato" if archived is True else _status_for_filters(fascicolo),
@@ -587,6 +683,7 @@ def _item_light(
 ) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
+    rg_order = _rg_order_from_fascicolo(fascicolo)
     n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
     n_date = _text(getattr(n_scadenza, "data_scadenza", "") or getattr(n_scadenza, "data", "")) if n_scadenza else ""
     deposits = getattr(fascicolo, "depositi_pct", []) or []
@@ -635,10 +732,11 @@ def _item_light(
         "client": _text(getattr(fascicolo, "nome_cliente", ""), "Cliente non collegato"),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
         "rg": _rg(fascicolo),
+        **rg_order,
         "nextDeadline": _date_label(n_date) if n_date else "n.d.",
         "nextDeadlineIso": n_date,
         "status": "archiviato" if archived is True else _status_for_filters(fascicolo),
-        "documents": _governed_documents_count(fascicolo),
+        "documents": _fast_documents_count(fascicolo),
         "unreadCommunications": unread,
         "alerts": alerts,
         "openedAt": _text(getattr(fascicolo, "data_apertura", "")),
@@ -774,6 +872,8 @@ def _matches_list_filters(
     item: dict[str, Any],
     *,
     query: str = "",
+    client_filter: str = "",
+    rg_filter: str = "",
     type_filter: str = "",
     status_filter: str = "",
     court: str = "",
@@ -786,6 +886,17 @@ def _matches_list_filters(
             for key in ("ref", "internalRef", "title", "subtitle", "client", "court", "rg")
         )
         if needle not in haystack:
+            return False
+    client_needle = _text(client_filter).lower()
+    if client_needle and client_needle not in _text(item.get("client")).lower():
+        return False
+    rg_needle = _text(rg_filter).lower()
+    if rg_needle:
+        rg_haystack = " ".join(
+            _text(value).lower()
+            for value in (item.get("rg"), item.get("ref"), item.get("rgNumber"), item.get("rgYear"))
+        )
+        if rg_needle not in rg_haystack:
             return False
     type_key = _text(type_filter).lower()
     if type_key and type_key != "tutti" and _text(item.get("type")).lower() != type_key:
@@ -802,9 +913,9 @@ def _matches_list_filters(
 
 
 def _sort_list_items(items: list[dict[str, Any]], sort: str) -> list[dict[str, Any]]:
-    key = _text(sort, "recenti")
+    key = _text(sort, "rg")
     if key == "rg":
-        return sorted(items, key=lambda item: (_text(item.get("rg")), _text(item.get("id"))))
+        return sorted(items, key=_rg_order_from_item)
     if key == "cliente":
         return sorted(items, key=lambda item: (_text(item.get("client")).lower(), _text(item.get("title")).lower(), _text(item.get("id"))))
     if key == "scadenza":
@@ -825,12 +936,14 @@ def build_react_fascicoli_payload(
     get_fascicoli: Callable[[], Any],
     get_scadenziario: Callable[[], Any],
     page: int = 1,
-    page_size: int = 25,
+    page_size: int = 5,
     query: str = "",
+    client_filter: str = "",
+    rg_filter: str = "",
     type_filter: str = "",
     status_filter: str = "",
     court: str = "",
-    sort: str = "recenti",
+    sort: str = "rg",
     alerts_only: bool = False,
 ) -> dict[str, Any]:
     gf = get_fascicoli()
@@ -838,13 +951,14 @@ def build_react_fascicoli_payload(
     scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows)
     fascicoli = _safe("fascicoli", lambda: gf.tutti(archiviati=False), [])
     archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
-    office_pec_messages = _office_pec_messages()
-    light_items = [_item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc, office_pec_messages=office_pec_messages) for fascicolo in fascicoli]
+    light_items = [_item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc) for fascicolo in fascicoli]
     filtered = [
         item for item in light_items
         if _matches_list_filters(
             item,
             query=query,
+            client_filter=client_filter,
+            rg_filter=rg_filter,
             type_filter=type_filter,
             status_filter=status_filter,
             court=court,
@@ -852,7 +966,7 @@ def build_react_fascicoli_payload(
         )
     ]
     sorted_items = _sort_list_items(filtered, sort)
-    page_size = _positive_int(page_size, 25, maximum=100)
+    page_size = _positive_int(page_size, 5, maximum=100)
     page = _positive_int(page, 1, maximum=100000)
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
@@ -879,7 +993,7 @@ def build_react_archivio_payload(*, get_fascicoli: Callable[[], Any], get_scaden
         fascicoli = _safe("archivio", lambda: gf.cerca(testo=query, stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
     else:
         fascicoli = _safe("archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
-    items = [_item(fascicolo, scadenze_by_fasc=scadenze_by_fasc, archived=True) for fascicolo in fascicoli]
+    items = _sort_list_items([_item(fascicolo, scadenze_by_fasc=scadenze_by_fasc, archived=True) for fascicolo in fascicoli], "rg")
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -1369,9 +1483,12 @@ def _office_pec_messages() -> list[Any]:
         return []
 
 
-def _notification_relata(fascicolo: Any) -> dict[str, Any]:
+def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None = None) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
-    pec_evidence = office_notification_evidence_from_pec(fascicolo, _office_pec_messages())
+    pec_evidence = office_notification_evidence_from_pec(
+        fascicolo,
+        _office_pec_messages() if office_pec_messages is None else office_pec_messages,
+    )
     pending_releases = [item for item in pec_evidence if not item.get("acquisito")]
     local_documents = list(getattr(fascicolo, "documenti", []) or [])
 
@@ -2114,7 +2231,7 @@ def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
 
 
 def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]) -> list[dict[str, Any]]:
-    governed_documents = _governed_documents_count(fascicolo)
+    governed_documents = _fast_documents_count(fascicolo)
     physical_documents = len(getattr(fascicolo, "documenti", []) or [])
     documents_label = f"{governed_documents} elementi"
     if governed_documents != physical_documents:
@@ -2131,7 +2248,7 @@ def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]
 
 
 def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvocato_titolare: str = "") -> dict[str, Any]:
-    base = _item(fascicolo)
+    base = _item_light(fascicolo)
     next_hearing = _next_hearing_value(fascicolo, apps)
     closure_date = _closure_date_value(fascicolo)
     base.update(
@@ -2172,6 +2289,9 @@ def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio
             "eventsSyncEnabled": bool(getattr(fascicolo, "events_sync_enabled", False)),
             "complianceControlsEnabled": bool(getattr(fascicolo, "compliance_controls_enabled", True)),
             "archiveReady": bool(getattr(fascicolo, "archivio_pronto", False)),
+            "fascicoloVeloce": bool(getattr(fascicolo, "fascicolo_veloce", False)),
+            "documentiInizialiCount": int(getattr(fascicolo, "documenti_iniziali_count", 0) or 0),
+            "emailInizialiCount": int(getattr(fascicolo, "email_iniziali_count", 0) or 0),
             "typeRaw": _enum_value(getattr(fascicolo, "tipo", "")),
             "statusRaw": _enum_value(getattr(fascicolo, "stato", "")),
             "clientId": _text(getattr(fascicolo, "id_cliente", "")),
@@ -2217,6 +2337,9 @@ def build_react_fascicolo_detail_payload(
     load_deadlines = include_all or "scadenze" in include or "deadlines" in include
     load_deposits = include_all or "depositi" in include or "deposits" in include
     load_regia = include_all or "regia" in include or "practice_engine" in include
+    load_relata = include_all or "relata" in include or "relata_notifica" in include
+    load_audit = include_all or "audit" in include
+    load_lex = include_all or "lex" in include or "lex_indexing" in include
     cliente = _safe("cliente", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None) if getattr(fascicolo, "id_cliente", "") else None
     apps = _safe("agenda", lambda: get_agenda().cerca(testo=getattr(fascicolo, "numero_rg", "")) if getattr(fascicolo, "numero_rg", "") else [], [])
     scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False), [])
@@ -2227,12 +2350,12 @@ def build_react_fascicolo_detail_payload(
     conferimenti = _safe("conferimenti", lambda: preventivi_repo.conferimenti_per_fascicolo(fid), []) if preventivi_repo else []
     parcelle = _safe("parcelle", lambda: get_fatturazione().per_fascicolo(fid), [])
     timesheet_entries = _safe("timesheet", lambda: get_timesheet().per_fascicolo(fid), [])
-    visible_activities = _activities(fascicolo)
+    visible_activities = _activities(fascicolo) if load_activities else []
     activities = visible_activities if load_activities else []
     visible_requests = [item for item in visible_activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     requests = visible_requests if load_activities else []
-    visible_deposits = _deposits(fascicolo)
-    notification_relata = _notification_relata(fascicolo)
+    visible_deposits = _deposits(fascicolo) if load_deposits else []
+    notification_relata = _notification_relata(fascicolo) if load_relata else _notification_relata(fascicolo, [])
     relata_count = max(
         int(notification_relata.get("pendingPortalDocuments") or 0),
         int(notification_relata.get("relataDocuments") or 0),
@@ -2243,13 +2366,13 @@ def build_react_fascicolo_detail_payload(
     quick_counts = {
         "profilo": len(_profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare)),
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
-        "attivita": len(visible_activities),
+        "attivita": len(getattr(fascicolo, "attivita", []) or []),
         "udienze_scadenze": len(scadenze) + len(apps),
-        "comunicazioni": len(visible_deposits),
+        "comunicazioni": len(getattr(fascicolo, "depositi_pct", []) or []),
         "istanze": len(visible_requests),
         "relata_notifica": relata_count,
     }
-    audit_trail = _audit_trail(fid)
+    audit_trail = _audit_trail(fid) if load_audit else _audit_trail_placeholder()
     audit_bundle_action = _text((audit_trail.get("actions") or {}).get("bundle"))
     quick_counts["audit"] = int((audit_trail.get("summary") or {}).get("total") or 0)
     lex_indexing = _safe(
@@ -2265,7 +2388,22 @@ def build_react_fascicolo_detail_payload(
             "last_indexed_at": None,
             "status": "ready",
         },
-    )
+    ) if load_lex else {
+        "total_documents": _fast_documents_count(fascicolo),
+        "ready": 0,
+        "queued": 0,
+        "indexing": 0,
+        "errors": 0,
+        "stale": 0,
+        "not_indexed": 0,
+        "archived": 0,
+        "last_indexed_at": None,
+        "status": "ready",
+        "warnings": [],
+    }
+    known_document_count = _fast_documents_count(fascicolo)
+    if known_document_count and int(lex_indexing.get("total_documents") or 0) == 0:
+        lex_indexing = {**lex_indexing, "total_documents": known_document_count}
     regia_payload = (
         build_react_practice_engine_payload(
             fascicolo_id=fid,

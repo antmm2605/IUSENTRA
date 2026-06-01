@@ -61,6 +61,14 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
     end = start + timedelta(minutes=duration)
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
+    notes = "\n".join(
+        part
+        for part in (
+            str(getattr(item, "descrizione", "") or "").strip(),
+            str(getattr(item, "note", "") or "").strip(),
+        )
+        if part
+    )
     return {
         "id": item_id,
         "title": str(getattr(item, "titolo", "") or "Appuntamento"),
@@ -78,7 +86,7 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         "owner": str(getattr(item, "avvocato", "") or "Studio"),
         "source": "agenda",
         "syncStatus": _sync_status(item),
-        "notes": str(getattr(item, "note", "") or ""),
+        "notes": notes,
         "href": f"/agenda/{item_id}" if item_id else "/agenda",
     }
 
@@ -105,10 +113,24 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
     end = start + timedelta(minutes=45)
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
+    if tipo == "UDIENZA":
+        kind = "UDIENZA"
+    elif "DEPOSITO" in tipo:
+        kind = "DEPOSITO"
+    else:
+        kind = "SCADENZA"
+    notes = "\n".join(
+        part
+        for part in (
+            str(getattr(item, "descrizione", "") or "").strip(),
+            str(getattr(item, "note", "") or "").strip(),
+        )
+        if part
+    )
     return {
         "id": f"scadenza-{item_id}" if item_id else f"scadenza-{due_date.isoformat()}",
         "title": str(getattr(item, "titolo", "") or "Scadenza"),
-        "kind": "DEPOSITO" if "DEPOSITO" in tipo else "SCADENZA",
+        "kind": kind,
         "priority": _enum_value(getattr(item, "priorita", "MEDIA")),
         "status": _enum_value(getattr(item, "stato", "APERTO")),
         "start": start.isoformat(timespec="minutes"),
@@ -122,7 +144,7 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         "owner": str(getattr(item, "id_utente_responsabile", "") or "Studio"),
         "source": "scadenziario",
         "syncStatus": "locale",
-        "notes": str(getattr(item, "descrizione", "") or getattr(item, "note", "") or ""),
+        "notes": notes,
         "href": f"/scadenziario/{item_id}" if item_id else "/scadenziario",
     }
 

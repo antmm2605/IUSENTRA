@@ -34,5 +34,15 @@ export function useNotifications(open: boolean) {
     if (open && data === null && !loading && !error) load()
   }, [data, error, load, loading, open])
 
+  useEffect(() => {
+    if (open) load()
+  }, [load, open])
+
+  useEffect(() => {
+    if (!open) return undefined
+    const timer = window.setInterval(load, 60000)
+    return () => window.clearInterval(timer)
+  }, [load, open])
+
   return { data, loading, error, reload: load, markRead, markAllRead }
 }

@@ -13,10 +13,210 @@
   <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
   <link href="/static/css/mobile.css?v={{ app_version }}" rel="stylesheet">
   <link href="/static/css/theme.css?v={{ app_version }}" rel="stylesheet">
+  <style>
+    .support-room__agent-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #020617;
+    }
+
+    .support-customer-hero__actions {
+      display: flex;
+      gap: .45rem;
+      flex-wrap: wrap;
+      margin-top: .9rem;
+    }
+
+    .support-customer-page--fullscreen {
+      overflow: hidden;
+    }
+
+    .support-customer-shell--fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 2050;
+      max-width: none;
+      width: 100vw;
+      height: 100vh;
+      min-height: 100vh;
+      padding: .35rem;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: .35rem;
+      background: #edf3fb;
+      overflow: hidden;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-hero {
+      margin: 0;
+      padding: .45rem .65rem;
+      border-radius: .45rem;
+      display: grid;
+      grid-template-columns: minmax(12rem, 1fr) auto auto;
+      align-items: center;
+      gap: .65rem;
+      box-shadow: none;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-hero__brand {
+      margin: 0;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-hero__badge {
+      width: 2rem;
+      height: 2rem;
+      border-radius: .55rem;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-hero__wordmark {
+      font-size: .85rem;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-hero__subtitle,
+    .support-customer-shell--fullscreen .support-customer-hero__title,
+    .support-customer-shell--fullscreen .support-customer-hero__text {
+      display: none;
+    }
+
+    .support-customer-shell--fullscreen #takeChargeNotice,
+    .support-customer-shell--fullscreen #sessionClosedNotice {
+      display: none !important;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-hero__badges,
+    .support-customer-shell--fullscreen .support-customer-hero__actions {
+      margin: 0;
+      justify-content: flex-end;
+      gap: .35rem;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-grid {
+      min-height: 0;
+      height: 100%;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      align-items: stretch;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-grid > .card {
+      min-height: 0;
+      height: 100%;
+      border-radius: .45rem;
+      overflow: hidden;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-grid > .card:first-child .card-header {
+      display: none;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-grid > .card:first-child > .card-body {
+      min-height: 0;
+      height: 100%;
+      padding: .45rem;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: .45rem;
+    }
+
+    .support-customer-shell--fullscreen .support-consent-list {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: .45rem .75rem;
+      align-items: center;
+      padding: .35rem .45rem;
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: .45rem;
+      background: #fff;
+      font-size: .82rem;
+    }
+
+    .support-customer-shell--fullscreen .support-room__actions {
+      position: absolute;
+      right: .9rem;
+      bottom: .85rem;
+      z-index: 3;
+      padding: .35rem;
+      border-radius: .55rem;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 10px 24px rgba(15,23,42,.16);
+    }
+
+    .support-customer-shell--fullscreen .support-room__screen--customer {
+      min-height: 0;
+      height: 100%;
+      margin-top: 0 !important;
+      border-radius: .45rem;
+    }
+
+    .support-customer-shell--fullscreen .support-room__screen--customer video,
+    .support-customer-shell--fullscreen .support-room__screen--customer .support-room__agent-frame {
+      min-height: 0;
+      height: 100%;
+    }
+
+    .support-customer-shell--fullscreen .support-room__screen-empty {
+      padding: 1rem;
+      font-size: .95rem;
+    }
+
+    .support-customer-chat--compact {
+      align-self: end;
+      height: auto !important;
+      max-height: 4.5rem;
+    }
+
+    .support-customer-shell--fullscreen #customerChatPanel {
+      max-height: 12rem;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-chat--compact {
+      width: 100%;
+      max-height: 4.25rem;
+    }
+
+    .support-customer-shell--fullscreen .support-customer-chat--compact .input-group {
+      min-width: 0;
+    }
+
+    .support-customer-shell--fullscreen #customerChatPanel:not(.support-customer-chat--compact) #chatLog {
+      min-height: 4rem;
+      max-height: 7rem;
+    }
+
+    .support-customer-chat--compact .card-header,
+    .support-customer-chat--compact .form-label,
+    .support-customer-chat--compact #chatLog {
+      display: none !important;
+    }
+
+    .support-customer-chat--compact .card-body {
+      min-height: 0 !important;
+      padding: .45rem !important;
+      display: block !important;
+    }
+
+    .support-customer-chat--compact .mt-3 {
+      margin-top: 0 !important;
+    }
+
+    .support-customer-chat--compact .input-group {
+      flex-wrap: nowrap;
+    }
+
+    @media (max-width: 991.98px) {
+      .support-customer-shell--fullscreen .support-customer-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+    }
+  </style>
 </head>
 <body class="support-customer-page">
   {% set session_closed = sessione.status == 'closed' %}
-  <main class="support-customer-shell">
+  <main class="support-customer-shell" id="supportCustomerShell">
     <section class="support-customer-hero">
       <div class="support-customer-hero__brand">
         <div class="support-customer-hero__badge">I</div>
@@ -35,6 +235,14 @@
           {% if sessione.presence.operator %}Operatore collegato{% else %}Operatore non collegato{% endif %}
         </span>
       </div>
+      <div class="support-customer-hero__actions">
+        <button class="btn btn-outline-primary btn-sm" id="customerFullscreenBtn" type="button" {% if session_closed %}disabled{% endif %}>
+          <i class="bi bi-fullscreen me-1"></i>Schermo intero
+        </button>
+        <button class="btn btn-outline-primary btn-sm" id="compactChatBtn" type="button" {% if session_closed %}disabled{% endif %}>
+          <i class="bi bi-chat-square me-1"></i>Chat compatta
+        </button>
+      </div>
     </section>
 
     {% if session_closed %}
@@ -48,8 +256,17 @@
     </section>
     {% endif %}
 
+    <section class="alert alert-primary shadow-sm d-none" id="takeChargeNotice" role="status">
+      <div class="fw-semibold mb-1">
+        <i class="bi bi-headset me-2"></i>Richiesta visualizzata dal SUPERADMIN
+      </div>
+      <div>
+        La richiesta è stata presa in carico. Puoi premere <strong>Avvia assistenza</strong> per autorizzare schermo, chat e procedere con l'assistenza remota.
+      </div>
+    </section>
+
     <section class="support-customer-grid">
-      <div class="card shadow-sm">
+      <div class="card shadow-sm" id="customerScreenPanel">
         <div class="card-header fw-semibold">
           <i class="bi bi-display me-2 text-primary"></i>Condivisione schermo
         </div>
@@ -69,8 +286,11 @@
             </label>
           </div>
           <div class="support-room__actions mt-3">
-            <button class="btn btn-primary" id="startBtn" type="button" {% if session_closed %}disabled{% endif %}>
-              <i class="bi bi-play-circle me-1"></i>Avvia assistenza
+            <button class="btn btn-primary" id="startBtn" type="button" disabled>
+              <i class="bi bi-hourglass-split me-1"></i>Attendi operatore
+            </button>
+            <button class="btn btn-outline-secondary" id="customerMuteMicBtn" type="button" aria-pressed="false" disabled>
+              <i class="bi bi-mic-mute me-1"></i>Muta microfono
             </button>
             <button class="btn btn-outline-danger" id="stopBtn" type="button" disabled>
               <i class="bi bi-stop-circle me-1"></i>Termina sessione
@@ -78,6 +298,7 @@
           </div>
           <div class="support-room__screen support-room__screen--customer mt-3">
             <video id="localPreview" autoplay playsinline muted></video>
+            <img id="localAgentPreview" class="support-room__agent-frame d-none" alt="Anteprima schermo condiviso tramite agente locale">
             <div class="support-room__screen-empty" id="localPreviewFallback">
               {% if session_closed %}
               Sessione conclusa: la condivisione schermo non è più disponibile.
@@ -90,7 +311,7 @@
         </div>
       </div>
 
-      <div class="card shadow-sm">
+      <div class="card shadow-sm" id="customerChatPanel">
         <div class="card-header fw-semibold">
           <i class="bi bi-chat-dots me-2 text-primary"></i>Chat tecnica
         </div>
@@ -126,6 +347,7 @@
   <script>
     window.SUPPORT_BOOTSTRAP = {{ bootstrap | tojson }};
   </script>
+  <script id="support-customer-bootstrap" type="application/json">{{ bootstrap | tojson }}</script>
   <script src="{{ url_for('static', filename='js/support_customer_room.js') }}?v={{ app_version }}"></script>
 </body>
 </html>

@@ -1,33 +1,66 @@
 (() => {
-  const boot = window.SUPPORT_BOOTSTRAP || {};
+  if (window.__iusentraSupportCustomerRoomLoaded) return;
+  window.__iusentraSupportCustomerRoomLoaded = true;
+
   const $ = (id) => document.getElementById(id);
+
+  function readBootstrap() {
+    if (window.SUPPORT_BOOTSTRAP) return window.SUPPORT_BOOTSTRAP;
+    const element = $("support-customer-bootstrap");
+    if (!element) return {};
+    try {
+      return JSON.parse(element.textContent || "{}");
+    } catch (_) {
+      return {};
+    }
+  }
+
+  const boot = readBootstrap();
 
   const statusBadge = $("statusBadge");
   const peerBadge = $("peerBadge");
   const localPreview = $("localPreview");
+  const localAgentPreview = $("localAgentPreview");
   const localPreviewFallback = $("localPreviewFallback");
   const remoteAudio = $("remoteAudio");
+  const takeChargeNotice = $("takeChargeNotice");
   const consentScreen = $("consentScreen");
   const consentAudio = $("consentAudio");
   const consentChat = $("consentChat");
   const startBtn = $("startBtn");
   const stopBtn = $("stopBtn");
+  const customerMuteMicBtn = $("customerMuteMicBtn");
   const advancedBanner = $("advancedBanner");
   const approveAdvancedBtn = $("approveAdvancedBtn");
   const rejectAdvancedBtn = $("rejectAdvancedBtn");
+  const customerFullscreenBtn = $("customerFullscreenBtn");
+  const compactChatBtn = $("compactChatBtn");
+  const customerShell = $("supportCustomerShell");
+  const customerChatPanel = $("customerChatPanel");
   const chatLog = $("chatLog");
   const chatInput = $("chatInput");
   const sendBtn = $("sendBtn");
 
   let ws = null;
+  let wsOpenPromise = null;
   let pc = null;
   let dataChannel = null;
   let localStream = null;
   let micStream = null;
   let stateTimer = null;
   let pingTimer = null;
-  let agentArmed = false;
+  let agentScreenTimer = null;
+  let agentScreenArmed = false;
+  let agentControlArmed = false;
+  let customerFullscreen = false;
+  let chatCompact = false;
+  let customerMicMuted = false;
+  let operatorReadyForStart = false;
+  let supportStarted = false;
+  let closingWsIntentionally = false;
+  let stateSyncInFlight = false;
   let sessionClosed = Boolean(boot.closed || boot.status === "closed");
+  const statePollDelayMs = 12000;
 
   function setStatus(text) {
     if (statusBadge) statusBadge.textContent = text;
@@ -39,8 +72,143 @@
     peerBadge.className = `badge ${connected ? "bg-success" : "bg-secondary"}`;
   }
 
+  function customerAudioTracks() {
+    return [
+      ...(micStream ? micStream.getAudioTracks() : []),
+      ...(localStream ? localStream.getAudioTracks() : []),
+    ].filter((track, index, tracks) => track && track.readyState !== "ended" && tracks.indexOf(track) === index);
+  }
+
+  function syncCustomerMicUi() {
+    if (!customerMuteMicBtn) return;
+    const tracks = customerAudioTracks();
+    const canToggle = !sessionClosed && (tracks.length > 0 || Boolean(consentAudio?.checked));
+    customerMuteMicBtn.disabled = !canToggle;
+    customerMuteMicBtn.setAttribute("aria-pressed", customerMicMuted ? "true" : "false");
+    customerMuteMicBtn.classList.toggle("btn-secondary", customerMicMuted);
+    customerMuteMicBtn.classList.toggle("btn-outline-secondary", !customerMicMuted);
+    customerMuteMicBtn.innerHTML = customerMicMuted
+      ? '<i class="bi bi-mic me-1"></i>Riattiva microfono'
+      : '<i class="bi bi-mic-mute me-1"></i>Muta microfono';
+  }
+
+  function syncStartButtonUi() {
+    if (!startBtn) return;
+    const canStart = !sessionClosed && operatorReadyForStart && !supportStarted;
+    startBtn.disabled = !canStart;
+    startBtn.classList.toggle("btn-primary", canStart);
+    startBtn.classList.toggle("btn-outline-secondary", !canStart && !supportStarted);
+    startBtn.classList.toggle("btn-success", supportStarted);
+    startBtn.setAttribute("aria-disabled", canStart ? "false" : "true");
+    if (supportStarted) {
+      startBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Assistenza attiva';
+      startBtn.title = "Assistenza avviata: puoi chiuderla con Termina sessione.";
+      return;
+    }
+    if (canStart) {
+      startBtn.innerHTML = '<i class="bi bi-play-circle me-1"></i>Avvia assistenza';
+      startBtn.title = "Avvia la condivisione solo dopo la presa in carico del SUPERADMIN.";
+      return;
+    }
+    startBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Attendi operatore';
+    startBtn.title = "Il SUPERADMIN deve prima prendere in carico la richiesta dalla console.";
+  }
+
+  function toggleCustomerMicrophone() {
+    if (sessionClosed) return;
+    const tracks = customerAudioTracks();
+    if (!tracks.length && !consentAudio?.checked) {
+      syncCustomerMicUi();
+      return;
+    }
+    customerMicMuted = !customerMicMuted;
+    tracks.forEach((track) => {
+      track.enabled = !customerMicMuted;
+    });
+    setStatus(
+      tracks.length
+        ? (customerMicMuted ? "Microfono cliente disattivato" : "Microfono cliente attivo")
+        : (customerMicMuted ? "Microfono cliente disattivato all'avvio" : "Microfono cliente attivo all'avvio")
+    );
+    syncCustomerMicUi();
+  }
+
+  function setTakeChargeNotice(session) {
+    if (!takeChargeNotice || sessionClosed) return;
+    const status = String(session?.status || "").toLowerCase();
+    const operatorPresent = Boolean(session?.presence && session.presence.operator);
+    const taken =
+      operatorPresent ||
+      status === "waiting_client" ||
+      status === "waiting_peer" ||
+      status === "active";
+    operatorReadyForStart = Boolean(taken);
+    takeChargeNotice.classList.toggle("d-none", !taken);
+    syncStartButtonUi();
+  }
+
+  function syncCustomerLayout() {
+    document.body.classList.toggle("support-customer-page--fullscreen", customerFullscreen);
+    customerShell?.classList.toggle("support-customer-shell--fullscreen", customerFullscreen);
+    customerChatPanel?.classList.toggle("support-customer-chat--compact", chatCompact);
+    if (customerChatPanel) {
+      customerChatPanel.querySelectorAll(".card-header, .form-label, #chatLog").forEach((element) => {
+        element.style.display = chatCompact ? "none" : "";
+      });
+      const body = customerChatPanel.querySelector(".card-body");
+      if (body) {
+        body.style.padding = chatCompact ? ".65rem" : "";
+      }
+    }
+    if (customerFullscreenBtn) {
+      customerFullscreenBtn.classList.toggle("btn-primary", customerFullscreen);
+      customerFullscreenBtn.classList.toggle("btn-outline-primary", !customerFullscreen);
+      customerFullscreenBtn.innerHTML = customerFullscreen
+        ? '<i class="bi bi-fullscreen-exit me-1"></i>Esci schermo intero'
+        : '<i class="bi bi-fullscreen me-1"></i>Schermo intero';
+    }
+    if (compactChatBtn) {
+      compactChatBtn.classList.toggle("btn-primary", chatCompact);
+      compactChatBtn.classList.toggle("btn-outline-primary", !chatCompact);
+      compactChatBtn.innerHTML = chatCompact
+        ? '<i class="bi bi-chat-square-text me-1"></i>Chat estesa'
+        : '<i class="bi bi-chat-square me-1"></i>Chat compatta';
+    }
+  }
+
+  async function toggleCustomerFullscreen() {
+    if (sessionClosed) return;
+    if (customerFullscreen) {
+      customerFullscreen = false;
+      if (document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch (_) {}
+      }
+      syncCustomerLayout();
+      return;
+    }
+    customerFullscreen = true;
+    chatCompact = true;
+    try {
+      if (customerShell?.requestFullscreen && document.fullscreenEnabled !== false) {
+        await customerShell.requestFullscreen();
+      }
+    } catch (_) {
+      customerFullscreen = true;
+    }
+    syncCustomerLayout();
+  }
+
+  function toggleCompactChat() {
+    chatCompact = !chatCompact;
+    syncCustomerLayout();
+  }
+
   function apiUrl(path) {
     return `${boot.apiPrefix}${path}?role=${encodeURIComponent(boot.role)}&token=${encodeURIComponent(boot.authToken)}`;
+  }
+
+  function stateUrl() {
+    return `${apiUrl("/state")}&events=0`;
   }
 
   function wsUrl() {
@@ -106,6 +274,59 @@
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  function showAgentScreenFrame(frame) {
+    if (!localAgentPreview || !frame?.image) return;
+    localAgentPreview.src = frame.image;
+    localAgentPreview.classList.remove("d-none");
+    if (localPreview) {
+      localPreview.classList.add("d-none");
+      localPreview.srcObject = null;
+    }
+    if (localPreviewFallback) {
+      localPreviewFallback.classList.add("d-none");
+      localPreviewFallback.textContent = "Schermo condiviso tramite agente locale IUSENTRA Assistenza.";
+    }
+  }
+
+  async function captureAndRelayAgentScreen() {
+    if (sessionClosed || !agentScreenArmed) return;
+    try {
+      const frame = await fetchAgent("/screenshot", {
+        session_id: boot.publicId,
+        token: boot.authToken,
+        max_width: 1600,
+        quality: 58,
+      });
+      showAgentScreenFrame(frame);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "screen_frame",
+          image: frame.image,
+          width: frame.width,
+          height: frame.height,
+          preview_width: frame.preview_width,
+          preview_height: frame.preview_height,
+          captured_at: frame.captured_at,
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus(`Errore visualizzazione schermo: ${error.message}`);
+    }
+  }
+
+  async function startAgentScreenShare(originalError) {
+    await ensureLocalScreenShareAgent();
+    await captureAndRelayAgentScreen();
+    if (!agentScreenTimer) {
+      agentScreenTimer = window.setInterval(captureAndRelayAgentScreen, 900);
+    }
+    setStatus("Schermo condiviso tramite agente locale");
+    if (originalError?.name === "NotAllowedError") {
+      appendChat("Il browser ha bloccato la condivisione schermo: sto usando l'agente locale autorizzato.", "me");
+    }
+  }
+
   function markSessionClosed() {
     sessionClosed = true;
     cleanup(false);
@@ -118,8 +339,10 @@
     consentScreen.disabled = true;
     consentAudio.disabled = true;
     consentChat.disabled = true;
+    customerMuteMicBtn.disabled = true;
     approveAdvancedBtn.disabled = true;
     rejectAdvancedBtn.disabled = true;
+    takeChargeNotice?.classList.add("d-none");
     advancedBanner?.classList.add("d-none");
     if (localPreviewFallback) {
       localPreviewFallback.textContent = "Sessione conclusa: chiedi all'operatore un nuovo link di assistenza.";
@@ -127,17 +350,22 @@
   }
 
   async function syncState() {
+    if (stateSyncInFlight || sessionClosed) return;
+    stateSyncInFlight = true;
     try {
-      const payload = await fetchJson(apiUrl("/state"));
+      const payload = await fetchJson(stateUrl());
       const session = payload.session || {};
       setStatus(session.status_label || "Sessione aggiornata");
       setPeer(Boolean(session.presence && session.presence.operator));
+      setTakeChargeNotice(session);
       advancedBanner?.classList.toggle("d-none", !(session.advanced_control_requested && !session.advanced_control_approved));
       if (session.status === "closed") {
         markSessionClosed();
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      stateSyncInFlight = false;
     }
   }
 
@@ -176,10 +404,27 @@
   }
 
   async function connectWs() {
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
       return;
     }
+    if (ws && ws.readyState === WebSocket.CONNECTING && wsOpenPromise) {
+      return wsOpenPromise;
+    }
     ws = new WebSocket(wsUrl());
+    closingWsIntentionally = false;
+    wsOpenPromise = new Promise((resolve, reject) => {
+      let settled = false;
+      const settleOk = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      const settleKo = (message) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(message));
+      };
+
     ws.onopen = () => {
       setStatus("Canale realtime attivo");
       pingTimer = window.setInterval(() => {
@@ -187,7 +432,11 @@
           ws.send(JSON.stringify({ type: "ping" }));
         }
       }, 20000);
+        settleOk();
     };
+      ws.onerror = () => {
+        settleKo("Canale realtime non disponibile.");
+      };
     ws.onmessage = async (event) => {
       const message = JSON.parse(event.data || "{}");
       if (message.type === "peer_state") {
@@ -227,9 +476,16 @@
     ws.onclose = () => {
       if (pingTimer) window.clearInterval(pingTimer);
       pingTimer = null;
-      setStatus("Canale realtime chiuso");
-      setPeer(false);
+        wsOpenPromise = null;
+        if (!closingWsIntentionally && !sessionClosed) {
+          setStatus("Canale realtime chiuso");
+          setPeer(false);
+        }
+        closingWsIntentionally = false;
+        settleKo("Canale realtime chiuso prima della connessione.");
     };
+    });
+    return wsOpenPromise;
   }
 
   async function acquireMedia() {
@@ -237,19 +493,75 @@
       throw new Error("Per continuare devi autorizzare la condivisione schermo.");
     }
 
-    const screenStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: { ideal: 12, max: 15 } },
-      audio: false,
-    });
-    const tracks = [...screenStream.getVideoTracks()];
+    const acquireMicrophoneTracks = async () => {
+      if (!consentAudio?.checked) {
+        customerMicMuted = false;
+        syncCustomerMicUi();
+        return [];
+      }
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        micStream.getAudioTracks().forEach((track) => {
+          track.enabled = !customerMicMuted;
+        });
+        syncCustomerMicUi();
+        return micStream.getAudioTracks();
+      } catch (error) {
+        if (micStream) {
+          micStream.getTracks().forEach((track) => track.stop());
+          micStream = null;
+        }
+        customerMicMuted = true;
+        syncCustomerMicUi();
+        console.warn("Microfono non autorizzato o non disponibile sul PC: assistenza avviata senza audio.", error);
+        appendChat("Microfono non disponibile: assistenza avviata senza audio.", "me");
+        setStatus("Microfono non disponibile: assistenza avviata senza audio");
+        return [];
+      }
+    };
 
-    if (consentAudio?.checked) {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      tracks.push(...micStream.getAudioTracks());
+    const audioTracks = await acquireMicrophoneTracks();
+    try {
+      await startAgentScreenShare();
+      localStream = audioTracks.length ? new MediaStream(audioTracks) : null;
+      customerAudioTracks().forEach((track) => {
+        track.enabled = !customerMicMuted;
+      });
+      syncCustomerMicUi();
+      return;
+    } catch (agentError) {
+      console.info("Agente locale non disponibile, uso la condivisione schermo del browser.", agentError);
     }
 
+    let screenStream = null;
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 12, max: 15 } },
+        audio: false,
+      });
+    } catch (error) {
+      const name = String(error?.name || "");
+      if (name === "NotAllowedError" || name === "SecurityError" || name === "NotFoundError") {
+        await startAgentScreenShare(error);
+        localStream = audioTracks.length ? new MediaStream(audioTracks) : null;
+        customerAudioTracks().forEach((track) => {
+          track.enabled = !customerMicMuted;
+        });
+        syncCustomerMicUi();
+        return;
+      }
+      throw error;
+    }
+
+    const tracks = [...screenStream.getVideoTracks(), ...audioTracks];
     localStream = new MediaStream(tracks);
-    localPreview.srcObject = localStream;
+    customerAudioTracks().forEach((track) => {
+      track.enabled = !customerMicMuted;
+    });
+    syncCustomerMicUi();
+    localPreview?.classList.remove("d-none");
+    if (localPreview) localPreview.srcObject = localStream;
+    localAgentPreview?.classList.add("d-none");
     localPreviewFallback?.classList.add("d-none");
 
     const videoTrack = screenStream.getVideoTracks()[0];
@@ -263,8 +575,14 @@
       markSessionClosed();
       return;
     }
+    if (!operatorReadyForStart) {
+      setStatus("Attendi che il SUPERADMIN prenda in carico la richiesta");
+      syncStartButtonUi();
+      return;
+    }
     try {
       startBtn.disabled = true;
+      startBtn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Avvio assistenza...';
       await fetchJson(apiUrl("/consent"), {
         method: "POST",
         body: JSON.stringify({
@@ -273,20 +591,26 @@
           consent_chat: Boolean(consentChat?.checked),
         }),
       });
-      await acquireMedia();
       await connectWs();
-      await ensurePeerConnection();
+      await acquireMedia();
+      if (localStream) {
+        await ensurePeerConnection();
+      }
       await fetchJson(apiUrl("/start"), { method: "POST", body: JSON.stringify({}) });
+      supportStarted = true;
       stopBtn.disabled = false;
       setStatus("Sessione avviata");
+      syncStartButtonUi();
       if (!stateTimer) {
-        stateTimer = window.setInterval(syncState, 4000);
+        stateTimer = window.setInterval(syncState, statePollDelayMs);
       }
       await syncState();
     } catch (error) {
       console.error(error);
+      cleanup(false);
       setStatus(`Errore: ${error.message}`);
-      startBtn.disabled = false;
+      supportStarted = false;
+      syncStartButtonUi();
     }
   }
 
@@ -298,7 +622,9 @@
     } finally {
       cleanup(false);
       stopBtn.disabled = true;
-      startBtn.disabled = true;
+      supportStarted = false;
+      operatorReadyForStart = false;
+      syncStartButtonUi();
       setStatus("Sessione chiusa");
     }
   }
@@ -307,8 +633,10 @@
     disarmLocalControlAgent();
     if (stateTimer) window.clearInterval(stateTimer);
     if (pingTimer) window.clearInterval(pingTimer);
+    if (agentScreenTimer) window.clearInterval(agentScreenTimer);
     stateTimer = null;
     pingTimer = null;
+    agentScreenTimer = null;
     if (dataChannel) {
       try { dataChannel.close(); } catch (_) {}
       dataChannel = null;
@@ -318,9 +646,11 @@
       pc = null;
     }
     if (ws) {
+      closingWsIntentionally = true;
       try { ws.close(); } catch (_) {}
       ws = null;
     }
+    wsOpenPromise = null;
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
       localStream = null;
@@ -329,10 +659,19 @@
       micStream.getTracks().forEach((track) => track.stop());
       micStream = null;
     }
-    localPreview.srcObject = null;
+    customerMicMuted = false;
+    supportStarted = false;
+    syncCustomerMicUi();
+    syncStartButtonUi();
+    if (localPreview) {
+      localPreview.srcObject = null;
+      localPreview.classList.remove("d-none");
+    }
+    localAgentPreview?.classList.add("d-none");
+    if (localAgentPreview) localAgentPreview.src = "";
     localPreviewFallback?.classList.remove("d-none");
     if (enableRestart) {
-      startBtn.disabled = false;
+      syncStartButtonUi();
     }
   }
 
@@ -340,9 +679,14 @@
     if (sessionClosed) return;
     try {
       await ensureLocalControlAgent();
+      await connectWs();
       await fetchJson(apiUrl("/escalation"), { method: "POST", body: JSON.stringify({ action: "approve" }) });
       advancedBanner?.classList.add("d-none");
       appendChat("Hai approvato il controllo remoto del PC.", "me");
+      if (!stateTimer) {
+        stateTimer = window.setInterval(syncState, statePollDelayMs);
+      }
+      await syncState();
     } catch (error) {
       setStatus(`Errore: ${error.message}`);
     }
@@ -370,14 +714,31 @@
       session_id: boot.publicId,
       token: boot.authToken,
       ttl_seconds: 3600,
+      control: true,
     });
-    agentArmed = true;
+    agentControlArmed = true;
     setStatus("Controllo PC autorizzato su questo dispositivo");
   }
 
+  async function ensureLocalScreenShareAgent() {
+    setStatus("Verifico agente IUSENTRA Assistenza sul PC");
+    const status = await fetchAgent("/status");
+    if (!status.ok) {
+      throw new Error("Agente IUSENTRA Assistenza non disponibile sul PC.");
+    }
+    await fetchAgent("/arm", {
+      session_id: boot.publicId,
+      token: boot.authToken,
+      ttl_seconds: 3600,
+      control: false,
+    });
+    agentScreenArmed = true;
+  }
+
   async function disarmLocalControlAgent() {
-    if (!agentArmed) return;
-    agentArmed = false;
+    if (!agentScreenArmed && !agentControlArmed) return;
+    agentScreenArmed = false;
+    agentControlArmed = false;
     try {
       await fetchAgent("/disarm", {
         session_id: boot.publicId,
@@ -391,7 +752,7 @@
   async function executeRemoteCommand(message) {
     const commandId = message.id || `${Date.now()}`;
     try {
-      if (!agentArmed) {
+      if (!agentControlArmed) {
         await ensureLocalControlAgent();
       }
       const result = await fetchAgent("/execute", {
@@ -431,8 +792,26 @@
 
   startBtn?.addEventListener("click", startSession);
   stopBtn?.addEventListener("click", stopSession);
+  customerMuteMicBtn?.addEventListener("click", toggleCustomerMicrophone);
+  consentAudio?.addEventListener("change", () => {
+    if (!consentAudio.checked) {
+      customerMicMuted = false;
+    }
+    syncCustomerMicUi();
+  });
   approveAdvancedBtn?.addEventListener("click", approveAdvanced);
   rejectAdvancedBtn?.addEventListener("click", rejectAdvanced);
+  customerFullscreenBtn?.addEventListener("click", toggleCustomerFullscreen);
+  compactChatBtn?.addEventListener("click", toggleCompactChat);
+  document.addEventListener("fullscreenchange", () => {
+    customerFullscreen = Boolean(document.fullscreenElement);
+    syncCustomerLayout();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      syncState();
+    }
+  });
   sendBtn?.addEventListener("click", sendChat);
   chatInput?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") sendChat();
@@ -441,9 +820,15 @@
   if (sessionClosed) {
     markSessionClosed();
   } else {
+    syncCustomerLayout();
+    syncCustomerMicUi();
+    syncStartButtonUi();
     syncState();
+    if (!stateTimer) {
+      stateTimer = window.setInterval(syncState, statePollDelayMs);
+    }
   }
   window.addEventListener("beforeunload", () => {
-    disarmLocalControlAgent();
+    cleanup(false);
   });
 })();

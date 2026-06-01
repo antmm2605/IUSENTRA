@@ -8,6 +8,7 @@ import hmac
 import json
 import argparse
 import ctypes
+import io
 import platform
 import secrets
 import sys
@@ -247,6 +248,7 @@ class ArmedSession:
     session_id: str
     token: str
     expires_at: float
+    allow_control: bool = True
 
 
 class AgentState:
@@ -259,11 +261,17 @@ class AgentState:
         session_id: str,
         token: str,
         ttl_seconds: int = SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS,
+        allow_control: bool = True,
     ) -> ArmedSession:
         if not session_id or not token:
             raise RemoteControlError("session_id e token sono obbligatori.")
         ttl = max(60, min(int(ttl_seconds or SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS), 8 * 60 * 60))
-        armed = ArmedSession(session_id=session_id, token=token, expires_at=time.time() + ttl)
+        armed = ArmedSession(
+            session_id=session_id,
+            token=token,
+            expires_at=time.time() + ttl,
+            allow_control=bool(allow_control),
+        )
         with self._lock:
             self._armed[session_id] = armed
         return armed
@@ -274,7 +282,7 @@ class AgentState:
             if armed and secrets.compare_digest(armed.token, token):
                 self._armed.pop(session_id, None)
 
-    def require(self, session_id: str, token: str) -> ArmedSession:
+    def require(self, session_id: str, token: str, *, require_control: bool = False) -> ArmedSession:
         with self._lock:
             armed = self._armed.get(session_id)
             if not armed:
@@ -284,6 +292,8 @@ class AgentState:
                 raise RemoteControlError("Autorizzazione PC scaduta.")
             if not secrets.compare_digest(armed.token, token):
                 raise RemoteControlError("Token PC non valido.")
+            if require_control and not armed.allow_control:
+                raise RemoteControlError("Controllo PC non autorizzato dal cliente.")
             return armed
 
     def active_count(self) -> int:
@@ -327,18 +337,40 @@ def _support_pc_click(button: str = "left", double: bool = False) -> None:
         time.sleep(0.06)
 
 
+ULONG_PTR = ctypes.c_ulonglong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_ulong
+
+
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", ctypes.c_long),
+        ("dy", ctypes.c_long),
+        ("mouseData", ctypes.c_ulong),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("dwExtraInfo", ULONG_PTR),
+    ]
+
+
 class KEYBDINPUT(ctypes.Structure):
     _fields_ = [
         ("wVk", ctypes.c_ushort),
         ("wScan", ctypes.c_ushort),
         ("dwFlags", ctypes.c_ulong),
         ("time", ctypes.c_ulong),
-        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+        ("dwExtraInfo", ULONG_PTR),
+    ]
+
+
+class HARDWAREINPUT(ctypes.Structure):
+    _fields_ = [
+        ("uMsg", ctypes.c_ulong),
+        ("wParamL", ctypes.c_ushort),
+        ("wParamH", ctypes.c_ushort),
     ]
 
 
 class INPUTUNION(ctypes.Union):
-    _fields_ = [("ki", KEYBDINPUT)]
+    _fields_ = [("mi", MOUSEINPUT), ("ki", KEYBDINPUT), ("hi", HARDWAREINPUT)]
 
 
 class INPUT(ctypes.Structure):
@@ -364,14 +396,18 @@ VK_CODES = {
 
 
 def _support_pc_key_input(vk: int, flags: int = 0, scan: int = 0) -> INPUT:
-    return INPUT(type=INPUT_KEYBOARD, union=INPUTUNION(ki=KEYBDINPUT(vk, scan, flags, 0, None)))
+    return INPUT(type=INPUT_KEYBOARD, union=INPUTUNION(ki=KEYBDINPUT(vk, scan, flags, 0, 0)))
 
 
 def _support_pc_send_inputs(inputs: list[INPUT]) -> None:
     arr = (INPUT * len(inputs))(*inputs)
-    sent = ctypes.windll.user32.SendInput(len(inputs), arr, ctypes.sizeof(INPUT))
+    send_input = ctypes.windll.user32.SendInput
+    send_input.argtypes = (ctypes.c_uint, ctypes.POINTER(INPUT), ctypes.c_int)
+    send_input.restype = ctypes.c_uint
+    sent = send_input(len(inputs), arr, ctypes.sizeof(INPUT))
     if sent != len(inputs):
-        raise RemoteControlError("Invio input Windows non riuscito.")
+        error_code = ctypes.windll.kernel32.GetLastError()
+        raise RemoteControlError(f"Invio input Windows non riuscito (codice {error_code}).")
 
 
 def _support_pc_send_key(key: str) -> None:
@@ -390,6 +426,37 @@ def _support_pc_send_text(text: str) -> int:
     if inputs:
         _support_pc_send_inputs(inputs)
     return len(text)
+
+
+def _support_pc_capture_screen(max_width: int = 1600, quality: int = 55) -> dict[str, Any]:
+    if not _support_pc_is_windows():
+        raise RemoteControlError("Visualizzazione schermo reale disponibile su Windows.")
+    try:
+        from PIL import ImageGrab
+    except Exception as exc:  # pragma: no cover - dipendenza runtime locale
+        raise RemoteControlError("Cattura schermo non disponibile: installa Pillow nell'ambiente locale.") from exc
+
+    image = ImageGrab.grab(all_screens=True)
+    original_width, original_height = image.size
+    max_width = max(480, min(int(max_width or 1600), 2400))
+    if original_width > max_width:
+        target_height = max(1, int(original_height * (max_width / original_width)))
+        image = image.resize((max_width, target_height))
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+
+    quality = max(35, min(int(quality or 55), 85))
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", quality=quality, optimize=True)
+    return {
+        "ok": True,
+        "width": original_width,
+        "height": original_height,
+        "preview_width": image.size[0],
+        "preview_height": image.size[1],
+        "captured_at": time.time(),
+        "image": "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii"),
+    }
 
 
 def execute_command(command: dict[str, Any], *, dry_run: bool = False) -> dict[str, Any]:
@@ -478,15 +545,29 @@ class SupportPcAgentRequestHandler(BaseHTTPRequestHandler):
             session_id = str(payload.get("session_id") or "").strip()
             token = str(payload.get("token") or "").strip()
             if path == "/arm":
-                armed = SUPPORT_PC_AGENT_STATE.arm(session_id, token, int(payload.get("ttl_seconds") or SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS))
-                self._send_json({"ok": True, "expires_at": armed.expires_at})
+                armed = SUPPORT_PC_AGENT_STATE.arm(
+                    session_id,
+                    token,
+                    int(payload.get("ttl_seconds") or SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS),
+                    allow_control=bool(payload.get("control", True)),
+                )
+                self._send_json({"ok": True, "expires_at": armed.expires_at, "control": armed.allow_control})
                 return
             if path == "/disarm":
                 SUPPORT_PC_AGENT_STATE.disarm(session_id, token)
                 self._send_json({"ok": True})
                 return
-            if path == "/execute":
+            if path == "/screenshot":
                 SUPPORT_PC_AGENT_STATE.require(session_id, token)
+                self._send_json(
+                    _support_pc_capture_screen(
+                        max_width=int(payload.get("max_width") or 1600),
+                        quality=int(payload.get("quality") or 55),
+                    )
+                )
+                return
+            if path == "/execute":
+                SUPPORT_PC_AGENT_STATE.require(session_id, token, require_control=True)
                 result = execute_command(dict(payload.get("command") or {}), dry_run=bool(payload.get("dry_run")))
                 self._send_json(result)
                 return

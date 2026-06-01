@@ -366,6 +366,26 @@ def test_payload_push_privacy_non_include_dati_sensibili():
         assert forbidden not in serialized
 
 
+def test_payload_push_assistenza_remota_indica_studio_senza_dati_pratica():
+    record = _notification(
+        type="support_remote",
+        priority="urgent",
+        title="Richiesta assistenza Mario Rossi RG 123/2026",
+        body="Mario Rossi chiede assistenza sul fascicolo RG 123/2026",
+        href="/admin/supporto-remoto?sessione=abc",
+        payload_json={"studioName": "Studio Verdi"},
+    )
+    payload = safe_web_push_payload(record)
+    serialized = json.dumps(payload, ensure_ascii=False)
+
+    assert payload["title"] == "IUSENTRA Assistenza"
+    assert payload["body"] == "Richiesta assistenza da Studio Verdi."
+    assert payload["href"] == "/admin/supporto-remoto?sessione=abc"
+    assert "Studio Verdi" in serialized
+    for forbidden in ("Mario Rossi", "RG 123/2026"):
+        assert forbidden not in serialized
+
+
 def test_script_configure_web_push_non_stampa_private_key_di_default():
     script = Path("deploy/hetzner/configure_web_push.sh").read_text(encoding="utf-8")
     verify = Path("deploy/hetzner/verify_web_push.sh").read_text(encoding="utf-8")

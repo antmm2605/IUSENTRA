@@ -107,6 +107,7 @@ from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_nuova_payload,
     build_react_scadenziario_payload,
 )
+from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
 from web.services.react_statistiche_bridge import (
     build_react_statistiche_error_payload,
@@ -2695,6 +2696,70 @@ def _json_body() -> dict[str, Any]:
     return dict(payload) if isinstance(payload, dict) else {}
 
 
+def _scadenziario_can_write() -> bool:
+    if _api_key_valida():
+        return True
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("scadenziario.scrivi"))
+
+
+def _positive_int(value: Any, *, default: int = 0, maximum: int = 10000) -> int:
+    try:
+        parsed = int(value or default)
+    except (TypeError, ValueError):
+        parsed = default
+    if parsed < 0:
+        parsed = 0
+    return min(parsed, maximum)
+
+
+@api_v1_react.get("/scadenziario/pdf-scadenze/anteprima")
+@_richiedi_auth
+def scadenziario_pdf_scadenze_anteprima():
+    id_fascicolo = str(request.args.get("id_fascicolo") or request.args.get("fascicoloId") or "").strip()
+    max_documents = _positive_int(request.args.get("max_documents") or request.args.get("maxDocuments"), default=0)
+    try:
+        preview = preview_pdf_deadlines(
+            gestione_fascicoli=get_fascicoli(),
+            gestione_scadenziario=get_scadenziario(),
+            id_fascicolo=id_fascicolo,
+            max_documents=max_documents,
+        )
+        return jsonify(preview.to_dict())
+    except Exception as exc:
+        current_app.logger.exception("Anteprima scadenze PDF non riuscita: %s", exc)
+        return jsonify({"ok": False, "errore": "Scansione PDF non completata.", "message": "Scansione PDF non completata."}), 400
+
+
+@api_v1_react.post("/scadenziario/pdf-scadenze/importa")
+@_richiedi_auth
+def scadenziario_pdf_scadenze_importa():
+    if not _scadenziario_can_write():
+        return jsonify({"ok": False, "errore": "Permesso insufficiente.", "message": "Permesso insufficiente."}), 403
+    payload = _json_body()
+    selected_ids = payload.get("selectedIds") or payload.get("ids") or []
+    if not isinstance(selected_ids, list):
+        selected_ids = []
+    id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "").strip()
+    max_documents = _positive_int(payload.get("max_documents") or payload.get("maxDocuments"), default=0)
+    try:
+        result = import_pdf_deadlines(
+            gestione_fascicoli=get_fascicoli(),
+            gestione_scadenziario=get_scadenziario(),
+            selected_ids=[str(item) for item in selected_ids],
+            id_fascicolo=id_fascicolo,
+            max_documents=max_documents,
+            user_id=_current_user_id(),
+        )
+        if result.get("ok"):
+            _audit_event("scadenziario.importa_pdf", "scadenza", "", str(result.get("message") or ""))
+            _sync_event("crea", "scadenze", "pdf-import")
+        return jsonify(result), 200 if result.get("ok") else 400
+    except Exception as exc:
+        current_app.logger.exception("Import scadenze PDF non riuscito: %s", exc)
+        return jsonify({"ok": False, "errore": "Importazione PDF non completata.", "message": "Importazione PDF non completata."}), 400
+
+
 @api_v1_react.get("/scadenziario/termini/templates")
 @_richiedi_auth
 def scadenziario_termini_templates():
@@ -3614,12 +3679,14 @@ def fascicoli_react_list():
         get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
         page=_request_int("page", default=1),
-        page_size=_request_int("page_size", "pageSize", default=25),
+        page_size=_request_int("page_size", "pageSize", default=5),
         query=request.args.get("q", ""),
+        client_filter=request.args.get("client", ""),
+        rg_filter=request.args.get("rg", ""),
         type_filter=request.args.get("type", ""),
         status_filter=request.args.get("status", ""),
         court=request.args.get("court", ""),
-        sort=request.args.get("sort", "recenti"),
+        sort=request.args.get("sort", "rg"),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
     ))
 
@@ -3699,7 +3766,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_config_studio=_core_runtime_func("get_config_studio"),
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
-        include_sections=_detail_include_sections(default={"documenti", "attivita", "scadenze", "depositi"}),
+        include_sections=_detail_include_sections(default=set()),
     ))
 
 
@@ -3780,6 +3847,66 @@ def fascicolo_react_depositi(id_fasc: str):
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
         include_sections={"depositi"},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/relata")
+@_richiedi_auth
+def fascicolo_react_relata(id_fasc: str):
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
+        get_fascicoli=_fascicoli_loader(),
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi_readonly,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
+        get_config_studio=_core_runtime_func("get_config_studio"),
+        id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections={"relata"},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/audit")
+@_richiedi_auth
+def fascicolo_react_audit(id_fasc: str):
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
+        get_fascicoli=_fascicoli_loader(),
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi_readonly,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
+        get_config_studio=_core_runtime_func("get_config_studio"),
+        id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections={"audit"},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/lex")
+@_richiedi_auth
+def fascicolo_react_lex(id_fasc: str):
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
+        get_fascicoli=_fascicoli_loader(),
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi_readonly,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
+        get_config_studio=_core_runtime_func("get_config_studio"),
+        id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections={"lex"},
     ))
 
 

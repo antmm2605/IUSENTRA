@@ -138,7 +138,14 @@ def _public_request() -> bool:
         return True
     if path in {"/api/v1", "/api/v1/"}:
         return True
-    return path.startswith(("/static/", "/web/", "/support/join/", "/support/api/", "/support/ws/"))
+    return path.startswith((
+        "/static/",
+        "/web/",
+        "/support/join/",
+        "/support/operatore/",
+        "/support/api/",
+        "/support/ws/",
+    ))
 
 
 def _platform_surface_for_superadmin() -> bool:

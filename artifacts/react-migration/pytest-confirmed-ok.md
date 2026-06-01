@@ -4051,3 +4051,16 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati: testi e report restano UTF-8 validi con accenti italiani. |
 | Produzione Hetzner `scripts/audit_quickorganizer_import.py --execute` su `studio-legale-giuseppe-montagnese` con pacchetto `96d8a1baa0ef4138bc027eb5325d1391` | OK | Import reale completato: audit `ok=true`, 324 fascicoli, 324 clienti collegati, 271 soggetti, 796 collegamenti parte attesi, 8954 documenti, 4186 email e 29 attività agenda. Tabelle SQL popolate in `studio.db`: `clienti=257`, `fascicoli=328`, `soggetti=271`, `soggetti_parti=770`. |
 | Produzione Hetzner controllo file documenti QuickOrganizer in `studio.db` e filesystem tenant | OK | Verificati 13140 documenti/email importati: `missing=0`; `nome`/`nome_portale` usano il nome tabellare, `nome_originale` conserva il file tecnico, con conteggio nomi visualizzati uguali al file originale pari a 0. |
+
+## Assistenza remota reale, Fascicoli e Scadenze PDF - 2026-06-01
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Test reale visibile su `http://127.0.0.1:8080`: richiesta dal pulsante `Assistenza` nella top bar studio, presa in carico superadmin, stanza operatore e stanza cliente aperte in finestre Chrome reali | OK | Sessione finale `d3f7479f-26fd-40ba-ab64-3d31d0601822`: il cliente vede `Operatore collegato`, avvia l'assistenza dopo consenso e il superadmin vede `Schermo cliente visibile`. |
+| Test reale controllo PC integrato con agente locale `pct.support_remote` su `127.0.0.1:27273` | OK | Dopo consenso cliente, il superadmin ottiene `Controllo PC attivo` e il comando remoto `Tab` produce conferma in chat `PC cliente: comando eseguito (Tab)`. Local Signer resta separato dall'agente di assistenza. |
+| Test reale fullscreen, chat compatta e audio | OK | In fullscreen la stanza resta su una colonna, la chat passa a `Chat estesa`, i pulsanti `Muta microfono` / `Riattiva microfono` funzionano lato superadmin e lato cliente anche quando Chrome locale non concede un secondo microfono nella simulazione su stesso PC. |
+| `node --check web\static\js\support_customer_room.js`; `node --check web\static\js\support_operator_room.js` | OK | Sintassi JavaScript confermata dopo fix polling in tab non attiva, consenso cliente e muto microfono. |
+| `python -m py_compile web\blueprints\support_remote.py web\services\support_runtime.py pct\support_remote.py pct\support_repository.py` | OK | Sintassi backend confermata per cabina assistenza, sessioni e agente controllo PC. |
+| `python -m pytest tests\test_support_remote.py tests\test_push_notifications.py tests\test_fascicoli_pagination.py tests\test_pdf_deadline_import.py tests\test_react_asset_retention.py -q --tb=short` | OK | 48/48 passati: assistenza remota, notifiche, fascicoli, import scadenze PDF e asset React pubblicati coperti con test mirati. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run build:vite` | OK | Typecheck React e build Vite completati dopo UI fascicoli, top bar assistenza e scadenziario PDF. |
+| Docker locale reale `docker compose up -d --build app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Container `iusentra-app` healthy e API pronta sulla copia locale utente, senza server temporanei per la prova finale. |

@@ -36,9 +36,14 @@ def test_fascicoli_api_pagina_server_side_massimo_page_size(tmp_path):
     _seed_fascicoli(app, 31)
 
     with app.test_client() as client:
+        default_response = client.get("/api/v1/ui/fascicoli?page=1", headers={"X-API-Key": "react-test-key"})
         response = client.get("/api/v1/ui/fascicoli?page=1&page_size=25", headers={"X-API-Key": "react-test-key"})
 
+    default_payload = default_response.get_json()
     payload = response.get_json()
+    assert default_response.status_code == 200
+    assert len(default_payload["items"]) == 5
+    assert default_payload["pagination"] == {"page": 1, "pageSize": 5, "total": 31, "pages": 7}
     assert response.status_code == 200
     assert len(payload["items"]) == 25
     assert payload["pagination"] == {"page": 1, "pageSize": 25, "total": 31, "pages": 2}
@@ -51,27 +56,45 @@ def test_fascicoli_api_filtri_q_tipo_stato_e_tribunale(tmp_path):
 
     with app.test_client() as client:
         by_query = client.get("/api/v1/ui/fascicoli?q=paginata%2007&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
+        by_query_client = client.get("/api/v1/ui/fascicoli?q=Cliente%2007&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
+        by_query_rg = client.get("/api/v1/ui/fascicoli?q=1017&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
+        by_client = client.get("/api/v1/ui/fascicoli?client=Cliente%2007&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
+        by_rg = client.get("/api/v1/ui/fascicoli?rg=1017&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_type = client.get("/api/v1/ui/fascicoli?type=penale&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_status = client.get("/api/v1/ui/fascicoli?status=da_archiviare&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_court = client.get("/api/v1/ui/fascicoli?court=TAR&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
+        combined = client.get("/api/v1/ui/fascicoli?client=Cliente%2012&rg=1012&type=penale&status=aperto&court=Milano&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
 
     assert [item["title"] for item in by_query["items"]] == ["Pratica paginata 07"]
+    assert [item["client"] for item in by_query_client["items"]] == ["Cliente 07"]
+    assert [item["rg"] for item in by_query_rg["items"]] == ["RG 1017/2026"]
+    assert [item["client"] for item in by_client["items"]] == ["Cliente 07"]
+    assert [item["rg"] for item in by_rg["items"]] == ["RG 1017/2026"]
     assert by_type["pagination"]["total"] == 6
     assert all(item["type"] == "penale" for item in by_type["items"])
     assert by_status["pagination"]["total"] == 4
     assert all(item["status"] == "da_archiviare" for item in by_status["items"])
     assert all("TAR" in item["court"] for item in by_court["items"])
+    assert [item["title"] for item in combined["items"]] == ["Pratica paginata 12"]
 
 
-def test_fascicoli_api_sort_stabile_e_summary_coerente(tmp_path):
+def test_fascicoli_api_sort_rg_decrescente_per_anno_e_numero(tmp_path):
     app = _app(tmp_path)
-    _seed_fascicoli(app, 12)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicoli.nuovo("RG basso anno nuovo", TipoFascicolo.CIVILE, numero_rg="1", anno_rg=2026)
+        fascicoli.nuovo("RG alto anno nuovo", TipoFascicolo.CIVILE, numero_rg="20", anno_rg=2026)
+        fascicoli.nuovo("RG anno precedente", TipoFascicolo.CIVILE, numero_rg="99", anno_rg=2025)
+        fascicoli.nuovo("RG storico", TipoFascicolo.CIVILE, numero_rg="450", anno_rg=2024)
 
     with app.test_client() as client:
-        payload = client.get("/api/v1/ui/fascicoli?sort=rg&page_size=10", headers={"X-API-Key": "react-test-key"}).get_json()
+        payload = client.get("/api/v1/ui/fascicoli?page_size=10", headers={"X-API-Key": "react-test-key"}).get_json()
+        explicit = client.get("/api/v1/ui/fascicoli?sort=rg&page_size=10", headers={"X-API-Key": "react-test-key"}).get_json()
 
     rg_values = [item["rg"] for item in payload["items"]]
-    assert rg_values == sorted(rg_values)
+    assert rg_values == ["RG 20/2026", "RG 1/2026", "RG 99/2025", "RG 450/2024"]
+    assert [item["rg"] for item in explicit["items"]] == rg_values
+    assert [(item["rgYear"], item["rgNumber"]) for item in payload["items"]] == [(2026, 20), (2026, 1), (2025, 99), (2024, 450)]
     assert payload["summary"]["total"] == payload["pagination"]["total"]
     assert payload["pagination"]["pageSize"] == 10
 
@@ -81,9 +104,25 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
 
     assert "query.set('page_size', String(params.pageSize))" in data_source
+    assert "query.set('client', params.client.trim())" in data_source
+    assert "query.set('rg', params.rg.trim())" in data_source
     assert "query.set('alerts_only', '1')" in data_source
+    assert "Contesto filtri" not in page_source
+    assert "client={clientFilter}" not in page_source
+    assert "rg={rgFilter}" not in page_source
+    assert "setClientFilter" not in page_source
+    assert "setRgFilter" not in page_source
+    assert "Nome cliente" not in page_source
+    assert "Numero o anno" not in page_source
+    assert "Cerca numero, anno, RG, cliente, titolo..." in page_source
+    assert "Elimina selezionati" in page_source
+    assert "fascicoli filtrati" in page_source
+    assert "filtered={filtersActive}" in page_source
     assert "getFascicoloDetailSection" in data_source
     assert "loadLazySection('regia')" in page_source
+    assert "loadLazySection('relata')" in page_source
+    assert "loadLazySection('audit')" in page_source
+    assert "loadLazySection('lex')" in page_source
     assert "getFascicoloDetail(id).then" in page_source
     assert "getFascicoloDetail(id, { include: 'all' })" in page_source
 
@@ -125,12 +164,16 @@ def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_
         scadenze = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/scadenze", headers=headers).get_json()
         depositi = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/depositi", headers=headers).get_json()
         regia = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/regia", headers=headers).get_json()
+        relata = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/relata", headers=headers).get_json()
+        audit = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/audit", headers=headers).get_json()
+        lex = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/lex", headers=headers).get_json()
 
-    assert len(main["documents"]) == 1
-    assert any(item["title"] == "Udienza filtro lazy" for item in main["activities"])
-    assert len(main["deadlines"]) == 1
-    assert len(main["deposits"]) == 1
+    assert main["documents"] == []
+    assert main["activities"] == []
+    assert main["deadlines"] == []
+    assert main["deposits"] == []
     assert main["regia"]["page_state"] == "lazy_non_caricata"
+    assert main["auditTrail"]["status"] == "lazy_non_caricato"
     assert main["quickCounts"]["documenti"] == 1
     assert main["quickCounts"]["attivita"] >= 1
     assert main["quickCounts"]["udienze_scadenze"] >= 1
@@ -140,3 +183,6 @@ def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_
     assert len(scadenze["deadlines"]) == 1
     assert len(depositi["deposits"]) == 1
     assert regia["mock_fallback"] is False
+    assert "notificationRelata" in relata
+    assert audit["auditTrail"]["status"] != "lazy_non_caricato"
+    assert lex["lex_indexing"]["total_documents"] == 1

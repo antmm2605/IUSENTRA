@@ -537,6 +537,8 @@ def build_react_scadenziario_payload(
                 "audit": "/api/v1/ui/scadenziario/termini/audit",
                 "override": "/api/v1/ui/scadenziario/termini/override",
                 "createDeadline": "/api/v1/ui/scadenziario/termini/crea-scadenza",
+                "pdfPreview": "/api/v1/ui/scadenziario/pdf-scadenze/anteprima",
+                "pdfImport": "/api/v1/ui/scadenziario/pdf-scadenze/importa",
             },
             "scheduler": {
                 "thresholds": [30, 15, 7, 1, 0],

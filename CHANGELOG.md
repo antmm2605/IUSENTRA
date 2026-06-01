@@ -1,10 +1,34 @@
 # Changelog
 
+## 2.249.3 - 2026-06-01
+
+- Rafforzato il flusso reale di assistenza remota: il SUPERADMIN prende in carico e si collega, ma solo il cliente può avviare la sessione dopo consenso esplicito.
+- Corretta la sincronizzazione delle stanze cliente/operatore anche quando una delle due finestre non è in primo piano, così il cliente vede subito `Avvia assistenza` dopo la presa in carico.
+- Stabilizzati fullscreen cliente/operatore, chat tecnica compatta, muto microfono su entrambi i lati e controllo PC via agente locale separato dal Local Signer.
+- Verificato end to end reale su `http://127.0.0.1:8080`: richiesta dal pulsante `Assistenza` dello studio, presa in carico SUPERADMIN, avvio cliente, schermo cliente visibile, chat bidirezionale, consenso controllo PC e comando reale `Tab` eseguito.
+- Migliorata la pagina `Fascicoli`: filtri compatti, ricerca unificata numero/anno/RG/cliente/titolo, ordinamento anno e numero, 5 fascicoli per pagina e azione bulk per eliminare selezionati.
+- Aggiunta anteprima/import scadenze da PDF nello Scadenziario con collegamento all'Agenda e ai link presenti nei documenti.
+
+## 2.249.2 - 2026-05-31
+
+- Blindato l'import Studio Telematico in modalità SQL: se lo studio è configurato SQLite/PostgreSQL, clienti, fascicoli, soggetti e parti vengono scritti nelle tabelle strutturate e l'import si blocca se il backend SQL non è realmente attivo.
+- Aggiunte tabelle strutturate `soggetti` e `soggetti_parti` su SQLite/PostgreSQL, con migrazione e audit allineati per impedire fallback invisibili sui JSON.
+- Estesi test e audit QuickOrganizer per verificare che l'import SQL popoli le tabelle e non crei `clienti/anagrafica.json`, `fascicoli/fascicoli.json`, `soggetti/anagrafica.json` o `soggetti/parti.json`.
+
 ## 2.249.1 - 2026-05-31
+
+- Estesa l'assistenza remota: le richieste dallo studio creano notifiche urgenti per il SUPERADMIN, possono arrivare via Web Push sul cellulare con payload privacy-safe, e la console permette attivazione dispositivo, test push, cambio stato, cancellazione sessione e pulizia prove/test.
 
 - Aggiunta preparazione assistita Studio Telematico: `Prepara pacchetto` crea una sessione sicura, scarica l'avviatore Windows, mostra avanzamento di preparazione/upload/controllo e importa automaticamente solo quando il pacchetto è completo.
 - Il preparatore locale ora può caricare lo ZIP a blocchi verso IUSENTRA usando header tokenizzati e mantenendo compatibilità con l'uso manuale.
 - Aggiornati OpenAPI, documentazione e test QuickOrganizer per coprire sessioni tokenizzate, upload automatico e anteprima pronta per l'import definitivo.
+
+## 2.249.0 - 2026-05-31
+
+- Blindato l'import reale Studio Telematico: il cliente principale viene risolto anche da `TAVOLA` + `NOMI.CONTROLLO=CLI` quando `PRATICHE.TitolareID` manca, tutti i nominativi `CLI` vengono creati in rubrica clienti, e i salvataggi di clienti, soggetti, parti e fascicoli sono differiti fino a fine lotto per evitare import parziali su pacchetti molto grandi.
+- Rafforzato il preparatore `quickorganizer-export.json`: il pacchetto viene bloccato se le tabelle o i campi minimi per ricostruire clienti, parti e pratiche non sono presenti, e il JSON contiene conteggi `validation` per auditare l'export prima della scrittura.
+- Aggiunto audit ripetibile `scripts/audit_quickorganizer_import.py` per confrontare pacchetto e tenant IUSENTRA su 324 pratiche, clienti collegati, soggetti/parti, documenti nominati dalla tabella, email con oggetto corretto e agenda.
+- Rafforzati i test QuickOrganizer con verifica audit end-to-end e regressione sui salvataggi batch; riallineati versione e OpenAPI a `2.249.0`.
 
 ## 2.248.99 - 2026-05-31
 
@@ -26,6 +50,9 @@
 
 ## 2.248.96 - 2026-05-31
 
+- Portata la stanza operatore dell'assistenza remota su superficie React dedicata con fullscreen reale/fallback in viewport, pannello tecnico compatto sotto e conferma visibile dei comandi PC eseguiti.
+- Aggiunto relay presenza/comandi via Redis pub/sub con fallback locale, così operatore e cliente restano sincronizzati anche con più worker Docker/Gunicorn.
+- Verificato end-to-end reale su `http://127.0.0.1:8080`: sessione creata dal Docker locale, cliente collegato, consenso controllo PC, agente locale armato, comando Windows `Tab` eseguito e confermato in UI.
 - Corretto l'import Studio Telematico: i documenti e le email usano come nome visibile il titolo presente nelle tabelle `TESTI`/`EMAILS`, conservando il file originale solo come sorgente fisica e metadato.
 - Estesi i test dell'import su clienti, soggetti e parti processuali, verificando cliente principale, anagrafiche importate e ruoli `ASSISTITO`/`CONTROPARTE`.
 - Bonificati i manifest Installation Pack e la risposta PEC pubblica per non esporre path di materiale protetto o dettagli runtime non necessari ai gate CodeQL.

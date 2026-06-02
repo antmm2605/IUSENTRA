@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any
 
 from pct.evidence_vault import link_evidence_to_notification
+from pct.notification_proof_matrix import fetch_notification_case_for_event
 from pct.procedure_lifecycle_repository import ProcedureLifecycleRepository
 
 
@@ -68,7 +69,11 @@ def mark_notification_ready(repo: ProcedureLifecycleRepository, notification_id:
         raise ValueError("Destinatario e indirizzo sono obbligatori per READY.")
     if not notification.get("recipient_address_source") and not reviewed:
         raise ValueError("Fonte indirizzo obbligatoria oppure review avvocato esplicita.")
-    repo.update_notification_event(notification_id, {"status": NotificationStatus.READY.value})
+    updates: dict[str, Any] = {"status": NotificationStatus.READY.value}
+    if reviewed and not notification.get("recipient_address_source"):
+        updates["recipient_address_source"] = "manuale_con_review"
+        updates["notes"] = "review avvocato su domicilio digitale"
+    repo.update_notification_event(notification_id, updates)
 
 
 def attach_relata(repo: ProcedureLifecycleRepository, notification_id: int, relata_document_id: str) -> None:
@@ -119,6 +124,19 @@ def acquire_notification_proof(repo: ProcedureLifecycleRepository, notification_
     link_evidence_to_notification(repo, notification_id=notification_id, evidence_id=evidence_id)
 
 
+def acquire_notification_proof_bundle(repo: ProcedureLifecycleRepository, notification_id: int, proof_bundle_id: str) -> None:
+    notification = repo.get_notification_event(notification_id)
+    if not notification:
+        raise ValueError("Notifica non trovata.")
+    if notification.get("status") not in {NotificationStatus.SENT.value, NotificationStatus.DELIVERED.value}:
+        raise ValueError("La prova si acquisisce solo dopo invio o consegna.")
+    repo.update_notification_event(
+        notification_id,
+        {"status": NotificationStatus.PROOF_ACQUIRED.value, "proof_bundle_id": proof_bundle_id},
+        source="notification_proof_validation",
+    )
+
+
 def proof_deposit_required(repo: ProcedureLifecycleRepository, notification_id: int) -> bool:
     notification = repo.get_notification_event(notification_id)
     if not notification or not notification.get("obligation_id"):
@@ -158,11 +176,32 @@ def mark_proof_deposited(repo: ProcedureLifecycleRepository, notification_id: in
         evidence = repo._fetch_one(conn, "SELECT * FROM evidence_documents WHERE id = ?", (deposit_evidence_id,))
     if not evidence:
         raise ValueError("Evidenza deposito prova mancante.")
+    if str(evidence.get("fascicolo_id") or "") != str(notification.get("fascicolo_id") or ""):
+        raise ValueError("Evidenza deposito prova di altro fascicolo.")
+    proof_bundle_id = notification.get("proof_bundle_id")
+    with repo.connect() as conn:
+        case = fetch_notification_case_for_event(conn, notification_id)
+        if case:
+            proof_deposit = repo._fetch_one(
+                conn,
+                """
+                SELECT bundle_id FROM notification_proof_deposits
+                WHERE notification_case_id = ?
+                  AND deposit_status = 'OFFICE_ACCEPTED'
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (int(case["id"]),),
+            )
+            if proof_deposit:
+                proof_bundle_id = proof_deposit.get("bundle_id")
+    if not proof_bundle_id:
+        raise ValueError("Deposito prova richiede bundle probatorio già validato.")
     repo.update_notification_event(
         notification_id,
         {
             "status": NotificationStatus.PROOF_DEPOSITED.value,
-            "proof_bundle_id": str(evidence.get("document_id") or deposit_evidence_id),
+            "proof_bundle_id": proof_bundle_id,
         },
         source="notification_proof_validation",
     )

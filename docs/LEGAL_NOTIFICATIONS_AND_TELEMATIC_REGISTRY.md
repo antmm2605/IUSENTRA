@@ -12,6 +12,13 @@ coperta da test di regressione.
 
 Fonti salvate per questa tranche:
 
+- Matrice probatoria PEC/notifiche 2 giugno 2026:
+  `docs/specs/ministero/NOTIFICHE_PEC_MATRICE_PROBATORIA_2026-06-02.md`.
+  Regole applicate: `proof_bundle_id` è solo un contenitore; gli stati
+  `PROOF_ACQUIRED`, `PROOF_DEPOSIT_REQUIRED` e `PROOF_DEPOSITED` richiedono
+  destinatari, domicilio digitale, PEC inviata, relata, attestazioni quando
+  dovute, ricevute positive per ogni destinatario, evidenze hashate,
+  DatiAtto.xml/deposito prova quando dovuti e audit.
 - Gazzetta Ufficiale, supplemento ordinario n. 38/L del 17 ottobre 2022,
   D.Lgs. 149/2022, note all'art. 12: art. 3-bis L. 53/1994 vigente.
   Regole applicate: PEC da pubblici elenchi, oggetto obbligatorio, atto

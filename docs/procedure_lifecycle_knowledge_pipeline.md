@@ -142,7 +142,7 @@ Regole severe:
 - `FIRMATO` richiede firma verificata quando la firma è richiesta.
 - `DEPOSITO_ACCETTATO` richiede ricevuta `ACCETTAZIONE_DEPOSITO`.
 - `NOTIFICA_EFFETTUATA` richiede evento notifica `SENT`.
-- `PROVA_NOTIFICA_ACQUISITA` richiede evidenza documentale.
+- `PROVA_NOTIFICA_ACQUISITA` richiede catena probatoria notifica completa.
 - `CHIUSA` è bloccata se esistono obblighi post-accettazione pendenti.
 
 ## Firma, Deposito e Notifica
@@ -151,7 +151,14 @@ La firma digitale è solo workflow: richiesta, esito e verifica strutturale. Non
 
 Il deposito telematico crea e valida pacchetti, registra invio stub, ricevute ed esiti. Nessun deposito reale avviene senza connettore autorizzato.
 
-La notifica registra destinatario, fonte indirizzo, atto, relata, invio stub, consegna e prova. `PROOF_ACQUIRED` richiede evidenza collegata.
+La notifica registra destinatario, fonte indirizzo, atto, relata, invio stub,
+consegna e prova. `PROOF_ACQUIRED` non accetta più una singola evidenza
+generica: richiede la matrice probatoria completa documentata in
+`docs/specs/ministero/NOTIFICHE_PEC_MATRICE_PROBATORIA_2026-06-02.md`, con
+bundle verificato, evidenze hashate, PEC inviata, relata verificata, RAC e
+RdAC per ogni destinatario. `PROOF_DEPOSITED` richiede anche DatiAtto.xml,
+busta deposito prova, ricevuta deposito, esito ufficio accettato e riferimenti
+DatiAtto per destinatario e ricevuta.
 
 ## Audit
 

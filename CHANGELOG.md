@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.249.8 - 2026-06-02
+
+- Introdotta la matrice probatoria obbligatoria per PEC, notifiche e deposito prova: `PROOF_ACQUIRED`, `PROOF_DEPOSIT_REQUIRED` e `PROOF_DEPOSITED` richiedono destinatari, domicilio digitale, PEC inviata, relata, RAC/RdAC per ogni destinatario, evidenze hashate, DatiAtto/deposito prova quando dovuti e audit.
+- Aggiunte tabelle SQLite e PostgreSQL per casi notifica, destinatari, controlli indirizzo, messaggi, ricevute, relata, attestazioni, bundle prova, link evidenze, deposito prova e riferimenti DatiAtto.
+- Aggiornati workflow e repository lifecycle: `proof_bundle_id` non punta più a una singola evidenza generica, ma a `notification_proof_bundles` verificato; il trigger SQLite anti-bypass respinge update diretti non validati.
+- Salvate e registrate fonti ufficiali PST, L. 53/1994, D.P.R. 68/2005, regole tecniche PEC, CAD, ReGIndE, INI-PEC, INAD e XSD UNEP; aggiunta la matrice in `docs/specs/ministero/NOTIFICHE_PEC_MATRICE_PROBATORIA_2026-06-02.md`.
+- Aggiornati test mirati notifiche, evidence vault e procedure lifecycle per coprire il vecchio shortcut come caso negativo e il bundle probatorio completo come caso positivo.
+
 ## 2.249.7 - 2026-06-02
 
 - Blindato l'aggiornamento degli uffici giudiziari: il parametro API e `PCT_UFFICI_URL` non possono più puntare a URL arbitrari, ma vengono accettati solo se coincidono con l'endpoint PST ufficiale, altrimenti il sistema usa la fonte ufficiale o il registro interno versionato.

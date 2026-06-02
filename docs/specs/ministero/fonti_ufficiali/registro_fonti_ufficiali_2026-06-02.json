@@ -38,6 +38,78 @@
       "topics": ["pst", "documentazione"]
     },
     {
+      "id": "pst_specifiche_dm44_2024",
+      "authority": "Ministero della Giustizia - PST/DGSIA",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3429",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-specifiche-tecniche-dm44-2024.html",
+      "sha256_short": "F8C15F2F41A9E81B",
+      "topics": ["pst", "specifiche_tecniche", "notifiche", "pec", "dati_atto"]
+    },
+    {
+      "id": "normattiva_legge_53_1994",
+      "authority": "Normattiva",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1994-01-21;53",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/normattiva-legge-53-1994.html",
+      "sha256_short": "5F1ACA69A469A58A",
+      "topics": ["notifiche", "l53_1994", "pec"]
+    },
+    {
+      "id": "normattiva_dpr_68_2005_pec",
+      "authority": "Normattiva",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2005-02-11;68",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/normattiva-dpr-68-2005-pec.html",
+      "sha256_short": "B0667B57477E0942",
+      "topics": ["pec", "ricevute", "dati_certificazione"]
+    },
+    {
+      "id": "normattiva_cad_art48",
+      "authority": "Normattiva",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-03-07;82~art48",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/normattiva-cad-art-48.html",
+      "sha256_short": "575BA9167854A786",
+      "topics": ["cad", "pec", "ricevuta_invio", "ricevuta_consegna"]
+    },
+    {
+      "id": "gazzetta_dm_pec_2005",
+      "authority": "Gazzetta Ufficiale",
+      "official_url": "https://www.gazzettaufficiale.it/eli/id/2005/11/15/05A10742/sg",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/gazzetta-dm-pec-2005.html",
+      "sha256_short": "90AD6AD50998CC4D",
+      "topics": ["pec", "regole_tecniche", "ricevute", "validazione_temporale"]
+    },
+    {
+      "id": "agid_inad",
+      "authority": "Agenzia per l'Italia Digitale",
+      "official_url": "https://www.agid.gov.it/it/piattaforme/inad",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/agid-inad.html",
+      "sha256_short": "A931544E6293A195",
+      "topics": ["inad", "domicilio_digitale", "cad"]
+    },
+    {
+      "id": "registroimprese_inipec",
+      "authority": "Registro Imprese / InfoCamere",
+      "official_url": "https://registroimprese.infocamere.it/ini-pec",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/registroimprese-inipec.html",
+      "sha256_short": "C5ECAA5D1E48C047",
+      "topics": ["ini_pec", "imprese", "professionisti", "domicilio_digitale"]
+    },
+    {
+      "id": "mimit_inipec_pec",
+      "authority": "Ministero delle Imprese e del Made in Italy",
+      "official_url": "https://www.mimit.gov.it/it/impresa/registro-delle-imprese/pec",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/mimit-inipec-pec.html",
+      "sha256_short": "840B6D9D273F1349",
+      "topics": ["ini_pec", "pec", "registro_imprese"]
+    },
+    {
+      "id": "pst_reginde",
+      "authority": "Ministero della Giustizia - PST",
+      "official_url": "https://pst.giustizia.it/PST/it/dettaglio_schede_utente.page?contentId=ACC405&modelId=12",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-reginde.html",
+      "sha256_short": "70F4ED5C98949B6B",
+      "topics": ["reginde", "pec", "soggetti_abilitati_esterni"]
+    },
+    {
       "id": "pst_download",
       "authority": "PST Giustizia",
       "official_url": "https://pst.giustizia.it/PST/it/download.page",
@@ -438,6 +510,38 @@
       "software_modules": ["legal_deposit/policies.py", "pct/polisWeb.py", "pct/pec_legal_workflow.py"],
       "tests": ["tests/test_portali_telematici_matrix.py", "tests/test_pec_legal_workflow.py", "tests/test_local_signer.py"],
       "limits": ["Dove la fonte pubblica non espone un codice depositabile dedicato, il software deve avvisare e non sostituire il codice."]
+    },
+    {
+      "id": "notifiche_pec_catena_probatoria",
+      "source_ids": ["pst_specifiche_dm44_2024", "normattiva_legge_53_1994", "normattiva_dpr_68_2005_pec", "normattiva_cad_art48", "gazzetta_dm_pec_2005"],
+      "rule": "Gli stati PROOF_ACQUIRED, PROOF_DEPOSIT_REQUIRED e PROOF_DEPOSITED non dipendono dalla sola presenza di proof_bundle_id: richiedono destinatario, domicilio digitale/fonte, messaggio PEC originale, relata verificata, ricevuta di accettazione e ricevuta di avvenuta consegna per ogni destinatario, evidenze hashate e bundle probatorio verificato.",
+      "software_modules": ["pct/notification_proof_matrix.py", "pct/procedure_lifecycle_repository.py", "pct/notification_workflow.py"],
+      "tests": ["tests/test_notification_workflow.py", "tests/test_evidence_vault.py", "tests/test_procedure_lifecycle_edges.py", "tests/test_procedure_lifecycle_repository.py"],
+      "limits": ["Il software non invia PEC reali e non qualifica il perfezionamento in assenza di RAC/RdAC verificate; anomalie, mancate accettazioni e mancate consegne bloccano la prova positiva e richiedono remediation professionale."]
+    },
+    {
+      "id": "notifiche_domicilio_digitale_per_destinatario",
+      "source_ids": ["pst_reginde", "registroimprese_inipec", "mimit_inipec_pec", "agid_inad", "normattiva_legge_53_1994"],
+      "rule": "Ogni destinatario deve avere indirizzo, fonte del domicilio digitale e stato autonomi; ReGIndE, INI-PEC e INAD sono fonti distinte e la fonte manuale richiede review tracciata prima dello stato READY.",
+      "software_modules": ["pct/notification_proof_matrix.py", "pct/procedure_lifecycle_repository.py", "pct/notification_workflow.py"],
+      "tests": ["tests/test_notification_workflow.py", "tests/test_procedure_lifecycle_edges.py"],
+      "limits": ["La ricerca o selezione della fonte non autorizza scraping massivo; se il pubblico elenco non è certo il flusso resta in NEEDS_REVIEW o remediation, non in READY automatico."]
+    },
+    {
+      "id": "notifiche_unep_richiesta_relata_ricevute",
+      "source_ids": ["pst_specifiche_dm44_2024", "pst_unep_xsd", "pst_reginde", "registroimprese_inipec", "agid_inad"],
+      "rule": "Per notifiche UNEP la richiesta di parte usa il canale e gli schemi UNEP/RichiestaParte; la prova positiva richiede relazione di notificazione firmata o qualificata congiunta all'atto e ricevute PEC collegate al destinatario.",
+      "software_modules": ["pct/notification_proof_matrix.py", "pct/procedure_lifecycle_repository.py"],
+      "tests": ["tests/test_procedure_lifecycle_edges.py"],
+      "limits": ["La matrice runtime è predisposta per NOTIFICA_UNEP ma non sostituisce l'integrazione reale UNEP: senza schema, ricevute e relazione effettive il software avvisa e non chiude la prova."]
+    },
+    {
+      "id": "notifiche_deposito_prova_dati_atto",
+      "source_ids": ["pst_specifiche_dm44_2024", "pst_download", "normattiva_legge_53_1994"],
+      "rule": "Il deposito della prova di notifica richiede atto notificato, relata, PEC inviata, RAC, RdAC, DatiAtto.xml, busta di deposito prova, ricevuta di deposito e esito ufficio; i riferimenti DatiAtto alle ricevute sono registrati per destinatario e per ricevuta.",
+      "software_modules": ["pct/notification_proof_matrix.py", "pct/notification_workflow.py", "pct/procedure_lifecycle_repository.py"],
+      "tests": ["tests/test_notification_workflow.py", "tests/test_procedure_lifecycle_edges.py"],
+      "limits": ["PROOF_DEPOSITED è ammesso solo con deposito prova OFFICE_ACCEPTED; la sola ricevuta PEC di invio o un generico documento nel vault non basta."]
     },
     {
       "id": "pst_pagamenti_rt_xml",

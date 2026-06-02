@@ -13,10 +13,12 @@ import threading
 from typing import Any, Iterator
 
 from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
+from pct.notification_proof_matrix import ensure_notification_case_graph, validate_notification_proof_bundle
 
 
 EXTENDED_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260520_xsd_procedure_lifecycle_knowledge.sql"
 LEGACY_EXTENDED_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260520_procedure_lifecycle_knowledge_pipeline.sql"
+NOTIFICATION_PROOF_MATRIX_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260602_notification_proof_matrix.sql"
 
 TENANT_AWARE_TABLES: tuple[str, ...] = (
     "legal_ministerial_xsd_objects",
@@ -32,6 +34,18 @@ TENANT_AWARE_TABLES: tuple[str, ...] = (
     "telematic_deposit_receipts",
     "post_acceptance_obligations",
     "notification_events",
+    "notification_cases",
+    "notification_recipients",
+    "notification_delivery_attempts",
+    "notification_recipient_address_checks",
+    "notification_messages",
+    "notification_receipts",
+    "notification_relata",
+    "conformity_attestations",
+    "notification_evidence_links",
+    "notification_proof_bundles",
+    "notification_proof_deposits",
+    "notification_dati_atto_receipt_refs",
     "evidence_documents",
     "procedure_audit_log",
 )
@@ -232,21 +246,21 @@ def _clear_validated_transition(db_path: str | Path, entity_type: str, entity_id
         _VALIDATED_TRANSITION_TOKENS.discard(_transition_key(db_path, entity_type, entity_id, target_state))
 
 
-def _assert_notification_proof_evidence(conn: sqlite3.Connection, fascicolo_id: str, proof_bundle_id: Any) -> None:
-    proof_id = str(proof_bundle_id or "").strip()
-    if not proof_id:
-        raise ValueError("Gli stati prova notifica richiedono evidence_documents collegati.")
-    row = conn.execute(
-        """
-        SELECT id FROM evidence_documents
-        WHERE fascicolo_id = ?
-          AND (document_id = ? OR CAST(id AS TEXT) = ?)
-        LIMIT 1
-        """,
-        (fascicolo_id, proof_id, proof_id),
-    ).fetchone()
-    if row is None:
-        raise ValueError("Gli stati prova notifica richiedono evidence_documents collegati.")
+def _assert_notification_proof_evidence(
+    conn: sqlite3.Connection,
+    fascicolo_id: str,
+    proof_bundle_id: Any,
+    *,
+    notification_id: int | None = None,
+    target_status: str = "",
+) -> None:
+    validate_notification_proof_bundle(
+        conn,
+        fascicolo_id=fascicolo_id,
+        proof_bundle_id=proof_bundle_id,
+        notification_id=notification_id,
+        target_status=target_status,
+    )
 
 
 def _assert_deposit_ready_evidence(conn: sqlite3.Connection, package: dict[str, Any] | None) -> None:
@@ -400,6 +414,8 @@ class ProcedureLifecycleRepository:
         with self.connect() as conn:
             schema_path = EXTENDED_SCHEMA_SQL if EXTENDED_SCHEMA_SQL.exists() else LEGACY_EXTENDED_SCHEMA_SQL
             conn.executescript(schema_path.read_text(encoding="utf-8"))
+            if NOTIFICATION_PROOF_MATRIX_SCHEMA_SQL.exists():
+                conn.executescript(NOTIFICATION_PROOF_MATRIX_SCHEMA_SQL.read_text(encoding="utf-8"))
             self._ensure_tenant_columns(conn)
             conn.commit()
 
@@ -1648,6 +1664,7 @@ class ProcedureLifecycleRepository:
             )
             notification_id = int(cur.lastrowid)
             after = self.get_notification_event(notification_id, conn=conn)
+            ensure_notification_case_graph(self, conn, notification_id, after)
             self.audit_log(
                 entity_type="notification_events",
                 entity_id=notification_id,
@@ -1696,9 +1713,40 @@ class ProcedureLifecycleRepository:
         params = [updates[key] for key in keys] + [notification_id]
         with self.connect() as conn:
             before = self.get_notification_event(notification_id, conn=conn)
+            if not before:
+                raise ValueError("Notifica non trovata.")
             target_status = updates.get("status")
             if "proof_bundle_id" in updates and not target_status:
                 target_status = (before or {}).get("status")
+            event_for_validation = {**(before or {}), **updates}
+            if target_status == "READY":
+                if not event_for_validation.get("recipient_address") or not event_for_validation.get("recipient_address_source"):
+                    self._blocked_operation(
+                        conn,
+                        entity_type="notification_events",
+                        entity_id=notification_id,
+                        action="notification_update",
+                        reason="READY richiede destinatario, domicilio digitale e fonte indirizzo.",
+                        before=before,
+                        attempted=updates,
+                        actor=actor,
+                        source=source,
+                    )
+                source_value = str(event_for_validation.get("recipient_address_source") or "").lower()
+                manual_source = source_value in {"manuale", "manual", "altro"} or source_value.startswith("manuale")
+                if manual_source and "review" not in str(event_for_validation.get("notes") or "").lower():
+                    self._blocked_operation(
+                        conn,
+                        entity_type="notification_events",
+                        entity_id=notification_id,
+                        action="notification_update",
+                        reason="READY con domicilio digitale manuale richiede review avvocato tracciata.",
+                        before=before,
+                        attempted=updates,
+                        actor=actor,
+                        source=source,
+                    )
+            ensure_notification_case_graph(self, conn, notification_id, before)
             if target_status in _NOTIFICATION_PROOF_STATUSES:
                 if source != _VALIDATED_NOTIFICATION_SOURCE:
                     self._blocked_operation(
@@ -1717,6 +1765,8 @@ class ProcedureLifecycleRepository:
                         conn,
                         str((before or {}).get("fascicolo_id") or ""),
                         updates.get("proof_bundle_id") or (before or {}).get("proof_bundle_id"),
+                        notification_id=notification_id,
+                        target_status=str(target_status),
                     )
                 except ValueError as exc:
                     self._blocked_operation(
@@ -1737,6 +1787,8 @@ class ProcedureLifecycleRepository:
                 if target_status in _NOTIFICATION_PROOF_STATUSES:
                     _clear_validated_transition(self.db_path, "notification_events", notification_id, str(target_status))
             after = self.get_notification_event(notification_id, conn=conn)
+            if after:
+                ensure_notification_case_graph(self, conn, notification_id, after)
             self.audit_log(
                 entity_type="notification_events",
                 entity_id=notification_id,

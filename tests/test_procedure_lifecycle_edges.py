@@ -22,6 +22,7 @@ from pct.notification_workflow import (
     NOTIFICATION_STATUSES,
     RealNotificationConnector,
     acquire_notification_proof,
+    acquire_notification_proof_bundle,
     attach_relata,
     create_notification_event,
     mark_notification_ready,
@@ -82,7 +83,7 @@ from pct.telematic_deposit_workflow import (
     update_deposit_status_from_receipts,
     validate_package_ready,
 )
-from tests.procedure_pipeline_support import make_repo, seed_inventory, write_catalog
+from tests.procedure_pipeline_support import build_complete_notification_proof_bundle, make_repo, seed_inventory, write_catalog
 
 
 def test_importer_edge_paths_main_e_report(tmp_path, capsys):
@@ -575,18 +576,26 @@ def test_signature_deposit_notification_evidence_edges(tmp_path):
         fascicolo_id="FNOT",
         evidence_type="PROOF_OF_DELIVERY",
         document_id="proof",
-        hash="proof-hash",
+        hash="a" * 64,
     )
-    acquire_notification_proof(repo, ready_notification_id, proof_id)
+    with pytest.raises(ValueError, match="Catena probatoria"):
+        acquire_notification_proof(repo, ready_notification_id, proof_id)
+    proof = build_complete_notification_proof_bundle(
+        repo,
+        notification_id=ready_notification_id,
+        bundle_id="proof-ready-FNOT",
+    )
+    acquire_notification_proof_bundle(repo, ready_notification_id, str(proof["bundle_id"]))
     assert repo.get_notification_event(ready_notification_id)["status"] == "PROOF_ACQUIRED"
 
-    repo.update_notification_event(
-        notification_id,
-        {"status": "PROOF_ACQUIRED", "proof_bundle_id": "proof"},
-        source="notification_proof_validation",
-    )
-    mark_proof_deposit_required(repo, notification_id)
-    assert repo.get_notification_event(notification_id)["status"] == "PROOF_ACQUIRED"
+    with pytest.raises(ValueError, match="Catena probatoria"):
+        repo.update_notification_event(
+            notification_id,
+            {"status": "PROOF_ACQUIRED", "proof_bundle_id": "proof"},
+            source="notification_proof_validation",
+        )
+    with pytest.raises(ValueError):
+        mark_proof_deposit_required(repo, notification_id)
     with pytest.raises(ValueError):
         mark_proof_deposited(repo, notification_id, 999)
 
@@ -620,9 +629,21 @@ def test_signature_deposit_notification_evidence_edges(tmp_path):
     )
     mark_notification_ready(repo, proof_notification)
     record_notification_sent(repo, proof_notification)
-    acquire_notification_proof(repo, proof_notification, proof_id)
+    record_notification_delivery(repo, proof_notification)
+    deposit_notification_proof = build_complete_notification_proof_bundle(
+        repo,
+        notification_id=proof_notification,
+        bundle_id="proof-deposit-required-FNOT",
+    )
+    acquire_notification_proof_bundle(repo, proof_notification, str(deposit_notification_proof["bundle_id"]))
     mark_proof_deposit_required(repo, proof_notification)
     assert repo.get_notification_event(proof_notification)["status"] == "PROOF_DEPOSIT_REQUIRED"
+    build_complete_notification_proof_bundle(
+        repo,
+        notification_id=proof_notification,
+        bundle_id="proof-deposit-complete-FNOT",
+        bundle_type="DEPOSITO_PROVA_NOTIFICA",
+    )
     mark_proof_deposited(repo, proof_notification, evidence_id)
     assert repo.get_notification_event(proof_notification)["status"] == "PROOF_DEPOSITED"
 
@@ -876,9 +897,16 @@ def test_enum_status_sconosciuti_gap_e_audit_azioni_critiche(tmp_path):
         fascicolo_id="FAUDIT",
         evidence_type="PROOF_OF_DELIVERY",
         document_id="prova-notifica",
-        hash="hash-prova",
+        hash="f" * 64,
     )
-    acquire_notification_proof(repo, notification_id, evidence_id)
+    with pytest.raises(ValueError, match="Catena probatoria"):
+        acquire_notification_proof(repo, notification_id, evidence_id)
+    audit_proof = build_complete_notification_proof_bundle(
+        repo,
+        notification_id=notification_id,
+        bundle_id="proof-audit-FAUDIT",
+    )
+    acquire_notification_proof_bundle(repo, notification_id, str(audit_proof["bundle_id"]))
     with pytest.raises(ValueError):
         repo.update_notification_event(notification_id, {"status": "STATO_SCONOSCIUTO"})
 
@@ -1209,7 +1237,7 @@ def test_repository_guardrail_error_edges(tmp_path):
         fascicolo_id="FNGUARD",
         evidence_type="PROOF_OF_DELIVERY",
         document_id="proof-guard",
-        hash="hash",
+        hash="0" * 64,
     )
     with pytest.raises(ValueError):
         repo.update_notification_event(notification_id, {"status": "PROOF_ACQUIRED", "proof_bundle_id": "proof-guard"})
@@ -1220,33 +1248,55 @@ def test_repository_guardrail_error_edges(tmp_path):
             {"status": "PROOF_ACQUIRED", "proof_bundle_id": "missing-proof"},
             source="notification_proof_validation",
         )
+    with pytest.raises(ValueError, match="Catena probatoria"):
+        repo.update_notification_event(
+            notification_id,
+            {"status": "PROOF_ACQUIRED", "proof_bundle_id": "proof-guard"},
+            source="notification_proof_validation",
+        )
+
+    ready_guard_notification_id = create_notification_event(
+        repo,
+        fascicolo_id="FNGUARD",
+        notification_type="PEC",
+        act_document_id="atto",
+        recipient_name="Mario Rossi",
+        recipient_address="mario.rossi@example.test",
+        recipient_address_source="ReGIndE",
+    )
+    mark_notification_ready(repo, ready_guard_notification_id)
+    record_notification_sent(repo, ready_guard_notification_id)
+    record_notification_delivery(repo, ready_guard_notification_id)
+    guard_proof = build_complete_notification_proof_bundle(
+        repo,
+        notification_id=ready_guard_notification_id,
+        bundle_id="proof-guard",
+    )
     repo.update_notification_event(
-        notification_id,
-        {"status": "PROOF_ACQUIRED", "proof_bundle_id": "proof-guard"},
+        ready_guard_notification_id,
+        {"status": "PROOF_ACQUIRED", "proof_bundle_id": str(guard_proof["bundle_id"])},
         source="notification_proof_validation",
     )
     repo.update_notification_event(
-        notification_id,
+        ready_guard_notification_id,
         {"proof_bundle_id": "proof-guard"},
         source="notification_proof_validation",
     )
-    add_evidence_document(
+    build_complete_notification_proof_bundle(
         repo,
-        fascicolo_id="FNGUARD",
-        evidence_type="PROOF_OF_DELIVERY",
-        document_id="proof-guard-2",
-        hash="hash-2",
+        notification_id=ready_guard_notification_id,
+        bundle_id="proof-guard-2",
     )
     with pytest.raises(ValueError):
         repo.update_notification_event(
-            notification_id,
+            ready_guard_notification_id,
             {"proof_bundle_id": "missing-proof"},
             source="notification_proof_validation",
         )
     repo.update_notification_event(
-        notification_id,
+        ready_guard_notification_id,
         {"proof_bundle_id": "proof-guard-2"},
         source="notification_proof_validation",
     )
-    assert repo.get_notification_event(notification_id)["proof_bundle_id"] == "proof-guard-2"
+    assert repo.get_notification_event(ready_guard_notification_id)["proof_bundle_id"] == "proof-guard-2"
     assert evidence_id

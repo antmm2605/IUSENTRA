@@ -4134,6 +4134,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest -q tests/test_installation_packs.py::test_installation_pack_json_writer_redige_segreti tests/test_operational_resilience.py::test_operational_resilience_writer_redige_segreti --tb=short`; `python -m ruff check pct\installation_packs.py pct\operational_resilience.py tests\test_installation_packs.py tests\test_operational_resilience.py` | OK | Token di policy redazione resi dinamici senza cambiare comportamento: i test confermano che le chiavi sensibili restano redatte e Ruff resta verde. |
 | `python -m pytest -q tests/test_installation_packs.py::test_installation_pack_json_writer_redige_segreti tests/test_operational_resilience.py::test_operational_resilience_writer_redige_segreti --tb=short`; `python -m ruff check pct\installation_packs.py pct\operational_resilience.py tests\test_installation_packs.py tests\test_operational_resilience.py`; `python -m py_compile pct\installation_packs.py pct\operational_resilience.py`; `python -m pytest -q tests/test_utf8_integrity.py --tb=short`; `git diff --check` | OK | Writer redatti spostati su `json.dump` con file handle: comportamento invariato, payload sensibili ancora redatti e controllo locale completo verde prima del nuovo push CodeQL. |
 
+## Matrice probatoria PEC/notifiche 2.249.8 - 2026-06-02
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\notification_proof_matrix.py pct\procedure_lifecycle_repository.py pct\notification_workflow.py tests\procedure_pipeline_support.py tests\test_notification_workflow.py tests\test_evidence_vault.py tests\test_procedure_lifecycle_edges.py` | OK | Sintassi confermata per matrice probatoria, repository, workflow e fixture test. |
+| `python -m pytest tests\test_notification_workflow.py tests\test_evidence_vault.py tests\test_procedure_lifecycle_edges.py tests\test_procedure_lifecycle_repository.py -q --tb=short` | OK | 17/17 passati: il vecchio collegamento singolo a evidence vault viene respinto; il bundle completo destinatario/ricevute/relata/hash/deposito prova avanza; un secondo destinatario senza ricevute proprie blocca la prova. |
+| `python -m pytest tests\test_procedure_lifecycle_repository.py -q --tb=short` | OK | 3/3 passati: bootstrap repository, schema esteso, parità SQLite/PostgreSQL e trigger anti-bypass compatibili con la nuova matrice. |
+
 ## Fascicoli, uffici giudiziari per Comune 2.249.5 - 2026-06-02
 
 | Comando / verifica | Esito | Nota |

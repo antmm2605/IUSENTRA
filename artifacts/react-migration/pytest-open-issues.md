@@ -1206,6 +1206,12 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Falso negativo `Salva nel fascicolo` da `/email` | Test PEC audit pipeline e browser `/email` | Risolto localmente, da verificare sul nuovo SHA | Il matching precedente era troppo fragile sui nomi cliente/fascicolo: casi con ordine invertito o dati anagrafici collegati potevano non proporre un fascicolo aperto. Ora il confronto usa varianti anagrafiche, id cliente e punteggio per token. | Per modifiche future rilanciare `tests/test_pec_audit_pipeline.py` e verificare il dialog di conferma su una PEC reale con cliente/fascicolo aperto. |
 | Indicizzazione Lex bloccata in `In corso` | Test Document Intelligence e API fascicolo | Risolto localmente, da verificare sul nuovo SHA | I record rimasti `processing` senza worker attivo venivano contati come in corso ma non rientravano in coda. Ora dopo soglia configurabile diventano stale e vengono reindicizzati; `.pdf.p7m`, `.pdf`, `.txt`, `.eml`, `.doc` e `.docx` restano formati presidiati. | Mantenere `IUSENTRA_DOCUMENT_AI_INDEXING_STALE_MINUTES` entro soglia prudente e rilanciare i test Document Intelligence quando si tocca estrazione o coda. |
 | `Data e ora verifica PEC` e pulsante `Invia PEC` | Normativa documentata, test API e browser | Nessuna issue aperta nuova | La UI mostra un orologio locale al secondo e prepara l'invio assistito; il sistema non sostituisce gli effetti legali di RAC/RdAC e non automatizza portali o firma. | Per modifiche future consultare `docs/specs/ministero/notifiche_legali_directives.md` e rilanciare `tests/test_notifiche_legali.py` più browser su `/notifiche-legali`. |
+
+## Note matrice probatoria PEC/notifiche 2.249.8 - 2026-06-02
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `proof_bundle_id` semplificato | Test notifiche/evidence/lifecycle | Risolto localmente, da verificare sul nuovo SHA | Il controllo non accetta più una singola riga `evidence_documents`: valida `notification_proof_bundles`, link evidenze, hash SHA-256, destinatari, ricevute, relata, deposito prova e riferimenti DatiAtto quando dovuti. | Per modifiche future a PEC/notifiche rilanciare `tests\test_notification_workflow.py`, `tests\test_evidence_vault.py`, `tests\test_procedure_lifecycle_edges.py` e aggiornare `NOTIFICHE_PEC_MATRICE_PROBATORIA_2026-06-02.md` se cambia una regola. |
 ## Note hotfix PST fascicolo/import 2.248.67 / 1.6.50 - 2026-05-26
 
 | Area | Gate | Stato | Nota | Azione |

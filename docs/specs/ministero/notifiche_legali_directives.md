@@ -1,11 +1,20 @@
 # Direttive salvate - notifiche legali PEC
 
 Data consultazione: 24 maggio 2026. Aggiornamento operativo verificato il 26 maggio 2026.
+Aggiornamento matrice probatoria: 2 giugno 2026.
 
 Questo file conserva le direttive normative e tecniche usate dal software per il
 flusso di notifica PEC, relata, firma digitale, allegati e deposito prova. Le
 regole operative derivate sono implementate in `pct/notifiche_legali.py` e
 protette dai test in `tests/test_notifiche_legali.py`.
+
+Dal 2 giugno 2026 la prova di notifica è governata anche dalla matrice
+obbligatoria salvata in
+`docs/specs/ministero/NOTIFICHE_PEC_MATRICE_PROBATORIA_2026-06-02.md`.
+`proof_bundle_id` non è prova sufficiente: il runtime deve validare
+destinatario-per-destinatario e ricevuta-per-ricevuta, con PEC inviata,
+relata, attestazioni, hash SHA-256, DatiAtto.xml quando dovuto, deposito prova
+e audit come passaggi distinti.
 
 ## Fonti ufficiali consultate
 
@@ -14,6 +23,7 @@ protette dai test in `tests/test_notifiche_legali.py`.
 | Notifica civile/amministrativa/stragiudiziale via PEC | Gazzetta Ufficiale, supplemento ordinario n. 38/L del 17 ottobre 2022, D.Lgs. 149/2022, note all'art. 12, art. 3-bis L. 53/1994 vigente | https://www.gazzettaufficiale.it/eli/gu/2022/10/17/243/so/38/sg/pdf | Oggetto PEC obbligatorio, uso di PEC da pubblici elenchi, atto allegato alla PEC, perfezionamento con RAC/RdAC, relata separata firmata digitalmente. |
 | Attestazione di conformità civile | Gazzetta Ufficiale, supplemento ordinario n. 38/L del 17 ottobre 2022, art. 196-undecies disp. att. c.p.c. | https://www.gazzettaufficiale.it/eli/gu/2022/10/17/243/so/38/sg/pdf | Se la copia informatica è destinata alla notifica, l'attestazione di conformità viene inserita nella relazione di notificazione. |
 | Specifiche tecniche DGSIA correnti | Ministero della giustizia, PST, Provvedimento DGSIA 7 agosto 2024 ex art. 34 D.M. 44/2011, efficace dal 30 settembre 2024, con rettifiche 16 settembre 2024 e 30 ottobre 2024 | https://pst.giustizia.it/PST/en/paginadettaglio.page?contentId=ACC3429 | Art. 21: PEC dell'ufficio e Comunicazione.xml; art. 22: avviso di disponibilità, URL sicuro e area download; art. 25: rilascio copie; art. 26: notificazioni avvocati, allegati, RAC/RdAC e DatiAtto.xml; art. 27: attestazione di conformità nella relata quando la copia è destinata alla notifica. |
+| Matrice probatoria PEC/notifiche | Snapshot ufficiali 2 giugno 2026: PST specifiche 2024, L. 53/1994, D.P.R. 68/2005, D.M. 2 novembre 2005, CAD art. 48, ReGIndE, INI-PEC, INAD, XSD UNEP | `docs/specs/ministero/NOTIFICHE_PEC_MATRICE_PROBATORIA_2026-06-02.md` | Gli stati `PROOF_ACQUIRED`, `PROOF_DEPOSIT_REQUIRED` e `PROOF_DEPOSITED` richiedono bundle probatorio verificato, evidenze hashate, destinatari, domicilio digitale, PEC inviata, relata, ricevute positive per ogni destinatario, DatiAtto/deposito prova quando dovuti e audit. |
 | Specifiche tecniche storiche | Ministero della giustizia, Provvedimento DGSIA 16 aprile 2014 e testo coordinato specifiche tecniche PCT | https://www.giustizia.it/giustizia/it/mg_1_8_1.wp?contentId=SDC1007352&facetNode_1=1_1%282014%29&facetNode_2=0_10&facetNode_3=0_10_37&facetNode_4=3_1_5&previsiousPage=mg_1_8 | Fonte storica sostituita dal provvedimento DGSIA 2024 per l'implementazione corrente; resta consultabile per compatibilità e confronto. |
 | Notifica penale del difensore | Gazzetta Ufficiale, supplemento ordinario n. 38/L del 17 ottobre 2022 e supplemento straordinario n. 5 del 19 ottobre 2022, art. 56-bis disp. att. c.p.p. | https://www.gazzettaufficiale.it/eli/gu/2022/10/19/245/ss/5/sg/pdf | Relazione su documento informatico separato, sottoscritta con firma digitale o altra firma elettronica qualificata, allegata al messaggio; deposito di atto, relazione e ricevute. |
 | Area web PST in caso di mancata notifica | L. 53/1994, art. 3-ter; nota DGSIA 14 novembre 2024 salvata in `docs/specs/ministero/prassi_notifiche/DGSIA_2024_11_12_istruzioni_modifiche_portale_area_web_notifiche.pdf` | https://www.ordineavvocatipavia.it/2025/02/05/attivazione-area-web-per-il-deposito-delle-notifiche-ai-sensi-dellart-3-ter-co-2-l-53-1994/ | Se la PEC non può essere eseguita o non ha esito positivo per causa imputabile al destinatario, il software prepara il percorso PST con atto/PEC, relata, avviso di mancata consegna EML e certificazione, senza dichiarare perfezionata la notifica quando la causa non è imputabile al destinatario. |
@@ -46,6 +56,12 @@ protette dai test in `tests/test_notifiche_legali.py`.
 - Dopo l'invio si conservano PEC inviata, RAC e RdAC completa in originale
   digitale; questi elementi alimentano il deposito prova e i riferimenti in
   DatiAtto.xml.
+- Gli stati prova notifica non sono più validati da una singola riga in
+  `evidence_documents`: il software dereferenzia
+  `notification_proof_bundles`, `notification_evidence_links`,
+  `notification_recipients`, `notification_receipts`,
+  `notification_relata`, `notification_proof_deposits` e
+  `notification_dati_atto_receipt_refs`.
 - `Data e ora verifica PEC` resta visibile nel percorso di notifica, viene
   alimentata automaticamente dall'orologio locale con precisione al secondo e
   rappresenta il momento operativo di verifica dell'indirizzo nel pubblico

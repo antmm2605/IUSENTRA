@@ -42,8 +42,8 @@ def test_evidence_vault_hash_assert_e_link(tmp_path):
         notification_type="PEC",
         act_document_id="atto1",
     )
-    link_evidence_to_notification(repo, notification_id=notification_id, evidence_id=evidence_id)
-    assert repo.get_notification_event(notification_id)["status"] == "PROOF_ACQUIRED"
+    with pytest.raises(ValueError, match="Catena probatoria"):
+        link_evidence_to_notification(repo, notification_id=notification_id, evidence_id=evidence_id)
 
     seed_inventory(repo, tmp_path)
     package_id = repo.create_deposit_package(

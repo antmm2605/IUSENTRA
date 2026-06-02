@@ -15,8 +15,9 @@ Prima di dichiarare concluso un lavoro:
 5. sincronizzare il branch gemello allo stesso commit;
 6. controllare i gate GitHub del push con `tools/check_github_required_gates.py` e, quando esiste una PR, anche della PR;
 7. registrare esiti verdi e problemi nei report di stato;
-8. fare deploy Hetzner quando richiesto dal flusso corrente e verificare `/api/pronto`;
-9. ripetere `git status --short` prima del report finale: la consegna è vietata se la worktree non è pulita.
+8. se dopo il push sono state fatte modifiche per correggere GitHub Actions, CodeQL, lint, shard Pytest, coverage, Local Signer o altri gate remoti, ricostruire anche la copia Docker locale reale su `127.0.0.1:8080` e verificare `/api/pronto` sullo stesso commit;
+9. fare deploy Hetzner quando richiesto dal flusso corrente e verificare `/api/pronto`;
+10. ripetere `git status --short` prima del report finale: la consegna è vietata se la worktree non è pulita.
 
 ### Regola anti-recidiva CI/Deploy/CodeQL
 
@@ -33,6 +34,7 @@ Quindi, dopo ogni push, la consegna è vietata finché non sono vere tutte quest
 - `CodeQL / Analyze (python)` e il check separato `CodeQL` / `Code scanning results / CodeQL` sono verificati sullo SHA corrente;
 - `Lint + syntax` è verde prima di interpretare aggregatori Pytest, Signer o Coverage;
 - gli shard reali Pytest, Coverage 12/12 e Local Signer/PKCS#11 sono letti direttamente, non dedotti dagli aggregatori;
+- ogni modifica eseguita per far passare GitHub Actions, CodeQL o altri gate remoti è presente anche nella copia locale reale: la Docker locale su `127.0.0.1:8080` deve essere ricostruita o ricreata sullo stesso SHA e `/api/pronto` deve rispondere con la versione attesa;
 - il deploy Hetzner è verificato dopo il push con commit server, container healthy, `https://app.iusentra.it/api/pronto` e pulizia cache Docker.
 - se GitHub riceve il push ma non crea run Actions sullo SHA corrente, usare il trigger di recupero `repository_dispatch` con `event_type=codex-ci-recovery` sui workflow critici versionati; i check devono restare check-run reali dello SHA corrente, mai status o report scritti a mano.
 

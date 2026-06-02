@@ -2662,6 +2662,7 @@ def scadenziario_react_list():
         gestione_fascicoli=get_fascicoli(),
         gestione_utenti=get_utenti(),
         query_args=request.args,
+        termini_processuali_db=str(_termini_processuali_repository().path),
     ))
 
 
@@ -2681,7 +2682,35 @@ def scadenziario_react_nuova():
 
 def _termini_processuali_repository() -> DeadlinePracticeRepository:
     anchor = Path(_cfg_value("SCADENZIARIO_DB", "./scadenziario/scadenze.json"))
-    return DeadlinePracticeRepository.json(anchor.with_name("termini_processuali.json"))
+    repo = DeadlinePracticeRepository.json(anchor.with_name("termini_processuali.json"))
+    _ensure_guida_pratica_terms_repository(repo)
+    return repo
+
+
+_GUIDA_PRATICA_TERMINI_BOOTSTRAPPED: set[str] = set()
+
+
+def _ensure_guida_pratica_terms_repository(repo: DeadlinePracticeRepository) -> None:
+    if repo.backend != "json":
+        return
+    repo_key = str(repo.path.resolve())
+    if repo_key in _GUIDA_PRATICA_TERMINI_BOOTSTRAPPED:
+        return
+    payload = repo._read_json()
+    if payload.get("guida_pratica_terms"):
+        _GUIDA_PRATICA_TERMINI_BOOTSTRAPPED.add(repo_key)
+        return
+    try:
+        from scripts.import_guida_pratica_termini_processuali import bootstrap_guida_pratica_terms_repository
+
+        bootstrap_guida_pratica_terms_repository(repo.path)
+    except Exception:
+        current_app.logger.warning(
+            "Bootstrap termini Guida Pratica non completato",
+            exc_info=True,
+        )
+    finally:
+        _GUIDA_PRATICA_TERMINI_BOOTSTRAPPED.add(repo_key)
 
 
 def _current_user_id() -> str:
@@ -2825,6 +2854,89 @@ def scadenziario_termini_audit():
     return jsonify({"items": _termini_processuali_repository().list_audit(limit=limit)})
 
 
+def _parse_italian_deadline_date(value: Any) -> date | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Rome")).date()
+    except Exception:
+        try:
+            return date.fromisoformat(text[:10])
+        except Exception:
+            return None
+
+
+def _deadline_today_rome() -> date:
+    return datetime.now(ZoneInfo("Europe/Rome")).date()
+
+
+def _calculated_deadline_marker(result: Mapping[str, Any], payload: Mapping[str, Any]) -> str:
+    template = result.get("template") if isinstance(result.get("template"), Mapping) else {}
+    digest = hashlib.sha256(
+        json.dumps(
+            {
+                "template": template.get("code") or payload.get("template_code") or payload.get("templateCode"),
+                "input_date": result.get("inputDate") or payload.get("input_date") or payload.get("inputDate"),
+                "deadline": result.get("deadline"),
+                "case": result.get("caseReference") or payload.get("case_reference") or payload.get("caseReference"),
+                "fascicolo": payload.get("id_fascicolo") or payload.get("fascicoloId"),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()[:24]
+    return f"TERMINE_PROCESSUALE:{digest}"
+
+
+def _sync_calculated_deadline_to_agenda(
+    *,
+    marker: str,
+    title: str,
+    deadline_date: str,
+    description: str,
+    id_fascicolo: str,
+) -> dict[str, Any]:
+    try:
+        from pct.agenda import TipoAppuntamento
+        from pct.ical_import import EventoImportato
+
+        event = EventoImportato(
+            uid=f"{marker}:agenda",
+            titolo=title,
+            data_ora=f"{deadline_date}T09:00:00",
+            durata_minuti=30,
+            tutto_giorno=False,
+            descrizione=description,
+        )
+        report = get_agenda().upsert_da_evento_importato(
+            event,
+            provider="termini_processuali",
+            default_tipo=TipoAppuntamento.SCADENZA,
+            reminder_minuti=1440,
+        )
+        appuntamento = report.get("appuntamento")
+        agenda_id = str(getattr(appuntamento, "id", "") or "")
+        if agenda_id and id_fascicolo:
+            appuntamento = get_agenda().modifica(agenda_id, procedimento=id_fascicolo)
+        return {
+            "ok": bool(agenda_id),
+            "agendaId": agenda_id,
+            "agendaHref": f"/agenda/{agenda_id}" if agenda_id else "/agenda",
+            "outcome": str(report.get("outcome") or ""),
+            "message": "Termine collegato anche all'agenda." if agenda_id else str(report.get("message") or ""),
+        }
+    except Exception as exc:
+        current_app.logger.warning("Agenda non aggiornata per termine processuale: %s", exc)
+        return {
+            "ok": False,
+            "agendaId": "",
+            "agendaHref": "/agenda",
+            "outcome": "unavailable",
+            "message": "Scadenza creata, ma agenda non aggiornata.",
+        }
+
+
 @api_v1_react.post("/scadenziario/termini/override")
 @_richiedi_auth
 def scadenziario_termini_override():
@@ -2860,17 +2972,56 @@ def scadenziario_termini_crea_scadenza():
         )
         template = result["template"]
         title = str(payload.get("title") or payload.get("titolo") or template["name"]).strip()
-        scadenza = get_scadenziario().nuova(
+        due_date = str(result["deadline"])
+        parsed_due_date = _parse_italian_deadline_date(due_date)
+        if parsed_due_date and parsed_due_date < _deadline_today_rome():
+            return jsonify({
+                "ok": False,
+                "expired": True,
+                "messaggio": "Termine già superato: non riportato in scadenziario o agenda.",
+                "deadline": due_date,
+                "audit": result["audit"],
+            }), 409
+        marker = _calculated_deadline_marker(result, payload)
+        manager = get_scadenziario()
+        existing = next(
+            (item for item in manager.tutte(solo_aperte=False) if marker in str(getattr(item, "note", "") or "")),
+            None,
+        )
+        description = str(payload.get("description") or result["explanation"] or "")
+        id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "")
+        if existing:
+            agenda = _sync_calculated_deadline_to_agenda(
+                marker=marker,
+                title=title,
+                deadline_date=due_date,
+                description=description,
+                id_fascicolo=id_fascicolo,
+            )
+            agenda_id = str(agenda.get("agendaId") or "")
+            if agenda_id and not str(getattr(existing, "id_appuntamento", "") or ""):
+                existing = manager.aggiorna(str(getattr(existing, "id", "")), id_appuntamento=agenda_id)
+            return jsonify({
+                "ok": True,
+                "alreadyExists": True,
+                "messaggio": "Scadenza processuale già presente: agenda verificata.",
+                "id": existing.id,
+                "href": f"/scadenziario/{existing.id}",
+                "agenda": agenda,
+                "audit": result["audit"],
+                "notificationsPlanned": 0,
+            })
+        scadenza = manager.nuova(
             titolo=title,
             tipo=TipoTermine.TERMINE_PERENTORIO,
-            data_scadenza=str(result["deadline"]),
-            id_fascicolo=str(payload.get("id_fascicolo") or payload.get("fascicoloId") or ""),
-            descrizione=str(payload.get("description") or result["explanation"] or ""),
+            data_scadenza=due_date,
+            id_fascicolo=id_fascicolo,
+            descrizione=description,
             data_decorrenza=str(result["inputDate"]),
             perentorio=True,
             id_utente_responsabile=user_id,
             note=(
-                "Calcolo termini processuali audit "
+                f"{marker}\nCalcolo termini processuali audit "
                 + result["audit"]["immutableHash"]
             ),
             source_event_type=str(template.get("metadata", {}).get("source_event") or "evento"),
@@ -2881,6 +3032,16 @@ def scadenziario_termini_crea_scadenza():
             trace_json=json.dumps([step["label"] for step in result["steps"]], ensure_ascii=False),
             giorni_preavviso=[30, 15, 7, 1, 0],
         )
+        agenda = _sync_calculated_deadline_to_agenda(
+            marker=marker,
+            title=title,
+            deadline_date=due_date,
+            description=description,
+            id_fascicolo=id_fascicolo,
+        )
+        agenda_id = str(agenda.get("agendaId") or "")
+        if agenda_id:
+            scadenza = manager.aggiorna(scadenza.id, id_appuntamento=agenda_id)
         notifications = repo.save_notification_plan(
             deadline_id=scadenza.id,
             case_reference=str(result.get("caseReference") or payload.get("case_reference") or ""),
@@ -2892,6 +3053,7 @@ def scadenziario_termini_crea_scadenza():
             "messaggio": "Scadenza processuale creata con audit del calcolo.",
             "id": scadenza.id,
             "href": f"/scadenziario/{scadenza.id}",
+            "agenda": agenda,
             "audit": result["audit"],
             "notificationsPlanned": notifications,
         })

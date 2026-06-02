@@ -116,6 +116,25 @@ def test_import_calendario_ufficiale_csv_versionato(tmp_path: Path):
     assert payload["official_holidays"][0]["day"] == "2026-01-01"
 
 
+def test_api_scadenziario_templates_bootstrap_guida_pratica_terms(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/api/v1/ui/scadenziario/termini/templates")
+
+    payload = response.get_json()
+    guida_templates = [
+        item
+        for item in payload["templates"]
+        if item.get("metadata", {}).get("source") == "guida_pratica"
+    ]
+    assert response.status_code == 200
+    assert len(guida_templates) >= 1000
+    assert any(item.get("metadata", {}).get("codice_guida") for item in guida_templates)
+
+
 def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -141,13 +160,56 @@ def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):
                 "suspend_august": False,
             },
         )
+        create_again = client.post(
+            "/api/v1/ui/scadenziario/termini/crea-scadenza",
+            json={
+                "template_code": "CIV_APPELLO_BREVE",
+                "input_date": "2026-07-30",
+                "case_reference": "RG API/2026",
+                "title": "Appello breve auditato",
+                "suspend_august": False,
+            },
+        )
+        expired = client.post(
+            "/api/v1/ui/scadenziario/termini/crea-scadenza",
+            json={
+                "template_code": "CIV_APPELLO_BREVE",
+                "input_date": "2000-01-01",
+                "case_reference": "RG SCADUTO/2000",
+                "title": "Termine scaduto da non importare",
+                "suspend_august": False,
+            },
+        )
+        deadline_date = response.get_json()["result"]["deadline"]
+        deadlines_view = client.get("/api/v1/ui/scadenziario?vista=tutte")
+        agenda_view = client.get(f"/api/v1/ui/agenda?from={deadline_date}&to={deadline_date}")
 
     payload = response.get_json()
     created = create.get_json()
+    created_again = create_again.get_json()
+    expired_payload = expired.get_json()
+    deadlines_payload = deadlines_view.get_json()
+    agenda_payload = agenda_view.get_json()
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["result"]["audit"]["immutableHash"]
     assert create.status_code == 200
     assert created["ok"] is True
+    assert created["agenda"]["ok"] is True
+    assert created["agenda"]["agendaId"]
     assert created["notificationsPlanned"] == 5
     assert created["href"].startswith("/scadenziario/")
+    assert create_again.status_code == 200
+    assert created_again["alreadyExists"] is True
+    assert created_again["agenda"]["agendaId"] == created["agenda"]["agendaId"]
+    assert expired.status_code == 409
+    assert expired_payload["expired"] is True
+    assert expired_payload["messaggio"] == "Termine già superato: non riportato in scadenziario o agenda."
+
+    assert deadlines_view.status_code == 200
+    assert agenda_view.status_code == 200
+    assert [item["title"] for item in deadlines_payload["items"]] == ["Appello breve auditato"]
+    agenda_rows = [item for item in agenda_payload["events"] if item["id"] == created["agenda"]["agendaId"]]
+    assert len(agenda_rows) == 1
+    assert agenda_rows[0]["kind"] == "SCADENZA"
+    assert agenda_rows[0]["title"] == "Appello breve auditato"

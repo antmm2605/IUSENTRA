@@ -1,0 +1,44 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (6).zip::kb_top9_set10_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set10_parte2.json",
+  "sha256": "1E7119F5427186360BD701F833FE47BB9BB5E6F90D0B2A400021F287274C2305",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET10_PARTE2",
+  "denominazione": "Decimo set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "102010",
+    "512010",
+    "160050",
+    "152001"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_SIMULAZIONE_CONTRATTUALE_ARTT_1414_1417_C_C_102010",
+    "GUIDA_ESPROPRIAZIONE_FORZATA_PRESSO_TERZI_CONTROVERSIE_ARTT_548_554_C_P_C_512010",
+    "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_COD_CONS_160050",
+    "152001"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "102010",
+      "codice_integrato": "GUIDA_AZIONE_DI_SIMULAZIONE_CONTRATTUALE_ARTT_1414_1417_C_C_102010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512010",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_FORZATA_PRESSO_TERZI_CONTROVERSIE_ARTT_548_554_C_P_C_512010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160050",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_COD_CONS_160050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "152001"
+  ],
+  "termini_processuali_raw": 15
+}

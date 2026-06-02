@@ -19,7 +19,28 @@ _MIME_BY_EXTENSION = {
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "doc": "application/msword",
     "txt": "text/plain",
+    "xml": "application/xml",
+    "json": "application/json",
+    "csv": "text/csv",
+    "html": "text/html",
+    "htm": "text/html",
+    "rtf": "application/rtf",
+    "odt": "application/vnd.oasis.opendocument.text",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "xls": "application/vnd.ms-excel",
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "tif": "image/tiff",
+    "tiff": "image/tiff",
+    "bmp": "image/bmp",
+    "gif": "image/gif",
     "eml": "message/rfc822",
+    "msg": "application/vnd.ms-outlook",
+    "zip": "application/zip",
+    "p7m": "application/pkcs7-mime",
+    "pm7": "application/pkcs7-mime",
+    "bin": "application/octet-stream",
 }
 
 
@@ -134,12 +155,18 @@ def source_from_fascicolo_document(
         return None
     try:
         safe_filename = sanitize_filename(filename)
-        file_type = validate_document_file_type(safe_filename, None)
-        supported = True
     except DocumentAIValidationError:
         safe_filename = filename.replace("\\", "_").replace("/", "_")
         file_type = Path(filename).suffix.lower().lstrip(".")
         supported = False
+    else:
+        try:
+            file_type = validate_document_file_type(safe_filename, None)
+        except DocumentAIValidationError:
+            file_type = "bin"
+            if not safe_filename.lower().endswith(".bin"):
+                safe_filename = f"{safe_filename}.bin"
+        supported = True
 
     relative_path = str(getattr(document, "percorso", "") or "").strip()
     content_path = Path(documents_root) / relative_path if relative_path else None
@@ -158,7 +185,7 @@ def source_from_fascicolo_document(
     if not sha256 and content:
         sha256 = compute_sha256_bytes(content)
 
-    if supported and filename.lower().endswith(".p7m") and file_type in _MIME_BY_EXTENSION:
+    if supported and filename.lower().endswith((".p7m", ".pm7")) and file_type in _MIME_BY_EXTENSION:
         safe_filename = _safe_inner_p7m_name(safe_filename, file_type)
 
     fonte = str(getattr(document, "fonte_documento", "") or "").strip()
@@ -194,7 +221,7 @@ def source_from_fascicolo_document(
 
 def _safe_inner_p7m_name(safe_filename: str, file_type: str) -> str:
     name = str(safe_filename or "").strip()
-    if name.lower().endswith(".p7m"):
+    if name.lower().endswith((".p7m", ".pm7")):
         name = name[:-4]
     if not name.lower().endswith(f".{file_type}"):
         name = f"{name}.{file_type}"

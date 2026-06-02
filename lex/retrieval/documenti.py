@@ -259,6 +259,29 @@ def _resolve_index_runtime(context: dict[str, Any]) -> tuple[Any, str, Any] | No
         return None
 
 
+def _prepare_index_for_lex(pratica_id: str, context: dict[str, Any]) -> None:
+    if (context or {}).get("document_ai_service") is not None:
+        return
+    try:
+        from flask import has_request_context
+
+        if not has_request_context():
+            return
+        from web.services.document_intelligence_runtime import (
+            build_lex_indexing_summary_payload,
+            document_ai_user_context,
+        )
+
+        build_lex_indexing_summary_payload(
+            pratica_id,
+            process=True,
+            retry_errors=True,
+            user_context=(context or {}).get("document_ai_user_context") or document_ai_user_context(),
+        )
+    except Exception:
+        return
+
+
 def _indexed_manifest(pratica_id: str, documents: list[Any], not_ready_count: int) -> EvidenceItem | None:
     if not documents and not not_ready_count:
         return None
@@ -297,7 +320,7 @@ def _not_ready_index_item(pratica_id: str, count: int) -> EvidenceItem:
         title="Documenti presenti ma non indicizzati",
         content=(
             f"Nel fascicolo risultano {count} documenti non ancora indicizzati o non pronti. "
-            "Lex non ne puo' inventare il contenuto: Non risulta dai documenti disponibili nel fascicolo."
+            "Lex non ne può inventare il contenuto: Non risulta dai documenti disponibili nel fascicolo."
         ),
         score=0.72,
         metadata={
@@ -317,6 +340,7 @@ def _indexed_document_items(pratica_id: str, message: str, context: dict[str, An
     if runtime is None:
         return None
     service, tenant_id, user_context = runtime
+    _prepare_index_for_lex(pratica_id, context)
     try:
         documents = list(service.list_fascicolo_documents(tenant_id, pratica_id, user_context) or [])
     except Exception:

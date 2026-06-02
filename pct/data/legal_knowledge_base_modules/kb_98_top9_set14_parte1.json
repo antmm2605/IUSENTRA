@@ -1,0 +1,2058 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE1",
+  "denominazione": "Quattordicesimo set di 9 codici - PARTE 1 di 2",
+  "registri": [
+    "SICID",
+    "SIVG",
+    "SILP"
+  ],
+  "data_generazione": "2026-06-02",
+  "scopo": "Parte 1 del set 14: responsabilità professionale 2229, lavoro a termine, rei vindicatio 948, trasferimento quote SRL, interdizione/inabilitazione",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_CONTRATTO_D_OPERA_INTELLETTUALE_RESPONSABILIT_PROFESSIONALE_ARTT_2229_22_143020",
+      "denominazione": "Contratto d'opera intellettuale - responsabilità professionale (artt. 2229-2238 c.c.)",
+      "categoria": "Contratti - professioni intellettuali",
+      "sottocategoria": "Azione del cliente per inadempimento/negligenza del professionista intellettuale (avvocato, medico in studio privato, ingegnere, commercialista, ecc.)",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - foro residenza convenuto o luogo esecuzione (art. 20 c.p.c.); per avvocati: foro cliente se consumatore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2229",
+          "descrizione": "Professioni intellettuali - esercizio con iscrizione agli albi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2230",
+          "descrizione": "Contratto d'opera intellettuale - forma"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2231",
+          "descrizione": "Iscrizione all'albo - mancanza: nullità del contratto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2232",
+          "descrizione": "Esecuzione dell'opera - il professionista non può sostituire altri senza consenso del cliente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2233",
+          "descrizione": "Compenso - tariffe e accordo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2236",
+          "descrizione": "Responsabilità del prestatore - COLPA GRAVE per problemi tecnici di speciale difficoltà"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale - inversione onere prova"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1176 c. 2",
+          "descrizione": "Diligenza del professionista - perito di riferimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2946",
+          "descrizione": "Prescrizione ordinaria 10 anni"
+        },
+        {
+          "fonte": "D.Lgs. 206/2005",
+          "articolo": "3",
+          "descrizione": "Consumatore - foro speciale se cliente consumatore"
+        },
+        {
+          "fonte": "L. 247/2012 (Legge forense)",
+          "articolo": "3",
+          "descrizione": "Doveri deontologici dell'avvocato - rilevanti anche civilmente"
+        },
+        {
+          "fonte": "Cass. SU 15781/2005",
+          "descrizione": "Responsabilità avvocato - perdita di chance processuale"
+        },
+        {
+          "fonte": "Cass. SU 10636/2021",
+          "descrizione": "Obbligazione di mezzi vs risultato - responsabilità professionale"
+        },
+        {
+          "fonte": "Cass. SU 28056/2023",
+          "descrizione": "Malpractice professionale - art. 2236 e colpa grave"
+        }
+      ],
+      "distinzione_obbligazione_mezzi_vs_risultato": {
+        "obbligazione_di_mezzi_regola_generale": [
+          "Il professionista è tenuto a svolgere la propria attività con la DILIGENZA del perito (art. 1176 c. 2)",
+          "NON garantisce il risultato (es. avvocato non garantisce la vittoria, medico non garantisce la guarigione)",
+          "RESPONSABILITÀ: inadempimento della diligenza dovuta"
+        ],
+        "eccezioni_obbligazione_risultato": [
+          "Alcune prestazioni professionali costituiscono obbligazione di risultato (es. traduzione, relazione tecnica, dichiarazione fiscale)",
+          "Chirurgia estetica di miglioramento: ha connotati di obbligazione di risultato"
+        ]
+      },
+      "art_2236_colpa_grave_per_difficolta_speciale": {
+        "ambito": "Problemi tecnici di speciale difficoltà (questioni controverse, tecnica non ancora consolidata)",
+        "effetto": "Il professionista risponde SOLO PER DOLO O COLPA GRAVE",
+        "per_negligenza_e_imprudenza": "Responsabilità anche per colpa lieve (art. 2236 non esclude negligenza/imprudenza)",
+        "Cass_SU_28056_2023": "Art. 2236 applicabile solo all'imperizia su questioni di speciale difficoltà"
+      },
+      "responsabilita_avvocato_tipica": [
+        "Mancata tempestiva proposizione dell'azione - PRESCRIZIONE causata dall'avvocato",
+        "Omessa impugnazione - decadenza causata dall'avvocato",
+        "Scelta difensiva manifestamente inadeguata",
+        "Omessa informazione al cliente su rischi e alternative",
+        "Omessa comunicazione di atti processuali rilevanti",
+        "Perdita di chance processuale (Cass. SU 15781/2005)"
+      ],
+      "presupposti_sostanziali": [
+        "CONTRATTO D'OPERA INTELLETTUALE valido (con professionista iscritto all'albo)",
+        "INADEMPIMENTO del professionista (mancata diligenza ex 1176 c. 2)",
+        "DANNO al cliente",
+        "NESSO CAUSALE tra inadempimento e danno",
+        "INVERSIONE ONERE PROVA: cliente prova contratto + inadempimento + danno; professionista prova di aver adempiuto"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Per avvocati: possibile ADR professionale; per medici: mediazione obbligatoria se danni da malpractice"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE DOCUMENTAZIONE DELL'INCARICO",
+          "documenti": [
+            "Lettera di incarico o contratto scritto",
+            "Corrispondenza con il professionista",
+            "Fatture e notule",
+            "Documentazione dell'attività svolta dal professionista"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'INADEMPIMENTO",
+          "per_avvocato": [
+            "Fascicolo processuale (per prescrizioni, decadenze causate)",
+            "Scadenzario degli atti omessi",
+            "Corrispondenza rilevante",
+            "Documentazione dei termini perduti"
+          ],
+          "per_commercialista": [
+            "Dichiarazioni fiscali errate",
+            "Sanzioni fiscali irrogate per errori professionali",
+            "Documentazione contabile"
+          ],
+          "per_ingegnere_architetto": [
+            "Progetto errato",
+            "Capitolato inadeguato",
+            "Vizi dell'opera derivanti da errori progettuali"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PARERE DI UN COLLEGA DI PARTE",
+          "rilevanza": "Perizia professionale di parte che attesti l'inadempimento",
+          "contenuto": "Valutazione della condotta del professionista rispetto allo standard di diligenza"
+        },
+        {
+          "step": 4,
+          "descrizione": "QUANTIFICAZIONE DEL DANNO",
+          "per_prescrizione_o_decadenza_causata_da_avvocato": [
+            "Il danno è la PERDITA DI CHANCE del processo",
+            "Probabilità di successo dell'azione perduta (Cass. SU 15781/2005)",
+            "Valore del diritto perduto × probabilità di successo"
+          ],
+          "per_errori_fiscali": "Sanzioni + interessi pagati per l'errore del professionista",
+          "per_errori_progettuali": "Costo di demolizione e rifacimento + danni consequenziali"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_professionale",
+        "denominazione": "Atto di citazione per responsabilità del professionista intellettuale ex artt. 2229-2236 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "cliente_attore",
+            "label": "Cliente attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "professionista_convenuto",
+            "label": "Professionista convenuto",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "categoria_professionale",
+                "type": "select",
+                "options": [
+                  "avvocato",
+                  "commercialista",
+                  "medico_studio_privato",
+                  "ingegnere",
+                  "architetto",
+                  "notaio",
+                  "consulente_del_lavoro",
+                  "altro_professionista_intellettuale"
+                ]
+              },
+              {
+                "id": "iscrizione_albo",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "contratto_d_opera",
+            "label": "Contratto d'opera intellettuale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_conferimento_incarico",
+                "type": "date"
+              },
+              {
+                "id": "oggetto_incarico",
+                "type": "textarea"
+              },
+              {
+                "id": "compenso_concordato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "inadempimento_contestato",
+            "label": "Inadempimento contestato",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipologia",
+                "type": "select_multi",
+                "options": [
+                  "prescrizione_o_decadenza_causata",
+                  "omessa_impugnazione",
+                  "scelta_difensiva_manifestamente_inadeguata",
+                  "errore_tecnico_progettuale",
+                  "errore_fiscale_o_contabile",
+                  "omessa_informazione_al_cliente",
+                  "violazione_obbligo_di_segretezza",
+                  "conflitto_di_interessi_non_dichiarato",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "si_tratta_di_problema_di_speciale_difficolta_2236",
+                "type": "boolean",
+                "note": "Se sì, applicabile colpa grave - standard più elevato per il cliente"
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "select_multi",
+                "options": [
+                  "perdita_di_chance_processuale",
+                  "sanzioni_fiscali_per_errore",
+                  "costo_riparazione_opera_difettosa",
+                  "danno_patrimoniale_diretto",
+                  "danno_biologico_se_applicabile"
+                ]
+              },
+              {
+                "id": "probabilita_successo_azione_perduta_se_avvocato",
+                "type": "percentage",
+                "required_if": "perdita_chance"
+              },
+              {
+                "id": "valore_diritto_perduto",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_risarcimento_danni_da_inadempimento",
+              "restituzione_compensi_indebitamente_percepiti",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Inversione onere prova: cliente prova inadempimento + danno; professionista prova adempimento diligente",
+          "Art. 2236: SOLO per problemi di speciale difficoltà - colpa grave richiesta",
+          "Per negligenza/imprudenza (non imperizia su questioni difficili): colpa lieve sufficiente",
+          "Perdita di chance processuale: calcolare probabilità di successo (Cass. SU 15781/2005)",
+          "Prescrizione 10 anni (ordinaria)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "lettera_incarico_e_corrispondenza",
+          "label": "Lettera di incarico e corrispondenza con il professionista",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_dell_inadempimento",
+          "label": "Documentazione specifica dell'inadempimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "fascicolo_processuale_se_avvocato",
+          "label": "Fascicolo processuale (per responsabilità avvocato)",
+          "required_if": "professionista=avvocato"
+        },
+        {
+          "id": "parere_collega_di_parte",
+          "label": "Parere professionale di un collega di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_danni_quantificazione",
+          "label": "Documentazione dei danni e quantificazione",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_tecnica_o_professionale",
+          "trigger": "Quasi sempre disposta (CTU nella specifica disciplina)",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_risarcimento",
+          "descrizione": "Professionista condannato al risarcimento del danno"
+        },
+        {
+          "esito": "riduzione_per_contributo_causale_cliente",
+          "descrizione": "Concorso del cliente alla causazione del danno"
+        },
+        {
+          "esito": "rigetto_per_assenza_inadempimento",
+          "descrizione": "Condotta del professionista conforme allo standard"
+        },
+        {
+          "esito": "rigetto_per_art_2236",
+          "descrizione": "Solo colpa grave richiesta per problema di speciale difficoltà"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo frequente, spesso mediato dall'assicurazione professionale"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 10,
+          "decorrenza": "conoscenza dell'inadempimento",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "143020",
+      "codice_logico": "GUIDA_CONTRATTO_D_OPERA_INTELLETTUALE_RESPONSABILIT_PROFESSIONALE_ARTT_2229_22_143020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LAVORO_A_TERMINE_ILLEGITTIMO_CONVERSIONE_A_TEMPO_INDETERMINATO_D_LGS_81__220080",
+      "denominazione": "Lavoro a termine illegittimo - conversione a tempo indeterminato (D.Lgs. 81/2015 artt. 19-29)",
+      "categoria": "Lavoro - tipologie contrattuali",
+      "sottocategoria": "Azione del lavoratore per accertamento illegittimità del contratto a termine e conversione a tempo indeterminato",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 81/2015 (Jobs Act)",
+          "articolo": "19",
+          "descrizione": "Forma e durata del contratto a termine - causale per > 12 mesi"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "19 c. 1",
+          "descrizione": "Durata massima 24 mesi (o diverso CCNL) con causale"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "19 c. 1-bis",
+          "descrizione": "Causali per proroga/rinnovo oltre i 12 mesi"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "20",
+          "descrizione": "Proroghe - max 4 nell'arco di 24 mesi"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "21",
+          "descrizione": "Rinnovi - intervallo di 10/20 giorni obbligatorio"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "22",
+          "descrizione": "Successione di contratti - periodo di 24 mesi"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "23",
+          "descrizione": "Diritto di precedenza per nuove assunzioni"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "28",
+          "descrizione": "Nullità del termine - conversione a tempo indeterminato"
+        },
+        {
+          "fonte": "D.L. 87/2018 (Decreto dignità)",
+          "descrizione": "Reintroduzione causali obbligatorie oltre 12 mesi"
+        },
+        {
+          "fonte": "D.L. 48/2023 (DL Lavoro)",
+          "descrizione": "Modifica causali - delega a CCNL"
+        },
+        {
+          "fonte": "D.Lgs. 104/2022 (Trasparenza)",
+          "descrizione": "Obblighi di informazione al lavoratore"
+        },
+        {
+          "fonte": "Direttiva UE 1999/70/CE",
+          "descrizione": "Lavoro a termine - accordo-quadro CES/UNICE/CEEP"
+        },
+        {
+          "fonte": "Cass. SU 26246/2023",
+          "descrizione": "Causali di proroga/rinnovo - valutazione giudiziale"
+        },
+        {
+          "fonte": "Cass. SU 11969/2024",
+          "descrizione": "Conversione a TI - indennizzo e retroattività"
+        }
+      ],
+      "evoluzione_normativa_critica": {
+        "ante_D_Lgs_81_2015": "D.Lgs. 368/2001 - causale sempre obbligatoria",
+        "D_Lgs_81_2015_originario": "Nessuna causale obbligatoria per i primi 36 mesi",
+        "post_Decreto_Dignità_D_L_87_2018": [
+          "Causale obbligatoria per proroga/rinnovo OLTRE i 12 mesi",
+          "Causali tassative: esigenze temporanee/oggettive + sostituzione + incremento attività",
+          "Durata massima ridotta a 24 mesi"
+        ],
+        "post_D_L_Lavoro_48_2023": [
+          "Causali per oltre 12 mesi: rimesse ai CCNL o accordi aziendali",
+          "In mancanza di previsioni CCNL: causali generali dell'accordo-quadro"
+        ]
+      },
+      "cause_di_illegittimita_del_termine": [
+        "MANCANZA O GENERICITÀ DELLA CAUSALE (per contratti oltre 12 mesi post Decreto Dignità)",
+        "SUPERAMENTO DELLA DURATA MASSIMA (24 mesi totali incluse proroghe e rinnovi)",
+        "ECCESSIVO NUMERO DI PROROGHE (più di 4)",
+        "MANCATO RISPETTO DELL'INTERVALLO tra rinnovi (10 gg per contratti < 6 mesi / 20 gg per > 6 mesi)",
+        "ASSENZA DI FORMA SCRITTA",
+        "APPOSIZIONE DEL TERMINE IN FRODE ALLA LEGGE",
+        "CONTRATTO A TERMINE CON IMPRENDITORE DI FATTO ALLE DIPENDENZE DI ALTRI (interposizione)"
+      ],
+      "conseguenze_della_nullita_del_termine_art_28": {
+        "conversione_a_TI": "Il contratto si considera a tempo indeterminato dalla sua stipulazione",
+        "indennizzo": "Tra 2,5 e 12 mensilità (Cass. SU 11969/2024)",
+        "eventuale_riassunzione": "Se rapporto cessato: diritto alla reintegrazione o indennizzo in base al regime applicabile"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "RICOSTRUZIONE STORIA DEI CONTRATTI A TERMINE",
+          "documenti": [
+            "Tutti i contratti a termine stipulati (originale + rinnovi + proroghe)",
+            "Buste paga per ricostruzione periodi",
+            "Comunicazioni UNILAV (obbligatorie per ogni contratto)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "CALCOLO DELLA DURATA COMPLESSIVA",
+          "criteri": [
+            "Sommare tutti i periodi di lavoro con lo stesso datore",
+            "Verificare superamento 24 mesi",
+            "Verificare numero di proroghe (max 4)",
+            "Verificare rispetto degli intervalli tra rinnovi"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA DELLE CAUSALI (per contratti post Decreto Dignità)",
+          "criteri": [
+            "La causale è specifica e non generica?",
+            "Corrisponde a una delle causali ammesse (CCNL, accordi, generali)?",
+            "La situazione aziendale corrispondeva effettivamente alla causale?"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "IMPUGNAZIONE STRAGIUDIZIALE ENTRO 120 GG",
+          "termine": "120 GIORNI dalla cessazione del contratto - DECADENZIALE",
+          "norma": "art. 6 L. 604/1966 per analogia - art. 28 D.Lgs. 81/2015",
+          "modalita": "Raccomandata A/R o PEC"
+        },
+        {
+          "step": 5,
+          "descrizione": "RICORSO GIUDIZIALE ENTRO 180 GG dall'impugnazione",
+          "termine": "180 GIORNI dall'impugnazione stragiudiziale",
+          "criticita": "MASSIMA - decadenza preclude ogni tutela"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_nullita_termine_conversione_TI",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per accertamento nullità del termine + conversione a tempo indeterminato + indennizzo",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro_convenuto",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "contratti_a_termine",
+            "label": "Contratti a termine stipulati",
+            "type": "array",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date"
+              },
+              {
+                "id": "data_fine",
+                "type": "date"
+              },
+              {
+                "id": "tipo_atto",
+                "type": "select",
+                "options": [
+                  "contratto_originale",
+                  "proroga",
+                  "rinnovo"
+                ]
+              },
+              {
+                "id": "causale_indicata",
+                "type": "textarea"
+              },
+              {
+                "id": "durata_giorni",
+                "type": "integer"
+              }
+            ]
+          },
+          {
+            "id": "durata_complessiva",
+            "label": "Durata complessiva del rapporto",
+            "type": "integer",
+            "note": "In giorni o mesi"
+          },
+          {
+            "id": "vizi_dedotti",
+            "label": "Vizi del termine dedotti",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "mancanza_causale_oltre_12_mesi",
+              "causale_generica_non_specifica",
+              "superamento_24_mesi",
+              "superamento_4_proroghe",
+              "mancato_rispetto_intervallo_tra_rinnovi",
+              "mancanza_forma_scritta",
+              "frode_alla_legge",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_vizi",
+            "label": "Esposizione dettagliata dei vizi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "impugnazione_stragiudiziale",
+            "label": "Impugnazione stragiudiziale",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_impugnazione",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "rispetto_termine_120_gg",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "modalita",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_nullita_termine_art_28",
+              "conversione_contratto_a_tempo_indeterminato",
+              "indennizzo_tra_2_5_e_12_mensilita",
+              "condanna_retribuzioni_periodo_intermedie_se_rapporto_cessato",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE IMPUGNAZIONE STRAGIUDIZIALE: 120 GG dalla cessazione - DECADENZIALE",
+          "TERMINE RICORSO GIUDIZIALE: 180 GG dall'impugnazione - DECADENZIALE",
+          "Causale obbligatoria per contratti/proroghe oltre 12 mesi (post Decreto Dignità 2018)",
+          "Durata massima: 24 mesi totali (incluse proroghe e rinnovi)",
+          "Max 4 proroghe nell'arco di 24 mesi"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "tutti_i_contratti_a_termine",
+          "label": "Tutti i contratti a termine (originale + proroghe + rinnovi)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_periodo_completo",
+          "label": "Buste paga del periodo completo",
+          "required": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale_e_prova_invio",
+          "label": "Impugnazione stragiudiziale + prova invio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "comunicazioni_UNILAV",
+          "label": "Comunicazioni UNILAV",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "impugnazione_stragiudiziale_obbligatoria",
+          "trigger": "Condizione tempestività",
+          "critico": true
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Per dimostrare abuso",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "conversione_a_TI_e_indennizzo",
+          "descrizione": "Contratto convertito + indennizzo 2,5-12 mensilità"
+        },
+        {
+          "esito": "rigetto_per_causale_specifica_valida",
+          "descrizione": "Causale ritenuta legittima"
+        },
+        {
+          "esito": "rigetto_per_decadenza_120_gg",
+          "descrizione": "Impugnazione tardiva"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. indennizzo + cessazione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE STRAGIUDIZIALE",
+          "giorni": 120,
+          "decorrenza": "cessazione contratto",
+          "natura": "DECADENZIALE",
+          "norma": "art. 28 D.Lgs. 81/2015",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DEPOSITO RICORSO",
+          "giorni": 180,
+          "decorrenza": "impugnazione stragiudiziale",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "220080",
+      "codice_logico": "GUIDA_LAVORO_A_TERMINE_ILLEGITTIMO_CONVERSIONE_A_TEMPO_INDETERMINATO_D_LGS_81__220080",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220080"
+        }
+      ]
+    },
+    {
+      "codice": "132001",
+      "denominazione": "Azione di rivendicazione della proprietà (rei vindicatio - art. 948 c.c.)",
+      "categoria": "Diritti reali - tutela petitoria della proprietà",
+      "sottocategoria": "Azione petitoria del proprietario che non possiede contro il possessore/detentore che non è proprietario",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c.) - foro esclusivo per immobili",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "948",
+          "descrizione": "Azione di rivendicazione - il proprietario può rivendicare la cosa da chiunque la possegga o detenga"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "948 c. 3",
+          "descrizione": "Imprescrittibilità della rivendicazione (salvo usucapione)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "949",
+          "descrizione": "Azione negatoria di servitù e altri diritti reali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1140-1141",
+          "descrizione": "Possesso - presunzione di possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1158-1165",
+          "descrizione": "Usucapione immobiliare"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2643",
+          "descrizione": "Trascrizione - rilevante per opponibilità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2697",
+          "descrizione": "Onere della prova - diabolica probatio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2727-2729",
+          "descrizione": "Presunzioni - rilevanti per prova della proprietà"
+        },
+        {
+          "fonte": "Cass. SU 28220/2013",
+          "descrizione": "Azione di rivendicazione - onere della prova e diabolica probatio"
+        },
+        {
+          "fonte": "Cass. SU 4861/2022",
+          "descrizione": "Rivendicazione vs azione di accertamento della proprietà"
+        },
+        {
+          "fonte": "Cass. SU 16612/2023",
+          "descrizione": "Prova della proprietà - catena titoli o usucapione"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "QUALITÀ DI PROPRIETARIO dell'attore (o di altro diritto reale che legittima la rivendicazione)",
+        "ASSENZA DEL POSSESSO dell'attore (il proprietario non possiede il bene)",
+        "POSSESSO O DETENZIONE del convenuto (senza titolo valido)",
+        "OGGETTO: qualsiasi bene mobile o immobile"
+      ],
+      "diabolica_probatio": {
+        "problema": "L'attore deve provare la propria proprietà risalendo a un acquisto a titolo ORIGINARIO (usucapione, accessione, ecc.) o producendo una catena ininterrotta di titoli derivativi a ritroso fino all'acquisto originario",
+        "soluzione_pratica_Cass_SU_28220_2013": [
+          "PROVA PRIMA FACIE: titolo di acquisto recente + catena titoli fino a un dante causa che si presume proprietario",
+          "Non serve risalire infinitamente - sufficiente prova più forte di quella del convenuto",
+          "USUCAPIONE COME PROVA: se si dimostra il possesso ultraventennale"
+        ]
+      },
+      "differenza_da_azione_possessoria": {
+        "petitoria_948": "Accerta il DIRITTO (proprietà) - può essere proposta da chi non possiede + protegge contro il possessore",
+        "possessoria_1168": "Accerta e protegge il POSSESSO indipendentemente dal diritto - più rapida ma provvisoria",
+        "quando_preferire_petitoria": "Quando si vuole l'accertamento definitivo del diritto + consegna del bene"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "COSTRUZIONE DELLA CATENA DEI TITOLI",
+          "documenti": [
+            "Atto di acquisto dell'attore",
+            "Atti dei danti causa precedenti (se disponibili)",
+            "Visure catastali storiche",
+            "Ispezioni Conservatoria (note di trascrizione)",
+            "Mappe catastali storiche"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "PROVA DEL POSSESSO DELL'ATTORE (se in passato) O DELL'USUCAPIONE",
+          "alternativa": "Se non si può costruire catena: provare possesso ultraventennale → usucapione"
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE DEL CONVENUTO",
+          "elementi": [
+            "Chi occupa/possiede il bene?",
+            "Ha un titolo (locazione, comodato)?",
+            "Se sì: il titolo è ancora valido?",
+            "Se no: è un possessore senza titolo"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_rivendicazione_proprieta",
+        "denominazione": "Atto di citazione per rivendicazione della proprietà ex art. 948 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "proprietario_attore",
+            "label": "Proprietario attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "possessore_convenuto",
+            "label": "Possessore/detentore convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "bene_rivendicato",
+            "label": "Bene rivendicato",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_bene",
+                "type": "select",
+                "options": [
+                  "immobile",
+                  "bene_mobile_di_valore",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "dati_catastali_se_immobile",
+                "type": "object"
+              },
+              {
+                "id": "valore_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "prova_della_proprieta",
+            "label": "Prova della proprietà dell'attore",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_prova",
+                "type": "select",
+                "options": [
+                  "catena_di_titoli_derivativi",
+                  "usucapione_ventennale",
+                  "acquisto_a_titolo_originario",
+                  "combinazione"
+                ]
+              },
+              {
+                "id": "titolo_di_acquisto_attore",
+                "type": "string"
+              },
+              {
+                "id": "catena_titoli_fino_ad_acquisto_originario",
+                "type": "textarea"
+              },
+              {
+                "id": "trascrizione_del_titolo",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "situazione_attuale_del_bene",
+            "label": "Situazione attuale del bene",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "chi_occupa",
+                "type": "select",
+                "options": [
+                  "convenuto_senza_titolo",
+                  "convenuto_con_titolo_scaduto",
+                  "terzi_autorizzati_dal_convenuto"
+                ]
+              },
+              {
+                "id": "da_quando_occupato",
+                "type": "date"
+              },
+              {
+                "id": "eventuale_titolo_del_convenuto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_proprieta_attore",
+              "condanna_alla_restituzione_o_rilascio_del_bene",
+              "condanna_ai_frutti_del_bene_2950",
+              "condanna_spese_mantenimento_bene",
+              "trascrizione_sentenza",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "DIABOLICA PROBATIO: attore deve provare proprietà con catena ininterrotta dei titoli",
+          "Soluzione: prova più forte di quella del convenuto + catena ragionevole (Cass. SU 28220/2013)",
+          "IMPRESCRITTIBILE salvo usucapione del convenuto (art. 948 c. 3)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Foro esclusivo luogo immobile"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_di_acquisto_attore",
+          "label": "Titolo di acquisto dell'attore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "catena_dei_titoli_antecedenti",
+          "label": "Catena dei titoli antecedenti (se disponibile)",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "visure_catastali_e_mappe",
+          "label": "Visure catastali e mappe catastali",
+          "required": true
+        },
+        {
+          "id": "ispezioni_conservatoria",
+          "label": "Ispezioni Conservatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_occupazione_senza_titolo",
+          "label": "Documentazione dell'occupazione senza titolo da parte del convenuto",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del bene",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "ctu_estimativa_e_identificazione_catastale",
+          "trigger": "Spesso disposta"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_usucapione_da_parte_convenuto",
+          "trigger": "Strategia difensiva tipica",
+          "codice_correlato": "130032"
+        },
+        {
+          "tipo": "trascrizione_sentenza",
+          "trigger": "Per immobili",
+          "norma": "art. 2653 c.c."
+        },
+        {
+          "tipo": "esecuzione_per_rilascio",
+          "trigger": "Se condanna non ottemperata",
+          "codice_correlato": "511012"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_rivendicazione_e_condanna_restituzione",
+          "descrizione": "Proprietà accertata + condanna al rilascio/restituzione"
+        },
+        {
+          "esito": "rigetto_per_usucapione_del_convenuto",
+          "descrizione": "Convenuto ha usucapito il bene"
+        },
+        {
+          "esito": "rigetto_per_prova_insufficiente_della_proprieta",
+          "descrizione": "Diabolica probatio non superata"
+        },
+        {
+          "esito": "transazione_con_vendita_o_regolarizzazione",
+          "descrizione": "Accordo (es. vendita del bene al convenuto)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "AZIONE IMPRESCRITTIBILE",
+          "natura": "imprescrittibile",
+          "eccezione": "salvo usucapione del convenuto (20 anni)"
+        },
+        {
+          "termine": "Mediazione max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "132001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "132001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "132001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_TRASFERIMENTO_DI_PARTECIPAZIONI_IN_S_R_L_E_CLAUSOLE_DI_PRELAZIONE_GRADIM_150030",
+      "denominazione": "Trasferimento di partecipazioni in S.r.l. e clausole di prelazione/gradimento (art. 2469 c.c.)",
+      "categoria": "Diritto societario - S.r.l. - circolazione delle quote",
+      "sottocategoria": "Controversie sul trasferimento di quote di S.r.l. con clausole limitative statutarie (prelazione, gradimento, intrasferibilità)",
+      "rito": "Rito ordinario di cognizione - Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese - sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2469 c. 1",
+          "descrizione": "Principio di libera trasferibilità delle quote - derogabile dallo statuto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2469 c. 2",
+          "descrizione": "Clausola di intrasferibilità o con gradimento: diritto di recesso del socio che non ottiene il trasferimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2470",
+          "descrizione": "Effetti del trasferimento - annotazione nel libro soci"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2471",
+          "descrizione": "Pignoramento delle quote"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2471-bis",
+          "descrizione": "Usufrutto e pegno sulle quote"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2473",
+          "descrizione": "Recesso del socio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2355-bis",
+          "descrizione": "Limitazioni al trasferimento di azioni S.p.A. - applicabile per analogia a S.r.l."
+        },
+        {
+          "fonte": "Cass. SU 7198/2021",
+          "descrizione": "Clausola di prelazione - esercizio e conseguenze della violazione"
+        },
+        {
+          "fonte": "Cass. SU 15962/2022",
+          "descrizione": "Gradimento mero vs motivato - legittimità e recesso"
+        }
+      ],
+      "tipologie_di_clausole_limitative": {
+        "clausola_di_prelazione": [
+          "Gli altri soci hanno diritto di acquistare la quota PRIMA che venga ceduta a terzi",
+          "Il cedente deve offrire la quota agli altri soci alle stesse condizioni dell'offerta del terzo",
+          "Procedura: denuncia + termine per l'esercizio + silenzio = rinuncia"
+        ],
+        "clausola_di_gradimento": {
+          "gradimento_mero": "I soci o l'organo sociale possono negare senza motivazione - LEGITTIMO se accompagnato da diritto di recesso (Cass. SU 15962/2022)",
+          "gradimento_motivato": "Il diniego deve essere motivato",
+          "effetto_del_diniego": "Socio ha diritto di recesso con liquidazione della quota (art. 2469 c. 2)"
+        },
+        "clausola_di_intrasferibilita": [
+          "Divieto assoluto di trasferimento per un periodo (max determinato)",
+          "Superato il termine: trasferibilità piena",
+          "Violazione: atto nullo + azione di annullamento"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "CONTRATTO DI CESSIONE DI QUOTA stipulato",
+        "STATUTO che prevede clausola limitativa (prelazione, gradimento, intrasferibilità)",
+        "VIOLAZIONE della clausola o controversia sulla sua applicazione",
+        "Alternativamente: diniego di gradimento + richiesta di liquidazione quota (2469 c. 2)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE STATUTO E CLAUSOLA LIMITATIVA",
+          "documenti": [
+            "Atto costitutivo e statuto aggiornato",
+            "Testo della clausola di prelazione/gradimento",
+            "Libretto delle modifiche statutarie"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL TRASFERIMENTO",
+          "elementi": [
+            "Contratto di cessione della quota",
+            "Data del contratto",
+            "Condizioni economiche",
+            "Eventuali notifiche alla società/soci"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PER VIOLAZIONE PRELAZIONE",
+          "azione": "Il socio leso dalla violazione della prelazione può chiedere il trasferimento della quota a sé alle stesse condizioni"
+        },
+        {
+          "step": 4,
+          "descrizione": "PER DINIEGO DI GRADIMENTO",
+          "azione": "Il socio che non ottiene il gradimento può esercitare il recesso + liquidazione quota a valore di mercato"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_trasferimento_quote_srl",
+        "denominazione": "Atto di citazione per violazione clausola prelazione/gradimento su quote S.r.l. ex art. 2469 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale delle Imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_controversia",
+            "label": "Tipo di controversia",
+            "type": "select",
+            "required": true,
+            "options": [
+              "violazione_clausola_prelazione",
+              "impugnazione_diniego_di_gradimento",
+              "accertamento_legittimita_trasferimento",
+              "liquidazione_quota_per_diniego_gradimento_2469_c2"
+            ]
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuti_societa_e_soci",
+            "label": "Convenuti (società + soci rilevanti)",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "societa",
+            "label": "S.r.l.",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "cessione_contestata",
+            "label": "Cessione contestata",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cedente",
+                "type": "string"
+              },
+              {
+                "id": "cessionario",
+                "type": "string"
+              },
+              {
+                "id": "quota_ceduta",
+                "type": "fraction"
+              },
+              {
+                "id": "prezzo_cessione",
+                "type": "currency"
+              },
+              {
+                "id": "data_cessione",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "clausola_violata_o_diniego",
+            "label": "Clausola violata o diniego",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "testo_clausola_statuto",
+                "type": "textarea"
+              },
+              {
+                "id": "procedura_prevista_rispettata",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_violazione_prelazione",
+              "trasferimento_quota_al_socio_leso_alle_stesse_condizioni",
+              "nullita_della_cessione_violazione_intrasferibilita",
+              "impugnazione_delibera_di_diniego_gradimento",
+              "liquidazione_quota_per_diniego_2469_c2",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza TRIBUNALE DELLE IMPRESE",
+          "Gradimento mero: legittimo se accompagnato da diritto di recesso (Cass. SU 15962/2022)",
+          "Violazione prelazione: socio leso può chiedere trasferimento a sé alle stesse condizioni",
+          "Diritto di recesso con liquidazione quota in caso di diniego (art. 2469 c. 2)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costitutivo_con_clausola_limitativa",
+          "label": "Atto costitutivo con clausola limitativa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratto_di_cessione_contestato",
+          "label": "Contratto di cessione contestato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visura_camerale_con_libro_soci",
+          "label": "Visura camerale aggiornata",
+          "required": true
+        },
+        {
+          "id": "documentazione_procedura_prelazione_o_gradimento",
+          "label": "Documentazione sulla procedura di prelazione/gradimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "bilanci_per_valutazione_quota",
+          "label": "Bilanci societari (per valutazione quota)",
+          "required_if": "liquidazione_quota"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della quota",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_estimativa_della_quota",
+          "trigger": "Per liquidazione a valore di mercato"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "trasferimento_al_socio_leso_violazione_prelazione",
+          "descrizione": "Quota trasferita al socio che ha diritto di prelazione"
+        },
+        {
+          "esito": "liquidazione_quota_per_diniego_gradimento",
+          "descrizione": "Socio ottiene liquidazione a valore di mercato"
+        },
+        {
+          "esito": "rigetto_per_gradimento_legittimamente_negato",
+          "descrizione": "Diniego valido + diritto di recesso garantito"
+        },
+        {
+          "esito": "transazione_con_accordo_tra_soci",
+          "descrizione": "Accordo"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Termine per esercizio prelazione",
+          "tipo": "contrattuale o statutario"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "150030",
+      "codice_logico": "GUIDA_TRASFERIMENTO_DI_PARTECIPAZIONI_IN_S_R_L_E_CLAUSOLE_DI_PRELAZIONE_GRADIM_150030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_APERTURA_DEL_PROCEDIMENTO_DI_INTERDIZIONE_E_INABILITAZIONE_ARTT_414_432__410001",
+      "denominazione": "Apertura del procedimento di interdizione e inabilitazione (artt. 414-432 c.c.)",
+      "categoria": "Persone - protezione degli incapaci",
+      "sottocategoria": "Procedimento per la dichiarazione giudiziale di interdizione o inabilitazione - misure gravi di protezione per infermità mentale",
+      "rito": "Rito camerale ex artt. 712-720 c.p.c. davanti al Tribunale (sezione famiglia)",
+      "competenza": "Tribunale del luogo di residenza/domicilio dell'interdicendo/inabilitando",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "414",
+          "descrizione": "Interdizione - presupposti: infermità di mente abituale che li rende incapaci di provvedere ai propri interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "415",
+          "descrizione": "Inabilitazione - presupposti meno gravi (infermità non totale, prodigalità, abuso alcool/stupefacenti, sordomutismo)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "416",
+          "descrizione": "Interdizione del minore - solo nell'ultimo anno di minore età"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "417",
+          "descrizione": "Legittimazione a proporre l'interdizione/inabilitazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "418",
+          "descrizione": "Procedimento - esame dell'interdicendo + parere peritale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "419",
+          "descrizione": "Audizione dell'interdicendo/inabilitando - obbligatoria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "420",
+          "descrizione": "Provvedimenti provvisori urgenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "421",
+          "descrizione": "Nomina del tutore provvisorio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "424",
+          "descrizione": "Nomina del tutore definitivo dopo sentenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "429",
+          "descrizione": "Revoca dell'interdizione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "430",
+          "descrizione": "Procedimento di revoca"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "404 e ss.",
+          "descrizione": "Amministrazione di sostegno - misura meno invasiva (preferita)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "712-720",
+          "descrizione": "Procedimento di interdizione e inabilitazione"
+        },
+        {
+          "fonte": "L. 6/2004",
+          "descrizione": "Istituzione AdS - principio di favor per misure meno invasive"
+        },
+        {
+          "fonte": "Cass. SU 25366/2006",
+          "descrizione": "Priorità AdS rispetto a interdizione/inabilitazione"
+        }
+      ],
+      "distinzione_interdizione_inabilitazione_AdS": {
+        "AdS_misura_preferita": [
+          "Misura meno invasiva - preferita dalla giurisprudenza (Cass. SU 25366/2006)",
+          "Adeguata alla situazione specifica della persona",
+          "Non priva completamente della capacità giuridica"
+        ],
+        "interdizione_414": [
+          "Infermità TOTALE e ABITUALE che priva completamente della capacità",
+          "Persona totalmente incapace di cura dei propri interessi",
+          "Massima limitazione - residuale rispetto a AdS"
+        ],
+        "inabilitazione_415": [
+          "Infermità PARZIALE (non totalmente incapace)",
+          "Prodigalità grave",
+          "Abuso cronico di alcool o stupefacenti",
+          "Sordomutismo senza istruzione sufficiente"
+        ]
+      },
+      "legittimati_attivi_417": [
+        "CONIUGE",
+        "PERSONA STABILMENTE CONVIVENTE",
+        "PARENTI ENTRO IL QUARTO GRADO",
+        "AFFINI ENTRO IL SECONDO GRADO",
+        "TUTORE O CURATORE GIÀ NOMINATO",
+        "PM (può proporre d'ufficio)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedimento di volontaria giurisdizione con rilevanza pubblicistica"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VALUTAZIONE DELLA MISURA APPROPRIATA",
+          "criterio": [
+            "Prima valutare se AdS è sufficiente (misura preferita)",
+            "Interdizione solo se infermità totale e abituale che rende incapace di ogni atto",
+            "Inabilitazione per infermità parziale o prodigalità grave"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLO STATO MENTALE/FISICO",
+          "documenti": [
+            "Certificazioni mediche specialistiche (psichiatria, neurologia)",
+            "Cartelle cliniche",
+            "Eventuali Trattamenti Sanitari Obbligatori (TSO)",
+            "Relazioni di assistenti sociali"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DELLA NECESSITÀ DI PROTEZIONE",
+          "elementi": [
+            "Atti pregiudizievoli compiuti per infermità",
+            "Situazione patrimoniale a rischio",
+            "Assenza di rete familiare sufficiente",
+            "Precedenti tentativi di supporto informale non riusciti"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "CANDIDATO TUTORE/CURATORE",
+          "criteri": [
+            "Parente prossimo di fiducia",
+            "Professionista (avvocato, commercialista) per situazioni patrimoniali complesse",
+            "Assenza di conflitti di interessi"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_apertura_interdizione_o_inabilitazione",
+        "denominazione": "Ricorso per apertura del procedimento di interdizione o inabilitazione ex artt. 414-418 c.c.",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo residenza",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_procedimento",
+            "label": "Tipo di procedimento",
+            "type": "select",
+            "required": true,
+            "options": [
+              "interdizione_414",
+              "inabilitazione_415",
+              "interdizione_del_minore_416"
+            ]
+          },
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "coniuge",
+                  "convivente_stabile",
+                  "parente_entro_4_grado",
+                  "affine_entro_2_grado",
+                  "tutore_curatore_in_carica",
+                  "PM"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "interdicendo_o_inabilitando",
+            "label": "Soggetto del procedimento",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              },
+              {
+                "id": "situazione_attuale_di_vita",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "infermita_o_causa",
+            "label": "Infermità o causa della misura",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_infermita",
+                "type": "select_multi",
+                "options": [
+                  "infermita_mente_totale_e_abituale_414",
+                  "infermita_mente_parziale_415",
+                  "prodigalita_grave_415",
+                  "abuso_cronico_alcool_415",
+                  "abuso_cronico_stupefacenti_415",
+                  "sordomutismo_senza_istruzione_415"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "durata_e_cronicita",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "situazione_patrimoniale",
+            "label": "Situazione patrimoniale a rischio",
+            "type": "textarea"
+          },
+          {
+            "id": "tutore_curatore_proposto",
+            "label": "Tutore/curatore proposto",
+            "type": "object_persona"
+          },
+          {
+            "id": "motivazione_preferenza_su_AdS",
+            "label": "Motivazione della preferenza sull'AdS (che va esclusa)",
+            "type": "textarea",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "richiesta_provvedimenti_urgenti_420",
+            "label": "Richiesta provvedimenti urgenti ex art. 420 c.c.",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "apertura_procedimento_interdizione",
+              "apertura_procedimento_inabilitazione",
+              "provvedimenti_urgenti_420",
+              "nomina_tutore_provvisorio_421",
+              "nomina_tutore_definitivo_post_sentenza"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Preferenza per AdS (misura meno invasiva) - Cass. SU 25366/2006",
+          "Interdizione: solo se infermità TOTALE e ABITUALE (non parziale)",
+          "Audizione OBBLIGATORIA dell'interdicendo (art. 419 c.c.)",
+          "Parere PM obbligatorio",
+          "CTU medico-legale (psichiatrica/neurologica) quasi sempre disposta",
+          "Reclamabilità del decreto in Corte d'Appello"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_medica_specialistica",
+          "label": "Documentazione medica specialistica (psichiatria, neurologia)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "cartelle_cliniche",
+          "label": "Cartelle cliniche rilevanti",
+          "required": true
+        },
+        {
+          "id": "documentazione_legittimazione_ricorrente",
+          "label": "Documentazione della legittimazione del ricorrente",
+          "required": true
+        },
+        {
+          "id": "documentazione_patrimoniale_soggetto",
+          "label": "Documentazione patrimoniale del soggetto",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_necessita_protezione",
+          "label": "Documentazione della necessità di protezione",
+          "required": true
+        },
+        {
+          "id": "documentazione_candidato_tutore",
+          "label": "Documentazione del candidato tutore proposto",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente - VG protettiva",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "audizione_obbligatoria_soggetto_419",
+          "trigger": "Obbligatoria",
+          "norma": "art. 419 c.c."
+        },
+        {
+          "tipo": "ctu_medico_psichiatrica_o_neurologica",
+          "trigger": "Quasi sempre disposta",
+          "critico": true
+        },
+        {
+          "tipo": "parere_PM_obbligatorio",
+          "trigger": "Sempre",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "nomina_tutore_provvisorio_421",
+          "trigger": "Misure urgenti"
+        },
+        {
+          "tipo": "sentenza_di_interdizione_o_inabilitazione",
+          "trigger": "Esito procedimento"
+        },
+        {
+          "tipo": "revoca_interdizione_se_recupero_429",
+          "trigger": "Cessazione causa"
+        },
+        {
+          "tipo": "reclamo_corte_appello",
+          "trigger": "Sentenza TM/Tribunale",
+          "termine": "30 gg"
+        },
+        {
+          "tipo": "AdS_alternativa_se_misura_meno_invasiva_sufficiente",
+          "trigger": "Preferire questa",
+          "codice_correlato": "413061"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "sentenza_di_interdizione",
+          "descrizione": "Perdita totale capacità + nomina tutore"
+        },
+        {
+          "esito": "sentenza_di_inabilitazione",
+          "descrizione": "Capacità parziale + nomina curatore"
+        },
+        {
+          "esito": "rigetto_con_apertura_AdS",
+          "descrizione": "Misura meno invasiva sufficiente - AdS preferita"
+        },
+        {
+          "esito": "rigetto_per_assenza_presupposti",
+          "descrizione": "Infermità non grave o non abituale"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Decisione del Tribunale",
+          "giorni": 90,
+          "decorrenza": "deposito ricorso",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Reclamo Corte d'Appello",
+          "giorni": 30,
+          "decorrenza": "sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "410001",
+      "codice_logico": "GUIDA_APERTURA_DEL_PROCEDIMENTO_DI_INTERDIZIONE_E_INABILITAZIONE_ARTT_414_432__410001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "410001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "410001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "410001"
+        }
+      ]
+    }
+  ]
+}

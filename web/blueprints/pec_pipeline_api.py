@@ -51,6 +51,7 @@ def _repo() -> PecAuditRepository:
         fascicoli_db_path=_runtime_path("FASCICOLI_DB", "./fascicoli/fascicoli.json"),
         fascicoli_docs_path=_runtime_path("FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_runtime_path("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
+        agenda_db_path=_runtime_path("AGENDA_DB", "./agenda/appuntamenti.json"),
     )
 
 

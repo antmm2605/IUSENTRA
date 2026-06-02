@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.249.9 - 2026-06-02
+
+- Completato il presidio Guida Pratica/Scadenziario sui nuovi materiali utente: moduli KB set10, set11, set12 e set14 integrati, termini processuali globali importati nel repository, audit voce per voce aggiornato, bootstrap runtime dei termini Guida Pratica da sorgenti versionate e regole operative documentate.
+- Rafforzata `Scadenze dai PDF`: anteprima rapida non bloccante, esclusione dei PDF troppo grandi/scansionati dalla lettura pesante, filtro da fascicolo/guida, pulsanti `Elimina selezionate` ed `Elimina tutto` limitati alla preview senza cancellare scadenze o documenti.
+
 ## 2.249.8 - 2026-06-02
 
 - Introdotta la matrice probatoria obbligatoria per PEC, notifiche e deposito prova: `PROOF_ACQUIRED`, `PROOF_DEPOSIT_REQUIRED` e `PROOF_DEPOSITED` richiedono destinatari, domicilio digitale, PEC inviata, relata, RAC/RdAC per ogni destinatario, evidenze hashate, DatiAtto/deposito prova quando dovuti e audit.

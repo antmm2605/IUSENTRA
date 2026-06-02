@@ -147,6 +147,7 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
         "FASCICOLI_DB": tmp_path / "fascicoli" / "fascicoli.json",
         "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
         "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
+        "AGENDA_DB": tmp_path / "agenda" / "appuntamenti.json",
     }
 
     def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
@@ -193,25 +194,42 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     request_missing = client.post(f"/api/pec/messages/{notice_id}/richiedi-allegato-mancante")
     assert request_missing.status_code == 200
     assert request_missing.get_json()["ok"] is True
+    from pct.scadenziario import GestioneScadenziario
+    from pct.agenda import Agenda, TipoAppuntamento
 
-    schedule = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza")
+    past_schedule = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza", json={"data_scadenza": "2000-01-15"})
+    assert past_schedule.status_code == 409
+    past_payload = past_schedule.get_json()
+    assert past_payload["expired"] is True
+    assert past_payload["message"] == "Termine già superato: non riportato in scadenziario o agenda."
+    assert GestioneScadenziario(str(paths["SCADENZIARIO_DB"])).tutte(solo_aperte=False) == []
+
+    schedule = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza", json={"data_scadenza": "2030-01-15"})
     assert schedule.status_code == 200
     schedule_payload = schedule.get_json()
     assert schedule_payload["ok"] is True
     assert schedule_payload["due_date"]
-    from pct.scadenziario import GestioneScadenziario
+    assert schedule_payload["agenda"]["ok"] is True
+    assert schedule_payload["agenda"]["agenda_id"]
 
     scadenze = GestioneScadenziario(str(paths["SCADENZIARIO_DB"])).tutte(solo_aperte=False)
     marker = f"PEC_AUDIT:{notice_id}"
     notice_deadlines = [item for item in scadenze if marker in item.note]
     assert len(notice_deadlines) == 1
+    assert notice_deadlines[0].id_appuntamento == schedule_payload["agenda"]["agenda_id"]
     assert notice_deadlines[0].deadline_profile_code == "PEC_AUTO_PRESIDIO"
-    assert notice_deadlines[0].operational_due_at.startswith(schedule_payload["due_date"][:10])
+    assert notice_deadlines[0].operational_due_at.startswith("2030-01-15")
     assert notice_deadlines[0].legal_due_at == ""
+    agenda_items = Agenda(str(paths["AGENDA_DB"])).tutti()
+    assert len(agenda_items) == 1
+    assert agenda_items[0].tipo == TipoAppuntamento.SCADENZA
+    assert agenda_items[0].external_uid == f"PEC_AUDIT:{notice_id}:deadline"
+    assert agenda_items[0].external_provider == "pec_audit"
 
-    schedule_again = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza")
+    schedule_again = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza", json={"data_scadenza": "2030-01-15"})
     assert schedule_again.status_code == 200
     assert schedule_again.get_json()["already_exists"] is True
+    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
 
     prepare_save = client.post(
         f"/api/pec/messages/{notice_id}/salva-fascicolo",

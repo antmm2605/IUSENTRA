@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (8).zip::kb_top9_set12_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set12_parte2.json",
+  "sha256": "406948FA0C4CE356E2D80B1D1FF6FB602CF6CB5C4623E38BD201A2AA8EB833F3",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE2",
+  "denominazione": "Dodicesimo set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "143010",
+    "130080",
+    "154010",
+    "512030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RISOLUZIONE_CONTRATTO_DI_TRASPORTO_E_RESPONSABILIT_DEL_VETTORE_PER_PERDI_143010",
+    "GUIDA_REGIME_DELLE_ACQUE_NEI_RAPPORTI_DI_VICINATO_SCOLO_GRONDA_ACQUE_PIOVANE_A_130080",
+    "GUIDA_RESPONSABILIT_DEGLI_AMMINISTRATORI_DI_S_R_L_VERSO_LA_SOCIET_E_I_CREDITOR_154010",
+    "GUIDA_DISTRIBUZIONE_E_PIANO_DI_RIPARTO_NELL_ESECUZIONE_IMMOBILIARE_ARTT_596_59_512030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "143010",
+      "codice_integrato": "GUIDA_RISOLUZIONE_CONTRATTO_DI_TRASPORTO_E_RESPONSABILIT_DEL_VETTORE_PER_PERDI_143010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130080",
+      "codice_integrato": "GUIDA_REGIME_DELLE_ACQUE_NEI_RAPPORTI_DI_VICINATO_SCOLO_GRONDA_ACQUE_PIOVANE_A_130080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154010",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEGLI_AMMINISTRATORI_DI_S_R_L_VERSO_LA_SOCIET_E_I_CREDITOR_154010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512030",
+      "codice_integrato": "GUIDA_DISTRIBUZIONE_E_PIANO_DI_RIPARTO_NELL_ESECUZIONE_IMMOBILIARE_ARTT_596_59_512030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 13
+}

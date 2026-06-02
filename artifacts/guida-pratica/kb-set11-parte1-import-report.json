@@ -1,0 +1,52 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (7).zip::kb_top9_set11_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set11_parte1.json",
+  "sha256": "0C7B138AE8DA919981F0824F64B2306AF4492925D3904D6F0555E8A95C701AEE",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET11_PARTE1",
+  "denominazione": "Undicesimo set di 9 codici - PARTE 1 di 2",
+  "codici_materia_originali": [
+    "160030",
+    "113001",
+    "141010",
+    "154001",
+    "220040"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DA_CIRCOLAZIONE_STRADALE_SINISTRO_CON_VEICOLO_NON_ASSICURA_160030",
+    "GUIDA_DECADENZA_LIMITAZIONE_DELLA_RESPONSABILIT_GENITORIALE_E_AFFIDAMENTO_FAMI_113001",
+    "GUIDA_RISOLUZIONE_CONTRATTO_DI_SOMMINISTRAZIONE_PER_INADEMPIMENTO_ARTT_1559_15_141010",
+    "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_S_R_L_ARTT_2484_2496_C_C_154001",
+    "220040"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160030",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_CIRCOLAZIONE_STRADALE_SINISTRO_CON_VEICOLO_NON_ASSICURA_160030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "113001",
+      "codice_integrato": "GUIDA_DECADENZA_LIMITAZIONE_DELLA_RESPONSABILIT_GENITORIALE_E_AFFIDAMENTO_FAMI_113001",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141010",
+      "codice_integrato": "GUIDA_RISOLUZIONE_CONTRATTO_DI_SOMMINISTRAZIONE_PER_INADEMPIMENTO_ARTT_1559_15_141010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154001",
+      "codice_integrato": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_S_R_L_ARTT_2484_2496_C_C_154001",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "220040"
+  ],
+  "termini_processuali_raw": 15
+}

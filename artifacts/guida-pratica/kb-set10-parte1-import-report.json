@@ -1,0 +1,42 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (6).zip::kb_top9_set10_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set10_parte1.json",
+  "sha256": "02ABF018DBA4DF4CDD472F09E404B2B7A9CA44BD959E2656898ECAFF187FB903",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET10_PARTE1",
+  "denominazione": "Decimo set di 9 codici - PARTE 1 di 2",
+  "codici_materia_originali": [
+    "160011",
+    "131001",
+    "141005",
+    "111010",
+    "220010"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DEL_PREPONENTE_PER_FATTO_DEL_DIPENDENTE_PREPOSTO_ART_2049__160011",
+    "131001",
+    "GUIDA_RISOLUZIONE_CONTRATTO_DI_LEASING_FINANZIARIO_PER_INADEMPIMENTO_141005",
+    "111010",
+    "220010"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160011",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_PREPONENTE_PER_FATTO_DEL_DIPENDENTE_PREPOSTO_ART_2049__160011",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141005",
+      "codice_integrato": "GUIDA_RISOLUZIONE_CONTRATTO_DI_LEASING_FINANZIARIO_PER_INADEMPIMENTO_141005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "131001",
+    "111010",
+    "220010"
+  ],
+  "termini_processuali_raw": 21
+}

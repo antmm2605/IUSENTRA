@@ -40,6 +40,7 @@ USER_MODULE_PATTERNS = (
     "kb_98_top9_set9_parte1.json",
     "kb_98_top9_set9_parte2.json",
 )
+USER_MODULE_GLOB = "kb_98_top9*.json"
 
 CONTROLLED_FIELDS: dict[str, list[list[str]]] = {
     "denominazione": [["denominazione"]],
@@ -250,8 +251,9 @@ def _iter_module_items(path: Path) -> list[SourceItem]:
 
 
 def _source_files() -> list[Path]:
-    paths = [MODULES_DIR / name for name in USER_MODULE_PATTERNS]
-    return [path for path in paths if path.exists()]
+    explicit = {MODULES_DIR / name for name in USER_MODULE_PATTERNS}
+    discovered = set(MODULES_DIR.glob(USER_MODULE_GLOB))
+    return sorted((path for path in explicit | discovered if path.exists()), key=lambda path: path.name)
 
 
 def _steps(value: Any) -> list[str]:

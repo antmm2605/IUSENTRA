@@ -1,0 +1,39 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (7).zip::kb_top9_set11_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set11_parte2.json",
+  "sha256": "097DDB60916D5FC6C21590FCA7452542B734B901F1D29D9C535677F1499C70D2",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET11_PARTE2",
+  "denominazione": "Undicesimo set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "103001",
+    "512020",
+    "180010",
+    "130060"
+  ],
+  "codici_materia_integrati": [
+    "103001",
+    "512020",
+    "GUIDA_INIBITORIA_PER_PRATICHE_COMMERCIALI_SCORRETTE_D_LGS_206_2005_ARTT_18_27__180010",
+    "GUIDA_REGOLAMENTO_DI_CONFINI_TRA_FONDI_CONTIGUI_ART_950_C_C_130060"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "180010",
+      "codice_integrato": "GUIDA_INIBITORIA_PER_PRATICHE_COMMERCIALI_SCORRETTE_D_LGS_206_2005_ARTT_18_27__180010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130060",
+      "codice_integrato": "GUIDA_REGOLAMENTO_DI_CONFINI_TRA_FONDI_CONTIGUI_ART_950_C_C_130060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "103001",
+    "512020"
+  ],
+  "termini_processuali_raw": 12
+}

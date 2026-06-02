@@ -1,0 +1,1961 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET10_PARTE2",
+  "denominazione": "Decimo set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIECIC"
+  ],
+  "data_generazione": "2026-05-24",
+  "scopo": "Parte 2 del decimo set TOP9: simulazione contrattuale, espropriazione presso terzi controversie, responsabilità prodotto difettoso, azione revocatoria societaria",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_AZIONE_DI_SIMULAZIONE_CONTRATTUALE_ARTT_1414_1417_C_C_102010",
+      "denominazione": "Azione di simulazione contrattuale (artt. 1414-1417 c.c.)",
+      "categoria": "Contratti - patologia - simulazione",
+      "sottocategoria": "Accertamento della simulazione assoluta o relativa di un contratto + effetti",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (se contratto immobiliare rientra in diritti reali)",
+      "competenza": "Tribunale - foro residenza convenuto o luogo esecuzione (art. 20 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1414",
+          "descrizione": "Effetti della simulazione - tra le parti il contratto simulato non produce effetti; il contratto dissimulato produce effetti se sussistono requisiti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1415",
+          "descrizione": "Effetti della simulazione rispetto ai TERZI - simulazione non opponibile ai terzi di buona fede che hanno acquistato diritti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1416",
+          "descrizione": "Effetti della simulazione rispetto ai CREDITORI - i creditori del simulato alienante prevalgono sui creditori del simulato acquirente se in buona fede e anteriori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1417",
+          "descrizione": "PROVA DELLA SIMULAZIONE - tra le parti: solo per iscritto (controdichiarazione); per i terzi: qualsiasi mezzo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1418",
+          "descrizione": "Nullità del contratto - spesso associata a simulazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1421-1424",
+          "descrizione": "Disciplina dell'azione di nullità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2727-2729",
+          "descrizione": "Presunzioni - rilevanti per prova simulazione"
+        },
+        {
+          "fonte": "Cass. SU 21575/2019",
+          "descrizione": "Simulazione - prova presuntiva ammissibile per i terzi"
+        },
+        {
+          "fonte": "Cass. SU 14344/2021",
+          "descrizione": "Simulazione relativa - conversione del negozio dissimulato"
+        },
+        {
+          "fonte": "Cass. SU 4135/2023",
+          "descrizione": "Simulazione e azione revocatoria - cumulabilità"
+        }
+      ],
+      "tipologie_di_simulazione": {
+        "simulazione_assoluta": {
+          "definizione": "Le parti pongono in essere un contratto ma NESSUNO VUOLE gli effetti - il contratto è una finzione totale",
+          "esempi": [
+            "Vendita simulata per sottrarre beni ai creditori",
+            "Donazione simulata come vendita",
+            "Locazione simulata di fatto inesistente"
+          ],
+          "effetti": "Il contratto simulato NON produce effetti tra le parti (1414 c. 1)"
+        },
+        "simulazione_relativa": {
+          "definizione": "Le parti pongono in essere un contratto (apparente) che nasconde un contratto DIVERSO (dissimulato)",
+          "esempi": [
+            "Vendita che nasconde una donazione (evade imposta donazione)",
+            "Vendita con prezzo apparente ma prezzo reale diverso (doppio prezzo)",
+            "Contratto di lavoro che nasconde appalto o viceversa"
+          ],
+          "effetti": "Il contratto dissimulato produce effetti se sostanzialmente valido (1414 c. 2)"
+        },
+        "interposizione_fittizia_di_persona": {
+          "definizione": "Il contratto è stipulato con soggetto interposto (prestanome) ma il vero contraente è un altro",
+          "esempi": [
+            "Acquisto immobile a nome di parente ma con denaro e per conto proprio",
+            "Contratto a nome di altro soggetto per aggirare divieti o tasse"
+          ]
+        }
+      },
+      "prova_della_simulazione_art_1417": {
+        "tra_le_parti": [
+          "Principio: prova SOLO PER ISCRITTO (controdichiarazione)",
+          "Eccezione se prova per scritto impossibile per causa di forza maggiore o è intervenuta illiceità"
+        ],
+        "per_i_terzi": [
+          "Qualsiasi mezzo di prova (testimonianze, presunzioni, indizi)",
+          "Presunzioni: prezzo irrisorio, legami familiari, mancanza di denaro del compratore, mantenimento del possesso da parte del venditore"
+        ],
+        "creditori_come_terzi": "I creditori possono provare la simulazione con qualsiasi mezzo"
+      },
+      "tutela_dei_terzi_di_buona_fede_1415": {
+        "acquirenti_di_buona_fede": "Simulazione non opponibile ai terzi di buona fede che abbiano acquistato diritti sul bene",
+        "creditori_privilegiati": "Creditori del simulato alienante in buona fede e anteriori prevalgono (art. 1416)"
+      },
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN CONTRATTO formalmente valido",
+        "ACCORDO SIMULATORIO tra le parti (volontà di apparenza diversa dalla realtà)",
+        "DIVERGENZA tra volontà dichiarata (apparente) e volontà reale",
+        "INTERESSE ad agire (creditore, terzo leso, parte che chiede nullità del simulato)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": "Se riguarda immobili rientra spesso in diritti reali → mediazione obbligatoria",
+        "valutazione_caso_per_caso": true
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE DEL TIPO DI SIMULAZIONE",
+          "criteri": [
+            "Assoluta (nessun effetto reale) o relativa (nasconde altro contratto)",
+            "Con interposizione fittizia o meno",
+            "Soggetti: tra parti o terzo leso"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "RACCOLTA PROVE",
+          "per_terzi_e_creditori": [
+            "Controdichiarazioni scritte (se reperibili)",
+            "Rapporto parentela/amicizia tra le parti",
+            "Sproporzione del prezzo rispetto al mercato",
+            "Mancanza di liquidità del compratore",
+            "Mantenimento del possesso/godimento da parte del cedente",
+            "Assenza di passaggio di denaro documentato",
+            "Corrispondenza o comunicazioni che rivelano la simulazione",
+            "Comportamenti successivi incompatibili con la vendita"
+          ],
+          "per_parti": [
+            "Controdichiarazione scritta (principale)",
+            "Inizio di prova scritta + testimoni"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VALUTAZIONE TUTELA TERZI DI BUONA FEDE",
+          "criteri": [
+            "Verificare se esistono terzi sub-acquirenti di buona fede",
+            "Per immobili: trascrizione delle trascrizioni - chi ha trascritto per primo?",
+            "Buona fede del terzo: assenza di consapevolezza della simulazione"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE CUMULABILITÀ CON REVOCATORIA",
+          "norma": "Cass. SU 4135/2023",
+          "contenuto": "Simulazione e revocatoria possono essere cumulate alternativamente - utile per i creditori"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_simulazione_contrattuale",
+        "denominazione": "Atto di citazione per accertamento simulazione contrattuale ex artt. 1414-1417 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "parte_del_contratto_simulato",
+                  "creditore_del_simulato_alienante",
+                  "terzo_leso",
+                  "erede"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuti",
+            "label": "Convenuti (entrambe le parti del contratto simulato)",
+            "type": "array_persone",
+            "required": true,
+            "min_items": 2
+          },
+          {
+            "id": "contratto_simulato",
+            "label": "Contratto simulato",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto_apparente",
+                "type": "select",
+                "options": [
+                  "compravendita_immobiliare",
+                  "compravendita_mobiliare",
+                  "donazione",
+                  "locazione",
+                  "appalto",
+                  "contratto_di_lavoro",
+                  "prestito",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "valore_apparente",
+                "type": "currency"
+              },
+              {
+                "id": "parti",
+                "type": "textarea"
+              },
+              {
+                "id": "trascrizione_se_immobiliare",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "tipo_simulazione",
+            "label": "Tipo di simulazione dedotta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "assoluta_nessun_effetto_reale_1414_c1",
+              "relativa_cela_contratto_diverso_1414_c2",
+              "interposizione_fittizia_di_persona"
+            ]
+          },
+          {
+            "id": "contratto_dissimulato_se_relativa",
+            "label": "Contratto dissimulato (per simulazione relativa)",
+            "type": "object",
+            "required_if": "simulazione_relativa",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "string"
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "elementi_della_simulazione",
+            "label": "Elementi probatori della simulazione",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "controdichiarazione_scritta",
+                "type": "boolean"
+              },
+              {
+                "id": "prezzo_irrisorio_o_sproporzionato",
+                "type": "boolean"
+              },
+              {
+                "id": "parentela_o_legame_tra_parti",
+                "type": "boolean"
+              },
+              {
+                "id": "mancanza_liquidita_compratore",
+                "type": "boolean"
+              },
+              {
+                "id": "mantenimento_possesso_alienante",
+                "type": "boolean"
+              },
+              {
+                "id": "assenza_pagamento_documentato",
+                "type": "boolean"
+              },
+              {
+                "id": "corrispondenza_rivelante_simulazione",
+                "type": "boolean"
+              },
+              {
+                "id": "altri_indizi",
+                "type": "textarea"
+              },
+              {
+                "id": "descrizione_dettagliata_accordo_simulatorio",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              }
+            ]
+          },
+          {
+            "id": "interesse_ad_agire",
+            "label": "Interesse ad agire",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_simulazione_assoluta_e_nullita_contratto",
+              "accertamento_simulazione_relativa_e_validita_contratto_dissimulato",
+              "inefficacia_del_contratto_simulato_rispetto_all_attore",
+              "restituzione_del_bene_o_del_prezzo",
+              "trascrizione_sentenza_per_immobili",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "cumulo_azione_revocatoria",
+            "label": "Eventuale cumulo con azione revocatoria",
+            "type": "boolean"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Prova tra le parti: solo per iscritto (controdichiarazione) - art. 1417",
+          "Prova per terzi/creditori: qualsiasi mezzo (presunzioni, testimonianze)",
+          "Simulazione non opponibile ai terzi di buona fede (1415)",
+          "Cumulabilità con azione revocatoria (Cass. SU 4135/2023)",
+          "Simulazione relativa: il contratto dissimulato produce effetti se sostanzialmente valido"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_simulato_in_copia",
+          "label": "Contratto simulato (in copia)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_controdichiarazione_scritta",
+          "label": "Eventuale controdichiarazione scritta",
+          "required": false,
+          "critico_se_presente": true
+        },
+        {
+          "id": "documentazione_indizi_simulazione",
+          "label": "Documentazione degli indizi di simulazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_patrimoniali_del_cedente",
+          "label": "Visure patrimoniali del cedente (per creditori)",
+          "required_if": "attore=creditore"
+        },
+        {
+          "id": "documentazione_credito_per_creditori",
+          "label": "Documentazione del credito vantato (per creditori)",
+          "required_if": "attore=creditore"
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_se_obbligatoria",
+          "label": "Verbale mediazione (se obbligatoria per diritti reali)",
+          "required_if": "mediazione_obbligatoria"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "azione_revocatoria_in_subordine",
+          "trigger": "Creditore - cumulo alternativo",
+          "codice_correlato": "102002"
+        },
+        {
+          "tipo": "azione_di_nullita_assoluta_del_contratto_simulato",
+          "trigger": "Per nullità dell'atto simulato"
+        },
+        {
+          "tipo": "ctu_estimativa_per_valore_bene",
+          "trigger": "Per valutazione prezzo e sproporzione"
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Frequente per terzi/creditori",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "trascrizione_sentenza_per_immobili",
+          "trigger": "Sentenza definitiva",
+          "norma": "art. 2653 c.c."
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accertamento_simulazione_assoluta_nullita",
+          "descrizione": "Contratto simulato dichiarato inefficace tra le parti"
+        },
+        {
+          "esito": "accertamento_simulazione_relativa_validita_dissimulato",
+          "descrizione": "Contratto apparente simulato + contratto reale valido"
+        },
+        {
+          "esito": "rigetto_per_assenza_accordo_simulatorio",
+          "descrizione": "Prova della simulazione insufficiente"
+        },
+        {
+          "esito": "rigetto_per_terzo_di_buona_fede_prevalente",
+          "descrizione": "Terzo sub-acquirente di buona fede prevalente (1415)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo tra le parti"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPRESCRITTIBILITÀ SIMULAZIONE ASSOLUTA",
+          "natura": "imprescrittibile",
+          "norma": "art. 1422 c.c. per analogia"
+        },
+        {
+          "termine": "Prescrizione simulazione relativa",
+          "anni": 10,
+          "decorrenza": "contratto",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "102010",
+      "codice_logico": "GUIDA_AZIONE_DI_SIMULAZIONE_CONTRATTUALE_ARTT_1414_1417_C_C_102010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "102010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "102010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "102010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ESPROPRIAZIONE_FORZATA_PRESSO_TERZI_CONTROVERSIE_ARTT_548_554_C_P_C_512010",
+      "denominazione": "Espropriazione forzata presso terzi - controversie (artt. 548-554 c.p.c.)",
+      "categoria": "Esecuzioni forzate - espropriazione presso terzi",
+      "sottocategoria": "Mancata o contestata dichiarazione del terzo pignorato + distribuzione del ricavato",
+      "rito": "Procedimento speciale davanti al GE (art. 548) + eventuale giudizio ordinario",
+      "competenza": "GIUDICE DELL'ESECUZIONE del tribunale competente",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "543-546",
+          "descrizione": "Atto di pignoramento presso terzi - forma e contenuto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "547",
+          "descrizione": "Dichiarazione del terzo - obblighi e contenuto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "548",
+          "descrizione": "Mancata dichiarazione del terzo - conseguenze"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "549",
+          "descrizione": "CONTROVERSIA sulla dichiarazione del terzo - procedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "550",
+          "descrizione": "Credito pignorato contestato"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "551",
+          "descrizione": "Assegnazione e vendita"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "552",
+          "descrizione": "Assegnazione di crediti e titoli"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "553",
+          "descrizione": "Assegnazione crediti esigibili"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "554",
+          "descrizione": "Distribuzione della somma ricavata"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "511-512",
+          "descrizione": "Distribuzione del ricavato - piano di riparto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "512",
+          "descrizione": "CONTROVERSIE SULLA DISTRIBUZIONE - opposizione"
+        },
+        {
+          "fonte": "Cass. SU 11178/2020",
+          "descrizione": "Controversia sulla dichiarazione del terzo - natura giuridica"
+        },
+        {
+          "fonte": "Cass. SU 9407/2022",
+          "descrizione": "Piani di riparto e opposizioni"
+        }
+      ],
+      "tipologie_di_controversie_in_questo_codice": [
+        "MANCATA DICHIARAZIONE DEL TERZO (art. 548) - terzo non si presenta o non dichiara",
+        "DICHIARAZIONE CONTESTATA DAL CREDITORE (art. 549) - terzo ha dichiarato meno di quanto dovuto",
+        "CONTESTAZIONE DELLA DISTRIBUZIONE DEL RICAVATO (art. 512) - piano di riparto contestato",
+        "CONFLITTO TRA CREDITORI CONCORRENTI sulla distribuzione",
+        "OPPOSIZIONE DEL DEBITORE alla distribuzione"
+      ],
+      "procedura_dichiarazione_terzo_547": {
+        "obblighi_del_terzo": [
+          "Dichiarare se è debitore del debitore esecutato",
+          "Specificare l'importo, le condizioni, i termini del credito",
+          "Indicare eventuali pignoramenti o vincoli precedenti",
+          "Dichiarare se detiene cose di proprietà del debitore"
+        ],
+        "modalita": "Dichiarazione in udienza o scritta prima dell'udienza",
+        "termine": "Alla prima udienza (fissata nel pignoramento)"
+      },
+      "mancata_dichiarazione_548": {
+        "conseguenza": "Il terzo è considerato DEBITORE del debitore esecutato nei limiti del credito del creditore procedente (fictio legis)",
+        "rimedio_del_terzo": "Opposizione all'esecuzione del credito nei suoi confronti",
+        "procedura": "GE fissa udienza per accertamento tramite ordinanza"
+      },
+      "controversia_sulla_dichiarazione_549": {
+        "quando": "Il creditore o il debitore contestano la dichiarazione del terzo (es. dichiarazione parziale o errata)",
+        "procedura_post_Cartabia": "Il GE sente le parti e decide con ORDINANZA avente efficacia esecutiva",
+        "natura_ordinanza_cass_su_11178_2020": "Non giudicato - ha solo efficacia esecutiva nella procedura"
+      },
+      "distribuzione_del_ricavato_511_512": {
+        "piano_di_riparto": "GE forma piano di riparto indicando l'ordine di soddisfazione dei creditori",
+        "controversie_art_512": [
+          "Creditore insoddisfatto o parzialmente soddisfatto può contestare il piano",
+          "Debitore può contestare per eccesso o errori",
+          "Procedura: GE sente le parti e decide con ordinanza",
+          "Appello all'ordinanza: entro 20 gg davanti al Tribunale"
+        ],
+        "ordine_di_priorita": [
+          "Crediti privilegiati (ipotecari, pignoramento anteriore, privilegio speciale)",
+          "Crediti chirografari in proporzione"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura esecutiva"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE DELLA CONTROVERSIA SPECIFICA",
+          "tipologie": [
+            "Il terzo non ha dichiarato → procedura 548",
+            "Il terzo ha dichiarato meno del dovuto → procedura 549",
+            "Piano di riparto insoddisfacente → opposizione 512"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "PER MANCATA DICHIARAZIONE (548)",
+          "documenti": [
+            "Verbale udienza con assenza del terzo",
+            "Documentazione del credito del debitore verso il terzo",
+            "Estratti conto, contratti, fatture a conferma del credito"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PER CONTROVERSIA SULLA DICHIARAZIONE (549)",
+          "documenti": [
+            "Dichiarazione del terzo che si contesta",
+            "Documentazione del credito effettivo del debitore verso il terzo",
+            "Prove del maggiore importo dovuto"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "PER CONTROVERSIA SULLA DISTRIBUZIONE (512)",
+          "documenti": [
+            "Piano di riparto del GE",
+            "Documentazione del credito del creditore opponente",
+            "Eventuali privilegi non considerati",
+            "Documentazione di pignoramenti anteriori"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "ISTANZA AL GE per fissazione udienza di accertamento",
+          "modalita": "Ricorso al GE indicando la specifica controversia e chiedendo fissazione udienza ex 548 o 549 o 512"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_controversia_espropriazione_presso_terzi",
+        "denominazione": "Istanza al GE per controversia in espropriazione presso terzi (548-549-512 c.p.c.)",
+        "schema_xsd_ministeriale": "AttoEsecuzione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_GE",
+            "label": "Tribunale - GE competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "numero_RG_procedura_esecutiva",
+            "label": "N. RG procedura esecutiva pendente",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_esecutato",
+            "label": "Debitore esecutato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "terzo_pignorato",
+            "label": "Terzo pignorato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_controversia",
+            "label": "Tipo di controversia",
+            "type": "select",
+            "required": true,
+            "options": [
+              "mancata_dichiarazione_terzo_548",
+              "controversia_su_dichiarazione_contestata_549",
+              "controversia_sulla_distribuzione_512",
+              "conflitto_tra_creditori_concorrenti"
+            ]
+          },
+          {
+            "id": "dichiarazione_del_terzo_se_presente",
+            "label": "Dichiarazione del terzo (se presente)",
+            "type": "textarea"
+          },
+          {
+            "id": "credito_vantato_dal_debitore_verso_terzo",
+            "label": "Credito vantato dal debitore verso il terzo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "importo",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "fonte",
+                "type": "textarea"
+              },
+              {
+                "id": "documentazione_a_supporto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "contestazione_specifica",
+            "label": "Contestazione specifica",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "piano_di_riparto_contestato_se_512",
+            "label": "Piano di riparto contestato (per 512)",
+            "type": "object",
+            "required_if": "controversia_512",
+            "sub_fields": [
+              {
+                "id": "data_piano",
+                "type": "date"
+              },
+              {
+                "id": "importo_assegnato_al_creditore_opponente",
+                "type": "currency"
+              },
+              {
+                "id": "importo_ritenuto_corretto",
+                "type": "currency"
+              },
+              {
+                "id": "motivazione_contestazione",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_obblighi_terzo_mancante_548",
+              "accertamento_credito_effettivo_del_debitore_verso_terzo_549",
+              "assegnazione_del_credito_al_creditore",
+              "modifica_del_piano_di_riparto_512",
+              "riconoscimento_privilegio_o_priorita",
+              "spese_di_procedura"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mancata dichiarazione (548): terzo considerato debitore per fictio legis",
+          "Controversia dichiarazione (549): GE decide con ordinanza avente efficacia esecutiva",
+          "Controversia distribuzione (512): appello entro 20 gg davanti al Tribunale",
+          "Cass. SU 11178/2020: ordinanza 549 non ha valore di giudicato"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_pignoramento_e_verbale_udienza",
+          "label": "Atto di pignoramento + verbale udienza",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "dichiarazione_terzo_se_presente",
+          "label": "Dichiarazione del terzo (se presente)",
+          "required": false
+        },
+        {
+          "id": "documentazione_credito_debitore_verso_terzo",
+          "label": "Documentazione del credito del debitore verso il terzo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "piano_riparto_se_contestato",
+          "label": "Piano di riparto contestato (per 512)",
+          "required_if": "controversia_512"
+        },
+        {
+          "id": "documentazione_privilegio_se_vantato",
+          "label": "Documentazione del privilegio (se applicabile)",
+          "required_if": "privilegio_vantato"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ordinanza_GE_su_dichiarazione_terzo",
+          "trigger": "Esito procedimento",
+          "automatico": false
+        },
+        {
+          "tipo": "appello_ordinanza_distribuzione_512",
+          "trigger": "Entro 20 gg dall'ordinanza 512",
+          "termine": "20 gg"
+        },
+        {
+          "tipo": "opposizione_all_esecuzione_terzo",
+          "trigger": "Terzo nega debito",
+          "norma": "art. 619 c.p.c."
+        },
+        {
+          "tipo": "distribuzione_somme_dopo_accertamento",
+          "trigger": "Post ordinanza definitiva",
+          "automatico": false
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accertamento_debito_del_terzo",
+          "descrizione": "Terzo dichiarato debitore per importo accertato"
+        },
+        {
+          "esito": "dichiarazione_del_terzo_accettata_o_corretta",
+          "descrizione": "Credito rideterminato"
+        },
+        {
+          "esito": "piano_di_riparto_modificato",
+          "descrizione": "Creditori soddisfatti secondo ordine corretto"
+        },
+        {
+          "esito": "rigetto_per_assenza_credito_del_debitore_verso_terzo",
+          "descrizione": "Terzo non era debitore"
+        },
+        {
+          "esito": "transazione_tra_creditori",
+          "descrizione": "Accordo sulla distribuzione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Appello ordinanza GE su distribuzione 512",
+          "giorni": 20,
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Opposizione atti esecutivi 617",
+          "giorni": 20,
+          "natura": "decadenziale"
+        }
+      ],
+      "codice_originale_ricevuto": "512010",
+      "codice_logico": "GUIDA_ESPROPRIAZIONE_FORZATA_PRESSO_TERZI_CONTROVERSIE_ARTT_548_554_C_P_C_512010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_COD_CONS_160050",
+      "denominazione": "Responsabilità da prodotto difettoso (D.Lgs. 206/2005 artt. 114-127 Cod. Consumo)",
+      "categoria": "Responsabilità civile - responsabilità speciale",
+      "sottocategoria": "Azione del consumatore/danneggiato per danni causati da prodotto difettoso",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - foro residenza convenuto o luogo fatto (foro speciale del consumatore ex Cod. Consumo)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "114",
+          "descrizione": "Responsabilità del produttore per prodotto difettoso"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "115",
+          "descrizione": "Definizione di prodotto"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "116",
+          "descrizione": "Definizione di produttore (comprende importatori e distributori)"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "117",
+          "descrizione": "Definizione di prodotto difettoso - difetto relativo alla sicurezza che il consumatore può legittimamente attendersi"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "118",
+          "descrizione": "Cause di esclusione della responsabilità del produttore"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "119",
+          "descrizione": "Responsabilità solidale di produttore e distributore"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "120",
+          "descrizione": "ONERE DELLA PROVA - a carico del danneggiato: difetto, danno, nesso causale"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "121",
+          "descrizione": "Prescrizione - 3 anni dalla conoscenza danno/difetto/produttore"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "122",
+          "descrizione": "Decadenza - 10 anni dall'immissione in commercio del prodotto"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "123",
+          "descrizione": "Responsabilità del fornitore (in caso di produttore sconosciuto)"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "124",
+          "descrizione": "Danni risarcibili - esclusione danno al prodotto stesso"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "125",
+          "descrizione": "Franchigia per danni a cose private (€ 500,00)"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "127",
+          "descrizione": "Inderogabilità a danno del consumatore"
+        },
+        {
+          "fonte": "Direttiva UE 85/374/CEE",
+          "descrizione": "Direttiva origine"
+        },
+        {
+          "fonte": "Direttiva UE 2024/2853",
+          "descrizione": "Nuova direttiva responsabilità prodotti (recepimento in corso)"
+        },
+        {
+          "fonte": "Cass. SU 8419/2018",
+          "descrizione": "Onere prova difetto del prodotto - prova presuntiva ammissibile"
+        },
+        {
+          "fonte": "Cass. SU 7545/2021",
+          "descrizione": "Nesso causale in responsabilità da prodotto"
+        }
+      ],
+      "definizione_prodotto_difettoso_art_117": {
+        "criterio": "Un prodotto è difettoso quando NON offre la sicurezza che ci si può legittimamente attendere tenuto conto di tutte le circostanze",
+        "circostanze_rilevanti": [
+          "Il modo in cui il prodotto è stato messo in circolazione",
+          "La sua presentazione, le sue caratteristiche palesi, le istruzioni e le avvertenze fornite",
+          "L'uso al quale può essere ragionevolmente destinato",
+          "Il momento in cui il prodotto è stato messo in circolazione",
+          "Lo stato della tecnica al momento della sua immissione"
+        ],
+        "non_è_difettoso_solo_perche": "un prodotto più perfezionato è stato messo in commercio successivamente"
+      },
+      "cause_di_esclusione_responsabilita_art_118": [
+        "Il produttore NON ha messo in circolazione il prodotto",
+        "Il difetto non esisteva quando il prodotto è stato messo in circolazione",
+        "Il prodotto NON era destinato alla vendita (uso non commerciale)",
+        "RISCHIO DA SVILUPPO: lo stato della tecnica al momento dell'immissione non consentiva di scoprire il difetto",
+        "Il difetto è dovuto alla conformità del prodotto a una norma vincolante",
+        "Per il fornitore di materie prime: difetto dovuto alla progettazione del prodotto finito o a istruzioni del produttore"
+      ],
+      "onere_della_prova_art_120": {
+        "a_carico_del_danneggiato": [
+          "DIFETTO del prodotto",
+          "DANNO subito",
+          "NESSO CAUSALE tra difetto e danno"
+        ],
+        "NON_deve_provare": "La colpa del produttore (è responsabilità OGGETTIVA)",
+        "prova_presuntiva_cass_su_8419_2018": "Ammissibile la prova presuntiva del difetto (non serve identificare il singolo vizio tecnico)"
+      },
+      "danni_risarcibili_art_124": [
+        "Morte o lesioni personali",
+        "Distruzione o deterioramento di altra cosa diversa dal prodotto difettoso",
+        "FRANCHIGIA per danni a cose: primo € 500,00 a carico del danneggiato (art. 125)",
+        "NON risarcibile: danno al prodotto stesso (va con garanzia conformità)",
+        "NON risarcibile: danno a beni professionali (solo beni privati)"
+      ],
+      "presupposti_sostanziali": [
+        "PRODOTTO (bene mobile) immesso in commercio",
+        "DIFETTO del prodotto (non offre sicurezza attesa)",
+        "DANNO alla persona o a cose (privati)",
+        "NESSO CAUSALE tra difetto e danno",
+        "IMMISSIONE IN COMMERCIO entro 10 anni (decadenza 122)",
+        "Richiesta entro 3 anni dalla conoscenza (prescrizione 121)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Per danni alla salute: CTP 696-bis utile; per RC sanitaria da prodotto: mediazione obbligatoria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE DEL PRODOTTO E DEL PRODUTTORE",
+          "elementi": [
+            "Raccolta e conservazione del prodotto difettoso (fondamentale)",
+            "Fotografie del difetto",
+            "Documentazione di acquisto (scontrino, fattura)",
+            "Identificazione del produttore (brand, lotto, data produzione)",
+            "Per produttore sconosciuto: azione verso il fornitore (art. 123)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL DIFETTO",
+          "elementi": [
+            "Perizia tecnica di parte sul difetto",
+            "Eventuale segnalazione al produttore/AGCM",
+            "Prove di altri casi analoghi (serie difettosa - se esistenti)",
+            "Eventuale recall del produttore"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DEL DANNO",
+          "per_lesioni_personali": [
+            "Cartella clinica",
+            "Perizia medico-legale di parte",
+            "Documentazione spese mediche"
+          ],
+          "per_danni_a_cose": [
+            "Perizia sui beni danneggiati",
+            "Valore del bene danneggiato",
+            "Preventivi/fatture di riparazione o sostituzione",
+            "Verifica franchigia € 500,00 (art. 125)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA TERMINI",
+          "prescrizione": "3 ANNI dalla conoscenza di danno + difetto + produttore (art. 121)",
+          "decadenza": "10 ANNI dall'immissione in commercio (art. 122) - termine assoluto"
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA CAUSE DI ESCLUSIONE",
+          "criteri": [
+            "Prodotto nel commercio?",
+            "Rischio da sviluppo difendibile?",
+            "Difetto presente al momento immissione?",
+            "Uso del prodotto conforme alla destinazione?"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_prodotto_difettoso",
+        "denominazione": "Atto di citazione per responsabilità da prodotto difettoso ex artt. 114-127 Cod. Consumo",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "label": "Danneggiato attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "produttore_convenuto",
+            "label": "Produttore convenuto (o importatore/distributore)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_responsabile",
+                "type": "select",
+                "options": [
+                  "produttore_finale",
+                  "produttore_materia_prima",
+                  "importatore_nella_ue",
+                  "distributore_per_produttore_sconosciuto"
+                ]
+              },
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "sede",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "prodotto_difettoso",
+            "label": "Prodotto difettoso",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "denominazione_prodotto",
+                "type": "string"
+              },
+              {
+                "id": "marca",
+                "type": "string"
+              },
+              {
+                "id": "modello_e_lotto",
+                "type": "string"
+              },
+              {
+                "id": "data_acquisto",
+                "type": "date"
+              },
+              {
+                "id": "data_immissione_in_commercio_se_nota",
+                "type": "date"
+              },
+              {
+                "id": "conservazione_del_prodotto",
+                "type": "boolean",
+                "critico_per_prova": true
+              }
+            ]
+          },
+          {
+            "id": "difetto_del_prodotto",
+            "label": "Difetto del prodotto",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_difetto",
+                "type": "select",
+                "options": [
+                  "difetto_di_fabbricazione",
+                  "difetto_di_progettazione",
+                  "difetto_di_informazione_istruzioni_inadeguate",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata_del_difetto",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "sicurezza_legittimamente_attesa_assente",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "perizia_tecnica_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "select_multi",
+                "options": [
+                  "lesioni_personali",
+                  "morte",
+                  "distruzione_di_cose_private",
+                  "deterioramento_di_cose_private"
+                ]
+              },
+              {
+                "id": "descrizione_danno",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "perizia_medico_legale_se_lesioni",
+                "type": "boolean",
+                "required_if": "danno=lesioni_personali"
+              },
+              {
+                "id": "valore_cose_danneggiate",
+                "type": "currency",
+                "required_if": "danno=cose"
+              }
+            ]
+          },
+          {
+            "id": "nesso_causale",
+            "label": "Nesso causale tra difetto e danno",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "verifica_termini",
+            "label": "Verifica termini",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_conoscenza_danno_difetto_produttore",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "rispetto_prescrizione_3_anni",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "entro_10_anni_da_immissione",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "franchigia_cose",
+            "label": "Franchigia € 500 per danni a cose",
+            "type": "currency",
+            "note": "Primi €500 a carico del danneggiato per danni a cose (art. 125)"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_responsabilita_produttore",
+              "condanna_risarcimento_danni_alla_persona",
+              "condanna_risarcimento_danni_a_cose_al_netto_franchigia",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "totale_richiesto",
+            "label": "Totale richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "PRESCRIZIONE 3 ANNI dalla conoscenza del danno + difetto + produttore (art. 121)",
+          "DECADENZA 10 ANNI dall'immissione in commercio (art. 122) - assoluta",
+          "Onere prova difetto + danno + nesso causale sul DANNEGGIATO",
+          "NON serve provare colpa del produttore (responsabilità oggettiva)",
+          "Franchigia € 500 per danni a cose private (art. 125)",
+          "NO risarcimento per danno al prodotto stesso",
+          "Causa di esclusione: rischio da sviluppo (art. 118 n. 5)",
+          "Conservare il prodotto difettoso come prova fondamentale"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "prodotto_difettoso_in_possesso_o_fotografie",
+          "label": "Prodotto difettoso (conservato) o foto dettagliate",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_acquisto",
+          "label": "Documentazione acquisto (scontrino/fattura)",
+          "required": true
+        },
+        {
+          "id": "perizia_tecnica_di_parte_sul_difetto",
+          "label": "Perizia tecnica di parte sul difetto",
+          "required": false,
+          "fortemente_consigliato": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_per_lesioni",
+          "label": "Documentazione sanitaria (per lesioni)",
+          "required_if": "danno_alla_persona"
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required_if": "lesioni_personali",
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "preventivi_o_fatture_riparazione_cose",
+          "label": "Preventivi/fatture per danni a cose",
+          "required_if": "danno_a_cose"
+        },
+        {
+          "id": "eventuale_segnalazione_agcm_o_recall_produttore",
+          "label": "Eventuale segnalazione AGCM o recall del produttore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_tecnica_sul_prodotto_e_difetto",
+          "trigger": "Centrale - quasi sempre disposta",
+          "molto_frequente": true,
+          "critico": true
+        },
+        {
+          "tipo": "ctu_medico_legale_per_lesioni",
+          "trigger": "Per danni alla persona",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "chiamata_in_garanzia_del_produttore_del_componente",
+          "trigger": "Se difetto nel componente",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_di_classe_840_bis_se_serie_difettosa",
+          "trigger": "Se difetto seriale colpisce molti consumatori",
+          "codice_correlato": "180020"
+        },
+        {
+          "tipo": "segnalazione_agcm_per_product_safety",
+          "trigger": "Eventuale parallela",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno",
+          "descrizione": "Produttore condannato al risarcimento integrale"
+        },
+        {
+          "esito": "accoglimento_parziale_per_concorso_colpa_danneggiato",
+          "descrizione": "Uso improprio del prodotto → riduzione"
+        },
+        {
+          "esito": "rigetto_per_assenza_prova_del_difetto",
+          "descrizione": "Difetto non sufficientemente provato"
+        },
+        {
+          "esito": "rigetto_per_rischio_da_sviluppo",
+          "descrizione": "Difetto non rilevabile con lo stato della tecnica al momento immissione"
+        },
+        {
+          "esito": "rigetto_per_prescrizione_o_decadenza",
+          "descrizione": "3 anni o 10 anni scaduti"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con produttore o sua assicurazione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 3,
+          "decorrenza": "conoscenza danno + difetto + produttore",
+          "natura": "PRESCRIZIONE",
+          "norma": "art. 121 Cod. Consumo",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DECADENZA ASSOLUTA",
+          "anni": 10,
+          "decorrenza": "immissione in commercio del prodotto",
+          "natura": "DECADENZIALE ASSOLUTA",
+          "norma": "art. 122 Cod. Consumo",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "160050",
+      "codice_logico": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_COD_CONS_160050",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160050"
+        }
+      ]
+    },
+    {
+      "codice": "152001",
+      "denominazione": "Responsabilità dell'amministratore di condominio e impugnazione delibere (artt. 1130-1137 c.c.)",
+      "categoria": "Diritti reali - condominio",
+      "sottocategoria": "Azione di responsabilità contro l'amministratore di condominio + impugnazione delibere assembleari",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (condominio)",
+      "competenza": "Tribunale del luogo dell'edificio (art. 21 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1117-1139",
+          "descrizione": "Condominio negli edifici"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1130",
+          "descrizione": "Attribuzioni dell'amministratore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1130-bis",
+          "descrizione": "Rendiconto condominiale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1131",
+          "descrizione": "Rappresentanza dell'amministratore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1135",
+          "descrizione": "Attribuzioni dell'assemblea"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1136",
+          "descrizione": "Costituzione e deliberazioni dell'assemblea - maggioranze"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1137",
+          "descrizione": "Impugnazione delle deliberazioni - 30 gg"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1138",
+          "descrizione": "Regolamento di condominio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale dell'amministratore"
+        },
+        {
+          "fonte": "L. 220/2012",
+          "descrizione": "Riforma del condominio - aggiornamento disciplina"
+        },
+        {
+          "fonte": "Cass. SU 9839/2021",
+          "descrizione": "Impugnazione delibere condominiali - nullità vs annullabilità"
+        },
+        {
+          "fonte": "Cass. SU 2255/2023",
+          "descrizione": "Rendiconto condominiale - obblighi dell'amministratore"
+        },
+        {
+          "fonte": "Cass. SU 18138/2023",
+          "descrizione": "Amministratore - responsabilità per omessa manutenzione"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN CONDOMINIO e qualità di condomino o terzo leso",
+        "Per AZIONE DI RESPONSABILITÀ DELL'AMMINISTRATORE:",
+        "- Inadempimento degli obblighi ex art. 1130 c.c.",
+        "- Danno al condominio o ai singoli condòmini",
+        "- Nesso causale",
+        "Per IMPUGNAZIONE DELIBERA:",
+        "- Delibera assembleare adottata in violazione di legge o regolamento",
+        "- NULLITÀ o ANNULLABILITÀ (distinzione rigorosa - Cass. SU 9839/2021)",
+        "- Termine 30 gg per annullabilità (art. 1137)"
+      ],
+      "distinzione_nullita_vs_annullabilita_delibere": {
+        "nullita_insanabile_Cass_SU_9839_2021": [
+          "Delibere adottate con maggioranze inferiori al minimo legale",
+          "Delibere su materie esulanti dalla competenza assembleare",
+          "Delibere lesive dei diritti di singoli condomini su parti proprie",
+          "Delibere contrarie all'ordine pubblico",
+          "Delibere vizianti il procedimento formativo della volontà assembleare"
+        ],
+        "annullabilita_termine_30_gg": [
+          "Delibere con irregolarità procedimentali sanabili (convocazione tardiva, ordine del giorno incompleto)",
+          "Delibere con maggioranze inferiori al previsto dal regolamento (non dalla legge)",
+          "Delibere con irregolarità formali non sostanziali"
+        ]
+      },
+      "obblighi_amministratore_art_1130": [
+        "Eseguire le delibere assembleari",
+        "Disciplinare l'uso delle cose comuni",
+        "Riscuotere i contributi dai condomini e ripartire le spese",
+        "Compiere gli atti conservativi necessari",
+        "Eseguire gli adempimenti fiscali",
+        "Curare la tenuta del registro dei verbali, dei condomini, di contabilità",
+        "Aprire e gestire il c/c condominiale",
+        "Convocare l'assemblea entro 180 gg dalla chiusura esercizio",
+        "Presentare il rendiconto annuale"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONDOMINIO",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE DOCUMENTAZIONE CONDOMINIALE",
+          "documenti": [
+            "Regolamento di condominio",
+            "Verbali assemblee degli ultimi anni",
+            "Rendiconti annuali",
+            "Estratti conto condominiali",
+            "Tabulati ripartizione spese",
+            "Documentazione appalti e lavori"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "PER RESPONSABILITÀ AMMINISTRATORE",
+          "elementi": [
+            "Identificazione delle omissioni/inadempimenti specifici",
+            "Danni derivati (anche da mancata manutenzione)",
+            "Documenti che provano gli inadempimenti",
+            "Relazione tecnica sui danni se strutturali"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PER IMPUGNAZIONE DELIBERA",
+          "criticita": "TERMINE 30 GG dalla delibera (per annullabilità) - decadenziale",
+          "elementi": [
+            "Verbale della delibera impugnata",
+            "Identificazione del vizio (nullità o annullabilità)",
+            "Interesse specifico del condomino impugnante"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_amministratore_impugnazione_delibera",
+        "denominazione": "Atto di citazione per responsabilità amministratore condominio / impugnazione delibera ex artt. 1130-1137 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo edificio",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "label": "Tipo di azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "responsabilita_amministratore",
+              "impugnazione_delibera_annullabilita_1137",
+              "impugnazione_delibera_nullita",
+              "entrambe"
+            ]
+          },
+          {
+            "id": "attore_condomino",
+            "label": "Attore (condomino o terzo leso)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "condominio_convenuto",
+            "label": "Condominio convenuto (per responsabilità)",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "denominazione_indirizzo",
+                "type": "string"
+              },
+              {
+                "id": "amministratore_pro_tempore",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "amministratore_convenuto_personalmente",
+            "label": "Amministratore convenuto personalmente",
+            "type": "object_persona"
+          },
+          {
+            "id": "delibera_impugnata_se_applicabile",
+            "label": "Delibera impugnata",
+            "type": "object",
+            "required_if": "azione=impugnazione",
+            "sub_fields": [
+              {
+                "id": "data_delibera",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_30_gg": true
+              },
+              {
+                "id": "oggetto_delibera",
+                "type": "textarea"
+              },
+              {
+                "id": "tipo_vizio",
+                "type": "select",
+                "options": [
+                  "nullita",
+                  "annullabilita"
+                ]
+              },
+              {
+                "id": "descrizione_vizio",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "inadempimenti_amministratore",
+            "label": "Inadempimenti dell'amministratore (per responsabilità)",
+            "type": "textarea",
+            "required_if": "azione=responsabilita",
+            "min_length": 400
+          },
+          {
+            "id": "danni_subiti",
+            "label": "Danni subiti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "select_multi"
+              },
+              {
+                "id": "valore",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_delibera",
+              "dichiarazione_nullita_delibera",
+              "accertamento_responsabilita_amministratore",
+              "condanna_risarcimento_danni",
+              "revoca_amministratore",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Impugnazione per ANNULLABILITÀ: TERMINE 30 GG dalla delibera - DECADENZIALE",
+          "Nullità: imprescrittibile, ma distinzione rigorosa (Cass. SU 9839/2021)",
+          "Mediazione obbligatoria preventiva (condominio)",
+          "Foro esclusivo luogo edificio",
+          "Rendiconto: obbligo annuale entro 180 gg (Cass. SU 2255/2023)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "regolamento_condominio",
+          "label": "Regolamento di condominio",
+          "required": true
+        },
+        {
+          "id": "verbale_delibera_impugnata",
+          "label": "Verbale della delibera impugnata",
+          "required_if": "impugnazione"
+        },
+        {
+          "id": "verbali_assemblee_recenti",
+          "label": "Verbali assemblee recenti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "rendiconti_condominiali",
+          "label": "Rendiconti condominiali",
+          "required_if": "responsabilita_per_gestione"
+        },
+        {
+          "id": "documentazione_inadempimenti_e_danni",
+          "label": "Documentazione inadempimenti e danni",
+          "required_if": "responsabilita"
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "revoca_giudiziale_amministratore_ricorso_al_tribunale",
+          "trigger": "Art. 1129 c.c."
+        },
+        {
+          "tipo": "ctu_tecnica_edificio",
+          "trigger": "Per danni strutturali",
+          "frequente": true
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "annullamento_delibera",
+          "descrizione": "Delibera annullata"
+        },
+        {
+          "esito": "dichiarazione_nullita",
+          "descrizione": "Delibera nulla"
+        },
+        {
+          "esito": "condanna_amministratore_per_responsabilita",
+          "descrizione": "Risarcimento danni"
+        },
+        {
+          "esito": "rigetto_per_decadenza_30_gg",
+          "descrizione": "Impugnazione tardiva (solo per annullabilità)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo condominiale"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE DELIBERA PER ANNULLABILITÀ",
+          "giorni": 30,
+          "decorrenza": "delibera",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1137 c. 2 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Impugnazione per nullità",
+          "natura": "imprescrittibile"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152001"
+        }
+      ]
+    }
+  ]
+}

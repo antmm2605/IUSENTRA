@@ -78,10 +78,11 @@ class DocumentAIIndexer:
                 skipped += 1
                 continue
             try:
+                upload_filename = source.safe_filename if source.file_type == "bin" else source.filename
                 self.service.upload_document_bytes_for_fascicolo(
                     tenant_id=tenant_id,
                     fascicolo_id=fascicolo_id,
-                    filename=source.filename,
+                    filename=upload_filename,
                     content=source.read_bytes(),
                     mime_type=source.mime_type,
                     user_context=user_context,

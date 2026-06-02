@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS fascicolo_documenti_ai (
     fascicolo_id TEXT NOT NULL,
     original_filename TEXT NOT NULL,
     safe_filename TEXT NOT NULL,
-    file_type TEXT NOT NULL CHECK (file_type IN ('pdf', 'docx', 'doc', 'txt', 'eml')),
+    file_type TEXT NOT NULL CHECK (file_type IN ('pdf', 'docx', 'doc', 'txt', 'xml', 'json', 'csv', 'html', 'htm', 'rtf', 'odt', 'xlsx', 'xls', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'bmp', 'gif', 'eml', 'msg', 'zip', 'p7m', 'pm7', 'bin')),
     mime_type TEXT,
     size_bytes BIGINT NOT NULL DEFAULT 0,
     sha256 TEXT NOT NULL,
@@ -101,5 +101,5 @@ BEGIN
 
     ALTER TABLE fascicolo_documenti_ai
         ADD CONSTRAINT fascicolo_documenti_ai_file_type_check
-        CHECK (file_type IN ('pdf', 'docx', 'doc', 'txt', 'eml'));
+        CHECK (file_type IN ('pdf', 'docx', 'doc', 'txt', 'xml', 'json', 'csv', 'html', 'htm', 'rtf', 'odt', 'xlsx', 'xls', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'bmp', 'gif', 'eml', 'msg', 'zip', 'p7m', 'pm7', 'bin'));
 END $$;

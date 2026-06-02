@@ -172,6 +172,7 @@ def _walk_terms(obj: Any, source: Path, container: Mapping[str, Any] | None = No
                     "ordinal": index,
                 }
                 row["term_rule_code"] = "GP_TERM_" + _stable_code(row["codice"], row["termine"], row["decorrenza"], row["norma"])
+                row["id"] = row["term_rule_code"]
                 yield row
         for value in obj.values():
             yield from _walk_terms(value, source, current)
@@ -255,6 +256,18 @@ def import_terms(rows: list[dict[str, Any]], db_path: Path) -> dict[str, Any]:
     }
     repo._write_json(payload)
     return dict(payload["guida_pratica_terms_import"])
+
+
+def bootstrap_guida_pratica_terms_repository(
+    db_path: str | Path = DEFAULT_DB,
+    *,
+    sources: Iterable[str | Path] | None = None,
+) -> dict[str, Any]:
+    """Popola il repository termini runtime partendo dalle schede Guida Pratica versionate."""
+
+    source_paths = [Path(item) for item in sources] if sources is not None else _default_sources()
+    rows = collect_terms(source_paths)
+    return import_terms(rows, Path(db_path))
 
 
 def write_csv(rows: list[dict[str, Any]], path: Path) -> None:

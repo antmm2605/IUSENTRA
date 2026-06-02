@@ -1,0 +1,2076 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE1",
+  "denominazione": "Dodicesimo set di 9 codici - PARTE 1 di 2",
+  "registri": [
+    "SICID",
+    "SIVG",
+    "SILP"
+  ],
+  "data_generazione": "2026-06-02",
+  "scopo": "Parte 1 del set 12: RC stradale pedone/ciclista, esclusione socio SRL, RC PA, cessione ramo azienda, adottabilità minore",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RISARCIMENTO_DANNI_DA_SINISTRO_STRADALE_PEDONE_O_CICLISTA_INVESTITO_DA_V_144010",
+      "denominazione": "Risarcimento danni da sinistro stradale - pedone o ciclista investito da veicolo (art. 2054 c.c.)",
+      "categoria": "Responsabilità civile - RC veicoli - soggetti deboli",
+      "sottocategoria": "Azione risarcitoria del pedone o ciclista investito verso il conducente/proprietario del veicolo e la sua assicurazione RC",
+      "rito": "Rito ordinario; negoziazione assistita obbligatoria ex D.L. 132/2014",
+      "competenza": "Tribunale del luogo del sinistro o residenza del danneggiato (foro consumatore)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2054",
+          "descrizione": "Responsabilità da circolazione di veicoli - inversione onere prova"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2054 c. 1",
+          "descrizione": "Conducente presunto responsabile salvo prova del caso fortuito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2054 c. 3",
+          "descrizione": "Proprietario responsabile in solido col conducente salvo prova di non poter impedire"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2054 c. 4",
+          "descrizione": "Presunzione di colpa concorrente pari del 50% in caso di scontro tra veicoli"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2055",
+          "descrizione": "Responsabilità solidale tra conducente e proprietario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2056-2059",
+          "descrizione": "Valutazione danni"
+        },
+        {
+          "fonte": "Cod. Ass. D.Lgs. 209/2005",
+          "articolo": "144",
+          "descrizione": "Azione diretta del danneggiato verso assicurazione RC"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "148-149",
+          "descrizione": "Termini offerta + procedura di risarcimento diretto"
+        },
+        {
+          "fonte": "D.Lgs. 285/1992 (CdS)",
+          "articolo": "141",
+          "descrizione": "Comportamento verso i pedoni"
+        },
+        {
+          "fonte": "CdS",
+          "articolo": "191",
+          "descrizione": "Obbligo di dare precedenza ai pedoni"
+        },
+        {
+          "fonte": "Cass. SU 6651/2024",
+          "descrizione": "Tabelle uniformi liquidazione danno biologico"
+        },
+        {
+          "fonte": "Cass. SU 11353/2024",
+          "descrizione": "Personalizzazione del danno biologico"
+        },
+        {
+          "fonte": "Cass. SU 26513/2023",
+          "descrizione": "Concorso di colpa pedone - criteri di valutazione"
+        },
+        {
+          "fonte": "Cass. SU 9560/2023",
+          "descrizione": "Danno da morte e danno parentale - tabelle aggiornate"
+        }
+      ],
+      "regime_di_responsabilita_art_2054": {
+        "conducente_c1": "PRESUNZIONE DI RESPONSABILITÀ - si libera solo provando di aver fatto tutto il possibile per evitare il danno (caso fortuito - molto difficile)",
+        "proprietario_c3": "Responsabilità SOLIDALE salvo prova che la circolazione avveniva contro la sua volontà",
+        "assicuratore_RC": "AZIONE DIRETTA ex art. 144 Cod. Ass. - il danneggiato può agire direttamente contro l'assicuratore",
+        "pedone_ciclista": "Non soggetto a presunzione - ma può esserci concorso di colpa (Cass. SU 26513/2023)"
+      },
+      "concorso_di_colpa_del_pedone": {
+        "norma": "art. 1227 c.c.",
+        "criteri_Cass_SU_26513_2023": [
+          "Attraversamento fuori dalle strisce",
+          "Attraversamento con luce pedonale rossa",
+          "Condotta del pedone imprudente o improvvisa",
+          "Abbigliamento non visibile di notte",
+          "Pedone in stato di ebbrezza"
+        ],
+        "effetto": "Riduzione proporzionale del risarcimento in base alla colpa del pedone",
+        "attenzione": "La presunzione di responsabilità del conducente (art. 2054 c.1) è molto forte - il concorso del pedone deve essere ben provato"
+      },
+      "obbligo_mediazione": {
+        "negoziazione_assistita_obbligatoria": true,
+        "fonte": "D.L. 132/2014 art. 3",
+        "materia": "RC veicoli - condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL SINISTRO",
+          "documenti": [
+            "Verbale della Polizia/Carabinieri/Polizia Municipale (FONDAMENTALE)",
+            "CID o denuncia di sinistro",
+            "Fotografie del luogo e dei danni",
+            "Dati del conducente e del veicolo (targa, assicurazione)",
+            "Testimonianze di presenti"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE SANITARIA E LESIONI",
+          "elementi": [
+            "Referto PS urgente",
+            "Cartella clinica ospedaliera",
+            "Eventuali operazioni chirurgiche",
+            "Relazioni specialistiche (ortopedica, neurologica, ecc.)",
+            "Documentazione riabilitazione",
+            "Dichiarazioni INAIL se infortunio sul lavoro"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE ASSICURAZIONE DEL RESPONSABILE",
+          "modalita": [
+            "Tramite dati del veicolo: interrogazione banca dati SIEV",
+            "Verbale FFOO (di norma indica assicuratore)",
+            "Per veicolo non assicurato: FGVS (codice 160030)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "PERIZIA MEDICO-LEGALE DI PARTE",
+          "rilevanza": "ESSENZIALE per quantificare il danno biologico",
+          "contenuto": [
+            "Invalidità permanente percentuale",
+            "Giorni di invalidità temporanea (assoluta e parziale)",
+            "Previsione di interventi futuri",
+            "Applicazione tabelle Milano 2024 / uniformi Cass. SU 6651/2024"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "NEGOZIAZIONE ASSISTITA OBBLIGATORIA",
+          "norma": "D.L. 132/2014 art. 3 - condizione di procedibilità"
+        },
+        {
+          "step": 6,
+          "descrizione": "QUANTIFICAZIONE TOTALE DEI DANNI",
+          "voci": [
+            "Danno biologico permanente (tabelle)",
+            "Danno biologico temporaneo",
+            "Danno morale e sofferenza",
+            "Personalizzazione (fino al 30%)",
+            "Spese mediche e di riabilitazione",
+            "Mancato guadagno (lucro cessante)",
+            "Danni a cose (bicicletta, abbigliamento, ecc.)",
+            "Danno parentale per familiari se lesioni gravi/morte"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_RC_veicoli_pedone_ciclista",
+        "denominazione": "Atto di citazione per risarcimento danni da investimento pedone/ciclista ex art. 2054 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_pedone_o_ciclista",
+            "label": "Danneggiato attore (pedone/ciclista)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "familiari_per_danno_parentale",
+            "label": "Eventuali familiari per danno parentale",
+            "type": "array_persone"
+          },
+          {
+            "id": "conducente_convenuto",
+            "label": "Conducente convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "proprietario_veicolo_convenuto",
+            "label": "Proprietario del veicolo convenuto (se diverso)",
+            "type": "object_persona"
+          },
+          {
+            "id": "assicuratore_RC_convenuto",
+            "label": "Assicuratore RC convenuto (azione diretta art. 144)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "sinistro",
+            "label": "Sinistro",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_e_ora",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo",
+                "type": "address"
+              },
+              {
+                "id": "dinamica_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "verbale_ffoo",
+                "type": "boolean"
+              },
+              {
+                "id": "targa_veicolo",
+                "type": "string"
+              },
+              {
+                "id": "tipo_veicolo",
+                "type": "select",
+                "options": [
+                  "autovettura",
+                  "motoveicolo",
+                  "camion",
+                  "autobus",
+                  "bicicletta_elettrica",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "lesioni_subite",
+            "label": "Lesioni subite",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_lesioni",
+                "type": "textarea"
+              },
+              {
+                "id": "ricovero_ospedaliero",
+                "type": "boolean"
+              },
+              {
+                "id": "interventi_chirurgici",
+                "type": "boolean"
+              },
+              {
+                "id": "invalidita_permanente_stimata",
+                "type": "percentage"
+              },
+              {
+                "id": "giorni_invalidita_temporanea_assoluta",
+                "type": "integer"
+              },
+              {
+                "id": "giorni_invalidita_temporanea_parziale",
+                "type": "integer"
+              },
+              {
+                "id": "perizia_medico_legale_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Danni richiesti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_biologico_permanente",
+                "type": "currency"
+              },
+              {
+                "id": "danno_biologico_temporaneo",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale",
+                "type": "currency"
+              },
+              {
+                "id": "personalizzazione",
+                "type": "currency"
+              },
+              {
+                "id": "spese_mediche_e_riabilitazione",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "danni_a_cose_bici_abbigliamento",
+                "type": "currency"
+              },
+              {
+                "id": "danno_parentale_familiari",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "concorso_di_colpa_eventuale",
+            "label": "Eventuale concorso di colpa del pedone/ciclista",
+            "type": "textarea",
+            "note": "Convenuto potrebbe eccepire concorso di colpa"
+          },
+          {
+            "id": "negoziazione_assistita_pregressa",
+            "label": "Negoziazione assistita effettuata",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_solidale_conducente_proprietario_assicuratore",
+              "risarcimento_danno_biologico",
+              "risarcimento_danno_morale",
+              "rimborso_spese_mediche",
+              "risarcimento_lucro_cessante",
+              "risarcimento_danni_a_cose",
+              "danno_parentale_familiari",
+              "rivalutazione_e_interessi",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "PRESUNZIONE DI RESPONSABILITÀ del conducente ex art. 2054 c.1 - molto forte",
+          "AZIONE DIRETTA verso assicuratore RC (art. 144 Cod. Ass.) - convenire anche l'assicuratore",
+          "Negoziazione assistita obbligatoria preventiva",
+          "Concorso di colpa pedone possibile ma onere prova su conducente",
+          "Tabelle Milano 2024 / uniformi Cass. SU 6651/2024 per danno biologico",
+          "Prescrizione 2 anni dal sinistro",
+          "Per veicolo non identificato o non assicurato: FGVS (codice 160030)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbale_ffoo_sinistro",
+          "label": "Verbale FFOO del sinistro",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_completa",
+          "label": "Documentazione sanitaria completa (PS, cartella clinica, visite)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "polizza_assicurativa_responsabile_o_attestato",
+          "label": "Attestato assicurativo del veicolo responsabile",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_danni_a_cose",
+          "label": "Documentazione danni a cose (bici, abbigliamento)",
+          "required_if": "danni_a_cose"
+        },
+        {
+          "id": "documentazione_lucro_cessante",
+          "label": "Documentazione lucro cessante (buste paga, CU)",
+          "required_if": "lucro_cessante"
+        },
+        {
+          "id": "verbale_negoziazione_assistita",
+          "label": "Verbale negoziazione assistita",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_medico_legale",
+          "trigger": "Sempre disposta",
+          "molto_frequente": true,
+          "critico": true
+        },
+        {
+          "tipo": "ctu_dinamica_sinistro",
+          "trigger": "Per dinamica contestata",
+          "automatico": false
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione_da_conducente",
+          "trigger": "Conducente chiama il suo assicuratore"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_solidale_conducente_proprietario_assicuratore",
+          "descrizione": "Risarcimento integrale"
+        },
+        {
+          "esito": "riduzione_per_concorso_colpa_pedone",
+          "descrizione": "Es. attraversamento fuori strisce - riduzione 20-50%"
+        },
+        {
+          "esito": "rigetto_per_caso_fortuito_o_condotta_imprevedibile_pedone",
+          "descrizione": "Raro - presunzione molto forte"
+        },
+        {
+          "esito": "transazione_con_assicuratore",
+          "descrizione": "Molto frequente - accordo risarcitorio"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 2,
+          "decorrenza": "sinistro",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c. 2 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "144010",
+      "codice_logico": "GUIDA_RISARCIMENTO_DANNI_DA_SINISTRO_STRADALE_PEDONE_O_CICLISTA_INVESTITO_DA_V_144010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "144010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "144010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "144010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ESPULSIONE_ESCLUSIONE_DEL_SOCIO_DA_S_R_L_PER_GIUSTA_CAUSA_ART_2473_BIS_C_150020",
+      "denominazione": "Espulsione/esclusione del socio da S.r.l. per giusta causa (art. 2473-bis c.c.)",
+      "categoria": "Diritto societario - S.r.l. - vicende del socio",
+      "sottocategoria": "Esclusione del socio per giusta causa prevista dallo statuto o per inadempimento",
+      "rito": "Rito ordinario di cognizione - Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese - sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2473-bis",
+          "descrizione": "Esclusione del socio per cause previste nell'atto costitutivo + per inadempimento degli obblighi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2473",
+          "descrizione": "Recesso del socio - fattispecie collegate"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2466",
+          "descrizione": "Mancata esecuzione dei conferimenti - esclusione per mora"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2467",
+          "descrizione": "Finanziamenti soci - postergazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2469",
+          "descrizione": "Trasferimento delle partecipazioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2288",
+          "descrizione": "Esclusione socio s.n.c. - per analogia"
+        },
+        {
+          "fonte": "Cass. SU 12906/2021",
+          "descrizione": "Esclusione socio S.r.l. - requisiti statutari e cause tipiche"
+        },
+        {
+          "fonte": "Cass. SU 3736/2022",
+          "descrizione": "Liquidazione della quota del socio escluso - criteri"
+        }
+      ],
+      "presupposti_sostanziali_esclusione": {
+        "cause_previste_statuto": [
+          "Lo statuto può prevedere cause specifiche di esclusione",
+          "Es: morte del socio senza successori idonei, sopravvenuta inabilità, condanna penale, violazione obblighi specifici"
+        ],
+        "inadempimento_obblighi_sociali_2473_bis": [
+          "Mancato versamento dei conferimenti (art. 2466)",
+          "Violazione del patto di non concorrenza",
+          "Violazione del dovere di fedeltà o lealtà verso la società",
+          "Comportamento che pregiudica gravemente l'attività sociale"
+        ],
+        "esclusione_per_mora_conferimento_2466": [
+          "Socio in mora nel versamento del conferimento",
+          "Diffida + 30 giorni senza adempimento → esclusione automatica"
+        ]
+      },
+      "procedura_di_esclusione": {
+        "delibera_assembleare": "L'esclusione è deliberata dall'assemblea con il voto dei soci che rappresentano la maggioranza del capitale (escluso il voto del socio da escludere)",
+        "notifica_al_socio": "Il socio deve essere previamente convocato e sentito (diritto di difesa)",
+        "comunicazione_delibera": "La delibera deve essere comunicata al socio escluso",
+        "effetto_immediato": "L'esclusione ha effetto immediato salvo diversa previsione statutaria"
+      },
+      "liquidazione_quota_socio_escluso": {
+        "norma": "art. 2473-bis rinvia all'art. 2473 per la liquidazione",
+        "valore": "Quota liquidata al VALORE DI MERCATO della partecipazione al momento dell'esclusione",
+        "criteri_Cass_SU_3736_2022": "Valore effettivo della quota - non solo patrimonio netto contabile ma avviamento e altri asset immateriali",
+        "termine": "Di norma entro 180 giorni dalla delibera"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA STATUTO E CAUSE DI ESCLUSIONE",
+          "elementi": [
+            "Atto costitutivo e statuto aggiornato",
+            "Identificazione delle cause di esclusione previste",
+            "Verifica se il caso concreto rientra nelle cause"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'INADEMPIMENTO",
+          "tipologie": [
+            "Per mancato conferimento: estratto conto, diffida scritta + 30 gg",
+            "Per violazione patto non concorrenza: prove delle attività concorrenziali",
+            "Per comportamenti pregiudizievoli: documentazione specifica"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PROCEDURA ASSEMBLEA DI ESCLUSIONE",
+          "passi": [
+            "Convocazione regolare dell'assemblea (con preavviso al socio da escludere)",
+            "Audizione del socio (diritto di difesa)",
+            "Delibera con la maggioranza richiesta (escluso il voto del socio)",
+            "Verbale di assemblea",
+            "Comunicazione della delibera al socio escluso"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE DELLA QUOTA PER LIQUIDAZIONE",
+          "metodologia": [
+            "Perizia estimativa del valore di mercato della quota",
+            "Considerazione dell'avviamento",
+            "Confronto con patrimonio netto contabile"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_esclusione_socio_srl",
+        "denominazione": "Atto di citazione per impugnazione esclusione socio S.r.l. / o per accertamento legittimità esclusione",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale delle Imprese - sede società",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "label": "Tipo di azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "impugnazione_delibera_esclusione_da_parte_del_socio_escluso",
+              "azione_della_societa_per_accertamento_legittimita_esclusione",
+              "azione_per_liquidazione_quota_post_esclusione"
+            ]
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "srl_convenuta_e_altri_soci",
+            "label": "S.r.l. convenuta e altri soci",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "societa",
+            "label": "S.r.l.",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "delibera_di_esclusione",
+            "label": "Delibera di esclusione",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_delibera",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "causa_di_esclusione_indicata",
+                "type": "textarea"
+              },
+              {
+                "id": "quota_detenuta_dal_socio_escluso",
+                "type": "fraction"
+              },
+              {
+                "id": "procedura_rispettata",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "motivi_impugnazione_o_accertamento",
+            "label": "Motivi dell'impugnazione o dell'accertamento",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "causa_esclusione_non_prevista_statuto",
+              "assenza_inadempimento_imputabile",
+              "violazione_procedura_assemblea",
+              "mancata_audizione_socio",
+              "vizio_motivazione_delibera",
+              "illegittimita_per_abuso_di_maggioranza",
+              "contestazione_valore_liquidazione_quota",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "label": "Esposizione dettagliata",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_delibera_esclusione",
+              "reintegrazione_nel_rapporto_sociale",
+              "liquidazione_quota_a_valore_di_mercato_2473_bis_2473",
+              "differenze_liquidazione_quota",
+              "accertamento_legittimita_esclusione",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza TRIBUNALE DELLE IMPRESE",
+          "Esclusione richiede CAUSA PREVISTA NELLO STATUTO o inadempimento specifico",
+          "Diritto di difesa del socio: convocazione + audizione prima della delibera",
+          "Liquidazione quota a VALORE DI MERCATO (non patrimonio netto - Cass. SU 3736/2022)",
+          "Termine per impugnazione delibera: 90 gg dalla comunicazione (2377-2379 per analogia)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costitutivo_e_statuto",
+          "label": "Atto costitutivo e statuto con clausole di esclusione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_assemblea_esclusione",
+          "label": "Verbale assemblea di esclusione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "comunicazione_delibera_al_socio",
+          "label": "Comunicazione della delibera al socio escluso",
+          "required": true
+        },
+        {
+          "id": "documentazione_inadempimento_se_rilevante",
+          "label": "Documentazione dell'inadempimento (per esclusione per inadempimento)",
+          "required_if": "esclusione_per_inadempimento"
+        },
+        {
+          "id": "perizia_estimativa_quota",
+          "label": "Perizia estimativa della quota",
+          "required_if": "contestazione_valore_quota",
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "bilanci_societari",
+          "label": "Bilanci societari ultimi 3 anni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della quota",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_estimativa_quota_societa",
+          "trigger": "Per valutazione quota",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "perizia_aziendale_bilanci",
+          "trigger": "Per avviamento e assets"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "annullamento_delibera_esclusione",
+          "descrizione": "Socio reintegrato"
+        },
+        {
+          "esito": "conferma_esclusione_e_liquidazione_a_valore_mercato",
+          "descrizione": "Esclusione confermata + quota liquidata a valore corretto"
+        },
+        {
+          "esito": "rideterminazione_valore_quota",
+          "descrizione": "Correzione del valore di liquidazione"
+        },
+        {
+          "esito": "transazione_con_acquisizione_quota",
+          "descrizione": "Accordo tra soci (es. acquisto quota da parte degli altri)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Impugnazione delibera esclusione",
+          "giorni": 90,
+          "decorrenza": "comunicazione delibera",
+          "natura": "decadenziale",
+          "norma": "art. 2479-ter c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "150020",
+      "codice_logico": "GUIDA_ESPULSIONE_ESCLUSIONE_DEL_SOCIO_DA_S_R_L_PER_GIUSTA_CAUSA_ART_2473_BIS_C_150020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DELLA_PUBBLICA_AMMINISTRAZIONE_PER_FATTO_ILLECITO_ART_2043_160060",
+      "denominazione": "Responsabilità della Pubblica Amministrazione per fatto illecito (art. 2043 c.c. + D.Lgs. 104/2010)",
+      "categoria": "Responsabilità civile - responsabilità PA",
+      "sottocategoria": "Azione risarcitoria contro la P.A. per danni da attività illegittima o da comportamento illecito",
+      "rito": "GIURISDIZIONE ORDINARIA per danni da comportamento (non provvedimento): Tribunale ordinario; GIURISDIZIONE AMMINISTRATIVA (TAR/Consiglio di Stato) per danni da provvedimento illegittimo",
+      "competenza": "Tribunale civile per comportamenti illeciti; TAR per danni da provvedimento previa annullamento",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana generale - applicabile alla P.A."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2051",
+          "descrizione": "Cose in custodia - P.A. come custode di beni demaniali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione 5 anni"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (CPA)",
+          "articolo": "7",
+          "descrizione": "Giurisdizione del GA per interessi legittimi + diritti soggettivi connessi"
+        },
+        {
+          "fonte": "CPA",
+          "articolo": "30",
+          "descrizione": "Azione di condanna al risarcimento - 120 giorni dalla conoscenza del fatto"
+        },
+        {
+          "fonte": "L. 241/1990",
+          "articolo": "2-bis",
+          "descrizione": "Responsabilità della P.A. per mancato rispetto dei termini del procedimento"
+        },
+        {
+          "fonte": "L. 241/1990",
+          "articolo": "28",
+          "descrizione": "Risarcimento del danno da ritardo"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "28",
+          "descrizione": "Responsabilità diretta dei funzionari pubblici"
+        },
+        {
+          "fonte": "Cass. SU 500/1999",
+          "descrizione": "Pietra miliare: P.A. responsabile per lesione di interessi legittimi"
+        },
+        {
+          "fonte": "Cass. SU 6594/2011",
+          "descrizione": "Giurisdizione: G.O. per comportamenti illeciti P.A."
+        },
+        {
+          "fonte": "Cass. SU 7057/2022",
+          "descrizione": "Criteri di riparto giurisdizione G.O./G.A."
+        },
+        {
+          "fonte": "Cons. Stato Ad. Pl. 3/2011",
+          "descrizione": "Pregiudizialità amministrativa - superamento"
+        }
+      ],
+      "riparto_di_giurisdizione": {
+        "giurisdizione_ordinaria_tribunale_civile": [
+          "Danni da COMPORTAMENTO MATERIALE della P.A. (non provvedimento)",
+          "Es: buche stradali, alberi caduti, strutture pericolose (art. 2051 c.c.)",
+          "Danni da responsabilità aquiliana senza collegamento con potere autoritativo",
+          "Danni da violazione di diritti soggettivi assoluti (vita, integrità fisica)",
+          "Danni da ritardo procedimentale (L. 241/1990 art. 2-bis)"
+        ],
+        "giurisdizione_amministrativa_TAR": [
+          "Danni da PROVVEDIMENTO ILLEGITTIMO (ex art. 30 CPA)",
+          "Danni da lesione di interessi legittimi (dopo Cass. SU 500/1999)",
+          "Termine 120 giorni dalla conoscenza del provvedimento lesivo",
+          "Non è più necessario il previo annullamento (Ad. Pl. 3/2011)"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Per danni da beni demaniali/stradali: negoziazione con P.A. consigliata prima del giudizio"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE DELLA GIURISDIZIONE",
+          "criterio": [
+            "Danno da COMPORTAMENTO materiale → G.O. (Tribunale civile)",
+            "Danno da PROVVEDIMENTO illegittimo → G.A. (TAR)",
+            "Danno da RITARDO procedimentale → dipende: G.O. se diritto soggettivo, G.A. se interesse legittimo"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL DANNO E DEL FATTO ILLECITO",
+          "elementi": [
+            "Verbali FFOO se intervenuti",
+            "Documentazione fotografica e video",
+            "Documentazione sanitaria (per lesioni personali)",
+            "Documenti patrimoniali (per danni economici)",
+            "Eventuali denunce/segnalazioni precedenti alla P.A."
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE DELL'ENTE PUBBLICO RESPONSABILE",
+          "tipologie": [
+            "Comune per strade comunali, marciapiedi, parchi",
+            "Provincia/Regione per strade provinciali/regionali",
+            "ANAS/Concessionari per strade statali e autostrade",
+            "Aziende sanitarie per strutture ospedaliere",
+            "Ministeri per attività proprie"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "RICHIESTA RISARCIMENTO ALLA P.A.",
+          "utilita": "Interrompe prescrizione + obbliga la P.A. a rispondere + apre negoziazione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_PA",
+        "denominazione": "Atto di citazione per responsabilità della P.A. ex art. 2043/2051 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_TAR",
+            "label": "Giurisdizione e ufficio",
+            "type": "select",
+            "required": true,
+            "options": [
+              "tribunale_civile_per_comportamento_materiale",
+              "TAR_per_provvedimento_illegittimo"
+            ]
+          },
+          {
+            "id": "danneggiato_attore",
+            "label": "Danneggiato attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "ente_pubblico_convenuto",
+            "label": "Ente pubblico convenuto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_ente",
+                "type": "select",
+                "options": [
+                  "comune",
+                  "provincia",
+                  "regione",
+                  "stato_ministero",
+                  "azienda_sanitaria",
+                  "anas_o_concessionario",
+                  "altro_ente_pubblico"
+                ]
+              },
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "sede",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "funzionari_personalmente_28_Cost",
+            "label": "Eventuali funzionari convenuti personalmente (art. 28 Cost.)",
+            "type": "array_persone"
+          },
+          {
+            "id": "fatto_illecito_della_PA",
+            "label": "Fatto illecito della P.A.",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_responsabilita",
+                "type": "select",
+                "options": [
+                  "comportamento_materiale_2043",
+                  "cose_in_custodia_demaniali_2051",
+                  "provvedimento_illegittimo_art_30_CPA",
+                  "omissione_o_ritardo_procedimentale_L241",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_fatto",
+                "type": "date"
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "rilevanza_o_colpa_del_funzionario",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "danni_subiti",
+            "label": "Danni subiti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "select_multi"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_illegittimita_condotta_PA",
+              "condanna_risarcimento_danni_2043_2051",
+              "rivalutazione_e_interessi",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "CRITICA distinzione G.O. (comportamento) vs G.A. (provvedimento) - Cass. SU 7057/2022",
+          "Per danni da provvedimento: termine 120 gg art. 30 CPA",
+          "Prescrizione 5 anni per G.O. (art. 2947 c.c.)",
+          "Per beni demaniali: 2051 c.c. con inversione onere prova (codice 160021)",
+          "Art. 28 Cost.: funzionari responsabili anche personalmente"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fatto_illecito",
+          "label": "Documentazione del fatto illecito della P.A.",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_danni",
+          "label": "Documentazione dei danni",
+          "required": true
+        },
+        {
+          "id": "richiesta_risarcimento_alla_PA",
+          "label": "Richiesta risarcimento inviata alla P.A.",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "eventuale_provvedimento_illegittimo",
+          "label": "Eventuale provvedimento illegittimo (per danni da provvedimento)",
+          "required_if": "tipo=provvedimento"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_medico_legale_o_tecnica",
+          "trigger": "Per quantificazione danni"
+        },
+        {
+          "tipo": "ricorso_TAR_per_provvedimento_illegittimo",
+          "trigger": "Se danni da provvedimento"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_PA_risarcimento",
+          "descrizione": "P.A. condannata al risarcimento integrale"
+        },
+        {
+          "esito": "riduzione_per_concorso_colpa_danneggiato",
+          "descrizione": "Concorso di colpa del privato - riduzione"
+        },
+        {
+          "esito": "rigetto_per_difetto_giurisdizione",
+          "descrizione": "Causa trasferita al G.A."
+        },
+        {
+          "esito": "rigetto_per_caso_fortuito",
+          "descrizione": "Esimente per 2051 c.c."
+        },
+        {
+          "esito": "transazione_con_PA",
+          "descrizione": "Accordo transattivo (frequente per importi bassi)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE G.O.",
+          "anni": 5,
+          "natura": "prescrizione",
+          "norma": "art. 2947 c.c.",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "TERMINE G.A. per danni da provvedimento",
+          "giorni": 120,
+          "decorrenza": "conoscenza del fatto",
+          "natura": "decadenziale",
+          "norma": "art. 30 CPA"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "160060",
+      "codice_logico": "GUIDA_RESPONSABILIT_DELLA_PUBBLICA_AMMINISTRAZIONE_PER_FATTO_ILLECITO_ART_2043_160060",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160060"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CESSIONE_DI_RAMO_D_AZIENDA_CONTESTAZIONI_DEI_LAVORATORI_TRASFERITI_ART_2_220015",
+      "denominazione": "Cessione di ramo d'azienda - contestazioni dei lavoratori trasferiti (art. 2112 c.c. + art. 47 L. 428/1990)",
+      "categoria": "Lavoro - modifiche soggettive del rapporto di lavoro",
+      "sottocategoria": "Azione del lavoratore per contestare le condizioni del trasferimento o la qualificazione del ramo ceduto",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2112",
+          "descrizione": "Mantenimento dei diritti dei lavoratori in caso di trasferimento d'azienda"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2112 c. 1",
+          "descrizione": "Continuità del rapporto con il cessionario + mantenimento diritti acquisiti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2112 c. 2",
+          "descrizione": "Responsabilità solidale cedente e cessionario per crediti ante-trasferimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2112 c. 4",
+          "descrizione": "Definizione di trasferimento d'azienda - anche ramo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2112 c. 5",
+          "descrizione": "Ramo d'azienda - deve avere identità funzionale propria"
+        },
+        {
+          "fonte": "L. 428/1990",
+          "articolo": "47",
+          "descrizione": "Obblighi di informazione e consultazione sindacale preventiva"
+        },
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "29",
+          "descrizione": "Appalto genuino vs interposizione di manodopera"
+        },
+        {
+          "fonte": "Direttiva UE 2001/23/CE",
+          "descrizione": "Trasferimento di imprese - tutela dei lavoratori"
+        },
+        {
+          "fonte": "Cass. SU 26299/2024",
+          "descrizione": "Ramo d'azienda - requisiti identità funzionale propria"
+        },
+        {
+          "fonte": "Cass. SU 17423/2021",
+          "descrizione": "Cessione ramo azienda vs esternalizzazione illegittima"
+        },
+        {
+          "fonte": "Cass. SU 5572/2020",
+          "descrizione": "Responsabilità solidale cedente e cessionario per TFR"
+        }
+      ],
+      "requisiti_ramo_azienda_art_2112_c5": {
+        "definizione": "Articolazione funzionalmente autonoma di un'azienda, preesistente come tale al trasferimento, e che conserva nel trasferimento la propria identità",
+        "requisiti_Cass_SU_26299_2024": [
+          "PREESISTENZA come articolazione autonoma PRIMA del trasferimento",
+          "IDENTITÀ FUNZIONALE PROPRIA: la struttura deve essere già organizzata per uno scopo produttivo specifico",
+          "NON costituisce ramo la mera aggregazione di lavoratori per servire il cessionario"
+        ],
+        "ramo_azienda_fittizio": [
+          "Costituzione del ramo contestualmente o subito prima della cessione",
+          "Scopo di trasferire solo i lavoratori senza struttura organizzativa vera",
+          "Effetto: si applica art. 18 St. Lav. come se fosse licenziamento"
+        ]
+      },
+      "tutele_del_lavoratore_art_2112": [
+        "CONTINUITÀ DEL RAPPORTO con il cessionario",
+        "MANTENIMENTO DI TUTTI I DIRITTI ACQUISITI (anzianità, qualifica, mansioni, retribuzione)",
+        "RESPONSABILITÀ SOLIDALE di cedente e cessionario per crediti ante-trasferimento (compresi TFR)",
+        "DIRITTO DI RECESSO del lavoratore se condizioni peggiorano sostanzialmente (art. 2112 c. 4)",
+        "OBBLIGHI INFORMATIVI SINDACALI prima del trasferimento (art. 47 L. 428/1990)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL TRASFERIMENTO",
+          "documenti": [
+            "Contratto di cessione del ramo d'azienda",
+            "Comunicazione al lavoratore del trasferimento",
+            "Eventuale accordo sindacale ex art. 47 L. 428/1990",
+            "Organigramma del ramo prima e dopo il trasferimento"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA DEI REQUISITI DEL RAMO",
+          "verifiche": [
+            "Il ramo era già autonomo PRIMA della cessione?",
+            "Ha identità funzionale propria?",
+            "È stato costituito contestualmente alla cessione? (indice di artificio)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "CONFRONTO CONDIZIONI ANTE E POST TRASFERIMENTO",
+          "elementi": [
+            "Buste paga ante e post trasferimento",
+            "Qualifica e mansioni ante e post",
+            "Sede di lavoro ante e post",
+            "CCNL applicato ante e post (eventuale cambio)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA CREDITI PREGRESSI",
+          "voci": [
+            "TFR maturato ante cessione",
+            "Ferie non godute",
+            "Permessi non fruiti",
+            "Eventuali differenze retributive pregresse"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_contestazioni_cessione_ramo_azienda",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per contestazioni su cessione ramo d'azienda ex art. 2112 c.c.",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "cedente_convenuto",
+            "label": "Cedente convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "cessionario_convenuto",
+            "label": "Cessionario convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_assunzione_con_cedente",
+                "type": "date"
+              },
+              {
+                "id": "qualifica_e_mansioni",
+                "type": "string"
+              },
+              {
+                "id": "data_trasferimento",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "retribuzione_ante_trasferimento",
+                "type": "currency"
+              },
+              {
+                "id": "retribuzione_post_trasferimento",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "censure_al_trasferimento",
+            "label": "Censure al trasferimento",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ramo_azienda_non_preesistente_o_privo_identita_funzionale",
+              "peggioramento_condizioni_di_lavoro",
+              "modifica_mansioni_non_consentita",
+              "cambio_CCNL_peggiorativo",
+              "mancato_rispetto_obblighi_informativi_47_L428_1990",
+              "mancato_pagamento_crediti_pregressi",
+              "responsabilita_solidale_cedente_per_tfr_e_crediti",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_censure",
+            "label": "Esposizione dettagliata",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "crediti_pregressi_richiesti",
+            "label": "Crediti pregressi richiesti (solidalmente a cedente e cessionario)",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "tfr",
+                "type": "currency"
+              },
+              {
+                "id": "ferie_permessi_non_goduti",
+                "type": "currency"
+              },
+              {
+                "id": "differenze_retributive",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_nullita_trasferimento_per_ramo_fittizio",
+              "continuita_rapporto_con_cedente_come_se_licenziamento",
+              "accertamento_condizioni_mantenute",
+              "condanna_solidale_cedente_e_cessionario_crediti_pregressi",
+              "condanna_tfr",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Convenire ENTRAMBI: cedente e cessionario (responsabilità solidale per crediti pregressi)",
+          "Ramo fittizio: effetto come licenziamento → tutele art. 18 / tutele crescenti",
+          "Requisiti ramo: preesistenza + identità funzionale (Cass. SU 26299/2024)",
+          "Obblighi informativi sindacali preventivi (art. 47 L. 428/1990)",
+          "TFR e crediti pregressi: responsabilità solidale cedente + cessionario"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_cessione_ramo_azienda",
+          "label": "Contratto di cessione del ramo d'azienda",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "comunicazione_trasferimento_al_lavoratore",
+          "label": "Comunicazione del trasferimento al lavoratore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_ante_e_post_trasferimento",
+          "label": "Buste paga ante e post trasferimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_accordo_sindacale_47_L428",
+          "label": "Eventuale accordo sindacale ex art. 47 L. 428/1990",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_struttura_ramo_ante_cessione",
+          "label": "Documentazione struttura del ramo ante cessione (organigrammi)",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "prova_testimoniale_su_autonomia_ramo",
+          "trigger": "Sempre disposta",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "acquisizione_documenti_societari_pre_cessione",
+          "trigger": "Necessaria"
+        },
+        {
+          "tipo": "impugnazione_licenziamento_se_ramo_fittizio",
+          "trigger": "Se ramo dichiarato fittizio",
+          "codice_correlato": "220003"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "ramo_fittizio_e_tutele_come_licenziamento",
+          "descrizione": "Trasferimento nullo + applicazione tutele licenziamento"
+        },
+        {
+          "esito": "trasferimento_legittimo_ma_crediti_riconosciuti",
+          "descrizione": "Continuità confermata + condanna solidale per crediti pregressi"
+        },
+        {
+          "esito": "rigetto_per_ramo_preesistente_e_identita_funzionale",
+          "descrizione": "Trasferimento legittimo"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con regolarizzazione crediti"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione crediti pregressi",
+          "anni": 5,
+          "decorrenza": "cessazione rapporto o singoli crediti",
+          "norma": "art. 2948 c.c."
+        },
+        {
+          "termine": "Costituzione datori",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "220015",
+      "codice_logico": "GUIDA_CESSIONE_DI_RAMO_D_AZIENDA_CONTESTAZIONI_DEI_LAVORATORI_TRASFERITI_ART_2_220015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220015"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PROCEDIMENTO_DI_ADOTTABILIT_E_STATO_DI_ABBANDONO_DEL_MINORE_L_184_1983_A_414010",
+      "denominazione": "Procedimento di adottabilità e stato di abbandono del minore (L. 184/1983 artt. 8-21)",
+      "categoria": "Persone e famiglia - protezione del minore - adozione",
+      "sottocategoria": "Procedimento per la dichiarazione dello stato di adottabilità del minore in stato di abbandono + eventuale impugnazione",
+      "rito": "Rito camerale speciale ex artt. 8-14 L. 184/1983 davanti al Tribunale per i Minorenni (ora Tribunale per le persone/minorenni/famiglie post-Cartabia)",
+      "competenza": "Tribunale per le persone, per i minorenni e per le famiglie (o TM fino a istituzione) - luogo residenza del minore",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 184/1983 (Legge adozione)",
+          "articolo": "8",
+          "descrizione": "Stato di abbandono - minore privo di assistenza materiale e morale"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "9",
+          "descrizione": "Segnalazione dello stato di abbandono"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "10",
+          "descrizione": "Procedimento - apertura + intervento PM"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "11",
+          "descrizione": "Informazioni e accertamenti"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "12",
+          "descrizione": "Dichiarazione di adottabilità (sentenza)"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "13",
+          "descrizione": "Effetti della dichiarazione di adottabilità"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "14",
+          "descrizione": "Impugnazione della dichiarazione di adottabilità"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "17",
+          "descrizione": "Affidamento preadottivo"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "25",
+          "descrizione": "Pronuncia di adozione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "330-336",
+          "descrizione": "Decadenza responsabilità genitoriale - collegata"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022 (Cartabia)",
+          "descrizione": "Riforma - istituzione Tribunale per le persone"
+        },
+        {
+          "fonte": "CEDU art. 8",
+          "descrizione": "Diritto alla vita familiare - bilanciamento con interesse del minore"
+        },
+        {
+          "fonte": "Cass. SU 21018/2018",
+          "descrizione": "Stato di abbandono - valutazione proporzionale"
+        },
+        {
+          "fonte": "Cass. SU 12962/2022",
+          "descrizione": "Adottabilità - ultimo rimedio dopo esaurimento misure meno invasive"
+        }
+      ],
+      "definizione_stato_abbandono_art_8": {
+        "contenuto": "Minore privo di assistenza MORALE e MATERIALE da parte dei genitori o dei parenti tenuti a provvedervi",
+        "esclusioni": "Non costituisce abbandono la mancanza di assistenza per cause di forza maggiore di carattere transitorio",
+        "principio": "L'adottabilità è l'EXTREMA RATIO - dopo esaurimento di ogni altra misura (L. 184/1983 art. 1 + Cass. SU 12962/2022)"
+      },
+      "fasi_del_procedimento": [
+        "1. SEGNALAZIONE (servizi sociali, FFOO, privati, PM)",
+        "2. APERTURA DEL PROCEDIMENTO da parte del TM / Tribunale",
+        "3. MISURE PROVVISORIE urgenti (allontanamento se necessario)",
+        "4. ACCERTAMENTI (relazioni servizi sociali, CTU, audizioni)",
+        "5. UDIENZA di audizione dei genitori + parenti + minore (>12 anni)",
+        "6. SENTENZA DICHIARAZIONE DI ADOTTABILITÀ o chiusura",
+        "7. Eventuale IMPUGNAZIONE dei genitori (14 giorni)",
+        "8. AFFIDAMENTO PREADOTTIVO",
+        "9. PRONUNCIA DI ADOZIONE"
+      ],
+      "diritti_dei_GENITORI_nel_procedimento": [
+        "Diritto di essere informati dell'apertura del procedimento",
+        "Diritto di essere sentiti",
+        "Diritto di difensore tecnico (difesa d'ufficio se senza mezzi)",
+        "Diritto di proporre prove",
+        "Diritto di impugnare la sentenza di adottabilità (14 giorni - art. 14)",
+        "Diritto di dimostrare recupero della capacità genitoriale"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Materia di stato minore - pubblica rilevanza"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "PER I GENITORI CHE RICEVONO IL PROCEDIMENTO",
+          "azioni_urgenti": [
+            "Nomina immediata di difensore tecnico",
+            "Richiesta di accesso agli atti del fascicolo",
+            "Incarico ad avvocato esperto in diritto di famiglia/minori",
+            "Contatto con i servizi sociali"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DA PRODURRE PER I GENITORI",
+          "elementi": [
+            "Documentazione di cambiamento delle condizioni (lavoro, alloggio, supporto familiare)",
+            "Percorsi terapeutici intrapresi (psicologici, per dipendenze)",
+            "Relazioni di professionisti (psicologo, assistente sociale privato)",
+            "Documentazione sulla relazione genitore-figlio",
+            "Eventuali supporti della famiglia allargata"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PRINCIPIO DI PROPORZIONALITÀ E GRADUALITÀ",
+          "norma": "Adottabilità = extrema ratio",
+          "argomenti_difensivi_genitori": [
+            "Le difficoltà sono temporanee e reversibili",
+            "Esistono risorse nella famiglia allargata",
+            "Il genitore ha intrapreso un percorso di recupero",
+            "Le misure meno invasive non sono state adeguatamente esplorate"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_dichiarazione_adottabilita_o_difesa_procedimento",
+        "denominazione": "Memoria difensiva / impugnazione nel procedimento di adottabilità ex L. 184/1983",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale per le persone/minorenni",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_atto",
+            "label": "Tipo di atto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "memoria_difensiva_nel_procedimento",
+              "impugnazione_sentenza_adottabilita_14_giorni",
+              "reclamo_misure_provvisorie",
+              "richiesta_revoca_adottabilita_per_recupero_genitoriale"
+            ]
+          },
+          {
+            "id": "genitore_o_parente",
+            "label": "Genitore o parente (difeso)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "minore_interessato",
+            "label": "Minore interessato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "PM_del_procedimento",
+            "label": "Procura della Repubblica - PM del procedimento",
+            "type": "object"
+          },
+          {
+            "id": "argomenti_difensivi",
+            "label": "Argomenti difensivi del genitore",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "condizioni_attuali_mutate",
+                "type": "textarea"
+              },
+              {
+                "id": "percorso_recupero_in_corso",
+                "type": "textarea"
+              },
+              {
+                "id": "supporto_famiglia_allargata",
+                "type": "textarea"
+              },
+              {
+                "id": "misure_meno_invasive_non_esplorate",
+                "type": "textarea"
+              },
+              {
+                "id": "proporzionalita_adottabilita_non_rispettata",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "richieste",
+            "label": "Richieste",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "chiusura_procedimento_per_assenza_abbandono",
+              "sospensione_provvedimento_adottabilita",
+              "revoca_adottabilita_per_recupero",
+              "affidamento_familiare_invece_di_adottabilita",
+              "riconoscimento_figure_parentali_alternative",
+              "audizione_minore",
+              "ctu_psicologica_imparziale",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE IMPUGNAZIONE SENTENZA ADOTTABILITÀ: 14 GIORNI - decadenziale (art. 14 L. 184/1983)",
+          "Principio EXTREMA RATIO: adottabilità solo dopo esaurimento misure meno invasive",
+          "CEDU art. 8: bilanciamento con vita familiare - standard CEDU applicato dalla Cassazione",
+          "Diritto a difensore d'ufficio se senza mezzi",
+          "Audizione del minore obbligatoria se >12 anni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_o_provvedimento_impugnato",
+          "label": "Sentenza o provvedimento impugnato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_recupero_genitoriale",
+          "label": "Documentazione recupero genitoriale (percorsi terapeutici, lavoro, alloggio)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "relazioni_professionisti_di_parte",
+          "label": "Relazioni di professionisti (psicologo di parte, AS privato)",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_supporto_famiglia_allargata",
+          "label": "Documentazione supporto famiglia allargata",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "atti_nascita_minore",
+          "label": "Atti di nascita del minore",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente - protezione minore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati minori"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_psicologica_genitore_figlio",
+          "trigger": "Quasi sempre disposta",
+          "critico": true
+        },
+        {
+          "tipo": "relazioni_periodiche_servizi_sociali",
+          "trigger": "Monitorate dal tribunale"
+        },
+        {
+          "tipo": "audizione_minore",
+          "trigger": ">12 anni o capace discernimento",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "misure_urgenti_di_allontanamento",
+          "trigger": "Se pericolo imminente"
+        },
+        {
+          "tipo": "reclamo_corte_appello",
+          "trigger": "Dopo sentenza TM",
+          "termine": "14 gg",
+          "norma": "art. 14 L. 184/1983"
+        },
+        {
+          "tipo": "ricorso_cassazione",
+          "trigger": "Dopo CA",
+          "termine": "30 gg"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "chiusura_procedimento_no_abbandono",
+          "descrizione": "Misure di supporto alla famiglia + chiusura"
+        },
+        {
+          "esito": "dichiarazione_adottabilita",
+          "descrizione": "Sentenza di adottabilità + affidamento preadottivo"
+        },
+        {
+          "esito": "revoca_adottabilita_per_recupero_genitoriale",
+          "descrizione": "Genitore ha dimostrato recupero"
+        },
+        {
+          "esito": "affidamento_familiare_in_alternativa",
+          "descrizione": "Misura meno invasiva preferita"
+        },
+        {
+          "esito": "rigetto_impugnazione_conferma_adottabilita",
+          "descrizione": "Adottabilità confermata in appello"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE SENTENZA ADOTTABILITÀ",
+          "giorni": 14,
+          "decorrenza": "notifica sentenza",
+          "natura": "DECADENZIALE",
+          "norma": "art. 14 L. 184/1983",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Ricorso in Cassazione",
+          "giorni": 30,
+          "decorrenza": "sentenza CA",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "414010",
+      "codice_logico": "GUIDA_PROCEDIMENTO_DI_ADOTTABILIT_E_STATO_DI_ABBANDONO_DEL_MINORE_L_184_1983_A_414010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "414010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "414010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "414010"
+        }
+      ]
+    }
+  ]
+}

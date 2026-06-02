@@ -1,0 +1,1660 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET11_PARTE2",
+  "denominazione": "Undicesimo set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIECIC"
+  ],
+  "data_generazione": "2026-06-02",
+  "scopo": "Parte 2 del set 11: arricchimento senza causa, opposizione esecuzione immobiliare, inibitoria pratiche commerciali scorrette, regolamento confini",
+  "codici_materia": [
+    {
+      "codice": "103001",
+      "denominazione": "Azione di arricchimento senza causa (art. 2041 c.c.)",
+      "categoria": "Obbligazioni - fonti non contrattuali",
+      "sottocategoria": "Azione di ingiustificato arricchimento - sussidiaria rispetto ad altre azioni",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale o GdP (per valore); foro residenza convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2041",
+          "descrizione": "Azione generale di arricchimento - chi si è arricchito senza causa a danno di altri è tenuto all'indennizzo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2042",
+          "descrizione": "SUSSIDIARIETÀ - l'azione non è proponibile quando il danneggiato può esercitare un'altra azione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2033",
+          "descrizione": "Ripetizione dell'indebito (azione alternativa)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2946",
+          "descrizione": "Prescrizione ordinaria 10 anni"
+        },
+        {
+          "fonte": "Cass. SU 14712/2017",
+          "descrizione": "Arricchimento senza causa - sussidiarietà e presupposti"
+        },
+        {
+          "fonte": "Cass. SU 27198/2020",
+          "descrizione": "Azione di arricchimento verso P.A. - ammissibilità residuale"
+        },
+        {
+          "fonte": "Cass. SU 3665/2021",
+          "descrizione": "Arricchimento senza causa - quantificazione dell'indennizzo"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ARRICCHIMENTO di un soggetto (incremento patrimoniale o risparmio di spesa)",
+        "DEPAUPERAMENTO correlato del richiedente",
+        "NESSO DI CAUSALITÀ tra arricchimento e depauperamento",
+        "ASSENZA DI CAUSA GIURIDICA che giustifichi lo spostamento patrimoniale",
+        "SUSSIDIARIETÀ (art. 2042): assenza di qualsiasi altra azione proponibile"
+      ],
+      "sussidiarieta_art_2042_critica": {
+        "regola": "L'azione è PROPONIBILE SOLO se il danneggiato non ha a disposizione nessun'altra azione",
+        "applicazione": [
+          "Se esiste contratto nullo: azione di nullità + restituzione (non arricchimento)",
+          "Se inadempimento contrattuale: azione contrattuale (non arricchimento)",
+          "Se atto illecito: responsabilità aquiliana (non arricchimento)",
+          "Arricchimento proponibile: quando non esiste altra azione oppure l'altra azione è prescritta o altrimenti preclusa"
+        ],
+        "verso_PA": "Cass. SU 27198/2020: verso la P.A. ammissibile in via residuale (es. opere eseguite senza contratto valido)"
+      },
+      "misura_dell_indennizzo": {
+        "regola": "Il minore tra arricchimento e depauperamento",
+        "arricchimento": "Incremento patrimoniale del convenuto al momento della domanda",
+        "depauperamento": "Diminuzione patrimoniale dell'attore",
+        "Cass_SU_3665_2021": "L'indennizzo non può superare il valore dell'arricchimento reale al momento della domanda"
+      },
+      "casi_tipici_di_applicazione": [
+        "Opere o prestazioni rese in assenza di contratto (es. lavori su immobile altrui senza titolo)",
+        "Arricchimento da fatto del terzo",
+        "Verso P.A. per prestazioni rese in assenza di contratto regolare",
+        "Quando l'azione contrattuale è prescritta ma l'arricchimento persiste",
+        "Miglioramenti apportati a bene altrui senza accordo",
+        "Pagamenti effettuati per conto di altri senza mandato"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA SUSSIDIARIETÀ (CRITICA)",
+          "verifiche": [
+            "Non esiste nessun'altra azione esperibile?",
+            "L'altra azione eventualmente disponibile è prescritta?",
+            "Non è possibile agire in via contrattuale, aquiliana o da indebito?",
+            "Se qualsiasi altra azione è disponibile → non usare arricchimento"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "QUANTIFICAZIONE ARRICCHIMENTO E DEPAUPERAMENTO",
+          "elementi": [
+            "Valore dell'arricchimento del convenuto (al momento della domanda)",
+            "Entità del depauperamento dell'attore",
+            "Il minore dei due → indennizzo massimo ammissibile"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PROVA DELL'ASSENZA DI CAUSA",
+          "elementi": [
+            "Nessun contratto valido tra le parti",
+            "Nessuna norma di legge che giustifichi lo spostamento",
+            "Nessuna liberalità intenzionale"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_arricchimento_senza_causa",
+        "denominazione": "Atto di citazione per indennizzo da arricchimento senza causa ex art. 2041 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "label": "Tribunale o GdP competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "impoverito_attore",
+            "label": "Impoverito attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "arricchito_convenuto",
+            "label": "Arricchito convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fatto_fonte_arricchimento",
+            "label": "Fatto fonte dell'arricchimento",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_fatto",
+                "type": "select",
+                "options": [
+                  "opere_su_immobile_altrui",
+                  "prestazioni_rese_senza_contratto",
+                  "pagamento_per_conto_di_altri",
+                  "miglioramenti_su_bene_altrui",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "data_fatto",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "arricchimento_del_convenuto",
+            "label": "Arricchimento del convenuto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_attuale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "depauperamento_attore",
+            "label": "Depauperamento dell'attore",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "importo",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "assenza_di_causa_giuridica",
+            "label": "Assenza di causa giuridica",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "sussidiarieta_verificata",
+            "label": "Verificata assenza di altre azioni",
+            "type": "textarea",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "indennizzo_richiesto",
+            "label": "Indennizzo richiesto (il minore tra arricchimento e depauperamento)",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_indennizzo_arricchimento_senza_causa",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "SUSSIDIARIETÀ ASSOLUTA (art. 2042): proponibile SOLO se nessun'altra azione disponibile",
+          "Indennizzo = MINORE tra arricchimento e depauperamento",
+          "Arricchimento calcolato al momento della domanda (Cass. SU 3665/2021)",
+          "Verso P.A.: ammissibile in via residuale (Cass. SU 27198/2020)",
+          "Prescrizione 10 anni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fatto_arricchimento",
+          "label": "Documentazione del fatto fonte dell'arricchimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_arricchimento_convenuto",
+          "label": "Prove dell'arricchimento del convenuto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_depauperamento_attore",
+          "label": "Documentazione del depauperamento dell'attore",
+          "required": true
+        },
+        {
+          "id": "documentazione_assenza_causa_giuridica",
+          "label": "Documentazione assenza di causa giuridica",
+          "required": true
+        },
+        {
+          "id": "documentazione_sussidiarieta_verificata",
+          "label": "Documentazione che nessun'altra azione era disponibile",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_estimativa_se_utile",
+          "label": "Perizia estimativa del valore dell'arricchimento",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_estimativa_arricchimento",
+          "trigger": "Per valutazione valore arricchimento"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_indennizzo",
+          "descrizione": "Indennizzo pari al minore tra arricchimento e depauperamento"
+        },
+        {
+          "esito": "rigetto_per_disponibilita_altra_azione",
+          "descrizione": "Mancata sussidiarietà"
+        },
+        {
+          "esito": "rigetto_per_assenza_arricchimento_o_nesso",
+          "descrizione": "Presupposti non provati"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 10,
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "103001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "103001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "103001"
+        }
+      ]
+    },
+    {
+      "codice": "512020",
+      "denominazione": "Opposizione all'esecuzione immobiliare / contestazioni in corso di espropriazione ipotecaria",
+      "categoria": "Esecuzioni forzate - opposizioni in executivis",
+      "sottocategoria": "Opposizione all'esecuzione (615 c.2) e agli atti esecutivi (617) nell'ambito di procedura esecutiva immobiliare",
+      "rito": "Rito speciale GE ex artt. 615-617 c.p.c. + eventuale giudizio di merito",
+      "competenza": "GIUDICE DELL'ESECUZIONE del luogo dell'immobile",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555-598",
+          "descrizione": "Espropriazione immobiliare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555",
+          "descrizione": "Pignoramento immobiliare - forma"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "559",
+          "descrizione": "Ipoteca sulla quota indivisa"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "560",
+          "descrizione": "Custodia del bene pignorato"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "569",
+          "descrizione": "Ordinanza di vendita"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "591-bis",
+          "descrizione": "Vendita tramite delegato"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "615 c. 2",
+          "descrizione": "Opposizione all'esecuzione DOPO l'inizio - rito speciale GE"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "616",
+          "descrizione": "Opposizione nel merito dopo ordinanza GE"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "617",
+          "descrizione": "Opposizione agli ATTI ESECUTIVI - vizi formali - 20 gg"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "618",
+          "descrizione": "Sospensione dell'esecuzione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "619",
+          "descrizione": "Opposizione del terzo"
+        },
+        {
+          "fonte": "TUB D.Lgs. 385/1993",
+          "articolo": "40",
+          "descrizione": "Mutuo fondiario - procedure speciali"
+        },
+        {
+          "fonte": "D.L. 35/2005",
+          "descrizione": "Accelerazione procedura esecutiva immobiliare"
+        },
+        {
+          "fonte": "Cass. SU 12566/2022",
+          "descrizione": "Opposizione 615 in esecuzione immobiliare - termini"
+        },
+        {
+          "fonte": "Cass. SU 6483/2024",
+          "descrizione": "Sospensione esecuzione immobiliare - presupposti"
+        }
+      ],
+      "tipologie_di_opposizione_in_esecuzione_immobiliare": {
+        "opposizione_merito_615_c2": {
+          "oggetto": "Contestazione del DIRITTO di procedere all'esecuzione (inesistenza credito, estinzione, ecc.)",
+          "momento": "Dopo il pignoramento immobiliare, in qualunque fase",
+          "forma": "Ricorso al GE",
+          "rito": "GE fissa udienza → eventuale ordinanza sospensiva → introdotto giudizio di merito (termine 60 gg)"
+        },
+        "opposizione_atti_617": {
+          "oggetto": "VIZI FORMALI degli atti esecutivi (notificazioni, forme del pignoramento, ordinanze, ecc.)",
+          "momento": "Entro 20 GG dall'atto contestato",
+          "criticita": "TERMINE DECADENZIALE BREVISSIMO",
+          "rito": "Ricorso al GE → udienza → ordinanza"
+        },
+        "opposizione_terzo_619": {
+          "oggetto": "Il terzo rivendica la proprietà del bene pignorato",
+          "momento": "In qualunque fase, prima della distribuzione",
+          "rito": "Ricorso al GE → sospensione eventuale → giudizio petitorio"
+        }
+      },
+      "sospensione_esecuzione_618": {
+        "presupposti": "Gravi motivi + fumus opposizione",
+        "importanza": "CRITICA - senza sospensione l'immobile viene venduto anche durante l'opposizione",
+        "Cass_SU_6483_2024": "Gravi motivi: non solo fumus ma anche periculum di danno irreparabile"
+      },
+      "motivi_tipici_opposizione_615_c2_immobiliare": [
+        "Estinzione del credito (pagamento intervenuto)",
+        "Prescrizione del credito o del titolo",
+        "Compensazione con crediti dell'esecutato",
+        "Contestazione sul quantum del credito (interessi, spese)",
+        "Inesistenza o inefficacia del titolo esecutivo",
+        "Violazione del diritto di prelazione (per subentro nelle ipoteche)",
+        "Usura sopravvenuta (in senso lato)",
+        "Nullità delle clausole del mutuo fondiario (per credito fondiario)"
+      ],
+      "vizi_tipici_opposizione_617_immobiliare": [
+        "Vizi della notifica del pignoramento",
+        "Mancato rispetto dei termini dell'atto di pignoramento",
+        "Vizi formali dell'istanza di vendita",
+        "Violazione delle forme dell'ordinanza di vendita",
+        "Irregolarità nella nomina del custode",
+        "Vizi nell'avviso di vendita",
+        "Omessa o irregolare publicità della vendita"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura esecutiva - urgenza"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE TIPO DI OPPOSIZIONE",
+          "criteri": [
+            "MERITO (diritto di procedere): 615 c. 2",
+            "VIZI FORMALI (atti esecutivi): 617 → TERMINE 20 GG",
+            "TERZO PROPRIETARIO: 619"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA URGENZA SOSPENSIVA",
+          "importanza": "CRITICA - senza sospensione la vendita prosegue",
+          "modalita": "Chiedere sospensione contestualmente all'opposizione"
+        },
+        {
+          "step": 3,
+          "descrizione": "ACQUISIZIONE FASCICOLO PROCEDURALE",
+          "documenti": [
+            "Pignoramento e relata di notifica",
+            "Titolo esecutivo + precetto",
+            "Istanza di vendita del creditore",
+            "Ordinanza di vendita del GE",
+            "Eventuale CTU estimativa già disposta",
+            "Avviso di vendita"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "PER OPPOSIZIONE SUL MERITO: QUANTIFICAZIONE CREDITO",
+          "elementi": [
+            "Estratti conto (per crediti bancari)",
+            "Documentazione pagamenti già effettuati",
+            "Calcolo interessi e competenze",
+            "Eventuale perizia econometrica (per crediti bancari con usura/anatocismo)"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_esecuzione_immobiliare_615_617",
+        "denominazione": "Ricorso in opposizione all'esecuzione immobiliare (615 c.2 o 617 c.p.c.)",
+        "schema_xsd_ministeriale": "AttoEsecuzione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_GE",
+            "label": "Tribunale - GE competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "numero_RG_procedura_esecutiva",
+            "label": "N. RG procedura esecutiva immobiliare",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "opponente",
+            "label": "Opponente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "debitore_esecutato",
+                  "terzo_proprietario_619",
+                  "altro_interessato"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "creditore_procedente_opposto",
+            "label": "Creditore procedente opposto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_opposizione",
+            "label": "Tipo di opposizione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "opposizione_merito_615_c2",
+              "opposizione_atti_esecutivi_617",
+              "opposizione_terzo_619"
+            ]
+          },
+          {
+            "id": "immobile_pignorato",
+            "label": "Immobile pignorato",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "atto_contestato_per_617",
+            "label": "Atto contestato (per opp. atti 617)",
+            "type": "object",
+            "required_if": "tipo=617",
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_atto_contestato",
+                "type": "select"
+              },
+              {
+                "id": "data_atto",
+                "type": "date",
+                "required": true,
+                "critico_per_20_gg": true
+              },
+              {
+                "id": "vizio_formale_dedotto",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "motivi_opposizione_merito_615",
+            "label": "Motivi opposizione al diritto (per 615)",
+            "type": "select_multi",
+            "required_if": "tipo=615",
+            "options": [
+              "estinzione_credito_per_pagamento",
+              "prescrizione",
+              "compensazione",
+              "contestazione_quantum_interessi_e_spese",
+              "inesistenza_titolo",
+              "usura_o_anatocismo",
+              "nullita_clausole_mutuo",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "label": "Esposizione dettagliata dei motivi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "richiesta_sospensione_618",
+            "label": "Richiesta sospensione esecuzione (618)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "richiesta",
+                "type": "boolean",
+                "default": true
+              },
+              {
+                "id": "gravi_motivi_e_fumus",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "sospensione_esecuzione_618",
+              "accertamento_inesistenza_credito_o_titolo",
+              "accertamento_estinzione_credito",
+              "rideterminazione_quantum_credito",
+              "dichiarazione_improcedibilita_esecuzione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Per opp. ATTI (617): TERMINE DECADENZIALE 20 GG dall'atto contestato",
+          "SOSPENSIONE (618) critica: senza sospensione la vendita prosegue",
+          "Per merito (615 c. 2): termine 60 gg per introdurre giudizio di merito dopo ordinanza GE",
+          "Gravi motivi per sospensione: fumus + periculum (Cass. SU 6483/2024)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documenti_fascicolo_esecutivo",
+          "label": "Documenti della procedura esecutiva (pignoramento, titolo, ordinanza vendita)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_motivi_opposizione",
+          "label": "Documentazione dei motivi di opposizione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "pagamenti_effettuati_se_estinzione_credito",
+          "label": "Documentazione pagamenti (per estinzione credito)",
+          "required_if": "motivo=estinzione"
+        },
+        {
+          "id": "perizia_econometrica_per_bancari",
+          "label": "Perizia econometrica (per usura/anatocismo su mutui)",
+          "required_if": "credito_bancario_e_contestazione_quantum"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ordinanza_sospensione_GE_618",
+          "trigger": "Sospensiva urgente"
+        },
+        {
+          "tipo": "giudizio_di_merito_post_ordinanza_615",
+          "trigger": "Termine 60 gg da ordinanza GE",
+          "critico": true
+        },
+        {
+          "tipo": "reclamo_avverso_ordinanza_GE",
+          "trigger": "Se ordinanza negativa o vizi"
+        },
+        {
+          "tipo": "ctu_contabile_per_credito_bancario",
+          "trigger": "Per contestazioni su quantum"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "sospensione_esecuzione_e_accoglimento",
+          "descrizione": "Esecuzione sospesa + credito rideterminato o annullato"
+        },
+        {
+          "esito": "rigetto_sospensione_esecuzione_prosegue",
+          "descrizione": "Vendita prosegue nonostante opposizione"
+        },
+        {
+          "esito": "accoglimento_nel_merito_estinzione_credito",
+          "descrizione": "Esecuzione estinta per pagamento o prescrizione"
+        },
+        {
+          "esito": "accoglimento_parziale_riduzione_quantum",
+          "descrizione": "Credito ridotto per usura/anatocismo"
+        },
+        {
+          "esito": "rigetto_per_tardivita_617",
+          "descrizione": "Oltre 20 gg → inammissibile"
+        },
+        {
+          "esito": "transazione_con_piano_rientro",
+          "descrizione": "Accordo creditore/debitore - estinzione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE ATTI 617 - TERMINE BREVISSIMO",
+          "giorni": 20,
+          "decorrenza": "atto contestato",
+          "natura": "DECADENZIALE",
+          "norma": "art. 617 c.p.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Giudizio di merito dopo ordinanza GE su 615 c. 2",
+          "giorni": 60,
+          "decorrenza": "ordinanza GE",
+          "natura": "decadenziale",
+          "norma": "art. 616 c.p.c."
+        },
+        {
+          "termine": "Opposizione 615 c. 2 - in qualsiasi momento",
+          "natura": "fino a distribuzione del ricavato"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_INIBITORIA_PER_PRATICHE_COMMERCIALI_SCORRETTE_D_LGS_206_2005_ARTT_18_27__180010",
+      "denominazione": "Inibitoria per pratiche commerciali scorrette (D.Lgs. 206/2005 artt. 18-27-ter)",
+      "categoria": "Diritto del consumo - pratiche commerciali",
+      "sottocategoria": "Azione inibitoria individuale o collettiva per pratiche commerciali scorrette e ingannevoli",
+      "rito": "Rito sommario di cognizione o rito ordinario; inibitoria urgente possibile ex 700 c.p.c.",
+      "competenza": "Tribunale del luogo sede del professionista o residenza del consumatore; AGCM per procedimento amministrativo alternativo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "18",
+          "descrizione": "Definizioni - pratiche commerciali, consumatori, professionisti"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "19",
+          "descrizione": "Ambito di applicazione"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "20",
+          "descrizione": "Divieto di pratiche commerciali scorrette"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "21",
+          "descrizione": "Azioni ingannevoli"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "22",
+          "descrizione": "Omissioni ingannevoli"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "24",
+          "descrizione": "Pratiche commerciali aggressive"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "25",
+          "descrizione": "Pratiche commerciali aggressive - circostanze di valutazione"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "26",
+          "descrizione": "Pratiche in ogni caso aggressive (lista nera)"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "27",
+          "descrizione": "Enforcement AGCM - procedimento amministrativo sanzionatorio"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "27-bis",
+          "descrizione": "Pratiche commerciali sleali B2B"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "27-ter",
+          "descrizione": "Tutela giurisdizionale individuale e collettiva"
+        },
+        {
+          "fonte": "Direttiva UE 2005/29/CE",
+          "descrizione": "Pratiche commerciali sleali"
+        },
+        {
+          "fonte": "Direttiva UE 2019/2161 (Omnibus)",
+          "descrizione": "Modifiche - recepita D.Lgs. 26/2023"
+        },
+        {
+          "fonte": "Cass. SU 24906/2021",
+          "descrizione": "Pratiche commerciali scorrette - tutela individuale del consumatore"
+        },
+        {
+          "fonte": "Cass. SU 16742/2023",
+          "descrizione": "Inibitoria pratiche scorrette - legittimazione associazioni consumatori"
+        }
+      ],
+      "tipologie_di_pratiche_scorrette": {
+        "azioni_ingannevoli_21": [
+          "False informazioni su caratteristiche del prodotto/servizio",
+          "Informazioni veritiere ma presentate in modo ingannevole",
+          "Confusione con prodotti/marchi concorrenti"
+        ],
+        "omissioni_ingannevoli_22": [
+          "Omissione di informazioni materiali",
+          "Presentazione oscura/ambigua di informazioni",
+          "Omissione dell'intenzione commerciale"
+        ],
+        "pratiche_aggressive_24_25": [
+          "Molestie, coercizione, indebito condizionamento",
+          "Impedimento all'esercizio dei diritti del consumatore",
+          "Sfruttamento di situazioni di debolezza"
+        ],
+        "lista_nera_23_26": [
+          "Pratiche in ogni caso ingannevoli/aggressive (liste tassative)",
+          "Es: schema Ponzi, vendita piramidale, falsi premi, false testimonianze"
+        ]
+      },
+      "tutele_disponibili": {
+        "procedimento_AGCM": "AGCM può vietare la pratica e sanzionare il professionista (fino a €10 mln)",
+        "tutela_giurisdizionale_individuale_27_ter": "Il consumatore o le associazioni possono chiedere l'inibitoria al tribunale",
+        "risarcimento_individuale": "Il consumatore che ha subito danni può agire per risarcimento ex 2043 o 1218 c.c.",
+        "azione_di_classe_840_bis": "Per pratiche che colpiscono pluralità di consumatori"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Pratiche commerciali - no mediazione obbligatoria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLA PRATICA COMMERCIALE SCORRETTA",
+          "elementi": [
+            "Materiale pubblicitario contestato (volantini, siti web, email, spot)",
+            "Contratti stipulati in seguito alla pratica",
+            "Comunicazioni del professionista",
+            "Eventuali precedenti segnalazioni all'AGCM",
+            "Decisioni AGCM su pratiche analoghe"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "QUALIFICAZIONE DELLA PRATICA",
+          "criteri": [
+            "Azione ingannevole (21) vs omissione ingannevole (22)?",
+            "Pratica aggressiva (24)?",
+            "Rientra nella lista nera (23 e 26)?",
+            "Si rivolge a consumatori vulnerabili (bambini, anziani)?"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VALUTAZIONE STRATEGIA: AGCM vs GIUDIZIALE",
+          "alternative": [
+            "AGCM: più rapida e gratuita, ma solo ordine di cessazione + sanzione (non risarcimento)",
+            "Giudiziale: inibitoria + eventuale risarcimento individuale"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE URGENZA",
+          "elementi": [
+            "Se la pratica è in corso: inibitoria urgente ex art. 700 c.p.c.",
+            "Se la pratica è cessata: azione ordinaria per accertamento + eventuale rimborso"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_inibitoria_pratica_commerciale_scorretta",
+        "denominazione": "Ricorso per inibitoria pratica commerciale scorretta ex art. 27-ter Cod. Consumo",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_ricorrente",
+            "label": "Attore (consumatore o associazione consumatori)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "consumatore_individuale",
+                  "associazione_consumatori_riconosciuta",
+                  "associazione_di_categoria",
+                  "pluralita_di_consumatori"
+                ]
+              },
+              {
+                "id": "denominazione_o_nome",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "professionista_convenuto",
+            "label": "Professionista convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "pratica_commerciale_contestata",
+            "label": "Pratica commerciale contestata",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_pratica",
+                "type": "select",
+                "options": [
+                  "azione_ingannevole_21",
+                  "omissione_ingannevole_22",
+                  "pratica_aggressiva_24",
+                  "lista_nera_23_o_26",
+                  "pratica_sleale_b2b_27bis"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "pratica_in_corso_o_cessata",
+                "type": "select",
+                "options": [
+                  "in_corso",
+                  "cessata_ma_effetti_persistenti"
+                ]
+              },
+              {
+                "id": "canali_di_diffusione",
+                "type": "select_multi",
+                "options": [
+                  "tv",
+                  "internet_sito_web",
+                  "social_media",
+                  "email",
+                  "cartaceo",
+                  "punto_vendita",
+                  "telefonico",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "consumatori_pregiudicati",
+            "label": "Consumatori pregiudicati",
+            "type": "textarea"
+          },
+          {
+            "id": "richiesta_urgente_700",
+            "label": "Richiesta inibitoria urgente ex 700 c.p.c.",
+            "type": "boolean"
+          },
+          {
+            "id": "precedente_segnalazione_AGCM",
+            "label": "Eventuale precedente segnalazione AGCM o provvedimento",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "segnalazione_presentata",
+                "type": "boolean"
+              },
+              {
+                "id": "provvedimento_AGCM",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "inibitoria_cessazione_pratica_commerciale_scorretta",
+              "ordine_rimozione_comunicazioni_o_pubblicita",
+              "pubblicazione_della_sentenza",
+              "risarcimento_danni_individuali",
+              "sanzione_accessoria",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Alternativa AGCM (art. 27): più rapida, gratuita, ma solo cessazione + sanzione",
+          "Per pratica in corso: inibitoria urgente ex art. 700 c.p.c.",
+          "Associazioni consumatori riconosciute: legittimazione autonoma (Cass. SU 16742/2023)",
+          "Pratiche in corso che colpiscono molti: valutare azione di classe 840-bis (codice 180020)",
+          "Per risarcimento individuale: cumulo con 2043 o 1218 c.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_pratica_commerciale_scorretta",
+          "label": "Documentazione della pratica (materiale pubblicitario, comunicazioni, contratti)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_provvedimento_AGCM_su_pratica_analoga",
+          "label": "Eventuale provvedimento AGCM su pratica analoga",
+          "required": false,
+          "fortemente_rilevante": true
+        },
+        {
+          "id": "documentazione_qualita_legittimazione_associazione",
+          "label": "Documentazione legittimazione (per associazioni)",
+          "required_if": "ricorrente=associazione"
+        },
+        {
+          "id": "documentazione_danni_subiti",
+          "label": "Documentazione danni subiti (per risarcimento)",
+          "required_if": "risarcimento_richiesto"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_urgente_700_per_pratica_in_corso",
+          "trigger": "Se pratica ancora in atto",
+          "codice_correlato": "015011"
+        },
+        {
+          "tipo": "segnalazione_AGCM_parallela",
+          "trigger": "Alternativa o parallela al giudiziale"
+        },
+        {
+          "tipo": "azione_di_classe_840_bis_per_pluralita",
+          "trigger": "Se pratiche colpiscono molti consumatori",
+          "codice_correlato": "180001"
+        },
+        {
+          "tipo": "risarcimento_individuale_cumulato",
+          "trigger": "Per danni personali",
+          "codice_correlato": "160011"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "inibitoria_pratica_scorretta",
+          "descrizione": "Ordine di cessazione + eventuale rimozione comunicazioni"
+        },
+        {
+          "esito": "inibitoria_urgente_700_poi_merito",
+          "descrizione": "Cessazione immediata + conferma nel merito"
+        },
+        {
+          "esito": "accoglimento_con_pubblicazione_sentenza",
+          "descrizione": "Sentenza pubblicata sui media come misura riparatoria"
+        },
+        {
+          "esito": "rigetto_per_assenza_pratica_scorretta",
+          "descrizione": "Pratica non integrante i presupposti"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con modifica delle comunicazioni commerciali"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Azione inibitoria individuale",
+          "natura": "non soggetta a termine specifico (finché la pratica persiste)"
+        },
+        {
+          "termine": "Prescrizione danni individuali",
+          "anni": 5,
+          "natura": "prescrizione",
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "180010",
+      "codice_logico": "GUIDA_INIBITORIA_PER_PRATICHE_COMMERCIALI_SCORRETTE_D_LGS_206_2005_ARTT_18_27__180010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_REGOLAMENTO_DI_CONFINI_TRA_FONDI_CONTIGUI_ART_950_C_C_130060",
+      "denominazione": "Regolamento di confini tra fondi contigui (art. 950 c.c.)",
+      "categoria": "Diritti reali - rapporti di vicinato",
+      "sottocategoria": "Azione petitoria per determinazione dei confini tra fondi contigui quando incerti o contestati",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "950",
+          "descrizione": "Regolamento di confini - ciascun proprietario può chiedere che i confini siano determinati"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "951",
+          "descrizione": "Apposizione di termini"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1147-1158",
+          "descrizione": "Possesso - rilevante per usucapione di strisce contese"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1159",
+          "descrizione": "Usucapione abbreviata immobili - rilevante per striscia usucapita"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "118",
+          "descrizione": "Ispezione dei luoghi - frequente in cause di confine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2643",
+          "descrizione": "Trascrizione della sentenza di regolamento confini"
+        },
+        {
+          "fonte": "Cass. SU 14594/2021",
+          "descrizione": "Regolamento di confini - natura dell'azione e prova"
+        },
+        {
+          "fonte": "Cass. SU 9392/2019",
+          "descrizione": "Confini - prova documentale e catastale vs stato dei luoghi"
+        }
+      ],
+      "natura_dell_azione_di_regolamento_confini": {
+        "presupposto": "Incertezza o controversia sull'esatta linea divisoria tra due fondi contigui",
+        "differenza_da_azione_petitoria_ordinaria": "Non richiede prova di proprietà su di un bene specifico, ma accertamento della LINEA DIVISORIA",
+        "natura_petitoria": "È azione petitoria, non possessoria - accerta il confine di diritto",
+        "legittimazione": "Proprietario di uno dei due fondi o titolare di altro diritto reale",
+        "Cass_SU_14594_2021": "L'azione è petitoria - non serve provare lo sconfinamento, basta l'incertezza"
+      },
+      "prova_del_confine": {
+        "ordine_gerarchico_prevalente": [
+          "1. TITOLI DI PROPRIETÀ (atti notarili, catasto storico, planimetrie)",
+          "2. POSSESSO (da quanto tempo ciascuno possiede la striscia contestata)",
+          "3. OGNI ALTRO MEZZO (testimonianze, perizie, catasto attuale)",
+          "In assenza di altri elementi: DIVISIONE A METÀ (art. 950 c. 2)"
+        ],
+        "catasto": "Il catasto ha funzione fiscale, non probatoria del confine - è un indizio, non prova piena",
+        "ctu_topografica": "Quasi sempre necessaria - elemento centrale della decisione"
+      },
+      "presupposti_sostanziali": [
+        "FONDI CONTIGUI di proprietari diversi",
+        "INCERTEZZA o CONTESTAZIONE sul tracciato della linea divisoria",
+        "INTERESSE alla determinazione del confine"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEI TITOLI DI PROPRIETÀ",
+          "documenti": [
+            "Atti di acquisto di entrambi i fondi (e loro dante causa)",
+            "Visure catastali aggiornate di entrambi i fondi",
+            "Mappe catastali",
+            "Ispezioni Conservatoria",
+            "Eventuali planimetrie storiche",
+            "Eventuali atti di divisione o frazionamento pregressi"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLO STATO DEI LUOGHI",
+          "elementi": [
+            "Fotografie attuali con punti di riferimento",
+            "Fotografie aeree (storiche e attuali - disponibili su Google Maps/Bing)",
+            "Eventuali vecchie mappe (IGM, catasto storico)",
+            "Presenza di elementi fisici identificativi del confine (muri, fossati, alberi)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RILIEVO TOPOGRAFICO DI PARTE",
+          "rilevanza": "FONDAMENTALE per identificare il confine secondo i titoli e lo stato dei luoghi",
+          "contenuto": "Il topografo effettua misurazione precisa e individua la linea divisoria secondo i titoli"
+        },
+        {
+          "step": 4,
+          "descrizione": "TENTATIVI BONARI E MEDIAZIONE OBBLIGATORIA",
+          "vantaggio": "In materia di confini spesso si arriva ad accordo con apposizione dei termini"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_regolamento_confini",
+        "denominazione": "Atto di citazione per regolamento di confini ex art. 950 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_proprietario",
+            "label": "Attore - proprietario di uno dei fondi",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_proprietario_fondo_contiguo",
+            "label": "Convenuto - proprietario del fondo contiguo",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_attore",
+            "label": "Fondo dell'attore",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "fondo_convenuto",
+            "label": "Fondo del convenuto",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "incertezza_confine",
+            "label": "Descrizione dell'incertezza o contestazione del confine",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_della_situazione",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "tipo_contestazione",
+                "type": "select",
+                "options": [
+                  "mancanza_di_termini_fisici_visibili",
+                  "contestazione_su_titoli_divergenti",
+                  "spostamento_di_termini_da_parte_del_vicino",
+                  "differenza_tra_catasto_e_stato_dei_luoghi",
+                  "altra_incertezza"
+                ]
+              },
+              {
+                "id": "zona_del_confine_contestata",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "elementi_probatori_disponibili",
+            "label": "Elementi probatori disponibili per identificare il confine",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "titoli_di_proprieta_descrittivi",
+                "type": "boolean"
+              },
+              {
+                "id": "rilievo_topografico_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              },
+              {
+                "id": "testimonianze",
+                "type": "boolean"
+              },
+              {
+                "id": "mappe_storiche",
+                "type": "boolean"
+              },
+              {
+                "id": "elementi_fisici_storici_sul_posto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_e_determinazione_della_linea_di_confine",
+              "ordine_apposizione_termini_951",
+              "rimozione_di_termini_illegittimamente_spostati",
+              "trascrizione_sentenza",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "richiesta_ctu_topografica",
+            "label": "Richiesta CTU topografica",
+            "type": "boolean",
+            "default": true,
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "CTU topografica quasi sempre necessaria e centrale",
+          "In mancanza di prove: divisione a metà (art. 950 c. 2)",
+          "Catasto non prova piena del confine (solo indizio - Cass. SU 9392/2019)",
+          "Trascrizione sentenza per opponibilità"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titoli_proprieta_dei_due_fondi",
+          "label": "Titoli di proprietà di entrambi i fondi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_e_mappe_entrambi",
+          "label": "Visure catastali e mappe di entrambi i fondi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ispezioni_conservatoria",
+          "label": "Ispezioni Conservatoria",
+          "required": true
+        },
+        {
+          "id": "rilievo_topografico_di_parte",
+          "label": "Rilievo topografico di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_fotografica_stato_luoghi",
+          "label": "Documentazione fotografica dello stato dei luoghi",
+          "required": true
+        },
+        {
+          "id": "eventuali_mappe_storiche_e_planimetrie",
+          "label": "Eventuali mappe storiche e planimetrie",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_trascrizione_sentenza": "Imposta ipotecaria fissa",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "ctu_topografica_e_rilievo",
+          "trigger": "Quasi sempre disposta",
+          "molto_frequente": true,
+          "critico": true
+        },
+        {
+          "tipo": "sopralluogo_del_giudice",
+          "trigger": "Disposto dal giudice"
+        },
+        {
+          "tipo": "apposizione_termini_951",
+          "trigger": "Esecuzione sentenza"
+        },
+        {
+          "tipo": "trascrizione_sentenza",
+          "trigger": "Sentenza definitiva",
+          "norma": "art. 2643 c.c."
+        },
+        {
+          "tipo": "eventuale_cumulo_con_azione_possessoria",
+          "trigger": "Se anche profili possessori",
+          "codice_correlato": "130031"
+        },
+        {
+          "tipo": "eventuale_usucapione_striscia_contesa",
+          "trigger": "Se lungo possesso della striscia",
+          "codice_correlato": "130032"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "determinazione_giudiziale_del_confine",
+          "descrizione": "Confine stabilito con sentenza + apposizione termini"
+        },
+        {
+          "esito": "divisione_a_meta_per_assenza_prove",
+          "descrizione": "Art. 950 c. 2 - divisione equitativa"
+        },
+        {
+          "esito": "accertamento_confine_secondo_i_titoli",
+          "descrizione": "Confine determinato in base alla descrizione degli atti"
+        },
+        {
+          "esito": "transazione_con_atto_notarile_confine_concordato",
+          "descrizione": "Accordo (frequente) - atto notarile + trascrizione"
+        },
+        {
+          "esito": "rigetto_per_assenza_di_incertezza",
+          "descrizione": "Confine già certo - carenza di interesse"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "AZIONE IMPRESCRITTIBILE (finché persiste incertezza)",
+          "natura": "imprescrittibile"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "130060",
+      "codice_logico": "GUIDA_REGOLAMENTO_DI_CONFINI_TRA_FONDI_CONTIGUI_ART_950_C_C_130060",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130060"
+        }
+      ]
+    }
+  ]
+}

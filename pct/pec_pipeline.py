@@ -23,12 +23,14 @@ from email.message import EmailMessage, Message
 from email.utils import getaddresses, parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Iterable
+from zoneinfo import ZoneInfo
 
 from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_workflow import classifica_pec_legale
 
 SCHEMA_VERSION = "2026-05-21.pec-audit-pipeline.v2"
 DEFAULT_TENANT_ID = "default"
+ROME_TZ = ZoneInfo("Europe/Rome")
 ATTACHMENT_CLASSES = {
     "atto",
     "procura",
@@ -1250,11 +1252,8 @@ def _date_only(value: str) -> date | None:
 
 
 def _operational_due_date(source_date: date | None, *, lead_days: int) -> str:
-    base = source_date or date.today()
+    base = source_date or datetime.now(ROME_TZ).date()
     candidate = base + timedelta(days=max(0, lead_days))
-    today = date.today()
-    if candidate < today:
-        return today.isoformat()
     return candidate.isoformat()
 
 
@@ -1650,6 +1649,7 @@ class PecAuditRepository:
         fascicoli_db_path: str | Path | None = None,
         fascicoli_docs_path: str | Path | None = None,
         scadenziario_db_path: str | Path | None = None,
+        agenda_db_path: str | Path | None = None,
     ):
         self.db_path = Path(db_path)
         self.tenant_id = str(tenant_id or DEFAULT_TENANT_ID)
@@ -1657,6 +1657,7 @@ class PecAuditRepository:
         self.fascicoli_db_path = Path(fascicoli_db_path) if fascicoli_db_path else None
         self.fascicoli_docs_path = Path(fascicoli_docs_path) if fascicoli_docs_path else None
         self.scadenziario_db_path = Path(scadenziario_db_path) if scadenziario_db_path else None
+        self.agenda_db_path = Path(agenda_db_path) if agenda_db_path else None
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.ensure_schema()
 
@@ -2709,6 +2710,123 @@ class PecAuditRepository:
             return {"ok": True, "message": f"Richiesta preparata per: {labels}.", "missing": missing}
         return {"ok": True, "message": "Non risultano allegati obbligatori mancanti dal controllo automatico.", "missing": []}
 
+    def _agenda_datetime_candidates(self, target_date: str) -> list[str]:
+        text = clean_text(target_date)
+        if not text:
+            return []
+        try:
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except Exception:
+            parsed = datetime.combine(date.fromisoformat(text[:10]), datetime.min.time())
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(ROME_TZ).replace(tzinfo=None)
+        base_day = parsed.date()
+        candidates: list[datetime] = []
+        if parsed.hour or parsed.minute or parsed.second:
+            candidates.append(parsed.replace(second=0, microsecond=0))
+        for hour, minute in ((9, 0), (8, 30), (10, 0), (11, 30), (15, 0), (16, 30), (18, 0)):
+            candidate = datetime.combine(base_day, datetime.min.time()).replace(hour=hour, minute=minute)
+            if candidate not in candidates:
+                candidates.append(candidate)
+        return [candidate.isoformat(timespec="seconds") for candidate in candidates]
+
+    def _deadline_date_in_rome(self, target_date: str) -> date | None:
+        text = clean_text(target_date)
+        if not text:
+            return None
+        try:
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except Exception:
+            try:
+                return date.fromisoformat(text[:10])
+            except Exception:
+                return None
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(ROME_TZ)
+        return parsed.date()
+
+    def _is_expired_deadline_date(self, target_date: str) -> bool:
+        deadline_day = self._deadline_date_in_rome(target_date)
+        if deadline_day is None:
+            return False
+        return deadline_day < datetime.now(ROME_TZ).date()
+
+    def _sync_pec_deadline_to_agenda(
+        self,
+        *,
+        message_id: str,
+        title: str,
+        target_date: str,
+        proposal: dict[str, Any],
+        report: dict[str, Any],
+        linked_fascicolo_id: str = "",
+        deadline_id: str = "",
+        actor: str = "pec-api",
+    ) -> dict[str, Any]:
+        if not self.agenda_db_path:
+            return {"ok": False, "message": "Agenda non configurata per questa azione."}
+        try:
+            from pct.agenda import Agenda, TipoAppuntamento
+            from pct.ical_import import EventoImportato
+
+            agenda = Agenda(db_path=str(self.agenda_db_path))
+            event_uid = f"PEC_AUDIT:{message_id}:deadline"
+            description = "\n".join(
+                part
+                for part in (
+                    clean_text(proposal.get("reason")) or "Presidio operativo generato dalla PEC.",
+                    f"Fascicolo: {linked_fascicolo_id}" if linked_fascicolo_id else "",
+                    f"Scadenza: {deadline_id}" if deadline_id else "",
+                    f"Tipo evento: {proposal.get('source_event_type') or report.get('event_type') or '-'}",
+                    f"Decorrenza letta: {proposal.get('source_event_at') or '-'}",
+                    "Fonte: pipeline PEC audit-grade.",
+                )
+                if part
+            )
+            last_report: dict[str, Any] = {}
+            for data_ora in self._agenda_datetime_candidates(target_date):
+                event = EventoImportato(
+                    uid=event_uid,
+                    titolo=f"Presidio PEC - {title}"[:120],
+                    data_ora=data_ora,
+                    durata_minuti=30,
+                    tutto_giorno=False,
+                    luogo="Agenda studio",
+                    descrizione=description,
+                    stato_ical="CONFIRMED",
+                    organizzatore=actor,
+                )
+                last_report = agenda.upsert_da_evento_importato(
+                    event,
+                    provider="pec_audit",
+                    source_url=f"/api/pec/messages/{message_id}",
+                    profile_id="pec_scadenziario",
+                    default_tipo=TipoAppuntamento.SCADENZA,
+                    reminder_minuti=1440,
+                )
+                if last_report.get("outcome") != "conflict":
+                    appuntamento = last_report.get("appuntamento")
+                    agenda_id = str(getattr(appuntamento, "id", "") or "")
+                    if agenda_id and linked_fascicolo_id:
+                        try:
+                            appuntamento = agenda.modifica(agenda_id, procedimento=linked_fascicolo_id)
+                        except Exception:
+                            pass
+                    return {
+                        "ok": True,
+                        "message": "Scadenza PEC collegata anche all'agenda.",
+                        "agenda_id": agenda_id,
+                        "agenda_outcome": str(last_report.get("outcome") or ""),
+                        "agenda_href": f"/agenda/{agenda_id}" if agenda_id else "/agenda",
+                    }
+            return {
+                "ok": False,
+                "message": "Scadenza creata, ma l'agenda aveva già impegni sovrapposti negli orari di presidio.",
+                "agenda_outcome": str(last_report.get("outcome") or "conflict"),
+            }
+        except Exception as exc:
+            return {"ok": False, "message": f"Agenda non aggiornata: {exc}"}
+
     def schedule_deadline(self, message_id: str, *, actor: str = "pec-api", due_date: str = "") -> dict[str, Any]:
         if not self.scadenziario_db_path:
             return {"ok": False, "message": "Scadenziario non configurato per questa azione."}
@@ -2720,6 +2838,23 @@ class PecAuditRepository:
         target_date = due_date or clean_text(proposal.get("due_date"))
         if not target_date:
             return {"ok": False, "message": "Nessuna scadenza automatica calcolabile per questa PEC.", "proposal": proposal}
+        if self._is_expired_deadline_date(target_date):
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.deadline.skipped_expired",
+                    resource_type="pec_message",
+                    resource_id=message_id,
+                    payload={"due_date": target_date, "proposal": proposal},
+                    actor=actor,
+                )
+            return {
+                "ok": False,
+                "message": "Termine già superato: non riportato in scadenziario o agenda.",
+                "due_date": target_date,
+                "expired": True,
+                "proposal": proposal,
+            }
         title = clean_text(proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
         marker = f"PEC_AUDIT:{message_id}"
         try:
@@ -2728,11 +2863,28 @@ class PecAuditRepository:
             manager = GestioneScadenziario(db_path=str(self.scadenziario_db_path))
             for existing in manager.tutte(solo_aperte=False):
                 if marker in str(getattr(existing, "note", "") or ""):
+                    agenda = self._sync_pec_deadline_to_agenda(
+                        message_id=message_id,
+                        title=str(getattr(existing, "titolo", "") or title),
+                        target_date=str(getattr(existing, "operational_due_at", "") or getattr(existing, "data_scadenza", "") or target_date),
+                        proposal=proposal,
+                        report=report,
+                        linked_fascicolo_id=str(message.get("linked_fascicolo_id") or getattr(existing, "id_fascicolo", "") or ""),
+                        deadline_id=str(getattr(existing, "id", "") or ""),
+                        actor=actor,
+                    )
+                    agenda_id = str(agenda.get("agenda_id") or "")
+                    if agenda_id and not str(getattr(existing, "id_appuntamento", "") or ""):
+                        try:
+                            manager.aggiorna(str(getattr(existing, "id", "")), id_appuntamento=agenda_id)
+                        except Exception:
+                            pass
                     return {
                         "ok": True,
                         "message": "Scadenza automatica già presente nello scadenziario.",
                         "deadline_id": getattr(existing, "id", ""),
                         "due_date": getattr(existing, "data_scadenza", target_date),
+                        "agenda": agenda,
                         "already_exists": True,
                         "proposal": proposal,
                     }
@@ -2756,9 +2908,26 @@ class PecAuditRepository:
             )
         except Exception as exc:
             return {"ok": False, "message": f"Scadenza non creata: {exc}"}
+        agenda = self._sync_pec_deadline_to_agenda(
+            message_id=message_id,
+            title=title,
+            target_date=target_date,
+            proposal=proposal,
+            report=report,
+            linked_fascicolo_id=str(message.get("linked_fascicolo_id") or ""),
+            deadline_id=str(getattr(scadenza, "id", "") or ""),
+            actor=actor,
+        )
+        agenda_id = str(agenda.get("agenda_id") or "")
+        if agenda_id:
+            try:
+                manager.aggiorna(str(getattr(scadenza, "id", "")), id_appuntamento=agenda_id)
+                scadenza.id_appuntamento = agenda_id
+            except Exception:
+                pass
         with self.connect() as conn:
-            self.append_audit(conn, action="pec.deadline.scheduled", resource_type="pec_message", resource_id=message_id, payload={"deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "proposal": proposal}, actor=actor)
-        return {"ok": True, "message": "Scadenza automatica creata nello scadenziario.", "deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "proposal": proposal}
+            self.append_audit(conn, action="pec.deadline.scheduled", resource_type="pec_message", resource_id=message_id, payload={"deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "proposal": proposal, "agenda": agenda}, actor=actor)
+        return {"ok": True, "message": "Scadenza automatica creata nello scadenziario.", "deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "agenda": agenda, "proposal": proposal}
 
 
 def synthetic_pec_messages() -> list[tuple[str, bytes]]:

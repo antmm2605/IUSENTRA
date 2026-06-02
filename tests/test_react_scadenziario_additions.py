@@ -33,6 +33,11 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Hash audit" in page_source
     assert "OperativeCards" in page_source
     assert "Completa selezionate" in page_source
+    assert "Elimina selezionate" in page_source
+    assert "Elimina tutto" in page_source
+    assert "removePdfCandidates" in page_source
+    assert "Anteprima PDF svuotata" in page_source
+    assert "maxDocuments: fascicoloId ? 0 : 25" in page_source
     assert "FloatingLex" in page_source
     assert 'context="scadenziario"' in page_source
     assert "postDeadlineAction" in page_source
@@ -47,6 +52,8 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert '@api_v1_react.post("/scadenziario/termini/override")' in api_source
     assert ".iu-scad-page" in css
     assert ".iu-scad-calculator" in css
+    assert ".iu-scad-pdf-danger-btn" in css
+    assert ".iu-scad-pdf-row-delete" in css
     assert "@media(max-width:760px)" in css
     assert "prefers-reduced-motion" in css
 

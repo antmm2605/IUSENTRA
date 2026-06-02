@@ -1,0 +1,2150 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET11_PARTE1",
+  "denominazione": "Undicesimo set di 9 codici - PARTE 1 di 2",
+  "registri": [
+    "SICID",
+    "SIVG",
+    "SILP"
+  ],
+  "data_generazione": "2026-06-02",
+  "scopo": "Parte 1 del set 11: FGVS, decadenza responsabilità genitoriale, somministrazione, liquidazione SRL, distacco lavoratore",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RESPONSABILIT_DA_CIRCOLAZIONE_STRADALE_SINISTRO_CON_VEICOLO_NON_ASSICURA_160030",
+      "denominazione": "Responsabilità da circolazione stradale - sinistro con veicolo non assicurato/non identificato (Fondo di Garanzia Vittime della Strada)",
+      "categoria": "Responsabilità civile - RC veicoli - casi speciali",
+      "sottocategoria": "Azione risarcitoria verso il Fondo di Garanzia Vittime della Strada (FGVS) gestito da Consap quando il responsabile è non assicurato, non identificato o con assicuratore in liquidazione",
+      "rito": "Rito ordinario di cognizione; negoziazione assistita obbligatoria ex D.L. 132/2014 per RC veicoli",
+      "competenza": "Tribunale del luogo del sinistro o del domicilio del danneggiato (foro consumatore Cass. SU 23633/2022)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "Cod. Ass. D.Lgs. 209/2005",
+          "articolo": "283-286",
+          "descrizione": "Fondo di Garanzia Vittime della Strada - casi di operatività"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "283 c. 1 lett. a",
+          "descrizione": "Veicolo non identificato che abbia causato solo danni alla persona"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "283 c. 1 lett. b",
+          "descrizione": "Veicolo non assicurato (circolazione senza assicurazione RCA obbligatoria)"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "283 c. 1 lett. c",
+          "descrizione": "Impresa di assicurazione in liquidazione coatta"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "283 c. 1 lett. d",
+          "descrizione": "Veicolo assicurato presso impresa estera non aderente al CBNI"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "286",
+          "descrizione": "Impresa designata - scelta del FGVS e modalità di indennizzo"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "287",
+          "descrizione": "Diritto di rivalsa del FGVS sul responsabile o sull'assicuratore"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "148",
+          "descrizione": "Termini per formulazione offerta (60 gg cose / 90 gg persone)"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "3",
+          "descrizione": "Negoziazione assistita obbligatoria per RC veicoli"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2054",
+          "descrizione": "Responsabilità da circolazione veicoli"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione 2 anni dal sinistro (per azione verso FGVS)"
+        },
+        {
+          "fonte": "Cass. SU 6706/2015",
+          "descrizione": "Veicolo non identificato - danni alle cose non risarcibili dal FGVS"
+        },
+        {
+          "fonte": "Cass. SU 17019/2023",
+          "descrizione": "Rimborso spese mediche da FGVS per veicolo non identificato"
+        }
+      ],
+      "casi_di_operativita_del_FGVS": {
+        "veicolo_non_identificato_283_lett_a": [
+          "Il responsabile è fuggito e non identificato",
+          "SOLO danni alla PERSONA (non alle cose - Cass. SU 6706/2015)",
+          "Eccetto rimborso spese mediche ammesso (Cass. SU 17019/2023)"
+        ],
+        "veicolo_non_assicurato_283_lett_b": [
+          "Veicolo identificato ma privo di RCA obbligatoria",
+          "Danni ALLA PERSONA e ALLE COSE risarcibili",
+          "FGVS si rivale poi sul proprietario/conducente"
+        ],
+        "impresa_in_liquidazione_283_lett_c": [
+          "Impresa di assicurazione del responsabile in liquidazione coatta",
+          "Il FGVS si sostituisce all'assicuratore insolvente"
+        ],
+        "impresa_estera_non_aderente_CBNI": [
+          "Veicolo straniero con assicuratore non aderente al Convenio"
+        ]
+      },
+      "impresa_designata_286": {
+        "chi_e": "Impresa di assicurazione designata da FGVS/Consap per la gestione del sinistro nella provincia del danneggiato",
+        "come_identificarla": "Sito Consap o contatto diretto Consap (www.consap.it)",
+        "litisconsorti": "L'azione va proposta sia verso il FGVS (tramite Consap) che verso l'impresa designata (come litisconsorte necessario)"
+      },
+      "obbligo_mediazione": {
+        "negoziazione_assistita_obbligatoria": true,
+        "fonte": "D.L. 132/2014 art. 3",
+        "materia": "RC veicoli - condizione di procedibilità",
+        "termine_offerta_impresa_designata": "60 gg per danni a cose / 90 gg per danni alla persona"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE CASO FGVS",
+          "verifiche": [
+            "Veicolo non identificato vs non assicurato vs impresa in liquidazione",
+            "Per non assicurato: verifica tramite SIEV (Sistema Informativo Elettronico Veicoli) o PRA",
+            "Raccogliere verbale FFOO e tutti i dati del sinistro"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE IMPRESA DESIGNATA",
+          "modalita": "Contatto Consap (www.consap.it) per identificare impresa designata nella provincia del danneggiato"
+        },
+        {
+          "step": 3,
+          "descrizione": "DENUNCIA/RICHIESTA RISARCIMENTO ALLA IMPRESA DESIGNATA",
+          "contenuto": [
+            "Relazione dettagliata del sinistro",
+            "Documentazione danni",
+            "Documentazione sanitaria",
+            "Documentazione identità e dati del danneggiato"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "NEGOZIAZIONE ASSISTITA OBBLIGATORIA",
+          "norma": "D.L. 132/2014 art. 3 - condizione di procedibilità"
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA PRESCRIZIONE",
+          "termine": "2 ANNI dal sinistro (o dalla scoperta del danno) - art. 2947 c.c.",
+          "interruzione": "Richiesta risarcimento scritta + negoziazione assistita"
+        },
+        {
+          "step": 6,
+          "descrizione": "QUANTIFICAZIONE DANNI",
+          "metodologia": [
+            "Tabelle Milano 2024 / uniformi Cass. SU 6651/2024 per danno biologico",
+            "Danni a cose: preventivi/fatture riparazione veicolo",
+            "Spese mediche"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_sinistro_FGVS",
+        "denominazione": "Atto di citazione per risarcimento danni da sinistro stradale con FGVS ex artt. 283-287 Cod. Ass.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "label": "Danneggiato attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "FGVS_convenuto",
+            "label": "FGVS - Consap S.p.A. (convenuta principale)",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "note": "Consap S.p.A. - Via Yser 14 - 00198 Roma"
+          },
+          {
+            "id": "impresa_designata_convenuta",
+            "label": "Impresa designata convenuta (litisconsorte necessario)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "responsabile_non_assicurato_eventuale",
+            "label": "Responsabile non assicurato (se identificato)",
+            "type": "object_persona"
+          },
+          {
+            "id": "caso_FGVS",
+            "label": "Caso di operatività FGVS",
+            "type": "select",
+            "required": true,
+            "options": [
+              "veicolo_non_identificato_283_lett_a",
+              "veicolo_non_assicurato_283_lett_b",
+              "impresa_in_liquidazione_283_lett_c",
+              "impresa_estera_non_aderente_283_lett_d"
+            ]
+          },
+          {
+            "id": "sinistro",
+            "label": "Sinistro stradale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo",
+                "type": "address"
+              },
+              {
+                "id": "dinamica",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "verbale_ffoo",
+                "type": "boolean"
+              },
+              {
+                "id": "dati_veicolo_responsabile_se_noti",
+                "type": "object"
+              }
+            ]
+          },
+          {
+            "id": "danni_subiti",
+            "label": "Danni subiti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_biologico",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "invalidita_permanente_percentuale",
+                    "type": "percentage"
+                  },
+                  {
+                    "id": "giorni_invalidita_temporanea",
+                    "type": "integer"
+                  },
+                  {
+                    "id": "valore_tabellare",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "danno_morale",
+                "type": "currency"
+              },
+              {
+                "id": "spese_mediche",
+                "type": "currency"
+              },
+              {
+                "id": "danni_veicolo_e_cose",
+                "type": "currency",
+                "note": "Solo per non assicurato - non per veicolo non identificato"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "richiesta_pregressa_e_negoziazione",
+            "label": "Richiesta pregressa e negoziazione assistita",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_richiesta_impresa_designata",
+                "type": "date"
+              },
+              {
+                "id": "esito_negoziazione_assistita",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_FGVS_e_impresa_designata_risarcimento_integrale",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "FGVS operativo solo nei 4 casi ex art. 283 Cod. Ass.",
+          "Per veicolo NON IDENTIFICATO: solo danni alla persona (non alle cose)",
+          "Litisconsorte necessario: FGVS (Consap) + impresa designata",
+          "Negoziazione assistita obbligatoria preventiva",
+          "Prescrizione 2 anni dal sinistro",
+          "Impresa designata: identificare tramite Consap in base alla provincia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbale_ffoo_sinistro",
+          "label": "Verbale FFOO del sinistro",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_caso_FGVS",
+          "label": "Documentazione del caso FGVS (es. visura PRA per non assicurato)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria",
+          "label": "Documentazione sanitaria completa",
+          "required_if": "danno_biologico"
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_danni_veicolo",
+          "label": "Documentazione danni veicolo (solo non assicurato)",
+          "required_if": "caso=non_assicurato"
+        },
+        {
+          "id": "verbale_negoziazione_assistita",
+          "label": "Verbale negoziazione assistita",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "negoziazione_assistita_obbligatoria",
+          "trigger": "Condizione procedibilità",
+          "critico": true
+        },
+        {
+          "tipo": "ctu_medico_legale",
+          "trigger": "Per danno biologico",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "ctu_tecnica_ricostruzione_sinistro",
+          "trigger": "Per dinamica contestata"
+        },
+        {
+          "tipo": "rivalsa_FGVS_su_responsabile",
+          "trigger": "Post condanna - FGVS si rivale sul non assicurato",
+          "norma": "art. 287 Cod. Ass."
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_FGVS_e_impresa_designata",
+          "descrizione": "Risarcimento integrale a carico del FGVS tramite impresa designata"
+        },
+        {
+          "esito": "rigetto_per_assenza_presupposti_FGVS",
+          "descrizione": "Caso non rientrante nei 4 casi ex art. 283"
+        },
+        {
+          "esito": "rigetto_parziale_cose_per_veicolo_non_identificato",
+          "descrizione": "Solo danni alla persona ammessi"
+        },
+        {
+          "esito": "transazione_con_impresa_designata",
+          "descrizione": "Accordo risarcitorio"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 2,
+          "decorrenza": "sinistro o scoperta danno",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Termine offerta impresa designata - danni a cose",
+          "giorni": 60,
+          "norma": "art. 148 Cod. Ass."
+        },
+        {
+          "termine": "Termine offerta impresa designata - danni alla persona",
+          "giorni": 90,
+          "norma": "art. 148 Cod. Ass."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "160030",
+      "codice_logico": "GUIDA_RESPONSABILIT_DA_CIRCOLAZIONE_STRADALE_SINISTRO_CON_VEICOLO_NON_ASSICURA_160030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DECADENZA_LIMITAZIONE_DELLA_RESPONSABILIT_GENITORIALE_E_AFFIDAMENTO_FAMI_113001",
+      "denominazione": "Decadenza/limitazione della responsabilità genitoriale e affidamento familiare (artt. 330-336 c.c.)",
+      "categoria": "Persone e famiglia - protezione del minore",
+      "sottocategoria": "Procedimenti a tutela del minore contro l'inadeguatezza genitoriale: decadenza, limitazione, sospensione, nomina tutore, affidamento",
+      "rito": "Rito camerale ex art. 336 c.c. + 473-bis c.p.c. (post-Cartabia) davanti al Tribunale per le persone/Tribunale ordinario sezione famiglia",
+      "competenza": "Tribunale ordinario - sezione famiglia; residenza abituale del minore",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "330",
+          "descrizione": "Decadenza dalla responsabilità genitoriale - abuso, abbandono, violazione obblighi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "331",
+          "descrizione": "Reintegrazione nella responsabilità genitoriale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "332",
+          "descrizione": "Ablazione parziale della potestà - limitazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "333",
+          "descrizione": "Condotta del genitore pregiudizievole - misure meno radicali della decadenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "334",
+          "descrizione": "Allontanamento del genitore dalla casa familiare"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "335",
+          "descrizione": "Reintegrazione se cessa la causa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "336",
+          "descrizione": "Procedimento - su ricorso o d'ufficio del PM"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "336-bis",
+          "descrizione": "Ascolto del minore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-bis e ss.",
+          "descrizione": "Esercizio responsabilità genitoriale nei procedimenti di separazione ecc."
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "4 e ss.",
+          "descrizione": "Affidamento familiare - casi e procedura"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.4",
+          "descrizione": "Procedimento unitario persone e famiglia post-Cartabia"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022 (Cartabia)",
+          "descrizione": "Riforma del processo persone e famiglia"
+        },
+        {
+          "fonte": "CEDU art. 8",
+          "descrizione": "Diritto alla vita familiare - bilanciamento con tutela del minore"
+        },
+        {
+          "fonte": "Cass. SU 10242/2021",
+          "descrizione": "Decadenza responsabilità genitoriale - presupposti e proporzionalità"
+        },
+        {
+          "fonte": "Cass. SU 6438/2022",
+          "descrizione": "Affidamento familiare - tutela del minore"
+        }
+      ],
+      "scala_degli_interventi_art_330_333_334": {
+        "principio": "Intervento graduato e proporzionale - prima misure meno invasive, poi quelle più radicali",
+        "misure_art_333_meno_radicali": [
+          "Ammonimento genitoriale",
+          "Prescrizione al genitore di seguire programmi di supporto alla genitorialità",
+          "Limitazione dell'esercizio della responsabilità su specifici atti",
+          "Allontanamento del genitore dalla casa familiare (334)"
+        ],
+        "misure_intermedie": [
+          "Limitazione della responsabilità genitoriale (332)",
+          "Sospensione temporanea",
+          "Controllo giudiziale sulla gestione"
+        ],
+        "decadenza_art_330_misura_estrema": [
+          "Solo per condotte gravissime: abuso, maltrattamenti, abbandono, violazione grave e reiterata degli obblighi",
+          "Effetto: perdita di tutti i poteri genitoriali",
+          "Reversibile se cessa la causa (335)",
+          "Necessaria proporzionalità (Cass. SU 10242/2021)"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Per DECADENZA (330): abuso dei poteri, violazione grave e reiterata degli obblighi, comportamenti pregiudizievoli per il figlio",
+        "Per LIMITAZIONE (332-333): condotta del genitore che, pur non integrando decadenza, è pregiudizievole per il minore",
+        "Per ALLONTANAMENTO (334): condotta del genitore che mette in pericolo il figlio nella casa",
+        "INTERESSE SUPERIORE DEL MINORE come criterio guida",
+        "PROPORZIONALITÀ della misura alla gravità della condotta"
+      ],
+      "legittimati_attivi": [
+        "L'ALTRO GENITORE",
+        "PM (può agire d'ufficio o su segnalazione servizi sociali)",
+        "PARENTI ENTRO IL QUARTO GRADO",
+        "Il MINORE STESSO (assistito da curatore speciale)",
+        "SERVIZI SOCIALI (segnalazione al PM)",
+        "GIUDICE D'UFFICIO (per protezione urgente)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Tutela del minore - urgenza e rilevanza pubblicistica"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLA CONDOTTA PREGIUDIZIEVOLE",
+          "documenti": [
+            "Relazioni dei servizi sociali (fondamentale)",
+            "Eventuali relazioni sanitarie/psicologiche sul minore",
+            "Segnalazioni/denunce penali se comportamenti configurano reati",
+            "Testimonianze",
+            "Fotografie o altri documenti dei danni subiti",
+            "Verbali FFOO se intervenuti"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VALUTAZIONE PROPORZIONALITÀ",
+          "scala": [
+            "Prima valutare misure meno invasive (333, 334)",
+            "Decadenza solo se misure meno invasive risulterebbero insufficienti",
+            "Considerare possibilità di recupero genitoriale"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "COINVOLGIMENTO SERVIZI SOCIALI",
+          "rilevanza": "La CTU e le relazioni dei Servizi Sociali sono centrali in questi procedimenti",
+          "coordinamento": "Spesso necessario coordinamento con Servizi Sociali e Consultori"
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE AFFIDAMENTO FAMILIARE COME ALTERNATIVA",
+          "norma": "L. 184/1983",
+          "quando": "Se la decadenza è disposta e il minore non può stare con l'altro genitore"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_decadenza_limitazione_responsabilita_genitoriale",
+        "denominazione": "Ricorso per decadenza/limitazione della responsabilità genitoriale ex artt. 330-336 c.c.",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione famiglia",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_richiesta",
+            "label": "Tipo di richiesta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "decadenza_totale_330",
+              "limitazione_responsabilita_332_333",
+              "allontanamento_casa_334",
+              "sospensione_temporanea",
+              "affidamento_familiare_L_184_1983"
+            ]
+          },
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "altro_genitore",
+                  "PM",
+                  "parente_entro_4_grado",
+                  "curatore_speciale_minore",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "genitore_convenuto",
+            "label": "Genitore di cui si chiede decadenza/limitazione",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "minore",
+            "label": "Minore oggetto del procedimento",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "attuale_convivenza",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "condotte_pregiudizievoli",
+            "label": "Condotte pregiudizievoli del genitore convenuto",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipologie",
+                "type": "select_multi",
+                "options": [
+                  "abuso_fisico_o_psicologico",
+                  "maltrattamenti",
+                  "abbandono",
+                  "trascuratezza_grave",
+                  "violenza_assistita_verso_altro_genitore",
+                  "violazione_reiterata_obblighi_mantenimento",
+                  "comportamenti_pregiudizievoli_minore_pur_non_abusivi",
+                  "dipendenze_gravi",
+                  "problemi_salute_mentale_non_trattati",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 600
+              },
+              {
+                "id": "periodicita_e_durata",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "pregiudizio_per_il_minore",
+            "label": "Pregiudizio concreto per il minore",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "proporzionalita_misura_richiesta",
+            "label": "Motivazione proporzionalità della misura",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "richiesta_misure_provvisorie_urgenti",
+            "label": "Richiesta misure urgenti (473-bis.15)",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "decadenza_responsabilita_genitoriale_330",
+              "limitazione_responsabilita_genitoriale_332_333",
+              "allontanamento_dalla_casa_familiare_334",
+              "affidamento_esclusivo_minore_all_altro_genitore",
+              "affidamento_familiare_L_184_1983",
+              "nomina_tutore_se_entrambi_decaduti",
+              "nomina_curatore_speciale",
+              "regolamentazione_visite_supervisionate",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Scala proporzionale: prima misure meno invasive (333), poi decadenza (330)",
+          "Proporzionalità rigorosa (Cass. SU 10242/2021)",
+          "Audizione obbligatoria del minore >12 anni o capace (336-bis)",
+          "Parere PM obbligatorio - PM può intervenire d'ufficio",
+          "Relazioni Servizi Sociali centrali",
+          "CEDU art. 8: necessità di bilanciamento con diritto alla vita familiare",
+          "Reintegrazione possibile al cessare della causa (331, 335)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "relazioni_servizi_sociali",
+          "label": "Relazioni servizi sociali",
+          "required": false,
+          "fortemente_consigliato": true,
+          "critico": true
+        },
+        {
+          "id": "atti_nascita_minore_e_stato_famiglia",
+          "label": "Atti di nascita del minore + stato famiglia",
+          "required": true
+        },
+        {
+          "id": "documentazione_condotte_pregiudizievoli",
+          "label": "Documentazione condotte pregiudizievoli",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_denuncia_penale_o_sentenza",
+          "label": "Eventuale denuncia penale o sentenza penale",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "relazioni_psicologiche_o_sanitarie_minore",
+          "label": "Relazioni psicologiche/sanitarie sul minore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "testimonianze_scritte",
+          "label": "Testimonianze scritte (se disponibili)",
+          "required": false
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente - protezione minore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati minori"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "misure_urgenti_473_bis_15",
+          "trigger": "Pericolo imminente per il minore"
+        },
+        {
+          "tipo": "ctu_psicologica_sulla_coppia_e_il_minore",
+          "trigger": "Quasi sempre disposta",
+          "critico": true
+        },
+        {
+          "tipo": "audizione_minore_336_bis",
+          "trigger": ">12 anni o capace discernimento",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "coinvolgimento_servizi_sociali_e_relazioni_periodiche",
+          "trigger": "Spesso disposto dal giudice"
+        },
+        {
+          "tipo": "parere_PM_obbligatorio",
+          "trigger": "Sempre",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "reintegrazione_330_ss_se_recupero_genitore",
+          "trigger": "Dopo percorso terapeutico"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Decreto/sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "decadenza_responsabilita_genitoriale",
+          "descrizione": "Perdita di tutti i poteri genitoriali"
+        },
+        {
+          "esito": "limitazione_responsabilita_con_misure_di_supporto",
+          "descrizione": "Misure meno invasive con prescrizioni"
+        },
+        {
+          "esito": "allontanamento_genitore_dalla_casa",
+          "descrizione": "Misura cautelare o definitiva"
+        },
+        {
+          "esito": "affidamento_familiare_temporaneo",
+          "descrizione": "Minore collocato presso famiglia affidataria"
+        },
+        {
+          "esito": "rigetto_per_non_sussistenza_condotte_gravi",
+          "descrizione": "Condotte non integranti i presupposti"
+        },
+        {
+          "esito": "rigetto_per_sproporzione_della_misura_richiesta",
+          "descrizione": "Misura richiesta sproporzionata rispetto alla condotta"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Misure urgenti",
+          "natura": "immediata su richiesta",
+          "norma": "art. 473-bis.15 c.p.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica provvedimento",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "113001",
+      "codice_logico": "GUIDA_DECADENZA_LIMITAZIONE_DELLA_RESPONSABILIT_GENITORIALE_E_AFFIDAMENTO_FAMI_113001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "113001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "113001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "113001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_SOMMINISTRAZIONE_PER_INADEMPIMENTO_ARTT_1559_15_141010",
+      "denominazione": "Risoluzione contratto di somministrazione per inadempimento (artt. 1559-1570 c.c.)",
+      "categoria": "Contratti - contratti di durata",
+      "sottocategoria": "Azione per risoluzione del contratto di somministrazione (fornitura continuativa di beni o servizi) + danni",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - foro esecuzione contratto o residenza convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1559",
+          "descrizione": "Nozione di somministrazione - prestazione periodica o continuativa di cose"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1560",
+          "descrizione": "Quantità della somministrazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1561",
+          "descrizione": "Corrispettivo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1562",
+          "descrizione": "Condizioni particolari di qualità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1564",
+          "descrizione": "Inadempimento di una singola prestazione - risoluzione solo se di notevole importanza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1565",
+          "descrizione": "Clausola di preferenza - patto di esclusiva unilaterale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1566",
+          "descrizione": "Patto di esclusiva bilaterale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1567",
+          "descrizione": "Divieto di concorrenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1568",
+          "descrizione": "Recesso unilaterale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1569",
+          "descrizione": "Recesso con preavviso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1570",
+          "descrizione": "Applicazione delle norme sulla vendita"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1453-1458",
+          "descrizione": "Risoluzione per inadempimento (diritto comune)"
+        },
+        {
+          "fonte": "Cass. SU 11985/2016",
+          "descrizione": "Somministrazione - risoluzione per singola prestazione di notevole importanza"
+        },
+        {
+          "fonte": "Cass. SU 4564/2023",
+          "descrizione": "Esclusiva e somministrazione - conseguenze della violazione"
+        }
+      ],
+      "differenza_da_altri_contratti": {
+        "vs_vendita": "La somministrazione è una fornitura CONTINUATIVA/PERIODICA - non singola - le prestazioni si ripetono nel tempo",
+        "vs_appalto": "Somministrazione: fornitura di COSE - Appalto: fornitura di SERVIZI o OPERA",
+        "vs_locazione": "Somministrazione: trasferimento di proprietà delle cose - Locazione: solo godimento"
+      },
+      "regola_speciale_inadempimento_singola_prestazione_1564": {
+        "principio": "L'inadempimento di una singola prestazione NON giustifica automaticamente la risoluzione",
+        "eccezione": "Risoluzione ammessa se l'inadempimento ha NOTEVOLE IMPORTANZA tenuto conto dell'interesse dell'altro contraente",
+        "valutazione": "Dipende dall'incidenza dell'inadempimento sull'economia complessiva del contratto"
+      },
+      "presupposti_sostanziali": [
+        "CONTRATTO DI SOMMINISTRAZIONE valido (fornitura continuativa o periodica di cose)",
+        "INADEMPIMENTO grave di una delle parti:",
+        "- Mancata/irregolare consegna delle prestazioni",
+        "- Mancato pagamento del corrispettivo",
+        "- Violazione dell'esclusiva (1565-1566)",
+        "- Violazione del divieto di concorrenza (1567)",
+        "- Vizi delle cose somministrate",
+        "NOTEVOLE IMPORTANZA dell'inadempimento (per singola prestazione - art. 1564)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE CONTRATTO DI SOMMINISTRAZIONE",
+          "documenti": [
+            "Contratto scritto + eventuali integrazioni",
+            "Eventuali ordini/fatture nel corso del rapporto",
+            "Estratti conto/documenti di pagamento",
+            "Clausole di esclusiva",
+            "Clausole di recesso"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'INADEMPIMENTO",
+          "elementi": [
+            "Per mancata fornitura: ordini inevasi, corrispondenza",
+            "Per vizi delle cose: perizia, contestazioni scritte",
+            "Per mancato pagamento: estratti conto, insoluti",
+            "Per violazione esclusiva: prove delle forniture a terzi"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VALUTAZIONE NOTEVOLE IMPORTANZA (art. 1564)",
+          "criteri": [
+            "Frequenza e gravità degli inadempimenti",
+            "Incidenza sull'economia complessiva del contratto",
+            "Pregiudizio concreto per il contraente",
+            "Possibilità di fiducia futura nel rispetto del contratto"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "QUANTIFICAZIONE DANNI",
+          "voci": [
+            "Danni da mancata fornitura (costi di approvvigionamento alternativo)",
+            "Danni da forniture difettose (riparazioni, sostituzioni)",
+            "Danni da violazione esclusiva (lucro cessante)",
+            "Danni da recesso anticipato illegittimo"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_somministrazione",
+        "denominazione": "Atto di citazione per risoluzione contratto di somministrazione ex artt. 1559-1570 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "somministrante",
+                  "somministrato"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "label": "Convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto",
+            "label": "Contratto di somministrazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "oggetto_beni_somministrati",
+                "type": "textarea"
+              },
+              {
+                "id": "corrispettivo_periodico",
+                "type": "currency"
+              },
+              {
+                "id": "durata_e_tipo",
+                "type": "select",
+                "options": [
+                  "durata_determinata",
+                  "durata_indeterminata_con_recesso_preavviso",
+                  "a_bisogno"
+                ]
+              },
+              {
+                "id": "clausola_esclusiva",
+                "type": "boolean"
+              },
+              {
+                "id": "clausola_divieto_concorrenza",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "inadempimento",
+            "label": "Inadempimento contestato",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipologia",
+                "type": "select_multi",
+                "options": [
+                  "mancata_fornitura",
+                  "forniture_irregolari_o_parziali",
+                  "vizi_della_cosa_somministrata",
+                  "mancato_pagamento_corrispettivo",
+                  "violazione_esclusiva_1565_1566",
+                  "violazione_divieto_concorrenza_1567",
+                  "recesso_illegittimo_senza_preavviso",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "notevole_importanza_ai_sensi_1564",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Danni richiesti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "danni_emergenti",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risoluzione_contratto_per_inadempimento",
+              "condanna_pagamento_corrispettivi_arretrati",
+              "condanna_risarcimento_danni",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Per singola prestazione: risoluzione solo se inadempimento di NOTEVOLE IMPORTANZA (art. 1564)",
+          "Verifica clausole di esclusiva e di recesso con preavviso",
+          "Prescrizione ordinaria 10 anni per contrattuale",
+          "Termine a comparire 120 gg post-Cartabia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_di_somministrazione",
+          "label": "Contratto di somministrazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_inadempimento",
+          "label": "Documentazione dell'inadempimento (ordini, fatture, corrispondenza)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contestazioni_scritte_pregresse",
+          "label": "Contestazioni scritte pregresse al convenuto",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_danni",
+          "label": "Documentazione dei danni (costi alternativi, fatture)",
+          "required_if": "danni_richiesti"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_tecnica_o_contabile_su_inadempimento",
+          "trigger": "Disposta dal giudice"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "risoluzione_e_risarcimento",
+          "descrizione": "Risoluzione + condanna danni"
+        },
+        {
+          "esito": "rigetto_per_inadempimento_non_di_notevole_importanza",
+          "descrizione": "Singola prestazione non sufficiente"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con eventuale nuovo contratto"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 10,
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "141010",
+      "codice_logico": "GUIDA_RISOLUZIONE_CONTRATTO_DI_SOMMINISTRAZIONE_PER_INADEMPIMENTO_ARTT_1559_15_141010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_S_R_L_ARTT_2484_2496_C_C_154001",
+      "denominazione": "Scioglimento e liquidazione di S.r.l. (artt. 2484-2496 c.c.)",
+      "categoria": "Diritto societario - vicende estintive S.r.l.",
+      "sottocategoria": "Accertamento delle cause di scioglimento + procedura di liquidazione di S.r.l.",
+      "rito": "Rito ordinario di cognizione per controversie + procedimento camerale per nomina liquidatori",
+      "competenza": "Tribunale delle imprese - sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2484",
+          "descrizione": "Cause di scioglimento della S.r.l."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2485",
+          "descrizione": "Obblighi degli amministratori al verificarsi della causa di scioglimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2486",
+          "descrizione": "Poteri degli amministratori dopo lo scioglimento - solo atti conservativi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2487",
+          "descrizione": "Nomina dei liquidatori - da parte dei soci o del tribunale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2487-bis",
+          "descrizione": "Iscrizione nomina liquidatori nel registro imprese"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2488",
+          "descrizione": "Poteri dei liquidatori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2490",
+          "descrizione": "Obblighi dei liquidatori - bilancio iniziale e finali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2491",
+          "descrizione": "Ripartizione dell'attivo tra i soci"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2492",
+          "descrizione": "Bilancio finale di liquidazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2493",
+          "descrizione": "Responsabilità dei liquidatori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2494",
+          "descrizione": "Cancellazione della società dal registro imprese"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2495",
+          "descrizione": "Cancellazione - effetti + sopravvenienze attive e passive"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2496",
+          "descrizione": "Libri sociali dopo cancellazione"
+        },
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "2 e ss.",
+          "descrizione": "Codice della crisi - per società insolventi: liquidazione giudiziale"
+        },
+        {
+          "fonte": "Cass. SU 6070/2013",
+          "descrizione": "Cancellazione S.r.l. - effetti sui debiti residui (trasferimento ai soci)"
+        },
+        {
+          "fonte": "Cass. SU 4628/2020",
+          "descrizione": "Responsabilità liquidatori per omessa liquidazione di crediti"
+        }
+      ],
+      "cause_di_scioglimento_srl_2484": [
+        "Decorso del TERMINE DI DURATA (salvo proroga)",
+        "CONSEGUIMENTO dell'oggetto sociale o sopravvenuta impossibilità",
+        "IMPOSSIBILITÀ DI FUNZIONAMENTO o continuata INATTIVITÀ dell'assemblea",
+        "RIDUZIONE DEL CAPITALE al di sotto del minimo legale (senza reintegrazione o trasformazione)",
+        "Delibera assembleare di SCIOGLIMENTO ANTICIPATO",
+        "Altre cause previste DALL'ATTO COSTITUTIVO",
+        "DICHIARAZIONE DI LIQUIDAZIONE GIUDIZIALE (ex fallimento)"
+      ],
+      "obblighi_amministratori_post_scioglimento_2485_2486": [
+        "Accertare senza indugio il verificarsi della causa di scioglimento",
+        "Convocare l'assemblea per delibera di messa in liquidazione + nomina liquidatori",
+        "Dal verificarsi della causa: SOLO ATTI CONSERVATIVI (non nuovi affari)",
+        "Responsabilità personale per atti non conservativi compiuti dopo scioglimento"
+      ],
+      "presupposti_sostanziali": [
+        "S.R.L. valida e iscritta nel registro imprese",
+        "VERIFICARSI DI UNA CAUSA DI SCIOGLIMENTO (ex art. 2484)",
+        "Eventuale DISACCORDO TRA SOCI su messa in liquidazione o nomina liquidatori",
+        "Eventuale inadempimento degli obblighi post-scioglimento da parte degli amministratori"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA CAUSA DI SCIOGLIMENTO",
+          "documenti": [
+            "Atto costitutivo e statuto (per durata e cause speciali)",
+            "Visura camerale aggiornata",
+            "Bilanci ultimi 3 anni (per verifica capitale)",
+            "Verbali assemblee recenti",
+            "Eventuale dichiarazione di insolvenza o CCII"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "TENTATIVO DI MESSA IN LIQUIDAZIONE CONSENSUALE",
+          "modalita": [
+            "Convocazione assemblea per delibera scioglimento + nomina liquidatori",
+            "Iscrizione nel registro delle imprese"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "SE DISACCORDO TRA SOCI: ACCERTAMENTO GIUDIZIALE",
+          "azione": "Azione per accertamento della causa di scioglimento + nomina giudiziale dei liquidatori"
+        },
+        {
+          "step": 4,
+          "descrizione": "SE INSOLVENZA: VALUTAZIONE CCII",
+          "alternativa": "Se la S.r.l. è insolvente → liquidazione giudiziale D.Lgs. 14/2019 (ex fallimento)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_scioglimento_liquidazione_srl",
+        "denominazione": "Atto di citazione per scioglimento e messa in liquidazione S.r.l. ex artt. 2484 e ss. c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale delle imprese - sede società",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_socio_o_creditore",
+            "label": "Attore (socio o creditore)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "srl_convenuta_e_amministratori",
+            "label": "S.r.l. convenuta e amministratori",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "altri_soci_litisconsorti",
+            "label": "Altri soci (litisconsorti necessari)",
+            "type": "array_persone"
+          },
+          {
+            "id": "societa",
+            "label": "S.r.l.",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "ragione_sociale",
+                "type": "string"
+              },
+              {
+                "id": "sede_legale",
+                "type": "address"
+              },
+              {
+                "id": "capitale_sociale",
+                "type": "currency"
+              },
+              {
+                "id": "data_costituzione",
+                "type": "date"
+              },
+              {
+                "id": "termine_di_durata",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "causa_scioglimento",
+            "label": "Causa di scioglimento dedotta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "decorso_termine_2484_n_1",
+              "conseguimento_o_impossibilita_oggetto_2484_n_2",
+              "impossibilita_funzionamento_assemblea_2484_n_3",
+              "riduzione_capitale_minimo_2484_n_4",
+              "delibera_anticipata_2484_n_5",
+              "altra_causa_statutaria_2484_n_6",
+              "liquidazione_giudiziale_CCII"
+            ]
+          },
+          {
+            "id": "descrizione_causa",
+            "label": "Descrizione dettagliata della causa",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "situazione_patrimoniale",
+            "label": "Situazione patrimoniale della società",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "attivo_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "passivo_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "liquidita_disponibile",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "liquidatori_proposti",
+            "label": "Liquidatori proposti",
+            "type": "array_persone"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_causa_scioglimento",
+              "dichiarazione_scioglimento_srl",
+              "nomina_giudiziale_liquidatori",
+              "ordine_iscrizione_scioglimento_registro_imprese",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "LITISCONSORZIO NECESSARIO con tutti i soci",
+          "Competenza tribunale delle imprese (sede societaria)",
+          "Per S.r.l. insolvente: alternativa CCII (liquidazione giudiziale)",
+          "Cass. SU 6070/2013: dopo cancellazione i debiti residui si trasferiscono ai soci",
+          "Iscrizione scioglimento nel registro imprese obbligatoria (2485)",
+          "Liquidatori: solo atti conservativi dopo scioglimento (2486)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costitutivo_e_statuto",
+          "label": "Atto costitutivo e statuto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visura_camerale_aggiornata",
+          "label": "Visura camerale aggiornata",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "bilanci_ultimi_anni",
+          "label": "Bilanci ultimi 3 anni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_causa_scioglimento",
+          "label": "Documentazione specifica della causa di scioglimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbali_assemblee_recenti",
+          "label": "Verbali assemblee recenti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_qualita_socio_attore",
+          "label": "Documentazione qualità di socio dell'attore",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (capitale societario)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "sentenza_scioglimento_e_nomina_liquidatori",
+          "trigger": "Esito procedimento"
+        },
+        {
+          "tipo": "iscrizione_scioglimento_nel_registro_imprese",
+          "trigger": "Dopo sentenza",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "bilancio_iniziale_e_finale_di_liquidazione",
+          "trigger": "Obblighi liquidatori"
+        },
+        {
+          "tipo": "azione_responsabilita_liquidatori_2493",
+          "trigger": "Per omissioni nella liquidazione"
+        },
+        {
+          "tipo": "liquidazione_giudiziale_CCII_per_insolvenza",
+          "trigger": "Se insolvenza accertata"
+        },
+        {
+          "tipo": "cancellazione_dal_registro_imprese_2494",
+          "trigger": "Fine liquidazione"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "sentenza_scioglimento_nomina_liquidatori",
+          "descrizione": "Scioglimento accertato + liquidatori nominati"
+        },
+        {
+          "esito": "rigetto_per_assenza_causa_scioglimento",
+          "descrizione": "Causa invocata non sussistente"
+        },
+        {
+          "esito": "transazione_con_liquidazione_consensuale",
+          "descrizione": "Accordo tra soci"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuti",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "154001",
+      "codice_logico": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_S_R_L_ARTT_2484_2496_C_C_154001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154001"
+        }
+      ]
+    },
+    {
+      "codice": "220040",
+      "denominazione": "Distacco del lavoratore - contestazioni e nullità (art. 30 D.Lgs. 276/2003)",
+      "categoria": "Lavoro - modifiche soggettive del rapporto",
+      "sottocategoria": "Azione del lavoratore per accertamento nullità del distacco illegittimo o per contestazioni sul rapporto durante distacco",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "30",
+          "descrizione": "Distacco - presupposti: interesse del distaccante + temporaneità"
+        },
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "30 c. 4",
+          "descrizione": "Distacco con modifica delle mansioni o luogo di lavoro a oltre 50 km: consenso del lavoratore"
+        },
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "30 c. 4-bis",
+          "descrizione": "Distacco transnazionale - disciplina speciale"
+        },
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "30 c. 5",
+          "descrizione": "Conseguenze del distacco illecito - rapporto di lavoro alle dipendenze del distaccatario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Mansioni del lavoratore - rilevante per distacco con modifica mansioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2094",
+          "descrizione": "Nozione di lavoratore subordinato"
+        },
+        {
+          "fonte": "L. 183/2014 (Jobs Act deleghe)",
+          "descrizione": "Deleghe su distacco transnazionale"
+        },
+        {
+          "fonte": "D.Lgs. 136/2016",
+          "descrizione": "Distacco transnazionale - attuazione Direttiva 96/71/CE"
+        },
+        {
+          "fonte": "Cass. SU 11411/2020",
+          "descrizione": "Distacco illecito - presupposti interesse distaccante e temporaneità"
+        },
+        {
+          "fonte": "Cass. SU 2383/2024",
+          "descrizione": "Interposizione illecita vs distacco legittimo - confine"
+        }
+      ],
+      "presupposti_distacco_legittimo_art_30": {
+        "interesse_del_distaccante": [
+          "Interesse specifico e concreto del datore distaccante (non del distaccatario)",
+          "Non può essere un mero interesse economico di percepire il corrispettivo",
+          "Esempi legittimi: interesse a formare il dipendente, completare un progetto, soddisfare un cliente strategico"
+        ],
+        "temporaneita": [
+          "Il distacco deve essere temporaneo",
+          "Non è necessario un termine fisso, ma non può essere permanente",
+          "Valutazione caso per caso"
+        ],
+        "consenso_lavoratore_c4": [
+          "Se distacco comporta variazione di mansioni: CONSENSO DEL LAVORATORE",
+          "Se distacco a oltre 50 km dalla residenza: COMPROVATE RAGIONI TECNICHE, ORGANIZZATIVE, PRODUTTIVE O SOSTITUTIVE"
+        ]
+      },
+      "conseguenze_distacco_illecito_art_30_c5": {
+        "norma": "art. 30 c. 5 D.Lgs. 276/2003",
+        "effetto": "Il lavoratore può chiedere la COSTITUZIONE DEL RAPPORTO DI LAVORO CON IL DISTACCATARIO come se fosse stato assunto da quest'ultimo",
+        "decorrenza": "Dalla data di inizio del distacco illecito"
+      },
+      "differenza_da_interposizione_illecita": {
+        "distacco_legittimo": "Interesse proprio del distaccante + temporaneità + il distaccante rimane datore",
+        "interposizione_illecita_appalto_non_genuino": "Mancanza di interesse distaccante + permanenza + in realtà è somministrazione irregolare di lavoro"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE DOCUMENTAZIONE DEL DISTACCO",
+          "documenti": [
+            "Lettera di distacco (con motivazione)",
+            "Contratto tra distaccante e distaccatario",
+            "Eventuale consenso del lavoratore",
+            "Comunicazioni al lavoratore"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA PRESUPPOSTI DI LEGITTIMITÀ",
+          "verifiche": [
+            "Interesse specifico del distaccante (non mero corrispettivo)",
+            "Temporaneità (non permanenza)",
+            "Eventuale consenso del lavoratore (per modifica mansioni o >50 km)",
+            "Mantenimento del potere direttivo del distaccante"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VALUTAZIONE TIPOLOGIA DI ILLICEITÀ",
+          "alternative": [
+            "Distacco illecito per assenza interesse distaccante → art. 30 c. 5",
+            "Interposizione illecita di manodopera (appalto non genuino) → art. 18 D.Lgs. 276/2003",
+            "Distacco con modifica mansioni senza consenso → art. 30 c. 4 + 2103 c.c."
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "QUANTIFICAZIONE DOMANDE",
+          "voci": [
+            "Costituzione rapporto di lavoro con distaccatario",
+            "Differenze retributive",
+            "Danni per demansionamento durante distacco",
+            "Eventuali TFR e contributi mancanti"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_nullita_distacco_o_contestazioni",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per accertamento nullità distacco illegittimo ex art. 30 D.Lgs. 276/2003",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_distaccante",
+            "label": "Datore distaccante convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "distaccatario_convenuto",
+            "label": "Soggetto distaccatario convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "distacco",
+            "label": "Distacco contestato",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_fine_o_in_corso",
+                "type": "date"
+              },
+              {
+                "id": "motivazione_indicata_da_distaccante",
+                "type": "textarea"
+              },
+              {
+                "id": "modifica_mansioni",
+                "type": "boolean"
+              },
+              {
+                "id": "distanza_km_dalla_residenza",
+                "type": "integer"
+              },
+              {
+                "id": "consenso_lavoratore_prestato",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "vizi_del_distacco",
+            "label": "Vizi del distacco",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "assenza_interesse_specifico_distaccante",
+              "permanenza_non_temporaneita",
+              "mancanza_consenso_per_modifica_mansioni_o_oltre_50_km",
+              "demansionamento_durante_distacco",
+              "interposizione_illecita_appalto_non_genuino",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_vizi",
+            "label": "Esposizione dettagliata dei vizi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_nullita_distacco_illegittimo",
+              "costituzione_rapporto_lavoro_con_distaccatario_30_c5",
+              "condanna_differenze_retributive",
+              "condanna_risarcimento_danni_demansionamento",
+              "condanna_tfr_e_contributi",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Convenire ENTRAMBI: distaccante e distaccatario",
+          "Distacco illecito: lavoratore può chiedere costituzione rapporto con distaccatario (art. 30 c. 5)",
+          "Consenso obbligatorio per modifica mansioni o distacco >50 km",
+          "Interesse del distaccante deve essere specifico, non mero corrispettivo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "lettera_distacco_e_motivazione",
+          "label": "Lettera di distacco con motivazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratto_tra_distaccante_e_distaccatario",
+          "label": "Contratto tra distaccante e distaccatario",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "eventuale_consenso_o_diniego_lavoratore",
+          "label": "Eventuale consenso o diniego del lavoratore",
+          "required_if": "modifica_mansioni_o_50_km"
+        },
+        {
+          "id": "buste_paga_e_documentazione_rapporto",
+          "label": "Buste paga + documentazione rapporto",
+          "required": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Sempre disposta",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "richiesta_documenti_societari",
+          "trigger": "Per provare interesse o assenza di interesse distaccante"
+        },
+        {
+          "tipo": "azione_per_demansionamento_se_cumulata",
+          "trigger": "Se anche demansionamento durante distacco",
+          "codice_correlato": "220030"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accertamento_nullita_distacco_e_costituzione_rapporto_con_distaccatario",
+          "descrizione": "Rapporto ricostituito con il distaccatario"
+        },
+        {
+          "esito": "accertamento_vizi_parziali_e_differenze_retributive",
+          "descrizione": "Compensazione per irregolarità"
+        },
+        {
+          "esito": "rigetto_per_legittimita_distacco",
+          "descrizione": "Presupposti rispettati"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. rientro sede + indennità)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza di rapporto",
+          "anni": 5,
+          "natura": "prescrizione"
+        },
+        {
+          "termine": "Costituzione datori",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220040"
+        }
+      ]
+    }
+  ]
+}

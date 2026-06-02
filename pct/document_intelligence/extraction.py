@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
 import tempfile
+import zipfile
 from dataclasses import dataclass, field
 from email import policy
 from email.message import EmailMessage, Message
@@ -15,9 +17,15 @@ from io import BytesIO
 from pathlib import Path
 from shutil import which
 from typing import Any
+from xml.etree import ElementTree as ET
 
 from .models import DocumentAIPageText
 from .pdf_quality import repair_pdf_cid_placeholders, score_extracted_text_quality
+
+
+_TEXT_EXTENSIONS = {"txt", "xml", "json", "csv"}
+_HTML_EXTENSIONS = {"html", "htm"}
+_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif"}
 
 
 @dataclass(slots=True)
@@ -65,13 +73,21 @@ def extract_document_text(file_path: str | Path, file_type: str) -> DocumentAITe
 
 
 def extract_text_from_document(content: bytes, filename: str, file_type: str) -> ExtractionResult:
-    if str(filename or "").strip().lower().endswith(".p7m"):
+    if _is_cades_signature_name(filename):
         payload, payload_name, unwrap_warnings = _unwrap_p7m_payload(content, filename)
         payload_type = _file_type_from_payload(payload, payload_name, fallback=file_type)
         result = extract_text_from_document(payload, payload_name, payload_type)
+        if not result.ok:
+            fallback = _extract_binary_best_effort(
+                payload,
+                payload_type or "cades",
+                base_warnings=list(result.warnings),
+            )
+            if fallback.ok:
+                result = fallback
         result.warnings[:0] = unwrap_warnings
-        if result.extraction_engine and not result.extraction_engine.startswith("p7m:"):
-            result.extraction_engine = f"p7m:{result.extraction_engine}"
+        if result.extraction_engine and not result.extraction_engine.startswith("cades:"):
+            result.extraction_engine = f"cades:{result.extraction_engine}"
         return result
 
     ext = str(file_type or "").lower().lstrip(".")
@@ -81,26 +97,33 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
         return _extract_docx(content)
     if ext == "doc":
         return _extract_doc(content)
-    if ext == "txt":
-        return _extract_txt(content)
+    if ext in _TEXT_EXTENSIONS:
+        return _extract_textual_document(content, ext)
+    if ext in _HTML_EXTENSIONS:
+        return _extract_html_document(content)
+    if ext == "rtf":
+        return _extract_rtf_document(content)
+    if ext == "odt":
+        return _extract_odt(content)
+    if ext in {"xlsx", "xls"}:
+        return _extract_spreadsheet(content, ext)
+    if ext in _IMAGE_EXTENSIONS:
+        return _extract_image(content, ext)
     if ext == "eml":
         return _extract_eml(content)
-    return ExtractionResult(
-        ok=False,
-        text="",
-        pages=[],
-        extraction_engine="unsupported",
-        error_code="unsupported_format",
-        error_message="Formato non supportato per l'estrazione testo.",
-    )
+    if ext == "msg":
+        return _extract_msg(content)
+    if ext == "zip":
+        return _extract_zip(content)
+    return _extract_binary_best_effort(content, ext or "bin")
 
 
 def _unwrap_p7m_payload(content: bytes, filename: str) -> tuple[bytes, str, list[str]]:
     inner_name = str(filename or "").strip()
-    if inner_name.lower().endswith(".p7m"):
+    if _is_cades_signature_name(inner_name):
         inner_name = inner_name[:-4]
     if _looks_like_pdf(content) and inner_name.lower().endswith(".pdf"):
-        return content, inner_name, ["Documento PDF con estensione .p7m letto come PDF interno per l'indice Lex."]
+        return content, inner_name, ["Documento PDF firmato letto come PDF interno per l'indice Lex."]
     try:
         from pct.firme_cades import inspect_signed_document_bytes
 
@@ -125,35 +148,368 @@ def _unwrap_p7m_payload(content: bytes, filename: str) -> tuple[bytes, str, list
             return payload, payload_name, ["Contenuto del documento firmato estratto per l'indice Lex."]
     except Exception:
         pass
-    return content, inner_name, ["Documento .p7m letto tentando il formato del file interno dichiarato."]
+    return content, inner_name, ["Documento firmato letto tentando il formato del file interno dichiarato."]
+
+
+def _is_cades_signature_name(filename: Any) -> bool:
+    return str(filename or "").strip().lower().endswith((".p7m", ".pm7"))
 
 
 def _file_type_from_payload(content: bytes, filename: str, *, fallback: str) -> str:
     lower_name = str(filename or "").strip().lower()
-    for extension in ("pdf", "docx", "doc", "txt", "eml"):
+    for extension in (
+        "pdf",
+        "docx",
+        "doc",
+        "txt",
+        "xml",
+        "json",
+        "csv",
+        "html",
+        "htm",
+        "rtf",
+        "odt",
+        "xlsx",
+        "xls",
+        "png",
+        "jpg",
+        "jpeg",
+        "tif",
+        "tiff",
+        "bmp",
+        "gif",
+        "eml",
+        "msg",
+        "zip",
+        "p7m",
+        "pm7",
+    ):
         if lower_name.endswith(f".{extension}"):
             return extension
     if _looks_like_pdf(content):
         return "pdf"
+    if _looks_like_image(content):
+        return _image_type_from_magic(content)
+    if bytes(content[:256]).lstrip().startswith((b"<?xml", b"<")):
+        return "xml"
     if content.startswith(b"PK\x03\x04"):
-        return "docx"
-    return str(fallback or "").lower().lstrip(".")
+        return "zip"
+    return str(fallback or "bin").lower().lstrip(".") or "bin"
 
 
 def _looks_like_pdf(content: bytes) -> bool:
     return bytes(content[:16] if content else b"").lstrip().startswith(b"%PDF")
 
 
+def _looks_like_image(content: bytes) -> bool:
+    return _image_type_from_magic(content) != ""
+
+
+def _image_type_from_magic(content: bytes) -> str:
+    sample = bytes(content[:16] if content else b"")
+    if sample.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if sample.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if sample.startswith((b"II*\x00", b"MM\x00*")):
+        return "tif"
+    if sample.startswith(b"BM"):
+        return "bmp"
+    if sample.startswith((b"GIF87a", b"GIF89a")):
+        return "gif"
+    return ""
+
+
 def _extract_txt(content: bytes) -> ExtractionResult:
+    return _extract_textual_document(content, "txt")
+
+
+def _extract_textual_document(content: bytes, kind: str) -> ExtractionResult:
     text, encoding, warnings = _decode_text_bytes(content)
+    normalized_kind = str(kind or "txt").lower().lstrip(".")
+    engine = f"{normalized_kind}:{encoding}"
+    if normalized_kind == "json" and text.strip():
+        try:
+            parsed = json.loads(text)
+            text = json.dumps(parsed, ensure_ascii=False, indent=2)
+            engine = f"json:{encoding}"
+        except Exception:
+            warnings.append("JSON letto come testo perché non è stato possibile normalizzarlo.")
+    elif normalized_kind == "xml":
+        engine = f"xml:{encoding}"
+    elif normalized_kind == "csv":
+        engine = f"csv:{encoding}"
     if not text.strip():
-        warnings.append("Il file di testo non contiene contenuto leggibile.")
+        warnings.append("Il file non contiene contenuto testuale leggibile.")
     return ExtractionResult(
         ok=True,
         text=text,
         pages=[],
-        extraction_engine=f"text:{encoding}",
+        extraction_engine=engine,
         warnings=warnings,
+    )
+
+
+def _extract_html_document(content: bytes) -> ExtractionResult:
+    text, encoding, warnings = _decode_text_bytes(content)
+    readable = _html_to_text(text)
+    if not readable.strip():
+        warnings.append("Il documento HTML non contiene testo leggibile.")
+    return ExtractionResult(
+        ok=True,
+        text=readable or text,
+        pages=[],
+        extraction_engine=f"html:{encoding}",
+        warnings=warnings,
+    )
+
+
+def _extract_rtf_document(content: bytes) -> ExtractionResult:
+    text = _extract_rtf_text(content)
+    warnings: list[str] = []
+    if not text.strip():
+        decoded, _encoding, decode_warnings = _decode_text_bytes(content)
+        warnings.extend(decode_warnings)
+        text = _clean_text(re.sub(r"\\[a-zA-Z]+-?\d* ?", " ", decoded).replace("{", " ").replace("}", " "))
+    if not text.strip():
+        warnings.append("Il documento RTF non contiene testo leggibile.")
+    return ExtractionResult(
+        ok=True,
+        text=text,
+        pages=[],
+        extraction_engine="rtf.best-effort",
+        warnings=warnings,
+    )
+
+
+def _extract_odt(content: bytes) -> ExtractionResult:
+    try:
+        with zipfile.ZipFile(BytesIO(content)) as archive:
+            raw = archive.read("content.xml")
+    except Exception as exc:
+        return _extract_binary_best_effort(
+            content,
+            "odt",
+            base_warnings=[f"ODT non aperto come archivio OpenDocument ({exc})."],
+        )
+    xml_text, encoding, warnings = _decode_text_bytes(raw)
+    text = _xml_plain_text(xml_text)
+    if not text.strip():
+        warnings.append("Il documento ODT non contiene testo leggibile.")
+    return ExtractionResult(
+        ok=True,
+        text=text,
+        pages=[],
+        extraction_engine=f"odt:{encoding}",
+        warnings=warnings,
+    )
+
+
+def _extract_spreadsheet(content: bytes, ext: str) -> ExtractionResult:
+    if str(ext or "").lower() == "xlsx" or bytes(content[:4]).startswith(b"PK\x03\x04"):
+        result = _extract_xlsx_zip(content)
+        if result is not None:
+            return result
+    return _extract_binary_best_effort(
+        content,
+        str(ext or "xls"),
+        base_warnings=["Foglio di calcolo letto con recupero testuale compatibile."],
+    )
+
+
+def _extract_xlsx_zip(content: bytes) -> ExtractionResult | None:
+    try:
+        with zipfile.ZipFile(BytesIO(content)) as archive:
+            shared_strings = _xlsx_shared_strings(archive)
+            sheet_names = sorted(
+                name for name in archive.namelist() if name.startswith("xl/worksheets/") and name.endswith(".xml")
+            )
+            rows: list[str] = []
+            for sheet_index, sheet_name in enumerate(sheet_names[:30], start=1):
+                rows.extend(_xlsx_sheet_rows(archive, sheet_name, shared_strings, sheet_index=sheet_index))
+    except Exception:
+        return None
+    text = "\n".join(row for row in rows if row.strip())
+    warnings = [] if text.strip() else ["Il foglio di calcolo non contiene celle testuali leggibili."]
+    return ExtractionResult(
+        ok=True,
+        text=text,
+        pages=[],
+        extraction_engine="xlsx.zip-xml",
+        warnings=warnings,
+    )
+
+
+def _xlsx_shared_strings(archive: zipfile.ZipFile) -> list[str]:
+    try:
+        root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+    except Exception:
+        return []
+    values: list[str] = []
+    for item in root.iter():
+        if _xml_local_name(item.tag) != "si":
+            continue
+        texts = [node.text or "" for node in item.iter() if _xml_local_name(node.tag) == "t" and node.text]
+        values.append("".join(texts))
+    return values
+
+
+def _xlsx_sheet_rows(
+    archive: zipfile.ZipFile,
+    sheet_name: str,
+    shared_strings: list[str],
+    *,
+    sheet_index: int,
+) -> list[str]:
+    try:
+        root = ET.fromstring(archive.read(sheet_name))
+    except Exception:
+        return []
+    rows: list[str] = [f"Foglio {sheet_index}"]
+    for row in root.iter():
+        if _xml_local_name(row.tag) != "row":
+            continue
+        cells: list[str] = []
+        for cell in row:
+            if _xml_local_name(cell.tag) != "c":
+                continue
+            cell_type = str(cell.attrib.get("t") or "")
+            value = ""
+            if cell_type == "inlineStr":
+                value = " ".join(
+                    node.text or "" for node in cell.iter() if _xml_local_name(node.tag) == "t" and node.text
+                ).strip()
+            else:
+                raw = next((node.text or "" for node in cell if _xml_local_name(node.tag) == "v"), "")
+                if cell_type == "s":
+                    try:
+                        value = shared_strings[int(raw)]
+                    except Exception:
+                        value = raw
+                else:
+                    value = raw
+            if str(value).strip():
+                cells.append(str(value).strip())
+        if cells:
+            rows.append(" | ".join(cells))
+    return rows
+
+
+def _extract_image(content: bytes, ext: str) -> ExtractionResult:
+    warnings: list[str] = []
+    try:
+        from PIL import Image  # type: ignore
+        import pytesseract  # type: ignore
+    except Exception as exc:
+        return _extract_binary_best_effort(
+            content,
+            str(ext or "image"),
+            base_warnings=[f"OCR immagine non disponibile ({exc})."],
+        )
+    try:
+        image = Image.open(BytesIO(content))
+        tess_config = _configure_tesseract_runtime(pytesseract)
+        lang = _resolve_tesseract_language(
+            pytesseract,
+            str(os.environ.get("IUSENTRA_DOCUMENT_AI_OCR_LANG") or "ita").strip() or "ita",
+            tess_config,
+        )
+        try:
+            text = pytesseract.image_to_string(image, lang=lang, config=tess_config).strip()
+        except TypeError:
+            text = pytesseract.image_to_string(image, lang=lang).strip()
+    except Exception as exc:
+        return _extract_binary_best_effort(
+            content,
+            str(ext or "image"),
+            base_warnings=[f"OCR immagine non completato ({exc})."],
+        )
+    if not text:
+        warnings.append("OCR immagine eseguito ma senza testo leggibile.")
+    return ExtractionResult(
+        ok=bool(text),
+        text=text,
+        pages=[DocumentAIPageText(page_number=1, text=text)] if text else [],
+        extraction_engine="image.ocr",
+        warnings=warnings,
+        error_code="" if text else "image_ocr_empty",
+        error_message="" if text else "L'immagine non contiene testo recuperabile con OCR.",
+    )
+
+
+def _extract_msg(content: bytes) -> ExtractionResult:
+    try:
+        import extract_msg  # type: ignore
+    except Exception:
+        return _extract_binary_best_effort(
+            content,
+            "msg",
+            base_warnings=["Messaggio Outlook letto con recupero testuale compatibile perché il parser MSG non è disponibile."],
+        )
+    try:
+        with tempfile.TemporaryDirectory(prefix="iusentra-msg-") as tmpdir:
+            msg_path = Path(tmpdir) / "messaggio.msg"
+            msg_path.write_bytes(content)
+            msg = extract_msg.Message(str(msg_path))
+            chunks = [
+                f"Oggetto: {str(getattr(msg, 'subject', '') or '').strip()}",
+                f"Mittente: {str(getattr(msg, 'sender', '') or '').strip()}",
+                f"Data: {str(getattr(msg, 'date', '') or '').strip()}",
+                str(getattr(msg, "body", "") or "").strip(),
+            ]
+            text = "\n".join(chunk for chunk in chunks if chunk.strip())
+    except Exception as exc:
+        return _extract_binary_best_effort(
+            content,
+            "msg",
+            base_warnings=[f"Parser MSG non completato ({exc})."],
+        )
+    return ExtractionResult(
+        ok=bool(text.strip()),
+        text=text,
+        pages=[],
+        extraction_engine="extract_msg",
+        warnings=[] if text.strip() else ["Il messaggio Outlook non contiene testo leggibile."],
+    )
+
+
+def _extract_zip(content: bytes) -> ExtractionResult:
+    warnings: list[str] = []
+    chunks: list[str] = []
+    try:
+        with zipfile.ZipFile(BytesIO(content)) as archive:
+            entries = [entry for entry in archive.infolist() if not entry.is_dir()]
+            chunks.append("File contenuti nell'archivio: " + ", ".join(entry.filename for entry in entries[:80]))
+            for entry in entries[:20]:
+                if entry.file_size > 5 * 1024 * 1024:
+                    warnings.append(f"{entry.filename}: file interno troppo grande per estrazione immediata.")
+                    continue
+                try:
+                    payload = archive.read(entry)
+                except Exception as exc:
+                    warnings.append(f"{entry.filename}: lettura non completata ({exc}).")
+                    continue
+                inner_type = _file_type_from_payload(payload, entry.filename, fallback=Path(entry.filename).suffix.lower().lstrip("."))
+                if inner_type == "zip":
+                    warnings.append(f"{entry.filename}: archivio interno non espanso per evitare ricorsione.")
+                    continue
+                result = extract_text_from_document(payload, Path(entry.filename).name, inner_type)
+                warnings.extend(f"{entry.filename}: {warning}" for warning in result.warnings)
+                if result.text.strip():
+                    chunks.append(f"[{entry.filename}]\n{result.text.strip()[:4000]}")
+    except Exception as exc:
+        return _extract_binary_best_effort(content, "zip", base_warnings=[f"Archivio ZIP non aperto ({exc})."])
+    text = "\n\n".join(chunk for chunk in chunks if chunk.strip())
+    if not text.strip():
+        warnings.append("Archivio ZIP senza contenuti testuali recuperabili.")
+    return ExtractionResult(
+        ok=bool(text.strip()),
+        text=text,
+        pages=[],
+        extraction_engine="zip.recursive-best-effort",
+        warnings=_unique_warnings(warnings),
+        error_code="" if text.strip() else "zip_no_text",
+        error_message="" if text.strip() else "Archivio senza testo recuperabile.",
     )
 
 
@@ -319,8 +675,6 @@ def _extract_eml_attachment(filename: str, payload: bytes) -> tuple[str, list[st
     if not payload:
         return "", [f"{clean_name}: allegato vuoto o non leggibile."]
     file_type = _file_type_from_payload(payload, clean_name, fallback=Path(clean_name).suffix.lower().lstrip("."))
-    if file_type not in {"pdf", "docx", "doc", "txt", "eml"}:
-        return "", [f"{clean_name}: allegato non indicizzato perché il formato non è supportato."]
     result = extract_text_from_document(payload, clean_name, file_type)
     warnings = [f"{clean_name}: {warning}" for warning in result.warnings]
     if not result.ok:
@@ -767,6 +1121,63 @@ def _legacy_doc_text_is_meaningful(value: str) -> bool:
         return False
     words = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}", clean)
     return len(words) >= 3
+
+
+def _extract_binary_best_effort(
+    content: bytes,
+    label: str,
+    *,
+    base_warnings: list[str] | None = None,
+) -> ExtractionResult:
+    warnings = list(base_warnings or [])
+    text = _extract_legacy_doc_binary_text(content)
+    if not text.strip():
+        decoded, encoding, decode_warnings = _decode_text_bytes(content)
+        warnings.extend(decode_warnings)
+        printable = sum(1 for char in decoded if char.isprintable() or char.isspace())
+        ratio = printable / max(1, len(decoded))
+        if ratio >= 0.80 and _legacy_doc_text_is_meaningful(decoded):
+            text = decoded
+            warnings.append(f"Formato {label} letto come testo {encoding}.")
+    if text.strip():
+        warnings.append(
+            "Documento letto con recupero testuale best-effort; verifica manualmente se serve fedeltà di impaginazione."
+        )
+        return ExtractionResult(
+            ok=True,
+            text=text,
+            pages=[],
+            extraction_engine=f"{label}.binary-best-effort",
+            warnings=_unique_warnings(warnings),
+        )
+    warnings.append("Documento senza testo recuperabile automaticamente nel runtime corrente.")
+    return ExtractionResult(
+        ok=False,
+        text="",
+        pages=[],
+        extraction_engine=f"{label}.binary-best-effort",
+        warnings=_unique_warnings(warnings),
+        error_code="no_recoverable_text",
+        error_message="Documento senza testo recuperabile automaticamente.",
+    )
+
+
+def _xml_local_name(tag: Any) -> str:
+    value = str(tag or "")
+    return value.rsplit("}", 1)[-1] if "}" in value else value
+
+
+def _xml_plain_text(xml_text: str) -> str:
+    raw = str(xml_text or "")
+    try:
+        root = ET.fromstring(raw.encode("utf-8"))
+        parts = [node.text or "" for node in root.iter() if str(node.text or "").strip()]
+        clean = _clean_text("\n".join(parts))
+        if clean:
+            return clean
+    except Exception:
+        pass
+    return _clean_text(re.sub(r"<[^>]+>", " ", raw))
 
 
 def _repair_pdf_text(pages: list[DocumentAIPageText]) -> tuple[list[DocumentAIPageText], str, list[str]]:

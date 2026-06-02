@@ -1,0 +1,1722 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE2",
+  "denominazione": "Quattordicesimo set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIECIC"
+  ],
+  "data_generazione": "2026-06-02",
+  "scopo": "Parte 2 del set 14: espropriazione per PU, factoring cessione crediti, illecito antitrust, mobbing+straining cumulati",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_OPPOSIZIONE_AL_PROCEDIMENTO_ESPROPRIATIVO_PER_PUBBLICA_UTILIT_D_P_R_327__512040",
+      "denominazione": "Opposizione al procedimento espropriativo per pubblica utilità (D.P.R. 327/2001 - Testo Unico Espropri)",
+      "categoria": "Diritto amministrativo - espropriazione per pubblica utilità",
+      "sottocategoria": "Controversie innanzi alla Corte d'Appello sull'indennità di esproprio + opposizione alla stima",
+      "rito": "GIURISDIZIONE CIVILE (Corte d'Appello) per le controversie sull'INDENNITÀ; GIURISDIZIONE AMMINISTRATIVA (TAR) per illegittimità del procedimento",
+      "competenza": "CORTE D'APPELLO del luogo dell'immobile per controversie sull'indennità; TAR per illegittimità del decreto espropriativo",
+      "uffici_destinatari": [
+        "SICID - Corte d'Appello"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.P.R. 327/2001 (TU Espropri)",
+          "articolo": "1-57",
+          "descrizione": "Testo unico delle disposizioni legislative e regolamentari in materia di espropriazione per pubblica utilità"
+        },
+        {
+          "fonte": "TU Espropri",
+          "articolo": "20",
+          "descrizione": "Cessione volontaria - offerta dell'indennità"
+        },
+        {
+          "fonte": "TU Espropri",
+          "articolo": "21",
+          "descrizione": "Opposizione alla stima - ricorso alla Corte d'Appello"
+        },
+        {
+          "fonte": "TU Espropri",
+          "articolo": "22",
+          "descrizione": "Procedura di opposizione - termini e modalità"
+        },
+        {
+          "fonte": "TU Espropri",
+          "articolo": "37",
+          "descrizione": "Criteri per determinazione dell'indennità - valore di mercato"
+        },
+        {
+          "fonte": "TU Espropri",
+          "articolo": "42-bis",
+          "descrizione": "Acquisizione sanante - per occupazioni senza decreto"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "42",
+          "descrizione": "Diritto di proprietà - espropriazione per utilità pubblica con indennizzo"
+        },
+        {
+          "fonte": "CEDU Protocollo 1 art. 1",
+          "descrizione": "Protezione della proprietà - standard CEDU sull'indennità"
+        },
+        {
+          "fonte": "Corte Cost. 348-349/2007",
+          "descrizione": "Incostituzionalità criterio indennità ridotta - obbligo valore di mercato"
+        },
+        {
+          "fonte": "Cass. SU 22472/2022",
+          "descrizione": "Criteri di determinazione dell'indennità - valore venale pieno"
+        },
+        {
+          "fonte": "Cass. SU 15614/2023",
+          "descrizione": "Occupazione illegittima - art. 42-bis e risarcimento"
+        }
+      ],
+      "indennita_di_esproprio": {
+        "principio_post_Corte_Cost_348_349_2007": "L'indennità deve corrispondere al VALORE VENALE dell'immobile (non più ridotto) - standard CEDU",
+        "calcolo": [
+          "Per area edificabile: valore di mercato pieno (Cass. SU 22472/2022)",
+          "Per area agricola: valore agricolo medio della coltura praticata",
+          "Per aree non edificabili: valore effettivo tenuto conto delle possibili utilizzazioni"
+        ],
+        "bonus_maggiorazione": "20% per aree edificabili non occupate anteriormente (art. 37 c. 2 TU)",
+        "decurtazione": "40% per accordo bonario (ora non più applicabile dopo Corte Cost.)"
+      },
+      "procedure_tipiche": {
+        "cessione_volontaria_prima_del_decreto": [
+          "L'espropriante offre l'indennità definitiva",
+          "Il proprietario può accettare (cessione volontaria) o rifiutare",
+          "Se rifiuta: l'indennità è depositata e si procede al decreto"
+        ],
+        "opposizione_alla_stima_art_21_22": [
+          "Opposizione proposta innanzi alla CORTE D'APPELLO",
+          "TERMINE: 30 giorni dalla notifica del decreto di esproprio o dalla comunicazione dell'indennità",
+          "CTU peritale centralissima"
+        ],
+        "occupazione_senza_titolo_42_bis": [
+          "Se l'immobile è stato occupato senza decreto valido (o con decreto illegittimo)",
+          "L'ente può adottare provvedimento di acquisizione sanante ex art. 42-bis",
+          "Con indennizzo + risarcimento del danno per il periodo di occupazione illegittima"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Controversia di diritto pubblico - Corte d'Appello"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA DELLA GIURISDIZIONE",
+          "criterio": [
+            "Per INDENNITÀ: Corte d'Appello (giurisdizione ordinaria)",
+            "Per ILLEGITTIMITÀ del procedimento: TAR (giurisdizione amministrativa)",
+            "Per OCCUPAZIONE SENZA TITOLO: Corte d'Appello per danni + TAR per illegittimità"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'IMMOBILE ESPROPRIATO",
+          "documenti": [
+            "Atto di proprietà",
+            "Visura catastale e planimetria",
+            "Eventuali concessioni/permessi (per edificabilità)",
+            "Destinazione urbanistica (PRG/PUC)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RACCOLTA PERIZIA DI PARTE SUL VALORE",
+          "rilevanza": "FONDAMENTALE - la CTU è l'elemento centrale",
+          "contenuto": [
+            "Valore venale pieno al momento dell'esproprio",
+            "Natura edificabile/agricola del terreno",
+            "Confronto con valori di mercato nella zona"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA TERMINE 30 GG",
+          "norma": "art. 21-22 TU Espropri",
+          "criticita": "TERMINE DECADENZIALE - mancato rispetto preclude l'opposizione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_stima_esproprio_corte_appello",
+        "denominazione": "Ricorso in opposizione alla stima dell'indennità di esproprio ex art. 21 D.P.R. 327/2001",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "corte_appello",
+            "label": "Corte d'Appello del luogo dell'immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "proprietario_espropriato",
+            "label": "Proprietario espropriato ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "ente_espropriante_resistente",
+            "label": "Ente espropriante resistente",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "tipo_ente",
+                "type": "select",
+                "options": [
+                  "comune",
+                  "provincia",
+                  "regione",
+                  "stato_ministero",
+                  "anas",
+                  "ferrovie",
+                  "ente_concessionario",
+                  "altro_ente_pubblico"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "immobile_espropriato",
+            "label": "Immobile espropriato",
+            "type": "object_immobile",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "dati_catastali",
+                "type": "object"
+              },
+              {
+                "id": "superficie_mq",
+                "type": "number"
+              },
+              {
+                "id": "destinazione_urbanistica",
+                "type": "select",
+                "options": [
+                  "edificabile",
+                  "agricola",
+                  "verde_pubblico",
+                  "altra"
+                ]
+              },
+              {
+                "id": "data_decreto_esproprio",
+                "type": "date",
+                "critico_per_termine_30_gg": true
+              }
+            ]
+          },
+          {
+            "id": "indennita_offerta",
+            "label": "Indennità offerta dall'ente",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "valore_venale_richiesto",
+            "label": "Valore venale richiesto (da perizia di parte)",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "perizia_di_parte",
+            "label": "Perizia di parte sul valore venale",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "tipo_contestazione",
+            "label": "Tipo di contestazione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "indennita_insufficiente_valore_mercato",
+              "errata_qualificazione_area_edificabile_vs_agricola",
+              "occupazione_senza_titolo_42_bis",
+              "vizi_del_procedimento_espropriativo"
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "rideterminazione_indennita_a_valore_venale_pieno",
+              "indennizzo_per_occupazione_illegittima",
+              "risarcimento_danni_da_occupazione_senza_titolo",
+              "interessi_e_rivalutazione_sul_capitale",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza",
+            "label": "Prima udienza",
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 30 GG dalla notifica del decreto esproprio - DECADENZIALE",
+          "Giurisdizione CORTE D'APPELLO per indennità",
+          "Indennità = VALORE VENALE PIENO (Corte Cost. 348-349/2007 + Cass. SU 22472/2022)",
+          "CTU peritale elemento centrale del giudizio",
+          "Per illegittimità del procedimento: competenza TAR"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "decreto_di_esproprio",
+          "label": "Decreto di esproprio + relata notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "titolo_di_proprieta",
+          "label": "Titolo di proprietà dell'espropriato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_catastale_e_urbanistica",
+          "label": "Documentazione catastale e urbanistica (PRG, permessi)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_valore_venale_di_parte",
+          "label": "Perizia di parte sul valore venale",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "corrispondenza_con_ente_espropriante",
+          "label": "Corrispondenza con l'ente espropriante sull'indennità",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della differenza di indennizzo",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_peritale_sul_valore_venale",
+          "trigger": "Quasi sempre disposta - centrale",
+          "critico": true
+        },
+        {
+          "tipo": "ricorso_TAR_per_illegittimita_procedimento",
+          "trigger": "Contestazione del procedimento"
+        },
+        {
+          "tipo": "ricorso_CEDU_se_standard_non_rispettato",
+          "trigger": "Estrema ratio"
+        },
+        {
+          "tipo": "appello_avverso_sentenza_CA",
+          "trigger": "Cassazione",
+          "termine": "60 gg"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "aumento_indennita_a_valore_venale_pieno",
+          "descrizione": "Corte ridetermina l'indennità a valore di mercato"
+        },
+        {
+          "esito": "riqualificazione_area_edificabile",
+          "descrizione": "Area riconosciuta edificabile - indennità più alta"
+        },
+        {
+          "esito": "rigetto_per_indennita_gia_a_valore_di_mercato",
+          "descrizione": "Stima corretta"
+        },
+        {
+          "esito": "transazione_con_ente_espropriante",
+          "descrizione": "Accordo transattivo"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE ALLA STIMA",
+          "giorni": 30,
+          "decorrenza": "notifica decreto esproprio",
+          "natura": "DECADENZIALE",
+          "norma": "art. 22 TU Espropri",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "512040",
+      "codice_logico": "GUIDA_OPPOSIZIONE_AL_PROCEDIMENTO_ESPROPRIATIVO_PER_PUBBLICA_UTILIT_D_P_R_327__512040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_FACTORING_E_CESSIONE_DI_CREDITI_L_52_1991_ARTT__143015",
+      "denominazione": "Risoluzione contratto di factoring e cessione di crediti (L. 52/1991 + artt. 1260-1267 c.c.)",
+      "categoria": "Contratti - contratti finanziari - cessione crediti",
+      "sottocategoria": "Controversie sul contratto di factoring: vizi della cessione, crediti inesistenti, inadempimento del cedente o del factor",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - foro della sede del factor o del cedente; sezione impresa per controversie societarie complesse",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 52/1991",
+          "articolo": "1",
+          "descrizione": "Definizione del contratto di factoring e requisiti del factor"
+        },
+        {
+          "fonte": "L. 52/1991",
+          "articolo": "2",
+          "descrizione": "Cedibilità dei crediti - requisiti (crediti pecuniari, verso debitori d'impresa)"
+        },
+        {
+          "fonte": "L. 52/1991",
+          "articolo": "3",
+          "descrizione": "Opponibilità della cessione - notifica o accettazione del debitore ceduto"
+        },
+        {
+          "fonte": "L. 52/1991",
+          "articolo": "4",
+          "descrizione": "Cessione in blocco - possibilità"
+        },
+        {
+          "fonte": "L. 52/1991",
+          "articolo": "5",
+          "descrizione": "Garanzia del cedente - esistenza del credito + solvenza del debitore ceduto (pro solvendo/pro soluto)"
+        },
+        {
+          "fonte": "L. 52/1991",
+          "articolo": "6",
+          "descrizione": "Garanzia del cedente per pro solvendo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1260",
+          "descrizione": "Cedibilità dei crediti in generale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1263",
+          "descrizione": "Effetti della cessione verso terzi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1264",
+          "descrizione": "Efficacia della cessione verso il debitore ceduto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1266",
+          "descrizione": "Garanzia del cedente per l'esistenza del credito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1267",
+          "descrizione": "Garanzia per la solvenza del debitore ceduto (pro solvendo)"
+        },
+        {
+          "fonte": "Cass. SU 6188/2020",
+          "descrizione": "Factoring pro soluto - garanzie del cedente"
+        },
+        {
+          "fonte": "Cass. SU 24906/2022",
+          "descrizione": "Cessione pro solvendo - obblighi del cedente"
+        }
+      ],
+      "distinguo_pro_soluto_vs_pro_solvendo": {
+        "pro_soluto": [
+          "Il factor ACQUISTA il credito definitivamente",
+          "Il cedente GARANTISCE solo l'esistenza del credito (non la solvibilità del debitore)",
+          "Se il debitore non paga: RISCHIO sul factor",
+          "Cessione definitiva"
+        ],
+        "pro_solvendo": [
+          "Il cedente cede il credito MA garantisce anche la solvibilità del debitore",
+          "Se il debitore non paga: il factor può rivalersi sul cedente",
+          "Cessione come garanzia del finanziamento"
+        ]
+      },
+      "tipologie_di_controversie_tipiche": [
+        "CREDITI INESISTENTI ceduti al factor (cedente garante ex 1266 c.c.)",
+        "CREDITI GIÀ CEDUTI AD ALTRI SOGGETTI (doppia cessione)",
+        "MANCATA NOTIFICA AL DEBITORE CEDUTO",
+        "INADEMPIMENTO DEL FACTOR (mancata anticipazione, ritardo, costi eccessivi)",
+        "FACTORING PRO SOLVENDO: inadempimento del debitore ceduto + rivalsa sul cedente",
+        "CLAUSOLE ABUSIVE nel contratto di factoring (per cedente consumatore)"
+      ],
+      "presupposti_sostanziali": [
+        "CONTRATTO DI FACTORING valido (cedente: imprenditore o non; factor: banca o società ex L. 52/1991)",
+        "CEDIBILITÀ DEI CREDITI (pecuniari, verso debitori d'impresa - art. 2 L. 52/1991)",
+        "Una delle controversie tipiche sopra elencate"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONTRATTI BANCARI E FINANZIARI (il factoring è operazione finanziaria)",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE DEL CONTRATTO DI FACTORING",
+          "documenti": [
+            "Contratto di factoring + condizioni generali",
+            "Clausola pro soluto o pro solvendo",
+            "Distinta delle cessioni effettuate",
+            "Estratti conto del rapporto"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA DELLE NOTIFICHE AI DEBITORI CEDUTI",
+          "elementi": [
+            "Notifiche o accettazioni dei debitori ceduti",
+            "Opponibilità della cessione",
+            "Eventuali eccezioni del debitore ceduto"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PER CREDITI INESISTENTI/VIZI",
+          "documenti": [
+            "Documentazione originaria del credito ceduto (fatture, contratti)",
+            "Verifica dell'esistenza effettiva",
+            "Eventuali note di credito o compensazioni",
+            "Contestazioni del debitore ceduto"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_factoring_controversia",
+        "denominazione": "Atto di citazione per controversia su contratto di factoring e cessione crediti",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "factor_vs_cedente",
+                  "cedente_vs_factor",
+                  "debitore_ceduto_vs_cedente_o_factor"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "label": "Convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto_factoring",
+            "label": "Contratto di factoring",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "pro_soluto",
+                  "pro_solvendo",
+                  "con_notifica",
+                  "senza_notifica_sconto_diretto"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "portafoglio_crediti_ceduti",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "tipo_controversia",
+            "label": "Tipo di controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "crediti_inesistenti_ceduti_1266",
+              "crediti_gia_ceduti_ad_altri",
+              "mancata_notifica_al_debitore_ceduto",
+              "inadempimento_factor_mancata_anticipazione",
+              "rivalsa_pro_solvendo_su_cedente",
+              "contestazione_costi_e_commissioni",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_controversia",
+            "label": "Esposizione dettagliata",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "importo_controverso",
+            "label": "Importo oggetto di controversia",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risoluzione_contratto_factoring",
+              "condanna_restituzione_anticipazioni_per_crediti_inesistenti",
+              "condanna_factor_mancata_anticipazione",
+              "contestazione_commissioni",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria (contratti bancari/finanziari)",
+          "Pro soluto: factor assume rischio insolvenza debitore ceduto",
+          "Pro solvendo: cedente garante anche della solvibilità",
+          "Cedente SEMPRE garante dell'esistenza del credito (1266 c.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_factoring",
+          "label": "Contratto di factoring + condizioni generali",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "distinta_cessioni",
+          "label": "Distinta delle cessioni effettuate",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_crediti_ceduti",
+          "label": "Documentazione dei crediti ceduti (fatture, contratti)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "notifiche_ai_debitori_ceduti",
+          "label": "Notifiche/accettazioni dei debitori ceduti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "estratti_conto_factoring",
+          "label": "Estratti conto del rapporto di factoring",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_contabile_su_crediti",
+          "trigger": "Per verifica crediti e calcoli"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "restituzione_anticipazioni_per_crediti_inesistenti",
+          "descrizione": "Cedente restituisce anticipazioni + danni"
+        },
+        {
+          "esito": "condanna_factor_per_inadempimento",
+          "descrizione": "Factor condannato per mancata anticipazione"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - molto frequente in factoring"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione contrattuale",
+          "anni": 10,
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120
+        }
+      ],
+      "codice_originale_ricevuto": "143015",
+      "codice_logico": "GUIDA_RISOLUZIONE_CONTRATTO_DI_FACTORING_E_CESSIONE_DI_CREDITI_L_52_1991_ARTT__143015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143015"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DA_ILLECITO_ANTITRUST_E_ABUSO_DI_POSIZIONE_DOMINANTE_ARTT__160100",
+      "denominazione": "Responsabilità da illecito antitrust e abuso di posizione dominante (artt. 101-102 TFUE + L. 287/1990)",
+      "categoria": "Diritto della concorrenza - private enforcement",
+      "sottocategoria": "Azione risarcitoria del danneggiato per violazione della normativa antitrust (cartelli, abusi di posizione dominante)",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "TRIBUNALE SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA",
+      "uffici_destinatari": [
+        "SICID - sezione specializzata impresa"
+      ],
+      "normativa": [
+        {
+          "fonte": "TFUE",
+          "articolo": "101",
+          "descrizione": "Divieto di accordi restrittivi della concorrenza - cartelli"
+        },
+        {
+          "fonte": "TFUE",
+          "articolo": "102",
+          "descrizione": "Divieto di abuso di posizione dominante"
+        },
+        {
+          "fonte": "L. 287/1990",
+          "articolo": "2",
+          "descrizione": "Intese vietate - normativa nazionale"
+        },
+        {
+          "fonte": "L. 287/1990",
+          "articolo": "3",
+          "descrizione": "Abuso di posizione dominante - normativa nazionale"
+        },
+        {
+          "fonte": "L. 287/1990",
+          "articolo": "33",
+          "descrizione": "Tutela giurisdizionale - azioni di nullità e risarcimento"
+        },
+        {
+          "fonte": "D.Lgs. 3/2017 (attuazione Direttiva 104/2014/UE)",
+          "descrizione": "Azioni per il risarcimento del danno per violazioni delle norme antitrust"
+        },
+        {
+          "fonte": "D.Lgs. 3/2017",
+          "articolo": "3",
+          "descrizione": "Diritto al risarcimento pieno del danno antitrust"
+        },
+        {
+          "fonte": "D.Lgs. 3/2017",
+          "articolo": "9",
+          "descrizione": "Presunzione legale di danno per cartelli"
+        },
+        {
+          "fonte": "D.Lgs. 3/2017",
+          "articolo": "10",
+          "descrizione": "Quantificazione del danno - differenziale di prezzo"
+        },
+        {
+          "fonte": "D.Lgs. 3/2017",
+          "articolo": "14",
+          "descrizione": "PRESCRIZIONE: 5 anni dalla conoscenza dell'infrazione"
+        },
+        {
+          "fonte": "D.Lgs. 3/2017",
+          "articolo": "19",
+          "descrizione": "Effetto vincolante delle decisioni AGCM/CE"
+        },
+        {
+          "fonte": "Direttiva UE 2014/104 (Antitrust damages)",
+          "descrizione": "Direttiva base sul private enforcement antitrust"
+        },
+        {
+          "fonte": "Cass. SU 2207/2005",
+          "descrizione": "Legittimazione attiva del consumatore finale"
+        },
+        {
+          "fonte": "Cass. SU 3640/2019",
+          "descrizione": "Effetto vincolante decisione AGCM per il giudice civile"
+        },
+        {
+          "fonte": "Cass. SU 7039/2024",
+          "descrizione": "Quantificazione del danno antitrust - passing on"
+        }
+      ],
+      "tipologie_di_infrazioni_antitrust": {
+        "cartelli_101_TFUE": [
+          "Accordi di fissazione dei prezzi tra concorrenti",
+          "Ripartizione dei mercati tra concorrenti",
+          "Boicottaggi coordinati",
+          "Bid rigging (accordi nelle gare d'appalto)",
+          "Scambi di informazioni sensibili"
+        ],
+        "abuso_posizione_dominante_102_TFUE": [
+          "Prezzi predatori (sotto costo per espellere un concorrente)",
+          "Prezzi eccessivi e ingiustificati",
+          "Rifiuto di accesso a infrastrutture essenziali",
+          "Pratiche di fidelizzazione escludenti",
+          "Discriminazioni tra clienti equivalenti"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "INFRAZIONE ANTITRUST accertata (da AGCM, CE, o da provare in giudizio)",
+        "DANNO subito dal ricorrente (consumatore finale, cliente diretto o indiretto, concorrente leso)",
+        "NESSO CAUSALE tra infrazione e danno",
+        "LEGITTIMAZIONE ATTIVA anche per consumatori finali (Cass. SU 2207/2005)"
+      ],
+      "effetto_vincolante_decisione_AGCM": {
+        "norma": "art. 19 D.Lgs. 3/2017 + Cass. SU 3640/2019",
+        "contenuto": "La decisione definitiva dell'AGCM o della Commissione Europea che accerta l'infrazione è VINCOLANTE per il giudice civile",
+        "vantaggio_pratico": "Enorme: il ricorrente non deve riprovare l'infrazione - solo il danno e il nesso causale"
+      },
+      "quantificazione_del_danno": {
+        "sovrapprezzo_da_cartello": "Differenza tra prezzo pagato e prezzo che si sarebbe pagato in assenza del cartello",
+        "passing_on_Cass_SU_7039_2024": "Il cliente intermedio che ha traslato il sovrapprezzo sui propri clienti ha diritto al risarcimento ridotto (passing on defense)",
+        "presunzione_danno_per_cartelli_art_9": "Per i cartelli di fissazione prezzi: si PRESUME la causazione del danno (inversione onere prova)",
+        "stima_giudiziale_difficile": "CTU econometrica quasi sempre necessaria"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "RICERCA DI PRECEDENTI DECISIONI AGCM/CE",
+          "importanza": "FONDAMENTALE - se esiste decisione AGCM/CE sull'infrazione: enorme risparmio probatorio",
+          "modalita": [
+            "Sito AGCM: registro dei provvedimenti",
+            "Sito Commissione Europea: DG Competition",
+            "Banca dati decisioni antitrust"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL DANNO",
+          "per_consumatore": [
+            "Fatture e ricevute di acquisto dei prodotti/servizi oggetto del cartello",
+            "Confronto con prezzi di mercato o prezzi ante/post cartello",
+            "Durata del cartello (per calcolo del sovrapprezzo)"
+          ],
+          "per_concorrente": [
+            "Perdita di fatturato",
+            "Clienti persi per le pratiche dell'impresa dominante",
+            "Costi sostenuti per fronteggiare l'abuso"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PERIZIA ECONOMETRICA DI PARTE",
+          "rilevanza": "INDISPENSABILE per quantificare il danno antitrust",
+          "metodologie": [
+            "Comparazione con mercati geografici non toccati dal cartello",
+            "Confronto pre/post infrazione",
+            "Modelli econometrici del prezzo concorrenziale controfattuale"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_danno_antitrust",
+        "denominazione": "Atto di citazione per risarcimento danni da illecito antitrust ex D.Lgs. 3/2017 + artt. 101-102 TFUE",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione specializzata impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_danneggiato",
+            "label": "Attore danneggiato",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "consumatore_finale",
+                  "cliente_diretto_impresa_infratrice",
+                  "cliente_indiretto_acquirente_da_intermediario",
+                  "concorrente_leso"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "impresa_infratrice_convenuta",
+            "label": "Impresa infratrice convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "altre_imprese_coinvolte_nel_cartello",
+            "label": "Eventuali altre imprese del cartello (azione solidale)",
+            "type": "array_persone"
+          },
+          {
+            "id": "infrazione_antitrust",
+            "label": "Infrazione antitrust",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_infrazione",
+                "type": "select",
+                "options": [
+                  "cartello_fissazione_prezzi_101",
+                  "ripartizione_mercati_101",
+                  "bid_rigging_101",
+                  "abuso_posizione_dominante_102",
+                  "altro"
+                ]
+              },
+              {
+                "id": "mercato_rilevante",
+                "type": "textarea"
+              },
+              {
+                "id": "periodo_infrazione",
+                "type": "object"
+              },
+              {
+                "id": "decisione_AGCM_o_CE",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "presente",
+                    "type": "boolean",
+                    "critico": true
+                  },
+                  {
+                    "id": "riferimento",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "select_multi",
+                "options": [
+                  "sovrapprezzo_pagato_cartello",
+                  "perdita_fatturato_concorrente",
+                  "esclusion_mercato",
+                  "costi_aggiuntivi"
+                ]
+              },
+              {
+                "id": "quantificazione_perizia",
+                "type": "currency"
+              },
+              {
+                "id": "perizia_econometrica_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_infrazione_antitrust_se_non_gia_accertata",
+              "condanna_risarcimento_sovrapprezzo_da_cartello",
+              "condanna_risarcimento_per_abuso_posizione_dominante",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza esclusiva sezione specializzata impresa",
+          "Decisione AGCM/CE è VINCOLANTE (art. 19 D.Lgs. 3/2017 + Cass. SU 3640/2019)",
+          "Per cartelli: PRESUNZIONE DI DANNO (art. 9 D.Lgs. 3/2017)",
+          "Prescrizione 5 anni dalla conoscenza dell'infrazione (art. 14 D.Lgs. 3/2017)",
+          "Passing on defense: impresa può opporre che il sovrapprezzo è stato traslato a valle"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "decisione_AGCM_o_CE_se_presente",
+          "label": "Decisione AGCM o Commissione Europea (se presente)",
+          "required": false,
+          "critico_se_presente": true
+        },
+        {
+          "id": "documentazione_acquisti_nel_periodo_infrazione",
+          "label": "Documentazione acquisti nel periodo dell'infrazione (fatture, contratti)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_econometrica_danno_di_parte",
+          "label": "Perizia econometrica di parte sul danno",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_mercato_rilevante",
+          "label": "Documentazione sul mercato rilevante",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale sezione impresa",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_econometrica_sul_danno",
+          "trigger": "Quasi sempre disposta",
+          "critico": true
+        },
+        {
+          "tipo": "richiesta_esibizione_documenti_impresa_infratrice",
+          "trigger": "D.Lgs. 3/2017 prevede discovery facilitata"
+        },
+        {
+          "tipo": "azione_di_classe_840_bis_per_danni_plurimi",
+          "trigger": "Se cartello colpisce molti clienti",
+          "codice_correlato": "180001"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_risarcimento_pieno_sovrapprezzo",
+          "descrizione": "Risarcimento integrale del sovrapprezzo + interessi + utile perduto"
+        },
+        {
+          "esito": "riduzione_per_passing_on",
+          "descrizione": "Danno ridotto per traslazione a valle"
+        },
+        {
+          "esito": "rigetto_per_assenza_prova_del_danno",
+          "descrizione": "Infrazione provata ma danno non quantificato"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - sempre possibile anche per decisioni AGCM"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 5,
+          "decorrenza": "conoscenza infrazione + danno + impresa infratrice",
+          "natura": "prescrizione",
+          "norma": "art. 14 D.Lgs. 3/2017",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "160100",
+      "codice_logico": "GUIDA_RESPONSABILIT_DA_ILLECITO_ANTITRUST_E_ABUSO_DI_POSIZIONE_DOMINANTE_ARTT__160100",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160100"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160100"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160100"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AZIONE_CUMULATA_PER_MOBBING_SISTEMICO_STRAINING_DEMANSIONAMENTO_PROGRESS_160090",
+      "denominazione": "Azione cumulata per mobbing sistemico + straining + demansionamento progressivo (art. 2087 c.c.)",
+      "categoria": "Lavoro - tutela integrale della dignità e professionalità",
+      "sottocategoria": "Ricorso unico che cumula azioni per condotte plurioffensive: mobbing sistematico + straining + dequalificazione + danni biologici",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Obbligo del datore di proteggere l'integrità psico-fisica e la personalità morale del lavoratore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Mansioni del lavoratore - demansionamento vietato salvo ipotesi conservative"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana complementare"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2049",
+          "descrizione": "Responsabilità del datore per fatto dei preposti (mobbing orizzontale)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008",
+          "articolo": "28",
+          "descrizione": "Valutazione del rischio stress lavoro-correlato"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015",
+          "articolo": "3",
+          "descrizione": "Tutele crescenti per assunti post 7/3/2015 - rilevante per demansionamento conservativo"
+        },
+        {
+          "fonte": "Cass. SU 6572/2006",
+          "descrizione": "Danno da demansionamento - non in re ipsa"
+        },
+        {
+          "fonte": "Cass. SU 18927/2012",
+          "descrizione": "Mobbing - elementi costitutivi"
+        },
+        {
+          "fonte": "Cass. SU 24641/2018",
+          "descrizione": "Straining - autonomia rispetto al mobbing"
+        },
+        {
+          "fonte": "Cass. SU 32183/2022",
+          "descrizione": "Cumulo di azioni: mobbing + straining + dequalificazione ammissibile"
+        },
+        {
+          "fonte": "Cass. SU 18164/2024",
+          "descrizione": "Mobbing e straining cumulati - prova e quantificazione"
+        }
+      ],
+      "vantaggio_dell_azione_cumulata": {
+        "perche_cumulare": [
+          "Nella pratica le condotte si sovrappongono: demansionamento + isolamento + pressioni + straining",
+          "Ciascuna condotta può non bastare da sola ma il QUADRO COMPLESSIVO integra la fattispecie",
+          "Cass. SU 32183/2022: il giudice valuta il quadro d'insieme",
+          "Massimizzazione del risarcimento: somma di tutti i profili di danno"
+        ],
+        "strategia_difensiva_attore": [
+          "Allegare tutte le condotte anche alternative",
+          "Mobbing: se durata >6 mesi e sistematicità",
+          "Straining: per condotte gravi anche singole",
+          "Demansionamento: per modifiche delle mansioni",
+          "2087: per qualsiasi violazione del dovere di sicurezza"
+        ]
+      },
+      "presupposti_sostanziali_cumulati": [
+        "RAPPORTO DI LAVORO subordinato",
+        "CONDOTTE PLURIOFFENSIVE del datore o dei preposti:",
+        "- Condotte mobbizzanti (pluralità sistematica, almeno 6 mesi)",
+        "- Straining (condotte stressanti anche singole ma gravi)",
+        "- Demansionamento progressivo (mansioni inferiori senza causa legittima)",
+        "- Violazione art. 2087 (omessa protezione integrità psico-fisica)",
+        "DANNO ALLA SALUTE del lavoratore (biologico + morale + esistenziale + professionale)",
+        "PROVA RIGOROSA del danno (non in re ipsa - Cass. SU 6572/2006)"
+      ],
+      "voci_di_danno_quantificabili": [
+        "DANNO BIOLOGICO PERMANENTE (% invalidità da perizia medico-legale)",
+        "DANNO BIOLOGICO TEMPORANEO (giorni di invalidità)",
+        "DANNO MORALE E SOFFERENZA INTERIORE",
+        "DANNO ALLA PROFESSIONALITÀ (perdita di skills, demotivazione, difficoltà reinserimento)",
+        "DANNO ESISTENZIALE (alterazione vita di relazione, hobbies, famiglia)",
+        "DANNO PATRIMONIALE (spese mediche, psicoterapia, lucro cessante per perdita opportunità)",
+        "DIFFERENZE RETRIBUTIVE da demansionamento (se inquadramento ridotto)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "RICOSTRUZIONE CRONOLOGICA DETTAGLIATA DI TUTTE LE CONDOTTE",
+          "elementi": [
+            "Diario dettagliato con date, ora, luoghi, presenti",
+            "Mail, messaggi, comunicazioni aziendali",
+            "Ordini di servizio e variazioni mansioni",
+            "Verbali riunioni rilevanti",
+            "Segnalazioni a RSU, RSPP, medico competente"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE SANITARIA COMPLETA",
+          "elementi": [
+            "Certificazioni mediche con indicazione causa (stress lavoro-correlato)",
+            "Diagnosi specialistiche (psichiatria, psicologia)",
+            "Eventuali TSO o ricoveri",
+            "Farmaci prescritti",
+            "Cartella clinica di medico di base",
+            "Eventuali pratiche INAIL"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PERIZIA MEDICO-LEGALE DI PARTE",
+          "contenuto": [
+            "Diagnosi della patologia e suo collegamento causale con le condotte lavorative",
+            "Esclusione di concause extra-lavorative",
+            "% invalidità biologica permanente",
+            "Giorni di invalidità temporanea"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "IDENTIFICAZIONE TESTIMONI",
+          "tipologie": [
+            "Colleghi che hanno assistito alle condotte",
+            "Ex dipendenti con esperienze analoghe (prova sistematicità)",
+            "Familiari per effetti sulla vita privata",
+            "Medico di base o psicologo",
+            "RSU se coinvolti"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_cumulato_mobbing_straining_demansionamento",
+        "denominazione": "Ricorso cumulato ex art. 414 c.p.c. per mobbing sistematico + straining + demansionamento + violazione art. 2087 c.c.",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro_convenuto",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "autori_individuali_convenuti_eventuale",
+            "label": "Eventuali autori individuali convenuti (dirigenti, colleghi per mobbing orizzontale)",
+            "type": "array_persone"
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "qualifica_originaria",
+                "type": "string"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string"
+              },
+              {
+                "id": "rapporto_in_corso_o_cessato",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "condotte_mobbizzanti",
+            "label": "Condotte mobbizzanti / straining / demansionamento",
+            "type": "object_complesso",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "periodo_condotte",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "inizio",
+                    "type": "date"
+                  },
+                  {
+                    "id": "fine_o_in_corso",
+                    "type": "date"
+                  }
+                ]
+              },
+              {
+                "id": "tipologie_condotte",
+                "type": "select_multi",
+                "options": [
+                  "demansionamento_progressivo",
+                  "isolamento_professionale",
+                  "privazione_strumenti",
+                  "trasferimento_punitivo",
+                  "compiti_umilianti",
+                  "vessazioni_verbali_sistematiche",
+                  "false_contestazioni_disciplinari",
+                  "esclusione_formazione",
+                  "straining_condotta_grave_singola",
+                  "violazione_2087_omessa_sicurezza"
+                ]
+              },
+              {
+                "id": "descrizione_cronologica_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 1200
+              },
+              {
+                "id": "sistematicita_per_mobbing",
+                "type": "textarea"
+              },
+              {
+                "id": "gravita_per_straining",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "stato_di_salute_attuale",
+            "label": "Stato di salute attuale",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "patologie",
+                "type": "select_multi",
+                "options": [
+                  "disturbo_adattamento",
+                  "depressione_reattiva",
+                  "PTSD",
+                  "burnout",
+                  "ansia_generalizzata",
+                  "patologie_cardiovascolari_psicogene",
+                  "altro"
+                ]
+              },
+              {
+                "id": "invalidita_permanente_stimata",
+                "type": "percentage"
+              },
+              {
+                "id": "perizia_medico_legale_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true,
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Danni richiesti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_biologico_permanente",
+                "type": "currency"
+              },
+              {
+                "id": "danno_biologico_temporaneo",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale_sofferenza",
+                "type": "currency"
+              },
+              {
+                "id": "danno_professionalita",
+                "type": "currency"
+              },
+              {
+                "id": "danno_esistenziale",
+                "type": "currency"
+              },
+              {
+                "id": "danno_patrimoniale_spese_mediche_psicoterapia",
+                "type": "currency"
+              },
+              {
+                "id": "differenze_retributive_demansionamento",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_condotta_mobbing_e_o_straining",
+              "accertamento_demansionamento_illegittimo",
+              "condanna_risarcimento_integrale_danni",
+              "condanna_ripristino_mansioni_originarie_se_rapporto_in_corso",
+              "condanna_differenze_retributive",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Danno NON IN RE IPSA - prova rigorosa necessaria (Cass. SU 6572/2006)",
+          "Mobbing: sistematicità almeno 6 mesi + intenzionalità",
+          "Straining: anche singola condotta grave - autonoma (Cass. SU 24641/2018)",
+          "Cumulo ammissibile (Cass. SU 32183/2022): tutte le condotte valutate nel complesso",
+          "Responsabilità contrattuale 2087: prescrizione 10 anni",
+          "Perizia medico-legale di parte: elemento centrale del giudizio"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_lavoro_e_ccnl",
+          "label": "Contratto di lavoro + CCNL",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "diario_cronologico_delle_condotte",
+          "label": "Diario cronologico dettagliato delle condotte",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "mail_e_comunicazioni_aziendali_probatorie",
+          "label": "Mail, messaggi, comunicazioni aziendali probatorie",
+          "required": true
+        },
+        {
+          "id": "documentazione_demansionamento",
+          "label": "Documentazione del demansionamento (organigrammi, ordini, buste paga)",
+          "required": true
+        },
+        {
+          "id": "documentazione_sanitaria_completa",
+          "label": "Documentazione sanitaria completa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required": false,
+          "fortemente_consigliato": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_testimoni_colleghi_familiari",
+          "label": "Elenco testimoni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga",
+          "label": "Buste paga periodo rilevante",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_medico_legale_e_psichiatrica",
+          "trigger": "Sempre disposta",
+          "critico": true
+        },
+        {
+          "tipo": "prova_testimoniale_estesa",
+          "trigger": "Sempre disposta",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "ctu_su_mansioni_e_ccnl",
+          "trigger": "Per demansionamento"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_risarcimento_integrale",
+          "descrizione": "Condanna per tutte le condotte + risarcimento completo"
+        },
+        {
+          "esito": "accoglimento_parziale_per_straining_e_demansionamento_no_mobbing",
+          "descrizione": "Sistematicità non provata ma condotte rilevano come straining"
+        },
+        {
+          "esito": "accoglimento_solo_demansionamento",
+          "descrizione": "Mobbing/straining non provati ma demansionamento sì"
+        },
+        {
+          "esito": "rigetto_per_assenza_prova_danno_alla_salute",
+          "descrizione": "Condotte provate ma danno biologico non documentato"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo frequente (dimissioni incentivate + indennità)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione responsabilità contrattuale 2087",
+          "anni": 10,
+          "decorrenza": "cessazione condotte o consolidamento danno",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Prescrizione responsabilità extracontrattuale",
+          "anni": 5,
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "160090",
+      "codice_logico": "GUIDA_AZIONE_CUMULATA_PER_MOBBING_SISTEMICO_STRAINING_DEMANSIONAMENTO_PROGRESS_160090",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160090"
+        }
+      ]
+    }
+  ]
+}

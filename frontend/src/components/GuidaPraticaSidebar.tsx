@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlertTriangle, BookOpen, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, FilePenLine, FileText, Gavel, Landmark, ListChecks, RefreshCw, Scale, ShieldCheck, TimerReset, UploadCloud, UsersRound } from 'lucide-react'
+import { AlertTriangle, BookOpen, Calculator, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, FilePenLine, FileText, Gavel, Landmark, ListChecks, RefreshCw, Scale, ShieldCheck, TimerReset, UploadCloud, UsersRound } from 'lucide-react'
 import { Badge } from './dashboard'
 import {
   codiceFromResponse,
@@ -323,6 +323,41 @@ function DocumentPlanCard({ plan }: { plan?: GuidaDocumentPlan }) {
   )
 }
 
+function TermsActionList({ items, guida, fascicoloId }: { items?: unknown[]; guida?: GuidaPratica; fascicoloId?: string }) {
+  const list = items || []
+  if (!list.length) return <p className="iu-empty">Termini da completare o da verificare nel fascicolo.</p>
+  const codice = text(guida?.codice)
+  const original = text(guida?.codice_originale_ricevuto)
+  const params = new URLSearchParams()
+  if (codice) params.set('guida_pratica', codice)
+  if (original) params.set('codice_guida', original)
+  if (fascicoloId) params.set('id_fascicolo', fascicoloId)
+  const href = `/scadenziario${params.toString() ? `?${params.toString()}` : ''}#calcolatore-termini-processuali`
+  return (
+    <div className="iu-guida-terms-action">
+      <ul className="iu-guida-fields">
+        {list.map((item, index) => {
+          const record = isRecord(item) ? item : {}
+          const title = itemTitle(item, 'Termine processuale')
+          const detail = firstReadable(record, ['decorrenza', 'norma', 'criticita', 'natura', 'note']) || itemDetail(item)
+          const duration = [text(record.giorni) ? `${text(record.giorni)} giorni` : '', text(record.mesi) ? `${text(record.mesi)} mesi` : '', text(record.anni) ? `${text(record.anni)} anni` : ''].filter(Boolean).join(' · ')
+          return (
+            <li key={itemKey('termine-operativo', index, title)}>
+              <strong>{title}</strong>
+              {duration ? <span>{duration}</span> : null}
+              {detail ? <span>{detail}</span> : null}
+            </li>
+          )
+        })}
+      </ul>
+      <a className="iu-guida-terms-action__link" href={href}>
+        <Calculator size={15}/> Apri nello scadenziario
+      </a>
+      <small>Il calcolo resta assistito: prima si fissa decorrenza, atto e fase reale della pratica.</small>
+    </div>
+  )
+}
+
 function boolContext(value: unknown): string {
   if (isRecord(value)) return value.presente ? 'Presente' : 'Da verificare'
   return value ? 'Presente' : 'Da verificare'
@@ -362,7 +397,7 @@ function FascicoloContextCard({ fascicolo }: { fascicolo?: Record<string, unknow
   )
 }
 
-function ChecklistTab({ response }:{response:GuidaPraticaResponse}) {
+function ChecklistTab({ response, fascicoloId = '' }:{response:GuidaPraticaResponse; fascicoloId?: string}) {
   const checklist = response.checklist
   const guida = response.guida
   const completion = percent(checklist?.percentuale_completamento)
@@ -373,6 +408,11 @@ function ChecklistTab({ response }:{response:GuidaPraticaResponse}) {
     <div className="iu-guida-tab-panel">
       <ReviewBanner guida={guida}/>
       <DocumentPlanCard plan={response.documentPlan}/>
+      {guida?.termini_processuali?.length ? (
+        <Section title="Termini e scadenziario" icon={<TimerReset size={16}/> }>
+          <TermsActionList items={guida.termini_processuali} guida={guida} fascicoloId={fascicoloId}/>
+        </Section>
+      ) : null}
       <div className="iu-guida-progress" aria-label="Completamento guida pratica">
         <div><strong>{completion}%</strong><span>{checklist?.completati ?? 0}/{checklist?.totale ?? 0} requisiti</span></div>
         <progress value={completion} max={100}/>
@@ -516,7 +556,7 @@ function AttoTab({ guida }:{guida?:GuidaPratica}) {
   )
 }
 
-function AdempimentiTab({ guida }:{guida?:GuidaPratica}) {
+function AdempimentiTab({ guida, fascicoloId = '' }:{guida?:GuidaPratica; fascicoloId?: string}) {
   const adempimenti = guida?.adempimenti_propedeutici || []
   const allegati = guida?.allegati_obbligatori || []
   const avvertenze = [...(guida?.avvertimenti_obbligatori || []), ...(guida?.avvertenze_redazionali || [])]
@@ -540,7 +580,7 @@ function AdempimentiTab({ guida }:{guida?:GuidaPratica}) {
         })}</ul> : <p className="iu-empty">Allegati da configurare.</p>}
       </Section>
       <Section title="Termini processuali" icon={<TimerReset size={16}/> }>
-        <StructuredList items={termini} prefix="termine" empty="Termini da completare o da verificare nel fascicolo."/>
+        <TermsActionList items={termini} guida={guida} fascicoloId={fascicoloId}/>
       </Section>
       {avvertenze.length ? (
         <Section title="Avvertenze redazionali" icon={<AlertTriangle size={16}/> }>
@@ -669,11 +709,11 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
           <nav className="iu-guida-tabs" aria-label="Sezioni guida pratica">
             {(['checklist', 'contesto', 'normativa', 'atto', 'adempimenti'] as TabKey[]).map((key) => <button key={key} type="button" className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>{key === 'checklist' ? 'Ora' : key === 'contesto' ? 'Contesto' : key === 'normativa' ? 'Normativa' : key === 'atto' ? 'Atto' : 'Adempimenti'}</button>)}
           </nav>
-          {tab === 'checklist' ? <ChecklistTab response={response}/> : null}
+          {tab === 'checklist' ? <ChecklistTab response={response} fascicoloId={fascicoloId}/> : null}
           {tab === 'contesto' ? <ContestoTab response={response}/> : null}
           {tab === 'normativa' ? <NormativaTab guida={guida}/> : null}
           {tab === 'atto' ? <AttoTab guida={guida}/> : null}
-          {tab === 'adempimenti' ? <AdempimentiTab guida={guida}/> : null}
+          {tab === 'adempimenti' ? <AdempimentiTab guida={guida} fascicoloId={fascicoloId}/> : null}
         </>
       )}
     </aside>

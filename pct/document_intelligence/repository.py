@@ -24,7 +24,34 @@ from .security import DocumentAIValidationError, safe_join_under_root
 STORE_KEYS = ("documents", "versions", "texts", "audit_events")
 SQLITE_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai.sql"
 POSTGRES_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai_postgres.sql"
-SQL_DOCUMENT_AI_FILE_TYPES = ("pdf", "docx", "doc", "txt", "eml")
+SQL_DOCUMENT_AI_FILE_TYPES = (
+    "pdf",
+    "docx",
+    "doc",
+    "txt",
+    "xml",
+    "json",
+    "csv",
+    "html",
+    "htm",
+    "rtf",
+    "odt",
+    "xlsx",
+    "xls",
+    "png",
+    "jpg",
+    "jpeg",
+    "tif",
+    "tiff",
+    "bmp",
+    "gif",
+    "eml",
+    "msg",
+    "zip",
+    "p7m",
+    "pm7",
+    "bin",
+)
 
 
 def _postgres_backend_type() -> type[Any] | None:

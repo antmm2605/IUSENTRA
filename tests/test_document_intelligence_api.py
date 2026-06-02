@@ -1,7 +1,9 @@
 import io
+import zipfile
 from pathlib import Path
+from email.message import EmailMessage
 
-from pct.document_intelligence.extraction import ExtractionResult
+from pct.document_intelligence.extraction import ExtractionResult, extract_text_from_document
 from pct.document_intelligence.indexer import build_lex_indexing_summary
 from pct.document_intelligence.models import DocumentAIPageText, DocumentAIRecord, utc_now
 from pct.document_intelligence.sources import source_from_uploaded_document
@@ -82,7 +84,7 @@ def test_document_ai_api_stato_indicizzazione_lex(tmp_path: Path):
     assert payload["lex_indexing"]["warnings"] == []
 
 
-def test_document_ai_api_stato_indicizzazione_lex_segnala_file_non_letti(tmp_path: Path):
+def test_document_ai_api_indicizza_file_anomalo_gia_acquisito_con_best_effort(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id = _crea_fascicolo(app)
     fascicoli = GestioneFascicoli(
@@ -90,17 +92,23 @@ def test_document_ai_api_stato_indicizzazione_lex_segnala_file_non_letti(tmp_pat
         documents_dir=app.config["FASCICOLI_DOCS"],
         archive_dir=app.config["FASCICOLI_ARCH"],
     )
-    fascicoli.aggiungi_documento(fascicolo_id, "allegato.exe", TipoDocumento.ALTRO, b"non leggibile da lex")
+    fascicoli.aggiungi_documento(
+        fascicolo_id,
+        "allegato.exe",
+        TipoDocumento.ALTRO,
+        b"Documento gia acquisito nel fascicolo con termine udienza e scadenza da presidiare.",
+    )
 
     with app.test_client() as client:
         _login(client)
-        response = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing")
+        response = client.post(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing/aggiorna")
 
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["lex_indexing"]["status"] == "error"
-    assert payload["lex_indexing"]["errors"] == 1
-    assert "allegato.exe: formato non supportato per indicizzazione Lex." in payload["lex_indexing"]["warnings"]
+    assert payload["lex_indexing"]["status"] == "ready"
+    assert payload["lex_indexing"]["ready"] == 1
+    assert payload["lex_indexing"]["errors"] == 0
+    assert not any("formato non supportato" in warning.lower() for warning in payload["lex_indexing"]["warnings"])
 
 
 def test_document_ai_api_indicizza_pdf_p7m_automaticamente_e_una_sola_volta(tmp_path: Path, monkeypatch):
@@ -253,6 +261,40 @@ def test_document_ai_api_upload_txt_ed_eml_indicizzabili(tmp_path: Path):
     assert eml_upload.get_json()["document"]["file_type"] == "eml"
     assert "Nota interna per Lex" in txt_text.get_json()["text"]
     assert "PEC prova" in eml_text.get_json()["text"]
+
+
+def test_document_ai_extraction_legge_pm7_zip_e_allegati_pec():
+    pm7 = extract_text_from_document(
+        b"Atto di opposizione leggibile da file firmato anomalo.",
+        "atto_opposizione.pdf.pm7",
+        "pdf",
+    )
+    assert pm7.ok
+    assert "opposizione leggibile" in pm7.text
+    assert pm7.extraction_engine.startswith("cades:")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("ricorso.txt", "Ricorso con termine processuale da presidiare.")
+    zipped = extract_text_from_document(zip_buffer.getvalue(), "ricorso.pdf.zip", "zip")
+    assert zipped.ok
+    assert "termine processuale" in zipped.text
+
+    message = EmailMessage()
+    message["Subject"] = "PEC con allegato zip"
+    message["From"] = "cancelleria@example.test"
+    message["To"] = "studio@example.test"
+    message.set_content("Comunicazione con allegato compresso.")
+    message.add_attachment(
+        zip_buffer.getvalue(),
+        maintype="application",
+        subtype="zip",
+        filename="allegato.pdf.zip",
+    )
+    eml = extract_text_from_document(message.as_bytes(), "messaggio.eml", "eml")
+    assert eml.ok
+    assert "PEC con allegato zip" in eml.text
+    assert "Ricorso con termine processuale" in eml.text
 
 
 def test_document_ai_api_documento_inesistente_e_query_vuota(tmp_path: Path):

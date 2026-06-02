@@ -7,7 +7,34 @@ import re
 import unicodedata
 from pathlib import Path
 
-ALLOWED_DOCUMENT_AI_EXTENSIONS = {"pdf", "docx", "doc", "txt", "eml"}
+ALLOWED_DOCUMENT_AI_EXTENSIONS = {
+    "pdf",
+    "docx",
+    "doc",
+    "txt",
+    "xml",
+    "json",
+    "csv",
+    "html",
+    "htm",
+    "rtf",
+    "odt",
+    "xlsx",
+    "xls",
+    "png",
+    "jpg",
+    "jpeg",
+    "tif",
+    "tiff",
+    "bmp",
+    "gif",
+    "eml",
+    "msg",
+    "zip",
+    "p7m",
+    "pm7",
+    "bin",
+}
 DEFAULT_MAX_DOCUMENT_AI_BYTES = 25 * 1024 * 1024
 
 
@@ -49,13 +76,16 @@ def detect_file_type(filename: str) -> str:
 
 def validate_document_file_type(filename: str, mime_type: str | None = None) -> str:
     file_type = detect_file_type(filename)
-    assert_allowed_document_ai_extension(file_type)
-    return file_type
+    value = str(file_type or "").lower().lstrip(".")
+    if value in ALLOWED_DOCUMENT_AI_EXTENSIONS:
+        return value
+    allowed = ", ".join(sorted(ALLOWED_DOCUMENT_AI_EXTENSIONS))
+    raise DocumentAIValidationError(f"Formato non supportato. Formati ammessi: {allowed}.")
 
 
 def _inner_p7m_document_type(filename: str) -> str:
     lower_name = str(filename or "").strip().lower()
-    if not lower_name.endswith(".p7m"):
+    if not lower_name.endswith((".p7m", ".pm7")):
         return ""
     inner = lower_name[:-4]
     for allowed in sorted(ALLOWED_DOCUMENT_AI_EXTENSIONS, key=len, reverse=True):
@@ -69,7 +99,7 @@ def sanitize_filename(filename: str) -> str:
     if not raw:
         raise DocumentAIValidationError("Nome file mancante.")
     if "/" in raw or "\\" in raw:
-        raise DocumentAIValidationError("Il nome file non puo' contenere percorsi.")
+        raise DocumentAIValidationError("Il nome file non può contenere percorsi.")
     if raw in {".", ".."} or ".." in Path(raw).parts:
         raise DocumentAIValidationError("Nome file non valido.")
     stem = Path(raw).stem.strip()

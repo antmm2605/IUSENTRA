@@ -5,10 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
+from time import monotonic
 from typing import Any, Iterable
 
 from pct.document_intelligence.extraction import extract_text_from_document
@@ -16,6 +18,10 @@ from pct.scadenziario import TipoTermine
 
 
 SOURCE_MARKER_PREFIX = "pdf-deadline:"
+MAX_PREVIEW_PAGES_PER_DOCUMENT = 8
+MAX_PREVIEW_PDF_BYTES = 15 * 1024 * 1024
+MAX_LEGACY_EXTRACTION_BYTES = 2 * 1024 * 1024
+MAX_PREVIEW_SECONDS = 8.0
 URL_RE = re.compile(r"https?://[^\s<>()\"']+", re.IGNORECASE)
 NUMERIC_DATE_RE = re.compile(
     r"\b(?P<day>[0-3]?\d)[\/\-.](?P<month>[01]?\d)[\/\-.](?P<year>\d{2}|\d{4})\b"
@@ -119,9 +125,13 @@ def preview_pdf_deadlines(
     warnings: list[str] = []
     scanned_documents = 0
     skipped_documents = 0
+    started_at = monotonic()
 
     for fascicolo in fascicoli:
         for documento in list(getattr(fascicolo, "documenti", []) or []):
+            if monotonic() - started_at >= MAX_PREVIEW_SECONDS:
+                warnings.append("Scansione fermata per mantenere reattiva la pagina.")
+                return PdfDeadlinePreview(candidates, len(fascicoli), scanned_documents, skipped_documents, warnings)
             if max_documents and scanned_documents >= max_documents:
                 warnings.append(f"Scansione fermata a {max_documents} documenti per mantenere la pagina reattiva.")
                 return PdfDeadlinePreview(candidates, len(fascicoli), scanned_documents, skipped_documents, warnings)
@@ -218,18 +228,19 @@ def _candidates_from_document(
     path: Path,
     existing: dict[str, str],
 ) -> list[PdfDeadlineCandidate]:
+    try:
+        if path.stat().st_size > MAX_PREVIEW_PDF_BYTES:
+            return []
+    except OSError:
+        return []
     content = path.read_bytes()
     filename = str(getattr(documento, "nome", "") or path.name)
-    result = extract_text_from_document(content, filename, "pdf")
-    if not result.ok or not result.text.strip():
+    pages, extraction_warnings = _quick_pdf_text_pages(content, filename)
+    if not pages:
         return []
     page_links = _extract_pdf_links_by_page(content)
     rows: list[PdfDeadlineCandidate] = []
-    for page in result.pages or []:
-        page_number = int(getattr(page, "page_number", 0) or 0)
-        text = str(getattr(page, "text", "") or "")
-        if not text.strip():
-            continue
+    for page_number, text in pages:
         links = _unique([*page_links.get(page_number, []), *URL_RE.findall(text)])
         for match, due_date in _date_matches(text):
             context = _context_around(text, match.start(), match.end())
@@ -259,10 +270,57 @@ def _candidates_from_document(
                     duplicate=bool(existing_id),
                     existing_deadline_id=existing_id,
                     selected=not bool(existing_id) and confidence >= 0.68,
-                    warnings=list(result.warnings[:2]),
+                    warnings=list(extraction_warnings[:2]),
                 )
             )
     return _deduplicate_candidates(rows)
+
+
+def _quick_pdf_text_pages(content: bytes, filename: str) -> tuple[list[tuple[int, str]], list[str]]:
+    if len(content) > MAX_PREVIEW_PDF_BYTES:
+        return [], ["PDF troppo grande per l’anteprima rapida: aprilo dal fascicolo o indicizzalo prima."]
+    try:
+        import pdfplumber  # type: ignore
+
+        pages: list[tuple[int, str]] = []
+        page_count = 0
+        with pdfplumber.open(BytesIO(content)) as pdf:
+            page_count = len(pdf.pages)
+            for index, page in enumerate(pdf.pages[:MAX_PREVIEW_PAGES_PER_DOCUMENT], start=1):
+                try:
+                    text = page.extract_text() or ""
+                except Exception:
+                    text = ""
+                if text.strip():
+                    pages.append((index, text))
+        warnings: list[str] = []
+        if page_count > MAX_PREVIEW_PAGES_PER_DOCUMENT:
+            warnings.append(
+                f"Anteprima limitata alle prime {MAX_PREVIEW_PAGES_PER_DOCUMENT} pagine per mantenere reattiva la pagina."
+            )
+        if pages:
+            return pages, warnings
+        return [], ["PDF senza testo selezionabile: serve indicizzazione OCR prima dell’estrazione automatica."]
+    except Exception:
+        return _legacy_pdf_text_pages(content, filename)
+
+
+def _legacy_pdf_text_pages(content: bytes, filename: str) -> tuple[list[tuple[int, str]], list[str]]:
+    if len(content) > MAX_LEGACY_EXTRACTION_BYTES:
+        return [], ["PDF non letto in anteprima rapida: usa indicizzazione documento prima dell’estrazione automatica."]
+    try:
+        result = extract_text_from_document(content, filename, "pdf")
+    except Exception:
+        return [], ["PDF non letto in anteprima rapida."]
+    if not result.ok or not result.text.strip():
+        return [], list(result.warnings[:2])
+    pages: list[tuple[int, str]] = []
+    for page in (result.pages or [])[:MAX_PREVIEW_PAGES_PER_DOCUMENT]:
+        page_number = int(getattr(page, "page_number", 0) or 0)
+        text = str(getattr(page, "text", "") or "")
+        if text.strip():
+            pages.append((page_number, text))
+    return pages, list(result.warnings[:2])
 
 
 def _date_matches(text: str) -> list[tuple[re.Match[str], str]]:
@@ -436,8 +494,9 @@ def _italian_date(value: str) -> str:
 
 
 def _normalise(value: str) -> str:
-    replacements = str.maketrans("àèéìòù", "aeeiou")
-    return re.sub(r"\s+", " ", str(value or "").lower().translate(replacements)).strip()
+    decomposed = unicodedata.normalize("NFD", str(value or "").lower())
+    ascii_value = "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
+    return re.sub(r"\s+", " ", ascii_value).strip()
 
 
 def _unique(values: Iterable[str]) -> list[str]:

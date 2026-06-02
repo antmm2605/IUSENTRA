@@ -8,6 +8,7 @@ import pytest
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.scadenziario import GestioneScadenziario
 from web.services.react_agenda_bridge import build_react_agenda_payload
+from web.services import pdf_deadline_import as pdf_deadline_import_module
 from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
 
 
@@ -91,3 +92,35 @@ def test_import_scadenze_pdf_crea_scadenziario_e_deduplica(tmp_path: Path) -> No
 
     assert second_preview.candidates
     assert all(candidate.duplicate for candidate in second_preview.candidates)
+
+
+def test_preview_scadenze_pdf_salta_file_fuori_soglia_senza_lettura_pesante(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+    )
+    scadenziario = GestioneScadenziario(db_path=str(tmp_path / "scadenziario" / "scadenze.json"))
+    fascicolo = fascicoli.nuovo(
+        "Procedimento prova PDF grande",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Verdi Anna",
+        numero_rg="12346",
+        anno_rg=2026,
+        oggetto="Test scadenze PDF grande",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "ordinanza-grande.pdf",
+        TipoDocumento.ORDINANZA,
+        b"%PDF-1.4\n" + (b"0" * 512),
+    )
+    monkeypatch.setattr(pdf_deadline_import_module, "MAX_PREVIEW_PDF_BYTES", 32)
+
+    preview = preview_pdf_deadlines(
+        gestione_fascicoli=fascicoli,
+        gestione_scadenziario=scadenziario,
+        max_documents=1,
+    )
+
+    assert preview.scanned_documents == 1
+    assert preview.candidates == []

@@ -168,6 +168,8 @@ export type ScadenziarioPageData = {
     peremptory: boolean
     advanced: boolean
     operative: boolean
+    guidaPratica: string
+    fascicoloId: string
   }
   summary: ScadenziarioSummary
   items: ScadenziarioRow[]
@@ -203,6 +205,8 @@ export type ScadenziarioQuery = {
   peremptory?: boolean
   advanced?: boolean
   operative?: boolean
+  guidaPratica?: string
+  fascicoloId?: string
 }
 
 export type PdfDeadlineCandidate = {
@@ -268,6 +272,8 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     peremptory: false,
     advanced: false,
     operative: false,
+    guidaPratica: '',
+    fascicoloId: '',
   },
   summary: {
     total: 0,
@@ -656,6 +662,8 @@ function queryParams(query: ScadenziarioQuery): string {
   if (query.peremptory) params.set('perentorio', '1')
   if (query.advanced) params.set('avanzate', '1')
   if (query.operative) params.set('operative', '1')
+  if (query.guidaPratica) params.set('guida_pratica', query.guidaPratica)
+  if (query.fascicoloId) params.set('id_fascicolo', query.fascicoloId)
   return params.toString()
 }
 
@@ -691,6 +699,8 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
         peremptory: asBoolean(queryPayload.peremptory),
         advanced: asBoolean(queryPayload.advanced),
         operative: asBoolean(queryPayload.operative),
+        guidaPratica: asString(queryPayload.guidaPratica ?? queryPayload.guida_pratica),
+        fascicoloId: asString(queryPayload.fascicoloId ?? queryPayload.id_fascicolo),
       },
       summary: normalizeSummary(payload.summary),
       items: asArray(payload.items).map(normalizeRow),

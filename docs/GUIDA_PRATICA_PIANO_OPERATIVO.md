@@ -120,6 +120,10 @@ Risultato storico prima dell'arrivo del set5:
 
 Aggiornamento 23 maggio 2026: i due moduli set7 sono stati importati, tracciati nei report dedicati e verificati con audit Python completo. Risultato corrente: 13 moduli utente, 63 schede, 1.275 righe di audit, 1.072 voci presenti, 0 perdite tra KB, servizio/API, UI e Lex, 0 valori scalar sostituiti nel servizio.
 
+Aggiornamento 2 giugno 2026: i materiali successivi ricevuti dall'utente sono stati inventariati, deduplicati per hash e integrati senza sostituire il codice ufficiale di deposito. I file `files (6).zip`, `files (7).zip`, `files (8).zip`, `kb_top9_set14_parte1.json` e `kb_top9_set14_parte2.json` hanno prodotto 36 record univoci, 110 termini processuali grezzi e i moduli `kb_98_top9_set10_parte1/2`, `kb_98_top9_set11_parte1/2`, `kb_98_top9_set12_parte1/2`, `kb_98_top9_set14_parte1/2`. I duplicati `files (9).zip` e `kb_top9_set15_parte1/2 (1).json` sono stati registrati come già assorbiti. Report: `artifacts/guida-pratica/kb-set10-11-12-14-15-dedup-report.json`, `artifacts/guida-pratica/kb-set10-11-12-14-import-report.json`, `artifacts/guida-pratica/kb-set10-11-12-14-structural-validation-report.json`.
+
+Audit voce per voce aggiornato al 2 giugno 2026: 25 moduli utente controllati, 117 schede, 2.614 righe di audit, 2.061 voci presenti nei file ricevuti, 0 perdite tra materiale utente, KB completo, servizio/API, UI Guida Pratica e Lex, 0 valori scalar sostituiti nel servizio. Report correnti: `artifacts/guida-pratica/guida-pratica-user-material-field-audit.json` e `artifacts/guida-pratica/guida-pratica-user-material-field-audit.csv`.
+
 Schede ricevute con codice numerico non coerente con la descrizione ministeriale locale e quindi convertite in guide interne non depositabili:
 
 - `GUIDA_ONORARI_PROFESSIONALI_L794`, ricevuta come `141001`;
@@ -516,6 +520,17 @@ Audit aggiornato eseguito il 22 maggio 2026 dopo la curation Codex del modulo `k
 - report import termini: `artifacts/guida-pratica/termini-processuali-after-codex-curation-import-report.json`;
 - repository aggiornato: `data/scadenziario/termini_processuali.json`.
 
+Aggiornamento 2 giugno 2026 dopo l'import dei set successivi e del repository globale termini:
+
+- 3.216 record `guida_pratica_terms` presenti in `data/scadenziario/termini_processuali.json`;
+- 1.046 template di calcolo disponibili in `deadline_templates`;
+- classificazione: 961 termini calcolabili in giorni, 85 in mesi, 38 in anni da verificare, 2.017 in `manual_review`, 65 termini lunghi o prescrizionali, 50 informativi non calcolabili;
+- fasi: 2.157 termini di notifica, 648 di impugnazione, 137 di costituzione, 133 prescrizione/decadenza, 40 deposito, 25 procedimentali, 4 udienza, 2 adempimento amministrativo e 2 presupposto temporale;
+- report CSV globale: `artifacts/guida-pratica/termini-processuali-top9-global-audit.csv`;
+- report import globale: `artifacts/guida-pratica/termini-processuali-top9-global-import-report.json`.
+
+Nota runtime: `data/scadenziario/termini_processuali.json` è un repository operativo sotto `/data` e non deve essere trattato come sorgente Git primaria. Per evitare che locale o produzione restino con i soli template base dopo un deploy pulito, l'API React dello Scadenziario esegue un bootstrap prudente dai moduli KB versionati quando il repository runtime non contiene ancora `guida_pratica_terms`. Il bootstrap non sostituisce un repository già popolato, conserva audit e calendari presenti e importa soltanto i termini Guida Pratica derivati dalle sorgenti versionate.
+
 Lo script operativo creato è:
 
 - `scripts/import_guida_pratica_termini_processuali.py`.
@@ -567,6 +582,20 @@ Destinazioni:
 I termini `manual_review`, prescrizionali, informativi o con decorrenza generica devono essere mostrati alla Guida Pratica e a Lex come punti da presidiare, non come scadenza automatica definitiva.
 
 La creazione della scadenza nel fascicolo non deve avvenire solo perché la guida contiene un termine. Deve richiedere un evento generatore concreto, una data e, quando necessario, conferma professionale.
+
+### Scadenziario operativo e scadenze dai PDF
+
+Lo Scadenziario è il punto operativo in cui i termini della Guida Pratica diventano attività reali del fascicolo. La Guida Pratica può proporre termini, presidi e documenti, ma non deve creare automaticamente scadenze definitive senza un evento generatore concreto e senza conferma dell'avvocato.
+
+Regole obbligatorie:
+
+- le scadenze già scadute non devono essere importate nello scadenziario né sincronizzate in agenda, salvo scelta futura esplicita di archiviarle come storico;
+- le scadenze future importate da PEC, documenti, PDF o guida devono essere collegate al fascicolo e sincronizzate con l'agenda solo dopo conferma o import operativo;
+- la funzione `Scadenze dai PDF` lavora come anteprima: mostra candidate, duplicati, fonte PDF, pagina e link rilevati prima dell'importazione;
+- `Elimina selezionate` ed `Elimina tutto` nella preview PDF rimuovono solo le righe candidate dall'anteprima corrente: non cancellano documenti, fascicoli, scadenze già salvate o attività di agenda;
+- l'anteprima PDF deve restare reattiva: legge rapidamente PDF testuali, limita pagine e dimensione dei file, segnala PDF scansionati o troppo grandi da indicizzare/OCR e non blocca la pagina;
+- se l'analisi PDF è avviata dal fascicolo o dalla Guida Pratica, il filtro deve usare `id_fascicolo` e `guidaPratica` per evitare scansioni generiche e per proporre solo scadenze pertinenti;
+- Lex deve leggere il risultato confermato nello stesso contesto di fascicolo, guida, scadenziario e agenda, distinguendo sempre termine proposto, termine confermato, dato mancante e fonte del documento.
 
 ## Regola sui dati del fascicolo
 

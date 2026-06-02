@@ -1,0 +1,52 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set14_parte1.json",
+  "sha256": "A73E95F4003750C0E86551F27D336AA1C199DA581D6E4C38897C8EA746720CE9",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE1",
+  "denominazione": "Quattordicesimo set di 9 codici - PARTE 1 di 2",
+  "codici_materia_originali": [
+    "143020",
+    "220080",
+    "132001",
+    "150030",
+    "410001"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_D_OPERA_INTELLETTUALE_RESPONSABILIT_PROFESSIONALE_ARTT_2229_22_143020",
+    "GUIDA_LAVORO_A_TERMINE_ILLEGITTIMO_CONVERSIONE_A_TEMPO_INDETERMINATO_D_LGS_81__220080",
+    "132001",
+    "GUIDA_TRASFERIMENTO_DI_PARTECIPAZIONI_IN_S_R_L_E_CLAUSOLE_DI_PRELAZIONE_GRADIM_150030",
+    "GUIDA_APERTURA_DEL_PROCEDIMENTO_DI_INTERDIZIONE_E_INABILITAZIONE_ARTT_414_432__410001"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "143020",
+      "codice_integrato": "GUIDA_CONTRATTO_D_OPERA_INTELLETTUALE_RESPONSABILIT_PROFESSIONALE_ARTT_2229_22_143020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220080",
+      "codice_integrato": "GUIDA_LAVORO_A_TERMINE_ILLEGITTIMO_CONVERSIONE_A_TEMPO_INDETERMINATO_D_LGS_81__220080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150030",
+      "codice_integrato": "GUIDA_TRASFERIMENTO_DI_PARTECIPAZIONI_IN_S_R_L_E_CLAUSOLE_DI_PRELAZIONE_GRADIM_150030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "410001",
+      "codice_integrato": "GUIDA_APERTURA_DEL_PROCEDIMENTO_DI_INTERDIZIONE_E_INABILITAZIONE_ARTT_414_432__410001",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "132001"
+  ],
+  "termini_processuali_raw": 12
+}

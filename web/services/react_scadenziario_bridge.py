@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any, Mapping
 
 from pct.scadenziario import (
@@ -21,6 +22,7 @@ from pct.scadenziario import (
 )
 from pct.termini_processuali import (
     CALENDAR_VERSION,
+    DeadlinePracticeRepository,
     ENGINE_VERSION,
     LEGAL_SOURCES,
     RULESET_VERSION,
@@ -353,6 +355,14 @@ def _bool_arg(args: Mapping[str, Any], key: str) -> bool:
     return str(args.get(key, "") or "").strip().lower() in {"1", "true", "on", "yes"}
 
 
+def _text_arg(args: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        raw = str(args.get(key, "") or "").strip()
+        if raw:
+            return raw
+    return ""
+
+
 def _filtered_scadenze(gestione_scadenziario: Any, args: Mapping[str, Any]) -> tuple[list[Any], dict[str, Any]]:
     vista = normalizza_vista_scadenziario(str(args.get("vista", "aperte") or "aperte"))
     tipo_raw = str(args.get("tipo", "") or "").strip()
@@ -364,6 +374,7 @@ def _filtered_scadenze(gestione_scadenziario: Any, args: Mapping[str, Any]) -> t
     peremptory = _bool_arg(args, "perentorio")
     advanced = _bool_arg(args, "avanzate")
     operative = _bool_arg(args, "operative")
+    guida_pratica = _text_arg(args, "guida_pratica", "guidaPratica", "codice_guida", "codiceGuida")
     try:
         tipo = TipoTermine(tipo_raw) if tipo_raw else None
     except ValueError:
@@ -412,6 +423,8 @@ def _filtered_scadenze(gestione_scadenziario: Any, args: Mapping[str, Any]) -> t
         "peremptory": peremptory,
         "advanced": advanced,
         "operative": operative,
+        "guidaPratica": guida_pratica,
+        "fascicoloId": id_fascicolo,
     }
 
 
@@ -489,17 +502,53 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
     ]
 
 
+def _calculator_templates(scadenziario_db_path: str = "") -> list[dict[str, Any]]:
+    anchor = str(scadenziario_db_path or "").strip()
+    if anchor:
+        try:
+            templates = DeadlinePracticeRepository.json(_deadline_repository_path(anchor)).list_templates()
+            if templates:
+                return templates
+        except Exception:
+            pass
+    return [template.to_dict() for template in DEFAULT_TEMPLATES]
+
+
+def _deadline_repository_path(scadenziario_db_path: str) -> str:
+    return str(Path(scadenziario_db_path).with_name("termini_processuali.json"))
+
+
+def _templates_for_guide(templates: list[dict[str, Any]], codice_guida: str) -> list[dict[str, Any]]:
+    code = str(codice_guida or "").strip()
+    if not code:
+        return templates
+    matched: list[dict[str, Any]] = []
+    for template in templates:
+        metadata = template.get("metadata") if isinstance(template.get("metadata"), dict) else {}
+        if str(metadata.get("codice_guida") or "").strip() == code:
+            matched.append(template)
+            continue
+        if str(metadata.get("codice_originale_guida") or "").strip() == code:
+            matched.append(template)
+    return matched or templates
+
+
 def build_react_scadenziario_payload(
     *,
     gestione_scadenziario: Any,
     gestione_fascicoli: Any,
     gestione_utenti: Any = None,
     query_args: Mapping[str, Any] | None = None,
+    termini_processuali_db: str = "",
 ) -> dict[str, Any]:
     args: Mapping[str, Any] = query_args or {}
     all_items = _all_scadenze(gestione_scadenziario)
     summary = _summary(all_items)
     filtered, query = _filtered_scadenze(gestione_scadenziario, args)
+    calculator_templates = _templates_for_guide(
+        _calculator_templates(termini_processuali_db),
+        str(query.get("guidaPratica") or ""),
+    )
     rows = [_row(item, gestione_fascicoli=gestione_fascicoli, gestione_utenti=gestione_utenti) for item in filtered]
     overdue_preview = [
         _row(item, gestione_fascicoli=gestione_fascicoli, gestione_utenti=gestione_utenti)
@@ -525,7 +574,7 @@ def build_react_scadenziario_payload(
         "nextItems": next_items,
         "operativeCards": _operative_cards(summary),
         "calculator": {
-            "templates": [template.to_dict() for template in DEFAULT_TEMPLATES],
+            "templates": calculator_templates,
             "engineVersion": ENGINE_VERSION,
             "rulesetVersion": RULESET_VERSION,
             "calendarVersion": CALENDAR_VERSION,

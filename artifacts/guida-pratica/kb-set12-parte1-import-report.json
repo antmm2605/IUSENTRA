@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (8).zip::kb_top9_set12_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set12_parte1.json",
+  "sha256": "6AD3FA612062406AA29B3F5874E12D2385E3870D8F576B3E6224FFBAC2085C85",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE1",
+  "denominazione": "Dodicesimo set di 9 codici - PARTE 1 di 2",
+  "codici_materia_originali": [
+    "144010",
+    "150020",
+    "160060",
+    "220015",
+    "414010"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RISARCIMENTO_DANNI_DA_SINISTRO_STRADALE_PEDONE_O_CICLISTA_INVESTITO_DA_V_144010",
+    "GUIDA_ESPULSIONE_ESCLUSIONE_DEL_SOCIO_DA_S_R_L_PER_GIUSTA_CAUSA_ART_2473_BIS_C_150020",
+    "GUIDA_RESPONSABILIT_DELLA_PUBBLICA_AMMINISTRAZIONE_PER_FATTO_ILLECITO_ART_2043_160060",
+    "GUIDA_CESSIONE_DI_RAMO_D_AZIENDA_CONTESTAZIONI_DEI_LAVORATORI_TRASFERITI_ART_2_220015",
+    "GUIDA_PROCEDIMENTO_DI_ADOTTABILIT_E_STATO_DI_ABBANDONO_DEL_MINORE_L_184_1983_A_414010"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "144010",
+      "codice_integrato": "GUIDA_RISARCIMENTO_DANNI_DA_SINISTRO_STRADALE_PEDONE_O_CICLISTA_INVESTITO_DA_V_144010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150020",
+      "codice_integrato": "GUIDA_ESPULSIONE_ESCLUSIONE_DEL_SOCIO_DA_S_R_L_PER_GIUSTA_CAUSA_ART_2473_BIS_C_150020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160060",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_PUBBLICA_AMMINISTRAZIONE_PER_FATTO_ILLECITO_ART_2043_160060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220015",
+      "codice_integrato": "GUIDA_CESSIONE_DI_RAMO_D_AZIENDA_CONTESTAZIONI_DEI_LAVORATORI_TRASFERITI_ART_2_220015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "414010",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_DI_ADOTTABILIT_E_STATO_DI_ABBANDONO_DEL_MINORE_L_184_1983_A_414010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 12
+}

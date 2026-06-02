@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set14_parte2.json",
+  "sha256": "2C694B2B64B7D47F20C8D9626DD827F7AA9536C0442CEC3C05B03836C53BA8F3",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE2",
+  "denominazione": "Quattordicesimo set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "512040",
+    "143015",
+    "160100",
+    "160090"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_OPPOSIZIONE_AL_PROCEDIMENTO_ESPROPRIATIVO_PER_PUBBLICA_UTILIT_D_P_R_327__512040",
+    "GUIDA_RISOLUZIONE_CONTRATTO_DI_FACTORING_E_CESSIONE_DI_CREDITI_L_52_1991_ARTT__143015",
+    "GUIDA_RESPONSABILIT_DA_ILLECITO_ANTITRUST_E_ABUSO_DI_POSIZIONE_DOMINANTE_ARTT__160100",
+    "GUIDA_AZIONE_CUMULATA_PER_MOBBING_SISTEMICO_STRAINING_DEMANSIONAMENTO_PROGRESS_160090"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512040",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_AL_PROCEDIMENTO_ESPROPRIATIVO_PER_PUBBLICA_UTILIT_D_P_R_327__512040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143015",
+      "codice_integrato": "GUIDA_RISOLUZIONE_CONTRATTO_DI_FACTORING_E_CESSIONE_DI_CREDITI_L_52_1991_ARTT__143015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160100",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_ILLECITO_ANTITRUST_E_ABUSO_DI_POSIZIONE_DOMINANTE_ARTT__160100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160090",
+      "codice_integrato": "GUIDA_AZIONE_CUMULATA_PER_MOBBING_SISTEMICO_STRAINING_DEMANSIONAMENTO_PROGRESS_160090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 10
+}

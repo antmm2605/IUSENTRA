@@ -1,0 +1,2702 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET10_PARTE1",
+  "denominazione": "Decimo set di 9 codici - PARTE 1 di 2",
+  "registri": [
+    "SICID",
+    "SIVG",
+    "SILP"
+  ],
+  "data_generazione": "2026-05-24",
+  "scopo": "Parte 1 del decimo set TOP9: responsabilità preponente 2049, usucapione mobili, leasing, affidamento figli fuori matrimonio, licenziamento giusta causa",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RESPONSABILIT_DEL_PREPONENTE_PER_FATTO_DEL_DIPENDENTE_PREPOSTO_ART_2049__160011",
+      "denominazione": "Responsabilità del preponente per fatto del dipendente/preposto (art. 2049 c.c.)",
+      "categoria": "Responsabilità civile - responsabilità indiretta",
+      "sottocategoria": "Responsabilità oggettiva del datore di lavoro/committente per illeciti commessi dal dipendente/preposto in occasione del servizio",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - foro residenza convenuto o luogo fatto illecito (artt. 18-20 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2049",
+          "descrizione": "Responsabilità dei padroni e committenti per fatto dei domestici e commessi nell'esercizio delle incombenze a cui sono adibiti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana generale - norma complementare"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2055",
+          "descrizione": "Responsabilità solidale tra preponente e preposto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2056-2059",
+          "descrizione": "Valutazione e categorie dei danni risarcibili"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione 5 anni (o lunga se reato)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1228",
+          "descrizione": "Responsabilità per fatto degli ausiliari (contrattuale)"
+        },
+        {
+          "fonte": "Cass. SU 6672/2022",
+          "descrizione": "Nesso di occasionalità necessaria - criterio di imputazione"
+        },
+        {
+          "fonte": "Cass. SU 20943/2022",
+          "descrizione": "Onere prova in responsabilità indiretta"
+        },
+        {
+          "fonte": "Cass. SU 9100/2015",
+          "descrizione": "Banca responsabile per operato di funzionario infedele"
+        },
+        {
+          "fonte": "Cass. SU 13246/2019",
+          "descrizione": "Struttura sanitaria per fatto del medico dipendente"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "RAPPORTO DI PREPOSIZIONE tra preponente e preposto (lavoro subordinato, collaborazione, mandato, incarico)",
+        "FATTO ILLECITO del PREPOSTO (dipendente, collaboratore, commesso)",
+        "NESSO DI OCCASIONALITÀ NECESSARIA tra le incombenze affidate e il fatto illecito (Cass. SU 6672/2022):",
+        "- Non richiede che l'illecito avvenga nell'esercizio delle mansioni",
+        "- Sufficiente che le mansioni abbiano OCCASIONATO o AGEVOLATO la commissione dell'illecito",
+        "- Anche condotta dolosa del preposto rileva (Cass. SU 9100/2015)",
+        "DANNO al terzo",
+        "NESSO CAUSALE tra fatto del preposto e danno"
+      ],
+      "natura_della_responsabilita": {
+        "tipo": "RESPONSABILITÀ OGGETTIVA (senza colpa del preponente)",
+        "ratio": "Il preponente si avvantaggia dell'attività del preposto → sopporta il rischio dell'illecito",
+        "esimente": "NON ESISTE esimente specifica - nemmeno la prova di aver scelto un preposto idoneo o di averlo sorvegliato",
+        "unica_possibilita_di_liberarsi": "Negare il rapporto di preposizione o il nesso di occasionalità necessaria"
+      },
+      "nesso_di_occasionalita_necessaria_cass_su_6672_2022": {
+        "definizione": "Il fatto del preposto deve essere collegato all'attività di servizio da un nesso di occasionalità necessaria, non necessariamente di causalità diretta",
+        "criteri": [
+          "L'incarico ha reso POSSIBILE o AGEVOLATO la commissione dell'illecito",
+          "Il preposto ha agito abusando dell'incarico",
+          "La situazione di servizio ha creato l'opportunità dell'illecito",
+          "Irrilevante che il preposto abbia agito per fini personali o con dolo"
+        ],
+        "casi_tipici_con_nesso": [
+          "Cassiere di banca che truffa i clienti (abilità/contatti dovuti all'incarico)",
+          "Dipendente di istituto finanziario che distrae fondi (accesso dovuto al ruolo)",
+          "Medico dipendente che commette abusi durante visite (accesso ai pazienti)",
+          "Autista che causa sinistro con veicolo aziendale",
+          "Dipendente di vigilanza che commette furto durante ronda"
+        ],
+        "casi_tipici_SENZA_nesso": [
+          "Dipendente che commette reato in orario extralavorativo senza strumenti aziendali",
+          "Preposto che usa beni personali per commettere l'illecito senza collegamento al servizio"
+        ]
+      },
+      "responsabilita_solidale_2055": {
+        "norma": "art. 2055 c.c.",
+        "contenuto": "Preponente e preposto sono solidalmente responsabili verso il terzo danneggiato",
+        "effetti": [
+          "Danneggiato può agire contro uno o entrambi per l'intero",
+          "Preponente che paga ha RIVALSA sul preposto (in misura determinata dalla gravità colpa)"
+        ]
+      },
+      "differenza_da_1228_contrattuale": {
+        "art_2049_extracontrattuale": "Terzo leso da illecito del preposto - nessun contratto tra vittima e preponente",
+        "art_1228_contrattuale": "Inadempimento contrattuale per fatto degli ausiliari - presuppone contratto tra debitore e creditore",
+        "in_pratica": "Spesso entrambe le azioni possibili (es. banca/cliente)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": "Solo se materia rientra in art. 5 c. 1-bis (es. condominio, RC sanitaria, ecc.)",
+        "valutazione_caso_per_caso": true
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL FATTO ILLECITO DEL PREPOSTO",
+          "documenti": [
+            "Verbali FFOO se intervenute",
+            "Eventuali sentenze/decreti penali (prejudicial)",
+            "Documentazione del danno",
+            "Testimonianze",
+            "Eventuale registrazioni o prove informatiche"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "PROVA DEL RAPPORTO DI PREPOSIZIONE",
+          "elementi": [
+            "Contratto di lavoro del preposto",
+            "Visura CCIAA (per datori di lavoro)",
+            "Documentazione del ruolo del preposto (buste paga, organigrammi)",
+            "Eventuali comunicazioni aziendali che identificano il preposto"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PROVA DEL NESSO DI OCCASIONALITÀ NECESSARIA",
+          "elementi": [
+            "Descrizione di come le mansioni/incarico hanno reso possibile/agevolato l'illecito",
+            "Documentazione del contesto lavorativo al momento del fatto",
+            "Prove che il preposto ha usato strumenti, accessi, relazioni derivanti dall'incarico"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "QUANTIFICAZIONE DANNI",
+          "voci": [
+            "Danno patrimoniale emergente",
+            "Lucro cessante",
+            "Danno biologico se lesioni personali",
+            "Danno morale",
+            "Per illeciti finanziari: differenza tra investimento e valore attuale"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE STRATEGICA: agire contro preposto + preponente in solidale",
+          "vantaggi_agire_contro_preponente": [
+            "Solvibilità molto maggiore (società/datori di lavoro strutturati)",
+            "Responsabilità oggettiva: non serve provare colpa del preponente",
+            "Assicurazione del preponente spesso disponibile"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_preponente_2049",
+        "denominazione": "Atto di citazione per responsabilità del preponente ex art. 2049 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "label": "Danneggiato attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "preponente_convenuto",
+            "label": "Preponente convenuto (datore di lavoro/committente)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_preponente",
+                "type": "select",
+                "options": [
+                  "societa_o_impresa",
+                  "banca_o_istituto_di_credito",
+                  "struttura_sanitaria",
+                  "pubblica_amministrazione",
+                  "privato_datore_lavoro",
+                  "altro"
+                ]
+              },
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "sede",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "preposto_convenuto_eventuale",
+            "label": "Preposto convenuto (in solidale)",
+            "type": "object_persona"
+          },
+          {
+            "id": "assicuratore_eventuale",
+            "label": "Eventuale assicuratore del preponente",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "rapporto_di_preposizione",
+            "label": "Rapporto di preposizione",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_rapporto",
+                "type": "select",
+                "options": [
+                  "dipendente_lavoro_subordinato",
+                  "collaboratore",
+                  "agente_o_mandatario",
+                  "commesso_o_ausiliario",
+                  "altro"
+                ]
+              },
+              {
+                "id": "qualifica_e_mansioni_preposto",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "documenti_prova_rapporto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "fatto_illecito_del_preposto",
+            "label": "Fatto illecito del preposto",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_fatto",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo_fatto",
+                "type": "address"
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "rilevanza_penale",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "fatto_rilevante_penalmente",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "procedimento_penale_in_corso",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "eventuale_sentenza_penale",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "nesso_di_occasionalita_necessaria",
+            "label": "Nesso di occasionalità necessaria",
+            "type": "textarea",
+            "required": true,
+            "critico": true,
+            "min_length": 300
+          },
+          {
+            "id": "danni_subiti",
+            "label": "Danni subiti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_patrimoniale_emergente",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "danno_biologico_e_morale",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_responsabilita_preponente_2049",
+              "condanna_solidale_preponente_e_preposto_2055",
+              "risarcimento_integrale_danni",
+              "rivalutazione_e_interessi",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Responsabilità OGGETTIVA del preponente - non serve provare sua colpa",
+          "Nesso di OCCASIONALITÀ NECESSARIA (non causalità diretta) - Cass. SU 6672/2022",
+          "Solidarietà ex 2055: si può agire contro uno o entrambi",
+          "Prescrizione 5 anni (art. 2947), lunga se reato",
+          "Dolo o colpa grave del preposto non esclude la responsabilità del preponente"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fatto_illecito",
+          "label": "Documentazione del fatto illecito (verbali, testimoni, prove)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_rapporto_preposizione",
+          "label": "Documentazione del rapporto di preposizione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_nesso_occasionalita",
+          "label": "Documentazione del nesso con le mansioni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_sentenza_penale",
+          "label": "Eventuale sentenza penale o decreto penale",
+          "required_if": "procedimento_penale=true"
+        },
+        {
+          "id": "documentazione_danni",
+          "label": "Documentazione dei danni subiti",
+          "required": true
+        },
+        {
+          "id": "perizia_medico_legale_se_lesioni",
+          "label": "Perizia medico-legale di parte (se lesioni)",
+          "required_if": "danno_biologico_richiesto"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_medico_legale_o_tecnica",
+          "trigger": "Per quantificazione danni",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione_preponente",
+          "trigger": "Se preponente assicurato"
+        },
+        {
+          "tipo": "azione_di_rivalsa_preponente_su_preposto",
+          "trigger": "Dopo condanna del preponente",
+          "norma": "art. 2055 c.c."
+        },
+        {
+          "tipo": "domanda_riconvenzionale_concorso_colpa_vittima",
+          "trigger": "Eccezione del preponente"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_solidale_preponente_e_preposto",
+          "descrizione": "Risarcimento integrale a carico di entrambi"
+        },
+        {
+          "esito": "condanna_solo_preponente_preposto_insolvente",
+          "descrizione": "Unica condanna al preponente solvibile"
+        },
+        {
+          "esito": "rigetto_per_assenza_nesso_occasionalita",
+          "descrizione": "Illecito senza collegamento con le mansioni"
+        },
+        {
+          "esito": "rigetto_per_assenza_rapporto_preposizione",
+          "descrizione": "Non provato il rapporto di preposizione"
+        },
+        {
+          "esito": "accoglimento_parziale_per_concorso_colpa_vittima",
+          "descrizione": "Riduzione ex 1227 c.c."
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con assicurazione del preponente - frequente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE GENERALE",
+          "anni": 5,
+          "decorrenza": "fatto o scoperta",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c. 1 c.c.",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "PRESCRIZIONE LUNGA SE REATO",
+          "anni": "secondo prescrizione reato",
+          "norma": "art. 2947 c. 3 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "160011",
+      "codice_logico": "GUIDA_RESPONSABILIT_DEL_PREPONENTE_PER_FATTO_DEL_DIPENDENTE_PREPOSTO_ART_2049__160011",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160011"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160011"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160011"
+        }
+      ]
+    },
+    {
+      "codice": "131001",
+      "denominazione": "Usucapione di beni mobili (art. 1161 c.c.) e mobili registrati (art. 1162 c.c.)",
+      "categoria": "Diritti reali - acquisto per usucapione",
+      "sottocategoria": "Acquisto della proprietà di beni mobili per possesso prolungato",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale - foro residenza convenuto; per accertamento: anche foro attore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1140",
+          "descrizione": "Nozione di possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1141",
+          "descrizione": "Mutamento della detenzione in possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1153",
+          "descrizione": "Acquisto proprietà beni mobili - buona fede + titolo astrattamente idoneo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1154",
+          "descrizione": "Acquisto proprietà beni mobili senza titolo valido"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1158",
+          "descrizione": "Usucapione ordinaria immobili - 20 anni (riferimento)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1159",
+          "descrizione": "Usucapione abbreviata immobili - 10 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1161",
+          "descrizione": "Usucapione beni MOBILI - 10 anni (buona fede + titolo idoneo) o 20 anni (senza)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1162",
+          "descrizione": "Usucapione beni MOBILI REGISTRATI (autoveicoli, navi, aeromobili) - 10 o 3 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1163",
+          "descrizione": "Continuità del possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1164",
+          "descrizione": "Casi particolari di possesso di beni altrui"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1165",
+          "descrizione": "Disposizioni comuni sull'usucapione - rinvio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2727-2729",
+          "descrizione": "Presunzioni - rilevanti per la prova del possesso"
+        },
+        {
+          "fonte": "Cass. SU 7268/2007",
+          "descrizione": "Possesso e titolo per usucapione mobili"
+        },
+        {
+          "fonte": "Cass. SU 28949/2019",
+          "descrizione": "Prova del possesso continuato - onere"
+        }
+      ],
+      "termini_usucapione_mobili": {
+        "mobili_ordinari_1161": {
+          "con_buona_fede_e_titolo_astrattamente_idoneo": {
+            "termine": "10 ANNI",
+            "decorrenza": "acquisto del possesso",
+            "requisiti": [
+              "Buona fede al momento dell'acquisto",
+              "Titolo astrattamente idoneo al trasferimento (anche se invalido)"
+            ]
+          },
+          "senza_titolo_o_in_mala_fede": {
+            "termine": "20 ANNI",
+            "decorrenza": "acquisto del possesso",
+            "requisiti": [
+              "Possesso continuato e non interrotto per 20 anni",
+              "Non richiede titolo né buona fede"
+            ]
+          }
+        },
+        "mobili_registrati_1162_veicoli_navi_aeromobili": {
+          "con_titolo_e_buona_fede": {
+            "termine": "3 ANNI",
+            "decorrenza": "trascrizione nei registri"
+          },
+          "senza_titolo_o_in_mala_fede": {
+            "termine": "10 ANNI",
+            "decorrenza": "acquisto del possesso"
+          }
+        }
+      },
+      "presupposti_sostanziali": [
+        "POSSESSO del bene mobile (non detenzione - art. 1140)",
+        "Possesso CONTINUO e ININTERROTTO per il periodo richiesto",
+        "Possesso PACIFICO (non violento)",
+        "Possesso PUBBLICO (non clandestino)",
+        "Per usucapione abbreviata: BUONA FEDE al momento dell'acquisto + TITOLO ASTRATTAMENTE IDONEO"
+      ],
+      "prova_del_possesso": {
+        "regola_generale": "Onere della prova su chi agisce in usucapione (Cass. SU 28949/2019)",
+        "elementi_di_prova": [
+          "Testimonianze di chi ha visto il possessore utilizzare il bene",
+          "Documenti d'uso (assicurazioni, revisioni per veicoli, manutenzioni)",
+          "Fotografie e riprese che documentano il possesso nel tempo",
+          "Atti di manutenzione o miglioria",
+          "Fatture di carburante, spese di gestione",
+          "Per mobili registrati: intestazione nei registri"
+        ],
+        "presunzione_di_possesso_1141": "Chi ha il bene si presume possessore; chi vuole negarlo deve provare che si tratta di detenzione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE E DESCRIZIONE DEL BENE",
+          "documenti": [
+            "Descrizione precisa del bene mobile (marca, modello, caratteristiche)",
+            "Per veicoli: targa, telaio, libretto (se disponibile)",
+            "Per altri mobili registrati: dati identificativi dei registri",
+            "Valore stimato del bene"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "RICOSTRUZIONE STORIA DEL POSSESSO",
+          "elementi": [
+            "Data di inizio del possesso",
+            "Modalità di acquisto/inizio del possesso (con o senza titolo)",
+            "Continuità del possesso nel tempo",
+            "Assenza di interruzioni (atti possessori altrui)",
+            "Eventuale buona fede al momento dell'acquisto"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RACCOLTA PROVE DEL POSSESSO",
+          "tipologie": [
+            "Testimonianze",
+            "Documenti di uso del bene",
+            "Per veicoli: bollette assicurazione, bollo, revisioni",
+            "Fotografie storiche con date",
+            "Fatture di manutenzione"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "IDENTIFICAZIONE DELL'INTESTATARIO ATTUALE (Convenuto)",
+          "per_veicoli": "Visura PRA per identificare intestatario formale",
+          "per_altri_mobili": "Identificare chi vanta diritto di proprietà formale sul bene"
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_usucapione_mobili",
+        "denominazione": "Atto di citazione per usucapione di bene mobile ex art. 1161-1162 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "usucapiente_attore",
+            "label": "Usucapiente attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "titolare_formale_convenuto",
+            "label": "Titolare formale convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "bene_mobile",
+            "label": "Bene mobile",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "autoveicolo",
+                  "motoveicolo",
+                  "imbarcazione",
+                  "aeromobile",
+                  "macchinario_industriale",
+                  "oggetto_di_pregio_arte",
+                  "altro_mobile"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "dati_identificativi",
+                "type": "string"
+              },
+              {
+                "id": "e_mobile_registrato",
+                "type": "boolean",
+                "critico_per_regime": true
+              },
+              {
+                "id": "registro_di_riferimento_se_registrato",
+                "type": "select",
+                "options": [
+                  "PRA_autoveicoli",
+                  "registro_imbarcazioni",
+                  "registro_aeromobili",
+                  "altro"
+                ]
+              },
+              {
+                "id": "intestazione_attuale_nei_registri",
+                "type": "string"
+              },
+              {
+                "id": "valore_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "regime_usucapione",
+            "label": "Regime di usucapione applicabile",
+            "type": "select",
+            "required": true,
+            "options": [
+              "ordinaria_20_anni_senza_titolo_1161",
+              "abbreviata_10_anni_buona_fede_titolo_1161",
+              "mobili_registrati_3_anni_con_trascrizione_1162",
+              "mobili_registrati_10_anni_senza_1162"
+            ]
+          },
+          {
+            "id": "inizio_possesso",
+            "label": "Inizio possesso",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date",
+                "required": true,
+                "critico_per_decorso_termine": true
+              },
+              {
+                "id": "modalita_acquisto_possesso",
+                "type": "textarea"
+              },
+              {
+                "id": "presenza_di_titolo_astrattamente_idoneo",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "buona_fede_al_momento",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "continuita_possesso",
+            "label": "Continuità del possesso",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "possesso_continuo_e_ininterrotto",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "carattere_pacifico_e_pubblico",
+                "type": "boolean"
+              },
+              {
+                "id": "descrizione_esercizio_del_possesso",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "eventuali_interruzioni_e_come_superate",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "prove_del_possesso",
+            "label": "Prove del possesso",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "documenti_uso_disponibili",
+                "type": "textarea"
+              },
+              {
+                "id": "testimoni",
+                "type": "array_persone"
+              },
+              {
+                "id": "fotografie_storiche",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_intervenuta_usucapione",
+              "dichiarazione_acquisto_proprieta_per_usucapione",
+              "ordine_trascrizione_o_aggiornamento_registri_per_mobili_registrati",
+              "condanna_alla_consegna_o_rilascio_del_bene_se_detenuto_da_altri",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Regime differenziato: mobili ordinari (10/20 anni) vs mobili registrati (3/10 anni)",
+          "Buona fede e titolo idoneo: richiesti per il termine breve (10 o 3 anni)",
+          "Onere della prova del possesso su chi agisce (Cass. SU 28949/2019)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Per veicoli: visura PRA per intestatario formale",
+          "Trascrizione sentenza nei registri per mobili registrati"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_identificativa_del_bene",
+          "label": "Documentazione identificativa del bene (libretto, visura PRA, ecc.)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_inizio_possesso",
+          "label": "Documentazione dell'inizio del possesso",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_continuita_possesso",
+          "label": "Prove continuità possesso (assicurazioni, revisioni, uso)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_titolo_astrattamente_idoneo",
+          "label": "Eventuale titolo astrattamente idoneo",
+          "required_if": "regime_abbreviato"
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni",
+          "required": true
+        },
+        {
+          "id": "fotografie_storiche_datate",
+          "label": "Fotografie storiche datate",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del bene",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "ctu_estimativa_del_bene",
+          "trigger": "Per valutazione",
+          "automatico": false
+        },
+        {
+          "tipo": "prova_testimoniale_estesa",
+          "trigger": "Sempre disposta",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "trascrizione_sentenza_nei_registri",
+          "trigger": "Per mobili registrati",
+          "norma": "art. 2684 c.c."
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accertamento_usucapione",
+          "descrizione": "Acquisto proprietà dichiarato + trascrizione registri"
+        },
+        {
+          "esito": "rigetto_per_mancato_decorso_termine",
+          "descrizione": "Possesso non sufficiente per decorso"
+        },
+        {
+          "esito": "rigetto_per_assenza_prova_possesso",
+          "descrizione": "Possesso non adeguatamente provato"
+        },
+        {
+          "esito": "rigetto_per_mala_fede_o_assenza_titolo_per_regime_abbreviato",
+          "descrizione": "Regime abbreviato non applicabile"
+        },
+        {
+          "esito": "transazione_con_regolarizzazione_trasferimento",
+          "descrizione": "Accordo per trasferimento formale"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "USUCAPIONE MOBILI ORDINARIA",
+          "anni": 20,
+          "decorrenza": "acquisto possesso",
+          "natura": "termine sostanziale",
+          "norma": "art. 1161 c.c."
+        },
+        {
+          "termine": "USUCAPIONE MOBILI ABBREVIATA",
+          "anni": 10,
+          "decorrenza": "acquisto possesso",
+          "natura": "termine sostanziale",
+          "norma": "art. 1161 c.c."
+        },
+        {
+          "termine": "USUCAPIONE MOBILI REGISTRATI CON TRASCRIZIONE",
+          "anni": 3,
+          "decorrenza": "trascrizione",
+          "natura": "termine sostanziale",
+          "norma": "art. 1162 c.c."
+        },
+        {
+          "termine": "USUCAPIONE MOBILI REGISTRATI SENZA",
+          "anni": 10,
+          "natura": "termine sostanziale",
+          "norma": "art. 1162 c.c."
+        },
+        {
+          "termine": "Mediazione max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "131001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "131001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "131001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_LEASING_FINANZIARIO_PER_INADEMPIMENTO_141005",
+      "denominazione": "Risoluzione contratto di leasing finanziario per inadempimento",
+      "categoria": "Contratti - contratti di finanziamento e godimento",
+      "sottocategoria": "Risoluzione del leasing finanziario e liquidazione post-risoluzione ex L. 124/2017",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (contratti bancari/finanziari)",
+      "competenza": "Tribunale - foro residenza convenuto o luogo esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 124/2017 (Legge annuale mercato e concorrenza)",
+          "articolo": "1, commi 136-140",
+          "descrizione": "Disciplina organica del contratto di leasing finanziario - prima normativa organica"
+        },
+        {
+          "fonte": "L. 124/2017",
+          "comma": "137",
+          "descrizione": "Definizione leasing finanziario"
+        },
+        {
+          "fonte": "L. 124/2017",
+          "comma": "138",
+          "descrizione": "Inadempimento dell'utilizzatore - risoluzione + liquidazione"
+        },
+        {
+          "fonte": "L. 124/2017",
+          "comma": "139",
+          "descrizione": "Procedura di liquidazione post-risoluzione"
+        },
+        {
+          "fonte": "L. 124/2017",
+          "comma": "140",
+          "descrizione": "Leasing finanziario su immobile adibito ad abitazione principale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1453-1458",
+          "descrizione": "Risoluzione per inadempimento (diritto comune)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1455",
+          "descrizione": "Importanza dell'inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1456",
+          "descrizione": "Clausola risolutiva espressa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1526",
+          "descrizione": "Risoluzione della vendita con riserva di proprietà - applica per analogia"
+        },
+        {
+          "fonte": "D.Lgs. 385/1993 (TUB)",
+          "articolo": "117",
+          "descrizione": "Trasparenza contratti bancari"
+        },
+        {
+          "fonte": "Cass. SU 2061/2021",
+          "descrizione": "Leasing finanziario e traslativo - distinzione e regime applicabile"
+        },
+        {
+          "fonte": "Cass. SU 15130/2024",
+          "descrizione": "Leasing su immobile - applicabilità L. 124/2017"
+        }
+      ],
+      "definizione_e_caratteristiche_leasing": {
+        "definizione_l_124_2017": "Contratto con cui la società di leasing (concedente) si obbliga ad acquistare o far costruire un bene, su scelta e secondo le indicazioni dell'utilizzatore, e lo concede in uso a quest'ultimo per un periodo determinato, verso corrispettivo periodico; con facoltà per l'utilizzatore di acquistare al termine il bene a un prezzo prestabilito (opzione di acquisto)",
+        "leasing_finanziario_vs_operativo": {
+          "finanziario": "Funzione di finanziamento + uso - canoni comprendono rimborso del capitale + interessi + margine - al termine l'utilizzatore acquista normalmente",
+          "operativo": "Funzione di puro godimento - canoni coprono solo l'uso - nessuna aspettativa di acquisto"
+        },
+        "tipi_comuni": [
+          "Leasing su macchinari e attrezzature industriali",
+          "Leasing su autoveicoli e flotte",
+          "Leasing immobiliare (per acquisto immobili strumentali)",
+          "Leasing su beni strumentali per professionisti",
+          "Leasing su immobile abitativo (disciplina speciale comma 140)"
+        ]
+      },
+      "meccanismo_liquidazione_post_risoluzione_l_124_2017": {
+        "procedura": [
+          "1. RISOLUZIONE del contratto per inadempimento dell'utilizzatore",
+          "2. RESTITUZIONE del bene al concedente",
+          "3. VENDITA o altra VALORIZZAZIONE del bene da parte del concedente",
+          "4. CONGUAGLIO: se ricavato > credito residuo concedente: ECCEDENZA ALL'UTILIZZATORE; se ricavato < credito residuo: DIFFERENZA A CARICO DELL'UTILIZZATORE"
+        ],
+        "credito_residuo_concedente": [
+          "Somma dei canoni scaduti e non pagati + penali contrattuali",
+          "Canoni a scadere (attualizzati) al netto del corrispettivo di vendita",
+          "Spese di recupero, custodia, valorizzazione del bene"
+        ],
+        "eccezione_immobile_abitativo_comma_140": "Per immobili adibiti ad abitazione principale: sospensione pagamenti per perdita lavoro + protezioni aggiuntive"
+      },
+      "presupposti_sostanziali": [
+        "CONTRATTO DI LEASING FINANZIARIO valido",
+        "INADEMPIMENTO DELL'UTILIZZATORE (mancato pagamento canoni)",
+        "RISOLUZIONE ai sensi della clausola contrattuale o per via legale (1453)",
+        "RESTITUZIONE del bene o recupero coattivo",
+        "Applicazione del meccanismo di LIQUIDAZIONE ex comma 138-139 L. 124/2017"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONTRATTI BANCARI E FINANZIARI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL CONTRATTO",
+          "documenti": [
+            "Contratto di leasing + condizioni generali",
+            "Piano di ammortamento dei canoni",
+            "Documentazione del bene (fattura fornitore, libretto per veicoli, visura per immobili)",
+            "Eventuali garanzie accessorie (fideiussioni)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'INADEMPIMENTO",
+          "elementi": [
+            "Estratti conto dei canoni scaduti e non pagati",
+            "Solleciti di pagamento già inviati",
+            "Eventuale comunicazione di risoluzione già inviata"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "COMUNICAZIONE DI RISOLUZIONE E RESTITUZIONE",
+          "modalita": [
+            "Raccomandata A/R o PEC con dichiarazione di avvalersi della clausola risolutiva",
+            "Intimazione alla restituzione del bene entro termine",
+            "Se bene non restituito: ricorso al GE per rilascio/consegna"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALORIZZAZIONE DEL BENE RECUPERATO",
+          "obblighi_concedente": [
+            "Vendita a valori di mercato (non sottocosto)",
+            "Adozione delle migliori modalità di vendita",
+            "Documentazione del prezzo ottenuto",
+            "Rendiconto all'utilizzatore ex comma 139"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "CALCOLO DEL CONGUAGLIO FINALE",
+          "formula": "Ricavato netto - Credito residuo concedente = Differenza positiva (all'utilizzatore) o negativa (a carico utilizzatore)",
+          "criticita": "Se rimane saldo negativo: azione per il residuo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_leasing_liquidazione",
+        "denominazione": "Atto di citazione per risoluzione leasing + applicazione meccanismo liquidazione L. 124/2017",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "concedente_attore",
+            "label": "Concedente attore (società di leasing)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "utilizzatore_convenuto",
+            "label": "Utilizzatore convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fideiussori_eventuali",
+            "label": "Eventuali fideiussori convenuti",
+            "type": "array_persone"
+          },
+          {
+            "id": "contratto_leasing",
+            "label": "Contratto di leasing",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_leasing",
+                "type": "select",
+                "options": [
+                  "leasing_su_macchinari",
+                  "leasing_su_autoveicoli",
+                  "leasing_immobiliare_strumentale",
+                  "leasing_su_immobile_abitativo_comma_140",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "canone_periodico",
+                "type": "currency"
+              },
+              {
+                "id": "durata",
+                "type": "string"
+              },
+              {
+                "id": "opzione_di_acquisto_finale",
+                "type": "currency"
+              },
+              {
+                "id": "bene_oggetto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "inadempimento",
+            "label": "Inadempimento dell'utilizzatore",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "numero_canoni_non_pagati",
+                "type": "integer"
+              },
+              {
+                "id": "importo_totale_arretrato",
+                "type": "currency"
+              },
+              {
+                "id": "data_prima_rata_insoluta",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "risoluzione_contratto",
+            "label": "Risoluzione del contratto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_comunicazione_risoluzione",
+                "type": "date"
+              },
+              {
+                "id": "clausola_risolutiva_invocata",
+                "type": "string"
+              },
+              {
+                "id": "restituzione_bene_avvenuta",
+                "type": "boolean"
+              },
+              {
+                "id": "data_restituzione",
+                "type": "date"
+              },
+              {
+                "id": "modalita_recupero_bene",
+                "type": "select",
+                "options": [
+                  "volontaria",
+                  "coattiva_via_giudiziale"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "liquidazione_post_risoluzione",
+            "label": "Liquidazione ex L. 124/2017",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "valore_di_vendita_del_bene",
+                "type": "currency"
+              },
+              {
+                "id": "credito_residuo_concedente",
+                "type": "currency"
+              },
+              {
+                "id": "canoni_scaduti_non_pagati",
+                "type": "currency"
+              },
+              {
+                "id": "penali_contrattuali",
+                "type": "currency"
+              },
+              {
+                "id": "canoni_a_scadere_attualizzati",
+                "type": "currency"
+              },
+              {
+                "id": "spese_recupero_e_valorizzazione",
+                "type": "currency"
+              },
+              {
+                "id": "saldo_a_favore_o_sfavore_concedente",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_risoluzione_leasing",
+              "condanna_pagamento_saldo_residuo_liquidazione",
+              "restituzione_bene_se_non_avvenuta",
+              "applicazione_meccanismo_liquidazione_l_124_2017",
+              "condanna_fideiussori",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "totale_richiesto",
+            "label": "Totale richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Applicare meccanismo liquidazione L. 124/2017 (commi 138-139)",
+          "Obbligo di vendita a valori di mercato - rendiconto all'utilizzatore",
+          "Mediazione obbligatoria preventiva (contratti bancari/finanziari)",
+          "Per immobile abitativo principale: verificare comma 140 (sospensione per perdita lavoro)",
+          "Cass. SU 2061/2021 su distinzione leasing finanziario vs traslativo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_leasing_completo",
+          "label": "Contratto di leasing + condizioni generali",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "piano_ammortamento_canoni",
+          "label": "Piano di ammortamento dei canoni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_inadempimento",
+          "label": "Estratti conto e documentazione inadempimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "comunicazione_di_risoluzione",
+          "label": "Comunicazione di risoluzione + prova invio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_recupero_bene",
+          "label": "Documentazione recupero/restituzione bene",
+          "required": true
+        },
+        {
+          "id": "documentazione_vendita_bene_e_ricavato",
+          "label": "Documentazione vendita bene e ricavato (L. 124/2017)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "calcolo_liquidazione_dettagliato",
+          "label": "Calcolo dettagliato della liquidazione ex L. 124/2017",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "fideiussioni_se_applicabili",
+          "label": "Fideiussioni (se convenuti fideiussori)",
+          "required_if": "fideiussori_presenti"
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "ricorso_per_consegna_bene_se_non_restituito",
+          "trigger": "Se bene non restituito",
+          "codice_correlato": "511012"
+        },
+        {
+          "tipo": "ctu_estimativa_bene_e_contabile",
+          "trigger": "Disposta dal giudice",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "domanda_riconvenzionale_utilizzatore_per_clausole_nulle",
+          "trigger": "Eccezioni sull'usura o trasparenza TUB",
+          "frequente": true
+        },
+        {
+          "tipo": "azione_su_fideiussori",
+          "trigger": "Per coobbligati"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_risoluzione_e_condanna_saldo",
+          "descrizione": "Risoluzione accertata + condanna saldo negativo liquidazione"
+        },
+        {
+          "esito": "accoglimento_con_riduzione_per_vendita_sottocosto",
+          "descrizione": "Riduzione per violazione obbligo vendita a valore di mercato"
+        },
+        {
+          "esito": "eccedenza_a_favore_utilizzatore",
+          "descrizione": "Ricavato > credito: concedente deve restituire eccedenza"
+        },
+        {
+          "esito": "rigetto_per_assenza_inadempimento_grave",
+          "descrizione": "Inadempimento non giustificava risoluzione"
+        },
+        {
+          "esito": "transazione_con_piano_rientro",
+          "descrizione": "Accordo - molto frequente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 10,
+          "decorrenza": "risoluzione contratto",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "141005",
+      "codice_logico": "GUIDA_RISOLUZIONE_CONTRATTO_DI_LEASING_FINANZIARIO_PER_INADEMPIMENTO_141005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141005"
+        }
+      ]
+    },
+    {
+      "codice": "111010",
+      "denominazione": "Affidamento e mantenimento figli nati fuori dal matrimonio (art. 473-bis c.p.c.)",
+      "categoria": "Persone e famiglia - filiazione",
+      "sottocategoria": "Procedimento per regolazione dei rapporti genitori-figli nati fuori dal matrimonio (non conviventi e che non procedono congiuntamente)",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis e ss. c.p.c. (Cartabia D.Lgs. 149/2022)",
+      "competenza": "Tribunale ordinario - sezione famiglia; residenza abituale del minore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "315-bis",
+          "descrizione": "Diritti e doveri del figlio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "316",
+          "descrizione": "Responsabilità genitoriale - esercizio comune"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-bis - 337-octies",
+          "descrizione": "Esercizio della responsabilità genitoriale a seguito di separazione/scioglimento - applicabili anche a figli fuori matrimonio per rinvio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-ter",
+          "descrizione": "Affidamento condiviso come regola"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-quater",
+          "descrizione": "Affidamento esclusivo nei casi gravi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-quinquies",
+          "descrizione": "Modifica delle statuizioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-sexies",
+          "descrizione": "Casa familiare - assegnazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-septies",
+          "descrizione": "Mantenimento del minore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-octies",
+          "descrizione": "Ascolto del minore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "155 e ss.",
+          "descrizione": "Norme applicabili per rinvio"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.12",
+          "descrizione": "Piano genitoriale obbligatorio"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.22",
+          "descrizione": "Ascolto del minore nel procedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.51",
+          "descrizione": "Procedimento congiunto (se accordo)"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022 (Cartabia)",
+          "descrizione": "Rito unificato persone e famiglia"
+        },
+        {
+          "fonte": "L. 54/2006",
+          "descrizione": "Affidamento condiviso - ancora rilevante"
+        },
+        {
+          "fonte": "Cass. SU 11012/2017",
+          "descrizione": "Mantenimento diretto vs assegno monetario"
+        },
+        {
+          "fonte": "Cass. SU 9372/2021",
+          "descrizione": "Revisione assegno mantenimento figli"
+        }
+      ],
+      "differenza_da_111002_separazione_giudiziale": {
+        "111002_separazione_giudiziale": "Coniugi in crisi coniugale - procedure di separazione + affidamento figli (contestuale)",
+        "111010_figli_fuori_matrimonio": "Genitori mai stati coniugati - procedimento esclusivamente sull'affidamento e mantenimento - no separazione coniugale",
+        "norme_applicabili": "Le stesse norme sull'affidamento (337-bis e ss. c.c.) applicabili per rinvio anche a figli fuori matrimonio"
+      },
+      "presupposti_sostanziali": [
+        "FIGLI NATI FUORI DAL MATRIMONIO (riconosciuti da entrambi i genitori o con sola maternità/paternità)",
+        "GENITORE CHE AGISCE per ottenere:",
+        "- Regolamentazione AFFIDAMENTO e COLLOCAMENTO",
+        "- Regime di FREQUENTAZIONE con il genitore non convivente",
+        "- ASSEGNO DI MANTENIMENTO per i figli",
+        "- ASSEGNAZIONE CASA FAMILIARE",
+        "- Regolamentazione SPESE STRAORDINARIE",
+        "DISACCORDO tra i genitori (se concordano → procedimento congiunto 473-bis.51)",
+        "INTERESSE DEL MINORE come criterio guida"
+      ],
+      "regime_di_affidamento": {
+        "affidamento_condiviso_regola_337_ter": [
+          "Regola generale (L. 54/2006 confermata)",
+          "Entrambi i genitori concorrono alle decisioni importanti",
+          "Collocamento prevalente presso un genitore",
+          "Contatti regolari con entrambi"
+        ],
+        "affidamento_esclusivo_337_quater": [
+          "Solo per casi gravi: violenza, maltrattamenti, incapacità manifesta",
+          "Motivazione rigorosa richiesta",
+          "Fissazione frequentazione con il genitore non affidatario"
+        ],
+        "piano_genitoriale_473_bis_12": [
+          "OBBLIGATORIO allegare piano genitoriale",
+          "Contiene: attività scolastiche, extrascolastiche, vacanze, cure mediche, festività"
+        ]
+      },
+      "mantenimento_dei_figli": {
+        "regola_337_ter": "Ciascun genitore contribuisce proporzionalmente al proprio reddito e patrimonio, alla condizione dell'altro genitore, ai bisogni del figlio",
+        "mantenimento_diretto_vs_assegno": "Cass. SU 11012/2017: possibile mantenimento diretto (ciascuno sostiene spese durante permanenza) oppure assegno monetario mensile",
+        "spese_straordinarie": "Regolamentazione specifica: accordo preventivo o ripartizione percentuale (di norma 50%)",
+        "aggiornamento_automatico_istat": "Clausola standard di rivalutazione annuale"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Materia di status minore"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLO STATO FAMILIARE",
+          "documenti": [
+            "Atti di nascita dei figli",
+            "Stato di famiglia",
+            "Documentazione del riconoscimento dei figli (se uno o entrambi)",
+            "Situazione attuale convivenza figli"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE ECONOMICA DI ENTRAMBI I GENITORI",
+          "documenti": [
+            "Dichiarazioni redditi ultimi 3 anni",
+            "Buste paga",
+            "Estratti conto correnti",
+            "Documentazione patrimoniale (immobili, investimenti, partecipazioni)",
+            "Eventuali debiti o obbligazioni"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PREDISPOSIZIONE PIANO GENITORIALE",
+          "norma": "art. 473-bis.12 c. 3 c.p.c. - OBBLIGATORIO",
+          "contenuto": [
+            "Attività scolastiche e formative del minore",
+            "Attività extrascolastiche e sportive",
+            "Frequentazioni abituali",
+            "Vacanze e villeggiatura",
+            "Cure mediche ordinarie e straordinarie",
+            "Festività e ricorrenze",
+            "Modalità comunicazione tra genitori per decisioni"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE INTERESSE DEL MINORE",
+          "elementi": [
+            "Età del minore e bisogni specifici",
+            "Legami con ciascun genitore",
+            "Eventuale posizione espressa dal minore (>12 anni: audizione obbligatoria)",
+            "Situazione abitativa di ciascun genitore",
+            "Prossimità a scuola, amici, attività"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_affidamento_mantenimento_figli_fuori_matrimonio",
+        "denominazione": "Ricorso per affidamento e mantenimento figli nati fuori dal matrimonio ex art. 473-bis c.p.c.",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione famiglia",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "genitore_ricorrente",
+            "label": "Genitore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "genitore_resistente",
+            "label": "Genitore resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "figli_minori",
+            "label": "Figli minori",
+            "type": "array_persone",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "attuale_convivenza",
+                "type": "string"
+              },
+              {
+                "id": "scuola_frequentata",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "situazione_attuale",
+            "label": "Situazione attuale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "convivenza_attuale_figli",
+                "type": "string"
+              },
+              {
+                "id": "accordi_precedenti_se_presenti",
+                "type": "textarea"
+              },
+              {
+                "id": "eventuali_provvedimenti_giudiziali_pregressi",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "situazione_economica_ricorrente",
+            "label": "Situazione economica ricorrente",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "reddito_annuo_lordo",
+                "type": "currency"
+              },
+              {
+                "id": "situazione_patrimoniale",
+                "type": "textarea"
+              },
+              {
+                "id": "eventuale_casa_di_proprieta",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "situazione_economica_resistente_se_nota",
+            "label": "Situazione economica resistente (se nota)",
+            "type": "object"
+          },
+          {
+            "id": "piano_genitoriale",
+            "label": "Piano genitoriale proposto",
+            "type": "object_complesso",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "attivita_scolastiche",
+                "type": "textarea"
+              },
+              {
+                "id": "attivita_extrascolastiche_sportive",
+                "type": "textarea"
+              },
+              {
+                "id": "frequentazioni_abituali",
+                "type": "textarea"
+              },
+              {
+                "id": "vacanze_e_villeggiatura",
+                "type": "textarea"
+              },
+              {
+                "id": "cure_mediche",
+                "type": "textarea"
+              },
+              {
+                "id": "festivita_e_ricorrenze",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "richieste_affidamento",
+            "label": "Richieste sull'affidamento",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_affidamento",
+                "type": "select",
+                "options": [
+                  "condiviso_con_collocamento_prevalente_presso_ricorrente",
+                  "condiviso_con_collocamento_prevalente_presso_resistente",
+                  "esclusivo_ricorrente_per_gravi_motivi",
+                  "esclusivo_resistente"
+                ]
+              },
+              {
+                "id": "calendario_visite_proposto",
+                "type": "textarea"
+              },
+              {
+                "id": "motivazione_eventuale_esclusivo",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "richieste_mantenimento",
+            "label": "Richieste sul mantenimento",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_mantenimento",
+                "type": "select",
+                "options": [
+                  "assegno_mensile_monetario",
+                  "mantenimento_diretto",
+                  "combinazione"
+                ]
+              },
+              {
+                "id": "importo_assegno_richiesto",
+                "type": "currency"
+              },
+              {
+                "id": "rivalutazione_istat_annuale",
+                "type": "boolean",
+                "default": true
+              },
+              {
+                "id": "ripartizione_spese_straordinarie",
+                "type": "object"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_assegnazione_casa_familiare",
+            "label": "Richiesta assegnazione casa familiare",
+            "type": "object"
+          },
+          {
+            "id": "richiesta_provvedimenti_urgenti",
+            "label": "Richiesta provvedimenti urgenti (art. 473-bis.15)",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "affidamento_condiviso_con_collocamento_presso_ricorrente",
+              "affidamento_esclusivo_motivato",
+              "regolamentazione_frequentazione_con_resistente",
+              "assegno_mantenimento_figli",
+              "ripartizione_spese_straordinarie",
+              "assegnazione_casa_familiare",
+              "aggiornamento_automatico_istat",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Piano genitoriale OBBLIGATORIO ex art. 473-bis.12 c.p.c.",
+          "Affidamento condiviso è la REGOLA (337-ter c.c.)",
+          "Esclusivo solo per gravi motivi documentati (337-quater)",
+          "Audizione obbligatoria del minore >12 anni o capace (473-bis.22)",
+          "Assegno determinato proporzionalmente ai redditi di entrambi i genitori",
+          "Parere PM obbligatorio",
+          "Rito Cartabia: termine a comparire 120 gg"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_nascita_figli",
+          "label": "Atti di nascita dei figli",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stato_famiglia",
+          "label": "Stato di famiglia",
+          "required": true
+        },
+        {
+          "id": "dichiarazioni_redditi_ricorrente",
+          "label": "Dichiarazioni redditi ultimi 3 anni del ricorrente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_ricorrente",
+          "label": "Buste paga recenti del ricorrente",
+          "required": true
+        },
+        {
+          "id": "documentazione_patrimoniale_ricorrente",
+          "label": "Documentazione patrimoniale del ricorrente",
+          "required": true
+        },
+        {
+          "id": "piano_genitoriale_firmato",
+          "label": "Piano genitoriale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_accordi_o_provvedimenti_pregressi",
+          "label": "Eventuali accordi o provvedimenti pregressi",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_casa_familiare",
+          "label": "Documentazione casa familiare (se chiesta assegnazione)",
+          "required_if": "richiesta_assegnazione"
+        },
+        {
+          "id": "documenti_su_figli_rilevanti",
+          "label": "Documenti rilevanti sui figli (scolastici, sanitari)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente (rapporti genitoriali)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati minori"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "provvedimenti_urgenti_473_bis_15",
+          "trigger": "Urgenza per il minore",
+          "automatico": false
+        },
+        {
+          "tipo": "parere_pm_obbligatorio",
+          "trigger": "Sempre",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "audizione_minore_473_bis_22",
+          "trigger": ">12 anni o capace discernimento",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "ctu_psicologica_sui_minori",
+          "trigger": "Se dispute sull'affidamento",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "modifica_condizioni_473_bis_30",
+          "trigger": "Eventuali sopravvenienze future",
+          "codice_correlato": "411601"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "affidamento_condiviso_collocamento_prevalente_presso_un_genitore",
+          "descrizione": "Soluzione più frequente"
+        },
+        {
+          "esito": "affidamento_esclusivo_per_gravi_motivi",
+          "descrizione": "Raro - solo per gravi inadeguatezze"
+        },
+        {
+          "esito": "regolamentazione_frequentazione_dettagliata",
+          "descrizione": "Calendario preciso di visite e periodi"
+        },
+        {
+          "esito": "assegno_mantenimento_determinato_equitativamente",
+          "descrizione": "Quantificato in base a redditi e bisogni"
+        },
+        {
+          "esito": "transazione_e_accordo_tra_genitori",
+          "descrizione": "Molto frequente - spesso in udienza presidenziale"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione resistente",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Provvedimenti urgenti 473-bis.15",
+          "giorni": "immediati in caso di urgenza",
+          "natura": "su richiesta"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111010"
+        }
+      ]
+    },
+    {
+      "codice": "220010",
+      "denominazione": "Licenziamento per giusta causa (art. 2119 c.c.) - impugnazione",
+      "categoria": "Lavoro - cessazione rapporto",
+      "sottocategoria": "Impugnazione di licenziamento per giusta causa (comportamento grave del lavoratore)",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2119",
+          "descrizione": "Recesso per giusta causa - causa che non consente la prosecuzione neanche provvisoria del rapporto"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "1",
+          "descrizione": "Giustificato motivo soggettivo - comportamento del lavoratore"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "6",
+          "descrizione": "Termini di impugnazione - 60 + 180 gg"
+        },
+        {
+          "fonte": "L. 300/1970 (Statuto Lavoratori)",
+          "articolo": "7",
+          "descrizione": "Procedura disciplinare obbligatoria"
+        },
+        {
+          "fonte": "L. 300/1970",
+          "articolo": "18",
+          "descrizione": "Tutele per licenziamento disciplinare illegittimo"
+        },
+        {
+          "fonte": "L. 92/2012 (Fornero)",
+          "descrizione": "Tutele differenziate"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015 (tutele crescenti)",
+          "descrizione": "Regime per assunti post 7/3/2015"
+        },
+        {
+          "fonte": "Cass. SU 28498/2019",
+          "descrizione": "Proporzionalità della sanzione - scala valutativa"
+        },
+        {
+          "fonte": "Cass. SU 12174/2023",
+          "descrizione": "Contestazione disciplinare - specificità e tempestività"
+        },
+        {
+          "fonte": "Cass. SU 32823/2021",
+          "descrizione": "Giusta causa e fatto materiale - distinzione da insussistenza"
+        },
+        {
+          "fonte": "Cass. SU 19618/2020",
+          "descrizione": "Prova a carico del datore per giusta causa"
+        }
+      ],
+      "differenza_giusta_causa_vs_GMO": {
+        "giusta_causa_2119": [
+          "Causa SOGGETTIVA (comportamento del lavoratore)",
+          "Grave inadempimento contrattuale o comportamento tale da non consentire nemmeno la continuazione provvisoria",
+          "Senza preavviso",
+          "Richiede procedura disciplinare art. 7 St. Lav."
+        ],
+        "GMO_L_604_art_3": [
+          "Causa OGGETTIVA (ragioni economiche/organizzative)",
+          "Indipendente dal comportamento del lavoratore",
+          "Con preavviso",
+          "Non richiede procedura disciplinare"
+        ],
+        "giustificato_motivo_soggettivo_GMS": [
+          "Comportamento del lavoratore che non integra giusta causa (meno grave)",
+          "Con preavviso",
+          "Richiede procedura disciplinare art. 7 St. Lav."
+        ]
+      },
+      "procedura_disciplinare_obbligatoria_art_7_st_lav": {
+        "contenuto": [
+          "CONTESTAZIONE DISCIPLINARE SCRITTA specifica dei fatti (Cass. SU 12174/2023)",
+          "TERMINE DI DIFESA: almeno 5 giorni per presentare giustificazioni scritte o richiedere audizione",
+          "Possibilità di farsi assistere da RAPPRESENTANTE SINDACALE",
+          "Sanzione non può essere applicata prima di 5 giorni",
+          "PROPORZIONE tra fatto e sanzione (Cass. SU 28498/2019)"
+        ],
+        "vizi_tipici_della_procedura": [
+          "Contestazione tardiva (non tempestiva rispetto al fatto)",
+          "Contestazione generica (non specifica sui fatti)",
+          "Mancato rispetto termine 5 giorni",
+          "Negato diritto di difesa",
+          "Violazione procedura contrattuale (CCNL)"
+        ]
+      },
+      "tutele_per_assunti_post_7_marzo_2015": {
+        "tutele_crescenti_D_Lgs_23_2015": [
+          "REINTEGRAZIONE se: fatto materialmente insussistente, discriminazione, ritorsione",
+          "REINTEGRAZIONE se: fatto sussiste ma CCNL lo punisce con sanzione conservativa (Cass. SU 32823/2021)",
+          "INDENNITÀ (6-36 mensilità) per altri casi di illegittimità",
+          "INDENNITÀ RIDOTTA per vizi formali/procedurali"
+        ],
+        "tutele_art_18_pre_7_marzo_2015": [
+          "Regime più articolato per vecchi assunti",
+          "Reintegrazione per: fatto insussistente, discriminazione, CCNL punisce con conservativa",
+          "Indennità per: illegittimità procedura, proporzione"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE DOCUMENTAZIONE DISCIPLINARE",
+          "documenti": [
+            "Lettera di contestazione disciplinare (con data)",
+            "Giustificazioni scritte del lavoratore",
+            "Eventuale verbale di audizione",
+            "Lettera di licenziamento per giusta causa (con motivazione)",
+            "CCNL applicato (per verificare sanzioni conservative previste)",
+            "Codice disciplinare aziendale"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA TEMPESTIVITÀ IMPUGNAZIONE",
+          "primo_termine_60_gg": "Impugnazione stragiudiziale entro 60 gg dalla comunicazione del licenziamento",
+          "secondo_termine_180_gg": "Deposito ricorso giudiziale entro 180 gg dall'impugnazione",
+          "criticita": "MASSIMA - decadenza assoluta"
+        },
+        {
+          "step": 3,
+          "descrizione": "ANALISI DEI FATTI CONTESTATI",
+          "verifiche": [
+            "Specificità della contestazione (Cass. SU 12174/2023)",
+            "Tempestività della contestazione rispetto al fatto",
+            "Corrispondenza tra contestazione e licenziamento",
+            "Prova del fatto (a carico del datore - Cass. SU 19618/2020)",
+            "Gravità del fatto rispetto alla giusta causa (proporzionalità)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA VIZI PROCEDURALI ART. 7 ST. LAV.",
+          "verifiche": [
+            "Rispetto termine 5 giorni di difesa",
+            "Specificità della contestazione",
+            "Diritto di difesa garantito",
+            "Procedura CCNL rispettata"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE PROPORZIONALITÀ",
+          "norma": "Cass. SU 28498/2019",
+          "verifica": [
+            "Sanzione adeguata alla gravità del fatto",
+            "Se CCNL prevede per quel fatto solo sanzione conservativa → reintegrazione",
+            "Criteri: gravità soggettiva, precedenti disciplinari, intensità dolo/colpa"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "IDENTIFICAZIONE REGIME E QUANTIFICAZIONE",
+          "elementi": [
+            "Data assunzione (7/3/2015 come spartiacque)",
+            "Dimensione aziendale",
+            "Tipo di illegittimità (insussistenza fatto, vizio procedura, proporzione, discriminazione)"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_licenziamento_giusta_causa",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione licenziamento per giusta causa",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro_convenuto",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_assunzione",
+                "type": "date",
+                "required": true,
+                "critico_per_regime": true
+              },
+              {
+                "id": "regime_applicabile",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "art_18_pre_7_marzo_2015",
+                  "tutele_crescenti_post_7_marzo_2015",
+                  "piccole_imprese"
+                ]
+              },
+              {
+                "id": "qualifica",
+                "type": "string"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string"
+              },
+              {
+                "id": "retribuzione_mensile_lorda",
+                "type": "currency"
+              },
+              {
+                "id": "anzianita",
+                "type": "string"
+              },
+              {
+                "id": "dimensione_aziendale_sopra_15",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "procedura_disciplinare",
+            "label": "Procedura disciplinare",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_contestazione_disciplinare",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "specificita_contestazione",
+                "type": "textarea"
+              },
+              {
+                "id": "termini_difesa_rispettati_5_gg",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "giustificazioni_presentate",
+                "type": "boolean"
+              },
+              {
+                "id": "richiesta_audizione_accolta",
+                "type": "boolean"
+              },
+              {
+                "id": "data_licenziamento",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_60_gg": true
+              }
+            ]
+          },
+          {
+            "id": "fatti_contestati",
+            "label": "Fatti contestati dal datore",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "censure_al_licenziamento",
+            "label": "Censure al licenziamento",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "insussistenza_fatto_materiale",
+              "fatto_sussiste_ma_CCNL_prevede_sanzione_conservativa",
+              "sproporzione_tra_fatto_e_sanzione",
+              "vizio_contestazione_tardiva",
+              "vizio_contestazione_generica",
+              "mancato_rispetto_termine_5_gg",
+              "violazione_procedura_CCNL",
+              "discriminazione",
+              "ritorsione",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_dettagliata_censure",
+            "label": "Esposizione dettagliata delle censure",
+            "type": "textarea",
+            "required": true,
+            "min_length": 600
+          },
+          {
+            "id": "impugnazione_stragiudiziale",
+            "label": "Impugnazione stragiudiziale",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_invio",
+                "type": "date",
+                "required": true,
+                "critico": true
+              },
+              {
+                "id": "rispetto_termine_60_gg",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "modalita",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_illegittimita_licenziamento",
+              "reintegrazione_per_insussistenza_fatto_o_CCNL",
+              "condanna_indennita_risarcitoria",
+              "condanna_retribuzioni_periodo_intermedio",
+              "reintegrazione_per_discriminazione_o_ritorsione",
+              "indennita_per_vizi_procedurali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 60 GG impugnazione stragiudiziale - decadenziale",
+          "TERMINE 180 GG ricorso giudiziale - decadenziale",
+          "Procedura disciplinare art. 7 St. Lav. OBBLIGATORIA",
+          "Prova del fatto a carico del datore (Cass. SU 19618/2020)",
+          "Se CCNL prevede solo sanzione conservativa → reintegrazione (Cass. SU 32823/2021)",
+          "Proporzionalità: valutazione caso per caso (Cass. SU 28498/2019)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contestazione_disciplinare_e_giustificazioni",
+          "label": "Contestazione disciplinare + giustificazioni lavoratore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "lettera_licenziamento_per_giusta_causa",
+          "label": "Lettera di licenziamento per giusta causa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratto_lavoro_e_ccnl",
+          "label": "Contratto di lavoro + CCNL con codice disciplinare",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_e_anzianita",
+          "label": "Buste paga + documentazione anzianità",
+          "required": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale_e_prova_invio",
+          "label": "Impugnazione stragiudiziale + prova invio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_dimensione_aziendale",
+          "label": "Documentazione dimensione aziendale",
+          "required": true
+        },
+        {
+          "id": "documentazione_su_fatti_contestati",
+          "label": "Documentazione sui fatti contestati (per confutarli)",
+          "required": true
+        },
+        {
+          "id": "codice_disciplinare_aziendale",
+          "label": "Codice disciplinare aziendale se presente",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "impugnazione_stragiudiziale_obbligatoria",
+          "trigger": "Condizione tempestività",
+          "critico": true
+        },
+        {
+          "tipo": "memoria_difensiva_datore",
+          "trigger": "Costituzione datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "prova_testimoniale_estesa",
+          "trigger": "Sempre disposta",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "documenti_aziendali_su_fatto_contestato",
+          "trigger": "Acquisizione di prova"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "reintegrazione_per_insussistenza_fatto_o_CCNL_conservativa",
+          "descrizione": "Fatto non provato o CCNL prevede solo sanzione conservativa"
+        },
+        {
+          "esito": "reintegrazione_per_discriminazione_o_ritorsione",
+          "descrizione": "Tutela reale piena"
+        },
+        {
+          "esito": "indennita_per_sproporzione_o_vizi_procedurali",
+          "descrizione": "Fatto sussiste ma illegittimità parziale"
+        },
+        {
+          "esito": "rigetto_per_legittimita_giusta_causa",
+          "descrizione": "Fatto grave provato + procedura corretta + proporzione rispettata"
+        },
+        {
+          "esito": "rigetto_per_decadenza",
+          "descrizione": "Termini 60+180 gg non rispettati"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo frequente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE STRAGIUDIZIALE",
+          "giorni": 60,
+          "decorrenza": "comunicazione licenziamento",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DEPOSITO RICORSO GIUDIZIALE",
+          "giorni": 180,
+          "decorrenza": "impugnazione stragiudiziale",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220010"
+        }
+      ]
+    }
+  ]
+}

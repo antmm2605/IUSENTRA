@@ -274,6 +274,11 @@
   cursor:pointer;
 }
 .iu-scad-pdf-panel button:disabled{opacity:.55;cursor:not-allowed}
+.iu-scad-pdf-panel .iu-scad-pdf-danger-btn{
+  border-color:rgba(239,68,68,.28);
+  background:#fff7f7;
+  color:#b91c1c;
+}
 .iu-scad-pdf-panel__status{
   color:var(--iu-blue-700)!important;
 }
@@ -339,6 +344,19 @@
   padding:0 9px;
   text-decoration:none;
   color:var(--iu-blue-700);
+}
+.iu-scad-pdf-candidate__actions{
+  display:grid;
+  justify-items:end;
+  gap:8px;
+}
+.iu-scad-pdf-candidate__actions .iu-scad-pdf-row-delete{
+  width:34px;
+  min-height:34px;
+  padding:0;
+  border-color:rgba(239,68,68,.26);
+  background:#fff;
+  color:#b91c1c;
 }
 .iu-scad-pdf-empty{
   min-height:130px;

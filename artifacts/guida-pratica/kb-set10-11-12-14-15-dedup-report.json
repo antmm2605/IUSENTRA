@@ -1,0 +1,356 @@
+{
+  "generated_at": "2026-06-02T00:00:00+02:00",
+  "scopo": "Inventario e deduplicazione dei materiali Guida Pratica ricevuti il 02/06/2026 prima dell'import operativo.",
+  "fonti_ricevute": [
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (6).zip",
+      "source_sha256": "D18A751972220F4B9BCFDE498F5B9A29EC3DC770A68B4030C280FE25EE67ACA5",
+      "entries": [
+        {
+          "entry": "kb_top9_set10_parte1.json",
+          "sha256": "02ABF018DBA4DF4CDD472F09E404B2B7A9CA44BD959E2656898ECAFF187FB903",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET10_PARTE1",
+          "denominazione": "Decimo set di 9 codici - PARTE 1 di 2",
+          "records": 5,
+          "termini_processuali": 21,
+          "codici": [
+            "160011",
+            "131001",
+            "141005",
+            "111010",
+            "220010"
+          ],
+          "titoli": [
+            "Responsabilità del preponente per fatto del dipendente/preposto (art. 2049 c.c.)",
+            "Usucapione di beni mobili (art. 1161 c.c.) e mobili registrati (art. 1162 c.c.)",
+            "Risoluzione contratto di leasing finanziario per inadempimento",
+            "Affidamento e mantenimento figli nati fuori dal matrimonio (art. 473-bis c.p.c.)",
+            "Licenziamento per giusta causa (art. 2119 c.c.) - impugnazione"
+          ]
+        },
+        {
+          "entry": "kb_top9_set10_parte2.json",
+          "sha256": "1E7119F5427186360BD701F833FE47BB9BB5E6F90D0B2A400021F287274C2305",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET10_PARTE2",
+          "denominazione": "Decimo set di 9 codici - PARTE 2 di 2",
+          "records": 4,
+          "termini_processuali": 15,
+          "codici": [
+            "102010",
+            "512010",
+            "160050",
+            "152001"
+          ],
+          "titoli": [
+            "Azione di simulazione contrattuale (artt. 1414-1417 c.c.)",
+            "Espropriazione forzata presso terzi - controversie (artt. 548-554 c.p.c.)",
+            "Responsabilità da prodotto difettoso (D.Lgs. 206/2005 artt. 114-127 Cod. Consumo)",
+            "Responsabilità dell'amministratore di condominio e impugnazione delibere (artt. 1130-1137 c.c.)"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (7).zip",
+      "source_sha256": "CB119DF9691036F923E09921824A12E331E4F8BAB22612E22101D41A9CBDCF1E",
+      "entries": [
+        {
+          "entry": "kb_top9_set11_parte1.json",
+          "sha256": "0C7B138AE8DA919981F0824F64B2306AF4492925D3904D6F0555E8A95C701AEE",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET11_PARTE1",
+          "denominazione": "Undicesimo set di 9 codici - PARTE 1 di 2",
+          "records": 5,
+          "termini_processuali": 15,
+          "codici": [
+            "160030",
+            "113001",
+            "141010",
+            "154001",
+            "220040"
+          ],
+          "titoli": [
+            "Responsabilità da circolazione stradale - sinistro con veicolo non assicurato/non identificato (Fondo di Garanzia Vittime della Strada)",
+            "Decadenza/limitazione della responsabilità genitoriale e affidamento familiare (artt. 330-336 c.c.)",
+            "Risoluzione contratto di somministrazione per inadempimento (artt. 1559-1570 c.c.)",
+            "Scioglimento e liquidazione di S.r.l. (artt. 2484-2496 c.c.)",
+            "Distacco del lavoratore - contestazioni e nullità (art. 30 D.Lgs. 276/2003)"
+          ]
+        },
+        {
+          "entry": "kb_top9_set11_parte2.json",
+          "sha256": "097DDB60916D5FC6C21590FCA7452542B734B901F1D29D9C535677F1499C70D2",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET11_PARTE2",
+          "denominazione": "Undicesimo set di 9 codici - PARTE 2 di 2",
+          "records": 4,
+          "termini_processuali": 12,
+          "codici": [
+            "103001",
+            "512020",
+            "180010",
+            "130060"
+          ],
+          "titoli": [
+            "Azione di arricchimento senza causa (art. 2041 c.c.)",
+            "Opposizione all'esecuzione immobiliare / contestazioni in corso di espropriazione ipotecaria",
+            "Inibitoria per pratiche commerciali scorrette (D.Lgs. 206/2005 artt. 18-27-ter)",
+            "Regolamento di confini tra fondi contigui (art. 950 c.c.)"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (8).zip",
+      "source_sha256": "A86139B53BB197BFC8130EA219E9E9937BCA6ABF61FC6980E2F5603DE89C352D",
+      "entries": [
+        {
+          "entry": "kb_top9_set12_parte1.json",
+          "sha256": "6AD3FA612062406AA29B3F5874E12D2385E3870D8F576B3E6224FFBAC2085C85",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE1",
+          "denominazione": "Dodicesimo set di 9 codici - PARTE 1 di 2",
+          "records": 5,
+          "termini_processuali": 12,
+          "codici": [
+            "144010",
+            "150020",
+            "160060",
+            "220015",
+            "414010"
+          ],
+          "titoli": [
+            "Risarcimento danni da sinistro stradale - pedone o ciclista investito da veicolo (art. 2054 c.c.)",
+            "Espulsione/esclusione del socio da S.r.l. per giusta causa (art. 2473-bis c.c.)",
+            "Responsabilità della Pubblica Amministrazione per fatto illecito (art. 2043 c.c. + D.Lgs. 104/2010)",
+            "Cessione di ramo d'azienda - contestazioni dei lavoratori trasferiti (art. 2112 c.c. + art. 47 L. 428/1990)",
+            "Procedimento di adottabilità e stato di abbandono del minore (L. 184/1983 artt. 8-21)"
+          ]
+        },
+        {
+          "entry": "kb_top9_set12_parte2.json",
+          "sha256": "406948FA0C4CE356E2D80B1D1FF6FB602CF6CB5C4623E38BD201A2AA8EB833F3",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE2",
+          "denominazione": "Dodicesimo set di 9 codici - PARTE 2 di 2",
+          "records": 4,
+          "termini_processuali": 13,
+          "codici": [
+            "143010",
+            "130080",
+            "154010",
+            "512030"
+          ],
+          "titoli": [
+            "Risoluzione contratto di trasporto e responsabilità del vettore per perdita/avaria (artt. 1693-1702 c.c.)",
+            "Regime delle acque nei rapporti di vicinato - scolo, gronda, acque piovane (artt. 913-921 c.c.)",
+            "Responsabilità degli amministratori di S.r.l. verso la società e i creditori (artt. 2476-2476-bis c.c.)",
+            "Distribuzione e piano di riparto nell'esecuzione immobiliare (artt. 596-598 c.p.c.)"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (9).zip",
+      "source_sha256": "0F9B614393F33B66C3C0CC515782FBB9C8F6FF41510781DB1B7AAF81BD7D8FBC",
+      "entries": [
+        {
+          "entry": "kb_top9_set12_parte1.json",
+          "sha256": "6AD3FA612062406AA29B3F5874E12D2385E3870D8F576B3E6224FFBAC2085C85",
+          "duplicate_of": {
+            "source": "C:\\Users\\antmm\\Downloads\\files (8).zip",
+            "entry": "kb_top9_set12_parte1.json"
+          },
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE1",
+          "denominazione": "Dodicesimo set di 9 codici - PARTE 1 di 2",
+          "records": 5,
+          "termini_processuali": 12,
+          "codici": [
+            "144010",
+            "150020",
+            "160060",
+            "220015",
+            "414010"
+          ],
+          "titoli": [
+            "Risarcimento danni da sinistro stradale - pedone o ciclista investito da veicolo (art. 2054 c.c.)",
+            "Espulsione/esclusione del socio da S.r.l. per giusta causa (art. 2473-bis c.c.)",
+            "Responsabilità della Pubblica Amministrazione per fatto illecito (art. 2043 c.c. + D.Lgs. 104/2010)",
+            "Cessione di ramo d'azienda - contestazioni dei lavoratori trasferiti (art. 2112 c.c. + art. 47 L. 428/1990)",
+            "Procedimento di adottabilità e stato di abbandono del minore (L. 184/1983 artt. 8-21)"
+          ]
+        },
+        {
+          "entry": "kb_top9_set12_parte2.json",
+          "sha256": "406948FA0C4CE356E2D80B1D1FF6FB602CF6CB5C4623E38BD201A2AA8EB833F3",
+          "duplicate_of": {
+            "source": "C:\\Users\\antmm\\Downloads\\files (8).zip",
+            "entry": "kb_top9_set12_parte2.json"
+          },
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE2",
+          "denominazione": "Dodicesimo set di 9 codici - PARTE 2 di 2",
+          "records": 4,
+          "termini_processuali": 13,
+          "codici": [
+            "143010",
+            "130080",
+            "154010",
+            "512030"
+          ],
+          "titoli": [
+            "Risoluzione contratto di trasporto e responsabilità del vettore per perdita/avaria (artt. 1693-1702 c.c.)",
+            "Regime delle acque nei rapporti di vicinato - scolo, gronda, acque piovane (artt. 913-921 c.c.)",
+            "Responsabilità degli amministratori di S.r.l. verso la società e i creditori (artt. 2476-2476-bis c.c.)",
+            "Distribuzione e piano di riparto nell'esecuzione immobiliare (artt. 596-598 c.p.c.)"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte1.json",
+      "source_sha256": "A73E95F4003750C0E86551F27D336AA1C199DA581D6E4C38897C8EA746720CE9",
+      "entries": [
+        {
+          "entry": "kb_top9_set14_parte1.json",
+          "sha256": "A73E95F4003750C0E86551F27D336AA1C199DA581D6E4C38897C8EA746720CE9",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE1",
+          "denominazione": "Quattordicesimo set di 9 codici - PARTE 1 di 2",
+          "records": 5,
+          "termini_processuali": 12,
+          "codici": [
+            "143020",
+            "220080",
+            "132001",
+            "150030",
+            "410001"
+          ],
+          "titoli": [
+            "Contratto d'opera intellettuale - responsabilità professionale (artt. 2229-2238 c.c.)",
+            "Lavoro a termine illegittimo - conversione a tempo indeterminato (D.Lgs. 81/2015 artt. 19-29)",
+            "Azione di rivendicazione della proprietà (rei vindicatio - art. 948 c.c.)",
+            "Trasferimento di partecipazioni in S.r.l. e clausole di prelazione/gradimento (art. 2469 c.c.)",
+            "Apertura del procedimento di interdizione e inabilitazione (artt. 414-432 c.c.)"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte2.json",
+      "source_sha256": "2C694B2B64B7D47F20C8D9626DD827F7AA9536C0442CEC3C05B03836C53BA8F3",
+      "entries": [
+        {
+          "entry": "kb_top9_set14_parte2.json",
+          "sha256": "2C694B2B64B7D47F20C8D9626DD827F7AA9536C0442CEC3C05B03836C53BA8F3",
+          "duplicate_of": null,
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE2",
+          "denominazione": "Quattordicesimo set di 9 codici - PARTE 2 di 2",
+          "records": 4,
+          "termini_processuali": 10,
+          "codici": [
+            "512040",
+            "143015",
+            "160100",
+            "160090"
+          ],
+          "titoli": [
+            "Opposizione al procedimento espropriativo per pubblica utilità (D.P.R. 327/2001 - Testo Unico Espropri)",
+            "Risoluzione contratto di factoring e cessione di crediti (L. 52/1991 + artt. 1260-1267 c.c.)",
+            "Responsabilità da illecito antitrust e abuso di posizione dominante (artt. 101-102 TFUE + L. 287/1990)",
+            "Azione cumulata per mobbing sistemico + straining + demansionamento progressivo (art. 2087 c.c.)"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set15_parte1 (1).json",
+      "source_sha256": "A73E95F4003750C0E86551F27D336AA1C199DA581D6E4C38897C8EA746720CE9",
+      "entries": [
+        {
+          "entry": "kb_top9_set15_parte1 (1).json",
+          "sha256": "A73E95F4003750C0E86551F27D336AA1C199DA581D6E4C38897C8EA746720CE9",
+          "duplicate_of": {
+            "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte1.json",
+            "entry": "kb_top9_set14_parte1.json"
+          },
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE1",
+          "denominazione": "Quattordicesimo set di 9 codici - PARTE 1 di 2",
+          "records": 5,
+          "termini_processuali": 12,
+          "codici": [
+            "143020",
+            "220080",
+            "132001",
+            "150030",
+            "410001"
+          ],
+          "titoli": [
+            "Contratto d'opera intellettuale - responsabilità professionale (artt. 2229-2238 c.c.)",
+            "Lavoro a termine illegittimo - conversione a tempo indeterminato (D.Lgs. 81/2015 artt. 19-29)",
+            "Azione di rivendicazione della proprietà (rei vindicatio - art. 948 c.c.)",
+            "Trasferimento di partecipazioni in S.r.l. e clausole di prelazione/gradimento (art. 2469 c.c.)",
+            "Apertura del procedimento di interdizione e inabilitazione (artt. 414-432 c.c.)"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set15_parte2 (1).json",
+      "source_sha256": "2C694B2B64B7D47F20C8D9626DD827F7AA9536C0442CEC3C05B03836C53BA8F3",
+      "entries": [
+        {
+          "entry": "kb_top9_set15_parte2 (1).json",
+          "sha256": "2C694B2B64B7D47F20C8D9626DD827F7AA9536C0442CEC3C05B03836C53BA8F3",
+          "duplicate_of": {
+            "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte2.json",
+            "entry": "kb_top9_set14_parte2.json"
+          },
+          "macro_area_id": "TOP9_CODICI_FREQUENTI_SET14_PARTE2",
+          "denominazione": "Quattordicesimo set di 9 codici - PARTE 2 di 2",
+          "records": 4,
+          "termini_processuali": 10,
+          "codici": [
+            "512040",
+            "143015",
+            "160100",
+            "160090"
+          ],
+          "titoli": [
+            "Opposizione al procedimento espropriativo per pubblica utilità (D.P.R. 327/2001 - Testo Unico Espropri)",
+            "Risoluzione contratto di factoring e cessione di crediti (L. 52/1991 + artt. 1260-1267 c.c.)",
+            "Responsabilità da illecito antitrust e abuso di posizione dominante (artt. 101-102 TFUE + L. 287/1990)",
+            "Azione cumulata per mobbing sistemico + straining + demansionamento progressivo (art. 2087 c.c.)"
+          ]
+        }
+      ]
+    }
+  ],
+  "duplicati_scartati_solo_per_identita_sha256": [
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (9).zip",
+      "duplicate_of": "C:\\Users\\antmm\\Downloads\\files (8).zip",
+      "motivo": "stessi JSON interni kb_top9_set12_parte1/2 con SHA256 identico"
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set15_parte1 (1).json",
+      "duplicate_of": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte1.json",
+      "motivo": "SHA256 identico"
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\kb_top9_set15_parte2 (1).json",
+      "duplicate_of": "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte2.json",
+      "motivo": "SHA256 identico"
+    }
+  ],
+  "import_effettivo_previsto": [
+    "C:\\Users\\antmm\\Downloads\\files (6).zip",
+    "C:\\Users\\antmm\\Downloads\\files (7).zip",
+    "C:\\Users\\antmm\\Downloads\\files (8).zip",
+    "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte1.json",
+    "C:\\Users\\antmm\\Downloads\\kb_top9_set14_parte2.json"
+  ],
+  "record_univoci": 36,
+  "termini_processuali_univoci": 110
+}

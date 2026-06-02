@@ -93,6 +93,16 @@ function initialQuery(): string {
   return new URLSearchParams(window.location.search).get('q') || ''
 }
 
+function initialGuidaPratica(): string {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('guida_pratica') || params.get('codice_guida') || params.get('guidaPratica') || ''
+}
+
+function initialFascicoloId(): string {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('id_fascicolo') || params.get('fascicolo') || params.get('fascicoloId') || ''
+}
+
 function routeDeadlineId(): string {
   const parts = window.location.pathname.split('/').filter(Boolean)
   if (parts[0] !== 'scadenziario' || !parts[1] || parts[1] === 'nuova') return ''
@@ -377,7 +387,7 @@ function ProcessDeadlineCalculator({
 }) {
   const selected = templates.find((template) => template.code === form.templateCode)
   return (
-    <section className="iu-scad-calculator" aria-label="Calcolatore termini processuali">
+    <section id="calcolatore-termini-processuali" className="iu-scad-calculator" aria-label="Calcolatore termini processuali">
       <header>
         <div>
           <span><Gavel size={16}/> Calcolatore termini processuali</span>
@@ -493,6 +503,9 @@ function PdfDeadlineImportPanel({
   onImport,
   onToggle,
   onToggleAll,
+  onRemove,
+  onRemoveSelected,
+  onClearAll,
 }:{
   preview: PdfDeadlinePreview | null
   selectedIds: string[]
@@ -502,6 +515,9 @@ function PdfDeadlineImportPanel({
   onImport: () => void
   onToggle: (id: string) => void
   onToggleAll: () => void
+  onRemove: (id: string) => void
+  onRemoveSelected: () => void
+  onClearAll: () => void
 }) {
   const candidates = preview?.candidates || []
   const importable = candidates.filter((candidate) => !candidate.duplicate)
@@ -517,6 +533,8 @@ function PdfDeadlineImportPanel({
         <div>
           <button type="button" onClick={onScan} disabled={busy}><FileSearch size={15}/> Analizza PDF</button>
           <button type="button" onClick={onImport} disabled={busy || !selectedIds.length}><CalendarPlus size={15}/> Importa selezionate{selectedIds.length ? ` (${selectedIds.length})` : ''}</button>
+          <button type="button" className="iu-scad-pdf-danger-btn" onClick={onRemoveSelected} disabled={busy || !selectedIds.length}><Trash2 size={15}/> Elimina selezionate</button>
+          <button type="button" className="iu-scad-pdf-danger-btn" onClick={onClearAll} disabled={busy || !candidates.length}><Trash2 size={15}/> Elimina tutto</button>
         </div>
       </header>
       {status ? <p className="iu-scad-pdf-panel__status">{status}</p> : null}
@@ -549,9 +567,14 @@ function PdfDeadlineImportPanel({
                   {candidate.urls.slice(0, 2).map((url) => <a href={url} target="_blank" rel="noreferrer" key={url}><Link2 size={13}/> Link PDF</a>)}
                 </div>
               </div>
-              <Badge tone={candidate.duplicate ? 'warning' : candidate.confidence >= 0.85 ? 'success' : 'primary'}>
-                {candidate.duplicate ? 'già presente' : `${Math.round(candidate.confidence * 100)}%`}
-              </Badge>
+              <div className="iu-scad-pdf-candidate__actions">
+                <Badge tone={candidate.duplicate ? 'warning' : candidate.confidence >= 0.85 ? 'success' : 'primary'}>
+                  {candidate.duplicate ? 'già presente' : `${Math.round(candidate.confidence * 100)}%`}
+                </Badge>
+                <button type="button" className="iu-scad-pdf-row-delete" onClick={() => onRemove(candidate.id)} disabled={busy} aria-label={`Elimina ${candidate.title}`}>
+                  <Trash2 size={14}/>
+                </button>
+              </div>
             </article>
           ))}
           {candidates.length > 40 ? <p className="iu-scad-pdf-panel__status">Mostro le prime 40 righe: importa quelle utili o filtra per fascicolo dalla pagina del fascicolo.</p> : null}
@@ -668,6 +691,8 @@ export function ScadenziarioPage() {
   const [calculatorStatus, setCalculatorStatus] = useState('')
   const [view, setView] = useState<ScadenziarioView>(() => initialView())
   const [query, setQuery] = useState(() => initialQuery())
+  const [guidaPratica] = useState(() => initialGuidaPratica())
+  const [fascicoloId] = useState(() => initialFascicoloId())
   const [type, setType] = useState('')
   const [priority, setPriority] = useState('')
   const [from, setFrom] = useState('')
@@ -685,7 +710,7 @@ export function ScadenziarioPage() {
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfStatus, setPdfStatus] = useState('')
 
-  const buildQuery = (): ScadenziarioQuery => ({ view, q: query, type, priority, from, to, peremptory, advanced, operative })
+  const buildQuery = (): ScadenziarioQuery => ({ view, q: query, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId })
 
   const syncCalculatorDefaults = (payload: ScadenziarioPageData) => {
     setCalculatorForm((current) => {
@@ -715,7 +740,7 @@ export function ScadenziarioPage() {
       if (active) setLoading(false)
     })
     return () => { active = false }
-  }, [view, type, priority, from, to, peremptory, advanced, operative])
+  }, [view, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId])
 
   const visibleRows = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
 
@@ -803,11 +828,16 @@ export function ScadenziarioPage() {
       .finally(() => setCalculatorBusy(false))
   }
 
+  const pdfRequestOptions = () => ({
+    fascicoloId: fascicoloId || undefined,
+    maxDocuments: fascicoloId ? 0 : 25,
+  })
+
   const runPdfPreview = () => {
     setPdfPanelOpen(true)
     setPdfBusy(true)
     setPdfStatus('Lettura dei PDF dei fascicoli in corso...')
-    previewPdfDeadlines(data.calculator.endpoints.pdfPreview, { maxDocuments: 0 })
+    previewPdfDeadlines(data.calculator.endpoints.pdfPreview, pdfRequestOptions())
       .then((payload) => {
         setPdfPreview(payload)
         setPdfSelectedIds(payload.candidates.filter((candidate) => candidate.selected && !candidate.duplicate).map((candidate) => candidate.id))
@@ -831,16 +861,57 @@ export function ScadenziarioPage() {
     })
   }
 
+  const updatePdfPreviewCandidates = (nextCandidates: PdfDeadlinePreview['candidates']) => {
+    setPdfPreview((current) => {
+      if (!current) return current
+      return {
+        ...current,
+        candidates: nextCandidates,
+        summary: {
+          ...current.summary,
+          newCandidates: nextCandidates.filter((candidate) => !candidate.duplicate).length,
+          duplicates: nextCandidates.filter((candidate) => candidate.duplicate).length,
+          warnings: nextCandidates.reduce((total, candidate) => total + candidate.warnings.length, 0),
+        },
+      }
+    })
+  }
+
+  const removePdfCandidates = (ids: string[], label: string) => {
+    if (!pdfPreview || !ids.length) return
+    const toRemove = new Set(ids)
+    const nextCandidates = pdfPreview.candidates.filter((candidate) => !toRemove.has(candidate.id))
+    updatePdfPreviewCandidates(nextCandidates)
+    setPdfSelectedIds((current) => current.filter((id) => !toRemove.has(id) && nextCandidates.some((candidate) => candidate.id === id)))
+    setPdfStatus(label)
+  }
+
+  const removePdfCandidate = (id: string) => {
+    removePdfCandidates([id], 'Riga rimossa dall’anteprima PDF. Nulla è stato cancellato dallo scadenziario.')
+  }
+
+  const removeSelectedPdfCandidates = () => {
+    removePdfCandidates(pdfSelectedIds, `${pdfSelectedIds.length} righe rimosse dall’anteprima PDF. Nulla è stato cancellato dallo scadenziario.`)
+  }
+
+  const clearPdfCandidates = () => {
+    if (!pdfPreview?.candidates.length) return
+    updatePdfPreviewCandidates([])
+    setPdfSelectedIds([])
+    setPdfStatus('Anteprima PDF svuotata. Nulla è stato cancellato dallo scadenziario.')
+  }
+
   const runPdfImport = () => {
     if (!pdfSelectedIds.length) return
     setPdfBusy(true)
     setPdfStatus('Importazione nello Scadenziario in corso...')
-    importPdfDeadlines(data.calculator.endpoints.pdfImport, pdfSelectedIds, { maxDocuments: 0 })
+    const options = pdfRequestOptions()
+    importPdfDeadlines(data.calculator.endpoints.pdfImport, pdfSelectedIds, options)
       .then((result) => {
         setPdfStatus(result.message)
         setPdfSelectedIds([])
         load()
-        return previewPdfDeadlines(data.calculator.endpoints.pdfPreview, { maxDocuments: 0 })
+        return previewPdfDeadlines(data.calculator.endpoints.pdfPreview, options)
       })
       .then((payload) => setPdfPreview(payload))
       .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Importazione PDF non completata'))
@@ -919,6 +990,9 @@ export function ScadenziarioPage() {
           onImport={runPdfImport}
           onToggle={togglePdfCandidate}
           onToggleAll={toggleAllPdfCandidates}
+          onRemove={removePdfCandidate}
+          onRemoveSelected={removeSelectedPdfCandidates}
+          onClearAll={clearPdfCandidates}
         />
       ) : null}
 

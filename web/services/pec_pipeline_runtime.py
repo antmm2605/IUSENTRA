@@ -28,6 +28,7 @@ def repository_from_paths(paths: Mapping[str, Any], *, tenant_label: str = "defa
         fascicoli_db_path=_path_from_mapping(paths, "FASCICOLI_DB", "./fascicoli/fascicoli.json"),
         fascicoli_docs_path=_path_from_mapping(paths, "FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_path_from_mapping(paths, "SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
+        agenda_db_path=_path_from_mapping(paths, "AGENDA_DB", "./agenda/appuntamenti.json"),
     )
 
 

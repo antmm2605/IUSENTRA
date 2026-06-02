@@ -1,0 +1,1538 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET12_PARTE2",
+  "denominazione": "Dodicesimo set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIECIC"
+  ],
+  "data_generazione": "2026-06-02",
+  "scopo": "Parte 2 del set 12: trasporto e responsabilità vettore, acque piovane vicinato, responsabilità amministratori SRL, distribuzione esecuzione immobiliare",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_TRASPORTO_E_RESPONSABILIT_DEL_VETTORE_PER_PERDI_143010",
+      "denominazione": "Risoluzione contratto di trasporto e responsabilità del vettore per perdita/avaria (artt. 1693-1702 c.c.)",
+      "categoria": "Contratti - trasporto - patologia",
+      "sottocategoria": "Azione del mittente/destinatario per perdita, avaria o ritardo nella consegna delle merci trasportate",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - foro luogo di partenza o destinazione del trasporto; per trasporti marittimi/aerei: foro speciale",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1693",
+          "descrizione": "Responsabilità del vettore per la perdita o avaria delle cose trasportate"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1694",
+          "descrizione": "Caso fortuito e forza maggiore - esimente del vettore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1695",
+          "descrizione": "Colpa del mittente o del destinatario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1696",
+          "descrizione": "Misura del risarcimento - valore dichiarato o di mercato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1697",
+          "descrizione": "Responsabilità per ritardo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1698",
+          "descrizione": "Lettera di vettura - documenti del trasporto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1700-1702",
+          "descrizione": "Disposizioni varie + riferimento al trasporto di persone"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1708",
+          "descrizione": "Noleggio - contratto distinto"
+        },
+        {
+          "fonte": "D.Lgs. 286/2005",
+          "descrizione": "Contratto di trasporto di merci su strada"
+        },
+        {
+          "fonte": "CMR (Conv. Ginevra 1956)",
+          "descrizione": "Trasporto internazionale merci su strada - limiti risarcimento"
+        },
+        {
+          "fonte": "c.n.",
+          "articolo": "422-463",
+          "descrizione": "Trasporto marittimo di merci"
+        },
+        {
+          "fonte": "Cass. SU 11248/2021",
+          "descrizione": "Responsabilità vettore - onere prova e dolo o colpa grave"
+        },
+        {
+          "fonte": "Cass. SU 7738/2019",
+          "descrizione": "Perdita merce - quantificazione del danno"
+        }
+      ],
+      "regime_di_responsabilita_vettore_1693": {
+        "tipo": "RESPONSABILITÀ CONTRATTUALE con INVERSIONE ONERE PROVA",
+        "regola": "Il vettore è responsabile per la perdita e avaria delle cose consegnategli dal momento della presa in consegna a quello della riconsegna",
+        "onere_prova_mittente": "Solo provare: - consegna della merce al vettore - avaria/perdita alla consegna",
+        "onere_prova_vettore": "Provare il caso fortuito, forza maggiore o difetto del mittente/destinatario per liberarsi",
+        "limiti_di_risarcimento_convenzionali": "Nella pratica commerciale le lettere di vettura spesso prevedono limiti - verificare"
+      },
+      "cause_di_esonero_vettore": [
+        "CASO FORTUITO o FORZA MAGGIORE (es. eventi atmosferici eccezionali, rapina a mano armata)",
+        "VIZI INTRINSECI DELLA COSA (deperimento naturale)",
+        "FATTO DEL MITTENTE o del destinatario",
+        "NATURA DELLE MERCI (es. animali vivi, merci deperibili senza refrigerazione):",
+        "IMBALLAGGIO INSUFFICIENTE fornito dal mittente"
+      ],
+      "prassi_contrattuale": {
+        "lettera_di_vettura": "Documento fondamentale: descrive la merce, il mittente, il destinatario, condizioni di trasporto",
+        "riserve_alla_consegna": "Il destinatario deve fare RISERVE in modo specifico al momento della consegna",
+        "riserve_generiche": "Le riserve generiche ('salvo controllo') non sono sufficienti"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL TRASPORTO",
+          "documenti": [
+            "Lettera di vettura o CMR (per internazionale)",
+            "Bolla di accompagnamento",
+            "Eventuale polizza di carico (per marittimo)",
+            "Dichiarazione del valore della merce",
+            "Eventuali istruzioni scritte al vettore"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLA PERDITA/AVARIA/RITARDO",
+          "elementi": [
+            "Verbale di constatazione danni alla consegna",
+            "Fotografie della merce danneggiata",
+            "Riserve scritte formulate alla consegna",
+            "Perizia tecnica sui danni",
+            "Valore commerciale della merce (fatture)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA RISERVE ALLA CONSEGNA",
+          "criticita": "Riserve SPECIFICHE al momento della consegna sono necessarie per mantenere l'azione",
+          "termine": "Entro 8 giorni per avarie non visibili (art. 1699)"
+        },
+        {
+          "step": 4,
+          "descrizione": "QUANTIFICAZIONE DEL DANNO",
+          "criteri": [
+            "Valore dichiarato nella lettera di vettura (se dichiarato)",
+            "Valore di mercato al momento della consegna (se non dichiarato)",
+            "Danni consequenziali (lucro cessante) se dolo o colpa grave del vettore"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_vettore",
+        "denominazione": "Atto di citazione per responsabilità del vettore per perdita/avaria ex art. 1693 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "mittente_o_destinatario_attore",
+            "label": "Mittente/destinatario attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "vettore_convenuto",
+            "label": "Vettore convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "contratto_di_trasporto",
+            "label": "Contratto di trasporto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_trasporto",
+                "type": "select",
+                "options": [
+                  "terrestre_nazionale",
+                  "terrestre_internazionale_CMR",
+                  "marittimo",
+                  "aereo",
+                  "multimodale"
+                ]
+              },
+              {
+                "id": "data_contratto_o_lettura_vettura",
+                "type": "date"
+              },
+              {
+                "id": "merce_trasportata",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_dichiarato",
+                "type": "currency"
+              },
+              {
+                "id": "luogo_partenza",
+                "type": "address"
+              },
+              {
+                "id": "luogo_destinazione",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "evento_contestato",
+            "label": "Evento contestato",
+            "type": "select",
+            "required": true,
+            "options": [
+              "perdita_totale_della_merce",
+              "perdita_parziale",
+              "avaria_danni_alla_merce",
+              "ritardo_nella_consegna"
+            ]
+          },
+          {
+            "id": "descrizione_danno",
+            "label": "Descrizione del danno",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "riserve_alla_consegna",
+            "label": "Riserve alla consegna",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "riserve_formulate",
+                "type": "boolean"
+              },
+              {
+                "id": "tipo_riserve",
+                "type": "select",
+                "options": [
+                  "contestazione_immediata_in_loco",
+                  "riserve_scritte_lettera_entro_8_gg"
+                ]
+              },
+              {
+                "id": "data_riserve",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "danno_richiesto",
+            "label": "Danno richiesto",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "valore_merce_persa_o_danneggiata",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante_se_dolo_colpa_grave",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_vettore_risarcimento_perdita_avaria",
+              "condanna_risarcimento_ritardo",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Inversione onere prova: attore prova consegna merce + danno; vettore prova esimente",
+          "RISERVE SPECIFICHE alla consegna necessarie per avarie non visibili (8 giorni - art. 1699)",
+          "Per trasporto internazionale: CMR - limiti risarcimento per unità di peso",
+          "Danni consequenziali (lucro cessante): solo in caso di DOLO o COLPA GRAVE del vettore"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "lettera_di_vettura_o_CMR",
+          "label": "Lettera di vettura o CMR",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_perdita_avaria",
+          "label": "Documentazione della perdita/avaria (verbale, foto)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "riserve_formulate_alla_consegna",
+          "label": "Riserve formulate alla consegna",
+          "required_if": "riserve_formulate"
+        },
+        {
+          "id": "fatture_valore_merce",
+          "label": "Fatture e documentazione valore della merce",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_tecnica_di_parte",
+          "label": "Perizia tecnica di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_tecnica_su_danni_alla_merce",
+          "trigger": "Disposta dal giudice"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_vettore_risarcimento",
+          "descrizione": "Valore merce + danni consequenziali se dolo/colpa grave"
+        },
+        {
+          "esito": "riduzione_per_concorso_mittente",
+          "descrizione": "Imballaggio insufficiente o istruzioni errate"
+        },
+        {
+          "esito": "rigetto_per_caso_fortuito_o_forza_maggiore",
+          "descrizione": "Vettore si libera"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Riserve avarie non visibili",
+          "giorni": 8,
+          "decorrenza": "consegna",
+          "natura": "decadenziale",
+          "norma": "art. 1699 c.c."
+        },
+        {
+          "termine": "Prescrizione azione",
+          "anni": 1,
+          "decorrenza": "consegna o data prevista",
+          "norma": "art. 1702 c.c."
+        },
+        {
+          "termine": "Prescrizione per dolo/colpa grave",
+          "anni": 3,
+          "norma": "art. 1702 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "143010",
+      "codice_logico": "GUIDA_RISOLUZIONE_CONTRATTO_DI_TRASPORTO_E_RESPONSABILIT_DEL_VETTORE_PER_PERDI_143010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_REGIME_DELLE_ACQUE_NEI_RAPPORTI_DI_VICINATO_SCOLO_GRONDA_ACQUE_PIOVANE_A_130080",
+      "denominazione": "Regime delle acque nei rapporti di vicinato - scolo, gronda, acque piovane (artt. 913-921 c.c.)",
+      "categoria": "Diritti reali - rapporti di vicinato",
+      "sottocategoria": "Controversie sul regime dello scolo delle acque nei rapporti tra fondi contigui",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "913",
+          "descrizione": "Scolo naturale delle acque - il fondo inferiore è soggetto al deflusso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "914",
+          "descrizione": "Divieto di operazioni che aggravano il deflusso naturale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "916",
+          "descrizione": "Gronda dei tetti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "917",
+          "descrizione": "Apertura di canali per raccolta acque piovane"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "918",
+          "descrizione": "Proprietà delle acque piovane raccolte"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "919",
+          "descrizione": "Costruzione di muri con gronde verso il fondo altrui"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "920",
+          "descrizione": "Sporgenze eccessive"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "921",
+          "descrizione": "Stillicidio - divieto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "922",
+          "descrizione": "Acquedotto coattivo (servitù)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "908-912",
+          "descrizione": "Derivazione di acqua da fondo altrui"
+        },
+        {
+          "fonte": "Cass. SU 20977/2019",
+          "descrizione": "Aggravamento del deflusso naturale - presupposti responsabilità"
+        },
+        {
+          "fonte": "Cass. SU 7644/2021",
+          "descrizione": "Gronda e stillicidio - danni risarcibili"
+        }
+      ],
+      "tipologie_di_controversie": {
+        "scolo_acque_art_913_914": [
+          "Proprietario del fondo superiore ha diritto al deflusso naturale verso fondo inferiore",
+          "Ma DIVIETO di aggravare artificialmente il deflusso (opere che aumentano la portata)"
+        ],
+        "gronda_tetti_art_916": [
+          "Le acque piovane dai tetti devono defluire verso il proprio fondo",
+          "DIVIETO di far defluire verso il fondo del vicino",
+          "Stillicidio: deflusso goccia a goccia - vietato verso il fondo altrui (art. 921)"
+        ],
+        "danni_da_acque": [
+          "Allagamenti causati da opere del vicino",
+          "Infiltrazioni da grondaie o pluviali mal posizionati",
+          "Danni da acque reflue convogliate sul fondo altrui",
+          "Aggravamento del regime idraulico per impermeabilizzazione"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "FONDI CONTIGUI di proprietari diversi",
+        "VIOLAZIONE delle regole sullo scolo/deflusso delle acque (913-921)",
+        "In particolare:",
+        "- Aggravamento artificiale del deflusso verso il fondo inferiore",
+        "- Stillicidio o gronda verso il fondo del vicino",
+        "- Convogliamento artificiale di acque verso il fondo altrui",
+        "DANNO subito (allagamenti, infiltrazioni, erosione)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLO STATO DEI LUOGHI",
+          "elementi": [
+            "Fotografie e video (possibilmente durante pioggia)",
+            "Rilievo topografico dei fondi e delle opere",
+            "Documentazione dei lavori eseguiti dal vicino",
+            "Eventuali autorizzazioni comunali per i lavori"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "PERIZIA IDRAULICA DI PARTE",
+          "rilevanza": "Fondamentale per dimostrare l'aggravamento e il nesso causale",
+          "contenuto": [
+            "Analisi del regime idraulico ante e post opere del vicino",
+            "Calcolo della portata d'acqua prima e dopo",
+            "Identificazione delle opere che causano l'aggravamento"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DEI DANNI",
+          "elementi": [
+            "Fotografie degli allagamenti e delle infiltrazioni",
+            "Perizia estimativa dei danni ai beni",
+            "Fatture di interventi di riparazione già effettuati",
+            "Testimonianze"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_regime_acque_vicinato",
+        "denominazione": "Atto di citazione per violazione regime delle acque nei rapporti di vicinato ex artt. 913-921 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore - proprietario fondo danneggiato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "label": "Convenuto - proprietario fondo da cui provengono le acque",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_attore",
+            "label": "Fondo attore",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "fondo_convenuto",
+            "label": "Fondo convenuto",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "tipo_violazione",
+            "label": "Tipo di violazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "aggravamento_deflusso_naturale_914",
+              "stillicidio_verso_fondo_altrui_921",
+              "gronda_verso_fondo_altrui_916",
+              "convogliamento_artificiale_acque_fondo_altrui",
+              "altro"
+            ]
+          },
+          {
+            "id": "opere_contestate",
+            "label": "Opere o comportamenti contestati",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "danni_subiti",
+            "label": "Danni subiti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "tipo_danni",
+                "type": "select_multi"
+              },
+              {
+                "id": "valore",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "perizia_idraulica_di_parte",
+            "label": "Perizia idraulica di parte",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "inibitoria_o_ordine_rimozione_opere_causanti_danno",
+              "accertamento_violazione_regime_acque",
+              "ripristino_deflusso_naturale",
+              "risarcimento_danni",
+              "penalita_per_inadempimento",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Perizia idraulica di parte fondamentale per dimostrare aggravamento",
+          "CTU idraulica quasi sempre necessaria"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fotografica_durante_pioggia",
+          "label": "Documentazione fotografica/video durante pioggia",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_opere_contestate",
+          "label": "Documentazione delle opere contestate",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_idraulica_di_parte",
+          "label": "Perizia idraulica di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_danni",
+          "label": "Documentazione dei danni (foto, fatture riparazioni)",
+          "required": true
+        },
+        {
+          "id": "visure_catastali_fondi",
+          "label": "Visure catastali dei fondi",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "ctu_idraulica_e_tecnica",
+          "trigger": "Quasi sempre disposta",
+          "molto_frequente": true,
+          "critico": true
+        },
+        {
+          "tipo": "sopralluogo_giudice",
+          "trigger": "Spesso disposto"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "ordine_rimozione_opere_o_ripristino",
+          "descrizione": "Opere rimosse + ripristino del regime originario"
+        },
+        {
+          "esito": "condanna_risarcimento_danni",
+          "descrizione": "Danni riconosciuti"
+        },
+        {
+          "esito": "rigetto_per_scolo_naturale_confermato",
+          "descrizione": "Il deflusso non è stato aggravato artificialmente"
+        },
+        {
+          "esito": "transazione_con_esecuzione_lavori",
+          "descrizione": "Accordo con esecuzione di opere di regimazione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "AZIONE IMPRESCRITTIBILE per violazione permanente",
+          "natura": "imprescrittibile"
+        },
+        {
+          "termine": "Prescrizione danni",
+          "anni": 5,
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "Mediazione max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "130080",
+      "codice_logico": "GUIDA_REGIME_DELLE_ACQUE_NEI_RAPPORTI_DI_VICINATO_SCOLO_GRONDA_ACQUE_PIOVANE_A_130080",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130080"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DEGLI_AMMINISTRATORI_DI_S_R_L_VERSO_LA_SOCIET_E_I_CREDITOR_154010",
+      "denominazione": "Responsabilità degli amministratori di S.r.l. verso la società e i creditori (artt. 2476-2476-bis c.c.)",
+      "categoria": "Diritto societario - responsabilità organi S.r.l.",
+      "sottocategoria": "Azione di responsabilità contrattuale degli amministratori di S.r.l. per danni causati alla società o ai creditori sociali",
+      "rito": "Rito ordinario di cognizione - Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese - sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2476 c. 1",
+          "descrizione": "Responsabilità degli amministratori verso la società"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2476 c. 2",
+          "descrizione": "Legittimazione del singolo socio ad agire in nome della società"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2476 c. 6",
+          "descrizione": "AZIONE INDIVIDUALE DEI SOCI E DEI TERZI per danni diretti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2476 c. 7",
+          "descrizione": "Responsabilità solidale di chi ha agito con dolo/colpa grave"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2476-bis",
+          "descrizione": "Azione dei creditori sociali in caso di insufficienza del patrimonio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2485",
+          "descrizione": "Obblighi amministratori dopo scioglimento - responsabilità per atti non conservativi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2486",
+          "descrizione": "Responsabilità gestione dopo causa scioglimento"
+        },
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "2086",
+          "descrizione": "Adeguatezza degli assetti organizzativi - responsabilità per omissione"
+        },
+        {
+          "fonte": "Cass. SU 1839/2023",
+          "descrizione": "Business judgment rule - insindacabilità scelte gestionali non irrazionali"
+        },
+        {
+          "fonte": "Cass. SU 29227/2022",
+          "descrizione": "Azione dei creditori 2476-bis - presupposti e onere prova"
+        },
+        {
+          "fonte": "Cass. SU 9378/2024",
+          "descrizione": "Adeguatezza assetti ex art. 2086 e responsabilità degli amministratori"
+        }
+      ],
+      "tipologie_di_azioni_di_responsabilita": {
+        "azione_sociale_2476_c1": {
+          "legittimati": "La società tramite delibera assembleare (o singolo socio ex 2476 c. 2)",
+          "presupposti": "Atti o omissioni compiuti con inosservanza dei doveri dell'ufficio - danno alla società",
+          "onere_prova": "Società prova il danno; amministratore prova di aver correttamente assolto i doveri"
+        },
+        "azione_individuale_soci_terzi_2476_c6": {
+          "legittimati": "Singoli soci o terzi (creditori, fornitori)",
+          "presupposti": "Atti compiuti con DOLO O COLPA GRAVE che abbiano direttamente pregiudicato il socio/terzo",
+          "nota": "Non basta danno indiretto (diminuzione patrimonio societario) - serve danno DIRETTO al terzo"
+        },
+        "azione_creditori_2476_bis": {
+          "legittimati": "Creditori sociali",
+          "presupposti": "Insufficienza del patrimonio sociale + inosservanza degli obblighi inerenti alla conservazione dell'integrità del patrimonio",
+          "onere_prova_Cass_SU_29227_2022": "Creditori devono provare: (a) insufficienza patrimonio, (b) atti/omissioni contrari ai doveri, (c) nesso causale"
+        }
+      },
+      "business_judgment_rule_Cass_SU_1839_2023": {
+        "principio": "Le scelte di gestione imprenditoriale NON sono sindacabili se non irrazionali o manifestamente imprudenti",
+        "ambito": "Scelte strategiche, commerciali, finanziarie - l'amministratore ha discrezionalità",
+        "responsabilità": "Solo per violazione di regole di condotta specifiche, dovere di diligenza o obblighi di legge"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IDENTIFICAZIONE DEL TIPO DI AZIONE",
+          "alternative": [
+            "Azione SOCIALE: delibera assembleare + azione a nome della società",
+            "Azione INDIVIDUALE SOCIO: danno diretto al socio (non indiretto tramite danno alla società)",
+            "Azione CREDITORI: insufficienza patrimonio + omissione doveri conservazione"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEGLI ATTI/OMISSIONI CONTESTATI",
+          "tipologie": [
+            "Operazioni specifiche con danno documentato",
+            "Omissione di atti dovuti (adeguatezza assetti ex 2086 CCII)",
+            "Gestione dopo causa di scioglimento senza liquidazione (2485-2486)",
+            "Operazioni in conflitto di interessi non dichiarate",
+            "Distribuzione di utili fittizi"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "QUANTIFICAZIONE DEL DANNO",
+          "metodologia": [
+            "Per azione sociale: diminuzione del patrimonio netto causata dall'atto/omissione",
+            "Per azione creditori: entità del danno nel concorso con i creditori",
+            "Perizia contabile-aziendalistica di parte"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_amministratori_srl",
+        "denominazione": "Atto di citazione per responsabilità degli amministratori di S.r.l. ex art. 2476 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale delle Imprese - sede società",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "label": "Tipo di azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "azione_sociale_2476_c1",
+              "azione_individuale_socio_terzo_2476_c6",
+              "azione_creditori_2476_bis",
+              "azione_per_gestione_post_scioglimento_2485_2486"
+            ]
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "societa_tramite_delibera",
+                  "singolo_socio_per_conto_societa_2476_c2",
+                  "singolo_socio_per_danno_diretto_2476_c6",
+                  "terzo_per_danno_diretto",
+                  "creditore_sociale_2476_bis"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "amministratori_convenuti",
+            "label": "Amministratori convenuti",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "societa",
+            "label": "S.r.l.",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "atti_o_omissioni_contestati",
+            "label": "Atti o omissioni contestati",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipologia",
+                "type": "select_multi",
+                "options": [
+                  "operazione_con_danno_diretto",
+                  "omissione_adeguatezza_assetti_2086",
+                  "gestione_post_scioglimento_2485",
+                  "operazione_in_conflitto_interessi",
+                  "distribuzione_utili_fittizi",
+                  "omessa_convocazione_assemblea",
+                  "violazione_obblighi_di_legge",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 600
+              },
+              {
+                "id": "dolo_o_colpa_grave",
+                "type": "boolean",
+                "rilevante_per_2476_c6": true
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "select_multi"
+              },
+              {
+                "id": "quantificazione",
+                "type": "currency"
+              },
+              {
+                "id": "perizia_contabile_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_amministratori_risarcimento_danno_alla_societa",
+              "condanna_per_danno_diretto_al_socio_terzo",
+              "condanna_per_insufficienza_patrimonio_creditori",
+              "solidarieta_tra_amministratori",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza TRIBUNALE DELLE IMPRESE",
+          "Business judgment rule: scelte gestionali non irrazionali insindacabili (Cass. SU 1839/2023)",
+          "Per azione individuale (2476 c.6): serve DANNO DIRETTO al socio/terzo (non indiretto)",
+          "Per azione creditori (2476-bis): provare insufficienza patrimonio (Cass. SU 29227/2022)",
+          "Adeguatezza assetti ex art. 2086 CCII: nuovo standard di diligenza (Cass. SU 9378/2024)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "visura_camerale_storica_societa",
+          "label": "Visura camerale storica della società",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "bilanci_societari_periodi_contestati",
+          "label": "Bilanci societari dei periodi contestati",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbali_assemblee_e_CDA_rilevanti",
+          "label": "Verbali assemblee e CDA rilevanti",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_atti_o_omissioni_contestati",
+          "label": "Documentazione specifica degli atti/omissioni contestati",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_contabile_aziendalistica_di_parte",
+          "label": "Perizia contabile/aziendalistica di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "delibera_assembleare_per_azione_sociale",
+          "label": "Delibera assembleare (per azione sociale)",
+          "required_if": "azione_sociale"
+        },
+        {
+          "id": "documentazione_qualita_creditore",
+          "label": "Documentazione qualità di creditore (per azione creditori)",
+          "required_if": "azione_creditori"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del danno",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_contabile_e_aziendalistica",
+          "trigger": "Quasi sempre disposta",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "iscrizione_ipotecaria_conservativa_ante_causam",
+          "trigger": "Per garantire il credito",
+          "codice_correlato": "011001"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "condanna_amministratori_risarcimento",
+          "descrizione": "Risarcimento del danno causato alla società o ai creditori"
+        },
+        {
+          "esito": "rigetto_per_business_judgment_rule",
+          "descrizione": "Scelta gestionale non irrazionale - insindacabile"
+        },
+        {
+          "esito": "rigetto_per_assenza_nesso_causale",
+          "descrizione": "Danno non causato dagli atti contestati"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con indennizzo parziale"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione sociale/individuale",
+          "anni": 5,
+          "decorrenza": "atto/omissione o scoperta",
+          "norma": "art. 2949 c.c."
+        },
+        {
+          "termine": "Prescrizione azione creditori 2476-bis",
+          "anni": 5,
+          "norma": "art. 2949 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "154010",
+      "codice_logico": "GUIDA_RESPONSABILIT_DEGLI_AMMINISTRATORI_DI_S_R_L_VERSO_LA_SOCIET_E_I_CREDITOR_154010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DISTRIBUZIONE_E_PIANO_DI_RIPARTO_NELL_ESECUZIONE_IMMOBILIARE_ARTT_596_59_512030",
+      "denominazione": "Distribuzione e piano di riparto nell'esecuzione immobiliare (artt. 596-598 c.p.c.)",
+      "categoria": "Esecuzioni forzate - distribuzione del ricavato",
+      "sottocategoria": "Procedimento di distribuzione del ricavato dalla vendita immobiliare + controversie sul piano di riparto",
+      "rito": "Procedimento speciale davanti al GE (artt. 596-598) + eventuale opposizione giudiziale",
+      "competenza": "GIUDICE DELL'ESECUZIONE",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "596",
+          "descrizione": "Piano di riparto - formazione da parte del GE"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "597",
+          "descrizione": "Approvazione del piano di riparto senza controversie"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "598",
+          "descrizione": "Contestazioni sul piano di riparto - GE sente le parti"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "510",
+          "descrizione": "Distribuzione della somma ricavata - principi"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "511",
+          "descrizione": "Distribuzione - ordine di soddisfazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "512",
+          "descrizione": "Controversie sulla distribuzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2740",
+          "descrizione": "Responsabilità patrimoniale del debitore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2741",
+          "descrizione": "Concorso dei creditori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2748-2783",
+          "descrizione": "Cause di prelazione - privilegio, ipoteca, pegno"
+        },
+        {
+          "fonte": "D.Lgs. 385/1993 (TUB)",
+          "articolo": "40-bis",
+          "descrizione": "Privilegio speciale crediti fondiario ipotecario"
+        },
+        {
+          "fonte": "Cass. SU 9407/2022",
+          "descrizione": "Piano di riparto - contestazioni e rimedi"
+        },
+        {
+          "fonte": "Cass. SU 15964/2023",
+          "descrizione": "Ordine di distribuzione tra creditori privilegiati e chirografari"
+        }
+      ],
+      "ordine_di_distribuzione": {
+        "principio": "Prima si soddisfano i crediti con CAUSA DI PRELAZIONE nell'ordine di rango, poi i chirografari in proporzione",
+        "ordine_tipico": [
+          "1. SPESE DI PROCEDURA (costi dell'esecuzione - prededucibili)",
+          "2. CREDITI IPOTECARI in ordine di iscrizione (prima, seconda, terza ipoteca)",
+          "3. CREDITI CON PRIVILEGIO SPECIALE (es. credito fondiario - TUB 40-bis)",
+          "4. CREDITI CON PRIVILEGIO GENERALE (privilegio del fisco, lavoro, ecc.)",
+          "5. CREDITI CHIROGRAFARI in proporzione al loro importo"
+        ],
+        "concorso_ipoteche": "L'ipoteca di grado anteriore (iscritta prima) prevale sulle successive"
+      },
+      "contestazioni_tipiche_sul_piano": [
+        "Creditore ipotecario di grado superiore contesta la graduazione proposta",
+        "Creditore chirografario contesta il calcolo delle spese o degli interessi di un privilegiato",
+        "Debitore contesta un credito vantato da un creditore intervenuto",
+        "Dispute sulla prededucibilità di alcune spese",
+        "Dispute sulla misura degli interessi dei crediti privilegiati"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura esecutiva"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "PRESA VISIONE DEL PIANO DI RIPARTO",
+          "elementi": [
+            "Piano di riparto elaborato dal GE",
+            "Elenco dei creditori ammessi al riparto",
+            "Importi assegnati a ciascun creditore",
+            "Graduazione adottata"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA DEL PROPRIO CREDITO NEL PIANO",
+          "elementi": [
+            "Importo del proprio credito nel piano vs quanto vantato",
+            "Grado di privilegio applicato",
+            "Calcolo degli interessi",
+            "Eventuali spese non considerate"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA DEI CREDITI DEGLI ALTRI CREDITORI",
+          "elementi": [
+            "I crediti degli altri creditori privilegiati sono fondati?",
+            "La loro graduazione è corretta?",
+            "Ci sono errori nel calcolo dei loro importi?"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "CONTESTAZIONE AL GE entro udienza di distribuzione",
+          "norma": "art. 598 c.p.c. - contestazioni all'udienza di distribuzione",
+          "forma": "Memoria scritta + eventuale udienza di discussione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "contestazione_piano_riparto_esecuzione_immobiliare",
+        "denominazione": "Contestazione del piano di riparto nell'esecuzione immobiliare ex art. 598 c.p.c.",
+        "schema_xsd_ministeriale": "AttoEsecuzione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_GE",
+            "label": "Tribunale - GE competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "numero_RG_procedura_esecutiva",
+            "label": "N. RG procedura esecutiva immobiliare",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "creditore_contestante",
+            "label": "Creditore che contesta il piano",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_contestazione",
+            "label": "Tipo di contestazione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "contestazione_proprio_credito_insufficiente",
+              "contestazione_credito_altro_creditore_eccessivo",
+              "contestazione_graduazione_applicata",
+              "contestazione_spese_prededucibili",
+              "contestazione_interessi_calcolati",
+              "opposizione_del_debitore_a_credito_intervenuto"
+            ]
+          },
+          {
+            "id": "piano_di_riparto_contestato",
+            "label": "Piano di riparto contestato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_piano",
+                "type": "date"
+              },
+              {
+                "id": "importo_assegnato_al_contestante",
+                "type": "currency"
+              },
+              {
+                "id": "importo_ritenuto_corretto",
+                "type": "currency"
+              },
+              {
+                "id": "descrizione_della_contestazione",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "modifica_del_piano_di_riparto",
+              "riconoscimento_priorita_nel_riparto",
+              "esclusione_o_riduzione_credito_altro_creditore",
+              "corretta_applicazione_interessi_e_spese",
+              "spese_di_procedura"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Contestazione va presentata all'udienza di distribuzione ex art. 598 c.p.c.",
+          "Appello avverso ordinanza GE su distribuzione: 20 GG",
+          "Ordine privilegiato: ipoteche per grado di iscrizione + privilegio speciale TUB",
+          "Cass. SU 15964/2023: ordine tra creditori privilegiati e chirografari"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "piano_di_riparto_contestato",
+          "label": "Piano di riparto elaborato dal GE",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "titolo_credito_del_contestante",
+          "label": "Titolo del credito del contestante (sentenza, ipoteca, ecc.)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "calcolo_del_credito_corretto",
+          "label": "Calcolo dettagliato del credito corretto",
+          "required": true
+        },
+        {
+          "id": "documentazione_privilegio_o_grado_ipoteca",
+          "label": "Documentazione del privilegio o grado di ipoteca",
+          "required_if": "privilegiato"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della contestazione",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ordinanza_GE_su_distribuzione",
+          "trigger": "Decisione sul piano contestato"
+        },
+        {
+          "tipo": "appello_ordinanza_distribuzione_20_gg",
+          "trigger": "Se ordinanza non soddisfa",
+          "termine": "20 gg",
+          "criticita": "MASSIMA"
+        },
+        {
+          "tipo": "ctu_contabile_per_crediti_complessi",
+          "trigger": "Per crediti bancari o finanziari contestati"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "modifica_piano_di_riparto_a_favore_del_contestante",
+          "descrizione": "Piano modificato + maggiore soddisfazione"
+        },
+        {
+          "esito": "conferma_piano_di_riparto",
+          "descrizione": "Piano mantenuto - contestazione respinta"
+        },
+        {
+          "esito": "rideterminazione_credito_altro_creditore",
+          "descrizione": "Credito di altro creditore ridotto"
+        },
+        {
+          "esito": "transazione_tra_creditori",
+          "descrizione": "Accordo tra creditori sulla distribuzione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Contestazione al GE",
+          "natura": "all'udienza di distribuzione o prima",
+          "norma": "art. 598 c.p.c."
+        },
+        {
+          "termine": "APPELLO ORDINANZA DISTRIBUZIONE",
+          "giorni": 20,
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Opposizione atti esecutivi 617 per vizi formali",
+          "giorni": 20,
+          "natura": "decadenziale"
+        }
+      ],
+      "codice_originale_ricevuto": "512030",
+      "codice_logico": "GUIDA_DISTRIBUZIONE_E_PIANO_DI_RIPARTO_NELL_ESECUZIONE_IMMOBILIARE_ARTT_596_59_512030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512030"
+        }
+      ]
+    }
+  ]
+}

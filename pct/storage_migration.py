@@ -34,6 +34,7 @@ _CORE_TABLES = {
     "fatturazione": "parcelle",
     "pagamenti_links": "payment_links",
     "pagamenti_config": "payment_config",
+    "impostazioni": "settings_config",
     "utenti": "utenti",
     "audit": "audit_log",
     "moduli_dati": "moduli_dati",
@@ -350,6 +351,29 @@ def _copy_payment_links(sqlite_backend, target_backend) -> None:
     target_backend.salva_tabella("payment_links", list(rows), _insert)
 
 
+def _copy_settings_config(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM settings_config").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO settings_config
+            (section, updated_at, source, secret_fields_json, dati_json)
+            VALUES (?,?,?,?,?)
+            """,
+            (
+                raw.get("section", ""),
+                raw.get("updated_at", ""),
+                raw.get("source", "config_studio"),
+                raw.get("secret_fields_json", "[]"),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("settings_config", list(rows), _insert)
+
+
 def _copy_moduli_dati(sqlite_backend, target_backend) -> None:
     rows = sqlite_backend.conn.execute("SELECT * FROM moduli_dati").fetchall()
 
@@ -456,6 +480,7 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         "fatturazione": paths.get("FATTURAZIONE_DB", ""),
         "pagamenti_config": str(Path(pagamenti_dir) / "config.json") if pagamenti_dir else "",
         "pagamenti_links": str(Path(pagamenti_dir) / "transazioni.json") if pagamenti_dir else "",
+        "impostazioni": paths.get("STUDIO_CONFIG", ""),
         "messaggi": paths.get("MESSAGGI_DB", ""),
         "utenti": paths.get("AUTH_DB", ""),
         "audit": paths.get("AUDIT_DB", ""),
@@ -563,6 +588,8 @@ def _copy_core_state_to_target(
     if pagamenti_dir:
         _copy_payment_config(sqlite_backend, target_backend)
         _copy_payment_links(sqlite_backend, target_backend)
+
+    _copy_settings_config(sqlite_backend, target_backend)
 
     auth_src = GestioneUtenti(
         db_path=paths["AUTH_DB"],

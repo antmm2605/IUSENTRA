@@ -81,6 +81,7 @@ _CORE_TABLES = {
     "fatturazione": "parcelle",
     "pagamenti_links": "payment_links",
     "pagamenti_config": "payment_config",
+    "impostazioni": "settings_config",
     "messaggi": "messaggi",
     "utenti": "utenti",
     "audit": "audit_log",

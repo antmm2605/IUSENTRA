@@ -270,6 +270,72 @@ def test_orchestratore_blocca_deposito_pct_senza_codice_oggetto_pst(tmp_path):
     assert "xml_codice_oggetto_mancante" in codes
 
 
+def test_orchestratore_pct_contributo_mancante_usa_policy_pagopa_pst(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Ricorso civile senza ricevuta",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        controparte="Alfa S.r.l.",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "ricorso.pdf",
+        TipoDocumento.RICORSO,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fasc.id,
+        "procura.pdf",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+        firmato=False,
+    )
+    notifica = gf.aggiungi_documento(
+        fasc.id,
+        "relata_notifica.pdf",
+        TipoDocumento.NOTIFICA,
+        _pdf_base(),
+        firmato=False,
+    )
+    docs = [
+        _doc_payload(gf, fasc.id, atto),
+        _doc_payload(gf, fasc.id, procura),
+        _doc_payload(gf, fasc.id, notifica),
+    ]
+
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / "validation.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+    run = orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "RICORSO",
+            "codice_registro": "RG",
+            "oggetto": "Ricorso civile introduttivo",
+            "codice_oggetto_pst": "011001",
+            "atto_principale_id": atto.id,
+            "allegati_ids": [procura.id, notifica.id],
+            "operatore": "avv.rossi",
+        },
+        selected_documents=docs,
+        all_documents=docs,
+    )
+
+    issue = next(item for item in run.issues if item["code"] == "contributo_non_evidenziato")
+    assert "pst.giustizia.it" in issue["source"]
+    assert "RT.xml" in issue["detail"]
+    assert "pagoPA" in issue["suggested_action"]
+    assert "promemoria PDF non sostituisce la RT" in issue["suggested_action"]
+
+
 def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_path):
     cfg = _cfg_web(tmp_path)
     gu = GestioneUtenti(

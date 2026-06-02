@@ -62,6 +62,21 @@ def _get_gestore():
     return GestioneConfigStudio(config_path=_studio_config_path())
 
 
+def _salva_snapshot_sql_impostazioni(cfg, extra_sections: dict | None = None) -> int:
+    """Aggiorna il mirror strutturato delle impostazioni quando il backend SQL è attivo."""
+    try:
+        from pct.impostazioni_config_repository import save_settings_config_snapshot
+        from web.services.storage_runtime import get_request_studio_db
+
+        studio_db = get_request_studio_db(_studio_config_path())
+        if studio_db is None:
+            return 0
+        return save_settings_config_snapshot(studio_db, cfg, extra_sections=extra_sections)
+    except Exception as exc:
+        current_app.logger.warning("Snapshot SQL impostazioni non aggiornato: %s", exc)
+        return 0
+
+
 def _firma_upload_dir() -> Path:
     cfg_path = Path(_studio_config_path())
     return cfg_path.parent / "firma_uploads"
@@ -161,6 +176,21 @@ def _applica_ad_app(cfg):
     app.config["LOCAL_AI_AUTO_INDEX_DOCUMENTS"] = cfg.ai.auto_index_documents
     app.config["OLLAMA_URL"] = strip_api_suffix(cfg.ai.base_url)
     app.config["OLLAMA_MODEL"] = cfg.ai.chat_model or app.config.get("OLLAMA_MODEL", "mistral")
+    sdi = getattr(cfg, "sdi", None)
+    sdi_mode = getattr(sdi, "modalita_normalizzata", "manuale") if sdi is not None else "manuale"
+    sdi_configured = bool(getattr(sdi, "canale_configurato", False)) if sdi is not None else False
+    sdi_auto = bool(getattr(sdi, "auto_invio_abilitato", False)) and sdi_configured
+    sdi_endpoint = getattr(sdi, "endpoint_trasmissione", "") if sdi is not None else ""
+    app.config["SDI_CANALE_ACCREDITATO"] = bool(sdi_auto and sdi_mode == "canale_accreditato")
+    app.config["SDI_INTERMEDIARIO"] = getattr(sdi, "nome_intermediario", "") if sdi is not None else ""
+    app.config["FATTURAPA_INTERMEDIARIO"] = getattr(sdi, "nome_intermediario", "") if sdi is not None else ""
+    app.config["FATTURAPA_SDI_CANALE"] = getattr(sdi, "codice_canale", "") if sdi is not None else ""
+    app.config["FATTURAPA_SDI_ENDPOINT"] = sdi_endpoint
+    app.config["FATTURAPA_SDI_INDIRIZZO_SERVIZIO"] = sdi_endpoint
+    app.config["FATTURAPA_SDI_USERNAME"] = getattr(sdi, "username", "") if sdi is not None else ""
+    app.config["FATTURAPA_SDI_PASSWORD"] = getattr(sdi, "password", "") if sdi is not None else ""
+    app.config["FATTURAPA_SDI_PEC_NOTIFICHE"] = getattr(sdi, "pec_notifiche", "") if sdi is not None else ""
+    app.config["FATTURAPA_SDI_AUTO_INVIO"] = sdi_auto
     clear_ollama_runtime_resolution_cache()
     # Reschedule job se lo scheduler è attivo
     _reschedule_jobs(app, cfg)
@@ -223,6 +253,7 @@ def index():
         from pct.config_studio import (
             ConfigDatiStudio, ConfigPEC,
             ConfigFirma, ConfigSMTP, ConfigWhatsApp, ConfigScheduler, ConfigLocalAI,
+            ConfigSDI,
         )
         cfg = gs.config
         try:
@@ -337,11 +368,32 @@ def index():
                     keep_alive=f.get("ai_keep_alive", "10m").strip(),
                     auto_index_documents=bool(f.get("ai_auto_index_documents")),
                 )
+            elif tab == "sdi":
+                modalita_sdi = (f.get("sdi_modalita") or "manuale").strip().lower()
+                if modalita_sdi not in {"manuale", "intermediario", "canale_accreditato"}:
+                    modalita_sdi = "manuale"
+                sdi_password = f.get("sdi_password", "").strip()
+                cfg.sdi = ConfigSDI(
+                    abilitato=bool(f.get("sdi_abilitato")),
+                    modalita=modalita_sdi,
+                    nome_intermediario=f.get("sdi_nome_intermediario", "").strip(),
+                    codice_canale=f.get("sdi_codice_canale", "").strip(),
+                    endpoint_trasmissione=(
+                        f.get("sdi_indirizzo_servizio", "").strip()
+                        or f.get("sdi_endpoint_trasmissione", "").strip()
+                    ),
+                    username=f.get("sdi_username", "").strip(),
+                    password=sdi_password if sdi_password else cfg.sdi.password,
+                    pec_notifiche=f.get("sdi_pec_notifiche", "").strip(),
+                    auto_invio_abilitato=bool(f.get("sdi_auto_invio_abilitato")),
+                    note=f.get("sdi_note", "").strip(),
+                )
         except ValueError as e:
             flash(str(e), "danger")
             return redirect(url_for("impostazioni.index", tab=tab))
 
         gs.aggiorna(cfg)
+        _salva_snapshot_sql_impostazioni(cfg)
         _applica_ad_app(cfg)
         flash("Impostazioni salvate.", "success")
         return redirect(url_for("impostazioni.index", tab=tab))

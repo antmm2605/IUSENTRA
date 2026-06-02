@@ -349,7 +349,7 @@ def build_telematico_runtime(
             "home_endpoint": "pat_home",
             "source_label": "Processo Amministrativo Telematico",
             "requires_local_signer": True,
-            "official_url": "https://www.giustizia-amministrativa.it/portale-avvocato",
+            "official_url": "https://pe.prod.cloud.giustizia-amministrativa.it",
             "assistant_label": "Portale ufficiale assistito",
             "assistant_disclaimer": "IUSENTRA apre una sessione assistita locale: l'utente si autentica e opera nel PAT, poi il software importa file, ricevute ed esiti nel fascicolo interno.",
             "deposit_assistant_enabled": True,
@@ -4447,6 +4447,9 @@ def build_telematico_runtime(
     def _local_signer_uffici_path() -> Path:
         return Path(__file__).resolve().parents[2] / "pct" / "data" / "uffici_ministero.json"
 
+    def _local_signer_uffici_pst_pubblici_path() -> Path:
+        return Path(__file__).resolve().parents[2] / "pct" / "data" / "uffici_pst_pubblici.json"
+
     def _local_signer_macos_installer_path() -> Path:
         preferred = _local_signer_dist_dir() / _local_signer_macos_name()
         legacy = _local_signer_dist_dir() / "InstallaLocalSigner.command"
@@ -4492,6 +4495,7 @@ $visibleSignature = "$dir\\visible_signature.py"
 $moduleDir = "$dir\\local_signer_mod"
 $dataDir = "$dir\\data"
 $uffici = "$dataDir\\uffici_ministero.json"
+$ufficiPstPubblici = "$dataDir\\uffici_pst_pubblici.json"
 $starterCmd = "$dir\\\\start_local_signer.cmd"
 $starterVbs = "$dir\\\\start_local_signer.vbs"
 $pyExe  = "$venv\\\\Scripts\\\\python.exe"
@@ -4516,6 +4520,8 @@ Write-Host "  Scarico modulo firma visibile..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/visible-signature" -OutFile $visibleSignature -UseBasicParsing
 Write-Host "  Scarico registro uffici PST..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/uffici" -OutFile $uffici -UseBasicParsing
+Write-Host "  Scarico catalogo pubblico uffici PST..."
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/uffici-pst-pubblici" -OutFile $ufficiPstPubblici -UseBasicParsing
 Write-Host "  Scarico moduli interni Local Signer..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/__init__.py" -OutFile "$moduleDir\\__init__.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -OutFile "$moduleDir\\ai_cache.py" -UseBasicParsing
@@ -4761,6 +4767,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$DATA_DIR/uffici_pst_pubblici.json"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
@@ -4842,6 +4849,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$DATA_DIR/uffici_pst_pubblici.json"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
@@ -4938,6 +4946,7 @@ read -r -p "Premi Invio per chiudere..." _
         "local_signer_visible_signature_source_path": _local_signer_visible_signature_source_path,
         "local_signer_visible_signature_python_name": _local_signer_visible_signature_python_name,
         "local_signer_uffici_path": _local_signer_uffici_path,
+        "local_signer_uffici_pst_pubblici_path": _local_signer_uffici_pst_pubblici_path,
         "local_signer_windows_cmd_path": _local_signer_windows_cmd_path,
         "local_signer_windows_cmd_name": _local_signer_windows_cmd_name,
         "local_signer_windows_exe_path": _local_signer_windows_exe_path,

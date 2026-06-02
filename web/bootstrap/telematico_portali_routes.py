@@ -174,7 +174,7 @@ def register_telematico_portali_routes(
             oggi=date.today(),
             fascicolo=fascicolo_ctx,
             id_fasc=id_fasc,
-            official_portal_url="https://www.giustizia-amministrativa.it/portale-avvocato",
+            official_portal_url="https://pe.prod.cloud.giustizia-amministrativa.it",
         )
 
     @app.route("/pat/ricerca", methods=["POST"])

@@ -36,6 +36,13 @@ _TOP_LEVEL_FIELDS = {
     "log_calcolo",
     "percentuale_spese_generali",
     "metodo_pagamento",
+    "sdi_identificativo",
+    "sdi_stato",
+    "sdi_canale",
+    "sdi_data_invio",
+    "sdi_data_esito",
+    "sdi_ricevuta",
+    "sdi_note",
     "dati_personalizzati",
 }
 _FISCAL_OPTION_FIELDS = {"applica_iva", "applica_cassa", "applica_ritenuta", "applica_bollo"}
@@ -55,6 +62,82 @@ _CANONICAL_AMOUNT_FIELDS = {
     "bollo",
 }
 _NO_VAT_REGIMES = {"RF19", "RF02"}
+
+FATTURAPA_OFFICIAL_SOURCES = (
+    {
+        "id": "fatturapa_specifiche_formato",
+        "authority": "FatturaPA",
+        "label": "Specifiche tecniche formato FatturaPA 1.3.1",
+        "url": "https://www.fatturapa.gov.it/export/documenti/Specifiche_tecniche_del_formato_FatturaPA_V1.3.1.pdf",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-specifiche-formato-v1-3-1.pdf",
+    },
+    {
+        "id": "fatturapa_sdi_trasmissione",
+        "authority": "FatturaPA",
+        "label": "Specifiche trasmissione verso Sistema di Interscambio",
+        "url": "https://www.fatturapa.gov.it/export/fatturazione/sdi/ws/trasmissione/v1.1/SDICoop_trasmissione_v1.1.pdf",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-sdicoop-trasmissione-v1-1.pdf",
+    },
+    {
+        "id": "agenzia_entrate_guida_fe",
+        "authority": "Agenzia delle Entrate",
+        "label": "Guida alla fatturazione elettronica e ricevute SdI",
+        "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/fatturazione_elettronica.html",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/agenzia-entrate-guida-fatturazione-elettronica.html",
+    },
+)
+
+SDI_WORKFLOW = (
+    {
+        "id": "xml_fatturapa",
+        "label": "Prepara XML FatturaPA",
+        "message": "Il documento XML deve rispettare le specifiche FatturaPA prima dell'invio.",
+        "tone": "info",
+    },
+    {
+        "id": "canale_accreditato",
+        "label": "Invia tramite canale accreditato",
+        "message": "L'invio automatico richiede canale SdI accreditato o intermediario configurato; in assenza del canale il software non simula l'invio.",
+        "tone": "warning",
+    },
+    {
+        "id": "identificativo_sdi",
+        "label": "Registra identificativo SdI",
+        "message": "Dopo la trasmissione va annotato l'identificativo assegnato dal Sistema di Interscambio.",
+        "tone": "info",
+    },
+    {
+        "id": "monitoraggio_ricevute",
+        "label": "Controlla ricevute",
+        "message": "La guida Agenzia Entrate indica il monitoraggio dei file trasmessi per scarto, consegna o impossibilità di recapito.",
+        "tone": "info",
+    },
+    {
+        "id": "esito_fiscale",
+        "label": "Classifica l'esito",
+        "message": "Scarto: fattura non emessa. Consegna o impossibilità di recapito: fattura emessa, con documento disponibile al destinatario.",
+        "tone": "success",
+    },
+)
+
+SDI_STATUS_LABELS = {
+    "": ("Da registrare", "warning", "XML disponibile; invio ed esito SdI devono essere registrati."),
+    "PREPARATA": ("Preparata", "warning", "XML preparato; invio SdI non ancora registrato."),
+    "INVIATA": ("Inviata", "info", "Invio registrato; attendere ricevuta SdI."),
+    "CONSEGNATA": ("Consegnata", "success", "Ricevuta di consegna registrata."),
+    "MANCATA_CONSEGNA": ("Mancata consegna", "warning", "Ricevuta di impossibilità di recapito registrata."),
+    "SCARTATA": ("Scartata", "danger", "Ricevuta di scarto: la fattura risulta non emessa e va corretta/ritrasmessa."),
+    "DECORRENZA_TERMINI": ("Decorrenza termini", "info", "Esito registrato per decorrenza termini."),
+}
+
+SDI_CHANNEL_CONFIG_KEYS = {
+    "SDI_CANALE_ACCREDITATO",
+    "SDI_INTERMEDIARIO",
+    "FATTURAPA_INTERMEDIARIO",
+    "FATTURAPA_SDI_CANALE",
+    "FATTURAPA_SDI_ENDPOINT",
+    "FATTURAPA_SDI_INDIRIZZO_SERVIZIO",
+}
 
 
 def _iso_now() -> str:
@@ -107,6 +190,31 @@ def _status_label(status: str) -> str:
         "ANNULLATA": "Annullata",
         "BOZZA": "Bozza",
     }.get(status.upper(), status or "Non indicato")
+
+
+def _sdi_channel_configured(config: dict[str, Any] | None) -> bool:
+    if not isinstance(config, dict):
+        return False
+    return any(_text(config.get(key)) for key in SDI_CHANNEL_CONFIG_KEYS)
+
+
+def _sdi_status_payload(parcella: Any) -> dict[str, Any]:
+    raw_status = _text(getattr(parcella, "sdi_stato", "")).upper()
+    label, tone, message = SDI_STATUS_LABELS.get(raw_status, (raw_status or "Da registrare", "neutral", "Stato SdI da verificare."))
+    return {
+        "sdiState": raw_status,
+        "sdiStateLabel": label,
+        "sdiStateTone": tone,
+        "sdiStatusMessage": message,
+        "sdiIdentifier": _text(getattr(parcella, "sdi_identificativo", "")),
+        "sdiChannel": _text(getattr(parcella, "sdi_canale", "")),
+        "sdiSentAt": _text(getattr(parcella, "sdi_data_invio", "")),
+        "sdiSentLabel": _date_label(getattr(parcella, "sdi_data_invio", "")),
+        "sdiOutcomeAt": _text(getattr(parcella, "sdi_data_esito", "")),
+        "sdiOutcomeLabel": _date_label(getattr(parcella, "sdi_data_esito", "")),
+        "sdiReceipt": _text(getattr(parcella, "sdi_ricevuta", "")),
+        "sdiNote": _text(getattr(parcella, "sdi_note", "")),
+    }
 
 
 def _metric(mid: str, label: str, value: Any, note: str, tone: str) -> dict[str, Any]:
@@ -410,7 +518,7 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
     status = _enum(getattr(parcella, "stato", ""))
     id_cliente = _text(getattr(parcella, "id_cliente", ""))
     id_fascicolo = _text(getattr(parcella, "id_fascicolo", ""))
-    return {
+    record = {
         "id": pid,
         "number": _text(getattr(parcella, "numero", "")) or pid,
         "customerName": _client_label(clienti.get(id_cliente)),
@@ -427,12 +535,14 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
         "xmlHref": f"/fatturazione/{pid}/xml" if pid else "",
     }
+    record.update(_sdi_status_payload(parcella))
+    return record
 
 
 def _created_item(parcella: Any) -> dict[str, Any]:
     pid = _text(getattr(parcella, "id", ""))
     status = _enum(getattr(parcella, "stato", ""))
-    return {
+    item = {
         "id": pid,
         "number": _text(getattr(parcella, "numero", "")) or pid,
         "amountDisplay": _money(getattr(parcella, "totale", 0)),
@@ -442,6 +552,8 @@ def _created_item(parcella: Any) -> dict[str, Any]:
         "stateLabel": _status_label(status),
         "stateTone": _status_tone(status),
     }
+    item.update(_sdi_status_payload(parcella))
+    return item
 
 
 def _technical_archive_writes() -> str:
@@ -683,6 +795,15 @@ def build_react_fatturazione_payload(
             "code": "studio_fiscale_incompleto",
             "message": "Completa partita IVA o codice fiscale dello studio per avere la precompilazione completa del documento.",
         })
+    sdi_configured = _sdi_channel_configured(config)
+    if not sdi_configured:
+        warnings.append({
+            "code": "sdi_canale_non_configurato",
+            "message": (
+                "Invio automatico SdI non configurato: IUSENTRA prepara XML FatturaPA e registra identificativo/esiti; "
+                "la trasmissione deve avvenire tramite portale, canale accreditato o intermediario."
+            ),
+        })
     records = [_invoice_record(item, clienti, fascicoli) for item in parcelle[:120]]
     state_items: list[dict[str, Any]] = []
     for code in ("BOZZA", "EMESSA", "PAGATA", "SCADUTA", "ANNULLATA"):
@@ -710,6 +831,17 @@ def build_react_fatturazione_payload(
         "clientProfiles": {cid: _client_profile(cliente) for cid, cliente in clienti.items() if cid},
         "matterProfiles": {fid: _matter_profile(fascicolo) for fid, fascicolo in fascicoli.items() if fid},
         "studioProfile": studio,
+        "officialSources": list(FATTURAPA_OFFICIAL_SOURCES),
+        "sdiWorkflow": list(SDI_WORKFLOW),
+        "sdiChannel": {
+            "configured": sdi_configured,
+            "label": "Canale SdI configurato" if sdi_configured else "Canale SdI non configurato",
+            "message": (
+                "Invio automatico disponibile solo con configurazione reale di canale/intermediario."
+                if sdi_configured
+                else "Il software non invia al Sistema di Interscambio senza canale accreditato o intermediario configurato."
+            ),
+        },
         "nextNumber": next_number,
         "defaults": defaults,
         "fiscal_options": _fiscal_options(defaults),
@@ -734,6 +866,17 @@ def build_react_fatturazione_payload(
                     _item("export", "Export CSV", "presidiato", "Download servito dal percorso di esportazione", "warning"),
                 ],
                 "Nessuna funzione presidiata rilevata.",
+            ),
+            _section(
+                "sdi_monitoraggio",
+                "Invio e monitoraggio SdI",
+                "presidio fonte ufficiale",
+                [
+                    _item("canale", "Canale SdI", "configurato" if sdi_configured else "da configurare", "Invio automatico solo con canale accreditato o intermediario", "success" if sdi_configured else "warning"),
+                    _item("xml", "XML FatturaPA", "preparabile", "Formato verificato su specifiche FatturaPA salvate", "info"),
+                    _item("ricevute", "Ricevute SdI", "da registrare", "Scarto, consegna o impossibilità di recapito governano lo stato fiscale", "warning"),
+                ],
+                "Nessun presidio SdI disponibile.",
             ),
         ],
         "records": records,
@@ -775,6 +918,13 @@ def build_react_fatturazione_error_payload(
         "form": form,
         "clients": [],
         "matters": [],
+        "officialSources": list(FATTURAPA_OFFICIAL_SOURCES),
+        "sdiWorkflow": list(SDI_WORKFLOW),
+        "sdiChannel": {
+            "configured": False,
+            "label": "Canale SdI non configurato",
+            "message": "Invio automatico disponibile solo con canale accreditato o intermediario configurato.",
+        },
         "defaults": form["defaults"],
         "fiscal_options": _fiscal_options(form["defaults"]),
         "metrics": [],
@@ -966,6 +1116,13 @@ def _validate_payload(
         "applica_bollo": _as_bool(raw_options.get("applica_bollo"), False),
         "percentuale_spese_generali": percentuale_spese_generali,
         "metodo_pagamento": _text(payload.get("metodo_pagamento"), limit=60),
+        "sdi_identificativo": _text(payload.get("sdi_identificativo"), limit=120),
+        "sdi_stato": _text(payload.get("sdi_stato"), limit=40).upper(),
+        "sdi_canale": _text(payload.get("sdi_canale"), limit=120),
+        "sdi_data_invio": _text(payload.get("sdi_data_invio"), limit=40),
+        "sdi_data_esito": _text(payload.get("sdi_data_esito"), limit=40),
+        "sdi_ricevuta": _text(payload.get("sdi_ricevuta"), limit=120),
+        "sdi_note": _text(payload.get("sdi_note"), limit=500),
         "dati_personalizzati": dati_personalizzati,
         "from_cliente": _text(payload.get("from_cliente")),
         "origine": _text(payload.get("origine"), limit=80),
@@ -1079,6 +1236,13 @@ def create_react_fattura(
             studio_cf=_text(config.get("STUDIO_CF")),
             studio_indirizzo=_text(config.get("STUDIO_INDIRIZZO")),
             studio_iban=_text(config.get("STUDIO_IBAN")),
+            sdi_identificativo=validated["sdi_identificativo"],
+            sdi_stato=validated["sdi_stato"],
+            sdi_canale=validated["sdi_canale"],
+            sdi_data_invio=validated["sdi_data_invio"],
+            sdi_data_esito=validated["sdi_data_esito"],
+            sdi_ricevuta=validated["sdi_ricevuta"],
+            sdi_note=validated["sdi_note"],
             metodo_pagamento=validated["metodo_pagamento"],
             dati_personalizzati=validated["dati_personalizzati"],
         )

@@ -288,7 +288,7 @@ def test_wizard_portali_espone_upload_payload_json_e_portali_ufficiali(tmp_path:
         )
         for portale, expected in (
             ("pdp", "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"),
-            ("pat", "https://www.giustizia-amministrativa.it/portale-avvocato"),
+            ("pat", "https://pe.prod.cloud.giustizia-amministrativa.it"),
             ("ptt", "https://sigit.giustiziatributaria.gov.it/Sigit/index.do"),
         ):
             page = client.get(f"/portali/{portale}/acquisizione?_legacy=1", follow_redirects=True)

@@ -326,6 +326,7 @@ def _react_runtime_flags() -> dict[str, bool]:
     settings_surface = lower in {
         "/impostazioni",
         "/impostazioni-studio",
+        "/impostazioni/sdi",
         "/impostazioni/pagamenti",
         "/notifiche",
         "/notifiche-whatsapp",

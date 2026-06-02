@@ -6,6 +6,7 @@ export type SettingsSection =
   | 'whatsapp'
   | 'scheduler'
   | 'ai'
+  | 'sdi'
   | 'pagamenti'
   | 'notifiche'
   | 'backup'
@@ -70,6 +71,7 @@ export type SettingsPayload = {
   whatsapp: Record<string, string | number | boolean | SecretState>
   scheduler: Record<string, string | number | boolean>
   ai: Record<string, string | number | boolean>
+  sdi: Record<string, string | number | boolean | SecretState | unknown>
   pagamenti: Record<string, unknown>
   notifiche: Record<string, unknown>
   backup: Record<string, unknown>

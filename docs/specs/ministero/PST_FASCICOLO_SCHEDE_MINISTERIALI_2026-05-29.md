@@ -17,7 +17,15 @@ Data consultazione: 29 maggio 2026.
   - `Catalog/Consultazione Registri/SICID/catalog_sivg_be.xml`;
   - `Catalog/Consultazione Registri/SICID/catalog_min_be.xml`;
   - `Catalog/Consultazione Registri/SIECIC/catalog_siecic_be.xml`;
-  - `Catalog/Consultazione Registri/SIGP/catalogJpw.xml`.
+  - `Catalog/Consultazione Registri/SIGP/catalogJpw.xml`;
+  - `Catalog/Consultazione Registri/CASSCI/catalog_cassci.xml`;
+  - `Catalog/Consultazione Registri/CASSPE/catalog_casspe.xml`.
+- Catalogo richieste copie versionato in repository:
+  - namespace qbuilder `urn:RichiestaCopie-consultazioni-distr`;
+  - namespace WSDL `urn:RichiestaCopie`;
+  - interrogazioni qbuilder `RicercaRichieste` e `ProfiloRichiesta`, come da `Documentazione_servizi_web_v1.69.pdf`, capitolo 4;
+  - classi di consultazione `RichiestaCopia`, `RichiestaCopiaExt`, `ProfiloRichiestaCopia`, `riepilogoRichieste`;
+  - operazioni WSDL note `invioRichiesta`, `estremiPagamento`, `richiestaDocumentazioneFascicolo`.
 
 ## Regola di importazione
 
@@ -40,6 +48,26 @@ Per la ricerca annuale qbuilder i nomi delle interrogazioni restano quelli del r
 
 - `ArchivioFascicoli` per registri SICID-family e SIGP, come indicato dalla documentazione servizi web PST;
 - `RicercaArchivioPC` e `RicercaArchivioEI` per SIECIC, così da coprire procedure concorsuali ed esecuzioni senza assumere una sola materia.
+
+- `QC_Ricorsi` per Cassazione civile e `QP_Ricorsi` per Cassazione penale, come da cataloghi `CASSCI`/`CASSPE`. La ricerca esatta usa `NRGREALE` ricostruito da anno e numero del ricorso; la ricerca per anno usa i campi data iscrizione `DATAISCR_DA` / `DATAISCR_AL`. Non usare `RicercaInformazioniFascicoloPerTipo` su Cassazione: il test reale del 2 giugno 2026 lo ha confermato non esposto su `JPW_CASSCI`/`JPW_CASSPE`.
+
+Le richieste copie sono mappate come consultazione separata dal fascicolo. IUSENTRA può leggere l'elenco richieste con `RicercaRichieste` e il profilo della singola richiesta con `ProfiloRichiesta`, conservando id richiesta, richiedente, registro, numero/anno ruolo, date, stato, pagamento dichiarato e documenti richiesti. Le classi qbuilder `RichiestaCopia`, `RichiestaCopiaExt`, `ProfiloRichiestaCopia`, `ContenutoRichiestaCopia`, `SommarioContenuto` e `riepilogoRichieste` descrivono le righe restituite. Le operazioni `invioRichiesta`, `estremiPagamento` e `richiestaDocumentazioneFascicolo` restano censite come funzioni ministeriali, ma non vengono avviate automaticamente dal router fascicoli: servono consenso e flusso utente dedicato.
+
+Nota fonte: la documentazione ministeriale `Documentazione_servizi_web_v1.69.pdf`, capitolo 4, qualifica i servizi richieste copie come "servizio ancora non rilasciato". Il test reale del 2 giugno 2026 ha comunque confermato la raggiungibilità read-only di `RicercaRichieste` su proxy software house `GLRM/JPW_SICID`: risposta SOAP 200 con `available=0`, cioè nessuna richiesta copie visibile al certificato in quel momento.
+
+## Matrice servizi verificata
+
+| Famiglia | Registro utente | Servizio PST | Namespace | Servizio ricerca | Nota verifica |
+| --- | --- | --- | --- | --- | --- |
+| Civile ordinario | `RGN` / `CC` | `JPW_SICID` | `urn:CONS-SICC-BE` | `RicercaInformazioniFascicoloPerTipo` | Test reale 2 giugno 2026: Tribunale di Palmi `0910011`, codice PST `0800570094`, `1025/2024`, 1 fascicolo e snapshot con 16 documenti di catalogo. |
+| Lavoro | `LAV` | `JPW_SIL_DISTR`, con fallback `JPW_SIL`/`JPW_SILP*` | `urn:CONS-SIL-BE-DISTR` | `RicercaInformazioniFascicoloPerTipo` con `tipo=LAV` | Già provato in lettura reale; il router non usa SICID quando il payload indica lavoro. |
+| Volontaria giurisdizione | `VG` | `JPW_SIVG` | `urn:CONS-SIVG-BE` | `RicercaInformazioniFascicoloPerTipo` con `tipo=VG` | Test reale 2 giugno 2026: Tribunale di Roma `0760010`, codice PST `0580910098`, `63/2025/VG`, 1 fascicolo restituito. |
+| Minorenni | `MIN` / `SIMIN` | `JPW_MIN` / `JPW_SIMIN` | `urn:CONS-MIN-BE` | `RicercaInformazioniFascicoloPerTipo` | Collegamento reale alla tabella verificato; il numero ruolo deve essere consultabile dal certificato. |
+| Esecuzioni e concorsuali | `SIECIC` | `JPW_SIECIC` | `urn:CONS-SIECIC-BE` | `InfoFascicolo`, `ProfiloFascicolo`, `ElencoDocumenti` | Il portale può richiedere `idRuoloJPW`; IUSENTRA lo accetta solo se arriva da flusso autorizzato. |
+| Giudice di Pace | `GDP` / `SIGP` | `JPW_SIGP` | `urn:CONS-SIGP-BE` | `RicercaInformazioniFascicoloPerTipo` / `ArchivioFascicoli` | Test reale già eseguito: `2962/2023` restituisce 1 fascicolo valido. |
+| Cassazione civile | `CASSCI` | `JPW_CASSCI` | `urn:CONS-CASSCI` | `QC_Ricorsi` | Mappatura e body testati; serve un numero reale consultabile per la prova live esatta. |
+| Cassazione penale | `CASSPE` | `JPW_CASSPE` | `urn:CONS-CASSPE` | `QP_Ricorsi` | Test reale 2 giugno 2026: `12756/2026`, `NRGREALE=202601275600`, 1 fascicolo restituito. |
+| Richieste copie | richieste copie | proxy registro, es. `GLRM/JPW_SICID` | `urn:RichiestaCopie-consultazioni-distr` | `RicercaRichieste`, `ProfiloRichiesta` | Test live read-only 2 giugno 2026: `RicercaRichieste` ha risposto SOAP 200 con `available=0`; nessun invio automatico. |
 
 ## Vincoli di non regressione
 

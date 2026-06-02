@@ -52,6 +52,7 @@ export type FeatureFlagKey =
   | 'routes.appV2.settings.notifications'
   | 'routes.appV2.settings.backup'
   | 'routes.appV2.settings.calendarSync'
+  | 'routes.appV2.settings.sdi'
   | 'routes.appV2.billing.invoices'
   | 'routes.appV2.billing.payments'
   | 'routes.appV2.billing.quotes'
@@ -150,6 +151,7 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/(?:admin\/database|database)(?:\/|$)/, 'routes.appV2.admin.database'],
   [/^\/(?:privacy\/registro|registro-gdpr)(?:\/|$)/, 'routes.appV2.admin.privacyRegistry'],
   [/^\/impostazioni\/pagamenti(?:\/|$)/, 'routes.appV2.settings.payments'],
+  [/^\/(?:impostazioni\/sdi|impostazioni\/canali-sdi)(?:\/|$)/, 'routes.appV2.settings.sdi'],
   [/^\/(?:notifiche|notifiche-whatsapp)(?:\/|$)/, 'routes.appV2.settings.notifications'],
   [/^\/backup(?:\/|$)/, 'routes.appV2.settings.backup'],
   [/^\/(?:impostazioni\/calendario|sincronizzazione-calendari)(?:\/|$)/, 'routes.appV2.settings.calendarSync'],

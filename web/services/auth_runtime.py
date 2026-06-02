@@ -44,6 +44,7 @@ def register_auth_runtime(
         "polis_local_signer_requirements_download",
         "polis_local_signer_mod_download",
         "polis_local_signer_download_uffici",
+        "polis_local_signer_download_uffici_pst_pubblici",
         "polis_local_signer_installa",
         "polis_local_signer_setup_windows",
         "polis_local_signer_setup_windows_exe",

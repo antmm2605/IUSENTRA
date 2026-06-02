@@ -163,6 +163,17 @@ class Parcella:
     studio_cf:         str = ""
     studio_indirizzo:  str = ""
     studio_iban:       str = ""
+
+    # Tracciamento FatturaPA / Sistema di Interscambio.
+    # L'invio automatico richiede canale SdI accreditato o intermediario esterno.
+    sdi_identificativo: str = ""
+    sdi_stato:          str = ""
+    sdi_canale:         str = ""
+    sdi_data_invio:     str = ""
+    sdi_data_esito:     str = ""
+    sdi_ricevuta:       str = ""
+    sdi_note:           str = ""
+
     dati_personalizzati: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -413,6 +424,13 @@ class GestioneFatturazione:
              studio_cf:       str = "",
              studio_indirizzo: str = "",
              studio_iban:     str = "",
+             sdi_identificativo: str = "",
+             sdi_stato:       str = "",
+             sdi_canale:      str = "",
+             sdi_data_invio:  str = "",
+             sdi_data_esito:  str = "",
+             sdi_ricevuta:    str = "",
+             sdi_note:        str = "",
              metodo_pagamento: str = "",
              dati_personalizzati: Optional[Dict[str, Any]] = None) -> Parcella:
         oggi = date.today().isoformat()
@@ -460,6 +478,13 @@ class GestioneFatturazione:
             studio_cf=studio_cf,
             studio_indirizzo=studio_indirizzo,
             studio_iban=studio_iban,
+            sdi_identificativo=sdi_identificativo,
+            sdi_stato=sdi_stato,
+            sdi_canale=sdi_canale,
+            sdi_data_invio=sdi_data_invio,
+            sdi_data_esito=sdi_data_esito,
+            sdi_ricevuta=sdi_ricevuta,
+            sdi_note=sdi_note,
             dati_personalizzati=dict(dati_personalizzati or {}),
         )
         self._parcelle[p.id] = p

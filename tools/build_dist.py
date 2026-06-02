@@ -40,6 +40,7 @@ LEX_CONTEXT_PY = TOOLS_DIR / "lex_document_context.py"
 REQS_TXT       = TOOLS_DIR / "requirements_local_signer.txt"
 INSTALL_PS1    = TOOLS_DIR / "installa_local_signer_locale.ps1"
 UFFICI_JSON    = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
+UFFICI_PST_PUBBLICI_JSON = REPO_DIR / "pct" / "data" / "uffici_pst_pubblici.json"
 LOCAL_SIGNER_MOD_DIR = REPO_DIR / "local_signer_mod"
 VISIBLE_SIGNATURE_PY = REPO_DIR / "visible_signature.py"
 IEXPRESS_STUB  = TOOLS_DIR / "iexpress_stub.bin"
@@ -312,6 +313,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$DATA_DIR/uffici_pst_pubblici.json"
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
@@ -387,6 +389,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$DATA_DIR/uffici_pst_pubblici.json"
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
@@ -452,6 +455,7 @@ def write_windows_support_files(dist_dir: Path) -> list[Path]:
         (VISIBLE_SIGNATURE_PY, "visible_signature.py"),
         (REQS_TXT, "requirements_local_signer.txt"),
         (UFFICI_JSON, "uffici_ministero.json"),
+        (UFFICI_PST_PUBBLICI_JSON, "uffici_pst_pubblici.json"),
     ):
         target = dist_dir / target_name
         shutil.copyfile(source, target)

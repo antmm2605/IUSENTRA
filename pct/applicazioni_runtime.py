@@ -91,8 +91,27 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "label": "Anticipazione forfettaria",
                 "type": "select",
                 "options": [
-                    {"value": "1", "label": "Si"},
+                    {"value": "1", "label": "Sì"},
                     {"value": "0", "label": "No"},
+                ],
+            },
+            {"name": "cu_numero_parti_ricorrenti", "label": "Parti ricorrenti", "type": "number", "step": "1", "min": "1"},
+            {
+                "name": "cu_sezione_specializzata_impresa",
+                "label": "Sezione impresa",
+                "type": "select",
+                "options": [
+                    {"value": "0", "label": "No"},
+                    {"value": "1", "label": "Sì"},
+                ],
+            },
+            {
+                "name": "cu_dati_obbligatori_mancanti",
+                "label": "Dati obbligatori mancanti",
+                "type": "select",
+                "options": [
+                    {"value": "0", "label": "No"},
+                    {"value": "1", "label": "Sì"},
                 ],
             },
         ],
@@ -185,7 +204,7 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "fields": [
             {
                 "name": "ctu_modalita",
-                "label": "Modalita",
+                "label": "Modalità",
                 "type": "select",
                 "options": [
                     {"value": "vacazioni", "label": "Vacazioni"},
@@ -338,23 +357,23 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
     },
     "onorari_forensi": {
         "title": "Onorari forensi",
-        "subtitle": "Parametri DM 55/2014 con materia, grado, fasi e complessita.",
+        "subtitle": "Parametri DM 55/2014 con materia, grado, fasi e complessità.",
         "submit_label": "Calcola onorari",
         "method": "calcola_onorari_forensi",
         "fields": [
             {"name": "onorari_materia", "label": "Materia", "type": "select", "options": "onorari_materie"},
             {"name": "onorari_grado", "label": "Grado", "type": "select", "options": "onorari_gradi"},
             {"name": "onorari_valore", "label": "Valore", "type": "number", "step": "0.01", "min": "0"},
-            {"name": "onorari_complessita", "label": "Complessita", "type": "select", "options": "onorari_complessita"},
+            {"name": "onorari_complessita", "label": "Complessità", "type": "select", "options": "onorari_complessita"},
             {
                 "name": "onorari_bonus_telematico",
                 "label": "Bonus telematico",
                 "type": "select",
                 "options": [
-                    {"value": "0", "label": "No"},
-                    {"value": "1", "label": "Si"},
-                ],
-            },
+                      {"value": "0", "label": "No"},
+                      {"value": "1", "label": "Sì"},
+                  ],
+              },
             {
                 "name": "onorari_includi_spese_generali",
                 "label": "Spese generali",
@@ -362,11 +381,47 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "options": [
                     {"value": "1", "label": "Includi"},
                     {"value": "0", "label": "Escludi"},
-                ],
-            },
-            {"name": "onorari_fasi", "label": "Fasi", "type": "multiselect", "options": "onorari_fasi"},
-        ],
-    },
+                  ],
+              },
+              {
+                  "name": "onorari_cliente_qualificato",
+                  "label": "Cliente soggetto a equo compenso",
+                  "type": "select",
+                  "options": [
+                      {"value": "0", "label": "No"},
+                      {"value": "1", "label": "Sì"},
+                  ],
+              },
+              {
+                  "name": "onorari_convenzione_predisposta_avvocato",
+                  "label": "Accordo predisposto dallo studio",
+                  "type": "select",
+                  "options": [
+                      {"value": "0", "label": "No"},
+                      {"value": "1", "label": "Sì"},
+                  ],
+              },
+              {
+                  "name": "onorari_equo_compenso_verificato",
+                  "label": "Equo compenso verificato",
+                  "type": "select",
+                  "options": [
+                      {"value": "0", "label": "No"},
+                      {"value": "1", "label": "Sì"},
+                  ],
+              },
+              {
+                  "name": "onorari_informativa_scritta",
+                  "label": "Informativa scritta",
+                  "type": "select",
+                  "options": [
+                      {"value": "0", "label": "No"},
+                      {"value": "1", "label": "Sì"},
+                  ],
+              },
+              {"name": "onorari_fasi", "label": "Fasi", "type": "multiselect", "options": "onorari_fasi"},
+          ],
+      },
     "custodia_cautelare": {
         "title": "Custodia cautelare",
         "subtitle": "Timeline di interrogatorio, riesame, decisione e deposito motivi.",
@@ -403,7 +458,7 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "type": "select",
                 "options": [
                     {"value": "0", "label": "No"},
-                    {"value": "1", "label": "Si"},
+                    {"value": "1", "label": "Sì"},
                 ],
             },
             {"name": "presc_coeff_interruzione", "label": "Coefficiente interruzione", "type": "number", "step": "0.01", "min": "1"},
@@ -592,6 +647,18 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
             _metric("Anticipazione", f"EUR {_fmt_money(result.get('anticipazione_forfettaria'))}"),
             _metric("Totale", f"EUR {_fmt_money(result.get('totale'))}"),
         ]
+        regole = list(result.get("regole_applicate") or [])
+        if regole:
+            tables.append(
+                {
+                    "title": "Regole applicate",
+                    "headers": ["Regola", "Fattore"],
+                    "rows": [
+                        [str(row.get("label") or row.get("code") or ""), str(row.get("factor") or "")]
+                        for row in regole
+                    ],
+                }
+            )
     elif tool_id == "interessi":
         metrics = [
             _metric("Regime", str(result.get("label") or ""), f"{result.get('covered_days', 0)} giorni coperti"),
@@ -640,7 +707,7 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
         ]
     elif tool_id == "ctu":
         metrics = [
-            _metric("Modalita", str(result.get("modalita_label") or "")),
+            _metric("Modalità", str(result.get("modalita_label") or "")),
             _metric("Onorario base", f"EUR {_fmt_money(result.get('onorario_base'))}"),
             _metric("Spese", f"EUR {_fmt_money(result.get('spese'))}"),
             _metric("Totale", f"EUR {_fmt_money(result.get('totale'))}"),
@@ -730,6 +797,22 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                 ],
             }
         )
+        presidi = list(result.get("presidi_deontologici") or [])
+        if presidi:
+            tables.append(
+                {
+                    "title": "Presidi deontologici",
+                    "headers": ["Presidio", "Stato", "Fonte"],
+                    "rows": [
+                        [
+                            str(row.get("label") or ""),
+                            str(row.get("status") or ""),
+                            str(row.get("source") or ""),
+                        ]
+                        for row in presidi
+                    ],
+                }
+            )
     elif tool_id == "custodia_cautelare":
         metrics = [
             _metric("Misura", str(result.get("tipo_misura_label") or "")),

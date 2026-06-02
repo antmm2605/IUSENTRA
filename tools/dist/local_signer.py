@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.67
+IUSENTRA Local Signer - v1.6.68
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.67"
+VERSION = "1.6.68"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -296,6 +296,7 @@ _PST_QBUILDER_NAMESPACES = {
     "JPW_SIGP": "urn:CONS-SIGP-BE",
     "JPW_CASSCI": "urn:CONS-CASSCI",
     "JPW_CASSPE": "urn:CONS-CASSPE",
+    "JPW_UNEP": "urn:CONS-UNEP",
 }
 _PST_QBUILDER_TIPO_RICERCA = {
     "JPW_SICID": "RGN",
@@ -395,6 +396,24 @@ _PST_TABELLE_MINISTERIALI_POLICY = {
         "x_wasp_user": True,
     },
 }
+
+_PST_RICHIESTE_COPIE_QBUILDER_NAMESPACE = "urn:RichiestaCopie-consultazioni-distr"
+_PST_RICHIESTE_COPIE_WSDL_NAMESPACE = "urn:RichiestaCopie"
+_PST_RICHIESTE_COPIE_OPERATIONS = (
+    "invioRichiesta",
+    "estremiPagamento",
+    "richiestaDocumentazioneFascicolo",
+)
+_PST_RICHIESTE_COPIE_QBUILDER_SERVICES = (
+    "RicercaRichieste",
+    "ProfiloRichiesta",
+)
+_PST_RICHIESTE_COPIE_QBUILDER_CLASSES = (
+    "RichiestaCopia",
+    "RichiestaCopiaExt",
+    "ProfiloRichiestaCopia",
+    "riepilogoRichieste",
+)
 _PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
 _PDP_OFFICIAL_BROWSER_URL = "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
 _WSDL_RICERCA_PENALE = f"{_PDP_BASE}/RicercaFascicoliPenaleService?wsdl"
@@ -454,6 +473,7 @@ _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
 _uffici_snapshot_cache: Optional[dict[str, dict]] = None
 _uffici_hacs_cache: Optional[list[dict[str, Any]]] = None
+_uffici_pst_pubblici_cache: Optional[dict[str, list[dict[str, Any]]]] = None
 _pin_session_cache: dict[str, dict] = {}
 _pin_session_lock = threading.Lock()
 _pst_session_cache: dict[str, dict] = {}
@@ -650,6 +670,13 @@ def _normalizza_testo_ufficio(valore: str) -> str:
     return "".join(ch for ch in base if not unicodedata.combining(ch)).replace("-", " ")
 
 
+def _normalizza_catalogo_ufficio_pst(valore: str) -> str:
+    text = _normalizza_testo_ufficio(valore).replace("d'", " ")
+    tokens = re.findall(r"[a-z0-9]+", text)
+    skip = {"di", "de", "del", "della", "dello", "dei", "degli", "delle", "il", "lo", "la", "l"}
+    return "".join(token for token in tokens if token not in skip)
+
+
 def _risolvi_ufficio_da_snapshot(codice_o_nome: str) -> Optional[dict]:
     chiave = (codice_o_nome or "").strip()
     if not chiave:
@@ -777,6 +804,89 @@ def _risolvi_ufficio_hacs_bundle(
     return best_partial
 
 
+def _carica_uffici_pst_pubblici() -> dict[str, list[dict[str, Any]]]:
+    global _uffici_pst_pubblici_cache
+    if _uffici_pst_pubblici_cache is not None:
+        return _uffici_pst_pubblici_cache
+
+    paths = [
+        _THIS_DIR / "data" / "uffici_pst_pubblici.json",
+        _THIS_DIR / "uffici_pst_pubblici.json",
+        _REPO_ROOT / "pct" / "data" / "uffici_pst_pubblici.json",
+    ]
+    for path in paths:
+        try:
+            if not path.exists():
+                continue
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            uffici = raw.get("uffici") if isinstance(raw, dict) else {}
+            if isinstance(uffici, dict):
+                result = {
+                    "civili": [row for row in uffici.get("civili", []) if isinstance(row, dict)],
+                    "penali": [row for row in uffici.get("penali", []) if isinstance(row, dict)],
+                }
+                _uffici_pst_pubblici_cache = result
+                return result
+        except Exception as exc:
+            log.warning("Catalogo pubblico PST non caricato da %s: %s", path, exc)
+    _uffici_pst_pubblici_cache = {"civili": [], "penali": []}
+    return _uffici_pst_pubblici_cache
+
+
+def _risolvi_ufficio_pst_pubblico(valore: str, *, sezione: str) -> Optional[dict[str, Any]]:
+    chiave = (valore or "").strip()
+    if not chiave:
+        return None
+    rows = _carica_uffici_pst_pubblici().get(sezione, [])
+    if not rows:
+        return None
+
+    chiave_norm = _normalizza_testo_ufficio(chiave)
+    chiave_catalogo = _normalizza_catalogo_ufficio_pst(chiave)
+    chiave_non_operativa = bool(
+        re.search(
+            r"(?i)\b(non\s+attiv[oa]?|ex\s+giud|ex\s+sd|ante\s+\d{2}-\d{2}-\d{4}|model office|formazione)\b",
+            chiave,
+        )
+    )
+    best_partial: Optional[dict[str, Any]] = None
+    for row in rows:
+        codice = str(row.get("codice_ufficio") or "").strip()
+        descrizione = str(row.get("descrizione") or "").strip()
+        deposito_prudenziale = row.get("deposito_prudenziale")
+        non_operativo = deposito_prudenziale is False or bool(
+            re.search(
+                r"(?i)\b(non\s+attiv[oa]?|ex\s+giud|ex\s+sd|ante\s+\d{2}-\d{2}-\d{4}|model office|formazione)\b",
+                descrizione,
+            )
+        )
+        if codice and codice == chiave:
+            return row
+        if chiave_non_operativa:
+            continue
+        descrizione_norm = _normalizza_testo_ufficio(descrizione)
+        descrizione_catalogo = _normalizza_catalogo_ufficio_pst(descrizione)
+        if chiave_norm and descrizione_norm == chiave_norm:
+            if non_operativo:
+                continue
+            return row
+        if chiave_catalogo and descrizione_catalogo == chiave_catalogo:
+            if non_operativo:
+                continue
+            return row
+        if chiave_norm and (
+            chiave_norm in descrizione_norm or descrizione_norm in chiave_norm
+        ):
+            if not non_operativo:
+                best_partial = best_partial or row
+        if chiave_catalogo and (
+            chiave_catalogo in descrizione_catalogo or descrizione_catalogo in chiave_catalogo
+        ):
+            if not non_operativo:
+                best_partial = best_partial or row
+    return best_partial
+
+
 def _looks_like_pat_code(valore: str) -> bool:
     text = (valore or "").strip().upper()
     return bool(text) and (
@@ -798,6 +908,12 @@ def _risolvi_codice_ufficio_pdp_runtime(valore: str) -> str:
         return ""
     if text.isdigit():
         return text
+
+    ufficio_penale = _risolvi_ufficio_pst_pubblico(text, sezione="penali")
+    if ufficio_penale:
+        codice_penale = str(ufficio_penale.get("codice_ufficio") or "").strip()
+        if codice_penale:
+            return codice_penale
 
     ufficio = _risolvi_ufficio_da_snapshot(text) or _risolvi_ufficio_hacs_bundle(
         text,
@@ -3031,6 +3147,26 @@ def _pst_servizio_siecic(base_url: str) -> bool:
     return _pst_servizio_proxy(base_url) == "JPW_SIECIC"
 
 
+def _pst_servizio_cassazione_civile(base_url: str) -> bool:
+    return _pst_servizio_proxy(base_url) == "JPW_CASSCI"
+
+
+def _pst_servizio_cassazione_penale(base_url: str) -> bool:
+    return _pst_servizio_proxy(base_url) == "JPW_CASSPE"
+
+
+def _pst_servizio_cassazione(base_url: str) -> bool:
+    return _pst_servizio_cassazione_civile(base_url) or _pst_servizio_cassazione_penale(base_url)
+
+
+def _pst_servizio_ricorsi_cassazione(base_url: str) -> str:
+    if _pst_servizio_cassazione_penale(base_url):
+        return "QP_Ricorsi"
+    if _pst_servizio_cassazione_civile(base_url):
+        return "QC_Ricorsi"
+    return ""
+
+
 def _pst_servizio_sicid_family(base_url: str) -> bool:
     return _pst_servizio_proxy(base_url) in _PST_SICID_FAMILY_SERVIZI
 
@@ -3042,6 +3178,36 @@ def _pst_tipo_ricerca_qbuilder(base_url: str) -> str:
 
 def _pst_subpro_sigp(sub_procedimento: str = "") -> str:
     return (sub_procedimento or "").strip()
+
+
+def _pst_id_ruolo_jpw_da_payload(*payloads: Any) -> str:
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        for key in ("id_ruolo_jpw", "idRuoloJPW", "id_ruolo_pst", "ruolo_jpw", "ruoloMinisteriale"):
+            value = str(payload.get(key) or "").strip()
+            if value:
+                return value
+    return ""
+
+
+def _pst_values_con_id_ruolo_jpw(values: list[tuple[str, str, str]], id_ruolo_jpw: str = "") -> list[tuple[str, str, str]]:
+    id_ruolo = str(id_ruolo_jpw or "").strip()
+    if id_ruolo:
+        return [*values, ("idRuoloJPW", "string", id_ruolo)]
+    return values
+
+
+def _pst_messaggio_fault_operativo(base_url: str, errore: str) -> str:
+    testo = str(errore or "")
+    if _pst_servizio_siecic(base_url) and "idRuoloJPW" in testo:
+        return (
+            "La tabella SIECIC è raggiungibile, ma il PST richiede il ruolo ministeriale "
+            "idRuoloJPW dell'incarico autorizzato. Selezionare il ruolo/incarico SIECIC "
+            "dal flusso ufficiale o ripetere la lettura passando il ruolo restituito dal portale; "
+            "IUSENTRA non trasforma questa risposta in dati presunti."
+        )
+    return testo
 
 
 def _sigp_info_fascicolo_url(
@@ -3329,7 +3495,7 @@ def _messaggio_dns_endpoint_portale(url: str) -> str:
     if "pac.giustizia-amministrativa.it" in host:
         return (
             "Il PC non riesce a risolvere pac.giustizia-amministrativa.it (PAT).\n"
-            "Verificare accesso e DNS del Portale Avvocato ufficiale https://www.giustizia-amministrativa.it/portale-avvocato.\n"
+            "Verificare accesso e DNS del Portale Avvocato ufficiale https://pe.prod.cloud.giustizia-amministrativa.it.\n"
             "Se l'endpoint servizi e' stato aggiornato, impostare PCT_PAT_BASE_URL."
         )
     if "www.ptt.mef.gov.it" in host:
@@ -3356,7 +3522,7 @@ def _portale_browser_url(portale: str) -> str:
     if portale_norm == "pdp":
         return _PDP_OFFICIAL_BROWSER_URL
     if portale_norm == "pat":
-        return "https://www.giustizia-amministrativa.it/portale-avvocato"
+        return "https://pe.prod.cloud.giustizia-amministrativa.it"
     if portale_norm == "ptt":
         return "https://sigit.giustiziatributaria.gov.it/Sigit/index.do"
     return ""
@@ -5474,6 +5640,37 @@ def _soap_qbuilder_execute_body(
     return _soap_qbuilder_envelope(namespace, body_inner, role=role, group=group)
 
 
+def _pst_richieste_copie_policy() -> dict:
+    return {
+        "qbuilder_namespace": _PST_RICHIESTE_COPIE_QBUILDER_NAMESPACE,
+        "wsdl_namespace": _PST_RICHIESTE_COPIE_WSDL_NAMESPACE,
+        "qbuilder_services": list(_PST_RICHIESTE_COPIE_QBUILDER_SERVICES),
+        "qbuilder_classes": list(_PST_RICHIESTE_COPIE_QBUILDER_CLASSES),
+        "operations": list(_PST_RICHIESTE_COPIE_OPERATIONS),
+        "mode": "consultazione_read_only",
+    }
+
+
+def _soap_richieste_copie_qbuilder_body(
+    service_name: str,
+    values: list[tuple[str, str, str]],
+    *,
+    codice_ufficio: str = "",
+) -> str:
+    service = str(service_name or "").strip()
+    if service not in _PST_RICHIESTE_COPIE_QBUILDER_SERVICES:
+        raise RuntimeError("Servizio richieste copie non presente nel catalogo ministeriale locale.")
+    group = str(codice_ufficio or "PST").strip()
+    return _soap_qbuilder_execute_body(
+        _PST_RICHIESTE_COPIE_QBUILDER_NAMESPACE,
+        service,
+        values,
+        role="AVV",
+        group=group,
+        empty_order=True,
+    )
+
+
 def _parte_ricerca_qbuilder(nome_parte: Optional[str], cf_parte: Optional[str]) -> str:
     testo = " ".join((nome_parte or "").split()).strip()
     if testo:
@@ -5482,26 +5679,68 @@ def _parte_ricerca_qbuilder(nome_parte: Optional[str], cf_parte: Optional[str]) 
     return cf_clean[:6] if cf_clean else ""
 
 
+def _numero_anno_ricorso_cassazione(valore: str) -> tuple[str, int]:
+    testo = str(valore or "").strip()
+    if not testo:
+        return "", 0
+    match = re.search(r"(\d{1,8})\s*/\s*(\d{4})", testo)
+    if match:
+        return _qbuilder_numero_rg(match.group(1)), int(match.group(2))
+    digits = re.sub(r"\D+", "", testo)
+    if len(digits) >= 10:
+        anno = int(digits[:4])
+        numero = _qbuilder_numero_rg(digits[4:10])
+        if 1900 <= anno <= 2100 and numero:
+            return numero, anno
+    return "", 0
+
+
+def _nrg_reale_cassazione(numero_rg: Optional[str], anno_rg: Optional[int]) -> str:
+    numero_da_testo, anno_da_testo = _numero_anno_ricorso_cassazione(str(numero_rg or ""))
+    anno = int(anno_rg or anno_da_testo or 0)
+    numero_raw = numero_da_testo or str(numero_rg or "").strip()
+    digits = re.sub(r"\D+", "", numero_raw)
+    if not digits:
+        return ""
+    if anno and len(digits) >= 10 and digits.startswith(str(anno)):
+        return digits
+    if not anno:
+        return digits
+    return f"{anno:04d}{int(digits):06d}00"
+
+
 def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: Optional[str] = None,
                                   anno_rg: Optional[int] = None,
                                   nome_parte: Optional[str] = None,
                                   cf_parte: Optional[str] = None,
                                   cf_avvocato: str = "",
-                                  sub_procedimento: str = "") -> str:
+                                  sub_procedimento: str = "",
+                                  id_ruolo_jpw: str = "") -> str:
     """Costruisce il body SOAP per RicercaFascicoliRegistro o qbuilder SICID."""
     namespace = _pst_namespace_qbuilder(base_url)
     if namespace:
         if numero_rg and anno_rg:
             numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+            if _pst_servizio_cassazione(base_url):
+                nrg_reale = _nrg_reale_cassazione(numero_rg, anno_rg)
+                values = [("NRGREALE", "string", nrg_reale)] if nrg_reale else [("NRG", "string", numero_value)]
+                return _soap_qbuilder_execute_body(
+                    namespace,
+                    _pst_servizio_ricorsi_cassazione(base_url),
+                    values,
+                    role="AVV",
+                    group=codice_ufficio,
+                    empty_order=True,
+                )
             if _pst_servizio_siecic(base_url):
                 return _soap_qbuilder_execute_body(
                     namespace,
                     "InfoFascicolo",
-                    [
+                    _pst_values_con_id_ruolo_jpw([
                         ("idUfficio", "string", codice_ufficio),
                         ("numeroRuolo", "string", numero_value),
                         ("annoRuolo", "integer", str(anno_rg)),
-                    ],
+                    ], id_ruolo_jpw),
                     role="AVV",
                     group=codice_ufficio,
                     order_entries=[("annoRuolo, numeroRuolo", "asc")],
@@ -5525,14 +5764,26 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
             )
         if anno_rg and not str(numero_rg or "").strip() and not (nome_parte or cf_parte):
+            if _pst_servizio_cassazione(base_url):
+                return _soap_qbuilder_execute_body(
+                    namespace,
+                    _pst_servizio_ricorsi_cassazione(base_url),
+                    [
+                        ("DATAISCR_DA", "date", f"01/01/{int(anno_rg):04d}"),
+                        ("DATAISCR_AL", "date", f"31/12/{int(anno_rg):04d}"),
+                    ],
+                    role="AVV",
+                    group=codice_ufficio,
+                    empty_order=True,
+                )
             if _pst_servizio_siecic(base_url):
                 return _soap_qbuilder_execute_body(
                     namespace,
                     "RicercaArchivioPC",
-                    [
+                    _pst_values_con_id_ruolo_jpw([
                         ("idUfficio", "string", codice_ufficio),
                         ("annoRuolo", "integer", str(anno_rg)),
-                    ],
+                    ], id_ruolo_jpw),
                     role="AVV",
                     group=codice_ufficio,
                     order_entries=[("annoRuolo, numeroRuolo", "asc")],
@@ -5554,6 +5805,11 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
             )
         parte = _parte_ricerca_qbuilder(nome_parte, cf_parte)
+        if _pst_servizio_cassazione(base_url):
+            raise RuntimeError(
+                "Per la Cassazione usare numero/anno del ricorso oppure una lettura per anno; "
+                "il catalogo ministeriale non espone la stessa ricerca per parte dei registri civili."
+            )
         if not parte:
             raise RuntimeError(
                 "Per la ricerca per parte sul registro civile indicare almeno il cognome o il nome della parte."
@@ -5605,7 +5861,8 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
 
 
 def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno_rg: int,
-                                        cf_avvocato: str = "", sub_procedimento: str = "") -> list[str]:
+                                        cf_avvocato: str = "", sub_procedimento: str = "",
+                                        id_ruolo_jpw: str = "") -> list[str]:
     """Body per la lista annuale dei fascicoli, usando i nomi ministeriali per registro."""
     namespace = _pst_namespace_qbuilder(base_url)
     if not namespace or not anno_rg:
@@ -5616,13 +5873,14 @@ def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno
                 anno_rg=anno_rg,
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=sub_procedimento,
+                id_ruolo_jpw=id_ruolo_jpw,
             )
         ]
     if _pst_servizio_siecic(base_url):
-        values = [
+        values = _pst_values_con_id_ruolo_jpw([
             ("idUfficio", "string", codice_ufficio),
             ("annoRuolo", "integer", str(anno_rg)),
-        ]
+        ], id_ruolo_jpw)
         return [
             _soap_qbuilder_execute_body(
                 namespace,
@@ -5648,12 +5906,14 @@ def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno
             anno_rg=anno_rg,
             cf_avvocato=cf_avvocato,
             sub_procedimento=sub_procedimento,
+            id_ruolo_jpw=id_ruolo_jpw,
         )
     ]
 
 
 def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
-                          anno_rg: int, cf_avvocato: str = "", sub_procedimento: str = "") -> str:
+                          anno_rg: int, cf_avvocato: str = "", sub_procedimento: str = "",
+                          id_ruolo_jpw: str = "") -> str:
     """Costruisce il body SOAP per ConsultazioneAvanzataDocumenti o qbuilder SICID."""
     namespace = _pst_namespace_qbuilder(base_url)
     if namespace:
@@ -5662,11 +5922,11 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
             return _soap_qbuilder_execute_body(
                 namespace,
                 "ElencoDocumenti",
-                [
+                _pst_values_con_id_ruolo_jpw([
                     ("idUfficio", "string", codice_ufficio),
                     ("numeroRuolo", "string", numero_value),
                     ("annoRuolo", "integer", str(anno_rg)),
-                ],
+                ], id_ruolo_jpw),
                 role="AVV",
                 group=codice_ufficio,
                 order_entries=[("dataDeposito", "desc")],
@@ -5723,18 +5983,19 @@ def _soap_sigp_ricerca_atti_body(codice_ufficio: str, numero_rg: str, anno_rg: i
 
 
 def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: str,
-                                 anno_rg: int, sub_procedimento: str = "") -> str:
+                                 anno_rg: int, sub_procedimento: str = "",
+                                 id_ruolo_jpw: str = "") -> str:
     namespace = _pst_namespace_qbuilder(base_url)
     if not namespace:
         return ""
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
     if _pst_servizio_siecic(base_url):
-        values = [
+        values = _pst_values_con_id_ruolo_jpw([
             ("idUfficio", "string", codice_ufficio),
             ("numeroRuolo", "string", numero_value),
             ("annoRuolo", "integer", str(anno_rg)),
             ("scadTermini", "boolean", "false"),
-        ]
+        ], id_ruolo_jpw)
     else:
         values = [
             ("idUfficio", "string", codice_ufficio),
@@ -5895,6 +6156,8 @@ def _qbuilder_parti_dettaglio(row: dict) -> list[dict]:
         for tipo, valore in (
             ("Debitore", _qbuilder_value(row, "DEBITORE", "debitore", "DEBITORI", "debitori")),
             ("Creditore", _qbuilder_value(row, "CREDITORI", "creditori", "CREDITORE", "creditore")),
+            ("Parte", _qbuilder_value(row, "PARTI", "parti", "PARTE", "parte", "NOMINATIVO", "nominativo")),
+            ("Ricorrente", _qbuilder_value(row, "RICORRENTE", "ricorrente")),
         ):
             for nome in [chunk.strip() for chunk in re.split(r"[;\n|]+", valore or "") if chunk.strip()]:
                 dettaglio.append({"nome": nome, "tipo": tipo, "codice_fiscale": "", "avvocato": "", "cf_avvocato": ""})
@@ -5983,20 +6246,103 @@ def _qbuilder_numeri_campione(row: dict) -> list[dict]:
     return numeri
 
 
+def _qbuilder_numero_anno_ricorso_cassazione(row: dict) -> tuple[str, int]:
+    for value in (
+        _qbuilder_value(row, "NUMERORICORSO", "numeroRicorso"),
+        _qbuilder_value(row, "NRGTEXT", "nrgText"),
+        _qbuilder_value(row, "NRG"),
+    ):
+        numero, anno = _numero_anno_ricorso_cassazione(value)
+        if numero and anno:
+            return numero, anno
+    return "", 0
+
+
+def _qbuilder_contenuti_richiesta_copia(row: dict) -> list[dict]:
+    contenuti: list[dict] = []
+    for class_name in ("SommarioContenuto", "ContenutoRichiestaCopia"):
+        for item in _qbuilder_subrows(row, class_name):
+            contenuti.append(
+                {
+                    "id_documento": _qbuilder_value(item, "IDDOCUMENTO", "idDocumento"),
+                    "id_documento_principale": _qbuilder_value(item, "IDDOCUMENTOPRINCIPALE", "idDocumentoPrincipale"),
+                    "registro": _qbuilder_value(item, "REGISTRO", "registro"),
+                    "anno": _qbuilder_value(item, "ANNO", "anno"),
+                    "numero": _qbuilder_numero_rg(_qbuilder_value(item, "NUMERO", "numero")),
+                    "sub_procedimento": _qbuilder_value(item, "SUBPROCEDIMENTO", "subProcedimento"),
+                    "tipo_documento": _qbuilder_value(item, "TIPODOCUMENTO", "tipoDocumento"),
+                    "tipo_mime": _qbuilder_value(item, "TIPOMIME", "tipoMime"),
+                    "data_documento": _normalizza_data_pst(_qbuilder_value(item, "DATADOCUMENTO", "dataDocumento")),
+                    "numero_copie": _qbuilder_value(item, "NUMEROCOPIE", "numeroCopie"),
+                    "uso_copie": _qbuilder_value(item, "USOCOPIE", "usoCopie"),
+                    "nome_file": _qbuilder_value(item, "NOMEFILE", "nomeFile"),
+                }
+            )
+    return contenuti
+
+
+def _map_qbuilder_richiesta_copia(row: dict) -> dict:
+    contenuti = _qbuilder_contenuti_richiesta_copia(row)
+    numero = _qbuilder_value(row, "NUMERORUOLO", "numeroRuolo", "NUMERO", "numero")
+    anno = _qbuilder_value(row, "ANNORUOLO", "annoRuolo", "ANNO", "anno")
+    anno_int = int(anno) if str(anno or "").strip().isdigit() else 0
+    nome_richiedente = _qbuilder_value(row, "NOMERICHIEDENTE", "nomeRichiedente")
+    cognome_richiedente = _qbuilder_value(row, "COGNOMERICHIEDENTE", "cognomeRichiedente")
+    richiedente = _qbuilder_value(row, "RICHIEDENTE", "richiedente") or " ".join(
+        chunk for chunk in (nome_richiedente, cognome_richiedente) if chunk
+    ).strip()
+    return {
+        "id_richiesta": _qbuilder_value(row, "IDRICHIESTA", "idRichiesta"),
+        "richiedente": richiedente,
+        "id_richiedente": _qbuilder_value(row, "IDRICHIEDENTE", "idRichiedente", "CODICEFISCALE", "CodiceFiscale"),
+        "registro": _qbuilder_value(row, "REGISTRO", "registro"),
+        "numero_rg": _qbuilder_numero_rg(numero),
+        "anno_rg": anno_int,
+        "data_richiesta": _normalizza_data_pst(_qbuilder_value(row, "DATARICHIESTA", "dataRichiesta")),
+        "data_disponibilita": _normalizza_data_pst(_qbuilder_value(row, "DATADISPONIBILITA", "dataDisponibilita")),
+        "data_evasione": _normalizza_data_pst(_qbuilder_value(row, "DATAEVASIONE", "dataEvasione")),
+        "formato_copie": _qbuilder_value(row, "FORMATOCOPIE", "formatoCopie"),
+        "tipo_copie": _qbuilder_value(row, "TIPOCOPIE", "tipoCopie"),
+        "urgente": _qbuilder_value(row, "URGENTE", "urgente").lower() in {"true", "1", "si", "sì"},
+        "stato": _qbuilder_value(row, "STATO", "stato", "STATORICHIESTA", "statoRichiesta"),
+        "tipo_pagamento": _qbuilder_value(row, "TIPOPAGAMENTO", "TipoPagamento"),
+        "dettagli_pagamento": _qbuilder_value(row, "DETTAGLIPAGAMENTO", "DettagliPagamento"),
+        "importo": _qbuilder_value(row, "IMPORTO", "importo"),
+        "ufficio": _qbuilder_value(row, "UFFICIO", "ufficio"),
+        "procura": _qbuilder_value(row, "PROCURA", "procura").lower() in {"true", "1", "si", "sì"},
+        "contenuti": contenuti,
+    }
+
+
+def _parse_richieste_copie_xml(xml_str: str) -> list[dict]:
+    try:
+        xml_clean = _normalizza_xml_pst(xml_str)
+        return [_map_qbuilder_richiesta_copia(row) for row in _parse_qbuilder_row_list(xml_clean)]
+    except Exception as e:
+        log.warning("_parse_richieste_copie_xml: %s", e)
+        return []
+
+
 def _map_qbuilder_fascicolo(row: dict) -> dict:
     parti_dettaglio = _qbuilder_parti_dettaglio(row)
     codice_ufficio = _qbuilder_value(row, "IDUFFICIO", "idUfficio", "CODICEUFFICIO", "codiceUfficio", "UFFICIO")
     ufficio = _risolvi_ufficio_da_snapshot(codice_ufficio)
+    numero_cassazione, anno_cassazione = _qbuilder_numero_anno_ricorso_cassazione(row)
+    numero_ruolo = _qbuilder_numero_rg(
+        _qbuilder_value(row, "NUMERORUOLO", "numeroRuolo", "NUMERO", "numero")
+    ) or numero_cassazione
+    anno_ruolo_raw = _qbuilder_value(row, "ANNORUOLO", "annoRuolo", "ANNO", "anno")
+    anno_ruolo = int(anno_ruolo_raw or anno_cassazione or 0)
     return {
-        "id_fascicolo": _qbuilder_value(row, "IDFASCICOLO", "idFascicolo", "IDDFA", "idDfa"),
-        "numero_rg": _qbuilder_numero_rg(_qbuilder_value(row, "NUMERORUOLO", "numeroRuolo", "NUMERO", "numero")),
-        "anno_rg": int(_qbuilder_value(row, "ANNORUOLO", "annoRuolo", "ANNO", "anno") or 0),
-        "ruolo": _qbuilder_value(row, "RUOLODESCRIZIONE", "ruoloDescrizione", "DESCRRITO", "descrRito", "RUOLO", "DESCRUOLO", "RITO"),
+        "id_fascicolo": _qbuilder_value(row, "IDFASCICOLO", "idFascicolo", "IDDFA", "idDfa", "NRG"),
+        "numero_rg": numero_ruolo,
+        "anno_rg": anno_ruolo,
+        "ruolo": _qbuilder_value(row, "RUOLODESCRIZIONE", "ruoloDescrizione", "DESCRRITO", "descrRito", "RUOLO", "DESCRUOLO", "RITO", "TIPO"),
         "stato": _qbuilder_value(row, "STATOFASCICOLODESCRIZIONE", "statoFascicoloDescrizione", "STATOFASCICOLO", "DESCSTATO", "descStato", "STATO"),
-        "oggetto": _qbuilder_value(row, "OGGETTOFASCICOLO", "oggettoFascicolo", "DESCOGGETTO", "descOggetto", "OGGETTO"),
+        "oggetto": _qbuilder_value(row, "OGGETTOFASCICOLO", "oggettoFascicolo", "DESCOGGETTO", "descOggetto", "OGGETTO", "MATERIA", "AUTORITA"),
         "sezione": _qbuilder_value(row, "SEZIONE", "DESCRIZIONESEZIONE", "DESCSEZIONE", "descSezione"),
         "giudice": _qbuilder_value(row, "GIUDICE", "MAGISTRATO", "magistrato"),
-        "data_iscrizione": _normalizza_data_pst(_qbuilder_value(row, "DATAISCRIZIONERUOLO", "DATAISCRIZIONE", "DataIscrizione", "dataIscrizione")),
+        "data_iscrizione": _normalizza_data_pst(_qbuilder_value(row, "DATAISCRIZIONERUOLO", "DATAISCRIZIONE", "DataIscrizione", "dataIscrizione", "DATADEPOSITO")),
         "data_udienza": _normalizza_data_pst(_qbuilder_value(row, "DATAPROSSIMAUDIENZA", "dataProssUdienza", "DATAUDIENZA", "dataUdienza", "DATAPRIMACOMPARIZIONE", "DATAULTIMAUDIENZA", "dataUltimaUdienza")),
         "data_fallimento": _normalizza_data_pst(_qbuilder_value(row, "DATAFALLIMENTO", "dataFallimento")),
         "codice_ufficio": codice_ufficio,
@@ -6009,6 +6355,8 @@ def _map_qbuilder_fascicolo(row: dict) -> dict:
         "scadenze_termini": _qbuilder_scadenze_termini(row),
         "fascicoli_precedenti": _qbuilder_fascicoli_precedenti(row),
         "campione_civile": _qbuilder_numeri_campione(row),
+        "numero_ricorso_cassazione": _qbuilder_value(row, "NUMERORICORSO", "numeroRicorso"),
+        "nrg_reale": _qbuilder_value(row, "NRGTEXT", "nrgText"),
     }
 
 
@@ -7936,6 +8284,7 @@ def _arricchisci_fascicoli_con_profilo(
     cf_avvocato: str,
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
+    id_ruolo_jpw: str = "",
 ) -> list[dict]:
     if not _pst_namespace_qbuilder(base_url):
         return fascicoli
@@ -7949,6 +8298,7 @@ def _arricchisci_fascicoli_con_profilo(
             numero_rg=str(fascicolo.get("numero_rg") or "").strip(),
             anno_rg=int(fascicolo.get("anno_rg") or 0),
             sub_procedimento=str(fascicolo.get("sub_procedimento") or "").strip(),
+            id_ruolo_jpw=id_ruolo_jpw,
         )
         if not soap:
             continue
@@ -9254,6 +9604,7 @@ class _Handler(BaseHTTPRequestHandler):
                 and not str(data.get("cf_parte") or "").strip()
             )
             sub_procedimento = str(data.get("sub_procedimento") or data.get("subpro") or "").strip()
+            id_ruolo_jpw = _pst_id_ruolo_jpw_da_payload(data)
             if is_year_only_archive:
                 soap_bodies = _soap_ricerca_fascicoli_anno_bodies(
                     base_url=base_url,
@@ -9261,6 +9612,7 @@ class _Handler(BaseHTTPRequestHandler):
                     anno_rg=anno_value or 0,
                     cf_avvocato=cf_avvocato,
                     sub_procedimento=sub_procedimento,
+                    id_ruolo_jpw=id_ruolo_jpw,
                 )
             else:
                 soap_bodies = [
@@ -9273,6 +9625,7 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_parte=data.get("cf_parte") or None,
                         cf_avvocato=cf_avvocato,
                         sub_procedimento=sub_procedimento,
+                        id_ruolo_jpw=id_ruolo_jpw,
                     )
                 ]
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
@@ -9360,6 +9713,7 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     cookie_file=cookie_file,
                     prefer_cookie_only=prefer_cookie_only,
+                    id_ruolo_jpw=id_ruolo_jpw,
                 )
             if session_entry:
                 _update_pst_session(
@@ -9377,7 +9731,7 @@ class _Handler(BaseHTTPRequestHandler):
             })
         except Exception as e:
             log.error("Errore PST ricerca: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+            self._send_json({"ok": False, "errore": _pst_messaggio_fault_operativo(base_url, str(e))}, 500)
 
     def _pst_ricerca_snapshot(self):
         """
@@ -9471,6 +9825,7 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
 
             sub_procedimento = str(data.get("sub_procedimento") or data.get("subpro") or "").strip()
+            id_ruolo_jpw = _pst_id_ruolo_jpw_da_payload(data)
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             soap_ricerca = _soap_ricerca_fascicoli_body(
                 base_url=base_url,
@@ -9481,6 +9836,7 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_parte=data.get("cf_parte") or None,
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=sub_procedimento,
+                id_ruolo_jpw=id_ruolo_jpw,
             )
             soap_documenti = _soap_documenti_body(
                 base_url=base_url,
@@ -9489,6 +9845,7 @@ class _Handler(BaseHTTPRequestHandler):
                 anno_rg=anno_rg,
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=sub_procedimento,
+                id_ruolo_jpw=id_ruolo_jpw,
             )
             soap_profilo = _soap_profilo_fascicolo_body(
                 base_url=base_url,
@@ -9496,6 +9853,7 @@ class _Handler(BaseHTTPRequestHandler):
                 numero_rg=numero_rg,
                 anno_rg=anno_rg,
                 sub_procedimento=sub_procedimento,
+                id_ruolo_jpw=id_ruolo_jpw,
             ) if _pst_namespace_qbuilder(base_url) else ""
 
             with _pst_session_lock_for(session_entry):
@@ -9576,6 +9934,7 @@ class _Handler(BaseHTTPRequestHandler):
                             numero_rg=numero_rg,
                             anno_rg=anno_rg,
                             sub_procedimento=sub_procedimento,
+                            id_ruolo_jpw=id_ruolo_jpw,
                         )
                         fallback_info = {
                             "base_url": fallback_base_url,
@@ -9598,6 +9957,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 cf_parte=None,
                                 cf_avvocato=cf_avvocato,
                                 sub_procedimento=sub_procedimento,
+                                id_ruolo_jpw=id_ruolo_jpw,
                             ),
                             "extra_headers": fallback_extra_headers,
                             "soap_action": "",
@@ -9624,6 +9984,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 anno_rg=anno_rg,
                                 cf_avvocato=cf_avvocato,
                                 sub_procedimento=sub_procedimento,
+                                id_ruolo_jpw=id_ruolo_jpw,
                             ),
                             "extra_headers": fallback_extra_headers,
                             "soap_action": "",
@@ -10083,6 +10444,7 @@ class _Handler(BaseHTTPRequestHandler):
                 anno_rg=anno,
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=str(data.get("sub_procedimento") or data.get("subpro") or "").strip(),
+                id_ruolo_jpw=_pst_id_ruolo_jpw_da_payload(data),
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             is_sigp = _pst_servizio_sigp(base_url)
@@ -10258,6 +10620,7 @@ class _Handler(BaseHTTPRequestHandler):
                         or data.get("subpro")
                         or ""
                     ).strip(),
+                    id_ruolo_jpw=_pst_id_ruolo_jpw_da_payload(data, selection),
                 )
                 extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
                 is_sigp = _pst_servizio_sigp(base_url)

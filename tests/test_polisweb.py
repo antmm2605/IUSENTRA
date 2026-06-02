@@ -79,6 +79,7 @@ def test_polisweb_qbuilder_namespace_cassazione_alias_e_catalogo():
     assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASS") == "urn:CONS-CASSCI"
     assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI") == "urn:CONS-CASSCI"
     assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
+    assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/UNMI/JPW_UNEP") == "urn:CONS-UNEP"
 
 
 def test_polisweb_costruisce_body_qbuilder_ricerca_per_tipo():

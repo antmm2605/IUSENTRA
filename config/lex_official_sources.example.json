@@ -87,7 +87,11 @@
       "refresh": "manual",
       "base_url": "https://www.giustizia.it/",
       "topics": ["giustizia", "processo telematico"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.giustizia.it/giustizia/it/mg_form_view.page?uid=G_MAP"
+        ]
+      }
     },
     {
       "id": "pst_pct",
@@ -99,7 +103,23 @@
       "refresh": "manual",
       "base_url": "https://pst.giustizia.it/",
       "topics": ["PCT", "deposito telematico", "firma digitale"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://pst.giustizia.it/PST/it/services.page",
+          "https://pst.giustizia.it/PST/it/documentation.page",
+          "https://pst.giustizia.it/PST/it/download.page",
+          "https://pst.giustizia.it/PST/it/malfunzionamenti.page",
+          "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571",
+          "https://pst.giustizia.it/PST/it/dettaglio_schede_tematiche.page?contentId=ACC433&modelId=12",
+          "https://pst.giustizia.it/PST/resources/cms/documents/PagTel_Vademecum_unico.pdf",
+          "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3099",
+          "https://pst.giustizia.it/PST/resources/cms/documents/PDA__Flussi_pagamento_telematico_tramite_PST_vers._6.3.pdf",
+          "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3076",
+          "https://servizipst.giustizia.it/PST/it/pagopa.wp",
+          "https://servizipst.giustizia.it/PST/it/pst_2_4.wp?ufficioSelect=giudiziari&distretto=&localita=&tipoUfficio=&action%3Asearch=ricerca",
+          "https://servizipst.giustizia.it/PST/it/pst_2_4.wp?ufficioSelect=penali&distretto=&localita=&tipoUfficio=&action%3Asearch=ricerca"
+        ]
+      }
     },
     {
       "id": "pat_siga",
@@ -111,7 +131,14 @@
       "refresh": "manual",
       "base_url": "https://www.giustizia-amministrativa.it/",
       "topics": ["amministrativo", "PAT", "SIGA"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.giustizia-amministrativa.it/web/guest/portale-avvocato",
+          "https://www.giustizia-amministrativa.it/web/guest/faq-nuovo-portale",
+          "https://www.giustizia-amministrativa.it/documents/20142/0/nsiga_4464814.pdf/c42a271a-c265-a3e1-d248-59c7be3d5f58?t=1611836199000",
+          "https://pe.prod.cloud.giustizia-amministrativa.it"
+        ]
+      }
     },
     {
       "id": "ptt_sigit",
@@ -121,9 +148,19 @@
       "connector": "static_urls",
       "type": "processo_telematico",
       "refresh": "manual",
-      "base_url": "",
+      "base_url": "https://sigit.giustiziatributaria.gov.it/",
       "topics": ["tributario", "PTT", "SIGIT"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+          "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/",
+          "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/most-viewed",
+          "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3016",
+          "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3059",
+          "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/area-video",
+          "https://www.mef.gov.it/ufficio-stampa/comunicati/2019/documenti/prot._5764-19_Circolare_PTT_4-7-2019.pdf"
+        ]
+      }
     },
     {
       "id": "pdp_penale",
@@ -133,9 +170,15 @@
       "connector": "static_urls",
       "type": "processo_telematico",
       "refresh": "manual",
-      "base_url": "",
+      "base_url": "https://servizipst.giustizia.it/",
       "topics": ["penale", "PDP"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC2786",
+          "https://servizipst.giustizia.it/PST/it/pst_ar.wp",
+          "https://pst.giustizia.it/PST/it/malfunzionamenti.page"
+        ]
+      }
     },
     {
       "id": "cnf",
@@ -147,7 +190,17 @@
       "refresh": "manual",
       "base_url": "https://www.consiglionazionaleforense.it/",
       "topics": ["forense/deontologia", "compensi/parametri forensi"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.consiglionazionaleforense.it/",
+          "https://codicedeontologico-cnf.it/",
+          "https://codicedeontologico-cnf.it/nuovo-articolo-25-bis-cdf-con-tabella-di-confronto/",
+          "https://codicedeontologico-cnf.it/tag/27-ncdf/",
+          "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=26A00480&atto.dataPubblicazioneGazzetta=2026-02-05&tipoSerie=serie_generale&tipoVigenza=originario",
+          "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=25A04804&atto.dataPubblicazioneGazzetta=2025-09-01&tipoSerie=serie_generale&tipoVigenza=originario",
+          "https://www.ordineforense.re.it/wp-content/uploads/2026/04/N.-1-C-2026-Entrata-in-vigore-art.-25-bis-Codice-Deontologico-Forense.pdf"
+        ]
+      }
     },
     {
       "id": "agenzia_entrate",

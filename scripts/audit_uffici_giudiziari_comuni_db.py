@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pct.territorio_italia import DEFAULT_TERRITORIO_DB
+from pct.uffici_competenti import normalizza_codici_ufficio_telematico
 from scripts.build_uffici_giudiziari_comuni_db import DEFAULT_UFFICI_DB, REQUESTED_KINDS
 
 
@@ -17,6 +18,59 @@ def _association_source(conn: sqlite3.Connection) -> tuple[str, str]:
     if "office_json" in columns:
         return "office_associations", "office_associations"
     return "office_associations a JOIN offices o ON o.office_id = a.office_id", "o"
+
+
+def _office_json_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    tables = {str(row["name"]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()}
+    if "offices" in tables:
+        return conn.execute("SELECT office_json FROM offices ORDER BY office_id").fetchall()
+    return conn.execute("SELECT DISTINCT office_json FROM office_associations ORDER BY office_id").fetchall()
+
+
+def _audit_codici_uffici(conn: sqlite3.Connection) -> dict[str, object]:
+    rows = _office_json_rows(conn)
+    leak_samples: list[dict[str, str]] = []
+    codice_ufficio = 0
+    codice_pst = 0
+    codice_gl = 0
+    solo_istat = 0
+    for row in rows:
+        try:
+            office = normalizza_codici_ufficio_telematico(json.loads(row["office_json"]))
+        except Exception:
+            continue
+        istat = str(office.get("istatCode") or "").strip()
+        code_values = {
+            "codice": str(office.get("codice") or "").strip(),
+            "codiceMinistero": str(office.get("codiceMinistero") or "").strip(),
+            "codiceGiustiziaLocale": str(office.get("codiceGiustiziaLocale") or "").strip(),
+        }
+        if code_values["codice"]:
+            codice_ufficio += 1
+        if code_values["codiceMinistero"]:
+            codice_pst += 1
+        if code_values["codiceGiustiziaLocale"]:
+            codice_gl += 1
+        if istat and not any(code_values.values()):
+            solo_istat += 1
+        for field, value in code_values.items():
+            if istat and value == istat and len(leak_samples) < 25:
+                leak_samples.append(
+                    {
+                        "ufficio": str(office.get("name") or ""),
+                        "campo": field,
+                        "valore": value,
+                        "istat": istat,
+                    }
+                )
+    return {
+        "uffici_unici": len(rows),
+        "codici_ufficio_presenti": codice_ufficio,
+        "codici_pst_presenti": codice_pst,
+        "codici_gl_presenti": codice_gl,
+        "uffici_solo_istat_sede": solo_istat,
+        "codici_istat_promossi_a_codice": leak_samples,
+    }
 
 
 def audit(db_path: Path, territorio_db: Path) -> dict[str, object]:
@@ -65,6 +119,7 @@ def audit(db_path: Path, territorio_db: Path) -> dict[str, object]:
             LIMIT 25
             """
         ).fetchall()
+        codici_audit = _audit_codici_uffici(conn)
     finally:
         conn.close()
         territory.close()
@@ -81,6 +136,7 @@ def audit(db_path: Path, territorio_db: Path) -> dict[str, object]:
         "coverage_associazioni_pct": 0,
         "tipologie_richieste_presenti": sorted({row["kind"] for row in kind_rows if row["kind"] in REQUESTED_KINDS}),
         "missing_or_error_sample": [dict(row) for row in errors],
+        **codici_audit,
     }
     if expected:
         result["coverage_comuni_pct"] = round(result["comuni_ok"] / expected * 100, 4)
@@ -93,6 +149,7 @@ def audit(db_path: Path, territorio_db: Path) -> dict[str, object]:
         and result["coverage_associazioni_pct"] == 100.0
         and set(result["tipologie_richieste_presenti"]) == REQUESTED_KINDS
         and not result["missing_or_error_sample"]
+        and not result["codici_istat_promossi_a_codice"]
     )
     return result
 

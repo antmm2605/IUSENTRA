@@ -119,6 +119,59 @@ type Route =
   | { kind: 'signature'; id: string; documentId: string }
   | { kind: 'edit'; id: string }
 
+type ComuneOption = {
+  codiceIstat: string
+  nome: string
+  label: string
+  cap: string[]
+  siglaProvincia: string
+  provincia: string
+}
+
+const FASCICOLO_OFFICE_KIND_FILTERS = [
+  { value: '', label: 'Tutti' },
+  { value: 'giudice_pace', label: 'GDP' },
+  { value: 'tribunale', label: 'Tribunale' },
+  { value: 'unep', label: 'UNEP' },
+  { value: 'procura', label: 'Procura' },
+  { value: 'corte_appello', label: 'Corte appello' },
+  { value: 'tribunale_minorenni', label: 'Minorenni' },
+]
+
+function comuneOptionFromPayload(value: unknown): ComuneOption | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  const cap = Array.isArray(row.cap) ? row.cap.map((item) => String(item || '').trim()).filter(Boolean) : []
+  const option = {
+    codiceIstat: recordText(row, 'codiceIstat'),
+    nome: recordText(row, 'nome'),
+    label: recordText(row, 'label'),
+    cap,
+    siglaProvincia: recordText(row, 'siglaProvincia'),
+    provincia: recordText(row, 'provincia'),
+  }
+  return option.codiceIstat && option.nome ? option : null
+}
+
+function comuneOptionMatches(option: ComuneOption | null, value: string): boolean {
+  if (!option) return false
+  const query = normaliseText(value.trim())
+  return Boolean(query) && [option.nome, option.label].some((item) => normaliseText(item) === query)
+}
+
+function officeDepositoCode(office: StudioRuntimeOffice): string {
+  return office.codice
+}
+
+function officeCodeMeta(office: StudioRuntimeOffice): string {
+  return compactMeta([
+    office.codice ? `codice ufficio ${office.codice}` : '',
+    office.codiceMinistero ? `codice PST ${office.codiceMinistero}` : '',
+    office.codiceGiustiziaLocale ? `GL ${office.codiceGiustiziaLocale}` : '',
+    office.istatCode ? `ISTAT sede ${office.istatCode}` : '',
+  ])
+}
+
 const sortLabels: Record<SortKey, string> = {
   recenti: 'Aggiornati di recente',
   rg: 'Anno e numero RG',
@@ -1016,10 +1069,130 @@ function CounterpartyFields({ data, required }:{data:FascicoloFormData; required
 }
 
 function JudicialOfficeField({ data, required }:{data:FascicoloFormData; required:boolean}) {
-  const initial = getValue(data, 'court') || getValue(data, 'tribunale')
+  const initial = getValue(data, 'court') || getValue(data, 'tribunale') || data.query.ufficio_competente || ''
+  const initialComune = data.query.comune_competenza || ''
   const [officeName, setOfficeName] = useState(initial)
+  const [competenceComune, setCompetenceComune] = useState(initialComune)
+  const [selectedComune, setSelectedComune] = useState<ComuneOption | null>(null)
+  const [comuneOptions, setComuneOptions] = useState<ComuneOption[]>([])
+  const [comuneLoading, setComuneLoading] = useState(false)
+  const [officeKind, setOfficeKind] = useState('')
+  const [includeSpeciali, setIncludeSpeciali] = useState(false)
+  const [lookupLoading, setLookupLoading] = useState(false)
+  const [lookupError, setLookupError] = useState('')
+  const [lookupResult, setLookupResult] = useState<StudioRuntimeResult | null>(null)
+  const [selectedOfficialOffice, setSelectedOfficialOffice] = useState<StudioRuntimeOffice | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
   useEffect(() => setOfficeName(initial), [initial])
+  useEffect(() => setCompetenceComune(initialComune), [initialComune])
+  useEffect(() => {
+    const query = competenceComune.trim()
+    if (query.length < 2 || comuneOptionMatches(selectedComune, query)) {
+      setComuneOptions([])
+      return
+    }
+    let active = true
+    const timer = window.setTimeout(() => {
+      setComuneLoading(true)
+      fetch(`/api/v1/ui/territorio/comuni?q=${encodeURIComponent(query)}&limit=8`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then((response) => response.ok ? response.json() : { items: [] })
+        .then((payload) => {
+          if (!active) return
+          const items = Array.isArray(payload.items) ? payload.items : []
+          setComuneOptions(items.map(comuneOptionFromPayload).filter((item: ComuneOption | null): item is ComuneOption => Boolean(item)))
+        })
+        .catch(() => {
+          if (active) setComuneOptions([])
+        })
+        .finally(() => {
+          if (active) setComuneLoading(false)
+        })
+    }, 220)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [competenceComune, selectedComune])
+  useEffect(() => {
+    const query = competenceComune.trim()
+    if (query.length < 2) {
+      setLookupResult(null)
+      setLookupError('')
+      setLookupLoading(false)
+      return
+    }
+    let active = true
+    const timer = window.setTimeout(() => {
+      setLookupLoading(true)
+      setLookupError('')
+      const body = new FormData()
+      body.set('comune', query)
+      if (comuneOptionMatches(selectedComune, query) && selectedComune?.codiceIstat) {
+        body.set('comune_istat', selectedComune.codiceIstat)
+      }
+      if (includeSpeciali) body.set('includi_speciali', '1')
+      if (officeKind) body.append('tipo_ufficio', officeKind)
+      const token = csrfToken()
+      fetch('/api/v1/ui/strumenti-legali/uffici_competenti', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(token ? { 'X-CSRFToken': token } : {}),
+        },
+        body,
+      })
+        .then(async (response) => {
+          const result = normaliseStudioRuntimeResult(await response.json().catch(() => ({})))
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || 'Ricerca uffici non riuscita.')
+          }
+          return result
+        })
+        .then((result) => {
+          if (!active) return
+          setLookupResult(result)
+          setLookupError(result.offices.length ? '' : 'Nessun ufficio trovato con il filtro selezionato.')
+        })
+        .catch((requestError) => {
+          if (!active) return
+          setLookupResult(null)
+          setLookupError(requestError instanceof Error ? requestError.message : 'Ricerca uffici non riuscita.')
+        })
+        .finally(() => {
+          if (active) setLookupLoading(false)
+        })
+    }, 360)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [competenceComune, selectedComune, officeKind, includeSpeciali, refreshTick])
   const selected = data.judicialOffices.find((office) => office.value.toLocaleLowerCase() === officeName.toLocaleLowerCase())
+  const selectedOfficeCode = selectedOfficialOffice ? officeDepositoCode(selectedOfficialOffice) : selected?.code || ''
+  const selectedPstCode = selectedOfficialOffice ? selectedOfficialOffice.codiceMinistero : selected?.ministerialCode || ''
+  const selectedRequiresTelematicCheck = Boolean(
+    selectedOfficialOffice && !selectedOfficialOffice.codice && !selectedOfficialOffice.codiceMinistero,
+  )
+  const selectedHeaderMeta = selectedOfficialOffice
+    ? officeCodeMeta(selectedOfficialOffice)
+    : compactMeta([
+        selectedOfficeCode ? `codice ufficio ${selectedOfficeCode}` : '',
+        selectedPstCode ? `codice PST ${selectedPstCode}` : '',
+      ])
+  const applyOffice = (office: StudioRuntimeOffice) => {
+    setOfficeName(office.name)
+    setSelectedOfficialOffice(office)
+  }
+  const chooseComune = (option: ComuneOption) => {
+    setSelectedComune(option)
+    setCompetenceComune(option.label || option.nome)
+    setComuneOptions([])
+  }
   return (
     <div className="iu-fas-field iu-fas-field--wide iu-fas-office-field">
       <label>
@@ -1028,15 +1201,36 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
           list="fascicolo-uffici-giudiziari"
           name="tribunale"
           value={officeName}
-          onChange={(event) => setOfficeName(event.currentTarget.value)}
+          onChange={(event) => {
+            setOfficeName(event.currentTarget.value)
+            setSelectedOfficialOffice(null)
+          }}
           required={required}
           placeholder="Cerca tribunale, corte, giudice di pace, TAR..."
         />
       </label>
+      <input type="hidden" name="codice_ufficio_autorita" value={selectedOfficeCode}/>
+      <input type="hidden" name="codice_ministero_autorita" value={selectedPstCode}/>
+      <input type="hidden" name="codice_gl_autorita" value={selectedOfficialOffice?.codiceGiustiziaLocale || ''}/>
+      <input type="hidden" name="codice_istat_sede_autorita" value={selectedOfficialOffice?.istatCode || ''}/>
+      <input type="hidden" name="comune_competenza" value={competenceComune}/>
+      <input type="hidden" name="tipo_ufficio_autorita" value={selectedOfficialOffice?.kind || ''}/>
+      <input type="hidden" name="pec_ufficio_autorita" value={selectedOfficialOffice?.pec || selected?.pec || ''}/>
       <datalist id="fascicolo-uffici-giudiziari">
         {data.judicialOffices.map((office) => <option value={office.value} label={office.label} key={`${office.code}-${office.value}`}/>)}
       </datalist>
-      {selected ? (
+      {selectedOfficialOffice ? (
+        <div className="iu-fas-choice-card">
+          <Landmark size={17}/>
+          <div>
+            <strong>{selectedOfficialOffice.name}</strong>
+            <span>{compactMeta([selectedOfficialOffice.typeLabel, selectedOfficialOffice.city, selectedOfficialOffice.pec, officeCodeMeta(selectedOfficialOffice)]) || 'Ufficio applicato dalla competenza territoriale.'}</span>
+            {selectedRequiresTelematicCheck ? (
+              <em>Fonte territoriale verificata; il codice ministeriale depositabile non è esposto per questo ufficio. Prima del deposito conferma il canale sul portale ufficiale.</em>
+            ) : null}
+          </div>
+        </div>
+      ) : selected ? (
         <div className="iu-fas-choice-card">
           <Landmark size={17}/>
           <div>
@@ -1045,6 +1239,88 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
           </div>
         </div>
       ) : <small className="iu-fas-field-help">Gli uffici arrivano dal registro giudiziario IUSENTRA. Per il fascicolo veloce scegli una voce dell'elenco.</small>}
+      <section className="iu-fas-office-competence" aria-label="Uffici giudiziari per Comune">
+        <header>
+          <div>
+            <span><MapPin size={15}/> Competenza territoriale</span>
+            <strong>Uffici giudiziari per Comune</strong>
+          </div>
+          {selectedHeaderMeta ? <em>{selectedHeaderMeta}</em> : null}
+        </header>
+        <div className="iu-fas-office-competence__controls">
+          <label className="iu-fas-office-comune-field">
+            <span>Comune</span>
+            <input
+              value={competenceComune}
+              onChange={(event) => {
+                setCompetenceComune(event.currentTarget.value)
+                if (!comuneOptionMatches(selectedComune, event.currentTarget.value)) setSelectedComune(null)
+              }}
+              placeholder="Esempio: Taurianova"
+              autoComplete="off"
+            />
+            {comuneLoading ? <small>Ricerca Comune...</small> : null}
+            {comuneOptions.length ? (
+              <div className="iu-fas-comune-suggestions" role="listbox" aria-label="Comuni trovati">
+                {comuneOptions.map((option) => (
+                  <button type="button" onClick={() => chooseComune(option)} key={option.codiceIstat}>
+                    <strong>{option.label}</strong>
+                    <span>{compactMeta([option.provincia, option.cap.slice(0, 2).join(', ')])}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </label>
+          <div className="iu-fas-office-kind-filter" role="group" aria-label="Filtra per tipo ufficio">
+            {FASCICOLO_OFFICE_KIND_FILTERS.map((option) => (
+              <button
+                type="button"
+                className={officeKind === option.value ? 'is-active' : ''}
+                onClick={() => setOfficeKind(option.value)}
+                key={option.value || 'tutti'}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <label className="iu-fas-office-check">
+            <input type="checkbox" checked={includeSpeciali} onChange={(event) => setIncludeSpeciali(event.currentTarget.checked)}/>
+            <span>Anche uffici distrettuali e speciali</span>
+          </label>
+          <button className="iu-fas-office-refresh" type="button" onClick={() => setRefreshTick((value) => value + 1)} disabled={competenceComune.trim().length < 2 || lookupLoading}>
+            <Search size={15}/>{lookupLoading ? 'Verifica...' : 'Aggiorna'}
+          </button>
+        </div>
+        {lookupError ? <p className="iu-fas-office-error">{lookupError}</p> : null}
+        {lookupResult ? (
+          <div className="iu-fas-office-picker-results" aria-live="polite">
+            <div className="iu-fas-office-picker-results__summary">
+              <strong>{lookupResult.metrics.find((metric) => metric.label === 'Comune')?.value || competenceComune}</strong>
+              <span>{lookupResult.offices.length} uffici visualizzati</span>
+            </div>
+            {lookupResult.offices.map((office) => {
+              const isCurrent = office.name.toLocaleLowerCase() === officeName.toLocaleLowerCase()
+              return (
+                <article className={`iu-fas-office-pick-card ${isCurrent ? 'is-selected' : ''}`} key={office.id}>
+                  <div>
+                    <span><Landmark size={14}/>{office.typeLabel}</span>
+                    <strong>{office.name}</strong>
+                    <small>{compactMeta([office.city, office.pec, officeCodeMeta(office)]) || 'Ufficio presente nella fonte territoriale.'}</small>
+                  </div>
+                  <button type="button" onClick={() => applyOffice(office)}>
+                    <CheckCircle2 size={15}/>{isCurrent ? 'Applicato' : 'Usa nel fascicolo'}
+                  </button>
+                </article>
+              )
+            })}
+            {lookupResult.warnings.length ? <p className="iu-fas-office-warning">{lookupResult.warnings[0]}</p> : null}
+          </div>
+        ) : competenceComune.trim().length >= 2 && lookupLoading ? (
+          <p className="iu-fas-field-help">Verifica degli uffici competenti in corso...</p>
+        ) : (
+          <small className="iu-fas-field-help">Scrivi il Comune per ricevere gli uffici territorialmente competenti e applicare quello corretto al fascicolo.</small>
+        )}
+      </section>
     </div>
   )
 }

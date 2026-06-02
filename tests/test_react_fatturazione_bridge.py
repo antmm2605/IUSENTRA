@@ -126,6 +126,45 @@ def test_bridge_fatturazione_prefila_nuova_parcella_personalizzata(tmp_path):
     assert personalized["payment"]["modalita_pagamento_label"] == "Bonifico"
 
 
+def test_bridge_fatturazione_presidia_sdi_senza_falso_canale_accreditato(tmp_path):
+    cliente = _cliente()
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    parcella = manager.crea(
+        id_cliente=cliente.id,
+        voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=150.0)],
+        data_emissione="2026-06-02",
+        sdi_stato="SCARTATA",
+        sdi_identificativo="1234567890",
+        sdi_ricevuta="Ricevuta di scarto",
+        sdi_note="Correggere e ritrasmettere dal canale abilitato",
+    )
+
+    payload = build_react_fatturazione_payload(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(),
+        current_user=_User(),
+        route="/fatturazione",
+        config=_studio_config(),
+    )
+
+    record = next(item for item in payload["records"] if item["id"] == parcella.id)
+    source_ids = {source["id"] for source in payload["officialSources"]}
+    warning_codes = {warning["code"] for warning in payload["warnings"]}
+    workflow_ids = {step["id"] for step in payload["sdiWorkflow"]}
+
+    assert payload["sdiChannel"]["configured"] is False
+    assert "sdi_canale_non_configurato" in warning_codes
+    assert "fatturapa_specifiche_formato" in source_ids
+    assert "fatturapa_sdi_trasmissione" in source_ids
+    assert "agenzia_entrate_guida_fe" in source_ids
+    assert {"xml_fatturapa", "canale_accreditato", "monitoraggio_ricevute", "esito_fiscale"}.issubset(workflow_ids)
+    assert record["sdiState"] == "SCARTATA"
+    assert record["sdiStateLabel"] == "Scartata"
+    assert record["sdiStateTone"] == "danger"
+    assert "non emessa" in record["sdiStatusMessage"]
+
+
 def test_create_react_fattura_salva_snapshot_personalizzato_e_registra_audit(tmp_path):
     cliente = _cliente()
     fascicolo = _fascicolo(cliente.id)

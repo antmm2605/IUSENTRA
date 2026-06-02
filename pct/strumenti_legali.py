@@ -150,7 +150,7 @@ class GestioneStrumentiLegali:
             {"id": "danno_biologico", "title": "Danno biologico", "subtitle": "Stima operativa con IP, ITT, ITP, personalizzazione e quota morale.", "icon": "bi-heart-pulse", "categoria": "Danni"},
             {"id": "imposta_registro", "title": "Imposta di registro", "subtitle": "Atti giudiziari con minimo fisso, aliquota e quota per parte.", "icon": "bi-receipt", "categoria": "Fiscale"},
             {"id": "tfr", "title": "TFR", "subtitle": "Quota maturata, rivalutazione annuale e residuo operativo del trattamento di fine rapporto.", "icon": "bi-wallet2", "categoria": "Lavoro"},
-            {"id": "onorari_forensi", "title": "Onorari Forensi", "subtitle": "Parametri DM 55/2014 e DM 147/2022 con fasi, complessita e bonus telematico.", "icon": "bi-briefcase", "categoria": "Professione"},
+            {"id": "onorari_forensi", "title": "Onorari Forensi", "subtitle": "Parametri DM 55/2014 e DM 147/2022 con fasi, complessità e bonus telematico.", "icon": "bi-briefcase", "categoria": "Professione"},
             {"id": "custodia_cautelare", "title": "Custodia Cautelare", "subtitle": "Monitor di interrogatorio, riesame, decisione e deposito motivazione.", "icon": "bi-shield-lock", "categoria": "Penale"},
             {"id": "prescrizione_penale", "title": "Prescrizione Penale", "subtitle": "Decorrenza base, sospensioni e proiezione del termine massimo con assunzioni esplicite.", "icon": "bi-hourglass-split", "categoria": "Penale"},
             {"id": "successione_legittima", "title": "Successione Legittima", "subtitle": "Riparto quote tra coniuge, figli, ascendenti e fratelli sull'asse ereditario.", "icon": "bi-diagram-3", "categoria": "Patrimonio"},
@@ -233,6 +233,9 @@ class GestioneStrumentiLegali:
             "cu_valore_tipo": "determinato" if prefill.get("valore_causa") else "indeterminabile",
             "cu_valore": prefill.get("valore_causa", ""),
             "cu_anticipazione_forfettaria": "1",
+            "cu_sezione_specializzata_impresa": "0",
+            "cu_dati_obbligatori_mancanti": "0",
+            "cu_numero_parti_ricorrenti": "1",
             "int_tipo": "legali",
             "int_capitale": prefill.get("valore_causa", ""),
             "int_data_inizio": today,
@@ -319,6 +322,10 @@ class GestioneStrumentiLegali:
             "onorari_complessita": "media",
             "onorari_bonus_telematico": "0",
             "onorari_includi_spese_generali": "1",
+            "onorari_cliente_qualificato": "0",
+            "onorari_convenzione_predisposta_avvocato": "0",
+            "onorari_equo_compenso_verificato": "0",
+            "onorari_informativa_scritta": "0",
             # Custodia cautelare
             "custodia_tipo_misura": "carcere",
             "custodia_data_esecuzione": today,
@@ -373,9 +380,19 @@ class GestioneStrumentiLegali:
         return [
             {"value": "civile_ordinario", "label": "Civile ordinario", "needs_value": True},
             {"value": "decreto_ingiuntivo", "label": "Ricorso per decreto ingiuntivo", "needs_value": True},
+            {"value": "lavoro", "label": "Lavoro / pubblico impiego", "needs_value": True},
+            {"value": "processo_speciale_libro_iv", "label": "Procedimento speciale civile", "needs_value": True},
             {"value": "volontaria_giurisdizione", "label": "Volontaria giurisdizione", "needs_value": False},
             {"value": "separazione_consensuale", "label": "Separazione / divorzio congiunto", "needs_value": False},
+            {"value": "ricerca_beni_492bis", "label": "Ricerca beni ex art. 492-bis c.p.c.", "needs_value": False},
+            {"value": "cittadinanza_italiana", "label": "Accertamento cittadinanza italiana", "needs_value": False},
+            {"value": "esecuzione_immobiliare", "label": "Esecuzione immobiliare", "needs_value": False},
+            {"value": "altri_processi_esecutivi", "label": "Altra esecuzione", "needs_value": False},
+            {"value": "esecuzione_mobiliare_sotto_2500", "label": "Esecuzione mobiliare sotto euro 2.500", "needs_value": False},
+            {"value": "opposizione_atti_esecutivi", "label": "Opposizione agli atti esecutivi", "needs_value": False},
+            {"value": "procedura_fallimentare", "label": "Procedura fallimentare", "needs_value": False},
             {"value": "tributario", "label": "Ricorso tributario", "needs_value": True},
+            {"value": "amministrativo_accesso_soggiorno_cittadinanza", "label": "Accesso, soggiorno, cittadinanza e ottemperanza", "needs_value": False},
             {"value": "amministrativo_ordinario", "label": "Ricorso amministrativo ordinario", "needs_value": False},
             {"value": "amministrativo_rito_abbreviato", "label": "Rito abbreviato amministrativo", "needs_value": False},
             {"value": "amministrativo_appalti", "label": "Appalti pubblici (art. 119 c.p.a.)", "needs_value": True},
@@ -395,10 +412,14 @@ class GestioneStrumentiLegali:
         valore = _safe_float(payload.get("cu_valore"))
         valore_tipo = self._normalize_cu_value_mode(payload, categoria=categoria, valore=valore)
         anticipazione_forfettaria = str(payload.get("cu_anticipazione_forfettaria", "")).lower() in {"1", "true", "on", "si"}
+        sezione_impresa = _safe_bool(payload.get("cu_sezione_specializzata_impresa"))
+        dati_obbligatori_mancanti = _safe_bool(payload.get("cu_dati_obbligatori_mancanti"))
+        numero_parti_ricorrenti = max(1, _safe_int(payload.get("cu_numero_parti_ricorrenti"), 1))
 
         base = 0.0
         warnings: List[str] = []
         notes: List[str] = []
+        regole_applicate: List[Dict[str, Any]] = []
         sources = self._sources_for_codes("dpr_115_2002")
         categoria_label = next((row["label"] for row in self.opzioni_contributo_unificato() if row["value"] == categoria), categoria)
         grado_label = {
@@ -421,13 +442,47 @@ class GestioneStrumentiLegali:
         elif categoria == "decreto_ingiuntivo":
             base = round(self._contributo_civile(valore, valore_tipo=valore_tipo) / 2.0, 2)
             sources.extend(self._sources_for_codes("cu_viterbo"))
-            notes.append("Per il decreto ingiuntivo il contributo e ridotto alla meta.")
+            notes.append("Per il decreto ingiuntivo il contributo è ridotto alla metà.")
+            regole_applicate.append({"code": "riduzione_meta", "label": "Riduzione alla metà", "factor": 0.5})
+        elif categoria == "lavoro":
+            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo) / 2.0, 2)
+            sources.extend(self._sources_for_codes("cu_viterbo"))
+            notes.append("Per le controversie individuali di lavoro o pubblico impiego il contributo è ridotto alla metà, salve esenzioni reddituali o processuali.")
+            regole_applicate.append({"code": "riduzione_meta_lavoro", "label": "Riduzione lavoro alla metà", "factor": 0.5})
+        elif categoria == "processo_speciale_libro_iv":
+            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo) / 2.0, 2)
+            sources.extend(self._sources_for_codes("cu_viterbo"))
+            notes.append("Per i processi speciali del libro IV, titolo I, c.p.c. il contributo è ridotto alla metà.")
+            regole_applicate.append({"code": "riduzione_meta_speciale", "label": "Riduzione procedimento speciale alla metà", "factor": 0.5})
         elif categoria == "volontaria_giurisdizione":
             base = self.norme.contributo_speciale("volontaria_giurisdizione", valore)
             notes.append("Importo fisso per volontaria giurisdizione, salvo ipotesi speciali o esenzioni.")
         elif categoria == "separazione_consensuale":
             base = self.norme.contributo_speciale("separazione_consensuale", valore)
             notes.append("Importo fisso per separazione consensuale o scioglimento congiunto, salvo casi esenti.")
+        elif categoria == "ricerca_beni_492bis":
+            base = self.norme.contributo_speciale("ricerca_beni_492bis", valore)
+            notes.append("Importo fisso per istanza ex art. 492-bis c.p.c.; l'art. 13 esclude l'anticipazione forfettaria.")
+        elif categoria == "cittadinanza_italiana":
+            quota = self.norme.contributo_speciale("cittadinanza_italiana", valore)
+            base = round(quota * numero_parti_ricorrenti, 2)
+            notes.append("Importo dovuto per ciascuna parte ricorrente nelle controversie di accertamento della cittadinanza italiana.")
+        elif categoria == "esecuzione_immobiliare":
+            base = self.norme.contributo_speciale("esecuzione_immobiliare", valore)
+            notes.append("Importo fisso per processo di esecuzione immobiliare.")
+        elif categoria == "altri_processi_esecutivi":
+            base = self.norme.contributo_speciale("altri_processi_esecutivi", valore)
+            notes.append("Per gli altri processi esecutivi l'importo dell'esecuzione immobiliare è ridotto alla metà.")
+            regole_applicate.append({"code": "riduzione_meta_esecuzioni", "label": "Altre esecuzioni ridotte alla metà", "factor": 0.5})
+        elif categoria == "esecuzione_mobiliare_sotto_2500":
+            base = self.norme.contributo_speciale("esecuzione_mobiliare_sotto_2500", valore)
+            notes.append("Importo fisso per esecuzione mobiliare di valore inferiore a euro 2.500.")
+        elif categoria == "opposizione_atti_esecutivi":
+            base = self.norme.contributo_speciale("opposizione_atti_esecutivi", valore)
+            notes.append("Importo fisso per opposizione agli atti esecutivi.")
+        elif categoria == "procedura_fallimentare":
+            base = self.norme.contributo_speciale("procedura_fallimentare", valore)
+            notes.append("Importo fisso per procedura fallimentare dalla sentenza dichiarativa alla chiusura.")
         elif categoria == "tributario":
             base = self._contributo_tributario(valore, valore_tipo=valore_tipo)
             notes.append("Importo determinato per scaglione di valore del ricorso tributario.")
@@ -435,6 +490,10 @@ class GestioneStrumentiLegali:
                 notes.append("Applicato il contributo previsto per controversia tributaria di valore indeterminabile.")
             elif valore_tipo == "non_indicato":
                 notes.append("Applicato il contributo previsto per controversia tributaria con valore non indicato.")
+        elif categoria == "amministrativo_accesso_soggiorno_cittadinanza":
+            base = self.norme.contributo_speciale("amministrativo_accesso_soggiorno_cittadinanza", valore)
+            sources.extend(self._sources_for_codes("cu_admin"))
+            notes.append("Importo fisso per i ricorsi amministrativi indicati dall'art. 13, comma 6-bis, lettera a).")
         elif categoria == "amministrativo_ordinario":
             base = self.norme.contributo_speciale("amministrativo_ordinario", valore)
             sources.extend(self._sources_for_codes("cu_admin"))
@@ -455,31 +514,47 @@ class GestioneStrumentiLegali:
         else:
             raise ValueError("Tipologia di contributo unificato non riconosciuta.")
 
+        if sezione_impresa and categoria == "civile_ordinario":
+            base = round(base * 2.0, 2)
+            notes.append("Applicato il raddoppio per processo di competenza della sezione specializzata in materia di impresa.")
+            regole_applicate.append({"code": "sezione_impresa_x2", "label": "Sezione specializzata impresa", "factor": 2.0})
+        elif sezione_impresa:
+            warnings.append("Il raddoppio per sezione specializzata in materia di impresa è applicato automaticamente solo al civile ordinario: verificare la tipologia concreta prima del deposito.")
+
         if grado == "appello" and categoria in {
             "civile_ordinario",
             "decreto_ingiuntivo",
+            "lavoro",
+            "processo_speciale_libro_iv",
             "volontaria_giurisdizione",
             "separazione_consensuale",
             "amministrativo_ordinario",
+            "amministrativo_accesso_soggiorno_cittadinanza",
             "amministrativo_rito_abbreviato",
             "amministrativo_appalti",
             "amministrativo_ottemperanza",
         }:
             base = round(base * 1.5, 2)
             notes.append("Applicata la maggiorazione del 50% prevista per l'impugnazione.")
+            regole_applicate.append({"code": "impugnazione_50", "label": "Impugnazione +50%", "factor": 1.5})
         elif grado == "cassazione" and categoria in {
             "civile_ordinario",
             "decreto_ingiuntivo",
+            "lavoro",
+            "processo_speciale_libro_iv",
             "volontaria_giurisdizione",
             "separazione_consensuale",
         }:
             base = round(base * 2.0, 2)
-            notes.append("Applicato l'aumento del doppio previsto per il giudizio di legittimita.")
+            notes.append("Applicato l'aumento del doppio previsto per il giudizio di legittimità.")
+            regole_applicate.append({"code": "cassazione_x2", "label": "Cassazione x2", "factor": 2.0})
         elif grado == "cassazione" and categoria == "tributario":
             base = self._contributo_civile(valore, valore_tipo=valore_tipo)
             base = round(base * 2.0, 2)
             notes.append("Per la Cassazione tributaria applicata la misura prevista per il processo civile.")
+            regole_applicate.append({"code": "cassazione_tributaria_civile_x2", "label": "Cassazione tributaria x2 su misura civile", "factor": 2.0})
         elif grado == "cassazione" and categoria in {
+            "amministrativo_accesso_soggiorno_cittadinanza",
             "amministrativo_ordinario",
             "amministrativo_rito_abbreviato",
             "amministrativo_appalti",
@@ -487,8 +562,15 @@ class GestioneStrumentiLegali:
         }:
             base = round(base * 2.0, 2)
             notes.append("Applicato l'aumento del doppio previsto per il giudizio di terzo grado amministrativo.")
+            regole_applicate.append({"code": "cassazione_amministrativa_x2", "label": "Terzo grado amministrativo x2", "factor": 2.0})
         elif grado == "cassazione":
             warnings.append("Per questa tipologia il calcolo automatico della Cassazione richiede una verifica puntuale dell'atto da iscrivere.")
+
+        if dati_obbligatori_mancanti:
+            base = round(base * 1.5, 2)
+            notes.append("Applicata la maggiorazione del 50% per omessa indicazione dei dati obbligatori richiamati dall'art. 13 DPR 115/2002.")
+            warnings.append("Prima del deposito verificare PEC, recapito fax ove richiesto, codice fiscale della parte e dichiarazioni di valore: la maggiorazione segnala una criticità formale da sanare quando possibile.")
+            regole_applicate.append({"code": "dati_obbligatori_mancanti_50", "label": "Dati obbligatori mancanti +50%", "factor": 1.5})
 
         anticipazione = 27.0 if anticipazione_forfettaria and categoria in {
             "civile_ordinario",
@@ -511,9 +593,13 @@ class GestioneStrumentiLegali:
             "valore_tipo": valore_tipo,
             "valore_tipo_label": valore_tipo_label,
             "valore": valore,
+            "numero_parti_ricorrenti": numero_parti_ricorrenti,
             "base": round(base, 2),
             "anticipazione_forfettaria": anticipazione,
             "totale": totale,
+            "sezione_specializzata_impresa": sezione_impresa,
+            "dati_obbligatori_mancanti": dati_obbligatori_mancanti,
+            "regole_applicate": regole_applicate,
             "notes": notes,
             "warnings": warnings,
             "sources": list({source["url"]: source for source in sources}.values()),
@@ -822,7 +908,7 @@ class GestioneStrumentiLegali:
                 raise ValueError("Indica un onorario base per il calcolo manuale.")
             warnings.append("Compenso manuale: verifica sempre il criterio di liquidazione fissato dal giudice o dalla norma speciale.")
         else:
-            raise ValueError("Modalita CTU non riconosciuta.")
+            raise ValueError("Modalità CTU non riconosciuta.")
 
         cpa = round(onorario_base * (cpa_perc / 100.0), 2)
         iva = round((onorario_base + cpa) * (iva_perc / 100.0), 2)
@@ -1628,6 +1714,10 @@ class GestioneStrumentiLegali:
         valore = _safe_float(payload.get("onorari_valore"))
         bonus_telematico = _safe_bool(payload.get("onorari_bonus_telematico"))
         includi_spese_generali = _safe_bool(payload.get("onorari_includi_spese_generali"), True)
+        cliente_qualificato = _safe_bool(payload.get("onorari_cliente_qualificato"))
+        convenzione_predisposta_avvocato = _safe_bool(payload.get("onorari_convenzione_predisposta_avvocato"))
+        equo_compenso_verificato = _safe_bool(payload.get("onorari_equo_compenso_verificato"))
+        informativa_scritta = _safe_bool(payload.get("onorari_informativa_scritta"))
         fasi_keys = _getlist(payload, "onorari_fasi") or ["STUDIO", "INTRODUTTIVA", "ISTRUTTORIA", "DECISIONALE"]
 
         try:
@@ -1677,6 +1767,50 @@ class GestioneStrumentiLegali:
         ]
 
         note_parts = [part.strip() for part in risultato.note.split(". ") if part.strip()]
+        warnings: List[str] = []
+        presidi_deontologici: List[Dict[str, Any]] = [
+            {
+                "code": "art_27_informazione_cliente",
+                "label": "Informativa chiara al cliente",
+                "status": "da_documentare" if not informativa_scritta else "documentata",
+                "source": "Codice Deontologico Forense art. 27",
+            }
+        ]
+        if cliente_qualificato:
+            presidi_deontologici.append(
+                {
+                    "code": "art_25bis_cliente_qualificato",
+                    "label": "Cliente soggetto a equo compenso",
+                    "status": "verificato" if equo_compenso_verificato else "da_verificare",
+                    "source": "Codice Deontologico Forense art. 25-bis",
+                }
+            )
+            if not equo_compenso_verificato:
+                warnings.append(
+                    "Cliente qualificato indicato: verificare che il compenso sia giusto, equo, proporzionato e determinato secondo i parametri forensi vigenti."
+                )
+            if convenzione_predisposta_avvocato:
+                presidi_deontologici.append(
+                    {
+                        "code": "art_25bis_informativa_scritta",
+                        "label": "Avviso scritto su equo compenso",
+                        "status": "documentato" if informativa_scritta else "da_documentare",
+                        "source": "Codice Deontologico Forense art. 25-bis, comma 2",
+                    }
+                )
+                if not informativa_scritta:
+                    warnings.append(
+                        "Convenzione predisposta dall'avvocato: predisporre avviso scritto sul rispetto dei criteri di equo compenso e conservarlo nel fascicolo."
+                    )
+        else:
+            note_parts.append(
+                "Il presidio art. 25-bis CDF è stato valutato come non applicabile ai clienti diversi da banche, assicurazioni, grandi imprese, pubblica amministrazione e società a partecipazione pubblica indicate dalla norma."
+            )
+        if not informativa_scritta:
+            warnings.append(
+                "Documentare l'informativa al cliente sul costo prevedibile della prestazione e sulle principali voci economiche."
+            )
+
         return {
             "materia": materia.name,
             "materia_label": risultato.materia,
@@ -1693,14 +1827,22 @@ class GestioneStrumentiLegali:
             "riepiloghi": riepiloghi,
             "livello_suggerito": livello_suggerito,
             "riepilogo_suggerito": riepiloghi[livello_suggerito],
+            "cliente_qualificato": cliente_qualificato,
+            "convenzione_predisposta_avvocato": convenzione_predisposta_avvocato,
+            "equo_compenso_verificato": equo_compenso_verificato,
+            "informativa_scritta": informativa_scritta,
+            "presidi_deontologici": presidi_deontologici,
             "notes": note_parts,
-            "warnings": [],
+            "warnings": warnings,
             "sources": self._sources_for_codes(
                 "legge_forense_247_2012",
                 "dm_55_2014_parametri",
                 "dm_147_2022_parametri",
                 "equo_compenso_49_2023",
                 "cnf_portale",
+                "codice_deontologico_cnf",
+                "cdf_art25bis_gazzetta_2026",
+                "cdf_circolare_1c_2026",
             ),
         }
 
@@ -2064,7 +2206,7 @@ class GestioneStrumentiLegali:
             return raw_mode
         if _clean_text(payload.get("cu_valore")):
             return "determinato"
-        if categoria in {"civile_ordinario", "decreto_ingiuntivo"}:
+        if categoria in {"civile_ordinario", "decreto_ingiuntivo", "lavoro", "processo_speciale_libro_iv"}:
             return "indeterminabile"
         if categoria == "tributario":
             return "determinato" if valore > 0 else "indeterminabile"

@@ -16,6 +16,7 @@ $localSignerPy = Join-Path $toolsDir "local_signer.py"
 $visibleSignaturePy = Join-Path $repoDir "visible_signature.py"
 $localSignerModDir = Join-Path $repoDir "local_signer_mod"
 $ufficiJson = Join-Path $repoDir "pct\data\uffici_ministero.json"
+$ufficiPstPubbliciJson = Join-Path $repoDir "pct\data\uffici_pst_pubblici.json"
 $baseUrl = "https://app.iusentra.it"
 $downloadPage = "$baseUrl/impostazioni?tab=firma"
 $allowedOrigins = "$baseUrl,https://studio-legale-pct-production.up.railway.app,http://127.0.0.1:8080,http://localhost:8080"
@@ -82,6 +83,7 @@ Copy-Item (Join-Path $toolsDir "lex_document_context.py") $buildDir -Force
 Copy-Item $visibleSignaturePy $buildDir -Force
 Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $buildDir -Force
 Copy-Item $ufficiJson $buildDir -Force
+Copy-Item $ufficiPstPubbliciJson $buildDir -Force
 
 $moduleFiles = @(
     "__init__.py",
@@ -154,6 +156,7 @@ SourceFiles0=$escapedSource
 %FILE11%=
 %FILE12%=
 %FILE13%=
+%FILE14%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
@@ -162,13 +165,14 @@ FILE3=lex_document_context.py
 FILE4=visible_signature.py
 FILE5=requirements_local_signer.txt
 FILE6=uffici_ministero.json
-FILE7=local_signer_release.txt
-FILE8=local_signer_mod____init__.py
-FILE9=local_signer_mod__ai_cache.py
-FILE10=local_signer_mod__ai_handlers.py
-FILE11=local_signer_mod__pec_bridge.py
-FILE12=local_signer_mod__security.py
-FILE13=local_signer_mod__server_bootstrap.py
+FILE7=uffici_pst_pubblici.json
+FILE8=local_signer_release.txt
+FILE9=local_signer_mod____init__.py
+FILE10=local_signer_mod__ai_cache.py
+FILE11=local_signer_mod__ai_handlers.py
+FILE12=local_signer_mod__pec_bridge.py
+FILE13=local_signer_mod__security.py
+FILE14=local_signer_mod__server_bootstrap.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -215,6 +219,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$DATA_DIR/uffici_pst_pubblici.json"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
@@ -302,6 +307,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$DATA_DIR/uffici_pst_pubblici.json"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"

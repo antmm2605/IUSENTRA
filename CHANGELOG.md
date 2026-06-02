@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.249.6 - 2026-06-02
+
+- Aggiunta in `Impostazioni` la sezione React `Canali SdI` su `/impostazioni/sdi`, con configurazione del canale accreditato/intermediario, campi riservati redatti e avviso professionale quando l'invio automatico non è configurabile in modo certo.
+- Estesa `ConfigStudio` con `ConfigSDI` e sincronizzazione tenant-aware verso app runtime, mantenendo le password cifrate e non esposte nei payload UI.
+- Introdotta la tabella strutturata `settings_config` per SQLite e PostgreSQL, così tutte le sezioni di `Impostazioni` hanno specchio SQL/PostgreSQL oltre al salvataggio JSON.
+- Salvate e indicizzate fonti ufficiali GDPR, FatturaPA/SdI e Codice Deontologico Forense aggiornato al 7 aprile 2026 sotto `docs/specs/ministero/fonti_ufficiali/2026-06-02/`.
+- Rigenerato e reinstallato Local Signer `1.6.68`: `tools/dist/local_signer.py`, `SetupLocalSigner-1.6.68.exe` e alias `SetupLocalSigner.exe` sono allineati alla sorgente, e l'avvio immediato post-installazione usa `pythonw.exe` per non lasciare console o icone residue.
+- Corretto il layout delle tab di `Impostazioni`: il titolo della sezione selezionata resta sopra i campi, i pannelli non attivi restano nascosti e la pagina mostra un solo pannello per volta.
+- Verificati test mirati backend/frontend, parità storage, registry fonti, gate React, build Vite, packaging Local Signer e browser reale Docker su `127.0.0.1:8080/impostazioni/sdi`.
+
+## 2.249.5 - 2026-06-02
+
+- Integrata in `/fascicoli/nuovo` la ricerca “Uffici giudiziari per Comune” direttamente nel campo `Autorità giudiziaria`: l'utente può digitare il Comune, ricevere gli uffici territorialmente competenti e applicare al fascicolo il nome ufficiale dell'ufficio.
+- Aggiunti filtri rapidi per tipologia ufficio (`GDP`, Tribunale, `UNEP`, Procura, Corte d'Appello e Minorenni), con opzione per includere uffici distrettuali e speciali.
+- Il runtime React conserva e mostra i codici disponibili senza confonderli: codice ufficio del catalogo ministeriale, codice PST, codice Giustizia Locale e ISTAT sede restano campi separati; l'ISTAT non viene mai usato come codice di deposito e gli uffici senza codice telematico mostrano un avviso di conferma canale.
+- Coperti con test mirati il form React del nuovo fascicolo, l'endpoint `uffici_competenti` con filtro tipologia, il catalogo territorio/comuni e la ricerca uffici competenti da banca dati ministeriale locale.
+
+## 2.249.4 - 2026-06-02
+
+- Corretto il router PST/Local Signer per Cassazione civile e penale: le letture usano le tabelle ministeriali `QC_Ricorsi` e `QP_Ricorsi` con `NRGREALE`, evitando il servizio civile generico non esposto da Cassazione.
+- Verificato con lettura reale Local Signer/PST il fascicolo Cassazione penale `12756/2026`: ricerca annuale 2026 e ricerca esatta restituiscono il ricorso, sezione e data udienza senza trattarlo come civile.
+- Riconfermato con lettura reale Local Signer/PST il contenzioso civile ordinario `1025/2024` su Tribunale di Palmi: `JPW_SICID`, codice PST `0800570094`, 1 fascicolo e snapshot catalogo con 16 documenti.
+- Verificata con lettura reale Local Signer/PST la volontaria giurisdizione `63/2025/VG` su Tribunale di Roma: la ricerca usa `JPW_SIVG`, namespace `urn:CONS-SIVG-BE`, codice PST `0580910098` e restituisce il fascicolo.
+- Aggiunta mappatura governata delle richieste copie: interrogazioni `RicercaRichieste` e `ProfiloRichiesta`, namespace qbuilder `urn:RichiestaCopie-consultazioni-distr`, namespace WSDL `urn:RichiestaCopie`, classi catalogo e parser dei contenuti, mantenendo il flusso in sola consultazione senza invii o pagamenti automatici. Test live read-only su `RicercaRichieste` ha risposto 200 con `available=0`.
+- Rafforzata la classificazione PEC del deposito ricorso per Cassazione penale da `depositoattipenali.ca.reggiocalabria@giustiziacert.it`, con estrazione di `RG APP` e `RG NR` e test dedicato.
+- Aggiunto riconoscimento del formato PEC penale `generale/<anno>/<numero>/Corte di Appello` da `penale.ptel.giustiziacert.it`, tradotto in `RG_APP` senza creare scadenze automatiche se manca un evento processuale specifico.
+- Migliorato il messaggio operativo SIECIC quando il PST richiede `idRuoloJPW`: IUSENTRA non inventa il ruolo e chiede di usare il dato autorizzato dal portale.
+
 ## 2.249.3 - 2026-06-01
 
 - Rafforzato il flusso reale di assistenza remota: il SUPERADMIN prende in carico e si collega, ma solo il cliente può avviare la sessione dopo consenso esplicito.

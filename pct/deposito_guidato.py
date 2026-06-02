@@ -23,6 +23,8 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from lxml import etree
 
+from legal_deposit.payment_policies import payment_policy_for_channel
+
 from . import __version__ as APP_VERSION
 from .busta import Allegato, BustaTelematica, DatiBusta
 from .checklist_atti import CANALE_LABEL
@@ -125,6 +127,26 @@ def _base_fonti() -> list[dict[str, str]]:
 
 def _profile_fonti(*extra: dict[str, str]) -> list[dict[str, str]]:
     return _base_fonti() + list(extra)
+
+
+def _payment_issue_payload(channel: str) -> dict[str, str]:
+    policy = payment_policy_for_channel(channel)
+    if policy is None:
+        return {
+            "detail": "Per questo deposito introduttivo la ricevuta del contributo unificato non e stata rilevata.",
+            "source": "Regola procedurale interna versionata",
+            "suggested_action": "Verifica se il contributo e dovuto e, in caso affermativo, allega la ricevuta.",
+        }
+    proof = ", ".join(policy.proof_documents) or "prova pagamento"
+    source = "; ".join(policy.official_sources[:2])
+    return {
+        "detail": (
+            f"Il profilo richiede una verifica pagamento secondo la policy '{policy.label}'. "
+            f"Non e stata rilevata una prova coerente tra: {proof}."
+        ),
+        "source": source or "Fonte ufficiale pagamenti telematici",
+        "suggested_action": policy.missing_payment_action,
+    }
 
 
 @dataclass
@@ -485,10 +507,18 @@ class ProceduralKnowledgeBase:
                     {
                         "label": "D.P.C.M. 16 febbraio 2016 - PAT",
                         "url": "https://www.gazzettaufficiale.it/eli/id/2016/04/20/16A02974/sg",
-                    }
+                    },
+                    {
+                        "label": "Giustizia Amministrativa - Portale dell'Avvocato",
+                        "url": "https://www.giustizia-amministrativa.it/web/guest/portale-avvocato",
+                    },
+                    {
+                        "label": "Giustizia Amministrativa - nuovo Portale Avvocato operativo",
+                        "url": "https://pe.prod.cloud.giustizia-amministrativa.it",
+                    },
                 ),
                 corrective_hint=(
-                    "Conferma TAR/Consiglio di Stato competente, notifica e allegati richiesti dal SIGA/Formweb."
+                    "Conferma TAR/Consiglio di Stato competente, notifica, allegati SIGA/Formweb e firma PAdES del modulo/atto."
                 ),
             ),
             ProceduralProfile(
@@ -521,7 +551,15 @@ class ProceduralKnowledgeBase:
                     {
                         "label": "D.M. 163/2013 - Processo tributario telematico",
                         "url": "https://www.gazzettaufficiale.it/eli/id/2013/11/19/13A09382/sg",
-                    }
+                    },
+                    {
+                        "label": "SIGIT - Telecontenzioso",
+                        "url": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+                    },
+                    {
+                        "label": "MEF - Utilizzare deposito telematico ricorsi e appelli",
+                        "url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3059",
+                    },
                 ),
                 corrective_hint=(
                     "Per il PTT conferma CGT competente, notifica all'ente, contributo e NIR firmata prima della chiusura."
@@ -550,7 +588,15 @@ class ProceduralKnowledgeBase:
                     {
                         "label": "D.Lgs. 546/1992 - Appello tributario",
                         "url": "https://www.normattiva.it/eli/id/1992/12/31/092G0587/CONSOLIDATED/20240404",
-                    }
+                    },
+                    {
+                        "label": "MEF - Workflow processo tributario telematico",
+                        "url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3016",
+                    },
+                    {
+                        "label": "SIGIT - Telecontenzioso",
+                        "url": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+                    },
                 ),
                 corrective_hint=(
                     "Per l'appello tributario verifica sentenza impugnata, termine breve/lungo e NIR firmata."
@@ -1102,15 +1148,16 @@ class ValidatorNormativoRedazionale:
             )
 
         if profile.requires_contributo and _missing_required("contributo"):
+            payment_issue = _payment_issue_payload(profile.channel)
             issues.append(
                 ValidationIssue(
                     service=SERVICE_GIURIDICO,
                     level=LEVEL_WARNING,
                     code="contributo_non_evidenziato",
                     title="Ricevuta contributo unificato non rilevata",
-                    detail="Per questo deposito introduttivo la ricevuta del contributo unificato non e stata rilevata.",
-                    source="Regola procedurale interna versionata",
-                    suggested_action="Verifica se il contributo e dovuto e, in caso affermativo, allega la ricevuta.",
+                    detail=payment_issue["detail"],
+                    source=payment_issue["source"],
+                    suggested_action=payment_issue["suggested_action"],
                     field="allegati_ids",
                 )
             )
@@ -1177,8 +1224,8 @@ class ValidatorNormativoRedazionale:
                             "Nel flusso tributario la Nota di Iscrizione a Ruolo generata dal portale MEF "
                             "deve essere scaricata, firmata in CAdES e ricaricata prima della chiusura del deposito."
                         ),
-                        source="D.M. 163/2013 / workflow SIGIT-PTT",
-                        suggested_action="Genera la NIR sul portale SIGIT, firmala e allegala al fascicolo prima del deposito.",
+                        source="D.M. 163/2013 / workflow SIGIT-PTT / assistenza MEF",
+                        suggested_action="Genera la NIR sul portale SIGIT/PTT, firmala e allegala al fascicolo prima del deposito.",
                         field="allegati_ids",
                     )
                 )
@@ -1382,10 +1429,14 @@ class ValidatorSchemiPST:
                     title="Controllo tecnico PTT eseguito senza DatiAtto.xml",
                     detail=(
                         "Per il canale tributario la verifica tecnica non genera DatiAtto.xml o busta .enc: "
-                        "controlla coerenza di commissione, registro PTT e allegati richiesti dal portale SIGIT."
+                        "controlla coerenza di Corte di giustizia tributaria, registro PTT, NIR, CUT pagoPA "
+                        "e allegati richiesti dal portale SIGIT."
                     ),
-                    source="SIGIT / PTT - workflow portale",
-                    suggested_action="Usa la simulazione SIGIT e conferma NIR, registro PTT_RICORSI e firma CAdES.",
+                    source="SIGIT / PTT - workflow portale / assistenza MEF",
+                    suggested_action=(
+                        "Usa la simulazione SIGIT/PTT e conferma NIR, registro PTT_RICORSI, firma CAdES "
+                        "e associazione CUT pagoPA al numero RGR/RGA."
+                    ),
                     field="codice_registro",
                 )
             )

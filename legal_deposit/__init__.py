@@ -10,6 +10,12 @@ from .policies import (
     channel_profile_for,
     get_channel_profile,
 )
+from .payment_policies import (
+    PaymentPolicy,
+    list_payment_policies,
+    payment_policy_for_channel,
+    payment_policy_for_procedure,
+)
 from .procedure_registry import (
     ProcedureProfileMismatchError,
     TelematicProcedure,
@@ -29,13 +35,17 @@ __all__ = [
     "ProcedureProfileMismatchError",
     "PreflightResult",
     "PreflightStatus",
+    "PaymentPolicy",
     "SignaturePolicy",
     "TelematicProcedure",
     "UnknownChannelError",
     "UnknownProcedureError",
     "channel_profile_for",
     "get_channel_profile",
+    "list_payment_policies",
     "get_procedure",
+    "payment_policy_for_channel",
+    "payment_policy_for_procedure",
     "list_procedures",
     "validate_procedure_profile",
 ]

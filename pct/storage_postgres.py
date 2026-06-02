@@ -312,6 +312,14 @@ CREATE TABLE IF NOT EXISTS payment_config (
     dati_json TEXT DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS settings_config (
+    section TEXT PRIMARY KEY,
+    updated_at TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'config_studio',
+    secret_fields_json TEXT NOT NULL DEFAULT '[]',
+    dati_json TEXT NOT NULL DEFAULT '{}'
+);
+
 CREATE TABLE IF NOT EXISTS moduli_dati (
     nome TEXT PRIMARY KEY,
     percorso TEXT NOT NULL,
@@ -355,6 +363,7 @@ CREATE INDEX IF NOT EXISTS idx_parcelle_stato ON parcelle(stato, data_emissione)
 CREATE INDEX IF NOT EXISTS idx_payment_links_cliente ON payment_links(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_payment_links_parcella ON payment_links(id_parcella);
 CREATE INDEX IF NOT EXISTS idx_payment_links_stato ON payment_links(stato, creato_il);
+CREATE INDEX IF NOT EXISTS idx_settings_config_updated ON settings_config(updated_at);
 CREATE INDEX IF NOT EXISTS idx_moduli_json_records_modulo ON moduli_json_records(modulo);
 """
 
@@ -617,6 +626,13 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "config_id",
         "provider_count",
         "updated_at",
+        "dati_json",
+    ),
+    "settings_config": (
+        "section",
+        "updated_at",
+        "source",
+        "secret_fields_json",
         "dati_json",
     ),
     "moduli_dati": (

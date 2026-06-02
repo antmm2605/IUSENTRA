@@ -389,6 +389,10 @@ SCHEMA_CHANNELS: dict[str, SchemaChannelProfile] = {
                 "url": "https://www.giustizia-amministrativa.it/web/guest/portale-avvocato",
             },
             {
+                "label": "Giustizia Amministrativa - nuovo Portale Avvocato operativo",
+                "url": "https://pe.prod.cloud.giustizia-amministrativa.it",
+            },
+            {
                 "label": "Giustizia Amministrativa - fine applicazione norme transitorie PAT",
                 "url": "https://www.giustizia-amministrativa.it/-/152174-737",
             },
@@ -410,6 +414,14 @@ SCHEMA_CHANNELS: dict[str, SchemaChannelProfile] = {
             {
                 "label": "Portale della Giustizia Tributaria - Telecontenzioso",
                 "url": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+            },
+            {
+                "label": "MEF - Workflow processo tributario telematico",
+                "url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3016",
+            },
+            {
+                "label": "MEF - Utilizzare deposito telematico ricorsi e appelli",
+                "url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3059",
             },
         ],
     ),

@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-24T22:29:24.574Z
+Generato: 2026-06-02T14:15:11.421Z
 
 ## Regole operative Parte 12A
 
@@ -12,7 +12,7 @@ Generato: 2026-05-24T22:29:24.574Z
 
 ## Sintesi
 
-- Route censite: 107
+- Route censite: 109
 - Link `?_legacy=1`: 86
 - LegacyPostForm: 0
 - Form POST HTML React: 0
@@ -26,6 +26,7 @@ Generato: 2026-05-24T22:29:24.574Z
 | --- | --- | --- | --- | --- | ---: | ---: | --- | --- | --- |
 | / | frontend/src/App.tsx | frontend/src/data.ts | web/services/react_dashboard_cache.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /admin/database | frontend/src/components/AdminDatabasePage.tsx | frontend/src/adminDatabaseData.ts | web/services/react_admin_database_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
+| /importa-pratiche-studio-telematico | frontend/src/components/QuickOrganizerImportPage.tsx | frontend/src/quickOrganizerImportData.ts | web/services/quickorganizer_import.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /agenda | frontend/src/components/AgendaPage.tsx | frontend/src/agendaData.ts | web/services/react_agenda_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /agenda/nuovo | frontend/src/components/NuovoAppuntamentoPage.tsx | frontend/src/agendaData.ts | web/services/react_agenda_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /agenda/importa | frontend/src/components/AgendaImportPage.tsx | frontend/src/agendaData.ts | web/bootstrap/dashboard_routes.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
@@ -41,8 +42,8 @@ Generato: 2026-05-24T22:29:24.574Z
 | /documenti | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /compensi-forensi/* | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | legacy_operational | 2 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
 | /deposito/checklist | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
-| /email | frontend/src/components/EmailPecPage.tsx | frontend/src/emailData.ts | web/services/react_email_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
-| /email-ordinaria | frontend/src/components/EmailPecPage.tsx | frontend/src/emailData.ts | web/services/react_email_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
+| /email | frontend/src/components/EmailPecPage.tsx | frontend/src/emailData.ts | web/services/react_email_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
+| /email-ordinaria | frontend/src/components/EmailPecPage.tsx | frontend/src/emailData.ts | web/services/react_email_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /notifiche-legali | frontend/src/components/NotificheLegaliPage.tsx | frontend/src/notificheLegaliData.ts | web/services/react_notifiche_legali_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /fascicoli | frontend/src/components/FascicoliPage.tsx | frontend/src/fascicoliData.ts | web/services/react_fascicoli_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /fascicoli/archivio | frontend/src/components/FascicoliPage.tsx | frontend/src/fascicoliData.ts | web/services/react_fascicoli_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
@@ -58,6 +59,7 @@ Generato: 2026-05-24T22:29:24.574Z
 | /impostazioni-studio | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /impostazioni/calendario | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /impostazioni/pagamenti | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
+| /impostazioni/sdi | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /incassi-pagamenti | frontend/src/components/IncassiPagamentiPage.tsx | frontend/src/incassiPagamentiData.ts | web/services/react_incassi_pagamenti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /legal-intelligence | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /legal-intelligence/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |

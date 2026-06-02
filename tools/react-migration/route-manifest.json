@@ -714,6 +714,25 @@
       ]
     },
     {
+      "workspaceTarget": "/app/impostazioni",
+      "route": "/impostazioni/sdi",
+      "family": "studio",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/features/impostazioni/ImpostazioniPage.tsx",
+      "targetData": "frontend/src/features/impostazioni/api.ts",
+      "targetBridge": "web/services/react_impostazioni_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni__sdi.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "scheda Canali SdI dentro Impostazioni",
+        "segreti canale non esposti",
+        "fonti FatturaPA e Agenzia Entrate collegate",
+        "invio automatico solo con canale reale configurato",
+        "mirror settings_config SQLite/PostgreSQL"
+      ]
+    },
+    {
       "workspaceTarget": "/app/mandato?tab=incassi",
       "route": "/incassi-pagamenti",
       "family": "economico",

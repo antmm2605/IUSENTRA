@@ -75,6 +75,50 @@ def test_deposito_ricorso_cassazione_penale_estrae_rg_app_e_rg_nr():
     assert result["documents"]["has_p7m"] is True
 
 
+def test_deposito_atti_penali_cassazione_da_giustiziacert_resta_penale():
+    result = classifica_pec_legale(
+        subject=(
+            "Deposito ricorso per cassazione (con n. 1 allegato) per FEO NATALE - "
+            "proc. pen. n. 1365_2016 RG APP - n. 1364_2011 RG NR"
+        ),
+        sender="depositoattipenali.ca.reggiocalabria@giustiziacert.it",
+        recipients=["studio@example.pec.it"],
+        attachments=[{"filename": "messaggio_originale.eml"}, {"filename": "ricorso.pdf.p7m"}],
+        message_id="<deposito-cassazione-penale@pec>",
+    )
+
+    assert result["family"] == "cassazione_penale"
+    assert result["event_type"] == "deposito_ricorso_cassazione_penale"
+    assert {item["suffisso"] for item in result["registri"]} == {"RG_APP", "RG_NR"}
+    assert any(item["numero"] == "1365" and item["anno"] == "2016" for item in result["registri"])
+    assert any(item["numero"] == "1364" and item["anno"] == "2011" for item in result["registri"])
+    assert result["documents"]["has_original_eml"] is True
+    assert result["documents"]["has_p7m"] is True
+    assert "penale/Cassazione" in result["azione_proposta"]
+
+
+def test_notifiche_penali_corte_appello_generale_estraggono_rg_app():
+    result = classifica_pec_legale(
+        subject="generale/2016/001365/Corte di Appello a carico di p.p. c/ Feo Natale.",
+        sender="notifichepenali.ca.reggiocalabria@penale.ptel.giustiziacert.it",
+        recipients=["studio@example.pec.it"],
+        attachments=[{"filename": "Comunicazione.xml"}, {"filename": "daticert.xml"}],
+        message_id="<notifiche-penali-ca-rc@pec>",
+    )
+
+    assert result["family"] == "deposito_penale_pdp"
+    assert result["event_type"] == "comunicazione_penale_pdp"
+    assert result["creates_deadline"] is False
+    assert len(result["registri"]) == 1
+    assert result["registri"][0]["numero"] == "1365"
+    assert result["registri"][0]["anno"] == "2016"
+    assert result["registri"][0]["suffisso"] == "RG_APP"
+    assert result["registri"][0]["fonte_ruolo"] == "generale_corte_appello"
+    assert result["documents"]["has_daticert"] is True
+    assert result["documents"]["has_comunicazione_xml"] is True
+    assert "fascicolo penale" in result["azione_proposta"]
+
+
 def test_ricevuta_accettazione_non_chiude_deposito():
     result = _classifica("Ricevuta di accettazione del messaggio di deposito RG 274/2026/CC")
     assert result["event_type"] == "ricevuta_accettazione_pec"

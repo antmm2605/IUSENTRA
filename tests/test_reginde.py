@@ -108,6 +108,38 @@ def test_risoluzione_pst_gdp_palmi_usa_sigp():
     assert _pst_namespace_qbuilder(base) == "urn:CONS-SIGP-BE"
 
 
+def test_snapshot_ministeriale_aggiunge_corti_appello_mancanti_dal_vecchio_bundle():
+    for nome, codice_ministero, codice_gl in [
+        ("Corte d'Appello di Reggio di Calabria", "0800630064", "GLRC"),
+        ("Corte d'Appello di Salerno", "0651160068", "GLSA"),
+        ("Corte d'Appello di Caltanissetta", "0850040065", "GLCL"),
+    ]:
+        ufficio = risolvi_ufficio(nome, tipo="CORTE_APPELLO")
+        assert ufficio is not None
+        assert ufficio["codice"] == codice_ministero
+        assert ufficio["codice_ministero"] == codice_ministero
+        assert ufficio["codice_gl"] == codice_gl
+        assert ufficio["aggiunto_da_snapshot_ministeriale"] is True
+        assert "JPW_SICID" in ufficio["servizi_ministero"]
+        assert risolvi_base_pst(codice_ministero, base_url="https://ext.processotelematico.giustizia.it").endswith(
+            f"/{codice_gl}/JPW_SICID"
+        )
+
+
+def test_snapshot_ministeriale_aggiunge_tribunali_e_gdp_ufficiali_non_presenti_nel_bundle_storico():
+    tribunale = risolvi_ufficio("Tribunale Ordinario - Caltanissetta", tipo="TRIBUNALE")
+    gdp = risolvi_ufficio("Giudice di Pace - Gela", tipo="GDP")
+
+    assert tribunale is not None
+    assert tribunale["codice_ministero"] == "0850040098"
+    assert tribunale["codice_gl"] == "GLCL"
+    assert risolvi_servizio_pst("0850040098", tipo="TRIBUNALE") == "JPW_SICID"
+    assert gdp is not None
+    assert gdp["codice_ministero"] == "0850070152"
+    assert gdp["codice_gl"] == "GLCL"
+    assert risolvi_servizio_pst("0850070152", tipo="GDP") == "JPW_SIGP"
+
+
 def test_risoluzione_pst_cassazione_usa_proxy_cassci():
     assert risolvi_codice_ministero("9990000") == "80417740588"
     assert risolvi_base_pst("9990000", base_url="https://ext.processotelematico.giustizia.it") == (

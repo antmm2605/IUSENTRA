@@ -98,6 +98,44 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         url="https://www.consiglionazionaleforense.it/",
         note="Fonte primaria per professione forense, codice deontologico e riferimenti professionali.",
     ),
+    "codice_deontologico_cnf": FonteOperativa(
+        code="codice_deontologico_cnf",
+        title="Codice Deontologico Forense - sito CNF",
+        url="https://codicedeontologico-cnf.it/",
+        note="Sito del Consiglio Nazionale Forense dedicato a codice deontologico, massime e aggiornamenti.",
+        monitor_urls=[
+            "https://codicedeontologico-cnf.it/nuovo-articolo-25-bis-cdf-con-tabella-di-confronto/",
+            "https://codicedeontologico-cnf.it/tag/27-ncdf/",
+        ],
+        change_detection="content_hash",
+    ),
+    "cdf_art25bis_gazzetta_2026": FonteOperativa(
+        code="cdf_art25bis_gazzetta_2026",
+        title="G.U. n. 29/2026 - modifica art. 25-bis CDF",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=26A00480&atto.dataPubblicazioneGazzetta=2026-02-05"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note="Comunicato CNF sulla delibera n. 959 del 23 gennaio 2026: art. 25-bis CDF in materia di equo compenso.",
+    ),
+    "cdf_modifiche_gazzetta_2025": FonteOperativa(
+        code="cdf_modifiche_gazzetta_2025",
+        title="G.U. n. 202/2025 - modifiche Codice Deontologico Forense",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=25A04804&atto.dataPubblicazioneGazzetta=2025-09-01"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note="Comunicato CNF sulla delibera n. 636 del 21 marzo 2024: modifiche ad articoli 48, 50, 51, 56, 61, 62, 62-bis e Titolo IV CDF.",
+    ),
+    "cdf_circolare_1c_2026": FonteOperativa(
+        code="cdf_circolare_1c_2026",
+        title="CNF - circolare n. 1-C-2026 art. 25-bis CDF",
+        url="https://www.ordineforense.re.it/wp-content/uploads/2026/04/N.-1-C-2026-Entrata-in-vigore-art.-25-bis-Codice-Deontologico-Forense.pdf",
+        note="Circolare CNF dell'8 aprile 2026 sulla decorrenza e sull'ambito soggettivo del nuovo art. 25-bis CDF.",
+        change_detection="availability_only",
+    ),
     "registro_mediazione_portale": FonteOperativa(
         code="registro_mediazione_portale",
         title="Ministero della Giustizia - Registro organismi di mediazione",
@@ -229,9 +267,20 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "dpr_115_2002": FonteOperativa(
         code="dpr_115_2002",
-        title="D.P.R. 115/2002 - art. 13 (Normattiva)",
-        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica%3A2002-05-30%3B115~art130=",
-        note="Base normativa del contributo unificato nei processi civile, amministrativo e tributario.",
+        title="D.P.R. 115/2002 - art. 13 contributo unificato",
+        url=(
+            "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?"
+            "articolo=Articolo+13&codiceOrdinamento=0000000000000130000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            "&id=%7B79FB509F-FF10-413B-9949-D26DACEF6AAE%7D"
+        ),
+        note=(
+            "Fonte ufficiale art. 13 DPR 115/2002: scaglioni CU, impugnazione +50%, Cassazione x2, "
+            "sezioni specializzate x2, riduzioni e maggiorazioni per dati obbligatori mancanti."
+        ),
+        monitor_urls=[
+            "https://www.normattiva.it/eli/id/2002/06/15/002G0139/CONSOLIDATED/20241015",
+            "https://www.gazzettaufficiale.it/",
+        ],
     ),
     "cu_viterbo": FonteOperativa(
         code="cu_viterbo",
@@ -481,6 +530,7 @@ def _watch_source_ids_for_url(url: str) -> List[str]:
         ("normattiva.it", "normattiva"),
         ("gazzettaufficiale.it", "gazzetta_ufficiale"),
         ("consiglionazionaleforense.it", "cnf"),
+        ("codicedeontologico-cnf.it", "cnf"),
         ("mediazione.giustizia.it", "registro_mediazione"),
         ("mg_3_4_15.page", "registro_mediazione"),
         ("registro_organismi_mediazione", "registro_mediazione"),
@@ -662,6 +712,14 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "rows": [
                 {"category": "volontaria_giurisdizione", "amount": 98.0},
                 {"category": "separazione_consensuale", "amount": 43.0},
+                {"category": "ricerca_beni_492bis", "amount": 43.0},
+                {"category": "cittadinanza_italiana", "amount": 600.0},
+                {"category": "esecuzione_immobiliare", "amount": 278.0},
+                {"category": "altri_processi_esecutivi", "amount": 139.0},
+                {"category": "esecuzione_mobiliare_sotto_2500", "amount": 43.0},
+                {"category": "opposizione_atti_esecutivi", "amount": 168.0},
+                {"category": "procedura_fallimentare", "amount": 851.0},
+                {"category": "amministrativo_accesso_soggiorno_cittadinanza", "amount": 300.0},
                 {"category": "amministrativo_ordinario", "amount": 650.0},
                 {"category": "amministrativo_rito_abbreviato", "amount": 1800.0},
                 {"category": "amministrativo_appalti", "max_value": 200000.0, "amount": 2000.0},

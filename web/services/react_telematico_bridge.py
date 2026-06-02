@@ -76,7 +76,7 @@ PORTAL_IMPORT_DESCRIPTIONS = {
 PORTAL_OFFICIAL_URLS = {
     "pst": "https://pst.giustizia.it/PST/it/services.page",
     "pdp": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
-    "pat": "https://www.giustizia-amministrativa.it/portale-avvocato",
+    "pat": "https://pe.prod.cloud.giustizia-amministrativa.it",
     "ptt": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
 }
 SURFACE_ALIASES = {

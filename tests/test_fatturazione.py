@@ -142,6 +142,32 @@ def test_parcella_personalizzata_salva_tipo_voci_e_snapshot_documento(tmp_path: 
     assert loaded.dati_personalizzati["payment"]["iban"] == "IT60X0542811101000000123456"
 
 
+def test_parcella_salva_tracciamento_sdi_senza_canale_simulato(tmp_path: Path):
+    db_path = tmp_path / "parcelle.json"
+    gf = GestioneFatturazione(db_path=str(db_path))
+
+    parcella = gf.crea(
+        id_cliente="cliente-1",
+        voci=[VoceParcella(descrizione="Compenso professionale", quantita=1, prezzo_unitario=300.0)],
+        sdi_stato="INVIATA",
+        sdi_identificativo="987654321",
+        sdi_canale="intermediario esterno",
+        sdi_data_invio="2026-06-02T10:30:00+02:00",
+        sdi_ricevuta="Attesa ricevuta SdI",
+        sdi_note="Invio registrato dall'intermediario",
+    )
+
+    gf_reload = GestioneFatturazione(db_path=str(db_path))
+    loaded = gf_reload.get(parcella.id)
+
+    assert loaded is not None
+    assert loaded.sdi_stato == "INVIATA"
+    assert loaded.sdi_identificativo == "987654321"
+    assert loaded.sdi_canale == "intermediario esterno"
+    assert loaded.sdi_ricevuta == "Attesa ricevuta SdI"
+    assert loaded.sdi_note == "Invio registrato dall'intermediario"
+
+
 def test_parcella_forfettaria_non_calcola_iva_anche_se_opzione_attiva(tmp_path: Path):
     db_path = tmp_path / "parcelle.json"
     gf = GestioneFatturazione(db_path=str(db_path))

@@ -35,6 +35,7 @@ export function IusFormSection({
           icon={icon}
           tone={tone}
           level={3}
+          sequence={false}
         />
         <div className="ius-form-section__fields">{children}</div>
       </CardContent>

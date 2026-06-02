@@ -51,6 +51,7 @@ _PST_QBUILDER_NAMESPACES = {
     "JPW_SIGP": "urn:CONS-SIGP-BE",
     "JPW_CASSCI": "urn:CONS-CASSCI",
     "JPW_CASSPE": "urn:CONS-CASSPE",
+    "JPW_UNEP": "urn:CONS-UNEP",
 }
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 

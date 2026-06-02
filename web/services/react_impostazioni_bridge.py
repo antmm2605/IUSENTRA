@@ -24,11 +24,44 @@ ALLOWED_SECTIONS = {
     "whatsapp",
     "scheduler",
     "ai",
+    "sdi",
     "pagamenti",
     "notifiche",
     "backup",
     "calendari",
 }
+
+
+SDI_OFFICIAL_SOURCES: tuple[dict[str, str], ...] = (
+    {
+        "id": "fatturapa_specifiche_formato",
+        "label": "Specifiche tecniche formato FatturaPA 1.3.1",
+        "url": "https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.3.1/Specifiche_tecniche_del_formato_FatturaPA_V1.3.1.pdf",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-specifiche-formato-v1-3-1.pdf",
+        "scope": "Formato XML e regole tecniche della fattura elettronica.",
+    },
+    {
+        "id": "agenzia_entrate_guida_fatturazione_elettronica",
+        "label": "Agenzia Entrate - guida fatturazione elettronica",
+        "url": "https://www.agenziaentrate.gov.it/portale/guida-fatturazione-elettronica",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/agenzia-entrate-guida-fatturazione-elettronica.html",
+        "scope": "Invio tramite SdI, ricevute, scarto e monitoraggio dei file trasmessi.",
+    },
+    {
+        "id": "fatturapa_sdicoop_trasmissione",
+        "label": "FatturaPA - SDICoop trasmissione",
+        "url": "https://www.fatturapa.gov.it/export/fatturazione/sdi/ws/trasmissione/v1.1/SDICoop_trasmissione_v1.1.pdf",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-sdicoop-trasmissione-v1-1.pdf",
+        "scope": "Trasmissione tramite canale accreditato.",
+    },
+    {
+        "id": "fatturapa_sdiftp_trasmissione",
+        "label": "FatturaPA - SdIFtp trasmissione",
+        "url": "https://www.fatturapa.gov.it/export/documenti/sdi/Specifiche_tecniche_SdIFtp_v4.2.pdf",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-sdiftp-specifiche-v4-2.pdf",
+        "scope": "Trasmissione tramite servizio FTP accreditato.",
+    },
+)
 
 
 def _iso_now() -> str:
@@ -159,6 +192,7 @@ def _section_status(
         _status("WhatsApp", bool(cfg.whatsapp.twilio_sid or cfg.whatsapp.callmebot_key), "Promemoria e comunicazioni cliente."),
         _status("Scheduler", bool(cfg.scheduler.backup_abilitato or cfg.scheduler.wa_reminder_abilitato), "Backup e promemoria automatici."),
         _status("AI Locale", bool(cfg.ai.enabled), "Assistente attivo sul PC dello studio."),
+        _status("Canali SdI", bool(getattr(cfg.sdi, "canale_configurato", False)), "FatturaPA tramite portale, intermediario o canale accreditato."),
         _status("Pagamenti", bool((pagamenti or {}).get("provider_attivi")), "Canali, bonifico e link parcella."),
         _status("Notifiche", bool((notifiche or {}).get("clienti_con_numero")), "Messaggi WhatsApp e promemoria."),
         _status("Backup", bool(backup_status.get("completed")), "Copie, verifica e scaricamento protetto."),
@@ -166,12 +200,40 @@ def _section_status(
     ]
 
 
-def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
+def _sdi_warnings(cfg: Any) -> list[dict[str, str]]:
+    sdi = getattr(cfg, "sdi", None)
+    if sdi is None:
+        return []
+    if not bool(getattr(sdi, "abilitato", False)):
+        return []
+    if bool(getattr(sdi, "auto_invio_abilitato", False)) and not bool(getattr(sdi, "canale_configurato", False)):
+        return [
+            {
+                "code": "sdi_auto_senza_canale",
+                "message": (
+                    "Invio automatico SdI non attivo: configura prima intermediario o canale accreditato. "
+                    "IUSENTRA può preparare XML e registrare identificativo/esiti, ma non inventa un canale accreditato."
+                ),
+            }
+        ]
+    if getattr(sdi, "modalita_normalizzata", "manuale") == "manuale":
+        return [
+            {
+                "code": "sdi_modalita_manuale",
+                "message": (
+                    "Canale SdI in modalità manuale: la trasmissione resta su portale o intermediario esterno; "
+                    "qui si registrano XML, identificativo e ricevute."
+                ),
+            }
+        ]
+    return []
+
+
+def _operational_settings_payloads(cfg: Any) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     from web.helpers import get_agenda as helper_get_agenda
     from web.helpers import get_calendar_sync as helper_get_calendar_sync
     from web.helpers import get_scadenziario as helper_get_scadenziario
 
-    firma = cfg.firma
     get_agenda = _runtime_loader("get_agenda") or helper_get_agenda
     get_backup = _runtime_loader("get_backup") or _missing_backup
     get_calendar_sync = _runtime_loader("get_calendar_sync") or helper_get_calendar_sync
@@ -184,6 +246,32 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
     )
+    return pagamenti, notifiche, backup, calendari
+
+
+def _extra_settings_sections(
+    pagamenti: dict[str, Any],
+    notifiche: dict[str, Any],
+    backup: dict[str, Any],
+    calendari: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "pagamenti": pagamenti,
+        "notifiche": notifiche,
+        "backup": backup,
+        "calendari": calendari,
+    }
+
+
+def _sync_settings_config_snapshot(cfg: Any, extra_sections: dict[str, Any] | None = None) -> int:
+    from web.blueprints.impostazioni import _salva_snapshot_sql_impostazioni
+
+    return _salva_snapshot_sql_impostazioni(cfg, extra_sections=extra_sections)
+
+
+def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
+    firma = cfg.firma
+    pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
     return {
         "ok": True,
         "source": "config_studio",
@@ -285,11 +373,31 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
                 auto_index_documents=cfg.ai.auto_index_documents,
             ),
         },
+        "sdi": {
+            "abilitato": cfg.sdi.abilitato,
+            "modalita": cfg.sdi.modalita_normalizzata,
+            "nome_intermediario": cfg.sdi.nome_intermediario,
+            "codice_canale": cfg.sdi.codice_canale,
+            "indirizzo_servizio": cfg.sdi.endpoint_trasmissione,
+            "endpoint_trasmissione": cfg.sdi.endpoint_trasmissione,
+            "username": cfg.sdi.username,
+            "password": _secret_state(cfg.sdi.password),
+            "pec_notifiche": cfg.sdi.pec_notifiche,
+            "auto_invio_abilitato": cfg.sdi.auto_invio_abilitato,
+            "note": cfg.sdi.note,
+            "canale_configurato": cfg.sdi.canale_configurato,
+            "fonti": list(SDI_OFFICIAL_SOURCES),
+            "presidio": (
+                "Invio automatico disponibile solo con canale/intermediario reale configurato."
+                if cfg.sdi.canale_configurato
+                else "IUSENTRA prepara XML FatturaPA e registra identificativo/esiti; la trasmissione resta esterna finché manca un canale reale."
+            ),
+        },
         "pagamenti": pagamenti,
         "notifiche": notifiche,
         "backup": backup,
         "calendari": calendari,
-        "warnings": [],
+        "warnings": _sdi_warnings(cfg),
     }
 
 
@@ -349,6 +457,7 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
         ConfigFirma,
         ConfigLocalAI,
         ConfigPEC,
+        ConfigSDI,
         ConfigSMTP,
         ConfigScheduler,
         ConfigWhatsApp,
@@ -452,27 +561,57 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
             keep_alive=_text(data.get("keep_alive"), "10m") or "10m",
             auto_index_documents=_bool(data.get("auto_index_documents"), False),
         )
+    elif section == "sdi":
+        modalita_sdi = _text(data.get("modalita"), cfg.sdi.modalita).lower()
+        if modalita_sdi not in {"manuale", "intermediario", "canale_accreditato"}:
+            modalita_sdi = "manuale"
+        password = _text(data.get("sdi_password") or data.get("password"))
+        cfg.sdi = ConfigSDI(
+            abilitato=_bool(data.get("abilitato"), cfg.sdi.abilitato),
+            modalita=modalita_sdi,
+            nome_intermediario=_text(data.get("nome_intermediario")),
+            codice_canale=_text(data.get("codice_canale")),
+            endpoint_trasmissione=_text(
+                data.get("indirizzo_servizio") or data.get("endpoint_trasmissione"),
+                cfg.sdi.endpoint_trasmissione,
+            ),
+            username=_text(data.get("username")),
+            password=password or cfg.sdi.password,
+            pec_notifiche=_text(data.get("pec_notifiche")),
+            auto_invio_abilitato=_bool(data.get("auto_invio_abilitato"), cfg.sdi.auto_invio_abilitato),
+            note=_text(data.get("note")),
+        )
     elif section == "pagamenti":
         update_pagamenti_settings(data)
+        pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+        _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
         _audit(section)
         response = _payload_from_config(cfg, can_update=True)
         response.update({"message": "Impostazioni pagamenti salvate.", "updated_section": section})
         return response
     elif section == "notifiche":
+        pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+        _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
         response = _payload_from_config(cfg, can_update=True)
         response.update({"message": "Notifiche aggiornate.", "updated_section": section})
         return response
     elif section == "backup":
+        pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+        _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
         response = _payload_from_config(cfg, can_update=True)
         response.update({"message": "Backup aggiornato.", "updated_section": section})
         return response
     elif section == "calendari":
+        pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+        _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
         response = _payload_from_config(cfg, can_update=True)
         response.update({"message": "Calendari aggiornati.", "updated_section": section})
         return response
 
     manager.aggiorna(cfg)
     _applica_ad_app(cfg)
+    pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+    _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
     _audit(section)
     response = _payload_from_config(cfg, can_update=True)
     response.update({"message": "Impostazioni salvate.", "updated_section": section})

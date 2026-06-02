@@ -19,6 +19,67 @@ BASE_GIURIDICA_OPTIONS = (
     "Interesse vitale (art. 6.1.d GDPR)",
 )
 
+GDPR_OFFICIAL_SOURCES = (
+    {
+        "id": "garante_registro_trattamenti",
+        "authority": "Garante per la protezione dei dati personali",
+        "label": "Registro delle attività di trattamento",
+        "url": "https://www.garanteprivacy.it/registro-delle-attivita-di-trattamento",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-registro-attivita-trattamento.html",
+    },
+    {
+        "id": "garante_gdpr_art30",
+        "authority": "Garante per la protezione dei dati personali",
+        "label": "Regolamento UE 2016/679 - testo e guida",
+        "url": "https://www.garanteprivacy.it/regolamentoue",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-gdpr-regolamento-2016-679.html",
+    },
+    {
+        "id": "garante_regolamento_arricchito_pdf",
+        "authority": "Garante per la protezione dei dati personali",
+        "label": "Regolamento UE 2016/679 arricchito",
+        "url": "https://www.garanteprivacy.it/documents/10160/0/Regolamento+UE+2016+679.+Arricchito+con+riferimenti+ai+Considerando.pdf",
+        "localPath": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-regolamento-ue-2016-679-arricchito.pdf",
+    },
+)
+
+GDPR_REGISTER_CHECKLIST = (
+    {
+        "id": "finalita_base",
+        "label": "Finalità e base giuridica",
+        "message": "Ogni trattamento deve indicare finalità e presupposto di liceità.",
+    },
+    {
+        "id": "categorie_interessati_dati",
+        "label": "Categorie di interessati e dati",
+        "message": "La scheda deve indicare soggetti interessati e categorie di dati trattati.",
+    },
+    {
+        "id": "destinatari_conservazione",
+        "label": "Destinatari e conservazione",
+        "message": "Destinatari e termini di cancellazione/conservazione devono essere espliciti.",
+    },
+    {
+        "id": "misure_sicurezza",
+        "label": "Misure tecniche e organizzative",
+        "message": "Le misure di sicurezza devono essere aggiornate e proporzionate al rischio.",
+    },
+    {
+        "id": "trasferimenti_responsabili",
+        "label": "Trasferimenti e responsabili",
+        "message": "Trasferimenti extra UE e responsabili esterni richiedono garanzie e riferimenti tracciati.",
+    },
+)
+
+GDPR_GOVERNANCE = {
+    "title": "Presidio GDPR per studio legale",
+    "message": (
+        "Il registro deve riflettere i trattamenti reali dello studio ed essere aggiornato. "
+        "Per attività legali con dati giudiziari, sanitari o con personale/collaboratori, "
+        "il software evidenzia il registro come presidio operativo da mantenere."
+    ),
+}
+
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -45,6 +106,34 @@ def _date_label(value: Any) -> str:
 
 def _risk_flags(item: Any) -> list[dict[str, str]]:
     flags: list[dict[str, str]] = []
+    if not _text(getattr(item, "finalita", "")):
+        flags.append({
+            "code": "finalita_mancante",
+            "label": "Finalità",
+            "tone": "danger",
+            "message": "Indicare la finalità del trattamento.",
+        })
+    if not _text(getattr(item, "categoria_dati", "")):
+        flags.append({
+            "code": "categorie_dati_mancanti",
+            "label": "Categorie dati",
+            "tone": "danger",
+            "message": "Indicare le categorie di dati personali trattati.",
+        })
+    if not _text(getattr(item, "soggetti_interessati", "")):
+        flags.append({
+            "code": "interessati_mancanti",
+            "label": "Interessati",
+            "tone": "warning",
+            "message": "Indicare le categorie di interessati.",
+        })
+    if not _text(getattr(item, "destinatari", "")):
+        flags.append({
+            "code": "destinatari_mancanti",
+            "label": "Destinatari",
+            "tone": "warning",
+            "message": "Indicare destinatari interni, esterni o autorità.",
+        })
     if _bool(getattr(item, "trasferimento_extra_ue", False)):
         flags.append({
             "code": "extra_ue",
@@ -52,6 +141,20 @@ def _risk_flags(item: Any) -> list[dict[str, str]]:
             "tone": "warning",
             "message": "Verificare paese, garanzie e base del trasferimento.",
         })
+        if not _text(getattr(item, "paese_destinazione", "")):
+            flags.append({
+                "code": "paese_extra_ue_mancante",
+                "label": "Paese extra UE",
+                "tone": "danger",
+                "message": "Indicare il paese di destinazione del trasferimento.",
+            })
+        if not _text(getattr(item, "garanzie_trasferimento_extra_ue", "")):
+            flags.append({
+                "code": "garanzie_extra_ue_mancanti",
+                "label": "Garanzie extra UE",
+                "tone": "danger",
+                "message": "Indicare garanzie, decisione di adeguatezza o clausole applicabili.",
+            })
     if not _text(getattr(item, "termine_conservazione", "")):
         flags.append({
             "code": "conservazione_mancante",
@@ -73,6 +176,13 @@ def _risk_flags(item: Any) -> list[dict[str, str]]:
             "tone": "warning",
             "message": "Completare la base giuridica del trattamento.",
         })
+    if _text(getattr(item, "responsabile", "")) and not _text(getattr(item, "registro_responsabile", "")):
+        flags.append({
+            "code": "registro_responsabile_mancante",
+            "label": "Responsabile",
+            "tone": "warning",
+            "message": "Indicare il riferimento al registro o all'accordo del responsabile esterno.",
+        })
     return flags
 
 
@@ -89,9 +199,12 @@ def _treatment_payload(item: Any) -> dict[str, Any]:
         "recipients": _text(getattr(item, "destinatari", "")),
         "extraEuTransfer": _bool(getattr(item, "trasferimento_extra_ue", False)),
         "destinationCountry": _text(getattr(item, "paese_destinazione", "")),
+        "transferSafeguards": _text(getattr(item, "garanzie_trasferimento_extra_ue", "")),
         "retention": _text(getattr(item, "termine_conservazione", "")),
         "securityMeasures": _text(getattr(item, "misure_sicurezza", "")),
         "processor": _text(getattr(item, "responsabile", "")),
+        "processorRegister": _text(getattr(item, "registro_responsabile", "")),
+        "sourceReference": _text(getattr(item, "fonte_normativa", "")) or "GDPR art. 30; Garante registro attività di trattamento",
         "active": _bool(getattr(item, "attivo", True)),
         "notes": _text(getattr(item, "note", "")),
         "createdAt": _text(getattr(item, "creato_il", "")),
@@ -115,6 +228,14 @@ def build_react_privacy_registro_payload(
     extra_eu = [item for item in treatments if item["extraEuTransfer"]]
     missing_security = [item for item in treatments if not item["securityMeasures"]]
     missing_retention = [item for item in treatments if not item["retention"]]
+    missing_legal_basis = [item for item in treatments if not item["legalBasis"]]
+    missing_recipients = [item for item in treatments if not item["recipients"]]
+    missing_subjects = [item for item in treatments if not item["subjects"]]
+    missing_categories = [item for item in treatments if not item["dataCategory"]]
+    missing_transfer_safeguards = [
+        item for item in treatments
+        if item["extraEuTransfer"] and not item["transferSafeguards"]
+    ]
     warnings = sum(len(item["riskFlags"]) for item in treatments)
 
     return {
@@ -133,9 +254,17 @@ def build_react_privacy_registro_payload(
             "extraEu": len(extra_eu),
             "missingSecurity": len(missing_security),
             "missingRetention": len(missing_retention),
+            "missingLegalBasis": len(missing_legal_basis),
+            "missingRecipients": len(missing_recipients),
+            "missingSubjects": len(missing_subjects),
+            "missingCategories": len(missing_categories),
+            "missingTransferSafeguards": len(missing_transfer_safeguards),
             "warnings": warnings,
         },
         "treatments": treatments,
+        "officialSources": list(GDPR_OFFICIAL_SOURCES),
+        "registerChecklist": list(GDPR_REGISTER_CHECKLIST),
+        "governance": GDPR_GOVERNANCE,
         "facets": {
             "legalBasis": [
                 {"value": option, "label": option}

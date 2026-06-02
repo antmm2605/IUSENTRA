@@ -127,12 +127,14 @@ function TreatmentCard({ item }: { item: PrivacyTreatment }) {
         <div><dt>Conservazione</dt><dd>{textOrDash(item.retention)}</dd></div>
         <div><dt>Misure sicurezza</dt><dd>{textOrDash(item.securityMeasures)}</dd></div>
         <div><dt>Responsabile</dt><dd>{textOrDash(item.processor)}</dd></div>
+        <div><dt>Registro responsabile</dt><dd>{textOrDash(item.processorRegister)}</dd></div>
+        <div><dt>Fonte</dt><dd>{textOrDash(item.sourceReference)}</dd></div>
         <div><dt>Aggiornato</dt><dd>{item.updatedLabel}</dd></div>
       </dl>
       {item.extraEuTransfer || item.destinationCountry ? (
         <div className="iu-privacy-transfer">
           <Globe2 size={16}/>
-          <span>Trasferimento extra UE: {textOrDash(item.destinationCountry)}</span>
+          <span>Trasferimento extra UE: {textOrDash(item.destinationCountry)}. Garanzie: {textOrDash(item.transferSafeguards)}</span>
         </div>
       ) : null}
       {item.riskFlags.length ? (
@@ -195,7 +197,7 @@ function NewTreatmentForm({ data, open }: { data: PrivacyRegistroPageData; open:
         </label>
         <label>
           <span>Destinatari</span>
-          <input name="destinatari" placeholder="Autorita giudiziarie, consulenti, soggetti autorizzati"/>
+          <input name="destinatari" placeholder="Autorità giudiziarie, consulenti, soggetti autorizzati"/>
         </label>
         <label>
           <span>Termine di conservazione</span>
@@ -210,8 +212,16 @@ function NewTreatmentForm({ data, open }: { data: PrivacyRegistroPageData; open:
           <input name="responsabile" placeholder="Ragione sociale o referente"/>
         </label>
         <label>
+          <span>Registro responsabile</span>
+          <input name="registro_responsabile" placeholder="Accordo, registro o riferimento del responsabile"/>
+        </label>
+        <label>
           <span>Paese destinazione extra UE</span>
           <input name="paese_destinazione" placeholder="Compilare solo se applicabile"/>
+        </label>
+        <label>
+          <span>Garanzie extra UE</span>
+          <input name="garanzie_trasferimento_extra_ue" placeholder="Decisione adeguatezza, SCC o altra garanzia"/>
         </label>
         <label className="iu-privacy-check">
           <input name="trasferimento_extra_ue" type="checkbox" value="1"/>
@@ -337,11 +347,26 @@ export function PrivacyRegistroPage() {
           </Panel>
           <Panel title="Checklist GDPR" subtitle="Presidi minimi prima della revisione." icon={<CheckCircle2 size={17}/>}>
             <div className="iu-privacy-checklist">
-              <span><CheckCircle2 size={15}/>Finalità e base giuridica compilate</span>
-              <span><CheckCircle2 size={15}/>Categorie dati e interessati indicati</span>
-              <span><CheckCircle2 size={15}/>Termine di conservazione esplicito</span>
-              <span><CheckCircle2 size={15}/>Misure tecniche e organizzative presenti</span>
-              <span><CheckCircle2 size={15}/>Trasferimenti extra UE verificati</span>
+              {(data.registerChecklist.length ? data.registerChecklist : [
+                { id: 'finalita_base', label: 'Finalità e base giuridica', message: 'Finalità e base giuridica compilate' },
+                { id: 'categorie', label: 'Categorie dati', message: 'Categorie dati e interessati indicati' },
+                { id: 'conservazione', label: 'Conservazione', message: 'Termine di conservazione esplicito' },
+                { id: 'sicurezza', label: 'Sicurezza', message: 'Misure tecniche e organizzative presenti' },
+                { id: 'extra_ue', label: 'Extra UE', message: 'Trasferimenti extra UE verificati' },
+              ]).map((item) => (
+                <span key={item.id}><CheckCircle2 size={15}/><strong>{item.label}</strong>{item.message}</span>
+              ))}
+            </div>
+          </Panel>
+          <Panel title="Fonti ufficiali" subtitle={data.governance.message || 'Fonti salvate e consultabili.'} icon={<FileText size={17}/>}>
+            <div className="iu-privacy-sources">
+              {data.officialSources.map((source) => (
+                <a href={source.url} target="_blank" rel="noreferrer" key={source.id}>
+                  <FileText size={15}/>
+                  <span>{source.label}</span>
+                  <small>{source.authority}</small>
+                </a>
+              ))}
             </div>
           </Panel>
         </aside>

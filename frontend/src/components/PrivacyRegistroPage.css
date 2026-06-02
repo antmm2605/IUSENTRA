@@ -57,10 +57,14 @@
 .iu-privacy-empty{min-height:190px;display:grid;place-items:center;gap:8px;text-align:center;color:var(--iu-slate-500)}
 .iu-privacy-empty svg{color:var(--iu-slate-300)}
 .iu-privacy-empty strong{color:#0f172a}
-.iu-privacy-actions,.iu-privacy-checklist{display:grid;gap:8px}
+.iu-privacy-actions,.iu-privacy-checklist,.iu-privacy-sources{display:grid;gap:8px}
 .iu-privacy-actions a{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-size:13px;font-weight:850}
 .iu-privacy-checklist span{display:flex;align-items:center;gap:8px;color:var(--iu-slate-600);font-size:13px;font-weight:760;line-height:1.35}
+.iu-privacy-checklist strong{color:#0f172a;font-size:12px}
 .iu-privacy-checklist svg{color:var(--iu-success-500);flex:0 0 auto}
+.iu-privacy-sources a{display:grid;grid-template-columns:18px minmax(0,1fr);gap:2px 8px;align-items:center;padding:10px 11px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-size:13px;font-weight:850}
+.iu-privacy-sources a svg{color:var(--iu-blue-600)}
+.iu-privacy-sources small{grid-column:2;color:var(--iu-slate-500);font-size:11px;font-weight:720}
 .iu-privacy-page .iu-lex-float__panel{width:min(350px,calc(100vw - 28px))}
 
 @media(max-width:1320px){

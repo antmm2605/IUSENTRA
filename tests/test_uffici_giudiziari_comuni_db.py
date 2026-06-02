@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 
-from pct.uffici_competenti import ricerca_uffici_competenti
+from pct.uffici_competenti import normalizza_codici_ufficio_telematico, ricerca_uffici_competenti
 from scripts.audit_uffici_giudiziari_comuni_db import audit
 from scripts.build_uffici_giudiziari_comuni_db import DEFAULT_UFFICI_DB, REQUESTED_KINDS
 from pct.territorio_italia import DEFAULT_TERRITORIO_DB
@@ -20,6 +21,12 @@ def test_audit_associazioni_uffici_giudiziari_100_percento() -> None:
     assert result["coverage_comuni_pct"] == 100.0
     assert result["coverage_associazioni_pct"] == 100.0
     assert set(result["tipologie_richieste_presenti"]) == REQUESTED_KINDS
+    assert result["uffici_unici"] == 1028
+    assert result["codici_ufficio_presenti"] > 0
+    assert result["codici_pst_presenti"] > 0
+    assert result["codici_gl_presenti"] > 0
+    assert result["uffici_solo_istat_sede"] > 0
+    assert result["codici_istat_promossi_a_codice"] == []
 
 
 def test_associazioni_contengono_tutte_le_tipologie_richieste_con_pec_dove_ufficiale() -> None:
@@ -41,6 +48,57 @@ def test_associazioni_contengono_tutte_le_tipologie_richieste_con_pec_dove_uffic
     for kind in REQUESTED_KINDS:
         assert int(by_kind[kind]["total"]) > 0
         assert int(by_kind[kind]["with_pec"]) > 0
+
+
+def test_codici_nazionali_restano_separati_da_istat_sede() -> None:
+    with sqlite3.connect(DEFAULT_UFFICI_DB) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT office_json FROM offices ORDER BY office_id").fetchall()
+
+    assert len(rows) == 1028
+    for row in rows:
+        office = normalizza_codici_ufficio_telematico(json.loads(row["office_json"]))
+        istat = str(office.get("istatCode") or "")
+        if not istat:
+            continue
+        assert str(office.get("codice") or "") != istat
+        assert str(office.get("codiceMinistero") or "") != istat
+        assert str(office.get("codiceGiustiziaLocale") or "") != istat
+
+
+def test_ricerca_taurianova_separa_codici_pst_gl_e_istat_per_uffici_speciali() -> None:
+    result = ricerca_uffici_competenti("Taurianova", includi_speciali=True)
+    offices = {office["name"]: office for office in result["offices"]}
+
+    tribunale = offices["Tribunale di PALMI"]
+    assert tribunale["codice"] == "0910011"
+    assert tribunale["codiceMinistero"] == "0800570094"
+    assert tribunale["codiceGiustiziaLocale"] == "GLRC"
+    assert tribunale["istatCode"] == "18080057"
+
+    assise_appello = offices["Corte di Assise di Appello di REGGIO CALABRIA"]
+    assert assise_appello["kind"] == "assise_appello"
+    assert assise_appello["codice"] in ("", None)
+    assert assise_appello["codiceMinistero"] in ("", None)
+    assert assise_appello["codiceGiustiziaLocale"] in ("", None)
+    assert assise_appello["istatCode"] == "18080063"
+
+    unep = offices["Unep presso il Tribunale di PALMI"]
+    assert unep["kind"] == "unep"
+    assert unep["codice"] == "08005702237"
+    assert unep["codiceMinistero"] == "08005702237"
+    assert unep["codiceGiustiziaLocale"] == "UNRC"
+
+
+def test_unep_distrettuale_non_prende_il_codice_della_corte_appello() -> None:
+    result = ricerca_uffici_competenti("Reggio Calabria", includi_speciali=True)
+    offices = {office["name"]: office for office in result["offices"]}
+    unep_appello = offices["Unep presso la Corte d'Appello di REGGIO CALABRIA"]
+
+    assert unep_appello["kind"] == "unep"
+    assert unep_appello["codice"] == "08006300630"
+    assert unep_appello["codiceMinistero"] == "08006300630"
+    assert unep_appello["codiceGiustiziaLocale"] == "UNRC"
 
 
 def test_ricerca_setteville_usa_comuni_predecessori_e_restituisce_pec_procura_generale() -> None:
@@ -69,6 +127,7 @@ def test_ricerca_palmi_filtra_unep_e_inserisce_solo_recapiti_pec() -> None:
     assert result["offices"]
     assert all(office["kind"] == "unep" for office in result["offices"])
     assert all("giustiziacert.it" in office["pec"] for office in result["offices"])
+    assert any(office["codiceMinistero"] == "08005702237" for office in result["offices"])
 
 
 def test_endpoint_uffici_competenti_usa_codice_istat_del_comune_selezionato() -> None:

@@ -221,6 +221,7 @@ export type WizardCalculationResponse = {
   compenso_base: number
   bonus_telematico: number
   spese_generali: number
+  deontologia: Record<string, unknown> | null
   note: string
   mediazione_odm: Record<string, unknown> | null
   warnings: WizardWarning[]
@@ -307,6 +308,7 @@ const emptyCalculation: WizardCalculationResponse = {
   compenso_base: 0,
   bonus_telematico: 0,
   spese_generali: 0,
+  deontologia: null,
   note: '',
   mediazione_odm: null,
   warnings: [],
@@ -623,6 +625,7 @@ function normaliseCalculation(raw: unknown): WizardCalculationResponse {
     compenso_base: numberValue(payload.compenso_base),
     bonus_telematico: numberValue(payload.bonus_telematico),
     spese_generali: numberValue(payload.spese_generali),
+    deontologia: payload.deontologia ? asRecord(payload.deontologia) : null,
     note: text(payload.note),
     mediazione_odm: payload.mediazione_odm ? asRecord(payload.mediazione_odm) : null,
     warnings: list(payload.warnings).map(warning),

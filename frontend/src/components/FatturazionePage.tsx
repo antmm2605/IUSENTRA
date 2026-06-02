@@ -325,9 +325,46 @@ function WarningPanel({ data }: { data: FatturazionePageData }) {
   )
 }
 
+function SdiWorkflowPanel({ data }: { data: FatturazionePageData }) {
+  if (!data.sdiWorkflow.length && !data.officialSources.length) return null
+  return (
+    <Panel title="Invio e monitoraggio SdI" subtitle={data.sdiChannel.message || data.sdiChannel.label}>
+      <div className="iu-fatt-sdi-panel">
+        <div className="iu-fatt-sdi-channel">
+          <Badge tone={data.sdiChannel.configured ? 'success' : 'warning'}>{data.sdiChannel.label}</Badge>
+          <span>
+            {data.sdiChannel.configured
+              ? 'Invio automatico disponibile solo con la configurazione reale attiva.'
+              : 'Senza canale accreditato o intermediario IUSENTRA prepara XML e registra identificativo/esiti, ma non spedisce al Sistema di Interscambio.'}
+          </span>
+        </div>
+        <div className="iu-fatt-sdi-steps">
+          {data.sdiWorkflow.map((step) => (
+            <article key={step.id}>
+              <Badge tone={step.tone}>{step.label}</Badge>
+              <span>{step.message}</span>
+            </article>
+          ))}
+        </div>
+        {data.officialSources.length ? (
+          <div className="iu-fatt-sdi-sources">
+            {data.officialSources.map((source) => (
+              <a href={source.url} target="_blank" rel="noreferrer" key={source.id}>
+                <FileText size={15}/>
+                <span>{source.label}</span>
+                <small>{source.authority}</small>
+              </a>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </Panel>
+  )
+}
+
 function ContractPanel({ data }: { data: FatturazionePageData }) {
   return (
-    <Panel title="Presidio dati" subtitle="Lettura operativa con proprieta' fiscale governata.">
+    <Panel title="Presidio dati" subtitle="Lettura operativa con proprietà fiscale governata.">
       <div className="iu-fatt-contract">
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
         <span>Calcolo: governato</span>
@@ -370,6 +407,9 @@ function InvoiceRow({
       <div className="iu-fatt-record__amount">
         <strong>{record.amountDisplay || 'Importo non indicato'}</strong>
         <Badge tone={record.stateTone}>{record.stateLabel}</Badge>
+        <Badge tone={record.sdiStateTone}>{record.sdiStateLabel}</Badge>
+        {record.sdiIdentifier ? <small>SdI {record.sdiIdentifier}</small> : null}
+        {record.sdiStatusMessage ? <small>{record.sdiStatusMessage}</small> : null}
         {record.paymentMethod ? <small>{record.paymentMethod}</small> : null}
       </div>
       <div className="iu-fatt-record__actions">
@@ -1403,6 +1443,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         <span>Archivio, indicatori, dettaglio sintetico e azioni di stato usano controlli protetti.</span>
       </section>
       <WarningPanel data={data} />
+      <SdiWorkflowPanel data={data} />
       <MetricGrid data={data} />
       <section className="iu-fatt-grid" aria-label="Sezioni fatturazione">
         {data.sections.map((section) => (
@@ -1545,6 +1586,7 @@ export function FatturazionePage() {
               <span>La pagina raccoglie i dati minimi; creazione, numerazione, validazione, controlli e importi definitivi restano nei servizi dello studio.</span>
             </section>
             <WarningPanel data={data} />
+            <SdiWorkflowPanel data={data} />
             <NewInvoiceForm data={data} form={form} />
             <ContractPanel data={data} />
           </>

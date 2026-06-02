@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import io
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -826,6 +827,29 @@ def test_local_signer_risolve_proxy_pst_cassazione_sul_catalogo_ufficiale():
 
     assert base.endswith("/pda/pycons/GLCC/JPW_CASSCI")
     assert module._pst_namespace_qbuilder(base) == "urn:CONS-CASSCI"
+
+
+def test_local_signer_pdp_usa_catalogo_penale_pubblico_non_codice_sicid():
+    module = _load_local_signer()
+
+    assert module._risolvi_codice_ufficio_pdp_runtime("Corte d'Appello di Reggio di Calabria") == "08006300604"
+    assert module._risolvi_codice_ufficio_pdp_runtime("Tribunale Ordinario - Palmi") == "08005702201"
+    assert module._risolvi_codice_ufficio_pdp_runtime(
+        "Procura Generale della Repubblica presso la Corte d'Appello di Reggio di Calabria"
+    ) == "08006300705"
+
+
+def test_local_signer_catalogo_pst_pubblico_non_usa_uffici_storici_per_nome():
+    module = _load_local_signer()
+
+    assert module._risolvi_ufficio_pst_pubblico("GIUDICE DI PACE - Barra non attivo", sezione="civili") is None
+    assert module._risolvi_ufficio_pst_pubblico("Tribunale Ordinario - Model Office", sezione="penali") is None
+    assert (
+        module._risolvi_ufficio_pst_pubblico("Corte d'Appello di Reggio di Calabria", sezione="penali")[
+            "codice_ufficio"
+        ]
+        == "08006300604"
+    )
 
 
 def test_local_signer_risolve_proxy_pst_da_snapshot_quando_pct_non_e_disponibile():
@@ -2016,6 +2040,7 @@ def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP") == "urn:CONS-SIGP-BE"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI") == "urn:CONS-CASSCI"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/UNMI/JPW_UNEP") == "urn:CONS-UNEP"
 
 
 def test_pst_policy_tabelle_ministeriali_configura_download_per_registro():
@@ -2379,6 +2404,48 @@ def test_qbuilder_sicid_family_usa_tipo_registro_ministeriale_corretto():
         assert '<value name="anno" type="string">2025</value>' in xml
 
 
+def test_qbuilder_cassazione_usa_tabella_ricorsi_e_nrg_reale():
+    module = _load_local_signer()
+
+    casi = {
+        "JPW_CASSCI": ("urn:CONS-CASSCI", "QC_Ricorsi"),
+        "JPW_CASSPE": ("urn:CONS-CASSPE", "QP_Ricorsi"),
+    }
+
+    for servizio, (namespace, servizio_ricorsi) in casi.items():
+        xml = module._soap_ricerca_fascicoli_body(
+            base_url=f"https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/{servizio}",
+            codice_ufficio="80417740588",
+            numero_rg="12756",
+            anno_rg=2026,
+            cf_avvocato="MNTRRT64L01L063H",
+        )
+
+        assert f'<execute xmlns="{namespace}">' in xml
+        assert f"<name>{servizio_ricorsi}</name>" in xml
+        assert '<value name="NRGREALE" type="string">202601275600</value>' in xml
+        assert 'name="NRG" type=' not in xml
+        assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in xml
+
+
+def test_qbuilder_cassazione_ricerca_annuale_usa_periodo_iscrizione():
+    module = _load_local_signer()
+
+    xml = module._soap_ricerca_fascicoli_body(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE",
+        codice_ufficio="80417740588",
+        anno_rg=2026,
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+
+    assert '<execute xmlns="urn:CONS-CASSPE">' in xml
+    assert "<name>QP_Ricorsi</name>" in xml
+    assert '<value name="DATAISCR_DA" type="date">01/01/2026</value>' in xml
+    assert '<value name="DATAISCR_AL" type="date">31/12/2026</value>' in xml
+    assert 'name="numero"' not in xml
+    assert 'name="anno"' not in xml
+
+
 def test_qbuilder_ricerca_per_parte_copre_registri_ministeriali_senza_rg():
     module = _load_local_signer()
 
@@ -2409,6 +2476,18 @@ def test_qbuilder_ricerca_per_parte_copre_registri_ministeriali_senza_rg():
         assert '<value name="codiceFiscale" type="string">MNTGPP94L01G791A</value>' in xml
         assert 'name="numero"' not in xml
         assert 'name="anno"' not in xml
+
+
+def test_qbuilder_cassazione_non_usa_ricerca_per_parte_civile():
+    module = _load_local_signer()
+
+    with pytest.raises(RuntimeError, match="Cassazione"):
+        module._soap_ricerca_fascicoli_body(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE",
+            codice_ufficio="80417740588",
+            nome_parte="Rossi",
+            cf_avvocato="MNTRRT64L01L063H",
+        )
 
 
 def test_qbuilder_siecic_usa_servizi_catalogo_ministeriale():
@@ -2445,6 +2524,65 @@ def test_qbuilder_siecic_usa_servizi_catalogo_ministeriale():
         assert '<value name="annoRuolo" type="integer">2025</value>' in xml
         assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in xml
         assert "<name>DocumentiFascicolo</name>" not in xml
+
+
+def test_qbuilder_siecic_accetta_id_ruolo_jpw_autorizzato():
+    module = _load_local_signer()
+    base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
+
+    xml = module._soap_ricerca_fascicoli_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        id_ruolo_jpw="RUOLO-AUTORIZZATO",
+    )
+
+    assert "<name>InfoFascicolo</name>" in xml
+    assert '<value name="idRuoloJPW" type="string">RUOLO-AUTORIZZATO</value>' in xml
+
+
+def test_richieste_copie_policy_presidia_catalogo_read_only():
+    module = _load_local_signer()
+
+    policy = module._pst_richieste_copie_policy()
+
+    assert policy["qbuilder_namespace"] == "urn:RichiestaCopie-consultazioni-distr"
+    assert policy["wsdl_namespace"] == "urn:RichiestaCopie"
+    assert policy["mode"] == "consultazione_read_only"
+    assert policy["qbuilder_services"] == ["RicercaRichieste", "ProfiloRichiesta"]
+    assert "RichiestaCopia" in policy["qbuilder_classes"]
+    assert "RichiestaCopiaExt" in policy["qbuilder_classes"]
+    assert "ProfiloRichiestaCopia" in policy["qbuilder_classes"]
+    assert "riepilogoRichieste" in policy["qbuilder_classes"]
+    assert set(policy["operations"]) == {
+        "invioRichiesta",
+        "estremiPagamento",
+        "richiestaDocumentazioneFascicolo",
+    }
+
+
+def test_richieste_copie_qbuilder_body_usa_namespace_e_ufficio():
+    module = _load_local_signer()
+
+    xml = module._soap_richieste_copie_qbuilder_body(
+        "RicercaRichieste",
+        [("idRichiesta", "string", "RC-1")],
+        codice_ufficio="0800570094",
+    )
+
+    assert '<execute xmlns="urn:RichiestaCopie-consultazioni-distr">' in xml
+    assert '<ws:InvocationDomain name="JPW" role="AVV" group="0800570094"' in xml
+    assert "<name>RicercaRichieste</name>" in xml
+    assert '<value name="idRichiesta" type="string">RC-1</value>' in xml
+    assert "<orderBy/>" in xml
+
+
+def test_richieste_copie_qbuilder_body_blocca_servizio_non_catalogato():
+    module = _load_local_signer()
+
+    with pytest.raises(RuntimeError, match="richieste copie"):
+        module._soap_richieste_copie_qbuilder_body("ScaricaCopia", [])
 
 
 def test_costruisce_body_legacy_ricerca_esatta_senza_filtri_parte():
@@ -2717,6 +2855,66 @@ def test_parse_qbuilder_siecic_archivio_annuale_conserva_debitore_e_data_udienza
     assert fascicoli[0]["numero_rg"] == "11"
     assert fascicoli[0]["data_udienza"] == "2026-07-15"
     assert fascicoli[0]["parti"] == ["Rossi Mario", "Verdi Anna"]
+
+
+def test_parse_qbuilder_cassazione_penale_ricorso_numero_anno_visibili():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-CASSPE"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="Ricorso"><ns2:property name="NRG" type="string">ID-INTERNO-1</ns2:property><ns2:property name="NRGText" type="string">202601275600</ns2:property><ns2:property name="numeroricorso" type="string">12756/2026</ns2:property><ns2:property name="dataIscrizione" type="date">14/04/2026</ns2:property><ns2:property name="Ricorrente" type="string">Parte Test</ns2:property><ns2:property name="Tipo" type="string">RICORSO ORDINARIO</ns2:property><ns2:property name="Sezione" type="string">PRIMA SEZIONE</ns2:property><ns2:property name="dataUdienza" type="date">09/07/2026</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    fascicoli = module._parse_fascicoli_xml(xml)
+
+    assert len(fascicoli) == 1
+    assert fascicoli[0]["id_fascicolo"] == "ID-INTERNO-1"
+    assert fascicoli[0]["numero_rg"] == "12756"
+    assert fascicoli[0]["anno_rg"] == 2026
+    assert fascicoli[0]["nrg_reale"] == "202601275600"
+    assert fascicoli[0]["numero_ricorso_cassazione"] == "12756/2026"
+    assert fascicoli[0]["ruolo"] == "RICORSO ORDINARIO"
+    assert fascicoli[0]["sezione"] == "PRIMA SEZIONE"
+    assert fascicoli[0]["data_iscrizione"] == "2026-04-14"
+    assert fascicoli[0]["data_udienza"] == "2026-07-09"
+    assert fascicoli[0]["parti"] == ["Parte Test"]
+
+
+def test_parse_qbuilder_richieste_copie_sommario_e_profilo():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:RichiestaCopie-consultazioni-distr"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="RichiestaCopia"><ns2:property name="IDRICHIESTA" type="string">RC-1</ns2:property><ns2:property name="NOMERICHIEDENTE" type="string">Mario</ns2:property><ns2:property name="COGNOMERICHIEDENTE" type="string">Rossi</ns2:property><ns2:property name="CODICEFISCALE" type="string">RSSMRA80A01H501U</ns2:property><ns2:property name="REGISTRO" type="string">SICID</ns2:property><ns2:property name="NUMERORUOLO" type="string">000274</ns2:property><ns2:property name="ANNORUOLO" type="integer">2026</ns2:property><ns2:property name="DATARICHIESTA" type="date">02/06/2026 10:15:00.000</ns2:property><ns2:property name="DATADISPONIBILITA" type="date">03/06/2026</ns2:property><ns2:property name="FORMATOCOPIE" type="string">Digitale</ns2:property><ns2:property name="TIPOCOPIE" type="string">Semplice</ns2:property><ns2:property name="URGENTE" type="string">sì</ns2:property><ns2:property name="STATORICHIESTA" type="string">Disponibile</ns2:property><ns2:property name="TIPOPAGAMENTO" type="string">Telematico</ns2:property><ns2:property name="IMPORTO" type="string">16.00</ns2:property><ns2:property name="UFFICIO" type="string">Tribunale ordinario</ns2:property><ns2:property name="PROCURA" type="string">si</ns2:property><ns2:subRows class="SommarioContenuto"><ns2:row><ns2:property name="IDDOCUMENTO" type="string">DOC-1</ns2:property><ns2:property name="IDDOCUMENTOPRINCIPALE" type="string">DOC-MAIN</ns2:property><ns2:property name="REGISTRO" type="string">SICID</ns2:property><ns2:property name="ANNO" type="integer">2026</ns2:property><ns2:property name="NUMERO" type="string">000274</ns2:property><ns2:property name="TIPODOCUMENTO" type="string">Sentenza</ns2:property><ns2:property name="TIPOMIME" type="string">application/pdf</ns2:property><ns2:property name="DATADOCUMENTO" type="date">01/06/2026</ns2:property><ns2:property name="NUMEROCOPIE" type="integer">1</ns2:property><ns2:property name="USOCOPIE" type="string">Studio</ns2:property><ns2:property name="NOMEFILE" type="string">sentenza.pdf</ns2:property></ns2:row></ns2:subRows></ns2:row><ns2:row class="ProfiloRichiestaCopia"><ns2:property name="IDRICHIESTA" type="string">RC-2</ns2:property><ns2:property name="RICHIEDENTE" type="string">Studio Legale Verdi</ns2:property><ns2:property name="REGISTRO" type="string">SIGP</ns2:property><ns2:property name="NUMERO" type="string">2962</ns2:property><ns2:property name="ANNO" type="integer">2023</ns2:property><ns2:property name="DATAEVASIONE" type="date">05/06/2026</ns2:property><ns2:property name="STATO" type="string">Evasa</ns2:property><ns2:subRows class="ContenutoRichiestaCopia"><ns2:row><ns2:property name="idDocumento" type="string">GDP-DOC-1</ns2:property><ns2:property name="tipoDocumento" type="string">Verbale</ns2:property><ns2:property name="nomeFile" type="string">verbale.pdf</ns2:property></ns2:row></ns2:subRows></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    richieste = module._parse_richieste_copie_xml(xml)
+
+    assert len(richieste) == 2
+    assert richieste[0]["id_richiesta"] == "RC-1"
+    assert richieste[0]["richiedente"] == "Mario Rossi"
+    assert richieste[0]["id_richiedente"] == "RSSMRA80A01H501U"
+    assert richieste[0]["numero_rg"] == "274"
+    assert richieste[0]["anno_rg"] == 2026
+    assert richieste[0]["data_richiesta"] == "2026-06-02"
+    assert richieste[0]["data_disponibilita"] == "2026-06-03"
+    assert richieste[0]["urgente"] is True
+    assert richieste[0]["procura"] is True
+    assert richieste[0]["contenuti"][0]["id_documento"] == "DOC-1"
+    assert richieste[0]["contenuti"][0]["numero"] == "274"
+    assert richieste[0]["contenuti"][0]["data_documento"] == "2026-06-01"
+    assert richieste[0]["contenuti"][0]["nome_file"] == "sentenza.pdf"
+    assert richieste[1]["id_richiesta"] == "RC-2"
+    assert richieste[1]["richiedente"] == "Studio Legale Verdi"
+    assert richieste[1]["registro"] == "SIGP"
+    assert richieste[1]["numero_rg"] == "2962"
+    assert richieste[1]["anno_rg"] == 2023
+    assert richieste[1]["data_evasione"] == "2026-06-05"
+    assert richieste[1]["contenuti"][0]["id_documento"] == "GDP-DOC-1"
 
 
 def test_parse_qbuilder_documenti_xml():
@@ -3585,6 +3783,38 @@ def test_download_registro_uffici_local_signer_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert '"uffici"' in body
     assert '"0530010"' in body
+
+
+def test_download_catalogo_pst_pubblico_local_signer_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/download/uffici-pst-pubblici")
+
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    assert "uffici_pst_pubblici.json" in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert '"civili"' in body
+    assert '"penali"' in body
+    assert '"08006300604"' in body
+
+
+def test_catalogo_pst_pubblico_mantiene_link_dettaglio_ministeriali():
+    root = Path(__file__).resolve().parents[1]
+    data = json.loads((root / "pct" / "data" / "uffici_pst_pubblici.json").read_text(encoding="utf-8"))
+    hrefs = [
+        str(row.get("href") or "")
+        for section in ("civili", "penali")
+        for row in data.get("uffici", {}).get(section, [])
+        if row.get("href")
+    ]
+
+    assert hrefs
+    assert not any("¤" in href for href in hrefs)
+    assert any("currentFrame=8" in href for href in hrefs)
+    assert any("codiceUfficio=08006300604" in href for href in hrefs)
 
 
 def test_download_visible_signature_local_signer_e_pubblico(tmp_path):
@@ -6798,7 +7028,7 @@ def test_pat_documenti_local_signer_browser_assistito_se_wsdl_disabilitato():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
     assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
-    assert captured["payload"]["portale_url"] == "https://www.giustizia-amministrativa.it/portale-avvocato"
+    assert captured["payload"]["portale_url"] == "https://pe.prod.cloud.giustizia-amministrativa.it"
 
 
 def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():

@@ -1,8 +1,10 @@
 ﻿"""
 pct/config_studio.py — Configurazione persistente dello studio legale.
 
-Salva tutte le impostazioni in un singolo file JSON:
+Salva tutte le impostazioni nel file JSON canonico dello studio:
   /data/config/studio.json  (o percorso configurabile)
+Il runtime React mantiene anche un mirror strutturato SQLite/PostgreSQL
+tenant-aware tramite la tabella `settings_config`.
 
 Le password sono cifrate con Fernet (AES-128-CBC) derivando la chiave da
 PCT_SECRET_KEY. Se la variabile non è impostata i valori vengono salvati
@@ -39,8 +41,10 @@ _CAMPI_CIFRATI: List[tuple[str, str]] = [
     ("firma",     "key_pem_password"),
     ("smtp",      "password"),
     ("whatsapp",  "twilio_token"),
+    ("sdi",       "password"),
     ("support_remote", "turn_shared_secret"),
 ]
+CONFIG_STUDIO_SECRET_FIELDS: tuple[tuple[str, str], ...] = tuple(_CAMPI_CIFRATI)
 DEFAULT_SUPPORT_STUN_URLS: List[str] = ["stun:stun.l.google.com:19302"]
 
 
@@ -85,6 +89,19 @@ def _applica_cifratura(d: Dict[str, Any], f, cifra: bool) -> Dict[str, Any]:
         if sezione in d and campo in d[sezione]:
             d[sezione][campo] = fn(d[sezione][campo] or "", f)
     return d
+
+
+def config_studio_to_storage_dict(cfg: "ConfigStudio") -> Dict[str, Any]:
+    """
+    Restituisce il payload persistibile di ConfigStudio.
+
+    La stessa rappresentazione viene usata dal file JSON e dal mirror
+    SQL/PostgreSQL delle Impostazioni, cosi' i campi riservati restano
+    governati dallo stesso profilo Fernet configurato per lo studio.
+    """
+    f = _fernet_instance()
+    d = cfg.to_dict()
+    return _applica_cifratura(d, f, cifra=True)
 
 
 # ──────────────────────────────────────────────────────────── dataclasses
@@ -343,6 +360,38 @@ class ConfigLocalAI:
 
 
 @dataclass
+class ConfigSDI:
+    abilitato: bool = False
+    modalita: str = "manuale"  # manuale | intermediario | canale_accreditato
+    nome_intermediario: str = ""
+    codice_canale: str = ""
+    endpoint_trasmissione: str = ""
+    username: str = ""
+    password: str = ""
+    pec_notifiche: str = ""
+    auto_invio_abilitato: bool = False
+    note: str = ""
+
+    @property
+    def modalita_normalizzata(self) -> str:
+        valore = str(self.modalita or "manuale").strip().lower()
+        if valore in {"manuale", "intermediario", "canale_accreditato"}:
+            return valore
+        return "manuale"
+
+    @property
+    def canale_configurato(self) -> bool:
+        if not self.abilitato or self.modalita_normalizzata == "manuale":
+            return False
+        return bool(
+            self.nome_intermediario
+            or self.codice_canale
+            or self.endpoint_trasmissione
+            or self.username
+        )
+
+
+@dataclass
 class ConfigSupportRemote:
     stun_urls: List[str] = field(default_factory=lambda: list(DEFAULT_SUPPORT_STUN_URLS))
     turn_urls: List[str] = field(default_factory=list)
@@ -361,6 +410,7 @@ class ConfigStudio:
     whatsapp: ConfigWhatsApp = field(default_factory=ConfigWhatsApp)
     scheduler: ConfigScheduler = field(default_factory=ConfigScheduler)
     ai: ConfigLocalAI = field(default_factory=ConfigLocalAI)
+    sdi: ConfigSDI = field(default_factory=ConfigSDI)
     support_remote: ConfigSupportRemote = field(default_factory=ConfigSupportRemote)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -379,6 +429,7 @@ class ConfigStudio:
             whatsapp=_pick(ConfigWhatsApp, d.get("whatsapp", {})),
             scheduler=_pick(ConfigScheduler, d.get("scheduler", {})),
             ai=_pick(ConfigLocalAI, d.get("ai", {})),
+            sdi=_pick(ConfigSDI, d.get("sdi", {})),
             support_remote=_pick(ConfigSupportRemote, d.get("support_remote", {})),
         )
 
@@ -414,9 +465,7 @@ class GestioneConfigStudio:
         return self._da_env()
 
     def _salva(self, cfg: ConfigStudio) -> None:
-        f = _fernet_instance()
-        d = cfg.to_dict()
-        d = _applica_cifratura(d, f, cifra=True)
+        d = config_studio_to_storage_dict(cfg)
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._path.write_text(
             json.dumps(d, ensure_ascii=False, indent=2),
@@ -494,6 +543,18 @@ class GestioneConfigStudio:
                 embed_model=os.getenv("PCT_LOCAL_AI_EMBED_MODEL", ""),
                 keep_alive=os.getenv("PCT_LOCAL_AI_KEEP_ALIVE", "10m"),
                 auto_index_documents=os.getenv("PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS", "1").lower() not in {"0", "false", "no"},
+            ),
+            sdi=ConfigSDI(
+                abilitato=os.getenv("PCT_SDI_ENABLED", "0").lower() not in {"0", "false", "no"},
+                modalita=os.getenv("PCT_SDI_MODALITA", "manuale"),
+                nome_intermediario=os.getenv("PCT_SDI_INTERMEDIARIO", ""),
+                codice_canale=os.getenv("PCT_SDI_CODICE_CANALE", ""),
+                endpoint_trasmissione=os.getenv("PCT_SDI_ENDPOINT", ""),
+                username=os.getenv("PCT_SDI_USERNAME", ""),
+                password=os.getenv("PCT_SDI_PASSWORD", ""),
+                pec_notifiche=os.getenv("PCT_SDI_PEC_NOTIFICHE", ""),
+                auto_invio_abilitato=os.getenv("PCT_SDI_AUTO_INVIO", "0").lower() not in {"0", "false", "no"},
+                note=os.getenv("PCT_SDI_NOTE", ""),
             ),
             support_remote=ConfigSupportRemote(
                 stun_urls=[

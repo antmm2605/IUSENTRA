@@ -66,23 +66,39 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
         anno_rg=2024,
         sub_procedimento="1",
     )
-    ricerca_parte_xml = module._soap_ricerca_fascicoli_body(
-        base_url=base_url,
-        codice_ufficio="0800570094",
-        nome_parte="Montagnese",
-        cf_parte="MNTGPP94L01G791A",
-        cf_avvocato="MNTGPP94L01G791A",
-    )
+    is_cassazione = servizio in {"JPW_CASSCI", "JPW_CASSPE"}
+    ricerca_parte_xml = ""
+    if not is_cassazione:
+        ricerca_parte_xml = module._soap_ricerca_fascicoli_body(
+            base_url=base_url,
+            codice_ufficio="0800570094",
+            nome_parte="Montagnese",
+            cf_parte="MNTGPP94L01G791A",
+            cf_avvocato="MNTGPP94L01G791A",
+        )
 
     assert module._pst_namespace_qbuilder(base_url) == namespace
     assert f'<execute xmlns="{namespace}">' in ricerca_xml
-    assert f'<execute xmlns="{namespace}">' in ricerca_parte_xml
+    if not is_cassazione:
+        assert f'<execute xmlns="{namespace}">' in ricerca_parte_xml
     if servizio in module._PST_SICID_FAMILY_SERVIZI:
         assert module._pst_url_ricerca(base_url).endswith("/JPW_SICID")
         assert module._pst_url_documenti(base_url).endswith("/JPW_SICID")
     else:
         assert module._pst_url_ricerca(base_url).endswith(f"/{servizio}")
-    if servizio == "JPW_SIECIC":
+    if is_cassazione:
+        servizio_ricorsi = "QP_Ricorsi" if servizio == "JPW_CASSPE" else "QC_Ricorsi"
+        assert f"<name>{servizio_ricorsi}</name>" in ricerca_xml
+        assert '<value name="NRGREALE" type="string">202400102500</value>' in ricerca_xml
+        assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in ricerca_xml
+        with pytest.raises(RuntimeError, match="Cassazione"):
+            module._soap_ricerca_fascicoli_body(
+                base_url=base_url,
+                codice_ufficio="0800570094",
+                nome_parte="Montagnese",
+                cf_parte="MNTGPP94L01G791A",
+            )
+    elif servizio == "JPW_SIECIC":
         assert "<name>InfoFascicolo</name>" in ricerca_xml
         assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in ricerca_xml
         assert "<name>RicercaInformazioniFascicoloPerPartiGiudiceDate</name>" in ricerca_parte_xml
@@ -119,6 +135,10 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
         for xml in (ricerca_xml, documenti_xml, profilo_xml, documenti_subproc_xml):
             assert 'name="subProc"' not in xml
             assert 'name="subpro"' not in xml
+    elif is_cassazione:
+        assert '<value name="tipo" type="string">RGN</value>' not in ricerca_xml
+        for xml in (ricerca_xml, documenti_xml, profilo_xml):
+            assert 'name="subpro"' not in xml
     else:
         if servizio == "JPW_SICID":
             assert '<value name="tipo" type="string">RGN</value>' in ricerca_xml
@@ -147,7 +167,7 @@ def test_portali_browser_assist_matrix_url_ufficiali():
     module = _load_local_signer()
     expected = {
         "pdp": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
-        "pat": "https://www.giustizia-amministrativa.it/portale-avvocato",
+        "pat": "https://pe.prod.cloud.giustizia-amministrativa.it",
         "ptt": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
     }
 

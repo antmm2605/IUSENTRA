@@ -7419,12 +7419,16 @@ def preventivi_wizard_create_page():
         gp = get_preventivi()
         id_cliente = form.get("id_cliente", "").strip()
         messages: list[dict[str, str]] = []
-        response_warnings: list[dict[str, str]] = []
+        response_warnings: list[dict[str, str]] = [
+            warning
+            for warning in (calculation.get("warnings") or [])
+            if isinstance(warning, dict)
+        ]
         if _flag_from_form(form, "conferimento_richiesto_senza_accettazione"):
             response_warnings.append(
                 _warning(
                     "conferimento_dopo_accettazione",
-                    "Il conferimento incarico non viene generato finche' il preventivo non risulta accettato dal cliente.",
+                    "Il conferimento incarico non viene generato finché il preventivo non risulta accettato dal cliente.",
                 )
             )
         if not id_cliente:
@@ -7482,7 +7486,7 @@ def preventivi_wizard_create_page():
                     "warnings": [
                         _warning(
                             "calcolo_tabellare_zero",
-                            "La regola tariffaria selezionata richiede un compenso tabellare positivo: il preventivo non viene creato a zero. Usa una voce manuale solo se e' dichiarata come non tabellare.",
+                            "La regola tariffaria selezionata richiede un compenso tabellare positivo: il preventivo non viene creato a zero. Usa una voce manuale solo se è dichiarata come non tabellare.",
                         )
                     ],
                 }

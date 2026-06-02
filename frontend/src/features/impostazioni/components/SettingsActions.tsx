@@ -720,6 +720,31 @@ export function SettingsActions({
     )
   }
 
+  if (section === 'sdi') {
+    const mode = asText(values.modalita)
+    const channelReady = Boolean(values.canale_configurato) || Boolean(values.codice_canale || values.nome_intermediario || values.indirizzo_servizio)
+    const modeLabel = mode === 'canale_accreditato'
+      ? 'Canale accreditato dello studio'
+      : mode === 'intermediario'
+        ? 'Intermediario delegato'
+        : 'Portale o registrazione manuale'
+    return (
+      <div className="iu-settings-actions-panel">
+        <div>
+          <strong>Presidio SdI</strong>
+          <span>{modeLabel}. {channelReady ? 'Dati canale presenti: verifica accordi e ricevute sul servizio reale.' : 'Invio automatico non attivo finché manca un canale reale configurato.'}</span>
+        </div>
+        <Alert className={channelReady ? 'iu-settings-alert is-success' : 'iu-settings-alert is-warning'}>
+          <ShieldCheck />
+          <AlertTitle>{channelReady ? 'Canale da verificare sul servizio reale' : 'Registrazione manuale presidiata'}</AlertTitle>
+          <AlertDescription>
+            IUSENTRA prepara XML FatturaPA e registra identificativo, ricevute ed esiti. La trasmissione al Sistema di Interscambio avviene solo tramite portale, intermediario o canale accreditato configurato dallo studio.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   const tests = section === 'smtp'
     ? [['smtp', 'Verifica invio email'], ['smtp-imap', 'Verifica ricezione email']]
     : [['whatsapp', 'Invia test WhatsApp']]

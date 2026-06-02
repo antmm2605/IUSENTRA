@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pct.clienti import GestioneClienti, TipoCliente
+from pct.economico_context import carica_log_calcolo
 from pct.fascicoli import TipoFascicolo
 from pct.preventivi import StatoPreventivo
 from tests.test_applicazioni import _crea_operatore, _login
@@ -72,6 +73,10 @@ def _calculation_payload(practice: dict, **overrides) -> dict:
             "genera_conferimento": False,
             "apri_fascicolo_guidato": False,
             "informativa_art13_resa": True,
+            "cliente_qualificato_equo_compenso": False,
+            "accordo_predisposto_avvocato": True,
+            "equo_compenso_verificato": False,
+            "informativa_scritta_equo_compenso": False,
         },
     }
     payload.update(overrides)
@@ -279,6 +284,43 @@ def test_preventivo_wizard_react_calcola_tutte_le_voci_area_pratica_aggiunte(tmp
     assert payload["economic"]["totale"] > sum(row["importo"] for row in compensation_rows)
 
 
+def test_preventivo_wizard_react_calcola_presidi_deontologici_da_fonti_cnf(tmp_path: Path):
+    _app_obj, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/preventivi/wizard").get_json()
+    practice = _amministrazione_sostegno(page)
+
+    response = client.post(
+        "/api/v1/ui/preventivi/wizard/calculate",
+        json=_calculation_payload(
+            practice,
+            opzioni_finali={
+                "genera_conferimento": False,
+                "apri_fascicolo_guidato": False,
+                "informativa_art13_resa": False,
+                "cliente_qualificato_equo_compenso": True,
+                "accordo_predisposto_avvocato": True,
+                "equo_compenso_verificato": False,
+                "informativa_scritta_equo_compenso": False,
+            },
+        ),
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    deontologia = payload["deontologia"]
+    codes = {row["code"]: row for row in deontologia["presidi"]}
+    warning_codes = {row["code"] for row in payload["warnings"]}
+    assert codes["art_27_informazione_cliente"]["status"] == "da_documentare"
+    assert codes["art_25bis_equo_compenso"]["status"] == "da_verificare"
+    assert codes["art_25bis_informativa_scritta"]["status"] == "da_documentare"
+    assert "deontologia_equo_compenso_da_verificare" in warning_codes
+    assert "deontologia_informativa_scritta_equo_compenso_da_documentare" in warning_codes
+    assert any(source["code"] == "cdf_art25bis_gazzetta_2026" for source in deontologia["sources"])
+    log = carica_log_calcolo(payload["audit"]["log_calcolo"])
+    assert log["deontologia"]["presidi"] == deontologia["presidi"]
+
+
 def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenziale_e_clausola(tmp_path: Path):
     app, client = _logged_client(tmp_path)
     page = client.get("/api/v1/ui/preventivi/wizard").get_json()
@@ -294,6 +336,15 @@ def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenz
             "email": "laura.potenziale@example.it",
             "telefono": "3331234567",
             "codice_fiscale": "PNTLRA80A41H501Q",
+        },
+        opzioni_finali={
+            "genera_conferimento": False,
+            "apri_fascicolo_guidato": False,
+            "informativa_art13_resa": True,
+            "cliente_qualificato_equo_compenso": True,
+            "accordo_predisposto_avvocato": True,
+            "equo_compenso_verificato": True,
+            "informativa_scritta_equo_compenso": True,
         },
     )
 
@@ -313,6 +364,11 @@ def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenz
     assert preventivo.clausola_controversie_attiva is True
     assert preventivo.clausola_controversie_testo == "Clausola controversie verificata nel wizard React."
     assert any(voce.descrizione == "Voce manuale di verifica" for voce in preventivo.voci)
+    log = carica_log_calcolo(preventivo.log_calcolo)
+    assert log["deontologia"]["cliente_qualificato_equo_compenso"] is True
+    assert {row["code"] for row in log["deontologia"]["presidi"]}.issuperset(
+        {"art_25bis_equo_compenso", "art_25bis_informativa_scritta", "art_27_informazione_cliente"}
+    )
 
 
 def test_preventivo_react_nuovo_risolve_codice_digitato_nell_oggetto(tmp_path: Path):

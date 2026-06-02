@@ -18,9 +18,12 @@ export type PrivacyTreatment = {
   recipients: string
   extraEuTransfer: boolean
   destinationCountry: string
+  transferSafeguards: string
   retention: string
   securityMeasures: string
   processor: string
+  processorRegister: string
+  sourceReference: string
   active: boolean
   notes: string
   createdAt: string
@@ -38,7 +41,26 @@ export type PrivacySummary = {
   extraEu: number
   missingSecurity: number
   missingRetention: number
+  missingLegalBasis: number
+  missingRecipients: number
+  missingSubjects: number
+  missingCategories: number
+  missingTransferSafeguards: number
   warnings: number
+}
+
+export type PrivacyOfficialSource = {
+  id: string
+  authority: string
+  label: string
+  url: string
+  localPath: string
+}
+
+export type PrivacyChecklistItem = {
+  id: string
+  label: string
+  message: string
 }
 
 export type PrivacyRegistroPageData = {
@@ -52,6 +74,12 @@ export type PrivacyRegistroPageData = {
   }
   summary: PrivacySummary
   treatments: PrivacyTreatment[]
+  officialSources: PrivacyOfficialSource[]
+  registerChecklist: PrivacyChecklistItem[]
+  governance: {
+    title: string
+    message: string
+  }
   facets: {
     legalBasis: Array<{ value: string; label: string }>
     status: Array<{ value: string; label: string }>
@@ -80,6 +108,11 @@ const emptySummary: PrivacySummary = {
   extraEu: 0,
   missingSecurity: 0,
   missingRetention: 0,
+  missingLegalBasis: 0,
+  missingRecipients: 0,
+  missingSubjects: 0,
+  missingCategories: 0,
+  missingTransferSafeguards: 0,
   warnings: 0,
 }
 
@@ -94,6 +127,12 @@ export const emptyPrivacyRegistroPage: PrivacyRegistroPageData = {
   },
   summary: emptySummary,
   treatments: [],
+  officialSources: [],
+  registerChecklist: [],
+  governance: {
+    title: 'Presidio GDPR',
+    message: '',
+  },
   facets: {
     legalBasis: [],
     status: [
@@ -172,9 +211,12 @@ function treatmentFromPayload(value: unknown, index: number): PrivacyTreatment {
     recipients: display(item.recipients),
     extraEuTransfer: bool(item.extraEuTransfer),
     destinationCountry: display(item.destinationCountry),
+    transferSafeguards: display(item.transferSafeguards),
     retention: display(item.retention),
     securityMeasures: display(item.securityMeasures),
     processor: display(item.processor),
+    processorRegister: display(item.processorRegister),
+    sourceReference: display(item.sourceReference),
     active: item.active !== false,
     notes: display(item.notes),
     createdAt: text(item.createdAt),
@@ -183,6 +225,26 @@ function treatmentFromPayload(value: unknown, index: number): PrivacyTreatment {
     updatedLabel: display(item.updatedLabel, 'n.d.'),
     riskFlags: Array.isArray(item.riskFlags) ? item.riskFlags.map(riskFlagFromPayload) : [],
     deleteAction: text(item.deleteAction, `/privacy/registro/${encodeURIComponent(id)}/elimina`),
+  }
+}
+
+function officialSourceFromPayload(value: unknown): PrivacyOfficialSource {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, 'fonte'),
+    authority: display(item.authority),
+    label: display(item.label, 'Fonte ufficiale'),
+    url: text(item.url),
+    localPath: text(item.localPath),
+  }
+}
+
+function checklistFromPayload(value: unknown): PrivacyChecklistItem {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, 'presidio'),
+    label: display(item.label, 'Presidio'),
+    message: display(item.message),
   }
 }
 
@@ -201,6 +263,7 @@ function normalisePayload(payload: unknown): PrivacyRegistroPageData {
   const facets = isRecord(payload.facets) ? payload.facets : {}
   const actions = isRecord(payload.actions) ? payload.actions : {}
   const contracts = isRecord(payload.contracts) ? payload.contracts : {}
+  const governance = isRecord(payload.governance) ? payload.governance : {}
   const treatments = Array.isArray(payload.treatments) ? payload.treatments.map(treatmentFromPayload) : []
   return {
     source: text(payload.source, 'repository_reali'),
@@ -218,9 +281,20 @@ function normalisePayload(payload: unknown): PrivacyRegistroPageData {
       extraEu: number(summary.extraEu ?? treatments.filter((item) => item.extraEuTransfer).length),
       missingSecurity: number(summary.missingSecurity ?? treatments.filter((item) => !item.securityMeasures).length),
       missingRetention: number(summary.missingRetention ?? treatments.filter((item) => !item.retention).length),
+      missingLegalBasis: number(summary.missingLegalBasis ?? treatments.filter((item) => !item.legalBasis).length),
+      missingRecipients: number(summary.missingRecipients ?? treatments.filter((item) => !item.recipients).length),
+      missingSubjects: number(summary.missingSubjects ?? treatments.filter((item) => !item.subjects).length),
+      missingCategories: number(summary.missingCategories ?? treatments.filter((item) => !item.dataCategory).length),
+      missingTransferSafeguards: number(summary.missingTransferSafeguards ?? treatments.filter((item) => item.extraEuTransfer && !item.transferSafeguards).length),
       warnings: number(summary.warnings ?? treatments.reduce((acc, item) => acc + item.riskFlags.length, 0)),
     },
     treatments,
+    officialSources: Array.isArray(payload.officialSources) ? payload.officialSources.map(officialSourceFromPayload) : [],
+    registerChecklist: Array.isArray(payload.registerChecklist) ? payload.registerChecklist.map(checklistFromPayload) : [],
+    governance: {
+      title: display(governance.title, emptyPrivacyRegistroPage.governance.title),
+      message: display(governance.message),
+    },
     facets: {
       legalBasis: optionList(facets.legalBasis),
       status: optionList(facets.status).length ? optionList(facets.status) : emptyPrivacyRegistroPage.facets.status,

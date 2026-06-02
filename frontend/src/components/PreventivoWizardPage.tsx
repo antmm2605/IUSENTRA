@@ -68,6 +68,10 @@ type FinalOptions = {
   genera_conferimento: boolean
   apri_fascicolo_guidato: boolean
   informativa_art13_resa: boolean
+  cliente_qualificato_equo_compenso: boolean
+  accordo_predisposto_avvocato: boolean
+  equo_compenso_verificato: boolean
+  informativa_scritta_equo_compenso: boolean
 }
 
 const favoriteStorageKey = 'iusentra.preventivoWizard.favoritePractices'
@@ -94,6 +98,7 @@ const initialOpen: OpenMap = {
   checklist: false,
   logic: false,
   coverage: false,
+  deontologia: false,
 }
 
 function safeStorageRead(key: string): string {
@@ -134,6 +139,16 @@ function wizardReferenceRows(value: unknown): Array<Record<string, unknown>> {
     const label = String(item || '').trim()
     return label ? { title: label } : {}
   }).filter((item) => Object.keys(item).length)
+}
+
+function wizardRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function wizardRecordRows(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.map((item) => wizardRecord(item)).filter((item) => Object.keys(item).length)
+    : []
 }
 
 function wizardComplianceLabel(status: unknown, exact: unknown): string {
@@ -487,6 +502,10 @@ function Sidebar({
   const auditScaglione = calculation?.scaglione || String(audit.scaglione || '')
   const auditReferences = wizardReferenceRows(audit.riferimenti_normativi)
   const auditCodes = wizardStringList(audit.reference_codes)
+  const deontology = wizardRecord(calculation?.deontologia || audit.deontologia)
+  const deontologyPresidi = wizardRecordRows(deontology.presidi)
+  const deontologyWarnings = wizardRecordRows(deontology.warnings)
+  const deontologyStatus = String(deontology.status || '')
   const refs = practice?.normative_references.length ? practice.normative_references : []
   const checklist = practice?.checklist_iniziale || []
   return (
@@ -503,6 +522,7 @@ function Sidebar({
           practice?.redattore_label || '',
           practice?.label || '',
           calculation ? auditStatus : data.support.audit.aligned ? 'Verifica esatta' : '',
+          deontologyStatus === 'attenzione' ? 'Presidi da completare' : deontologyStatus ? 'Presidi documentati' : '',
           auditTable,
           auditScaglione.includes('Oltre EUR 520.000') ? 'Fascia alta' : '',
         ]} />
@@ -563,6 +583,26 @@ function Sidebar({
               ))}
             </div>
           ) : null}
+        </Accordion>
+        <Accordion id="deontologia" title="Presidi deontologici" badge={deontologyPresidi.length ? String(deontologyPresidi.length) : undefined} open={open.deontologia} onToggle={() => onToggle('deontologia')}>
+          {deontologyPresidi.length ? (
+            <div className="iu-pwiz-side-list">
+              {deontologyPresidi.map((row) => (
+                <article key={String(row.code || row.label)}>
+                  <strong>{String(row.label || row.code || 'Presidio')}</strong>
+                  <span>{String(row.status || 'da verificare')} - {String(row.source || 'fonte registrata')}</span>
+                </article>
+              ))}
+              {deontologyWarnings.map((row) => (
+                <article key={String(row.code || row.message)}>
+                  <strong>Avviso</strong>
+                  <span>{String(row.message || '')}</span>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="iu-pwiz-empty">Esegui il calcolo per registrare i presidi del preventivo.</p>
+          )}
         </Accordion>
         {calculation?.economic ? (
           <dl className="iu-pwiz-side-fiscal">
@@ -657,6 +697,10 @@ export function PreventivoWizardPage() {
     genera_conferimento: false,
     apri_fascicolo_guidato: false,
     informativa_art13_resa: true,
+    cliente_qualificato_equo_compenso: false,
+    accordo_predisposto_avvocato: true,
+    equo_compenso_verificato: false,
+    informativa_scritta_equo_compenso: false,
   })
   const [calculation, setCalculation] = useState<WizardCalculationResponse | null>(null)
 
@@ -976,6 +1020,10 @@ export function PreventivoWizardPage() {
       clausola: clause,
       opzioni_finali: finalOptions,
       informativa_art13_resa: finalOptions.informativa_art13_resa,
+      cliente_qualificato_equo_compenso: finalOptions.cliente_qualificato_equo_compenso,
+      accordo_predisposto_avvocato: finalOptions.accordo_predisposto_avvocato,
+      equo_compenso_verificato: finalOptions.equo_compenso_verificato,
+      informativa_scritta_equo_compenso: finalOptions.informativa_scritta_equo_compenso,
       fonti_tassonomia: practice?.tassonomia_sources || [],
       classificazioni_tassonomiche: extraTaxonomies,
       log_calcolo: String(calculation?.audit?.log_calcolo || ''),
@@ -1421,6 +1469,10 @@ export function PreventivoWizardPage() {
                 <SwitchRow id="gen-conf" checked={finalOptions.genera_conferimento && finalOptions.preventivo_accettato} disabled={!finalOptions.preventivo_accettato} label="Genera il conferimento incarico" help={!finalOptions.preventivo_accettato ? 'Disponibile dopo l’accettazione del preventivo.' : 'Il conferimento viene creato dopo aver registrato l’accettazione.'} onChange={(checked) => setFinalOptions((current) => ({ ...current, genera_conferimento: checked, apri_fascicolo_guidato: checked ? current.apri_fascicolo_guidato : false }))} />
                 <SwitchRow id="open-case" checked={finalOptions.apri_fascicolo_guidato && finalOptions.genera_conferimento && finalOptions.preventivo_accettato} disabled={!finalOptions.preventivo_accettato || !finalOptions.genera_conferimento} label="Poi apri il fascicolo guidato" help={!finalOptions.genera_conferimento || !finalOptions.preventivo_accettato ? 'Disponibile dopo accettazione e conferimento.' : undefined} onChange={(checked) => setFinalOptions((current) => ({ ...current, apri_fascicolo_guidato: checked }))} />
                 <SwitchRow id="art13" checked={finalOptions.informativa_art13_resa} label="Informativa art. 13 resa" onChange={(checked) => setFinalOptions((current) => ({ ...current, informativa_art13_resa: checked }))} />
+                <SwitchRow id="cliente-qualificato-equo" checked={finalOptions.cliente_qualificato_equo_compenso} label="Cliente soggetto a equo compenso" help="PA, banca, assicurazione, grande impresa o altro soggetto qualificato: il wizard registra i presidi art. 25-bis." onChange={(checked) => setFinalOptions((current) => ({ ...current, cliente_qualificato_equo_compenso: checked }))} />
+                <SwitchRow id="accordo-predisposto-studio" checked={finalOptions.accordo_predisposto_avvocato} label="Accordo predisposto dallo studio" onChange={(checked) => setFinalOptions((current) => ({ ...current, accordo_predisposto_avvocato: checked }))} />
+                <SwitchRow id="equo-verificato" checked={finalOptions.equo_compenso_verificato} label="Equo compenso verificato" disabled={!finalOptions.cliente_qualificato_equo_compenso} onChange={(checked) => setFinalOptions((current) => ({ ...current, equo_compenso_verificato: checked }))} />
+                <SwitchRow id="informativa-equo-scritta" checked={finalOptions.informativa_scritta_equo_compenso} label="Avviso scritto documentato" disabled={!finalOptions.cliente_qualificato_equo_compenso || !finalOptions.accordo_predisposto_avvocato} onChange={(checked) => setFinalOptions((current) => ({ ...current, informativa_scritta_equo_compenso: checked }))} />
               </div>
             </Accordion>
           </StepCard>

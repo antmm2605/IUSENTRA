@@ -105,6 +105,7 @@ def test_app_v2_route_flags_cover_dynamic_and_root_paths():
     assert app_v2_route_flag_for_path("/fascicoli/abc") == "routes.appV2.cases.detail"
     assert app_v2_route_flag_for_path("/agenda/nuovo") == "routes.appV2.agenda.create"
     assert app_v2_route_flag_for_path("/impostazioni/calendario") == "routes.appV2.settings.calendarSync"
+    assert app_v2_route_flag_for_path("/impostazioni/sdi") == "routes.appV2.settings.sdi"
 
 
 def test_app_v2_route_defaults_on_and_canonical_off(tmp_path: Path):

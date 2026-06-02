@@ -36,6 +36,7 @@ def register_telematico_local_signer_routes(
     local_signer_windows_offline_ps1_name: Callable[[], str],
     render_local_signer_windows_ps1: Callable[[str], str],
     local_signer_windows_ps1_name: Callable[[], str],
+    local_signer_uffici_pst_pubblici_path: Callable[[], Path],
     local_signer_macos_installer_path: Callable[[], Path],
     local_signer_macos_name: Callable[[], str],
     render_local_signer_macos_command: Callable[[str], str],
@@ -189,6 +190,22 @@ def register_telematico_local_signer_routes(
         except Exception as exc:
             app.logger.exception("Errore download registro uffici Local Signer: %s", exc)
             return _download_error("uffici", exc)
+
+    @app.route("/polisWeb/local-signer/download/uffici-pst-pubblici")
+    def polis_local_signer_download_uffici_pst_pubblici():
+        try:
+            uffici_path = local_signer_uffici_pst_pubblici_path()
+            if not uffici_path.exists():
+                return "Catalogo pubblico uffici PST non trovato", 404
+            return send_file(
+                uffici_path,
+                as_attachment=True,
+                download_name="uffici_pst_pubblici.json",
+                mimetype="application/json",
+            )
+        except Exception as exc:
+            app.logger.exception("Errore download catalogo pubblico uffici PST: %s", exc)
+            return _download_error("uffici-pst-pubblici", exc)
 
     @app.route("/polisWeb/local-signer/download/python-embedded")
     def polis_local_signer_download_python_embedded():

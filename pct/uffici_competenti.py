@@ -25,6 +25,7 @@ from xml.etree import ElementTree
 GIUSTIZIA_MAP_VIEW_URL = "https://www.giustizia.it/giustizia/it/mg_form_view.wp?uid=G_MAP"
 GIUSTIZIA_MAP_FORM_URL = "https://www.giustizia.it/giustizia/it/mg_form_submit.page"
 UFFICI_MINISTERO_DATA = Path(__file__).resolve().parent / "data" / "uffici_ministero.json"
+UFFICI_MINISTERO_EXTRA_DATA = Path(__file__).resolve().parent / "data" / "uffici_ministero_extra.json"
 UFFICI_GIUDIZIARI_COMUNI_DB = Path(__file__).resolve().parent / "data" / "uffici_giudiziari_comuni.sqlite"
 PEC_TERRITORIO_DATA = Path(__file__).resolve().parent / "data" / "pec_territorio.json"
 
@@ -269,18 +270,44 @@ def _load_uffici_ministero() -> tuple[dict[str, Any], ...]:
     try:
         data = json.loads(UFFICI_MINISTERO_DATA.read_text(encoding="utf-8"))
     except Exception:
-        return ()
+        data = {}
     offices = data.get("uffici") if isinstance(data, dict) else {}
-    if not isinstance(offices, dict):
-        return ()
     rows: list[dict[str, Any]] = []
-    for codice_gl, raw in offices.items():
-        if not isinstance(raw, dict):
-            continue
-        row = dict(raw)
-        row["codice_gl"] = str(row.get("codice_gl") or codice_gl)
-        row["kind"] = _ministero_kind(row)
-        rows.append(row)
+    if isinstance(offices, dict):
+        for codice_ufficio, raw in offices.items():
+            if not isinstance(raw, dict):
+                continue
+            row = dict(raw)
+            row["codice"] = str(row.get("codice") or row.get("codice_ufficio") or codice_ufficio)
+            row["codice_ufficio"] = row["codice"]
+            row["codice_gl"] = str(row.get("codice_gl") or "")
+            row["kind"] = _ministero_kind(row)
+            rows.append(row)
+    try:
+        extra_data = json.loads(UFFICI_MINISTERO_EXTRA_DATA.read_text(encoding="utf-8"))
+    except Exception:
+        extra_data = {}
+    extra_offices = extra_data.get("uffici") if isinstance(extra_data, dict) else []
+    if isinstance(extra_offices, list):
+        known_ministero = {
+            str(row.get("codice_ministero") or "").strip()
+            for row in rows
+            if str(row.get("codice_ministero") or "").strip()
+        }
+        for raw in extra_offices:
+            if not isinstance(raw, dict):
+                continue
+            codice_ministero = str(raw.get("codice_ministero") or "").strip()
+            if not codice_ministero or codice_ministero in known_ministero:
+                continue
+            row = dict(raw)
+            row["codice"] = str(row.get("codice") or row.get("codice_ufficio") or codice_ministero)
+            row["codice_ufficio"] = row["codice"]
+            row["codice_gl"] = str(row.get("codice_gl") or "")
+            row["kind"] = _ministero_kind(row)
+            row["aggiunto_da_snapshot_ministeriale"] = True
+            rows.append(row)
+            known_ministero.add(codice_ministero)
     return tuple(rows)
 
 
@@ -293,6 +320,8 @@ def _ministero_kind(row: dict[str, Any]) -> str:
             ]
         )
     ).upper()
+    if "UNEP" in text or "UFFICIO NEP" in text:
+        return "unep"
     if "GIUDICE DI PACE" in text:
         return "giudice_pace"
     if "PROCURA" in text and "MINORENNI" in text:
@@ -330,6 +359,41 @@ def _ministero_match(office: dict[str, Any], city: str) -> dict[str, Any] | None
         return None
     with_pec = [row for row in candidates if _extract_pec_addresses(str(row.get("pec_ministero") or ""))]
     return (with_pec or candidates)[0]
+
+
+def normalizza_codici_ufficio_telematico(office: dict[str, Any]) -> dict[str, Any]:
+    """Separa codice ufficio, codice PST, codice GL e ISTAT sede senza promuovere ISTAT a codice."""
+
+    normalized = dict(office)
+    name = str(normalized.get("name") or normalized.get("nome") or "")
+    if "UNEP" in name.upper() or "U.N.E.P." in name.upper():
+        normalized["kind"] = "unep"
+        normalized["typeLabel"] = "UNEP"
+        normalized["priority"] = 40
+        normalized["primary"] = True
+        normalized["codice"] = ""
+        normalized["codiceMinistero"] = ""
+        normalized["codiceGiustiziaLocale"] = ""
+    city = str(normalized.get("city") or normalized.get("comune") or "")
+    ministero = _ministero_match(normalized, city)
+    if ministero:
+        pec_ministero = _extract_pec_addresses(str(ministero.get("pec_ministero") or ""))
+        if pec_ministero:
+            normalized["pec"] = pec_ministero
+        normalized["codice"] = str(normalized.get("codice") or ministero.get("codice_ufficio") or ministero.get("codice") or "")
+        normalized["codiceMinistero"] = str(normalized.get("codiceMinistero") or ministero.get("codice_ministero") or "")
+        normalized["codiceGiustiziaLocale"] = str(
+            normalized.get("codiceGiustiziaLocale") or ministero.get("codice_gl") or ""
+        )
+    istat = str(normalized.get("istatCode") or "").strip()
+    if istat:
+        for key in ("codice", "codiceMinistero", "codiceGiustiziaLocale"):
+            if str(normalized.get(key) or "").strip() == istat:
+                normalized[key] = ""
+    normalized.setdefault("codice", "")
+    normalized.setdefault("codiceMinistero", "")
+    normalized.setdefault("codiceGiustiziaLocale", "")
+    return normalized
 
 
 @lru_cache(maxsize=1)
@@ -412,6 +476,8 @@ def _children_text(node: ElementTree.Element | None) -> dict[str, str]:
 
 def _office_kind(name: str) -> tuple[str, str, int, bool]:
     upper = name.upper()
+    if "UNEP" in upper or "U.N.E.P." in upper:
+        return "unep", "UNEP", 40, True
     if "GIUDICE DI PACE" in upper:
         return "giudice_pace", "Giudice di Pace", 10, True
     if "PROCURA DELLA REPUBBLICA PRESSO IL TRIBUNALE PER I MINORENNI" in upper:
@@ -424,8 +490,6 @@ def _office_kind(name: str) -> tuple[str, str, int, bool]:
         return "tribunale", "Tribunale", 20, True
     if "PROCURA DELLA REPUBBLICA PRESSO IL TRIBUNALE" in upper:
         return "procura", "Procura", 30, True
-    if "UNEP PRESSO IL TRIBUNALE" in upper or "U.N.E.P. PRESSO IL TRIBUNALE" in upper:
-        return "unep", "UNEP", 40, True
     if (
         "CORTE DI ASSISE DI APPELLO" in upper
         or "CORTE DI ASSISE D'APPELLO" in upper
@@ -518,12 +582,7 @@ def _office_from_node(node: ElementTree.Element, comune: str) -> dict[str, Any]:
         "assistenzaPct": _children_text(node.find("assistenza_pct")),
         "casellario": _children_text(node.find("casellario")),
     }
-    ministero = _ministero_match(office, city)
-    if ministero:
-        if not office["pec"]:
-            office["pec"] = _extract_pec_addresses(str(ministero.get("pec_ministero") or ""))
-        office["codiceMinistero"] = str(ministero.get("codice_ministero") or "")
-        office["codiceGiustiziaLocale"] = str(ministero.get("codice_gl") or "")
+    office = normalizza_codici_ufficio_telematico(office)
     if not office["pec"]:
         pec_territorio = _pec_territorio_match(office)
         if pec_territorio:
@@ -630,7 +689,7 @@ def _ricerca_uffici_da_db(
             pass
     offices_all: list[dict[str, Any]] = []
     for row in rows:
-        office = json.loads(row["office_json"])
+        office = normalizza_codici_ufficio_telematico(json.loads(row["office_json"]))
         derived_from = []
         try:
             derived_from = json.loads(row["derived_from"] or "[]")

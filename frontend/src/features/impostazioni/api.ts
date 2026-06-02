@@ -42,6 +42,7 @@ export const emptySettingsPayload: SettingsPayload = {
   whatsapp: {},
   scheduler: {},
   ai: {},
+  sdi: {},
   pagamenti: {},
   notifiche: {},
   backup: {},

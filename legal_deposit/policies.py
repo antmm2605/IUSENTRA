@@ -72,7 +72,12 @@ _PROFILES: dict[str, ChannelProfile] = {
         validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CADES_BES"),
         defender_channel_note="Profilo PCT civile SICID: non usare per esecuzioni SIECIC o Giudice di Pace.",
-        metadata={"portal": "PCT_PST", "registry": "SICID", "deposit_engine": "pct_sicid"},
+        metadata={
+            "portal": "PCT_PST",
+            "registry": "SICID",
+            "deposit_engine": "pct_sicid",
+            "payment_policy": "pst_pagopa_cu_diritti_spese",
+        },
     ),
     "pct_siecic": ChannelProfile(
         id="pct_siecic",
@@ -93,7 +98,12 @@ _PROFILES: dict[str, ChannelProfile] = {
         validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CADES_BES"),
         defender_channel_note="Profilo PCT SIECIC: esecuzioni, pignoramenti e procedure concorsuali non usano SICID.",
-        metadata={"portal": "PCT_PST", "registry": "SIECIC", "deposit_engine": "pct_siecic"},
+        metadata={
+            "portal": "PCT_PST",
+            "registry": "SIECIC",
+            "deposit_engine": "pct_siecic",
+            "payment_policy": "pst_pagopa_cu_diritti_spese",
+        },
     ),
     "sigp_gdp": ChannelProfile(
         id="sigp_gdp",
@@ -115,7 +125,12 @@ _PROFILES: dict[str, ChannelProfile] = {
         validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
         defender_channel_note="SIGP/GDP e' un profilo autonomo: non usare il PCT civile generico.",
-        metadata={"portal": "SIGP", "registry": "GDP", "deposit_engine": "sigp_gdp"},
+        metadata={
+            "portal": "SIGP",
+            "registry": "GDP",
+            "deposit_engine": "sigp_gdp",
+            "payment_policy": "pst_pagopa_cu_diritti_spese",
+        },
     ),
     "unep": ChannelProfile(
         id="unep",
@@ -133,7 +148,13 @@ _PROFILES: dict[str, ChannelProfile] = {
         validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
         defender_channel_note="UNEP prepara richiesta o istanza: non genera automaticamente una relata L. 53/1994.",
-        metadata={"portal": "UNEP", "registry": "UNEP", "deposit_engine": "unep"},
+        metadata={
+            "portal": "UNEP",
+            "registry": "UNEP",
+            "deposit_engine": "unep",
+            "payment_policy": "pst_pagopa_cu_diritti_spese",
+            "requires_pagopa_enabled_office": True,
+        },
     ),
     "pdp_penale": ChannelProfile(
         id="pdp_penale",
@@ -198,7 +219,7 @@ _PROFILES: dict[str, ChannelProfile] = {
         xml_schema_name="SIGA/PAT",
         requires_pdfa=True,
         requires_cades=False,
-        requires_pades=False,
+        requires_pades=True,
         max_total_size_mb=500,
         max_single_file_size_mb=50,
         max_filename_length=100,
@@ -207,12 +228,24 @@ _PROFILES: dict[str, ChannelProfile] = {
         package_kind="portal_upload",
         xml_filename="metadati_pat.xml",
         accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
-        accepted_signature_formats=("PADES", "CADES_BES"),
+        accepted_signature_formats=("PADES",),
         receipt_types=("protocollo", "ricevuta_portale", "esito_segreteria"),
         validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
-        signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
-        defender_channel_note="PAT/SIGA richiede profilo dedicato: il gestionale prepara e guida, senza fingere automazione non disponibile.",
-        metadata={"portal": "PAT", "registry": "PAT", "deposit_engine": "pat_siga"},
+        signature_policy=SignaturePolicy(target="MAIN_ACT", format="PADES"),
+        defender_channel_note=(
+            "PAT/SIGA richiede profilo dedicato: il gestionale prepara e guida, senza fingere "
+            "automazione non disponibile. Il modulo/atto principale deve essere PAdES secondo fonte ufficiale."
+        ),
+        metadata={
+            "portal": "PAT",
+            "registry": "PAT",
+            "deposit_engine": "pat_siga",
+            "official_source": "https://www.giustizia-amministrativa.it/web/guest/portale-avvocato",
+            "official_operational_portal": "https://pe.prod.cloud.giustizia-amministrativa.it",
+            "main_act_signature_format": "PADES",
+            "pec_registry": "RegIndE",
+            "payment_policy": "pat_f24_elide_contributo_unificato",
+        },
     ),
     "ptt_sigit": ChannelProfile(
         id="ptt_sigit",
@@ -234,7 +267,12 @@ _PROFILES: dict[str, ChannelProfile] = {
         validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename", "ptt_limits"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
         defender_channel_note="PTT/SIGIT e' trattato come canale tributario autonomo con upload guidato e riconciliazione ricevute.",
-        metadata={"portal": "PTT", "registry": "SIGIT", "deposit_engine": "ptt_sigit"},
+        metadata={
+            "portal": "PTT",
+            "registry": "SIGIT",
+            "deposit_engine": "ptt_sigit",
+            "payment_policy": "ptt_cut_pagopa",
+        },
     ),
     "upload_manuale_guidato": ChannelProfile(
         id="upload_manuale_guidato",

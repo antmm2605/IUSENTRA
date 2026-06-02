@@ -115,6 +115,7 @@ def percorsi(tmp_path):
         "notifiche": str(base / "notifiche.json"),
         "backup": str(base / "backup" / "registro.json"),
         "search_index": str(base / "search.db"),
+        "impostazioni": str(base / "config" / "studio.json"),
     }
 
     _scrivi_json(Path(paths["clienti"]), clienti)
@@ -128,6 +129,19 @@ def percorsi(tmp_path):
     _scrivi_json(Path(paths["notifiche"]), notifiche)
     _scrivi_json(Path(paths["backup"]), backup_registro)
     _scrivi_json(Path(paths["backup"]).with_name("config.json"), backup_config)
+    _scrivi_json(
+        Path(paths["impostazioni"]),
+        {
+            "studio": {"nome": "Studio Test", "avvocato": "Avv. Test"},
+            "sdi": {
+                "abilitato": True,
+                "modalita": "intermediario",
+                "nome_intermediario": "Intermediario FatturaPA",
+                "codice_canale": "ABC1234",
+                "pec_notifiche": "sdi@pec.example.it",
+            },
+        },
+    )
 
     idx = IndiceRicerca(paths["search_index"])
     idx.indicizza(
@@ -493,6 +507,7 @@ def test_migra_verso_sqlite_tabelle(db, tmp_path):
     assert "search_documenti" in tables
     assert "search_meta_indice" in tables
     assert "search_ocr_cache" in tables
+    assert "settings_config" in tables
 
 
 def test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi(db, tmp_path):
@@ -503,6 +518,7 @@ def test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi(db, tmp_path):
     assert risultato.record_migrati.get("backup", 0) == 1
     assert risultato.record_migrati.get("backup_config", 0) >= 1
     assert risultato.record_migrati.get("search_index", 0) == 1
+    assert risultato.record_migrati.get("impostazioni", 0) >= 10
 
     conn = sqlite3.connect(dest)
     counts = conn.execute(
@@ -513,6 +529,7 @@ def test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi(db, tmp_path):
             (SELECT COUNT(*) FROM notifiche_log),
             (SELECT COUNT(*) FROM backup_records),
             (SELECT COUNT(*) FROM backup_config),
+            (SELECT COUNT(*) FROM settings_config),
             (SELECT COUNT(*) FROM search_documenti),
             (SELECT COUNT(*) FROM search_meta_indice),
             (SELECT COUNT(*) FROM search_ocr_cache)
@@ -522,7 +539,9 @@ def test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi(db, tmp_path):
 
     assert counts is not None
     assert counts[0] >= 11
-    assert counts[1:] == (1, 1, 1, 4, 1, 1, 1)
+    assert counts[1:5] == (1, 1, 1, 4)
+    assert counts[5] >= 10
+    assert counts[6:] == (1, 1, 1)
 
 
 def test_migra_verso_sqlite_migra_moduli_json_estesi(tmp_path):
@@ -601,6 +620,20 @@ def test_schema_moduli_json_records_presente_per_sqlite_e_postgresql():
         assert "CREATE TABLE IF NOT EXISTS moduli_json_records" in script
         assert "FOREIGN KEY (modulo) REFERENCES moduli_dati(nome) ON DELETE CASCADE" in script
         assert "idx_moduli_json_records_modulo" in script
+
+
+def test_schema_settings_config_presente_per_sqlite_e_postgresql():
+    root = Path(__file__).resolve().parents[1]
+    sqlite_sql = (root / "pct" / "sql" / "20260602_impostazioni_config.sql").read_text(encoding="utf-8")
+    postgres_sql = (
+        root / "pct" / "sql" / "20260602_impostazioni_config_postgres.sql"
+    ).read_text(encoding="utf-8")
+
+    for script in (sqlite_sql, postgres_sql):
+        assert "CREATE TABLE IF NOT EXISTS settings_config" in script
+        assert "secret_fields_json" in script
+        assert "dati_json" in script
+        assert "idx_settings_config_updated" in script
 
 
 def test_migra_verso_sqlite_crea_base_strutturale_procedurale_e_forense(db, tmp_path):

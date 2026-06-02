@@ -1,0 +1,539 @@
+{
+  "version": "2026-06-02",
+  "consulted_at": "2026-06-02",
+  "purpose": "Registro strutturato delle fonti ufficiali salvate per telematico, spese di giustizia, contributo unificato, pagamenti e deontologia forense.",
+  "base_dir": "docs/specs/ministero/fonti_ufficiali/2026-06-02",
+  "principle": "Ogni regola critica deve indicare fonte ufficiale, file locale salvato, regola estratta, modulo software, test e limite operativo.",
+  "source_files": [
+    {
+      "id": "dpr_115_art13_def",
+      "authority": "Dipartimento Giustizia Tributaria / banca dati normativa",
+      "official_url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+13&codiceOrdinamento=0000000000000130000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B79FB509F-FF10-413B-9949-D26DACEF6AAE%7D",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/dpr-115-2002-art-13-contributo-unificato.pdf",
+      "sha256_short": "BA392D917C45F0B3",
+      "topics": ["contributo_unificato", "spese_giustizia"]
+    },
+    {
+      "id": "normattiva_dpr_115",
+      "authority": "Normattiva",
+      "official_url": "https://www.normattiva.it/eli/id/2002/06/15/002G0139/CONSOLIDATED/20241015",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/normattiva-dpr-115-2002.html",
+      "sha256_short": "353327CCE69AF454",
+      "topics": ["contributo_unificato", "normativa_vigente"]
+    },
+    {
+      "id": "pst_services",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/services.page",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-services.html",
+      "sha256_short": "C9AEF8166E446475",
+      "topics": ["pst", "servizi"]
+    },
+    {
+      "id": "pst_documentation",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/documentation.page",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-documentation.html",
+      "sha256_short": "1E756300F78872D4",
+      "topics": ["pst", "documentazione"]
+    },
+    {
+      "id": "pst_download",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/download.page",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-download.html",
+      "sha256_short": "76BFF0D1ED6E2E25",
+      "topics": ["pst", "download", "xsd"]
+    },
+    {
+      "id": "pst_malfunzionamenti",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/malfunzionamenti.page",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-malfunzionamenti.html",
+      "sha256_short": "CE1F917B026B6624",
+      "topics": ["pst", "indisponibilita"]
+    },
+    {
+      "id": "pst_uffici_civili",
+      "authority": "PST Giustizia",
+      "official_url": "https://servizipst.giustizia.it/PST/it/pst_2_4.wp?ufficioSelect=giudiziari&distretto=&localita=&tipoUfficio=&action%3Asearch=ricerca",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-uffici-giudiziari-civili.html",
+      "sha256_short": "7EA1A35A4C8E5DB1",
+      "topics": ["pst", "uffici_giudiziari", "civile"]
+    },
+    {
+      "id": "pst_uffici_penali",
+      "authority": "PST Giustizia",
+      "official_url": "https://servizipst.giustizia.it/PST/it/pst_2_4.wp?ufficioSelect=penali&distretto=&localita=&tipoUfficio=&action%3Asearch=ricerca",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-uffici-giudiziari-penali.html",
+      "sha256_short": "63EBABA449279071",
+      "topics": ["pst", "uffici_giudiziari", "penale"]
+    },
+    {
+      "id": "pst_servizi_web_v169",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-servizi-web-v169.html",
+      "sha256_short": "BDA9D2CCB31232F0",
+      "topics": ["pst", "polisweb", "wsdl"]
+    },
+    {
+      "id": "pst_pdp_penale",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC2786",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-pdp-penale.html",
+      "sha256_short": "655D0696647AFBDC",
+      "topics": ["pdp", "penale"]
+    },
+    {
+      "id": "pst_cassazione_xsd",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4671",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-cassazione-xsd.html",
+      "sha256_short": "85D4A66C34AAB8CA",
+      "topics": ["cassazione", "xsd"]
+    },
+    {
+      "id": "pst_sigp_xsd",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3199",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-sigp-xsd.html",
+      "sha256_short": "F720FCD82B0262ED",
+      "topics": ["sigp", "giudice_pace", "xsd"]
+    },
+    {
+      "id": "pst_unep_codici",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4082",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-unep-codici.html",
+      "sha256_short": "0C488B48FF37DFFB",
+      "topics": ["unep", "codici_ufficio"]
+    },
+    {
+      "id": "pst_unep_xsd",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3136",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-unep-xsd.html",
+      "sha256_short": "E284EFDC677DDBA5",
+      "topics": ["unep", "xsd"]
+    },
+    {
+      "id": "pst_certificati_proxy",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC709",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-certificati-proxy.html",
+      "sha256_short": "E357A9B9B3E0C0A8",
+      "topics": ["pst", "certificati", "proxy"]
+    },
+    {
+      "id": "pst_pagamenti_scheda",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/dettaglio_schede_tematiche.page?contentId=ACC433&modelId=12",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-pagamenti-scheda.html",
+      "sha256_short": "A90BCB8679BC17AF",
+      "topics": ["pagamenti", "pct", "pst"]
+    },
+    {
+      "id": "pst_pagamenti_wisp",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3099",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-pagamenti-wisp.html",
+      "sha256_short": "700A54E4E0F5F553",
+      "topics": ["pagamenti", "pct", "pst"]
+    },
+    {
+      "id": "pst_webservices_pagamenti",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3076",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-webservices-pagamenti.html",
+      "sha256_short": "8A397EF6A4B64F13",
+      "topics": ["pagamenti", "web_services"]
+    },
+    {
+      "id": "pst_pagopa_pubblico",
+      "authority": "PST Giustizia",
+      "official_url": "https://servizipst.giustizia.it/PST/it/pagopa.wp",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-pagopa-pubblico.html",
+      "sha256_short": "FC303D81BFD09558",
+      "topics": ["pagamenti", "pagopa"]
+    },
+    {
+      "id": "pst_vademecum_pagamenti",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/resources/cms/documents/PagTel_Vademecum_unico.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-vademecum-pagamenti.pdf",
+      "sha256_short": "D271791A602D37FE",
+      "topics": ["pagamenti", "pct"]
+    },
+    {
+      "id": "pst_flussi_pagamento_v63",
+      "authority": "PST Giustizia",
+      "official_url": "https://pst.giustizia.it/PST/resources/cms/documents/PDA__Flussi_pagamento_telematico_tramite_PST_vers._6.3.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pst-flussi-pagamento-pst-6-3.pdf",
+      "sha256_short": "1ED295493C206E37",
+      "topics": ["pagamenti", "rt_xml", "pagopa"]
+    },
+    {
+      "id": "giustizia_map",
+      "authority": "Ministero della Giustizia",
+      "official_url": "https://www.giustizia.it/giustizia/it/mg_form_view.page?uid=G_MAP",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/giustizia-map-uffici-comune.html",
+      "sha256_short": "4D5017433A4F978A",
+      "topics": ["competenza_territoriale", "uffici_per_comune"]
+    },
+    {
+      "id": "pat_portale_avvocato",
+      "authority": "Giustizia Amministrativa",
+      "official_url": "https://www.giustizia-amministrativa.it/web/guest/portale-avvocato",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pat-portale-avvocato.html",
+      "sha256_short": "CA861DD255231391",
+      "topics": ["pat", "siga"]
+    },
+    {
+      "id": "pat_processo_amministrativo",
+      "authority": "Giustizia Amministrativa",
+      "official_url": "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pat-processo-amministrativo-telematico.html",
+      "sha256_short": "A7EC69A8E8667CE5",
+      "topics": ["pat", "processo_amministrativo_telematico"]
+    },
+    {
+      "id": "pat_faq",
+      "authority": "Giustizia Amministrativa",
+      "official_url": "https://www.giustizia-amministrativa.it/faq-nuovo-portale",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pat-faq-nuovo-portale.html",
+      "sha256_short": "7D50A212E82A03E4",
+      "topics": ["pat", "faq"]
+    },
+    {
+      "id": "pat_f24_elide",
+      "authority": "Giustizia Amministrativa",
+      "official_url": "https://www.giustizia-amministrativa.it/documents/20142/0/nsiga_4464814.pdf/c42a271a-c265-a3e1-d248-59c7be3d5f58?t=1611836199000",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/pat-f24-elide.pdf",
+      "sha256_short": "30F4371F926A56C0",
+      "topics": ["pat", "pagamenti", "f24_elide"]
+    },
+    {
+      "id": "ptt_assistenza",
+      "authority": "Dipartimento Giustizia Tributaria",
+      "official_url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/most-viewed",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/ptt-assistenza-most-viewed.html",
+      "sha256_short": "2AF085D8B1E37B1F",
+      "topics": ["ptt", "assistenza"]
+    },
+    {
+      "id": "ptt_processo",
+      "authority": "Dipartimento Giustizia Tributaria",
+      "official_url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3016",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/ptt-processo-tributario-articolo-3016.html",
+      "sha256_short": "2AF085D8B1E37B1F",
+      "topics": ["ptt", "deposito"]
+    },
+    {
+      "id": "ptt_pagamenti",
+      "authority": "Dipartimento Giustizia Tributaria",
+      "official_url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/articolo-detail?urlName=DF-GiustiziaTributaria-3059",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/ptt-pagamenti-articolo-3059.html",
+      "sha256_short": "2AF085D8B1E37B1F",
+      "topics": ["ptt", "pagamenti"]
+    },
+    {
+      "id": "ptt_area_video",
+      "authority": "Dipartimento Giustizia Tributaria",
+      "official_url": "https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/area-video",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/ptt-area-video.html",
+      "sha256_short": "2AF085D8B1E37B1F",
+      "topics": ["ptt", "formati", "firma_digitale"]
+    },
+    {
+      "id": "ptt_cut_circolare_2019",
+      "authority": "MEF",
+      "official_url": "https://www.mef.gov.it/ufficio-stampa/comunicati/2019/documenti/prot._5764-19_Circolare_PTT_4-7-2019.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/ptt-circolare-cut-2019.pdf",
+      "sha256_short": "26BD57150F65A4CF",
+      "topics": ["ptt", "cut", "pagopa"]
+    },
+    {
+      "id": "sigit_home",
+      "authority": "Dipartimento Giustizia Tributaria",
+      "official_url": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/sigit-home.html",
+      "sha256_short": "D0901A96240798CC",
+      "topics": ["ptt", "sigit"]
+    },
+    {
+      "id": "cnf_codice_deontologico",
+      "authority": "Consiglio Nazionale Forense",
+      "official_url": "https://codicedeontologico-cnf.it/",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/cnf-codice-deontologico-home.html",
+      "sha256_short": "E98CACBB4F8BA949",
+      "topics": ["deontologia_forense"]
+    },
+    {
+      "id": "cnf_art25bis_confronto",
+      "authority": "Consiglio Nazionale Forense",
+      "official_url": "https://codicedeontologico-cnf.it/nuovo-articolo-25-bis-cdf-con-tabella-di-confronto/",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/cnf-cdf-art-25bis-confronto.html",
+      "sha256_short": "890C14E3C4073F9A",
+      "topics": ["deontologia_forense", "equo_compenso"]
+    },
+    {
+      "id": "cnf_art27",
+      "authority": "Consiglio Nazionale Forense",
+      "official_url": "https://codicedeontologico-cnf.it/tag/27-ncdf/",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/cnf-cdf-art-27-tag.html",
+      "sha256_short": "4A00DB0E55D1911B",
+      "topics": ["deontologia_forense", "informativa_cliente"]
+    },
+    {
+      "id": "gazzetta_cdf_art25bis_2026",
+      "authority": "Gazzetta Ufficiale",
+      "official_url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=26A00480&atto.dataPubblicazioneGazzetta=2026-02-05&tipoSerie=serie_generale&tipoVigenza=originario",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/gazzetta-cdf-art-25bis-2026.html",
+      "sha256_short": "2140C6DD417D778C",
+      "topics": ["deontologia_forense", "equo_compenso"]
+    },
+    {
+      "id": "gazzetta_cdf_modifiche_2025",
+      "authority": "Gazzetta Ufficiale",
+      "official_url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=25A04804&atto.dataPubblicazioneGazzetta=2025-09-01&tipoSerie=serie_generale&tipoVigenza=originario",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/gazzetta-cdf-modifiche-2025.html",
+      "sha256_short": "A8625D15210CC8C0",
+      "topics": ["deontologia_forense"]
+    },
+    {
+      "id": "cnf_circolare_1c_2026",
+      "authority": "Consiglio Nazionale Forense",
+      "official_url": "https://www.ordineforense.re.it/wp-content/uploads/2026/04/N.-1-C-2026-Entrata-in-vigore-art.-25-bis-Codice-Deontologico-Forense.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/cnf-circolare-1c-2026-art-25bis.pdf",
+      "sha256_short": "469BCBFDD7B13F6A",
+      "topics": ["deontologia_forense", "equo_compenso"]
+    },
+    {
+      "id": "garante_registro_trattamenti",
+      "authority": "Garante per la protezione dei dati personali",
+      "official_url": "https://www.garanteprivacy.it/registro-delle-attivita-di-trattamento",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-registro-attivita-trattamento.html",
+      "sha256_short": "D81DFFB60CCA88AF",
+      "topics": ["gdpr", "registro_trattamenti", "studio_legale"]
+    },
+    {
+      "id": "garante_istruzioni_registro_trattamenti",
+      "authority": "Garante per la protezione dei dati personali",
+      "official_url": "https://www.garanteprivacy.it/home/docweb/-/docweb-display/docweb/9047529",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-istruzioni-registro-attivita-trattamento-9047529.html",
+      "sha256_short": "83542051772C44BA",
+      "topics": ["gdpr", "registro_trattamenti", "istruzioni_garante"]
+    },
+    {
+      "id": "garante_regolamento_ue_2016_679",
+      "authority": "Garante per la protezione dei dati personali",
+      "official_url": "https://www.garanteprivacy.it/regolamentoue",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-gdpr-regolamento-2016-679.html",
+      "sha256_short": "7E517609F928CBFA",
+      "topics": ["gdpr", "regolamento_ue_2016_679"]
+    },
+    {
+      "id": "garante_testo_regolamento_ue_2016_679",
+      "authority": "Garante per la protezione dei dati personali",
+      "official_url": "https://www.garanteprivacy.it/regolamentoue/il-testo-del-regolamento",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-testo-regolamento-gdpr.html",
+      "sha256_short": "B5FBF6622864A771",
+      "topics": ["gdpr", "testo_regolamento"]
+    },
+    {
+      "id": "garante_regolamento_arricchito_pdf",
+      "authority": "Garante per la protezione dei dati personali",
+      "official_url": "https://www.garanteprivacy.it/documents/10160/0/Regolamento+UE+2016+679+Arricchito.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/garante-regolamento-ue-2016-679-arricchito.pdf",
+      "sha256_short": "16C0BB358414707B",
+      "topics": ["gdpr", "regolamento_ue_2016_679", "pdf"]
+    },
+    {
+      "id": "fatturapa_specifiche_formato",
+      "authority": "FatturaPA",
+      "official_url": "https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.3.1/Specifiche_tecniche_del_formato_FatturaPA_V1.3.1.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-specifiche-formato-v1-3-1.pdf",
+      "sha256_short": "8BF8028E6465094F",
+      "topics": ["fatturapa", "sdi", "xml"]
+    },
+    {
+      "id": "fatturapa_sdiftp_trasmissione",
+      "authority": "FatturaPA",
+      "official_url": "https://www.fatturapa.gov.it/export/documenti/sdi/Specifiche_tecniche_SdIFtp_v4.2.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-sdiftp-specifiche-v4-2.pdf",
+      "sha256_short": "CF9C0B943DC490DC",
+      "topics": ["fatturapa", "sdi", "trasmissione", "canale_accreditato"]
+    },
+    {
+      "id": "fatturapa_sdicoop_trasmissione",
+      "authority": "FatturaPA",
+      "official_url": "https://www.fatturapa.gov.it/export/fatturazione/sdi/ws/trasmissione/v1.1/SDICoop_trasmissione_v1.1.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-sdicoop-trasmissione-v1-1.pdf",
+      "sha256_short": "69A3B6B16ACB9E22",
+      "topics": ["fatturapa", "sdi", "trasmissione", "canale_accreditato"]
+    },
+    {
+      "id": "fatturapa_spcoop_trasmissione",
+      "authority": "FatturaPA",
+      "official_url": "https://www.fatturapa.gov.it/export/fatturazione/sdi/ws/trasmissione/v1.1/SPCoop_trasmissione_v1.1.pdf",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/fatturapa-spcoop-trasmissione-v1-1.pdf",
+      "sha256_short": "D6887E0FF92F6C91",
+      "topics": ["fatturapa", "sdi", "trasmissione", "canale_accreditato"]
+    },
+    {
+      "id": "agenzia_entrate_guida_fatturazione_elettronica",
+      "authority": "Agenzia delle Entrate",
+      "official_url": "https://www.agenziaentrate.gov.it/portale/guida-fatturazione-elettronica",
+      "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/agenzia-entrate-guida-fatturazione-elettronica.html",
+      "sha256_short": "C596E3BAD94E13D1",
+      "topics": ["fatturazione_elettronica", "sdi", "ricevute", "scarto"]
+    }
+  ],
+  "rules": [
+    {
+      "id": "cu_art13_calcolo_base",
+      "source_ids": ["dpr_115_art13_def", "normattiva_dpr_115"],
+      "rule": "Il contributo unificato civile usa gli scaglioni dell'art. 13, comma 1, DPR 115/2002; il valore indeterminabile e il valore non indicato hanno importi propri.",
+      "software_modules": ["pct/normative_tables.py", "pct/strumenti_legali.py"],
+      "tests": ["tests/test_strumenti_legali.py"],
+      "limits": ["Esenzioni e casi speciali non ricavabili dai soli dati inseriti devono restare come avvisi professionali."]
+    },
+    {
+      "id": "cu_art13_riduzioni_50",
+      "source_ids": ["dpr_115_art13_def"],
+      "rule": "Decreto ingiuntivo, lavoro/pubblico impiego e processi speciali libro IV titolo I c.p.c. sono ridotti alla metà; gli altri processi esecutivi sono ridotti alla metà rispetto all'esecuzione immobiliare.",
+      "software_modules": ["pct/strumenti_legali.py"],
+      "tests": ["tests/test_strumenti_legali.py"],
+      "limits": ["La riduzione viene applicata solo alle categorie dichiarate; se la categoria reale non è selezionata il software non può inferirla con certezza."]
+    },
+    {
+      "id": "cu_art13_maggiorazioni",
+      "source_ids": ["dpr_115_art13_def"],
+      "rule": "Impugnazione +50%, Cassazione x2, sezioni specializzate impresa x2, dati obbligatori mancanti +50%.",
+      "software_modules": ["pct/strumenti_legali.py", "pct/applicazioni_runtime.py", "web/templates/strumenti_legali/index.html"],
+      "tests": ["tests/test_strumenti_legali.py"],
+      "limits": ["Il raddoppio sezione impresa viene applicato automaticamente solo al civile ordinario; per altri canali serve verifica puntuale."]
+    },
+    {
+      "id": "cu_art13_importi_speciali",
+      "source_ids": ["dpr_115_art13_def"],
+      "rule": "Art. 13 disciplina importi speciali per ricerca beni ex art. 492-bis, cittadinanza italiana, esecuzioni, opposizione atti esecutivi, procedura fallimentare, amministrativo e tributario.",
+      "software_modules": ["pct/normative_tables.py", "pct/strumenti_legali.py"],
+      "tests": ["tests/test_strumenti_legali.py"],
+      "limits": ["Per cittadinanza italiana il software calcola 600 euro per ciascun ricorrente e non applica automatismi sul grado senza fonte specifica."]
+    },
+    {
+      "id": "pst_uffici_codici_deposito",
+      "source_ids": ["pst_uffici_civili", "pst_uffici_penali", "pst_servizi_web_v169", "pst_documentation"],
+      "rule": "Codici e uffici civili e penali del PST sono cataloghi separati; il codice civile non è intercambiabile con il codice penale/PDP.",
+      "software_modules": ["pct/uffici_giudiziari.py", "pct/uffici_competenti.py", "pct/polisWeb.py", "legal_deposit/policies.py"],
+      "tests": ["tests/test_uffici_giudiziari_comuni_db.py", "tests/test_polisweb.py", "tests/test_local_signer.py"],
+      "limits": ["Le voci storiche o non operative restano consultabili per codice esatto ma non selezionate automaticamente per nome."]
+    },
+    {
+      "id": "pst_schemi_canali",
+      "source_ids": ["pst_pdp_penale", "pst_cassazione_xsd", "pst_sigp_xsd", "pst_unep_codici", "pst_unep_xsd", "pst_download"],
+      "rule": "PDP penale, Cassazione, SIGP e UNEP hanno canali e schemi propri; non devono essere normalizzati come SICID generico.",
+      "software_modules": ["legal_deposit/policies.py", "pct/polisWeb.py", "pct/pec_legal_workflow.py"],
+      "tests": ["tests/test_portali_telematici_matrix.py", "tests/test_pec_legal_workflow.py", "tests/test_local_signer.py"],
+      "limits": ["Dove la fonte pubblica non espone un codice depositabile dedicato, il software deve avvisare e non sostituire il codice."]
+    },
+    {
+      "id": "pst_pagamenti_rt_xml",
+      "source_ids": ["pst_pagamenti_scheda", "pst_pagamenti_wisp", "pst_webservices_pagamenti", "pst_pagopa_pubblico", "pst_vademecum_pagamenti", "pst_flussi_pagamento_v63"],
+      "rule": "Per PCT/PST la prova tecnica del pagamento telematico è RT.xml; il promemoria PDF non sostituisce la RT. Codici governati: CONTRIB, DIRCANC, DIRCOPIA, CONTRBENI, UNPIG, UNNOT.",
+      "software_modules": ["legal_deposit/payment_policies.py", "pct/deposito_guidato.py"],
+      "tests": ["tests/legal_deposit/test_payment_policies.py", "tests/test_deposito_guidato.py"],
+      "limits": ["Il software non fa polling continuo e non considera il promemoria PDF come ricevuta tecnica sostitutiva."]
+    },
+    {
+      "id": "pat_siga_profilo_pagamenti",
+      "source_ids": ["pat_portale_avvocato", "pat_processo_amministrativo", "pat_faq", "pat_f24_elide"],
+      "rule": "PAT/SIGA è canale autonomo; il contributo unificato amministrativo viene tracciato con F24 Elide e quietanza, non con codici ufficio PST.",
+      "software_modules": ["legal_deposit/policies.py", "legal_deposit/payment_policies.py"],
+      "tests": ["tests/legal_deposit/test_penal_deposit_rules.py", "tests/legal_deposit/test_payment_policies.py"],
+      "limits": ["NRG e UID del Portale Avvocato non sono codici ufficio PST."]
+    },
+    {
+      "id": "ptt_sigit_profilo_cut",
+      "source_ids": ["ptt_assistenza", "ptt_processo", "ptt_pagamenti", "ptt_area_video", "ptt_cut_circolare_2019", "sigit_home"],
+      "rule": "PTT/SIGIT è canale autonomo; CUT pagoPA si collega a RGR/RGA da PEC o area personale PTT con abbinamento al ricorso/appello.",
+      "software_modules": ["legal_deposit/policies.py", "legal_deposit/payment_policies.py"],
+      "tests": ["tests/legal_deposit/test_payment_policies.py"],
+      "limits": ["Le pagine assistenza sono dinamiche: il contenuto operativo verificato è documentato negli audit oltre al file raw salvato."]
+    },
+    {
+      "id": "giustizia_map_competenza",
+      "source_ids": ["giustizia_map"],
+      "rule": "Giustizia Map serve per competenza territoriale e uffici per Comune; i codici deposito restano invece quelli dei cataloghi ministeriali PST o dei canali autonomi.",
+      "software_modules": ["pct/uffici_competenti.py", "frontend/src/components/FascicoliPage.tsx"],
+      "tests": ["tests/test_uffici_giudiziari_comuni_db.py"],
+      "limits": ["Una sede territoriale valida non basta per inventare un codice depositabile."]
+    },
+    {
+      "id": "cdf_art25bis_equo_compenso",
+      "source_ids": ["cnf_codice_deontologico", "cnf_art25bis_confronto", "gazzetta_cdf_art25bis_2026", "cnf_circolare_1c_2026"],
+      "rule": "L'art. 25-bis CDF presidia equo compenso nei rapporti con banche, assicurazioni, grandi imprese, PA e società a partecipazione pubblica; se la convenzione è predisposta dall'avvocato serve avviso scritto.",
+      "software_modules": ["pct/strumenti_legali.py", "pct/normative_tables.py"],
+      "tests": ["tests/test_strumenti_legali.py", "tests/test_fonti_ufficiali_registry.py"],
+      "limits": ["Il software segnala e documenta il presidio; la valutazione finale resta professionale e va conservata nel fascicolo."]
+    },
+    {
+      "id": "cdf_art27_informativa_cliente",
+      "source_ids": ["cnf_codice_deontologico", "cnf_art27"],
+      "rule": "L'informazione al cliente deve essere chiara, completa, tempestiva e comprensibile; costi prevedibili e attività necessarie devono essere documentati.",
+      "software_modules": ["pct/strumenti_legali.py"],
+      "tests": ["tests/test_strumenti_legali.py", "tests/test_fonti_ufficiali_registry.py"],
+      "limits": ["La presenza dell'avviso nel software non sostituisce la prova documentale dell'informativa resa allo specifico cliente."]
+    },
+    {
+      "id": "gdpr_art30_registro_trattamenti",
+      "source_ids": ["garante_registro_trattamenti", "garante_regolamento_ue_2016_679", "garante_testo_regolamento_ue_2016_679"],
+      "rule": "Il registro delle attività di trattamento deve contenere finalità, categorie di interessati e dati, destinatari, termini di conservazione e misure di sicurezza; deve restare aggiornato e riflettere i trattamenti effettivi.",
+      "software_modules": ["pct/privacy.py", "web/services/react_privacy_bridge.py", "frontend/src/components/PrivacyRegistroPage.tsx"],
+      "tests": ["tests/test_react_privacy_registry_sources.py", "tests/test_fonti_ufficiali_registry.py"],
+      "limits": ["Il software guida la compilazione e segnala omissioni; la qualificazione finale del trattamento resta a carico dello studio."]
+    },
+    {
+      "id": "gdpr_studio_legale_registro_avvocato",
+      "source_ids": ["garante_registro_trattamenti", "garante_istruzioni_registro_trattamenti"],
+      "rule": "Per lo studio legale il registro GDPR è presidio rilevante quando sono trattati dati giudiziari, dati relativi a condanne/reati o quando l'organizzazione impiega personale o responsabili del trattamento.",
+      "software_modules": ["pct/privacy.py", "web/services/react_privacy_bridge.py", "frontend/src/components/PrivacyRegistroPage.tsx"],
+      "tests": ["tests/test_react_privacy_registry_sources.py", "tests/test_fonti_ufficiali_registry.py"],
+      "limits": ["Il registro non sostituisce informative, nomine, DPIA o altri documenti privacy eventualmente necessari."]
+    },
+    {
+      "id": "fatturapa_sdi_xml_obbligatorio",
+      "source_ids": ["fatturapa_specifiche_formato", "agenzia_entrate_guida_fatturazione_elettronica"],
+      "rule": "La fattura elettronica deve essere in formato XML FatturaPA e trasmessa tramite Sistema di Interscambio; un documento non XML o non transitato da SdI non è trattato come fattura elettronica emessa.",
+      "software_modules": ["pct/fatturazione.py", "web/services/react_fatturazione_bridge.py", "frontend/src/components/FatturazionePage.tsx"],
+      "tests": ["tests/test_fatturazione.py", "tests/test_react_fatturazione_bridge.py", "tests/test_fonti_ufficiali_registry.py"],
+      "limits": ["IUSENTRA prepara e traccia XML/esiti; non sostituisce il portale o l'intermediario se il canale accreditato non è configurato."]
+    },
+    {
+      "id": "fatturapa_sdi_esiti_monitoraggio",
+      "source_ids": ["fatturapa_sdiftp_trasmissione", "fatturapa_sdicoop_trasmissione", "fatturapa_spcoop_trasmissione", "agenzia_entrate_guida_fatturazione_elettronica"],
+      "rule": "Gli esiti SdI devono distinguere invio, consegna, impossibilità di recapito, scarto e decorrenza termini; lo scarto comporta correzione e nuovo invio, mentre consegna/impossibilità tracciano l'emissione secondo le regole SdI.",
+      "software_modules": ["pct/fatturazione.py", "web/services/react_fatturazione_bridge.py", "frontend/src/components/FatturazionePage.tsx"],
+      "tests": ["tests/test_fatturazione.py", "tests/test_react_fatturazione_bridge.py", "tests/test_fonti_ufficiali_registry.py"],
+      "limits": ["Il monitoraggio automatico richiede credenziali/canale reale; in assenza di canale il software registra manualmente identificativo e ricevute."]
+    },
+    {
+      "id": "impostazioni_sdi_canale_configurabile",
+      "source_ids": ["fatturapa_sdiftp_trasmissione", "fatturapa_sdicoop_trasmissione", "agenzia_entrate_guida_fatturazione_elettronica"],
+      "rule": "Nelle Impostazioni lo studio può indicare portale/manuale, intermediario o canale accreditato SdI; l'invio automatico è considerato operativo solo se il canale reale è configurato.",
+      "software_modules": ["pct/config_studio.py", "pct/impostazioni_config_repository.py", "web/services/react_impostazioni_bridge.py", "frontend/src/features/impostazioni/constants.ts"],
+      "tests": ["tests/test_impostazioni_sdi_config.py", "tests/test_fonti_ufficiali_registry.py"],
+      "limits": ["IUSENTRA non crea un canale SdI accreditato; se manca il canale, prepara XML e conserva esiti inseriti dallo studio."]
+    },
+    {
+      "id": "pst_malfunzionamenti_audit",
+      "source_ids": ["pst_malfunzionamenti", "pst_certificati_proxy"],
+      "rule": "Prima di qualificare una prova live fallita come regressione IUSENTRA, l'audit deve considerare malfunzionamenti PST e profilo certificati/proxy.",
+      "software_modules": ["tools/local_signer.py", "scripts/audit_uffici_pst_fonti_ufficiali.py"],
+      "tests": ["tests/test_local_signer.py", "tests/test_build_dist.py"],
+      "limits": ["Nessun PIN, token o sessione portale deve essere registrato nel repository."]
+    }
+  ]
+}

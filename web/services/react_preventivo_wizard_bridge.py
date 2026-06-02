@@ -151,6 +151,126 @@ def _warning(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
 
 
+_DEONTOLOGIA_SOURCES = [
+    {
+        "code": "codice_deontologico_cnf",
+        "label": "Codice Deontologico Forense CNF",
+        "url": "https://codicedeontologico-cnf.it/",
+        "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/cnf-codice-deontologico-home.html",
+    },
+    {
+        "code": "cdf_art25bis_gazzetta_2026",
+        "label": "Art. 25-bis CDF, G.U. 5 febbraio 2026",
+        "url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=26A00480&atto.dataPubblicazioneGazzetta=2026-02-05&tipoSerie=serie_generale&tipoVigenza=originario",
+        "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/gazzetta-cdf-art-25bis-2026.html",
+    },
+    {
+        "code": "cdf_art27_cnf",
+        "label": "Art. 27 CDF, informazione al cliente",
+        "url": "https://codicedeontologico-cnf.it/tag/27-ncdf/",
+        "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/cnf-cdf-art-27-tag.html",
+    },
+]
+
+
+def _final_options(payload: dict[str, Any]) -> dict[str, Any]:
+    final = payload.get("opzioni_finali") if isinstance(payload.get("opzioni_finali"), dict) else {}
+    return {
+        **final,
+        "informativa_art13_resa": payload.get("informativa_art13_resa", final.get("informativa_art13_resa", True)),
+        "cliente_qualificato_equo_compenso": payload.get(
+            "cliente_qualificato_equo_compenso",
+            final.get("cliente_qualificato_equo_compenso", False),
+        ),
+        "accordo_predisposto_avvocato": payload.get(
+            "accordo_predisposto_avvocato",
+            final.get("accordo_predisposto_avvocato", True),
+        ),
+        "equo_compenso_verificato": payload.get(
+            "equo_compenso_verificato",
+            final.get("equo_compenso_verificato", False),
+        ),
+        "informativa_scritta_equo_compenso": payload.get(
+            "informativa_scritta_equo_compenso",
+            final.get("informativa_scritta_equo_compenso", False),
+        ),
+    }
+
+
+def _deontologia_wizard_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    final = _final_options(payload)
+    informativa_art13 = _bool(final.get("informativa_art13_resa"), True)
+    cliente_qualificato = _bool(final.get("cliente_qualificato_equo_compenso"), False)
+    accordo_predisposto = _bool(final.get("accordo_predisposto_avvocato"), True)
+    equo_verificato = _bool(final.get("equo_compenso_verificato"), False)
+    informativa_scritta = _bool(final.get("informativa_scritta_equo_compenso"), False)
+    presidi: list[dict[str, Any]] = [
+        {
+            "code": "art_27_informazione_cliente",
+            "label": "Informazione chiara e completa al cliente",
+            "status": "documentata" if informativa_art13 else "da_documentare",
+            "source": "cdf_art27_cnf",
+            "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/cnf-cdf-art-27-tag.html",
+            "note": "Il wizard registra se l'informativa preventiva è stata resa prima di conferimento e fascicolo.",
+        }
+    ]
+    warnings: list[dict[str, str]] = []
+    if not informativa_art13:
+        warnings.append(
+            _warning(
+                "deontologia_informativa_cliente_da_documentare",
+                "Documenta l'informativa preventiva al cliente prima di procedere con conferimento o deposito.",
+            )
+        )
+    if cliente_qualificato:
+        presidi.append(
+            {
+                "code": "art_25bis_equo_compenso",
+                "label": "Equo compenso per cliente qualificato",
+                "status": "verificato" if equo_verificato else "da_verificare",
+                "source": "cdf_art25bis_gazzetta_2026",
+                "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/gazzetta-cdf-art-25bis-2026.html",
+                "note": "Il controllo riguarda PA, banche, assicurazioni, grandi imprese e altri soggetti indicati dalla fonte.",
+            }
+        )
+        if not equo_verificato:
+            warnings.append(
+                _warning(
+                    "deontologia_equo_compenso_da_verificare",
+                    "Verifica equo compenso e parametri prima di inviare il preventivo a un cliente qualificato.",
+                )
+            )
+        if accordo_predisposto:
+            presidi.append(
+                {
+                    "code": "art_25bis_informativa_scritta",
+                    "label": "Avviso scritto su accordo predisposto dallo studio",
+                    "status": "documentata" if informativa_scritta else "da_documentare",
+                    "source": "cdf_art25bis_gazzetta_2026",
+                    "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/gazzetta-cdf-art-25bis-2026.html",
+                    "note": "Quando l'accordo è predisposto dallo studio, il wizard richiede presidio scritto separato.",
+                }
+            )
+            if not informativa_scritta:
+                warnings.append(
+                    _warning(
+                        "deontologia_informativa_scritta_equo_compenso_da_documentare",
+                        "Documenta l'avviso scritto previsto per il cliente qualificato prima della sottoscrizione.",
+                    )
+                )
+    return {
+        "status": "attenzione" if warnings else "documentato",
+        "cliente_qualificato_equo_compenso": cliente_qualificato,
+        "accordo_predisposto_avvocato": accordo_predisposto,
+        "equo_compenso_verificato": equo_verificato,
+        "informativa_art13_resa": informativa_art13,
+        "informativa_scritta_equo_compenso": informativa_scritta,
+        "sources": _DEONTOLOGIA_SOURCES,
+        "presidi": presidi,
+        "warnings": warnings,
+    }
+
+
 def _option(value: Any, label: str, description: str = "") -> dict[str, Any]:
     return {"value": _text(value), "label": label, "description": description, "enabled": True}
 
@@ -942,49 +1062,50 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
     audit_tariffario = dm_dict.get("audit_tariffario") if isinstance(dm_dict.get("audit_tariffario"), dict) else {}
     riferimenti_normativi = dm_dict.get("riferimenti_normativi") if isinstance(dm_dict.get("riferimenti_normativi"), list) else []
     reference_codes = dm_dict.get("reference_codes") if isinstance(dm_dict.get("reference_codes"), list) else []
-    log = dump_log_calcolo(
-        costruisci_contesto_economico(
-            source="preventivo_guidato_react",
-            source_label="Preventivo guidato",
-            oggetto=_text(payload.get("oggetto")),
-            id_pratica=practice_id,
-            pratica_label=tp.label,
-            area_pratica=tp.area,
-            tipo_compenso=tp.tipo_compenso_default,
-            tipo_procedimento=tp.label,
-            grado_sede=state["grado"],
-            regola_tariffaria=regola,
-            regola_tariffaria_code=regola,
-            complessita=state["complessita"],
-            valore_controversia=state["valore"],
-            bonus_telematico=state["bonus_telematico"],
-            spese_generali=state["spese_generali"],
-            perc_spese_generali=state["perc_spese_generali"],
-            applica_cpa=state["applica_cpa"],
-            applica_iva=state["applica_iva"],
-            anticipazioni_art15=summary["anticipazioni_art15"],
-            adr_accordo=state["adr_accordo"],
-            risultato={
-                "scaglione": dm.scaglione,
-                "onorario_base": compenso,
-                "cpa": summary["cpa"],
-                "iva": summary["iva"],
-                "totale": summary["totale"],
-                "nota": note_calcolo or dm.note,
-                "voci_area_pratica": [item["label"] for item in target_results],
-                "table_code": dm_dict.get("table_code", ""),
-                "table_label": dm_dict.get("table_label", ""),
-                "rule_code": dm_dict.get("rule_code", ""),
-                "rule_label": dm_dict.get("rule_label", ""),
-                "exact_snapshot": dm_dict.get("exact_snapshot", False),
-                "compliance_status": dm_dict.get("compliance_status", ""),
-                "compliance_note": dm_dict.get("compliance_note", ""),
-                "reference_codes": reference_codes,
-            },
-            audit_tariffario=audit_tariffario,
-            riferimenti_normativi=riferimenti_normativi,
-        )
+    deontologia = _deontologia_wizard_payload(payload)
+    log_context = costruisci_contesto_economico(
+        source="preventivo_guidato_react",
+        source_label="Preventivo guidato",
+        oggetto=_text(payload.get("oggetto")),
+        id_pratica=practice_id,
+        pratica_label=tp.label,
+        area_pratica=tp.area,
+        tipo_compenso=tp.tipo_compenso_default,
+        tipo_procedimento=tp.label,
+        grado_sede=state["grado"],
+        regola_tariffaria=regola,
+        regola_tariffaria_code=regola,
+        complessita=state["complessita"],
+        valore_controversia=state["valore"],
+        bonus_telematico=state["bonus_telematico"],
+        spese_generali=state["spese_generali"],
+        perc_spese_generali=state["perc_spese_generali"],
+        applica_cpa=state["applica_cpa"],
+        applica_iva=state["applica_iva"],
+        anticipazioni_art15=summary["anticipazioni_art15"],
+        adr_accordo=state["adr_accordo"],
+        risultato={
+            "scaglione": dm.scaglione,
+            "onorario_base": compenso,
+            "cpa": summary["cpa"],
+            "iva": summary["iva"],
+            "totale": summary["totale"],
+            "nota": note_calcolo or dm.note,
+            "voci_area_pratica": [item["label"] for item in target_results],
+            "table_code": dm_dict.get("table_code", ""),
+            "table_label": dm_dict.get("table_label", ""),
+            "rule_code": dm_dict.get("rule_code", ""),
+            "rule_label": dm_dict.get("rule_label", ""),
+            "exact_snapshot": dm_dict.get("exact_snapshot", False),
+            "compliance_status": dm_dict.get("compliance_status", ""),
+            "compliance_note": dm_dict.get("compliance_note", ""),
+            "reference_codes": reference_codes,
+        },
+        audit_tariffario=audit_tariffario,
+        riferimenti_normativi=riferimenti_normativi,
     )
+    log_context["deontologia"] = deontologia
+    log = dump_log_calcolo(log_context)
     profile_payload = tp.to_dict()
     profile_payload["esborsi_tipici"] = resolved_expenses
     return {
@@ -1004,11 +1125,13 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
         "rows": rows,
         "economic": summary,
         "mediazione_odm": mediazione_odm,
+        "deontologia": deontologia,
         "note": _text(payload.get("note")) or tp.note_template,
-        "warnings": [],
+        "warnings": deontologia["warnings"],
         "audit": {
             "log_calcolo": log,
             "audit_tariffario": audit_tariffario,
+            "deontologia": deontologia,
             "reference_codes": reference_codes,
             "riferimenti_normativi": riferimenti_normativi,
             "table_code": dm_dict.get("table_code", ""),

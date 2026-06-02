@@ -74,6 +74,7 @@ def register_telematico_surfaces(
         local_signer_windows_offline_ps1_name=telematico["local_signer_windows_offline_ps1_name"],
         render_local_signer_windows_ps1=telematico["render_local_signer_windows_ps1"],
         local_signer_windows_ps1_name=telematico["local_signer_windows_ps1_name"],
+        local_signer_uffici_pst_pubblici_path=telematico["local_signer_uffici_pst_pubblici_path"],
         local_signer_macos_installer_path=telematico["local_signer_macos_installer_path"],
         local_signer_macos_name=telematico["local_signer_macos_name"],
         render_local_signer_macos_command=telematico["render_local_signer_macos_command"],

@@ -165,6 +165,26 @@ def test_package_builder_uses_channel_profile(tmp_path: Path) -> None:
     assert Path(package.zip_path).exists()
 
 
+def test_pat_main_act_requires_pades_from_official_source(tmp_path: Path) -> None:
+    p7m = tmp_path / "ricorso_pat.pdf.p7m"
+    p7m.write_bytes(b"PKCS7 placeholder")
+    document = DepositDocument(
+        path=str(p7m),
+        role="MAIN_ACT",
+        filename=p7m.name,
+        signed=True,
+        signature_format="CADES_BES",
+    )
+
+    results = DocumentPreflightValidator().validate(
+        documents=[document],
+        profile=channel_profile_for("pat_siga"),
+    )
+
+    assert any(result.code == "PAT_MAIN_ACT_REQUIRES_PADES" for result in results)
+    assert any(result.status == PreflightStatus.ERROR for result in results)
+
+
 def test_deposit_repository_creates_minimum_tables(tmp_path: Path) -> None:
     repo = DepositRepository(tmp_path / "depositi.sqlite")
     repo.save_job(

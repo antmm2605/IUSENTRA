@@ -111,6 +111,27 @@ class DocumentPreflightValidator:
         if not (is_pdf or is_p7m):
             results.append(_error("FORMAT_NOT_ALLOWED", f"Formato non ammesso: {filename}.", "Usa PDF/PAdES o CAdES .p7m."))
 
+        profile_id = str(getattr(profile, "id", "") or "").lower()
+        role = str(doc.role or "").strip().upper()
+        signature_format = str(doc.signature_format or "").strip().upper()
+        if profile_id == "pat_siga" and role == "MAIN_ACT":
+            if is_p7m or signature_format == "CADES_BES":
+                results.append(
+                    _error(
+                        "PAT_MAIN_ACT_REQUIRES_PADES",
+                        f"Nel PAT l'atto principale deve essere firmato in PAdES: {filename}.",
+                        "Rigenera o firma il modulo/atto principale come PDF con firma PAdES prima dell'upload sul Portale Avvocato.",
+                    )
+                )
+            elif is_pdf and not (doc.signed or signature_format == "PADES"):
+                results.append(
+                    _error(
+                        "PAT_MAIN_ACT_REQUIRES_PADES",
+                        f"Firma PAdES non confermata per l'atto principale PAT: {filename}.",
+                        "Firma il PDF in PAdES oppure acquisisci un file PDF firmato dal Portale Avvocato.",
+                    )
+                )
+
         if is_pdf:
             results.extend(_validate_pdf(path, profile))
             if doc.signed or str(doc.signature_format).upper() == "PADES":

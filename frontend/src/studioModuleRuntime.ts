@@ -74,6 +74,10 @@ export type StudioRuntimeOffice = {
   kind: string
   typeLabel: string
   primary: boolean
+  codice: string
+  codiceMinistero: string
+  codiceGiustiziaLocale: string
+  istatCode: string
   address: string
   city: string
   cap: string
@@ -267,6 +271,10 @@ function normaliseOffice(value: unknown): StudioRuntimeOffice {
     kind: text(item.kind),
     typeLabel: display(item.typeLabel || item.type_label, 'Ufficio'),
     primary: item.primary === true,
+    codice: text(item.codice || item.code),
+    codiceMinistero: text(item.codiceMinistero || item.codice_ministero || item.ministerialCode),
+    codiceGiustiziaLocale: text(item.codiceGiustiziaLocale || item.codice_gl || item.giustiziaLocaleCode),
+    istatCode: text(item.istatCode || item.istat_code),
     address: display(item.address),
     city: display(item.city),
     cap: display(item.cap),

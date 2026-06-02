@@ -47,6 +47,8 @@ def test_contributo_unificato_civile_appello(tmp_path):
     assert result["base"] == 355.5
     assert result["anticipazione_forfettaria"] == 27.0
     assert result["totale"] == 382.5
+    assert any("dpr_115" in source["code"] for source in result["sources"])
+    assert any("Articolo+13" in source["url"] for source in result["sources"])
 
 
 def test_contributo_unificato_civile_valore_non_indicato(tmp_path):
@@ -63,6 +65,127 @@ def test_contributo_unificato_civile_valore_non_indicato(tmp_path):
     assert result["base"] == 1686.0
     assert result["anticipazione_forfettaria"] == 27.0
     assert result["totale"] == 1713.0
+
+
+def test_contributo_unificato_dati_obbligatori_mancanti_applica_maggiorazione_50(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "civile_ordinario",
+            "cu_grado": "primo_grado",
+            "cu_valore": "10000",
+            "cu_anticipazione_forfettaria": "0",
+            "cu_dati_obbligatori_mancanti": "1",
+        }
+    )
+
+    assert result["base"] == 355.5
+    assert result["totale"] == 355.5
+    assert result["dati_obbligatori_mancanti"] is True
+    assert any(row["code"] == "dati_obbligatori_mancanti_50" for row in result["regole_applicate"])
+    assert any("50%" in note for note in result["notes"])
+
+
+def test_contributo_unificato_sezione_impresa_raddoppia_prima_del_grado(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "civile_ordinario",
+            "cu_grado": "appello",
+            "cu_valore": "10000",
+            "cu_anticipazione_forfettaria": "0",
+            "cu_sezione_specializzata_impresa": "1",
+        }
+    )
+
+    assert result["base"] == 711.0
+    assert result["totale"] == 711.0
+    assert [row["code"] for row in result["regole_applicate"]] == [
+        "sezione_impresa_x2",
+        "impugnazione_50",
+    ]
+
+
+def test_contributo_unificato_lavoro_riduzione_meta_e_appello_50(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "lavoro",
+            "cu_grado": "appello",
+            "cu_valore": "10000",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+
+    assert result["base"] == 177.75
+    assert result["totale"] == 177.75
+    assert any(row["code"] == "riduzione_meta_lavoro" for row in result["regole_applicate"])
+    assert any(row["code"] == "impugnazione_50" for row in result["regole_applicate"])
+
+
+def test_contributo_unificato_processo_speciale_riduzione_meta(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "processo_speciale_libro_iv",
+            "cu_grado": "primo_grado",
+            "cu_valore": "10000",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+
+    assert result["base"] == 118.5
+    assert result["totale"] == 118.5
+    assert any(row["code"] == "riduzione_meta_speciale" for row in result["regole_applicate"])
+
+
+def test_contributo_unificato_esecuzioni_e_ricerca_beni_art_13(tmp_path):
+    gestore = _gestore(tmp_path)
+
+    immobiliare = gestore.calcola_contributo_unificato(
+        {"cu_categoria": "esecuzione_immobiliare", "cu_anticipazione_forfettaria": "0"}
+    )
+    altra_esecuzione = gestore.calcola_contributo_unificato(
+        {"cu_categoria": "altri_processi_esecutivi", "cu_anticipazione_forfettaria": "0"}
+    )
+    mobiliare_sotto_soglia = gestore.calcola_contributo_unificato(
+        {"cu_categoria": "esecuzione_mobiliare_sotto_2500", "cu_anticipazione_forfettaria": "0"}
+    )
+    ricerca_beni = gestore.calcola_contributo_unificato(
+        {"cu_categoria": "ricerca_beni_492bis", "cu_anticipazione_forfettaria": "1"}
+    )
+
+    assert immobiliare["base"] == 278.0
+    assert altra_esecuzione["base"] == 139.0
+    assert any(row["code"] == "riduzione_meta_esecuzioni" for row in altra_esecuzione["regole_applicate"])
+    assert mobiliare_sotto_soglia["base"] == 43.0
+    assert ricerca_beni["base"] == 43.0
+    assert ricerca_beni["anticipazione_forfettaria"] == 0.0
+
+
+def test_contributo_unificato_fallimentare_opposizione_e_cittadinanza(tmp_path):
+    gestore = _gestore(tmp_path)
+
+    fallimentare = gestore.calcola_contributo_unificato(
+        {"cu_categoria": "procedura_fallimentare", "cu_anticipazione_forfettaria": "0"}
+    )
+    opposizione = gestore.calcola_contributo_unificato(
+        {"cu_categoria": "opposizione_atti_esecutivi", "cu_anticipazione_forfettaria": "0"}
+    )
+    cittadinanza = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "cittadinanza_italiana",
+            "cu_numero_parti_ricorrenti": "3",
+            "cu_grado": "appello",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+
+    assert fallimentare["base"] == 851.0
+    assert opposizione["base"] == 168.0
+    assert cittadinanza["base"] == 1800.0
+    assert cittadinanza["numero_parti_ricorrenti"] == 3
+    assert all(row["code"] != "impugnazione_50" for row in cittadinanza["regole_applicate"])
 
 
 def test_contributo_unificato_tributario_cassazione_usa_misura_civile(tmp_path):
@@ -258,6 +381,40 @@ def test_onorari_forensi_restituisce_fasi_e_riepilogo(tmp_path):
     assert len(result["fase_rows"]) == 2
     assert result["riepiloghi"]["base"]["totale_compenso"] > 0
     assert result["livello_suggerito"] == "base"
+    assert any(row["code"] == "art_27_informazione_cliente" for row in result["presidi_deontologici"])
+
+
+def test_onorari_forensi_presidia_equo_compenso_e_informativa_scritta(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_onorari_forensi(
+        {
+            "onorari_materia": "CIVILE_COGN",
+            "onorari_grado": "TRIBUNALE",
+            "onorari_valore": "10000",
+            "onorari_complessita": "media",
+            "onorari_bonus_telematico": "0",
+            "onorari_includi_spese_generali": "1",
+            "onorari_cliente_qualificato": "1",
+            "onorari_convenzione_predisposta_avvocato": "1",
+            "onorari_equo_compenso_verificato": "0",
+            "onorari_informativa_scritta": "0",
+            "onorari_fasi": ["STUDIO", "INTRODUTTIVA"],
+        }
+    )
+
+    codes = {row["code"]: row for row in result["presidi_deontologici"]}
+    source_codes = {source["code"] for source in result["sources"]}
+
+    assert result["cliente_qualificato"] is True
+    assert codes["art_25bis_cliente_qualificato"]["status"] == "da_verificare"
+    assert codes["art_25bis_informativa_scritta"]["status"] == "da_documentare"
+    assert any("equo compenso" in warning.lower() for warning in result["warnings"])
+    assert any("avviso scritto" in warning.lower() for warning in result["warnings"])
+    assert {
+        "codice_deontologico_cnf",
+        "cdf_art25bis_gazzetta_2026",
+        "cdf_circolare_1c_2026",
+    }.issubset(source_codes)
 
 
 def test_custodia_cautelare_calcola_timeline_principale(tmp_path):

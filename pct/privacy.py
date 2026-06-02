@@ -1,8 +1,10 @@
 """
 Registro dei Trattamenti di Dati Personali (GDPR Art. 30).
 
-Obbligatorio per titolari con >= 250 dipendenti; fortemente raccomandato
-per studi legali di qualsiasi dimensione dal Garante Privacy.
+Per gli studi legali il registro è presidio ordinario quando lo studio tratta
+dati giudiziari, sanitari o opera con personale/collaboratori. La fonte
+operativa salvata è il dossier Garante sul registro delle attività di
+trattamento, consultato e versionato tra le fonti ufficiali 2026-06-02.
 """
 
 import json
@@ -25,9 +27,12 @@ class TrattamentoDati:
     destinatari: str = ""              # interni / esterni / autorità
     trasferimento_extra_ue: bool = False
     paese_destinazione: str = ""
+    garanzie_trasferimento_extra_ue: str = ""
     termine_conservazione: str = ""    # es. "10 anni ex art. 2220 c.c."
     misure_sicurezza: str = ""         # es. "cifratura AES-256, backup giornaliero"
     responsabile: str = ""             # nome del responsabile esterno (se presente)
+    registro_responsabile: str = ""    # riferimento al registro del responsabile ex art. 30.2
+    fonte_normativa: str = "GDPR art. 30; Garante registro attività di trattamento"
     attivo: bool = True
     note: str = ""
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -41,7 +46,10 @@ class TrattamentoDati:
         d = dict(d)
         d.setdefault("trasferimento_extra_ue", False)
         d.setdefault("paese_destinazione", "")
+        d.setdefault("garanzie_trasferimento_extra_ue", "")
         d.setdefault("responsabile", "")
+        d.setdefault("registro_responsabile", "")
+        d.setdefault("fonte_normativa", "GDPR art. 30; Garante registro attività di trattamento")
         d.setdefault("attivo", True)
         d.setdefault("note", "")
         d.setdefault("soggetti_interessati", d.pop("soggetti", ""))
@@ -131,6 +139,7 @@ class GestioneTrattamenti:
                 destinatari="Avvocati, collaboratori interni, autorità giudiziarie, controparte",
                 termine_conservazione="10 anni dalla chiusura del rapporto (art. 2220 c.c.)",
                 misure_sicurezza="Accesso con credenziali, audit log, backup cifrato",
+                fonte_normativa="GDPR art. 30; Garante registro attività di trattamento",
             ),
             TrattamentoDati(
                 nome="Gestione del personale e collaboratori",
@@ -141,6 +150,7 @@ class GestioneTrattamenti:
                 destinatari="Studio Legale, consulente del lavoro, INPS, Agenzia delle Entrate",
                 termine_conservazione="10 anni dalla cessazione del rapporto",
                 misure_sicurezza="Accesso limitato all'amministratore, backup cifrato",
+                fonte_normativa="GDPR art. 30; Garante registro attività di trattamento",
             ),
             TrattamentoDati(
                 nome="Comunicazioni e messaggistica con i clienti",
@@ -151,6 +161,7 @@ class GestioneTrattamenti:
                 destinatari="Interni allo studio, provider email/SMS",
                 termine_conservazione="Durata del rapporto + 5 anni",
                 misure_sicurezza="Cifratura TLS/STARTTLS per email, accesso con credenziali",
+                fonte_normativa="GDPR art. 30; Garante registro attività di trattamento",
             ),
         ]
         for t in default:

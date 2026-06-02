@@ -447,6 +447,7 @@ const navSections: NavSection[] = [
       { label: 'Impostazioni Studio', icon: Settings2, href: '/impostazioni' },
       { label: 'Notifiche', icon: MessageCircle, href: '/impostazioni?tab=notifiche' },
       { label: 'Pagamenti', icon: CreditCard, href: '/impostazioni?tab=pagamenti' },
+      { label: 'Canali SdI', icon: Send, href: '/impostazioni/sdi' },
       { label: 'Backup', icon: CloudUpload, href: '/impostazioni?tab=backup' },
       { label: 'Sincronizzazione Calendari', icon: CalendarSync, href: '/impostazioni/calendario' }
     ]
@@ -1180,7 +1181,7 @@ export default function App() {
   const isAdminDatabasePage = routeKey === '/admin/database'
   const isQuickOrganizerImportPage = routeKey === '/importa-pratiche-studio-telematico' || routeKey === '/import/quickorganizer'
   const isStatistichePage = routeKey === '/statistiche'
-  const isImpostazioniPage = routeKey === '/impostazioni' || routeKey === '/impostazioni-studio' || routeKey === '/impostazioni/pagamenti' || routeKey === '/notifiche' || routeKey === '/notifiche-whatsapp' || routeKey === '/backup' || routeKey === '/impostazioni/calendario' || routeKey === '/sincronizzazione-calendari'
+  const isImpostazioniPage = routeKey === '/impostazioni' || routeKey === '/impostazioni-studio' || routeKey === '/impostazioni/sdi' || routeKey === '/impostazioni/canali-sdi' || routeKey === '/impostazioni/pagamenti' || routeKey === '/notifiche' || routeKey === '/notifiche-whatsapp' || routeKey === '/backup' || routeKey === '/impostazioni/calendario' || routeKey === '/sincronizzazione-calendari'
   const isAuditPage = routeKey === '/audit'
   const isRegistroAttivitaPage = routeKey === '/registro-attivita'
   const isUtentiPage = routeKey === '/utenti' || routeKey === '/utenti/nuovo'

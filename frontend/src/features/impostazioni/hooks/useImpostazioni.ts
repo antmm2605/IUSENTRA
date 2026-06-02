@@ -13,11 +13,13 @@ import type { AiRuntimePayload, SettingsPayload, SettingsSection, TestResult } f
 export function sectionFromUrl(): SettingsSection {
   const path = window.location.pathname.replace(/\/+$/, '').toLowerCase()
   if (path === '/impostazioni/pagamenti') return 'pagamenti'
+  if (path === '/impostazioni/sdi' || path === '/impostazioni/canali-sdi') return 'sdi'
   if (path === '/notifiche' || path === '/notifiche-whatsapp') return 'notifiche'
   if (path === '/backup') return 'backup'
   if (path === '/impostazioni/calendario' || path === '/sincronizzazione-calendari') return 'calendari'
   const raw = new URLSearchParams(window.location.search).get('tab') || window.location.hash.replace('#', '')
   const normalized = raw.trim().toLowerCase()
+  if (normalized === 'canali-sdi') return 'sdi'
   if (normalized === 'calendario' || normalized === 'sincronizzazione-calendari') return 'calendari'
   return SETTINGS_SECTIONS.some((section) => section.id === normalized) ? normalized as SettingsSection : 'studio'
 }

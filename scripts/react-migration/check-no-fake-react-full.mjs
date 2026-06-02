@@ -60,7 +60,7 @@ function routeRow(route) {
   return rows.find((row) => row.route === route)
 }
 
-for (const route of ['/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/sincronizzazione-calendari', '/backup']) {
+for (const route of ['/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/sdi', '/sincronizzazione-calendari', '/backup']) {
   const row = routeRow(route)
   if (row?.manifestStatus !== 'react_operational_full' || row?.unlockFromGate !== true) {
     violations.push(`${route}: deve essere react_operational_full con unlockFromGate true.`)

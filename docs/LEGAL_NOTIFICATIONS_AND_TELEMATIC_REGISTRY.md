@@ -230,6 +230,23 @@ Eventi PEC governati:
 - notifiche SDI, inclusa mancata consegna;
 - PEC non riconosciuta, sempre conservata e inviata a revisione.
 
+Caso reale presidiato il 2 giugno 2026: l'oggetto `Deposito ricorso per
+cassazione (con n. 1 allegato) per FEO NATALE - proc. pen. n. 1365_2016 RG APP
+- n. 1364_2011 RG NR`, inviato da
+`depositoattipenali.ca.reggiocalabria@giustiziacert.it`, resta classificato come
+`cassazione_penale` / `deposito_ricorso_cassazione_penale`; il sistema estrae
+`1365/2016 RG_APP` e `1364/2011 RG_NR`, non crea scadenze automatiche senza
+documento fonte e richiede la lettura del messaggio originale allegato.
+
+Secondo caso reale presidiato il 2 giugno 2026: l'oggetto
+`generale/2016/001365/Corte di Appello a carico di p.p. c/ Feo Natale.`,
+inviato da `notifichepenali.ca.reggiocalabria@penale.ptel.giustiziacert.it`,
+resta classificato come `deposito_penale_pdp` / `comunicazione_penale_pdp`;
+il formato `generale/<anno>/<numero>/Corte di Appello` viene tradotto in
+`1365/2016 RG_APP`. Il sistema conserva `Comunicazione.xml` e `daticert.xml`,
+ma non crea scadenze automatiche né chiude workflow finché il contenuto
+autorizzato della comunicazione non espone un evento processuale specifico.
+
 La ricevuta di accettazione PEC non chiude un deposito se mancano consegna,
 esito controlli o accettazione cancelleria. L'anti-duplicazione usa oggetto
 normalizzato, Message-ID, registri, mittente, destinatari e nomi/hash allegati;

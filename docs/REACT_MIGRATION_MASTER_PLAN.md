@@ -2904,3 +2904,17 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - La correzione copre sia i pulsanti moderni `.iu-btn` sia i pulsanti storici `.iu-button`; i primari mantengono testo bianco, i neutri testo scuro su fondo chiaro e gli stati disabilitati restano leggibili.
 - La pagina `Importa pratiche da Studio Telematico` usa pannelli dedicati invece del contenitore generico, così `Pacchetto cliente` resta in alto e le azioni `Prepara pacchetto`, `Fascicoli`, `Controlla pacchetto` e `Importa pratiche` sono leggibili.
 - Verifiche registrate: build Vite, browser in-app con screenshot sulla pagina import e controllo stili calcolati su `/importa-pratiche-studio-telematico`, `/clienti`, `/fascicoli`, `/agenda` e `/amministrazione`.
+
+## Aggiornamento 2026-06-02: Fascicoli, uffici giudiziari per Comune 2.249.5
+
+- In `/fascicoli/nuovo`, il campo `Autorità giudiziaria` resta il campo storico `tribunale`, ma ora integra la ricerca “Uffici giudiziari per Comune” già governata per il prodotto: autocomplete Comune, filtri `GDP`/Tribunale/`UNEP`/Procura/Corte d'Appello/Minorenni e pulsante `Usa nel fascicolo`.
+- La UI applica al fascicolo il nome ufficiale dell'ufficio e conserva nel payload i codici disponibili senza promuovere identificativi impropri: codice ufficio del catalogo ministeriale, codice PST, codice Giustizia Locale e ISTAT sede sono campi separati; quando un ufficio ha solo ISTAT/PEC, il form mostra un avviso e non inventa un codice di deposito.
+- Verifiche registrate: `pnpm --filter @iusentra/studio typecheck`, test mirati React shell sul form nuovo fascicolo, test endpoint `uffici_competenti` con filtro tipologia, suite territorio/uffici competenti, build Vite, Docker locale reale `127.0.0.1:8080` e browser desktop/tablet/mobile con Comune `Taurianova`.
+
+## Aggiornamento 2026-06-02: Impostazioni, Canali SdI e parità SQL 2.249.6
+
+- `/impostazioni/sdi` è una superficie React full collegata alla stessa esperienza `Impostazioni`, con scheda `Canali SdI`, campi per canale accreditato/intermediario, endpoint trasmissione, PEC notifiche, invio automatico e note operative.
+- Il salvataggio resta JSON tenant-aware ma ora ha anche specchio strutturato `settings_config` su SQLite e PostgreSQL per tutte le sezioni visibili di `Impostazioni`: studio, PEC, firma, SMTP, WhatsApp, scheduler, AI, SdI, pagamenti, notifiche, backup e calendari.
+- Le fonti ufficiali GDPR, FatturaPA/SdI e Codice Deontologico Forense aggiornato al 7 aprile 2026 sono salvate sotto `docs/specs/ministero/fonti_ufficiali/2026-06-02/` e registrate nel catalogo fonti; le regole runtime non dipendono da memoria di chat.
+- Il Local Signer è stato riallineato alla versione `1.6.68`: sorgente, `tools/dist/local_signer.py`, `SetupLocalSigner-1.6.68.exe`, alias `SetupLocalSigner.exe` e installazione locale rispondono alla stessa versione; l'avvio immediato usa `pythonw.exe` quando disponibile.
+- Verifiche confermate nei report: test backend/storage/fonti, gate React, build Vite, packaging Local Signer, installazione locale Local Signer e browser reale Docker `127.0.0.1:8080/impostazioni/sdi`.

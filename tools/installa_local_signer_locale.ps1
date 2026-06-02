@@ -21,6 +21,7 @@ $visibleSignatureScript = Join-Path $targetDir "visible_signature.py"
 $moduleDir = Join-Path $targetDir "local_signer_mod"
 $dataDir = Join-Path $targetDir "data"
 $ufficiTarget = Join-Path $dataDir "uffici_ministero.json"
+$ufficiPstPubbliciTarget = Join-Path $dataDir "uffici_pst_pubblici.json"
 $starterCmd = Join-Path $targetDir "start_local_signer.cmd"
 $starterVbs = Join-Path $targetDir "start_local_signer.vbs"
 $requirementsFile = Join-Path $targetDir "requirements_local_signer.txt"
@@ -556,6 +557,16 @@ if (Test-Path $ufficiSource) {
 } else {
     Write-Host "  AVVISO: registro uffici PST locale non trovato; il signer usera' solo la configurazione esplicita." -ForegroundColor Yellow
 }
+$ufficiPstPubbliciSource = Join-Path $toolsDir "uffici_pst_pubblici.json"
+if (-not (Test-Path $ufficiPstPubbliciSource)) {
+    $ufficiPstPubbliciSource = Join-Path (Split-Path -Parent $toolsDir) "pct\data\uffici_pst_pubblici.json"
+}
+if (Test-Path $ufficiPstPubbliciSource) {
+    Copy-Item $ufficiPstPubbliciSource $ufficiPstPubbliciTarget -Force
+    Write-Step "Catalogo pubblico uffici PST civile/penale copiato."
+} else {
+    Write-Host "  AVVISO: catalogo pubblico uffici PST non trovato; il PDP usera' il registro compatibile." -ForegroundColor Yellow
+}
 
 # ── Configurazione ambiente Python ────────────────────────────────
 if ($useEmbeddedPython) {
@@ -629,15 +640,27 @@ if (-not $autostartOk) {
 Write-Step "Avvio subito il servizio in background..."
 Stop-LocalSignerProcesses
 Remove-Item $runtimeStdoutLog, $runtimeStderrLog -Force -ErrorAction SilentlyContinue
-if (Test-Path $pythonExe) {
+$servicePythonExe = $pythonwExe
+if (-not (Test-Path $servicePythonExe)) {
+    $servicePythonExe = $pythonExe
+}
+if (Test-Path $servicePythonExe) {
     $env:PCT_LOCAL_SIGNER_ALLOWED_ORIGINS = $defaultAllowedOrigins
-    Start-Process `
-        -WindowStyle Hidden `
-        -WorkingDirectory $targetDir `
-        -FilePath $pythonExe `
-        -ArgumentList $pythonScript `
-        -RedirectStandardOutput $runtimeStdoutLog `
-        -RedirectStandardError $runtimeStderrLog
+    if ((Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe") {
+        Start-Process `
+            -WindowStyle Hidden `
+            -WorkingDirectory $targetDir `
+            -FilePath $servicePythonExe `
+            -ArgumentList $pythonScript
+    } else {
+        Start-Process `
+            -WindowStyle Hidden `
+            -WorkingDirectory $targetDir `
+            -FilePath $servicePythonExe `
+            -ArgumentList $pythonScript `
+            -RedirectStandardOutput $runtimeStdoutLog `
+            -RedirectStandardError $runtimeStderrLog
+    }
 } else {
     Start-Process -WindowStyle Hidden -FilePath $starterCmd -ArgumentList @("--background")
 }

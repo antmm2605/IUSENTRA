@@ -19,6 +19,10 @@ ROLE_RE = re.compile(
 )
 RG_APP_RE = re.compile(r"\bn\.?\s*(?P<number>\d{1,7})[_/](?P<year>\d{4})\s*RG\s*APP\b", re.I)
 RG_NR_RE = re.compile(r"\bn\.?\s*(?P<number>\d{1,7})[_/](?P<year>\d{4})\s*RG\s*NR\b", re.I)
+GENERALE_CORTE_APPELLO_RE = re.compile(
+    r"\bgenerale\s*/\s*(?P<year>\d{4})\s*/\s*0*(?P<number>\d{1,7})\s*/\s*Corte\s+di\s+Appello\b",
+    re.I,
+)
 
 
 REGISTRY_MAP: dict[str, dict[str, str]] = {
@@ -136,13 +140,14 @@ def estrai_registri(text: str) -> list[dict[str, Any]]:
         )
     for label, pattern in (("RG_APP", RG_APP_RE), ("RG_NR", RG_NR_RE)):
         for match in pattern.finditer(text or ""):
-            key = (match.group("number"), match.group("year"), label)
+            number = str(int(match.group("number")))
+            key = (number, match.group("year"), label)
             if key in seen:
                 continue
             seen.add(key)
             results.append(
                 {
-                    "numero": match.group("number"),
+                    "numero": number,
                     "anno": match.group("year"),
                     "suffisso": label,
                     "registro_normalizzato": label,
@@ -151,6 +156,24 @@ def estrai_registri(text: str) -> list[dict[str, Any]]:
                     "canale": "PDP_PENALE",
                 }
             )
+    for match in GENERALE_CORTE_APPELLO_RE.finditer(text or ""):
+        number = str(int(match.group("number")))
+        key = (number, match.group("year"), "RG_APP")
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append(
+            {
+                "numero": number,
+                "anno": match.group("year"),
+                "suffisso": "RG_APP",
+                "registro_normalizzato": "RG_APP",
+                "tabella_ministeriale": "PENALE_DEDICATO",
+                "materia": "penale",
+                "canale": "PDP_PENALE",
+                "fonte_ruolo": "generale_corte_appello",
+            }
+        )
     return results
 
 
@@ -211,6 +234,13 @@ def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]
         return _event_payload("udienza_fissata", "Udienza fissata", "alta", "Creare o aggiornare scadenziario; se la modalità manca, segnare da verificare.", creates_deadline=True)
     if "deposito ricorso per cassazione" in lower and ("proc. pen" in lower or "rg app" in lower or "rg nr" in lower):
         return _event_payload("deposito_ricorso_cassazione_penale", "Deposito ricorso per Cassazione penale", "alta", "Classificare come penale/Cassazione, estrarre RG APP e RG NR, leggere messaggio originale allegato.")
+    if "penale.ptel.giustiziacert.it" in lower or "notifichepenali" in lower:
+        return _event_payload(
+            "comunicazione_penale_pdp",
+            "Comunicazione penale / PDP",
+            "media",
+            "Collegare al fascicolo penale e verificare il contenuto autorizzato prima di creare scadenze o chiudere workflow.",
+        )
     if any(name.lower().endswith(".eml") for name in attachment_names) and "giustiziacert" in lower:
         return _event_payload("messaggio_originale_giustiziacert", "Messaggio giustiziacert con originale allegato", "media", "Leggere anche il messaggio originale allegato e conservare fonte.")
     return _event_payload("pec_non_riconosciuta", "PEC non riconosciuta", "media", "Conservare allegati e inviare in coda di revisione umana.")
@@ -238,7 +268,15 @@ def _classifica_famiglia(text: str, sender: str, registri: list[dict[str, Any]])
         return "volontaria_giurisdizione", "Volontaria giurisdizione"
     if "deposito telematico" in lower or "busta telematica" in lower or "datiatto.xml" in lower:
         return "deposito_pct_civile", "Deposito PCT civile"
-    if "deposito atti penali" in lower or "pdp" in lower or "proc. pen" in lower:
+    if (
+        "deposito atti penali" in lower
+        or "pdp" in lower
+        or "proc. pen" in lower
+        or "penale.ptel.giustiziacert.it" in sender_lower
+        or "notifichepenali" in sender_lower
+        or "depositoattipenali" in sender_lower
+        or any(item.get("registro_normalizzato") in {"RG_APP", "RG_NR", "PENALE"} for item in registri)
+    ):
         return "deposito_penale_pdp", "Deposito penale / PDP"
     if "notificazione ai sensi della legge n. 53" in lower or "l. 53/1994" in lower or "relata" in lower:
         return "notifica_avvocato", "Notifica avvocato"

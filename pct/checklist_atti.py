@@ -537,7 +537,7 @@ RICORSO_TAR = TemplateAtto(
         "⚠️ DAL 1° FEBBRAIO 2026: deposito ESCLUSIVAMENTE tramite Formweb (nuovo portale PAT) "
         "con firma PAdES sul 'RiepilogoDepositoFormweb' generato dal sistema — NON si usa CAdES .p7m. "
         "La PEC è rimasta solo modalità d'emergenza (sistemi down). "
-        "Accesso: SPID / CIE / CNS su portale-avvocato.giustizia-amministrativa.it. "
+        "Accesso: SPID / CIE / CNS dal Portale dell'Avvocato operativo https://pe.prod.cloud.giustizia-amministrativa.it. "
         "Normativa: D.P.C.S. 9 maggio 2025 (GU n. 111/2025). Non si usa PCT né PolisWeb."
     ),
     documenti=[
@@ -556,9 +556,9 @@ RICORSO_TAR = TemplateAtto(
         _doc(10, "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
-        _chk("DAL 1/2/2026 — Deposito tramite FORMWEB (non più PEC): accedere a portale-avvocato.giustizia-amministrativa.it",
+        _chk("DAL 1/2/2026 — Deposito tramite FORMWEB (non più PEC): accedere al Portale dell'Avvocato operativo",
              critico=True,
-             note="La modalità PEC è rimasta solo per emergenza (sistemi down); l'upload diretto è stato abolito"),
+             note="Fonte pubblica Giustizia Amministrativa: https://www.giustizia-amministrativa.it/web/guest/portale-avvocato; portale operativo: https://pe.prod.cloud.giustizia-amministrativa.it"),
         _chk("Firma PAdES (non CAdES) sul 'RiepilogoDepositoFormweb' generato dal sistema",
              critico=True,
              note="Formweb genera un PDF riepilogativo da firmare PAdES — il formato .p7m (CAdES) NON è ammesso su Formweb (D.P.C.S. 9/5/2025 art. 6-bis Allegato 2)"),
@@ -713,7 +713,8 @@ RICORSO_TRIBUTARIO = TemplateAtto(
         _doc(9,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
-        _chk("Registrazione/accesso al portale SIGIT/PTT (ptt.mef.gov.it) verificata", critico=True),
+        _chk("Registrazione/accesso al portale SIGIT/PTT verificata su Telecontenzioso", critico=True,
+             note="Fonte ufficiale SIGIT: https://sigit.giustiziatributaria.gov.it/Sigit/index.do; assistenza MEF: https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/"),
         _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True,
              note="Il PTT accetta solo CAdES — verificare che il file abbia estensione .p7m"),
         _chk("Termine di 60 gg dalla notifica dell'atto impugnato rispettato", critico=True,
@@ -751,7 +752,7 @@ APPELLO_TRIBUTARIO = TemplateAtto(
     endpoint_deposito="sigit_home",
     tipo_atto_default="APPELLO",
     nota_canale=(
-        "L'appello tributario si deposita tramite PTT/SIGIT (ptt.mef.gov.it) con firma CAdES (.p7m). "
+        "L'appello tributario si deposita tramite PTT/SIGIT con firma CAdES (.p7m). "
         "Normativa: artt. 51-63 D.Lgs. 546/1992. "
         "Non si usa PCT, PDP né PAT."
     ),
@@ -771,7 +772,8 @@ APPELLO_TRIBUTARIO = TemplateAtto(
         _doc(9,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
-        _chk("Accesso al portale SIGIT/PTT (ptt.mef.gov.it) verificato", critico=True),
+        _chk("Accesso al portale SIGIT/PTT verificato su Telecontenzioso", critico=True,
+             note="Fonte ufficiale SIGIT: https://sigit.giustiziatributaria.gov.it/Sigit/index.do; assistenza MEF: https://assistenza.dgt.mef.gov.it/GiustiziaTributaria/s/"),
         _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True),
         _chk("Termine di 60 gg da notifica sentenza (o 6 mesi da deposito) rispettato", critico=True,
              note="Art. 51 D.Lgs. 546/1992 — verificare se la sentenza è stata notificata"),
@@ -1886,4 +1888,3 @@ def nome_cartella_compilato(template: TemplateAtto, parte: str = "",
             .replace("{parte}", parte_safe)
             .replace("{rg}", rg_safe)
             .replace("{data}", d))
-

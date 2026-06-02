@@ -24,6 +24,18 @@ export type FatturazioneRecord = {
   stateLabel: string
   stateTone: AdminTone
   paymentMethod: string
+  sdiState: string
+  sdiStateLabel: string
+  sdiStateTone: AdminTone
+  sdiStatusMessage: string
+  sdiIdentifier: string
+  sdiChannel: string
+  sdiSentAt: string
+  sdiSentLabel: string
+  sdiOutcomeAt: string
+  sdiOutcomeLabel: string
+  sdiReceipt: string
+  sdiNote: string
   detailHref: string
   pdfHref: string
   xmlHref: string
@@ -206,6 +218,27 @@ export type FatturazioneFiscalOption = {
   description: string
 }
 
+export type FatturazioneOfficialSource = {
+  id: string
+  authority: string
+  label: string
+  url: string
+  localPath: string
+}
+
+export type FatturazioneSdiWorkflowStep = {
+  id: string
+  label: string
+  message: string
+  tone: AdminTone
+}
+
+export type FatturazioneSdiChannel = {
+  configured: boolean
+  label: string
+  message: string
+}
+
 export type FatturazionePageData = {
   ok: boolean
   source: string
@@ -224,6 +257,9 @@ export type FatturazionePageData = {
     oggetto: string
   }>
   studioProfile: FatturazionePersonalizedParty
+  officialSources: FatturazioneOfficialSource[]
+  sdiWorkflow: FatturazioneSdiWorkflowStep[]
+  sdiChannel: FatturazioneSdiChannel
   nextNumber: string
   defaults: FatturazioneFormDefaults
   fiscal_options: FatturazioneFiscalOption[]
@@ -416,6 +452,13 @@ export const emptyFatturazionePage: FatturazionePageData = {
   clientProfiles: {},
   matterProfiles: {},
   studioProfile: emptyParty,
+  officialSources: [],
+  sdiWorkflow: [],
+  sdiChannel: {
+    configured: false,
+    label: 'Canale SdI non configurato',
+    message: '',
+  },
   nextNumber: '',
   defaults: emptyDefaults,
   fiscal_options: [],
@@ -557,9 +600,51 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
     stateLabel: display(item.stateLabel) || display(item.state) || 'Stato non indicato',
     stateTone: tone(item.stateTone),
     paymentMethod: display(item.paymentMethod),
+    sdiState: text(item.sdiState),
+    sdiStateLabel: display(item.sdiStateLabel) || 'Da registrare',
+    sdiStateTone: tone(item.sdiStateTone),
+    sdiStatusMessage: display(item.sdiStatusMessage),
+    sdiIdentifier: text(item.sdiIdentifier),
+    sdiChannel: display(item.sdiChannel),
+    sdiSentAt: text(item.sdiSentAt),
+    sdiSentLabel: text(item.sdiSentLabel),
+    sdiOutcomeAt: text(item.sdiOutcomeAt),
+    sdiOutcomeLabel: text(item.sdiOutcomeLabel),
+    sdiReceipt: display(item.sdiReceipt),
+    sdiNote: display(item.sdiNote),
     detailHref: safeHref(item.detailHref),
     pdfHref: safeHref(item.pdfHref),
     xmlHref: safeHref(item.xmlHref),
+  }
+}
+
+function normaliseOfficialSource(raw: unknown): FatturazioneOfficialSource {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id) || text(item.label) || 'fonte',
+    authority: display(item.authority),
+    label: display(item.label) || 'Fonte ufficiale',
+    url: text(item.url),
+    localPath: text(item.localPath),
+  }
+}
+
+function normaliseSdiWorkflowStep(raw: unknown): FatturazioneSdiWorkflowStep {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id) || text(item.label) || 'passaggio',
+    label: display(item.label) || 'Passaggio SdI',
+    message: display(item.message),
+    tone: tone(item.tone),
+  }
+}
+
+function normaliseSdiChannel(raw: unknown): FatturazioneSdiChannel {
+  const item = asRecord(raw)
+  return {
+    configured: bool(item.configured),
+    label: display(item.label) || 'Canale SdI non configurato',
+    message: display(item.message),
   }
 }
 
@@ -789,6 +874,9 @@ function normalisePage(raw: unknown): FatturazionePageData {
     clientProfiles,
     matterProfiles,
     studioProfile: normaliseParty(page.studioProfile),
+    officialSources: list(page.officialSources).map(normaliseOfficialSource),
+    sdiWorkflow: list(page.sdiWorkflow).map(normaliseSdiWorkflowStep),
+    sdiChannel: normaliseSdiChannel(page.sdiChannel),
     nextNumber: text(page.nextNumber),
     defaults,
     fiscal_options: list(page.fiscal_options)

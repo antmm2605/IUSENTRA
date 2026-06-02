@@ -48,6 +48,7 @@ _REMOTO_URL   = os.getenv("PCT_UFFICI_URL", "")          # URL JSON esterno faco
 _PST_UFFICI   = "https://pst.giustizia.it/PST/resources/rest/ricercaUfficiGiudiziari"
 _PST_TIMEOUT  = 12  # secondi
 _RIFERIMENTI_MINISTERO_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero.json"
+_RIFERIMENTI_MINISTERO_EXTRA_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero_extra.json"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
@@ -61,6 +62,7 @@ _PST_QBUILDER_NAMESPACES = {
     "JPW_SIGP": "urn:CONS-SIGP-BE",
     "JPW_CASSCI": "urn:CONS-CASSCI",
     "JPW_CASSPE": "urn:CONS-CASSPE",
+    "JPW_UNEP": "urn:CONS-UNEP",
 }
 _IPA_OPEN_DATA_URL = "https://www.indicepa.it/ipa-dati/dataset/pec-ente"
 _PST_SERVIZI_UFFICI_URL = "https://pst.giustizia.it/PST/it/services.page"
@@ -78,6 +80,7 @@ _TIPI_USO_PEC = {
     "SORVEGLIANZA": "deposito_penale",
     "CORTE_ASSISE": "deposito_penale",
     "GDP": "deposito_pct",
+    "UNEP": "deposito_pct",
     "TAR": "deposito_amministrativo",
     "CDS": "deposito_amministrativo",
     "CGARS": "deposito_amministrativo",
@@ -96,7 +99,9 @@ TIPI_UFFICIO = {
     "TM":                ("bi-people-fill",         "Trib. Minorenni"),
     "SORVEGLIANZA":      ("bi-eye-fill",            "Trib. Sorveglianza"),
     "CORTE_ASSISE":      ("bi-hammer",              "Corte d'Assise"),
+    "CORTE_APPELLO_SEZIONE": ("bi-diagram-3",        "Sez. Corte d'Appello"),
     "GDP":               ("bi-person-badge",        "Giudice di Pace"),
+    "UNEP":              ("bi-send-check",          "UNEP"),
     "TAR":               ("bi-building-check",      "TAR"),
     "CDS":               ("bi-columns-gap",         "Consiglio di Stato"),
     "CGARS":             ("bi-shield-half",          "CGARS"),
@@ -283,6 +288,94 @@ def _carica_riferimenti_ministero() -> dict[str, dict]:
         return {}
 
 
+@lru_cache(maxsize=1)
+def _carica_riferimenti_ministero_extra() -> list[dict]:
+    """Carica le righe PST ufficiali assenti dal vecchio bundle interno."""
+    if not _RIFERIMENTI_MINISTERO_EXTRA_PATH.exists():
+        return []
+    try:
+        raw = json.loads(_RIFERIMENTI_MINISTERO_EXTRA_PATH.read_text(encoding="utf-8"))
+        rows = raw.get("uffici", []) if isinstance(raw, dict) else []
+        return rows if isinstance(rows, list) else []
+    except Exception as exc:
+        log.warning("Lettura snapshot ministeriale extra uffici fallita: %s", exc)
+        return []
+
+
+def _nome_da_descrizione_ministeriale(ref: dict) -> str:
+    descrizione = str(ref.get("descrizione_ministero") or "").strip()
+    tipo = str(ref.get("tipo_ministero") or "").strip().upper()
+    if not descrizione:
+        return str(ref.get("nome") or ref.get("codice_ministero") or "").strip()
+    if tipo == "CA" and " - " in descrizione:
+        return "Corte d'Appello di " + descrizione.split(" - ", 1)[1].strip()
+    if tipo == "OR" and descrizione.lower().startswith("tribunale ordinario - "):
+        return "Tribunale di " + descrizione.split(" - ", 1)[1].strip()
+    if tipo == "GP" and descrizione.lower().startswith("giudice di pace - "):
+        return "Ufficio del Giudice di Pace di " + descrizione.split(" - ", 1)[1].strip()
+    if tipo == "SC" and "corte d'appello" in descrizione.lower():
+        return descrizione.replace("Sezione Distaccata di ", "Sezione distaccata della ")
+    return descrizione
+
+
+def _tipo_interno_da_ministero(ref: dict) -> str:
+    tipo = str(ref.get("tipo_ministero") or "").strip().upper()
+    descrizione = str(ref.get("descrizione_ministero") or "").strip().lower()
+    if tipo == "CA":
+        return "CORTE_APPELLO"
+    if tipo == "OR":
+        return "TRIBUNALE"
+    if tipo == "PC":
+        return "PROCURA"
+    if tipo == "PG":
+        return "PROCURA_GENERALE"
+    if tipo == "TM":
+        return "TM"
+    if tipo == "SV":
+        return "SORVEGLIANZA"
+    if tipo == "GP":
+        return "GDP"
+    if tipo == "UP":
+        return "UNEP"
+    if tipo == "SC":
+        return "CORTE_APPELLO_SEZIONE" if "corte d'appello" in descrizione else "TRIBUNALE"
+    return tipo or "TRIBUNALE"
+
+
+def _ufficio_extra_da_riferimento_ministeriale(ref: dict) -> dict:
+    codice_ministero = str(ref.get("codice_ministero") or "").strip()
+    distretto = str(ref.get("distretto_ministero") or ref.get("distretto_gl") or "").strip()
+    pec = str(ref.get("pec_ministero") or "").strip().lower()
+    ufficio = {
+        "codice": codice_ministero,
+        "nome": _nome_da_descrizione_ministeriale(ref),
+        "distretto": distretto,
+        "pec": pec,
+        "tipo": _tipo_interno_da_ministero(ref),
+        "fonte_registro": "PST",
+        "codice_interno_iusentra": "",
+        "aggiunto_da_snapshot_ministeriale": True,
+    }
+    for chiave in (
+        "codice_ministero",
+        "codice_gl",
+        "descrizione_ministero",
+        "tipo_ministero",
+        "tipo_ministero_descrizione",
+        "comune_ministero",
+        "distretto_ministero",
+        "distretto_gl",
+        "regione_ministero",
+        "provincia_ministero",
+        "pec_ministero",
+        "servizi_ministero",
+        "servizio_pst_predefinito",
+    ):
+        if chiave in ref:
+            ufficio[chiave] = ref[chiave]
+    return ufficio
+
+
 def _applica_riferimenti_ministero(uffici: list[dict]) -> list[dict]:
     """Sovrascrive distretto/PEC con il riferimento ministeriale e aggiunge metadati PST."""
     riferimenti = _carica_riferimenti_ministero()
@@ -319,6 +412,26 @@ def _applica_riferimenti_ministero(uffici: list[dict]) -> list[dict]:
             if chiave in ref:
                 merged[chiave] = ref[chiave]
         arricchiti.append(merged)
+    codici_presenti = {
+        str(ufficio.get("codice") or "").strip()
+        for ufficio in arricchiti
+        if str(ufficio.get("codice") or "").strip()
+    }
+    codici_ministero_presenti = {
+        str(ufficio.get("codice_ministero") or "").strip()
+        for ufficio in arricchiti
+        if str(ufficio.get("codice_ministero") or "").strip()
+    }
+    for ref in _carica_riferimenti_ministero_extra():
+        codice_ministero = str(ref.get("codice_ministero") or "").strip()
+        if not codice_ministero:
+            continue
+        if codice_ministero in codici_presenti or codice_ministero in codici_ministero_presenti:
+            continue
+        extra = _ufficio_extra_da_riferimento_ministeriale(ref)
+        arricchiti.append(extra)
+        codici_presenti.add(str(extra.get("codice") or "").strip())
+        codici_ministero_presenti.add(codice_ministero)
     return arricchiti
 
 

@@ -453,6 +453,15 @@ CREATE TABLE IF NOT EXISTS payment_config (
     dati_json                     TEXT DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS settings_config (
+    section                       TEXT PRIMARY KEY,
+    updated_at                    TEXT NOT NULL,
+    source                        TEXT NOT NULL DEFAULT 'config_studio',
+    secret_fields_json            TEXT NOT NULL DEFAULT '[]',
+    dati_json                     TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_settings_config_updated ON settings_config(updated_at);
+
 -- ---- Messaggi
 CREATE TABLE IF NOT EXISTS messaggi (
     id                    TEXT PRIMARY KEY,
@@ -643,7 +652,7 @@ class GestioneDatabase:
         "clienti", "condivisioni", "note_faldone", "fascicoli",
         "appuntamenti", "calendar_sync", "scadenze", "timesheet", "time_tracking",
         "preventivi", "conferimenti", "fatturazione",
-        "pagamenti_links", "pagamenti_config", "messaggi",
+        "pagamenti_links", "pagamenti_config", "impostazioni", "messaggi",
         "email_casella", "email_ordinaria", "utenti", "audit",
         "privacy", "notifiche", "backup", "portale", "soggetti",
         "soggetti_parti", "wizard_pro", "legal_intelligence",
@@ -655,7 +664,7 @@ class GestioneDatabase:
     MODULI_SQLITE_STRUTTURATI = {
         "clienti", "fascicoli", "appuntamenti", "scadenze",
         "timesheet", "time_tracking", "preventivi", "conferimenti", "fatturazione",
-        "pagamenti_links", "pagamenti_config", "messaggi", "utenti",
+        "pagamenti_links", "pagamenti_config", "impostazioni", "messaggi", "utenti",
         "soggetti", "soggetti_parti",
         "audit", "privacy", "notifiche", "backup",
     }
@@ -672,6 +681,7 @@ class GestioneDatabase:
         "fatturazione": ("parcelle", "id"),
         "pagamenti_links": ("payment_links", "id"),
         "pagamenti_config": ("payment_config", "config_id"),
+        "impostazioni": ("settings_config", "section"),
         "messaggi": ("messaggi", "id"),
         "utenti": ("utenti", "id"),
         "soggetti": ("soggetti", "id"),
@@ -688,7 +698,7 @@ class GestioneDatabase:
     MODULI_SQLITE_ANTI_PERDITA = {
         "clienti", "fascicoli", "appuntamenti", "scadenze",
         "timesheet", "time_tracking", "preventivi", "conferimenti",
-        "fatturazione", "pagamenti_links", "messaggi", "utenti",
+        "fatturazione", "pagamenti_links", "impostazioni", "messaggi", "utenti",
         "soggetti", "soggetti_parti",
         "privacy", "backup",
     }
@@ -3005,6 +3015,33 @@ class GestioneDatabase:
                     migrati["pagamenti_config"] = 1
                 except Exception as ex:
                     errori.append(f"pagamenti_config/default: {ex}")
+
+            impostazioni_path = self.percorsi.get("impostazioni")
+            if impostazioni_path and impostazioni_path.exists():
+                try:
+                    from pct.config_studio import GestioneConfigStudio
+                    from pct.impostazioni_config_repository import settings_config_rows_from_config
+
+                    cfg_studio = GestioneConfigStudio(config_path=str(impostazioni_path)).config
+                    rows = settings_config_rows_from_config(cfg_studio)
+                    for row in rows:
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO settings_config
+                            (section, updated_at, source, secret_fields_json, dati_json)
+                            VALUES (?,?,?,?,?)
+                            """,
+                            (
+                                row["section"],
+                                row["updated_at"],
+                                row["source"],
+                                json.dumps(row.get("secret_fields") or [], ensure_ascii=False),
+                                json.dumps(row.get("dati") or {}, ensure_ascii=False),
+                            ),
+                        )
+                    migrati["impostazioni"] = len(rows)
+                except Exception as ex:
+                    errori.append(f"impostazioni/settings_config: {ex}")
 
             pagamenti_link_raw, err = self._leggi_json("pagamenti_links")
             if err:

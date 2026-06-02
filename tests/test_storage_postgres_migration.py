@@ -145,6 +145,7 @@ def _tenant_paths(tmp_path: Path) -> dict[str, str]:
         "PREVENTIVI_DB": str(root / "preventivi" / "preventivi.json"),
         "FATTURAZIONE_DB": str(root / "fatturazione" / "parcelle.json"),
         "PAGAMENTI_DIR": str(root / "pagamenti"),
+        "STUDIO_CONFIG": str(root / "config" / "studio.json"),
         "PORTALE_DB": str(root / "portale" / "portali.json"),
         "SOGGETTI_DB": str(root / "soggetti" / "anagrafica.json"),
         "SOGGETTI_PARTI_DB": str(root / "soggetti" / "parti.json"),
@@ -354,6 +355,18 @@ def _seed_core_json(paths: dict[str, str]) -> None:
                 "stato": "ATTESO",
             }
         ],
+    )
+    _write_json(
+        Path(paths["STUDIO_CONFIG"]),
+        {
+            "studio": {"nome": "Studio Demo", "avvocato": "Avv. Demo"},
+            "sdi": {
+                "abilitato": True,
+                "modalita": "intermediario",
+                "nome_intermediario": "Intermediario FatturaPA",
+                "codice_canale": "ABC1234",
+            },
+        },
     )
     _write_json(Path(paths["MESSAGGI_DB"]), [])
     _write_json(Path(paths["PRIVACY_DB"]), [])
@@ -597,6 +610,7 @@ def test_migrate_core_storage_to_postgres_produce_report_consistente(tmp_path: P
     assert report["counts"]["postgres"]["conferimenti"] == 1
     assert report["counts"]["postgres"]["fatturazione"] == 1
     assert report["counts"]["postgres"]["pagamenti_links"] == 1
+    assert report["counts"]["postgres"]["impostazioni"] >= 10
     assert report["counts"]["postgres"]["soggetti"] == 1
     assert report["counts"]["postgres"]["soggetti_parti"] == 1
     assert report["counts"]["sqlite"]["moduli_json_records"] >= 10
@@ -609,6 +623,11 @@ def test_migrate_core_storage_to_postgres_produce_report_consistente(tmp_path: P
         ).fetchall()
     }
     assert {"calendar_sync", "email_ordinaria", "telematico"}.issubset(moduli_estesi)
+    sdi_row = target_backend.conn.execute(
+        "SELECT dati_json FROM settings_config WHERE section='sdi'"
+    ).fetchone()
+    assert sdi_row is not None
+    assert json.loads(sdi_row[0])["codice_canale"] == "ABC1234"
     assert Path(report["report_path"]).exists()
 
 

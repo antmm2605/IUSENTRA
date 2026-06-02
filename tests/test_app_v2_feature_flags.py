@@ -49,6 +49,7 @@ def test_app_v2_canonical_flags_have_explicit_rollout_defaults_and_page_scope():
     assert all(re.fullmatch(r"routes\.appV2\.[A-Za-z0-9]+\.[A-Za-z0-9]+", key) for key in canonical)
     assert "routes.appV2.documents.list" in canonical
     assert "routes.appV2.settings.calendarSync" in canonical
+    assert "routes.appV2.settings.sdi" in canonical
     assert "routes.appV2.notifications.mobilePush" in canonical
     assert "routes.appV2.telematico.center" in APP_V2_DEFAULT_OFF_FLAGS
 
@@ -91,4 +92,5 @@ def test_frontend_blocks_flag_off_routes_before_page_fetch():
     assert "if(effectiveStandalonePage)" in app_text
     assert "appV2RouteFlagRules" in flags_text
     assert "'routes.appV2.documents.list'" in flags_text
+    assert "'routes.appV2.settings.sdi'" in flags_text
     assert "'routes.appV2.notifications.mobilePush'" in flags_text

@@ -140,6 +140,7 @@ def _public_request() -> bool:
         return True
     return path.startswith((
         "/static/",
+        "/polisweb/local-signer/download",
         "/web/",
         "/support/join/",
         "/support/operatore/",

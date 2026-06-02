@@ -39,6 +39,7 @@ def test_main_windows_default_usa_iexpress_storico_e_aggiorna_alias(monkeypatch,
     reqs = tmp_path / "requirements_local_signer.txt"
     install = tmp_path / "installa_local_signer_locale.ps1"
     uffici = tmp_path / "uffici_ministero.json"
+    uffici_pst_pubblici = tmp_path / "uffici_pst_pubblici.json"
     visible_signature = tmp_path / "visible_signature.py"
     module_dir = tmp_path / "local_signer_mod"
     module_dir.mkdir()
@@ -55,6 +56,7 @@ def test_main_windows_default_usa_iexpress_storico_e_aggiorna_alias(monkeypatch,
     reqs.write_text("cryptography\n", encoding="utf-8")
     install.write_text("Write-Host setup\n", encoding="utf-8")
     uffici.write_text('{"uffici":[]}', encoding="utf-8")
+    uffici_pst_pubblici.write_text('{"uffici":{"civili":[],"penali":[]}}', encoding="utf-8")
     visible_signature.write_text("def apply_visible_signature_stamp(data): return data\n", encoding="utf-8")
 
     monkeypatch.setattr(build_dist.os, "name", "nt")
@@ -64,6 +66,7 @@ def test_main_windows_default_usa_iexpress_storico_e_aggiorna_alias(monkeypatch,
     monkeypatch.setattr(build_dist, "REQS_TXT", reqs)
     monkeypatch.setattr(build_dist, "INSTALL_PS1", install)
     monkeypatch.setattr(build_dist, "UFFICI_JSON", uffici)
+    monkeypatch.setattr(build_dist, "UFFICI_PST_PUBBLICI_JSON", uffici_pst_pubblici)
     monkeypatch.setattr(build_dist, "VISIBLE_SIGNATURE_PY", visible_signature)
     monkeypatch.setattr(build_dist, "LOCAL_SIGNER_MOD_DIR", module_dir)
     monkeypatch.setattr(
@@ -110,6 +113,8 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
     assert "Uninstall-ExistingLocalSigner" in contenuto
     assert "Disinstallo la vecchia versione locale prima di installare quella nuova" in contenuto
+    assert "$servicePythonExe = $pythonwExe" in contenuto
+    assert '(Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe"' in contenuto
     assert "Unregister-ScheduledTask -TaskName $taskName" in contenuto
     assert '$preserve = @("data", "installer.log", "local_signer.out.log", "local_signer.err.log")' in contenuto
 
@@ -127,7 +132,8 @@ def test_build_windows_exe_profile_resta_iexpress_1_6_35():
     assert "FILE0=installa_local_signer_locale.ps1" in builder
     assert "FILE1=local_signer.py" in builder
     assert "FILE6=uffici_ministero.json" in builder
-    assert "FILE13=local_signer_mod__server_bootstrap.py" in builder
+    assert "FILE7=uffici_pst_pubblici.json" in builder
+    assert "FILE14=local_signer_mod__server_bootstrap.py" in builder
 
 
 def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():
@@ -165,6 +171,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     visible_signature = tmp_path / "visible_signature.py"
     reqs = tmp_path / "requirements_local_signer.txt"
     uffici = tmp_path / "uffici_ministero.json"
+    uffici_pst_pubblici = tmp_path / "uffici_pst_pubblici.json"
     module_dir = tmp_path / "local_signer_mod"
     dist = tmp_path / "dist"
     dist.mkdir()
@@ -175,6 +182,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     visible_signature.write_text("def apply_visible_signature_stamp(data):\n    return data\n", encoding="utf-8")
     reqs.write_text("cryptography\n", encoding="utf-8")
     uffici.write_text('{"uffici":[]}', encoding="utf-8")
+    uffici_pst_pubblici.write_text('{"uffici":{"civili":[],"penali":[]}}', encoding="utf-8")
     for name in [
         "__init__.py",
         "ai_cache.py",
@@ -191,19 +199,21 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     monkeypatch.setattr(build_dist, "VISIBLE_SIGNATURE_PY", visible_signature)
     monkeypatch.setattr(build_dist, "REQS_TXT", reqs)
     monkeypatch.setattr(build_dist, "UFFICI_JSON", uffici)
+    monkeypatch.setattr(build_dist, "UFFICI_PST_PUBBLICI_JSON", uffici_pst_pubblici)
     monkeypatch.setattr(build_dist, "LOCAL_SIGNER_MOD_DIR", module_dir)
 
     copied = build_dist.write_windows_support_files(dist)
 
-    assert [path.name for path in copied[:6]] == [
+    assert [path.name for path in copied[:7]] == [
         "local_signer.py",
         "local_ai_host_bridge.py",
         "lex_document_context.py",
         "visible_signature.py",
         "requirements_local_signer.txt",
         "uffici_ministero.json",
+        "uffici_pst_pubblici.json",
     ]
-    assert {path.name for path in copied[6:]} == {
+    assert {path.name for path in copied[7:]} == {
         "__init__.py",
         "ai_cache.py",
         "ai_handlers.py",
@@ -217,6 +227,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     assert (dist / "visible_signature.py").read_text(encoding="utf-8") == "def apply_visible_signature_stamp(data):\n    return data\n"
     assert (dist / "requirements_local_signer.txt").read_text(encoding="utf-8") == "cryptography\n"
     assert (dist / "uffici_ministero.json").read_text(encoding="utf-8") == '{"uffici":[]}'
+    assert (dist / "uffici_pst_pubblici.json").read_text(encoding="utf-8") == '{"uffici":{"civili":[],"penali":[]}}'
     assert (dist / "local_signer_mod" / "ai_handlers.py").read_text(encoding="utf-8") == "# ai_handlers.py\n"
 
 

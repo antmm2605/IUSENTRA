@@ -51,6 +51,11 @@
   min-width: 0;
 }
 
+.iu-settings-tabs [data-slot="tabs-content"][hidden],
+.iu-settings-tabs__content[hidden] {
+  display: none !important;
+}
+
 .iu-settings-form {
   display: grid;
   gap: 16px;

@@ -1818,6 +1818,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             "/impostazioni?tab=calendario",
             "/impostazioni/calendario",
             "/impostazioni/pagamenti",
+            "/impostazioni/sdi",
             "/notifiche",
             "/notifiche-whatsapp",
             "/backup",
@@ -1950,6 +1951,7 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/impostazioni-studio",
         "/impostazioni/pagamenti",
         "/impostazioni/calendario",
+        "/impostazioni/sdi",
         "/notifiche",
         "/notifiche-whatsapp",
         "/sincronizzazione-calendari",
@@ -2149,9 +2151,12 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     styles = Path("frontend/src/features/impostazioni/ImpostazioniPage.css").read_text(encoding="utf-8")
     signer = Path("frontend/src/features/impostazioni/localSigner.ts").read_text(encoding="utf-8")
     api = Path("frontend/src/features/impostazioni/api.ts").read_text(encoding="utf-8")
+    bridge = Path("web/services/react_impostazioni_bridge.py").read_text(encoding="utf-8")
 
     constants = Path("frontend/src/features/impostazioni/constants.ts").read_text(encoding="utf-8")
     assert "Dati Studio" in constants
+    assert "Canali SdI" in constants
+    assert "fatturapa_specifiche_formato" in bridge or "fatturapa_specifiche_formato" in constants
     assert "Qualifica professionale" in constants
     assert "Patrocinante in Cassazione" in constants
     assert "Eye, EyeOff" in form
@@ -2168,6 +2173,8 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     assert "NotificationsSettingsPanel" in page
     assert "BackupSettingsPanel" in page
     assert "CalendarSettingsPanel" in page
+    assert "sequence={false}" in Path("frontend/src/components/iusentra/IusFormSection.tsx").read_text(encoding="utf-8")
+    assert "const headerSequenceProps = sequence ? { 'data-iusentra-sequence-slot': 'page-header' } : {}" in Path("frontend/src/components/iusentra/IusSectionHeader.tsx").read_text(encoding="utf-8")
     assert "Mostra valore inserito" in payments
     assert "Prepara link WhatsApp" in notifications
     assert "Invia promemoria" in notifications
@@ -2194,6 +2201,9 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     assert ".iu-settings-tabs {\n  display: flex;" in styles
     assert "flex-direction: column;" in styles
     assert ".iu-settings-tabs__list {\n  display: flex;" in styles
+    assert "hidden={!isActiveSection}" in page
+    assert "aria-hidden={!isActiveSection}" in page
+    assert ".iu-settings-tabs [data-slot=\"tabs-content\"][hidden]" in styles
 
 
 def test_impostazioni_react_ai_status_e_bootstrap_usano_runtime_locale(tmp_path: Path, monkeypatch):
@@ -2767,6 +2777,10 @@ def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path, mon
     assert interessi_fields["int_tipo"]["value"] == "mora_commerciale"
     assert onorari_fields["onorari_fasi"]["type"] == "multiselect"
     assert len(onorari_fields["onorari_fasi"]["options"]) >= 4
+    assert onorari_fields["onorari_cliente_qualificato"]["type"] == "select"
+    assert onorari_fields["onorari_convenzione_predisposta_avvocato"]["type"] == "select"
+    assert onorari_fields["onorari_equo_compenso_verificato"]["type"] == "select"
+    assert onorari_fields["onorari_informativa_scritta"]["type"] == "select"
 
     assert calc_response.status_code == 200
     assert calc_payload["ok"] is True
@@ -2778,6 +2792,85 @@ def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path, mon
     assert uffici_payload["toolId"] == "uffici_competenti"
     assert uffici_payload["offices"][0]["name"] == "Tribunale di PALMI"
     assert uffici_payload["tables"][0]["title"] == "Riepilogo uffici"
+
+
+def test_endpoint_uffici_competenti_accetta_filtro_tipologia_per_nuovo_fascicolo(tmp_path: Path, monkeypatch):
+    from web.blueprints import api_v1_react as react_api
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    calls: list[dict[str, object]] = []
+
+    def fake_uffici_competenti(
+        comune: str,
+        *,
+        includi_speciali: bool = False,
+        tipi_ufficio=None,
+        solo_pec: bool = False,
+    ):
+        calls.append({
+            "comune": comune,
+            "includi_speciali": includi_speciali,
+            "tipi_ufficio": list(tipi_ufficio or []),
+            "solo_pec": solo_pec,
+        })
+        return {
+            "comune": comune,
+            "totalVisible": 1,
+            "totalOfficial": 3,
+            "notes": ["Ricerca eseguita sulla fonte ministeriale."],
+            "warnings": ["Verifica materia, rito, valore e foro applicabile prima dell'uso."],
+            "source": {"title": "Ministero della Giustizia - Giustizia Map", "url": "https://www.giustizia.it/"},
+            "offices": [
+                {
+                    "id": "unep-palmi",
+                    "name": "Unep presso il Tribunale di PALMI",
+                    "kind": "unep",
+                    "typeLabel": "UNEP",
+                    "primary": True,
+                    "codiceMinistero": "0800570094",
+                    "codiceGiustiziaLocale": "GLRC",
+                    "address": "Via Sauro",
+                    "city": "PALMI",
+                    "cap": "89015",
+                    "phone": "",
+                    "email": "",
+                    "pec": "unep.tribunale.palmi@giustiziacert.it",
+                    "site": "",
+                    "assistenzaPct": {},
+                    "casellario": {},
+                    "actions": [{"label": "Usa nel fascicolo", "href": "/fascicoli/nuovo", "method": "GET", "tone": "primary"}],
+                }
+            ],
+        }
+
+    monkeypatch.setattr(react_api, "ricerca_uffici_competenti", fake_uffici_competenti)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/api/v1/ui/strumenti-legali/uffici_competenti",
+            data={
+                "comune": "Taurianova",
+                "includi_speciali": "1",
+                "tipo_ufficio": "unep",
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert calls == [{
+        "comune": "Taurianova",
+        "includi_speciali": True,
+        "tipi_ufficio": ["unep"],
+        "solo_pec": False,
+    }]
+    assert payload["ok"] is True
+    assert payload["offices"][0]["kind"] == "unep"
+    assert payload["offices"][0]["codiceMinistero"] == "0800570094"
+    assert payload["offices"][0]["pec"] == "unep.tribunale.palmi@giustiziacert.it"
 
 
 def test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali():
@@ -3016,6 +3109,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Importa pratiche da Studio Telematico": "/importa-pratiche-studio-telematico",
         "Incassi e Pagamenti": "/incassi-pagamenti",
         "Pagamenti": "/impostazioni?tab=pagamenti",
+        "Canali SdI": "/impostazioni/sdi",
         "Notifiche": "/impostazioni?tab=notifiche",
         "Backup": "/backup",
         "Sincronizzazione Calendari": "/impostazioni/calendario",
@@ -4240,6 +4334,28 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert "id_soggetto_controparte" in source
     assert "cf_controparte" in source
     assert "fascicolo-uffici-giudiziari" in source
+    assert "data.query.ufficio_competente" in source
+    assert "Uffici giudiziari per Comune" in source
+    assert "FASCICOLO_OFFICE_KIND_FILTERS" in source
+    assert "{ value: 'giudice_pace', label: 'GDP' }" in source
+    assert "{ value: 'unep', label: 'UNEP' }" in source
+    assert "/api/v1/ui/territorio/comuni" in source
+    assert "/api/v1/ui/strumenti-legali/uffici_competenti" in source
+    assert "body.append('tipo_ufficio', officeKind)" in source
+    assert 'name="codice_ministero_autorita"' in source
+    assert 'name="codice_ufficio_autorita" value={selectedOfficeCode}' in source
+    assert 'name="codice_ministero_autorita" value={selectedPstCode}' in source
+    assert 'name="codice_gl_autorita"' in source
+    assert 'name="codice_istat_sede_autorita"' in source
+    assert "officeDepositoCode" in source
+    assert "codice ufficio" in source
+    assert "codice PST" in source
+    assert "ISTAT sede" in source
+    assert "Per deposito o consultazione telematica conferma il canale autorizzato" in source
+    assert "office.codiceMinistero || office.codice || office.codiceGiustiziaLocale" not in source
+    assert "Usa nel fascicolo" in source
+    assert ".iu-fas-office-competence" in css
+    assert ".iu-fas-office-kind-filter" in css
     assert 'name="documenti_fascicolo"' in source
     assert 'name="email_fascicolo"' in source
     assert 'accept=".eml,message/rfc822"' in source

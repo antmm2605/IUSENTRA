@@ -53,9 +53,11 @@ def register_privacy_routes(
                 destinatari=form.get("destinatari", ""),
                 trasferimento_extra_ue=form.get("trasferimento_extra_ue") == "1",
                 paese_destinazione=form.get("paese_destinazione", ""),
+                garanzie_trasferimento_extra_ue=form.get("garanzie_trasferimento_extra_ue", ""),
                 termine_conservazione=form.get("termine_conservazione", ""),
                 misure_sicurezza=form.get("misure_sicurezza", ""),
                 responsabile=form.get("responsabile", ""),
+                registro_responsabile=form.get("registro_responsabile", ""),
                 note=form.get("note", ""),
             )
             audit("privacy.registro.nuovo")

@@ -80,8 +80,15 @@ export function ImpostazioniPage() {
 
               {SETTINGS_SECTIONS.map((section) => {
                 const Icon = section.icon
+                const isActiveSection = section.id === settings.activeSection
                 return (
-                  <TabsContent value={section.id} key={section.id}>
+                  <TabsContent
+                    value={section.id}
+                    key={section.id}
+                    hidden={!isActiveSection}
+                    aria-hidden={!isActiveSection}
+                    className="iu-settings-tabs__content"
+                  >
                     <IusFormSection
                       title={section.label}
                       description={section.description}
@@ -116,8 +123,8 @@ export function ImpostazioniPage() {
                         <SettingsSectionForm
                           section={section.id}
                           fields={SETTINGS_FIELDS[section.id]}
-                          initialValues={section.id === settings.activeSection ? settings.values : payloadForSection(settings.data, section.id)}
-                          rawValues={section.id === settings.activeSection ? rawValues : rawPayloadForSection(settings.data, section.id)}
+                          initialValues={isActiveSection ? settings.values : payloadForSection(settings.data, section.id)}
+                          rawValues={isActiveSection ? rawValues : rawPayloadForSection(settings.data, section.id)}
                           canUpdate={canUpdate}
                           saving={settings.saving === section.id}
                           onSave={settings.save}
@@ -127,7 +134,7 @@ export function ImpostazioniPage() {
                               section={section.id}
                               values={formValues}
                               data={settings.data}
-                              testResult={section.id === settings.activeSection ? settings.testResult : null}
+                              testResult={isActiveSection ? settings.testResult : null}
                               aiStatus={settings.aiStatus}
                               onTest={settings.test}
                               onRefreshAi={settings.refreshAi}

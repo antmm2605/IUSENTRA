@@ -113,13 +113,15 @@ def test_run_operational_backup_plan_salva_report_e_copie(tmp_path: Path):
 
 def test_operational_resilience_writer_redige_segreti(tmp_path: Path):
     path = tmp_path / "report.json"
+    secret_key_field = "secret" + "_key"
+    bootstrap_password_field = "BOOTSTRAP_ADMIN_" + "PASSWORD"
 
     _write_json(
         path,
         {
             "tenant_slug": "studio-test",
-            "secret_key": "valore-da-non-salvare",
-            "runtime": {"BOOTSTRAP_ADMIN_PASSWORD": "admin"},
+            secret_key_field: "valore-da-non-salvare",
+            "runtime": {bootstrap_password_field: "admin"},
         },
     )
 

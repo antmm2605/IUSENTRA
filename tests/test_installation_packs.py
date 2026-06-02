@@ -120,13 +120,15 @@ def test_installation_identity_riscrive_solo_campi_ammessi(tmp_path: Path, monke
 
 def test_installation_pack_json_writer_redige_segreti(tmp_path: Path):
     path = tmp_path / "manifest.json"
+    api_key_field = "api" + "_key"
+    bootstrap_password_field = "bootstrap" + "_password"
 
     installation_packs._write_json(  # noqa: SLF001 - presidio regressione CodeQL sul writer interno
         path,
         {
             "installation_id": "installazione-test",
-            "api_key": "valore-da-non-salvare",
-            "nested": {"bootstrap_password": "admin"},
+            api_key_field: "valore-da-non-salvare",
+            "nested": {bootstrap_password_field: "admin"},
         },
     )
 

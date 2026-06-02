@@ -142,7 +142,8 @@ def _write_json(path: Path, payload: dict[str, Any]) -> str:
         ensure_ascii=False,
         indent=2,
     )
-    path.write_text(encoded, encoding="utf-8")  # codeql[py/clear-text-storage-sensitive-data]
+    # codeql[py/clear-text-storage-sensitive-data]
+    path.write_text(encoded, encoding="utf-8")
     return str(path)
 
 

@@ -35,7 +35,6 @@ import unicodedata
 from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
@@ -44,7 +43,7 @@ log = logging.getLogger(__name__)
 
 _CACHE_PATH   = os.getenv("PCT_UFFICI_DB",          "/data/uffici/uffici_giudiziari.json")
 _TTL_GIORNI   = int(os.getenv("PCT_UFFICI_TTL_GIORNI", "7"))
-_REMOTO_URL   = os.getenv("PCT_UFFICI_URL", "")          # URL JSON esterno facoltativo
+_REMOTO_URL   = os.getenv("PCT_UFFICI_URL", "")          # Compat: deve risolvere l'endpoint PST ufficiale.
 _PST_UFFICI   = "https://pst.giustizia.it/PST/resources/rest/ricercaUfficiGiudiziari"
 _PST_TIMEOUT  = 12  # secondi
 _RIFERIMENTI_MINISTERO_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero.json"
@@ -87,6 +86,24 @@ _TIPI_USO_PEC = {
     "CGT": "deposito_tributario",
     "CPT": "deposito_tributario",
 }
+
+
+def _endpoint_uffici_autorizzato(endpoint: str, nome_fonte: str) -> str:
+    """Restituisce solo l'endpoint ufficiale PST ammesso per la sync uffici."""
+    value = str(endpoint or "").strip()
+    if not value:
+        return ""
+    if nome_fonte == "pst_public":
+        return _PST_UFFICI
+    parsed = urlparse(value)
+    official = urlparse(_PST_UFFICI)
+    if parsed.scheme.lower() != "https":
+        return ""
+    if (parsed.hostname or "").lower() != (official.hostname or "").lower():
+        return ""
+    if parsed.path.rstrip("/") != official.path.rstrip("/"):
+        return ""
+    return _PST_UFFICI
 
 # ---------------------------------------------------------------- tipi
 
@@ -1499,11 +1516,11 @@ class GestoreUfficiGiudiziari:
 
     def aggiorna(self, url: str = "") -> tuple[bool, str]:
         """
-        Tenta di aggiornare la cache da sorgente remota.
+        Tenta di aggiornare la cache da sorgente ufficiale o dal bundle interno.
 
         Ordine di tentativo:
-        1. url parametro (se specificato)
-        2. PCT_UFFICI_URL variabile d'ambiente
+        1. url parametro compatibile, se coincide con l'endpoint PST ufficiale
+        2. PCT_UFFICI_URL, solo se coincide con l'endpoint PST ufficiale
         3. PST REST pubblico MinGiust
         4. Ri-salva il bundle interno (sempre riuscito)
         """
@@ -1524,9 +1541,16 @@ class GestoreUfficiGiudiziari:
         for nome_fonte, endpoint in fonti:
             if not endpoint:
                 continue
+            endpoint_autorizzato = _endpoint_uffici_autorizzato(endpoint, nome_fonte)
+            if not endpoint_autorizzato:
+                log.warning(
+                    "Aggiornamento uffici da %s ignorato: endpoint non autorizzato.",
+                    nome_fonte,
+                )
+                continue
             try:
-                log.info("Aggiornamento uffici da %s (%s)", nome_fonte, endpoint)
-                resp = req.get(endpoint, timeout=_PST_TIMEOUT,
+                log.info("Aggiornamento uffici da %s (%s)", nome_fonte, endpoint_autorizzato)
+                resp = req.get(endpoint_autorizzato, timeout=_PST_TIMEOUT,
                                headers={"Accept": "application/json",
                                         "User-Agent": "PCT-Studio/2.0 (uffici-aggiornamento)"})
                 if resp.ok:
@@ -1546,7 +1570,7 @@ class GestoreUfficiGiudiziari:
                         self._mem = uffici
                         n = len(uffici)
                         log.info("Aggiornamento riuscito: %d uffici da %s", n, nome_fonte)
-                        return True, f"Aggiornati {n} uffici da {nome_fonte} ({endpoint})"
+                        return True, f"Aggiornati {n} uffici da {nome_fonte} ({endpoint_autorizzato})"
             except Exception as exc:
                 log.warning("Aggiornamento da %s fallito: %s", nome_fonte, exc)
 
@@ -1590,10 +1614,18 @@ class GestoreUfficiGiudiziari:
         for nome_fonte, endpoint in fonti:
             if not endpoint:
                 continue
+            endpoint_autorizzato = _endpoint_uffici_autorizzato(endpoint, nome_fonte)
+            if not endpoint_autorizzato:
+                log.warning(
+                    "Verifica variazioni: sorgente %s ignorata per endpoint non autorizzato.",
+                    nome_fonte,
+                )
+                errore = "endpoint_non_autorizzato"
+                continue
             try:
-                log.info("Verifica variazioni: tentativo da %s (%s)", nome_fonte, endpoint)
+                log.info("Verifica variazioni: tentativo da %s (%s)", nome_fonte, endpoint_autorizzato)
                 resp = req.get(
-                    endpoint, timeout=_PST_TIMEOUT,
+                    endpoint_autorizzato, timeout=_PST_TIMEOUT,
                     headers={"Accept": "application/json",
                              "User-Agent": "PCT-Studio/2.0 (uffici-verifica)"},
                 )

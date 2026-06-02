@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.249.7 - 2026-06-02
+
+- Blindato l'aggiornamento degli uffici giudiziari: il parametro API e `PCT_UFFICI_URL` non possono più puntare a URL arbitrari, ma vengono accettati solo se coincidono con l'endpoint PST ufficiale, altrimenti il sistema usa la fonte ufficiale o il registro interno versionato.
+- Riallineate le soppressioni CodeQL sui writer JSON già redatti di Installation Pack e Operational Resilience, mantenendo i test che dimostrano la rimozione dei segreti prima del salvataggio.
+- Aggiunti test di sicurezza per impedire chiamate verso endpoint non autorizzati durante aggiornamento e verifica variazioni degli uffici giudiziari.
+
 ## 2.249.6 - 2026-06-02
 
 - Aggiunta in `Impostazioni` la sezione React `Canali SdI` su `/impostazioni/sdi`, con configurazione del canale accreditato/intermediario, campi riservati redatti e avviso professionale quando l'invio automatico non è configurabile in modo certo.

@@ -4120,6 +4120,16 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest -q tests\test_react_asset_retention.py --tb=short`; `python tools\check_python_baseline.py`; `python -m ruff check --output-format=github --select E9,F63,F7,F82 pct web lex tests tools worker.py gunicorn.conf.py visible_signature.py wsgi.py`; `python -m ruff check --config pyproject.toml ...`; `python -m mypy --platform linux packaging_manifest.py docker/entrypoint.py tools/sync_packaging_files.py`; `python -m flake8 pct web lex tests tools worker.py gunicorn.conf.py visible_signature.py wsgi.py`; compile Python; `python tools\sync_packaging_files.py --check` | OK | Asset React ripuliti e retention verde; baseline Python, ruff, mypy, flake8, compile, packaging e gate anti-regressione CI confermati prima del nuovo push. |
 | `python scripts\react-migration\generate_backend_security_map.py`; `python -m pytest -q tests\test_auth.py tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_openapi_contracts_phase6.py --tb=short` | OK | Mappa sicurezza backend rigenerata dopo il terzo giro `Lint + syntax`; blocco RBAC/tenant App V2 confermato verde: 77/77 test passati. |
 
+## CodeQL uffici giudiziari e writer redatti 2.249.7 - 2026-06-02
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_installation_packs.py::test_installation_pack_json_writer_redige_segreti tests/test_operational_resilience.py::test_operational_resilience_writer_redige_segreti tests/test_uffici_giudiziari_security.py --tb=short`; `python -m py_compile pct\installation_packs.py pct\operational_resilience.py pct\uffici_giudiziari.py tests\test_uffici_giudiziari_security.py` | OK | 4/4 passati: i writer salvano solo payload redatti e l'aggiornamento uffici ignora URL non autorizzati, usando solo PST ufficiale o bundle interno. |
+| `python -m ruff check pct\installation_packs.py pct\operational_resilience.py pct\uffici_giudiziari.py tests\test_uffici_giudiziari_security.py` | OK | Lint mirato verde sui file toccati dal fix CodeQL. |
+| `python -m pytest -q tests/test_uffici_giudiziari_comuni_db.py tests/test_sync_uffici.py tests/test_fonti_ufficiali_registry.py --tb=short` | OK | 11/11 passati: banca dati uffici per Comune, sync governata e registry fonti ufficiali restano allineati. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Contratti API/OpenAPI riallineati a `2.249.7`; provider verification verde con `auth-error=229`, `success=27`, `backend-security=1`. |
+| `python tools\check_python_baseline.py`; Ruff syntax CI `--select E9,F63,F7,F82`; Ruff governed modules; `python -m mypy --platform linux packaging_manifest.py docker/entrypoint.py tools/sync_packaging_files.py`; `python -m flake8` sui target CI espansi; compileall `pct/web/lex/tests` | OK | Blocchi locali equivalenti al workflow `Lint + syntax` verdi. La variante Ruff totale non governata resta fuori dai required gate e ha evidenziato solo regole storiche non collegate al fix. |
+
 ## Fascicoli, uffici giudiziari per Comune 2.249.5 - 2026-06-02
 
 | Comando / verifica | Esito | Nota |

@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 407.
+- File pytest censiti: 408.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -18,7 +18,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend static gate | 1 |
 | Frontend/UI | 123 |
 | RBAC | 39 |
-| Security | 34 |
+| Security | 35 |
 | Smoke CLI | 6 |
 | Tenant isolation | 93 |
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 30 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 136 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 75 |
+| 09-misc | Test non classificati dalle fasi principali | 76 |
 
 ## Suite CI aggiuntive
 
@@ -431,6 +431,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Scadenze | Frontend/UI | tests/test_scadenziario.py | tenant, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Security | API contract | tests/test_backend_security_phase5.py | 401 anonimo, tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Security | Security | tests/test_security_headers.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Security | Security | tests/test_uffici_giudiziari_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_upload_security.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_web_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Tenant isolation | tests/test_document_intelligence_security.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |

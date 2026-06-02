@@ -11,7 +11,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | blocked | 3 |
 | partial | 37 |
 | pending | 14 |
-| tested | 54 |
+| tested | 55 |
 
 ## Matrice
 
@@ -81,6 +81,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | studio | /impostazioni-studio | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.studio | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /impostazioni/calendario | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.calendarSync | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /impostazioni/pagamenti | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.payments | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
+| studio | /impostazioni/sdi | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.sdi | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /notifiche | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.notifications | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /notifiche-whatsapp | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.notifications | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /sincronizzazione-calendari | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.calendarSync | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |

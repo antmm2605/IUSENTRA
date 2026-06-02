@@ -22,6 +22,7 @@ function assertNotContains(source, unexpected, label) {
 const preset = read('frontend/src/components/iusentra/IusentraPreset.tsx')
 const presetIndex = read('frontend/src/components/iusentra/index.ts')
 const sectionHeader = read('frontend/src/components/iusentra/IusSectionHeader.tsx')
+const formSection = read('frontend/src/components/iusentra/IusFormSection.tsx')
 const css = read('frontend/src/styles/iusentra-design-system.css')
 const app = read('frontend/src/App.tsx')
 const main = read('frontend/src/main.tsx')
@@ -91,14 +92,18 @@ assertContains(visualAudit, "['Documenti', '/documenti']", 'audit browser includ
 assertContains(visualAudit, "['Tribunali / PEC', '/tribunali']", 'audit browser include Tribunali nel perimetro preset')
 
 for (const marker of [
-  'data-iusentra-sequence-slot="page-header"',
-  'data-iusentra-sequence-slot="operational-subtitle"',
-  'data-iusentra-sequence-part="operational-subtitle"',
-  'data-iusentra-sequence-slot="primary-actions"',
-  'data-iusentra-sequence-part="primary-actions"',
+  "'data-iusentra-sequence-slot': 'page-header'",
+  "'data-iusentra-sequence-part': 'page-header'",
+  "'data-iusentra-sequence-slot': 'operational-subtitle'",
+  "'data-iusentra-sequence-part': 'operational-subtitle'",
+  "'data-iusentra-sequence-slot': 'primary-actions'",
+  "'data-iusentra-sequence-part': 'primary-actions'",
 ]) {
   assertContains(sectionHeader, marker, `IusSectionHeader marca ${marker}`)
 }
+assertContains(sectionHeader, 'sequence = true', 'IusSectionHeader mantiene sequenza attiva per impostazione predefinita')
+assertContains(sectionHeader, 'sequence?: boolean', 'IusSectionHeader permette disattivazione controllata della sequenza')
+assertContains(formSection, 'sequence={false}', 'IusFormSection disattiva la sequenza per evitare titoli form riordinati a fondo pagina')
 
 for (const marker of [
   'data-iusentra-sequence-slot="filters"',

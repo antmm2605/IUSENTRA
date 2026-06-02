@@ -151,8 +151,9 @@ def _redact_json_sensitive_values(value: Any) -> Any:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    redacted_payload = _redact_json_sensitive_values(payload)
     encoded = json.dumps(
-        _redact_json_sensitive_values(payload),
+        redacted_payload,
         ensure_ascii=False,
         indent=2,
         default=_json_default,
@@ -163,8 +164,8 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                 return
         except Exception:
             pass
-    # codeql[py/clear-text-storage-sensitive-data]
-    path.write_text(encoded, encoding="utf-8")
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(redacted_payload, handle, ensure_ascii=False, indent=2, default=_json_default)
 
 
 def _read_json(path: Path) -> dict[str, Any]:

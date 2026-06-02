@@ -137,13 +137,9 @@ def _redact_report_sensitive_values(value: Any) -> Any:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
-    encoded = json.dumps(
-        _redact_report_sensitive_values(payload),
-        ensure_ascii=False,
-        indent=2,
-    )
-    # codeql[py/clear-text-storage-sensitive-data]
-    path.write_text(encoded, encoding="utf-8")
+    redacted_payload = _redact_report_sensitive_values(payload)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(redacted_payload, handle, ensure_ascii=False, indent=2)
     return str(path)
 
 

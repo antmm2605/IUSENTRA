@@ -1,0 +1,1305 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET16_PARTE1",
+  "denominazione": "Sedicesimo set - 18 nuovi codici - PARTE 1 di 4",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_AZIONE_DI_CLASSE_ART_840_BIS_C_P_C_E_AZIONE_INIBITORIA_COLLETTIVA_180020",
+      "denominazione": "Azione di classe (art. 840-bis c.p.c.) e azione inibitoria collettiva",
+      "categoria": "Tutela collettiva dei consumatori e degli utenti",
+      "rito": "Rito speciale ex artt. 840-bis – 840-sexiesdecies c.p.c. – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede del convenuto (sezione specializzata)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-bis",
+          "descrizione": "Azione di classe – soggetti legittimati e presupposti"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-ter",
+          "descrizione": "Atto di citazione e contenuto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-quater",
+          "descrizione": "Ammissibilità – valutazione preliminare del Tribunale"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-quinquies",
+          "descrizione": "Pubblicità e adesioni della classe"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-sexies",
+          "descrizione": "Fase istruttoria e sentenza"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-septies",
+          "descrizione": "Liquidazione individuale dei danni"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-octies – 840-sexiesdecies",
+          "descrizione": "Esecuzione, liquidatore di classe, azione inibitoria"
+        },
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "37-bis",
+          "descrizione": "Azione inibitoria collettiva per clausole abusive"
+        },
+        {
+          "fonte": "Direttiva UE 2020/1828 (Azioni rappresentative)",
+          "descrizione": "Recepita parzialmente nella riforma 2021"
+        },
+        {
+          "fonte": "Cass. SU 8236/2024",
+          "descrizione": "Azione di classe – presupposti di ammissibilità post-riforma 2021"
+        }
+      ],
+      "riforma_2021": {
+        "entrata_in_vigore": "19 maggio 2021 (D.Lgs. 149/2022 anticipa alcuni profili)",
+        "novità_rispetto_al_vecchio_art_140_bis": [
+          "Legittimazione estesa: non solo consumatori ma qualsiasi soggetto portatore di diritti omogenei",
+          "Azione attivabile da associazioni, organizzazioni no-profit e imprese",
+          "Nuova fase di ammissibilità + adesioni aperte dopo ammissione",
+          "Liquidatore di classe per la distribuzione del ricavato"
+        ]
+      },
+      "presupposti_ammissibilita": [
+        "Esistenza di una CLASSE di soggetti che vantano diritti OMOGENEI",
+        "Idoneità della condotta a causare pregiudizi di SERIE omogenea",
+        "Non manifesta infondatezza",
+        "Non conflitto di interessi tra rappresentante e classe"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare la classe di soggetti lesi (minimo consistenza quantitativa)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare la condotta comune del convenuto che ha leso la classe"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare il danno tipico per il singolo componente della classe"
+        },
+        {
+          "step": 4,
+          "descrizione": "Predisporre l'atto di citazione con tutti i requisiti ex 840-ter"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_azione_di_classe_840bis",
+        "denominazione": "Atto di citazione per azione di classe ex art. 840-bis c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "rappresentante_della_classe_attore",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "consumatore_singolo",
+                  "associazione_consumatori",
+                  "organizzazione_no_profit",
+                  "impresa"
+                ]
+              },
+              {
+                "id": "denominazione_o_nome",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "condotta_contestata",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "min_length": 500
+              },
+              {
+                "id": "tipo_condotta",
+                "type": "select_multi",
+                "options": [
+                  "pratica_commerciale_scorretta",
+                  "clausola_abusiva",
+                  "inadempimento_contrattuale_seriale",
+                  "illecito_antitrust",
+                  "violazione_privacy_GDPR",
+                  "altro"
+                ]
+              },
+              {
+                "id": "numero_stimato_soggetti_lesi",
+                "type": "integer"
+              }
+            ]
+          },
+          {
+            "id": "diritti_omogenei_della_classe",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "danno_tipico_per_componente",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_responsabilita_convenuto",
+              "condanna_risarcimento_classe",
+              "inibitoria_condotta_illecita",
+              "rimborso_somme_indebitamente_percepite",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Fase di AMMISSIBILITÀ preventiva del Tribunale – il giudice verifica i presupposti",
+          "Legittimazione attiva ampliata post-riforma 2021 (non solo consumatori)",
+          "Dopo ammissione: pubblicità per raccolta adesioni della classe",
+          "Liquidatore di classe per distribuzione del risarcimento",
+          "Competenza esclusiva Tribunale delle Imprese"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_condotta_lesiva",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_soggetti_lesi_noti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "quantificazione_danno_tipico",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria – 5 anni per illeciti extracontrattuali",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "180020",
+      "codice_logico": "GUIDA_AZIONE_DI_CLASSE_ART_840_BIS_C_P_C_E_AZIONE_INIBITORIA_COLLETTIVA_180020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SEPARAZIONE_CONSENSUALE_E_OMOLOGAZIONE_ART_158_C_C_473_BIS_51_C_P_C_111040",
+      "denominazione": "Separazione consensuale e omologazione (art. 158 c.c. + 473-bis.51 c.p.c.)",
+      "categoria": "Persone e famiglia – separazione",
+      "rito": "Procedimento congiunto (consensuale) ex art. 473-bis.51 c.p.c. (Cartabia) o ricorso congiunto per divorzio",
+      "competenza": "Tribunale sezione famiglia – residenza abituale dei figli minori o domicilio di uno dei coniugi",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "158",
+          "descrizione": "Separazione consensuale – accordo dei coniugi + omologazione del Tribunale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "155 e ss.",
+          "descrizione": "Effetti della separazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.51",
+          "descrizione": "Procedimento congiunto davanti al Tribunale (Cartabia)"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "6",
+          "descrizione": "Separazione e divorzio innanzi all'ufficiale di stato civile (negozio assistito)"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "6 c. 1",
+          "descrizione": "Separazione consensuale tramite avvocati (negoziazione assistita)"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "4 e ss.",
+          "descrizione": "Divorzio – applicabile per rinvio dopo separazione triennale"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022 (Cartabia)",
+          "descrizione": "Rito unificato famiglia"
+        },
+        {
+          "fonte": "Cass. SU 9732/2021",
+          "descrizione": "Separazione consensuale – contenuto e limiti dell'accordo"
+        }
+      ],
+      "percorsi_alternativi": {
+        "procedimento_giudiziario_473bis51": {
+          "quando": "Se ci sono figli minori o maggiorenni non autosufficienti OPPURE le parti scelgono il Tribunale",
+          "iter": "Ricorso congiunto → udienza presidenziale → omologazione se accordo rispetta interessi figli"
+        },
+        "negoziazione_assistita_D_L_132_2014": {
+          "quando": "Senza figli minori o con figli maggiorenni autosufficienti",
+          "iter": "Accordo con due avvocati → trasmissione al PM per nullaosta → efficacia senza Tribunale"
+        },
+        "ufficiale_stato_civile_D_L_132_2014": {
+          "quando": "Senza figli, senza trasferimenti immobiliari e condizioni semplici",
+          "iter": "Accordo davanti all'ufficiale di stato civile del Comune"
+        }
+      },
+      "contenuto_tipico_accordo_separazione": [
+        "Affidamento e collocamento dei figli minori",
+        "Piano genitoriale (obbligatorio ex 473-bis.12 c.p.c.)",
+        "Assegno di mantenimento per i figli (importo + rivalutazione ISTAT)",
+        "Assegno di mantenimento per il coniuge (se dovuto)",
+        "Assegnazione della casa familiare",
+        "Ripartizione delle spese straordinarie",
+        "Accordi patrimoniali tra i coniugi (non vincolati all'omologazione)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Tentativo di conciliazione consigliato prima"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Raggiungere accordo tra i coniugi su tutti i punti rilevanti"
+        },
+        {
+          "step": 2,
+          "descrizione": "Predisporre il piano genitoriale (obbligatorio se figli minori)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentazione economica di entrambi i coniugi per fondare gli accordi"
+        },
+        {
+          "step": 4,
+          "descrizione": "Scegliere il percorso adeguato (Tribunale, negoziazione assistita, USC)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_congiunto_separazione_consensuale",
+        "denominazione": "Ricorso congiunto per separazione consensuale ex art. 158 c.c. + 473-bis.51 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coniuge_1",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "coniuge_2",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "figli_minori",
+            "type": "array_persone"
+          },
+          {
+            "id": "accordo_affidamento",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo_affidamento",
+                "type": "select",
+                "options": [
+                  "condiviso",
+                  "esclusivo"
+                ]
+              },
+              {
+                "id": "collocamento_prevalente",
+                "type": "select",
+                "options": [
+                  "coniuge_1",
+                  "coniuge_2"
+                ]
+              },
+              {
+                "id": "calendario_visite",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "piano_genitoriale",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "assegno_mantenimento_figli",
+            "type": "currency"
+          },
+          {
+            "id": "assegno_mantenimento_coniuge",
+            "type": "currency"
+          },
+          {
+            "id": "casa_familiare",
+            "type": "select",
+            "options": [
+              "assegnata_coniuge_1",
+              "assegnata_coniuge_2",
+              "nessuna_assegnazione",
+              "vendita"
+            ]
+          },
+          {
+            "id": "spese_straordinarie_ripartizione",
+            "type": "string"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "omologazione_accordo_separazione_consensuale",
+              "affidamento_condiviso_figli",
+              "assegno_mantenimento_figli",
+              "assegno_mantenimento_coniuge",
+              "assegnazione_casa_familiare"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Piano genitoriale OBBLIGATORIO se figli minori (473-bis.12 c.p.c.)",
+          "Valutare se percorso Tribunale, negoziazione assistita o USC in base alla situazione",
+          "Parere PM obbligatorio se figli minori",
+          "Il Tribunale può RIFIUTARE l'omologazione se dannosa per i figli",
+          "Separazione consensuale NON scioglie il matrimonio – serve divorzio dopo 6 mesi"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_matrimonio",
+          "required": true
+        },
+        {
+          "id": "atti_nascita_figli",
+          "required_if": "figli_minori"
+        },
+        {
+          "id": "stati_di_famiglia",
+          "required": true
+        },
+        {
+          "id": "piano_genitoriale",
+          "required_if": "figli_minori",
+          "critico": true
+        },
+        {
+          "id": "documentazione_economica_entrambi",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine specifico – proponibile in qualunque momento"
+        }
+      ],
+      "codice_originale_ricevuto": "111040",
+      "codice_logico": "GUIDA_SEPARAZIONE_CONSENSUALE_E_OMOLOGAZIONE_ART_158_C_C_473_BIS_51_C_P_C_111040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESCISSIONE_DEL_CONTRATTO_PER_LESIONE_ULTRA_DIMIDIUM_ART_1448_C_C_140025",
+      "denominazione": "Rescissione del contratto per lesione ultra dimidium (art. 1448 c.c.)",
+      "categoria": "Contratti – patologia – rescissione",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro residenza convenuto o luogo esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1447",
+          "descrizione": "Rescissione per pericolo – contratto concluso in stato di pericolo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1448",
+          "descrizione": "Azione generale di rescissione per lesione – sproporzione >50% + stato di bisogno + approfittamento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1449",
+          "descrizione": "Termini – prescrizione 1 anno dalla conclusione del contratto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1450",
+          "descrizione": "Offerta di riconduzione ad equità del convenuto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1451",
+          "descrizione": "Contratti non rescindibili – aleatori e transazioni"
+        },
+        {
+          "fonte": "Cass. SU 12750/2019",
+          "descrizione": "Stato di bisogno – nozione + approfittamento intenzionale"
+        },
+        {
+          "fonte": "Cass. SU 7547/2022",
+          "descrizione": "Rescissione vs risoluzione per eccessiva onerosità – distinzione"
+        }
+      ],
+      "tre_presupposti_cumulativi_1448": {
+        "sproporzione_ultra_dimidium": "La prestazione dell'attore è inferiore di oltre la METÀ rispetto alla controprestazione ricevuta",
+        "stato_di_bisogno": "L'attore versava in uno stato di bisogno (economico, morale, personale) al momento della conclusione",
+        "approfittamento_intenzionale": "Il convenuto ha CONSAPEVOLMENTE approfittato dello stato di bisogno"
+      },
+      "differenze_da_fattispecie_vicine": {
+        "vs_risoluzione_1467": "L'eccessiva onerosità sopravviene DOPO la stipula; la lesione esiste GIÀ al momento del contratto",
+        "vs_annullamento_1427": "Il vizio del consenso attiene alla volontà; la lesione attiene allo squilibrio economico",
+        "vs_rescissione_in_pericolo_1447": "Il pericolo è uno stato di minaccia alla propria integrità; il bisogno è economico"
+      },
+      "prescrizione_brevissima_1449": {
+        "termine": "1 ANNO dalla conclusione del contratto",
+        "natura": "Prescrizione brevissima – frequente causa di inammissibilità tardiva"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICARE il termine di 1 anno dalla conclusione – CRITICO"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare lo stato di bisogno al momento della stipula"
+        },
+        {
+          "step": 3,
+          "descrizione": "Perizia estimativa del valore reale delle prestazioni (per la sproporzione >50%)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Raccogliere prove dell'approfittamento consapevole del convenuto"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_rescissione_lesione_1448",
+        "denominazione": "Atto di citazione per rescissione del contratto per lesione ultra dimidium ex art. 1448 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_leso",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "compravendita_immobiliare",
+                  "compravendita_mobile",
+                  "appalto",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date",
+                "required": true,
+                "critico_per_1_anno": true
+              },
+              {
+                "id": "prestazione_attore",
+                "type": "currency"
+              },
+              {
+                "id": "controprestazione_ricevuta",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "sproporzione",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "valore_reale_bene_o_prestazione",
+                "type": "currency"
+              },
+              {
+                "id": "percentuale_lesione",
+                "type": "percentage",
+                "note": "Deve essere >50%"
+              },
+              {
+                "id": "perizia_estimativa_di_parte",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "stato_di_bisogno",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "approfittamento_convenuto",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "rispetto_termine_1_anno",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "rescissione_contratto_1448",
+              "restituzione_prestazioni_eseguite",
+              "in_alternativa_riconduzione_ad_equita_1450",
+              "risarcimento_danni",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "PRESCRIZIONE 1 ANNO dalla conclusione del contratto (art. 1449) – BREVISSIMA",
+          "Tre presupposti CUMULATIVI: sproporzione >50% + stato bisogno + approfittamento",
+          "Contratti aleatori e transazioni: NON rescindibili (art. 1451)",
+          "Convenuto può offrire riconduzione ad equità per paralizzare la rescissione (art. 1450)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_estimativa_valore_reale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_stato_di_bisogno",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_approfittamento_convenuto",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 1,
+          "decorrenza": "conclusione contratto",
+          "natura": "BREVISSIMA",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "140025",
+      "codice_logico": "GUIDA_RESCISSIONE_DEL_CONTRATTO_PER_LESIONE_ULTRA_DIMIDIUM_ART_1448_C_C_140025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SEQUESTRO_CONSERVATIVO_ANTE_CAUSAM_E_IN_CORSO_DI_CAUSA_ART_671_C_P_C_190010",
+      "denominazione": "Sequestro conservativo ante causam e in corso di causa (art. 671 c.p.c.)",
+      "categoria": "Misure cautelari – cautelari conservative",
+      "rito": "Procedimento cautelare ex artt. 669-bis e ss. c.p.c. – ante causam o in corso di causa",
+      "competenza": "Tribunale del luogo in cui la misura deve essere eseguita (ante causam); Giudice della causa (in corso di causa)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "671",
+          "descrizione": "Sequestro conservativo – beni del debitore a garanzia del credito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis",
+          "descrizione": "Procedimento cautelare uniforme"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-quater",
+          "descrizione": "Competenza ante causam e in corso di causa"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-sexies",
+          "descrizione": "Procedura – inaudita altera parte se pericolo grave"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-septies",
+          "descrizione": "Reclamo avverso il provvedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Inefficacia della misura se giudizio non instaurato entro 60 gg"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-novies",
+          "descrizione": "Revoca e modifica del provvedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "677",
+          "descrizione": "Assegnazione della custodia"
+        },
+        {
+          "fonte": "Cass. SU 21677/2020",
+          "descrizione": "Fumus boni iuris e periculum in mora – criteri di valutazione"
+        },
+        {
+          "fonte": "Cass. SU 8932/2023",
+          "descrizione": "Sequestro conservativo – sui beni del debitore + sui crediti verso terzi"
+        }
+      ],
+      "presupposti_671": {
+        "fumus_boni_iuris": "Apparente fondatezza del credito che si intende garantire",
+        "periculum_in_mora": "Fondato timore di perdere la garanzia patrimoniale (art. 671 c.p.c.)",
+        "esempi_periculum": [
+          "Comportamenti del debitore che indicano dissipazione del patrimonio",
+          "Trasferimenti sospetti di beni a terzi",
+          "Crisi economica conclamata del debitore",
+          "Imminente fuga all'estero del debitore"
+        ]
+      },
+      "inaudita_altera_parte": {
+        "quando": "Quando il contraddittorio preventivo potrebbe vanificare l'efficacia della misura",
+        "procedura": "Il giudice decide con decreto motivato PRIMA di sentire il convenuto",
+        "contraddittorio_differito": "Il debitore è sentito dopo il sequestro in sede di convalida/reclamo"
+      },
+      "obbligo_giudizio_di_merito_669octies": {
+        "ante_causam": "Entro 60 GG dall'esecuzione: introdurre il giudizio di merito – altrimenti la misura diventa INEFFICACE",
+        "criticita": "MASSIMA"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare il fumus del credito (titolo o elementi sufficienti di prova)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare il periculum in mora (comportamenti del debitore)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificare i beni da sequestrare (immobili: ispezione Conservatoria; conti: dati bancari)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare se richiedere inaudita altera parte"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_sequestro_conservativo_671",
+        "denominazione": "Ricorso per sequestro conservativo ex art. 671 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente_creditore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "credito_da_garantire",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "titolo_o_prova_fumus",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "importo",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "periculum_in_mora",
+            "type": "textarea",
+            "required": true,
+            "critico": true,
+            "min_length": 300
+          },
+          {
+            "id": "beni_da_sequestrare",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "immobili",
+              "conti_correnti",
+              "crediti_verso_terzi",
+              "beni_mobili_di_valore",
+              "quote_societarie",
+              "altro"
+            ]
+          },
+          {
+            "id": "richiesta_inaudita_altera_parte",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "concessione_sequestro_conservativo_671",
+              "inaudita_altera_parte_se_urgente",
+              "fissazione_udienza_convalida"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "OBBLIGO di instaurare il giudizio di merito entro 60 GG dall'esecuzione (669-octies)",
+          "Fumus + periculum: entrambi necessari",
+          "Cauzione: il giudice può richiedere cauzione al ricorrente",
+          "Reclamo del debitore: entro 15 gg dal provvedimento",
+          "Responsabilità da sequestro illegittimo: art. 96 c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fumus_credito",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_periculum",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_patrimoniali_debitore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "GIUDIZIO DI MERITO post sequestro",
+          "giorni": 60,
+          "natura": "DECADENZIALE – pena inefficacia misura",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Reclamo del debitore",
+          "giorni": 15,
+          "decorrenza": "pronuncia o esecuzione"
+        }
+      ],
+      "codice_originale_ricevuto": "190010",
+      "codice_logico": "GUIDA_SEQUESTRO_CONSERVATIVO_ANTE_CAUSAM_E_IN_CORSO_DI_CAUSA_ART_671_C_P_C_190010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_INFORTUNIO_SUL_LAVORO_E_MALATTIA_PROFESSIONALE_AZIONE_CIVILE_DEL_LAVORAT_220090",
+      "denominazione": "Infortunio sul lavoro e malattia professionale – azione civile del lavoratore verso il datore (art. 2087 c.c.)",
+      "categoria": "Lavoro – infortuni e malattie professionali",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Obbligo del datore di adottare tutte le misure idonee a tutelare l'integrità fisica e la personalità morale del lavoratore"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008 (TU Sicurezza)",
+          "descrizione": "Obblighi datore di lavoro in materia di sicurezza"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana per violazione norme di sicurezza"
+        },
+        {
+          "fonte": "D.P.R. 1124/1965 (TU INAIL)",
+          "articolo": "10-11",
+          "descrizione": "Esonero del datore dall'obbligo risarcitorio verso il lavoratore – eccezione per dolo e colpa grave"
+        },
+        {
+          "fonte": "D.P.R. 1124/1965",
+          "articolo": "10",
+          "descrizione": "Danno differenziale – la parte non coperta dall'INAIL"
+        },
+        {
+          "fonte": "Cass. SU 6341/2021",
+          "descrizione": "Danno differenziale da infortunio – calcolo e prova"
+        },
+        {
+          "fonte": "Cass. SU 25919/2023",
+          "descrizione": "Malattia professionale – nesso causale e onere prova"
+        },
+        {
+          "fonte": "Cass. SU 1788/2024",
+          "descrizione": "Esonero INAIL – eccezione per colpa grave del datore"
+        }
+      ],
+      "distinzione_INAIL_e_danno_differenziale": {
+        "indennizzo_INAIL": "Copre automaticamente: danno biologico fino al 100%, danno patrimoniale da perdita capacità lavorativa",
+        "danno_differenziale_verso_datore": "La quota di danno NON coperta dall'INAIL che il lavoratore può chiedere al datore",
+        "eccezione_esonero_DPR_1124_art10": "L'esonero del datore cade se la condotta integra REATO DOLOSO o COLPA GRAVE (violazione intenzionale norme sicurezza)"
+      },
+      "voci_di_danno_non_coperte_INAIL": [
+        "Danno morale e sofferenza soggettiva",
+        "Danno esistenziale (compromissione vita di relazione)",
+        "Danno biologico nella parte eccedente la liquidazione INAIL",
+        "Danno patrimoniale non coperto (es. perdita di chances future)",
+        "Danno da morte per familiari (azione iure proprio)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire la documentazione INAIL (denuncia, verbale di indennizzo, grado IP riconosciuto)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Perizia medico-legale di parte per determinare il danno complessivo e il differenziale"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentare la violazione delle norme di sicurezza da parte del datore (DVR, POS, formazione)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Calcolare il danno differenziale (totale – quanto coperto da INAIL)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_danno_differenziale_infortunio_malattia_professionale",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per danno differenziale da infortunio/malattia professionale ex art. 2087 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "evento_lesivo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "infortunio_sul_lavoro",
+                  "malattia_professionale",
+                  "infortunio_in_itinere"
+                ]
+              },
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "violazione_norme_sicurezza_DVR_POS",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "INAIL",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "denuncia_presentata",
+                "type": "boolean"
+              },
+              {
+                "id": "grado_IP_riconosciuto_INAIL",
+                "type": "percentage"
+              },
+              {
+                "id": "indennizzo_ricevuto_INAIL",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "danno_differenziale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_totale_complessivo",
+                "type": "currency"
+              },
+              {
+                "id": "meno_coperto_da_INAIL",
+                "type": "currency"
+              },
+              {
+                "id": "differenziale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_datore_danno_differenziale_2087",
+              "danno_morale_ed_esistenziale_non_coperto_INAIL",
+              "danno_parentale_familiari_se_morte",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Azione per DANNO DIFFERENZIALE: solo la parte non coperta da INAIL",
+          "Esonero del datore: cade per REATO DOLOSO o COLPA GRAVE (DPR 1124 art. 10)",
+          "Violazione norme sicurezza D.Lgs. 81/2008 = prova della colpa datoriale",
+          "Cumulare con azione penale se reato di lesioni colpose/omicidio colposo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_INAIL_denuncia_e_indennizzo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_violazione_norme_sicurezza",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_medico_legale_danno_complessivo",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "calcolo_danno_differenziale",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione per infortuni",
+          "anni": 3,
+          "decorrenza": "evento o scoperta",
+          "norma": "art. 2946 per il differenziale"
+        },
+        {
+          "termine": "Per malattia professionale: decorrenza dalla diagnosi certificata"
+        }
+      ],
+      "codice_originale_ricevuto": "220090",
+      "codice_logico": "GUIDA_INFORTUNIO_SUL_LAVORO_E_MALATTIA_PROFESSIONALE_AZIONE_CIVILE_DEL_LAVORAT_220090",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220090"
+        }
+      ]
+    }
+  ]
+}

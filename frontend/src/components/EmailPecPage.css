@@ -232,7 +232,7 @@
 .iu-mail-icon-btn{width:42px;padding:0}
 .iu-mail-advanced{
   display:grid;
-  grid-template-columns:repeat(3,minmax(180px,1fr)) repeat(2,auto) auto;
+  grid-template-columns:repeat(3,minmax(180px,1fr)) repeat(3,auto) auto;
   align-items:end;
   gap:10px;
   padding:14px;
@@ -345,6 +345,22 @@
   font-size:12px;
   font-weight:900;
   cursor:pointer;
+}
+.iu-mail-auto-notice__actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.iu-mail-auto-notice__actions button:last-child{
+  background:#1d4ed8;
+  border-color:#1d4ed8;
+  color:#fff;
+}
+.iu-mail-auto-notice__actions button:disabled{
+  opacity:.62;
+  cursor:wait;
 }
 .iu-mail-layout{
   display:grid;
@@ -1808,7 +1824,8 @@
   .iu-mail-advanced{grid-template-columns:1fr;padding:10px}
   .iu-mail-status-line{gap:7px;font-size:11px}
   .iu-mail-auto-notice{grid-template-columns:auto 1fr}
-  .iu-mail-auto-notice button{grid-column:1 / -1;width:100%}
+  .iu-mail-auto-notice__actions{grid-column:1 / -1;width:100%;justify-content:stretch}
+  .iu-mail-auto-notice__actions button{flex:1 1 150px}
   .iu-mail-list-card,.iu-mail-preview-card{border-radius:14px}
   .iu-mail-list-card>header{min-height:48px;padding:0 11px}
   .iu-mail-list{padding:6px}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (10).zip::kb_set15_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set15_parte1.json",
+  "sha256": "F0F12EF77A4695ECC5D7D4F69BCBCB8FC35B345B67EF476E9FB230C7FA61B3B3",
+  "changed": false,
+  "macro_area_id": "TOP18_SET15_PARTE1",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 1 di 4",
+  "codici_materia_originali": [
+    "160001",
+    "111030",
+    "140020",
+    "160015",
+    "220025"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RC_DA_CIRCOLAZIONE_VEICOLI_SCONTRO_TRA_VEICOLI_ART_2054_C_C_REGIME_ORDIN_160001",
+    "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_SEPARAZIONE_O_DIVORZIO_PER_SOPRAVVENIENZE_A_111030",
+    "GUIDA_RISOLUZIONE_PER_ECCESSIVA_ONEROSIT_SOPRAVVENUTA_ART_1467_C_C_140020",
+    "GUIDA_DANNO_DA_CADUTA_SU_SUOLO_PUBBLICO_BUCA_STRADALE_ART_2051_C_C_COSE_IN_CUS_160015",
+    "GUIDA_ORARIO_DI_LAVORO_STRAORDINARI_NON_RETRIBUITI_FERIE_E_RIPOSI_NON_GODUTI_220025"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160001",
+      "codice_integrato": "GUIDA_RC_DA_CIRCOLAZIONE_VEICOLI_SCONTRO_TRA_VEICOLI_ART_2054_C_C_REGIME_ORDIN_160001",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "111030",
+      "codice_integrato": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_SEPARAZIONE_O_DIVORZIO_PER_SOPRAVVENIENZE_A_111030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140020",
+      "codice_integrato": "GUIDA_RISOLUZIONE_PER_ECCESSIVA_ONEROSIT_SOPRAVVENUTA_ART_1467_C_C_140020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160015",
+      "codice_integrato": "GUIDA_DANNO_DA_CADUTA_SU_SUOLO_PUBBLICO_BUCA_STRADALE_ART_2051_C_C_COSE_IN_CUS_160015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220025",
+      "codice_integrato": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARI_NON_RETRIBUITI_FERIE_E_RIPOSI_NON_GODUTI_220025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

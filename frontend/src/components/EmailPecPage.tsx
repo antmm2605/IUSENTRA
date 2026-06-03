@@ -283,6 +283,13 @@ function isInsideQuery(item: EmailPecRow, query: string): boolean {
   ].join(' ')).includes(needle)
 }
 
+function isPecOperationalWarning(item: EmailPecRow): boolean {
+  const auditWarning = Boolean(item.pecAudit && item.pecAudit.qualityTone !== 'success')
+  const status = item.pctStatus || ''
+  const pctWarning = Boolean(status && (status.includes('RIFIUT') || status.includes('ERRORE') || status.includes('WARN')))
+  return auditWarning || pctWarning
+}
+
 function sortRows(rows: EmailPecRow[], sort: SortKey): EmailPecRow[] {
   const copy = [...rows]
   if (sort === 'mittente') return copy.sort((a, b) => rowPerson(a).localeCompare(rowPerson(b), 'it'))
@@ -820,6 +827,7 @@ async function postMailAction(url: string, label: string): Promise<string> {
   const payload = await response.json() as {
     ok?: boolean
     messaggio?: string
+    message?: string
     errore?: string
     sync_errore?: string
     warning?: boolean
@@ -828,14 +836,14 @@ async function postMailAction(url: string, label: string): Promise<string> {
   }
   if (payload.ok === false) throw new Error(payload.errore || `${label}: errore operativo`)
   if (payload.warning && payload.sync_errore) {
-    return `${payload.messaggio || `${label}: completata con avvisi.`} ${payload.sync_errore}`
+    return `${payload.messaggio || payload.message || `${label}: completata con avvisi.`} ${payload.sync_errore}`
   }
   if (label.startsWith('Sincronizzazione')) {
     const nuove = Number(payload.nuove || 0)
     const allegati = Number(payload.allegati_salvati || 0)
     if (nuove || allegati) return `${label} completata: ${nuove} nuovi messaggi, ${allegati} allegati recuperati.`
   }
-  return payload.messaggio || `${label}: operazione eseguita.`
+  return payload.messaggio || payload.message || `${label}: operazione eseguita.`
 }
 
 function routeEmailId(mode: MailboxMode): string {
@@ -1184,17 +1192,17 @@ function OrdinaryInspector({ data, rows }: { data: EmailPecPageData; rows: Email
 function PecAutomaticNotice({
   rows,
   summary,
-  onSelect,
+  onOpenPresidio,
+  onRunPresidio,
+  running,
 }: {
   rows: EmailPecRow[]
   summary: EmailPecPageData['summary']
-  onSelect: (id: string) => void
+  onOpenPresidio: (id: string) => void
+  onRunPresidio: () => void
+  running: boolean
 }) {
-  const warnings = rows.filter((item) => {
-    const auditWarning = item.pecAudit && item.pecAudit.qualityTone !== 'success'
-    const pctWarning = item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))
-    return auditWarning || pctWarning
-  })
+  const warnings = rows.filter(isPecOperationalWarning)
   const first = warnings[0]
   const count = Math.max(Number(summary.warnings || 0), warnings.length)
   if (!count || !first) return null
@@ -1203,9 +1211,14 @@ function PecAutomaticNotice({
       <AlertTriangle size={17} />
       <div>
         <strong>Avviso automatico PEC</strong>
-        <span>{count} comunicazioni richiedono presidio: controlla qualità di acquisizione, firme, allegati o esiti telematici prima di archiviare.</span>
+        <span>{count} comunicazioni richiedono presidio: filtra le PEC da lavorare, acquisisce i MIME locali e aggiorna allegati, firme, scadenze e fascicolo quando disponibili.</span>
       </div>
-      <button type="button" onClick={() => onSelect(first.id)}>Apri presidio</button>
+      <div className="iu-mail-auto-notice__actions">
+        <button type="button" onClick={() => onOpenPresidio(first.id)}>Apri presidio</button>
+        <button type="button" onClick={onRunPresidio} disabled={running}>
+          {running ? 'Controllo in corso...' : 'Esegui controllo'}
+        </button>
+      </div>
     </section>
   )
 }
@@ -1243,10 +1256,12 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [loading, setLoading] = useState(true)
   const [folder, setFolder] = useState<EmailFolder>('INBOX')
   const [query, setQuery] = useState('')
+  const [deferredQuery, setDeferredQuery] = useState('')
   const [status, setStatus] = useState<EmailStatus>('tutti')
   const [sort, setSort] = useState<SortKey>('recenti')
   const [onlyPst, setOnlyPst] = useState(false)
   const [onlyAttachments, setOnlyAttachments] = useState(false)
+  const [onlyWarnings, setOnlyWarnings] = useState(false)
   const [pctStatus, setPctStatus] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selectedId, setSelectedId] = useState(currentEmailSelectionId(mode))
@@ -1256,17 +1271,23 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [detailReloadKey, setDetailReloadKey] = useState(0)
   const [statusLine, setStatusLine] = useState('')
   const [bulkWorking, setBulkWorking] = useState(false)
+  const [presidioWorking, setPresidioWorking] = useState(false)
   const [saveMatterRequest, setSaveMatterRequest] = useState<PecSaveMatterRequest | null>(null)
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
   const fetchParams = {
     folder,
-    q: query,
+    q: deferredQuery,
     stato: status,
     pst: copy.includeTelematic ? onlyPst : false,
     conAllegati: onlyAttachments,
     statoPct: copy.includeTelematic ? pctStatus : '',
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDeferredQuery(query.trim()), 280)
+    return () => window.clearTimeout(timer)
+  }, [query])
 
   const load = () => {
     setLoading(true)
@@ -1282,9 +1303,17 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
       .then((payload) => { if (active) setData(payload) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [folder, status, onlyPst, onlyAttachments, pctStatus])
+  }, [folder, status, onlyPst, onlyAttachments, pctStatus, deferredQuery])
 
-  const visible = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
+  const visible = useMemo(
+    () => sortRows(
+      data.items
+        .filter((item) => isInsideQuery(item, query))
+        .filter((item) => !onlyWarnings || isPecOperationalWarning(item)),
+      sort,
+    ),
+    [data.items, query, onlyWarnings, sort],
+  )
   const selected = detail?.item && detail.item.id === selectedId ? detail.item : visible.find((item) => item.id === selectedId) || visible[0]
   const visibleIds = useMemo(() => visible.filter((item) => !item.auditOnly).map((item) => item.id), [visible])
   const selectedVisibleCount = useMemo(() => visibleIds.filter((id) => selectedIds.has(id)).length, [selectedIds, visibleIds])
@@ -1362,6 +1391,39 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
         setDetailReloadKey((value) => value + 1)
       })
       .catch((error) => setStatusLine(error instanceof Error ? error.message : `${label}: errore operativo`))
+  }
+
+  const openPresidio = (id: string) => {
+    setFolder('INBOX')
+    setStatus('tutti')
+    setOnlyPst(false)
+    setOnlyAttachments(false)
+    setOnlyWarnings(true)
+    setPctStatus('')
+    setAdvancedOpen(true)
+    setQuery('')
+    setSelectedId(id)
+    writeMailboxSelection(mode, 'INBOX', id)
+    setStatusLine('Presidio PEC aperto: sono visibili solo le comunicazioni che richiedono controllo.')
+  }
+
+  const runPresidio = () => {
+    if (!data.actions.pecLocalAcquire) {
+      setStatusLine('Presidio PEC non configurato per questa casella.')
+      return
+    }
+    setPresidioWorking(true)
+    setStatusLine('Presidio PEC in corso: acquisisco i MIME locali e aggiorno allegati, firme e scadenze disponibili.')
+    postMailAction(data.actions.pecLocalAcquire, 'Presidio PEC')
+      .then((message) => {
+        setStatusLine(message)
+        setOnlyWarnings(true)
+        setAdvancedOpen(true)
+        load()
+        setDetailReloadKey((value) => value + 1)
+      })
+      .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Presidio PEC: errore operativo'))
+      .finally(() => setPresidioWorking(false))
   }
 
   const toggleSelection = (id: string) => {
@@ -1453,7 +1515,8 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
           <label><span>Ordinamento</span><select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{sortOptions.map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
           {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyPst} onChange={(event) => setOnlyPst(event.target.checked)} /><span>Solo PEC/PST</span></label> : null}
           <label className="iu-mail-check"><input type="checkbox" checked={onlyAttachments} onChange={(event) => setOnlyAttachments(event.target.checked)} /><span>Solo con allegati</span></label>
-          <button type="button" onClick={() => { setStatus('tutti'); setOnlyPst(false); setOnlyAttachments(false); setPctStatus(''); setQuery('') }}>Reset</button>
+          {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyWarnings} onChange={(event) => setOnlyWarnings(event.target.checked)} /><span>Solo da presidiare</span></label> : null}
+          <button type="button" onClick={() => { setStatus('tutti'); setOnlyPst(false); setOnlyAttachments(false); setOnlyWarnings(false); setPctStatus(''); setQuery('') }}>Reset</button>
         </section>
       ) : null}
 
@@ -1464,7 +1527,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
         {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
       </section>
 
-      {copy.includeTelematic ? <PecAutomaticNotice rows={visible} summary={data.summary} onSelect={selectMessage} /> : null}
+      {copy.includeTelematic ? <PecAutomaticNotice rows={visible} summary={data.summary} onOpenPresidio={openPresidio} onRunPresidio={runPresidio} running={presidioWorking} /> : null}
 
       <section className="iu-mail-layout" data-iusentra-sequence-slot="main-content">
         <div className="iu-mail-list-card">

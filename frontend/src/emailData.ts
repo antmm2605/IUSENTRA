@@ -125,6 +125,7 @@ export type EmailPecPageData = {
     sync: string
     bulkAction: string
     autoEsiti: string
+    pecLocalAcquire: string
     operationalInbox: string
     localPecTest: string
     legalNotice: string
@@ -207,6 +208,7 @@ export const emptyEmailPecPage: EmailPecPageData = {
     sync: '/email/sincronizza',
     bulkAction: '/api/v1/ui/email/bulk-action',
     autoEsiti: '/email/auto-esiti',
+    pecLocalAcquire: '/api/pec/email/acquisisci-locali?limit=250',
     operationalInbox: '/email/',
     localPecTest: '/email/impostazioni',
     legalNotice: '/notifiche-legali',
@@ -231,6 +233,7 @@ export const emptyEmailOrdinariaPage: EmailPecPageData = {
     sync: '/email-ordinaria/sincronizza',
     bulkAction: '/api/v1/ui/email-ordinaria/bulk-action',
     autoEsiti: '',
+    pecLocalAcquire: '',
     operationalInbox: '/email-ordinaria/',
     localPecTest: '/impostazioni?tab=smtp',
     legalNotice: '/notifiche-legali',
@@ -477,6 +480,7 @@ function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): Email
       sync: text(actions.sync, fallback.actions.sync),
       bulkAction: text(actions.bulkAction ?? actions.bulk_action, fallback.actions.bulkAction),
       autoEsiti: text(actions.autoEsiti ?? actions.auto_esiti, fallback.actions.autoEsiti),
+      pecLocalAcquire: text(actions.pecLocalAcquire ?? actions.pec_local_acquire, fallback.actions.pecLocalAcquire),
       operationalInbox: text(actions.operationalInbox ?? actions.operational_inbox, fallback.actions.operationalInbox),
       localPecTest: text(actions.localPecTest ?? actions.local_pec_test, fallback.actions.localPecTest),
       legalNotice: text(actions.legalNotice ?? actions.legal_notice, fallback.actions.legalNotice),

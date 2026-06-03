@@ -106,6 +106,7 @@ from web.services.react_privacy_bridge import build_react_privacy_registro_paylo
 from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_nuova_payload,
     build_react_scadenziario_payload,
+    dedupe_calculator_templates,
 )
 from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
@@ -2793,8 +2794,12 @@ def scadenziario_pdf_scadenze_importa():
 @_richiedi_auth
 def scadenziario_termini_templates():
     repo = _termini_processuali_repository()
+    raw_templates = repo.list_templates()
+    visible_templates = dedupe_calculator_templates(raw_templates)
     return jsonify({
-        "templates": repo.list_templates(),
+        "templates": visible_templates,
+        "templatesRawCount": len(raw_templates),
+        "templatesVisibleCount": len(visible_templates),
         "legalSources": list(LEGAL_SOURCES),
         "endpoints": {
             "calculate": "/api/v1/ui/scadenziario/termini/calculate",

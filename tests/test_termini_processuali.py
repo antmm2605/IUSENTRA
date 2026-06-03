@@ -133,8 +133,13 @@ def test_api_scadenziario_templates_bootstrap_guida_pratica_terms(tmp_path: Path
         if item.get("metadata", {}).get("source") == "guida_pratica"
     ]
     assert response.status_code == 200
-    assert len(guida_templates) >= 1000
+    assert payload["templatesRawCount"] >= 1000
+    assert payload["templatesVisibleCount"] == len(payload["templates"])
+    assert len(guida_templates) < payload["templatesRawCount"]
     assert any(item.get("metadata", {}).get("codice_guida") for item in guida_templates)
+    visible_labels = [item.get("displayName") or item["name"] for item in guida_templates]
+    assert len(visible_labels) == len(set(visible_labels))
+    assert sum(1 for label in visible_labels if label == "Reclamo contro provvedimento cautelare") <= 1
 
 
 def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):

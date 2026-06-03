@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from flask import Blueprint, Response, g, jsonify, request
 
+from pct.email_client import GestioneEmailRicevute
 from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -134,6 +135,146 @@ def pec_fetch():
         )
         worker = _repo().run_pending_jobs(limit=200, actor=_actor())
         return _json_success({"ok": True, "fetch": report, "workers": worker})
+    except TenantDataPathError:
+        return _json_error(403)
+
+
+@pec_pipeline_api.post("/email/<email_id>/acquisisci")
+@_richiedi_auth
+def pec_acquire_legacy_email(email_id: str):
+    """Acquisisce nel presidio PEC il MIME originale già salvato nella casella storica."""
+
+    try:
+        email_db = _runtime_path("EMAIL_CASELLA_DB", "./email/casella.json")
+        gestore = GestioneEmailRicevute(email_db)
+        email_obj = gestore.get(email_id)
+        if not email_obj:
+            return _json_error(404)
+        raw_mime = gestore.leggi_eml_originale(email_obj)
+        if not raw_mime:
+            return _json_success(
+                {
+                    "ok": False,
+                    "message": "MIME originale non disponibile: esegui la sincronizzazione PEC completa e riprova.",
+                    "messaggio": "MIME originale non disponibile: esegui la sincronizzazione PEC completa e riprova.",
+                    "requires_sync": True,
+                },
+                409,
+            )
+        repo = _repo()
+        account_email = str(getattr(email_obj, "destinatari", "") or getattr(email_obj, "mittente", "") or "casella PEC locale")
+        result = repo.ingest_mime(
+            raw_mime,
+            account_email=account_email[:240],
+            folder=str(getattr(email_obj, "cartella", "") or "INBOX"),
+            imap_uid=str(getattr(email_obj, "uid_imap", "") or f"legacy:{email_id}"),
+            actor=_actor(),
+        )
+        worker = repo.run_pending_jobs(limit=200, actor=_actor())
+        message = "MIME PEC acquisito: allegati, controllo qualità e presidio operativo aggiornati."
+        return _json_success(
+            {
+                "ok": True,
+                "message": message,
+                "messaggio": message,
+                "email_id": email_id,
+                "pec_message_id": result.get("id") or "",
+                "duplicate": bool(result.get("duplicate")),
+                "ingest": result,
+                "workers": worker,
+            }
+        )
+    except TenantDataPathError:
+        return _json_error(403)
+
+
+def _email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
+    allegati = " ".join(
+        str(item.get("nome") or item.get("nome_file") or "")
+        for item in list(getattr(email_obj, "allegati", []) or [])
+        if isinstance(item, dict)
+    ).lower()
+    text = " ".join(
+        str(value or "")
+        for value in (
+            getattr(email_obj, "oggetto", ""),
+            getattr(email_obj, "mittente", ""),
+            getattr(email_obj, "mittente_nome", ""),
+            getattr(email_obj, "corpo_testo", ""),
+            getattr(email_obj, "stato_pct", ""),
+            allegati,
+        )
+    ).lower()
+    return bool(
+        getattr(email_obj, "e_pst", False)
+        or "posta certificata" in text
+        or "giustiziacert" in text
+        or "ptel.giustizia" in text
+        or "deposito telematico" in text
+        or "daticert" in text
+        or "postacert" in text
+    )
+
+
+@pec_pipeline_api.post("/email/acquisisci-locali")
+@_richiedi_auth
+def pec_acquire_local_emails():
+    """Acquisisce in modo massivo i MIME locali già salvati e pertinenti alla PEC."""
+
+    try:
+        email_db = _runtime_path("EMAIL_CASELLA_DB", "./email/casella.json")
+        gestore = GestioneEmailRicevute(email_db)
+        repo = _repo()
+        try:
+            limit = max(1, min(int(request.args.get("limit", "250") or 250), 1000))
+        except ValueError:
+            limit = 250
+        acquired = 0
+        duplicates = 0
+        skipped_missing_mime = 0
+        skipped_not_pec = 0
+        errors: list[dict[str, str]] = []
+        for email_obj in list(gestore._carica().values()):  # noqa: SLF001 - manutenzione tenant-aware su casella locale
+            if acquired >= limit:
+                break
+            if not _email_rilevante_per_presidio_pec(email_obj):
+                skipped_not_pec += 1
+                continue
+            raw_mime = gestore.leggi_eml_originale(email_obj)
+            if not raw_mime:
+                skipped_missing_mime += 1
+                continue
+            try:
+                result = repo.ingest_mime(
+                    raw_mime,
+                    account_email=str(getattr(email_obj, "destinatari", "") or getattr(email_obj, "mittente", "") or "casella PEC locale")[:240],
+                    folder=str(getattr(email_obj, "cartella", "") or "INBOX"),
+                    imap_uid=str(getattr(email_obj, "uid_imap", "") or f"legacy:{getattr(email_obj, 'id', '')}"),
+                    actor=_actor(),
+                )
+                acquired += 1
+                if result.get("duplicate"):
+                    duplicates += 1
+            except Exception as exc:
+                errors.append({"email_id": str(getattr(email_obj, "id", "") or ""), "errore": str(exc)[:180]})
+        worker = repo.run_pending_jobs(limit=500, actor=_actor())
+        message = (
+            f"Presidio PEC eseguito su {acquired} MIME locali"
+            f" ({duplicates} già presenti)."
+        )
+        return _json_success(
+            {
+                "ok": True,
+                "message": message,
+                "messaggio": message,
+                "acquired": acquired,
+                "duplicates": duplicates,
+                "skipped_missing_mime": skipped_missing_mime,
+                "skipped_not_pec": skipped_not_pec,
+                "errors": errors[:20],
+                "workers": worker,
+            }
+        )
     except TenantDataPathError:
         return _json_error(403)
 

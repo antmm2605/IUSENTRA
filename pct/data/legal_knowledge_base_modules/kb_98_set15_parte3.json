@@ -1,0 +1,1043 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP18_SET15_PARTE3",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 3 di 4",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "411001",
+      "denominazione": "Adozione nazionale del minore – procedimento (L. 184/1983 artt. 22-32)",
+      "categoria": "Persone e famiglia – adozione",
+      "rito": "Rito speciale davanti al Tribunale per i Minorenni (o Tribunale persone post-Cartabia) – L. 184/1983",
+      "competenza": "Tribunale per i Minorenni del luogo di residenza degli adottanti",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 184/1983 (Legge adozione)",
+          "articolo": "22",
+          "descrizione": "Requisiti degli adottanti – coniugi uniti in matrimonio da almeno 3 anni"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "23",
+          "descrizione": "Procedimento – istanza al TM"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "24",
+          "descrizione": "Indagini e valutazione degli adottanti"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "25",
+          "descrizione": "Provvedimento di adozione"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "26",
+          "descrizione": "Effetti dell'adozione – piena equiparazione al figlio biologico"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "27",
+          "descrizione": "Modifica del cognome dell'adottato"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "28",
+          "descrizione": "Segreto delle origini – diritto del figlio adottivo"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "31",
+          "descrizione": "Adozione in casi particolari (genitori del coniuge, orfani, ecc.)"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022 (Cartabia)",
+          "descrizione": "Riforma – Tribunale per le persone"
+        },
+        {
+          "fonte": "Cass. SU 3569/2019",
+          "descrizione": "Adozione – interesse superiore del minore come criterio guida"
+        },
+        {
+          "fonte": "CEDU art. 8",
+          "descrizione": "Diritto alla vita familiare"
+        }
+      ],
+      "requisiti_adottanti_art22": {
+        "stato_civile": "CONIUGI uniti in matrimonio o UNIONE CIVILE",
+        "durata_matrimonio": "Da almeno 3 anni (o convivenza prematrimoniale documentata)",
+        "stabilita_coppia": "Non separati né con procedimenti in corso",
+        "idoneita_affettiva_educativa": "Valutata dai servizi sociali e dal TM",
+        "differenza_di_eta": "Tra 18 e 45 anni con l'adottato; eccezioni possibili"
+      },
+      "tipi_di_adozione": {
+        "adozione_piena": "Bambini dichiarati in stato di adottabilità – piena equiparazione al figlio biologico",
+        "adozione_in_casi_particolari_31": [
+          "Figlio del coniuge o del partner dell'unione civile",
+          "Minore orfano di entrambi i genitori parente entro il 6° grado",
+          "Minore con handicap o straniero in specifiche situazioni"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Presentazione dell'istanza al TM con documentazione degli adottanti"
+        },
+        {
+          "step": 2,
+          "descrizione": "Indagini dei servizi sociali sulla coppia (almeno 4 mesi)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Decreto di idoneità del TM"
+        },
+        {
+          "step": 4,
+          "descrizione": "Abbinamento con il minore (attraverso i servizi)"
+        },
+        {
+          "step": 5,
+          "descrizione": "Affidamento preadottivo (almeno 1 anno)"
+        },
+        {
+          "step": 6,
+          "descrizione": "Pronuncia del decreto di adozione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_adozione_nazionale_minore",
+        "denominazione": "Istanza di adozione nazionale del minore ex L. 184/1983",
+        "campi_chiave": [
+          {
+            "id": "tribunale_minorenni",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "adottanti_richiedenti",
+            "type": "array_persone",
+            "required": true,
+            "min_items": 2
+          },
+          {
+            "id": "dati_coppia",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_matrimonio_o_UC",
+                "type": "date"
+              },
+              {
+                "id": "anni_insieme_inclusa_convivenza_prematrimoniale",
+                "type": "integer"
+              },
+              {
+                "id": "assenza_procedimenti_di_separazione",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "tipo_adozione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "adozione_piena_minore_adottabile",
+              "adozione_casi_particolari_art31"
+            ]
+          },
+          {
+            "id": "minore_da_adottare_se_noto",
+            "type": "object_persona"
+          },
+          {
+            "id": "disponibilita_adottanti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "eta_minore_accettata",
+                "type": "string"
+              },
+              {
+                "id": "disponibilita_fratrie",
+                "type": "boolean"
+              },
+              {
+                "id": "disponibilita_minori_con_bisogni_speciali",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_idoneita_adottanti",
+              "pronuncia_adozione",
+              "eventuali_provvedimenti_affido_preadottivo"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Procedimento lungo (anni) – informare il cliente delle tempistiche",
+          "Il TM valuta l'interesse superiore del minore – non solo gli adottanti",
+          "Adozione piena: recide i legami con la famiglia di origine",
+          "Segreto delle origini: il figlio adottivo ha diritto di accedervi (art. 28)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_matrimonio_o_UC",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stati_di_famiglia",
+          "required": true
+        },
+        {
+          "id": "certificati_penali_carichi_pendenti",
+          "required": true
+        },
+        {
+          "id": "documentazione_economica_adottanti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_sanitaria_adottanti",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Decreto di idoneità ha validità 3 anni – rinnovabile"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_MUTUO_PER_INADEMPIMENTO_E_RECUPERO_DEL_CAPITALE_143025",
+      "denominazione": "Risoluzione contratto di mutuo per inadempimento e recupero del capitale (artt. 1813-1822 c.c.)",
+      "categoria": "Contratti – contratti bancari – mutuo",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (contratti bancari)",
+      "competenza": "Tribunale – foro del creditore (banca) o foro del consumatore se mutuatario è consumatore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1813",
+          "descrizione": "Nozione di mutuo – consegna di una somma con obbligo di restituzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1815",
+          "descrizione": "Interessi – presunzione di onerosità dei mutui bancari"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1820",
+          "descrizione": "Inadempimento del mutuatario – risoluzione + restituzione immediata"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1821",
+          "descrizione": "Mutuo a favore di incapaci"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1455",
+          "descrizione": "Importanza dell'inadempimento"
+        },
+        {
+          "fonte": "TUB D.Lgs. 385/1993",
+          "articolo": "40",
+          "descrizione": "Mutuo fondiario – requisiti e disciplina speciale"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "40-bis",
+          "descrizione": "Sospensione rate mutuo prima casa – perdita lavoro"
+        },
+        {
+          "fonte": "L. 24/2001 (antiusura)",
+          "descrizione": "Tassi di interesse usurari – nullità della clausola"
+        },
+        {
+          "fonte": "Cass. SU 24675/2017",
+          "descrizione": "Anatocismo bancario – nullità clausola capitalizzazione trimestrale"
+        },
+        {
+          "fonte": "Cass. SU 15895/2023",
+          "descrizione": "Risoluzione mutuo – calcolo importo dovuto"
+        }
+      ],
+      "tipologie_di_mutuo": {
+        "mutuo_ordinario": "Contratto tipico codice civile – tra privati o con banche",
+        "mutuo_fondiario_TUB_40": "Garantito da ipoteca su immobili – disciplina speciale TUB",
+        "mutuo_ipotecario_non_fondiario": "Garantito da ipoteca ma non rientra nel fondiario",
+        "mutuo_di_scopo": "Erogato per finalità specifica (acquisto casa, ristrutturazione)"
+      },
+      "cause_di_risoluzione_1820": [
+        "Mancato pagamento delle rate alla scadenza",
+        "Diminuzione delle garanzie (es. svalutazione dell'immobile ipotecato)",
+        "Sopravvenuta insolvenza del mutuatario"
+      ],
+      "difese_tipiche_del_mutuatario": [
+        "Usura: tasso effettivo globale supera il tasso usura AGGIORNATO",
+        "Anatocismo: capitalizzazione illegittima degli interessi",
+        "Opacità contrattuale: violazione obblighi trasparenza TUB",
+        "CMS (Commissione di massimo scoperto): illegittima se non pattuita",
+        "Estinzione anticipata: penali illegittime (per mutui abitativi su immobili residenziali)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONTRATTI BANCARI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto di mutuo completo + piano di ammortamento"
+        },
+        {
+          "step": 2,
+          "descrizione": "Calcolare le rate impagate e il debito residuo"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare TAEG, ISC, TEG rispetto ai tassi soglia usura AGGIORNATI"
+        },
+        {
+          "step": 4,
+          "descrizione": "Analisi perizia bancaria di parte per anomalie (anatocismo, CMS, usura)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_mutuo",
+        "denominazione": "Atto di citazione per risoluzione contratto di mutuo ex artt. 1813-1822 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "banca_attrice_o_mutuatario_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto_mutuo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "mutuo_ordinario",
+                  "mutuo_fondiario_TUB",
+                  "mutuo_ipotecario",
+                  "mutuo_di_scopo"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "importo_originario",
+                "type": "currency"
+              },
+              {
+                "id": "durata",
+                "type": "string"
+              },
+              {
+                "id": "tasso_interessi",
+                "type": "string"
+              },
+              {
+                "id": "garanzie",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "inadempimento",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "rate_non_pagate",
+                "type": "integer"
+              },
+              {
+                "id": "importo_arretrato",
+                "type": "currency"
+              },
+              {
+                "id": "data_prima_rata_insoluta",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "difese_del_mutuatario",
+            "type": "select_multi",
+            "options": [
+              "usura_TEG_supera_soglia",
+              "anatocismo_illegittimo",
+              "opacita_contrattuale",
+              "CMS_non_pattuita",
+              "penali_estinzione_anticipata_illegittime"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risoluzione_contratto_mutuo",
+              "condanna_restituzione_capitale_residuo",
+              "condanna_interessi_e_rate_arretrate",
+              "rideterminazione_debito_se_anomalie",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria (contratti bancari)",
+          "Verificare SEMPRE usura e anatocismo (Cass. SU 24675/2017)",
+          "Mutuo fondiario: disciplina speciale TUB artt. 38-42",
+          "Mutuatario consumatore: foro del consumatore + tutele Cod. Consumo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_mutuo_e_piano_ammortamento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "estratti_conto_e_rate_insolute",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_bancaria_di_parte_se_anomalie",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10,
+          "norma": "art. 2946 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "143025",
+      "codice_logico": "GUIDA_RISOLUZIONE_CONTRATTO_DI_MUTUO_PER_INADEMPIMENTO_E_RECUPERO_DEL_CAPITALE_143025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ACCERTAMENTO_DEL_RAPPORTO_DI_LAVORO_SUBORDINATO_FALSO_AUTONOMO_COLLABORA_220035",
+      "denominazione": "Accertamento del rapporto di lavoro subordinato – falso autonomo/collaborazione (art. 2094 c.c.)",
+      "categoria": "Lavoro – qualificazione del rapporto",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede del lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2094",
+          "descrizione": "Nozione di lavoratore subordinato – lavoro manuale o intellettuale alle dipendenze e sotto la direzione dell'imprenditore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2222",
+          "descrizione": "Contratto d'opera – lavoro autonomo"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "2",
+          "descrizione": "Collaborazioni organizzate dal committente (c.d. 'etero-organizzate') – disciplina come lavoro subordinato"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "47-bis e ss.",
+          "descrizione": "Tutele dei lavoratori delle piattaforme digitali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2126",
+          "descrizione": "Lavoro di fatto – tutele applicabili"
+        },
+        {
+          "fonte": "Cass. SU 3570/2020",
+          "descrizione": "Eterorganizzazione ex art. 2 D.Lgs. 81/2015 – criteri di qualificazione"
+        },
+        {
+          "fonte": "Cass. SU 1663/2020",
+          "descrizione": "Subordinazione – elemento della eterodirezione come criterio qualificante"
+        },
+        {
+          "fonte": "Cass. SU 14432/2024",
+          "descrizione": "Falso autonomo – accertamento e conseguenze retributive"
+        }
+      ],
+      "criteri_di_subordinazione": {
+        "elemento_essenziale_eterodirezione": "Il datore IMPARTISCE LE DIRETTIVE sull'esecuzione della prestazione",
+        "indici_tipici": [
+          "Orario fisso imposto dal datore",
+          "Obbligo di presenza in un luogo determinato",
+          "Strumenti di lavoro forniti dal datore",
+          "Inserimento stabile nell'organizzazione aziendale",
+          "Esclusività della prestazione",
+          "Assenza di rischio economico del prestatore",
+          "Retribuzione fissa mensile indipendentemente dal risultato"
+        ],
+        "art2_D_Lgs_81_2015_eteroorganizzazione": "Collaborazioni con modalità esecutive ORGANIZZATE DAL COMMITTENTE (orario, luogo, strumenti) → disciplina come subordinato ANCHE SE formalmente autonomo"
+      },
+      "conseguenze_accertamento_subordinazione": [
+        "APPLICAZIONE CCNL retroattivamente (differenze retributive, TFR, ferie, permessi)",
+        "Contributi INPS e INAIL omessi (rivalsa del lavoratore sul datore)",
+        "Applicazione delle tutele contro il licenziamento",
+        "Malattia, maternità, congedi retribuiti"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Raccogliere documentazione sull'esecuzione concreta della prestazione (email con orari, badge, direttive ricevute)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Calcolare le differenze retributive rispetto al CCNL applicabile"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare se ricorre l'etero-organizzazione ex art. 2 D.Lgs. 81/2015"
+        },
+        {
+          "step": 4,
+          "descrizione": "Calcolare contributi omessi e interessi"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_accertamento_subordinazione",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per accertamento rapporto di lavoro subordinato + conseguenze retributive",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_formale",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo_contratto_formale",
+                "type": "select",
+                "options": [
+                  "contratto_co_co_co",
+                  "partita_IVA_autonomo",
+                  "contratto_d_opera",
+                  "collaborazione_a_progetto",
+                  "altro"
+                ]
+              },
+              {
+                "id": "periodo",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "indici_subordinazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "orario_fisso_imposto",
+              "luogo_obbligatorio",
+              "strumenti_del_datore",
+              "inserimento_struttura",
+              "esclusivita",
+              "assenza_rischio_economico",
+              "retribuzione_fissa",
+              "direttive_continue"
+            ]
+          },
+          {
+            "id": "descrizione_modalita_prestazione",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "valutazione_art2_D_Lgs_81_eteroorganizzazione",
+            "type": "boolean"
+          },
+          {
+            "id": "differenze_retributive_calcolate",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_rapporto_subordinato_2094",
+              "condanna_differenze_retributive_CCNL",
+              "condanna_TFR",
+              "condanna_ferie_permessi_non_goduti",
+              "riconoscimento_anzianita",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Eterodirezione: elemento qualificante – prova rigorosa (Cass. SU 1663/2020)",
+          "Art. 2 D.Lgs. 81/2015: eteroorganizzazione = disciplina lavoro subordinato anche senza eterodirezione",
+          "Conseguenze retroattive: CCNL + contributi + tutele dal primo giorno",
+          "Onere prova sul lavoratore degli indici di subordinazione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_formale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_modalita_esecuzione_prestazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "fatture_o_cedolini_pagamento",
+          "required": true
+        },
+        {
+          "id": "calcolo_differenze_retributive_CCNL",
+          "required": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        },
+        {
+          "termine": "Prescrizione post cessazione",
+          "anni": 5,
+          "norma": "art. 2948 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "220035",
+      "codice_logico": "GUIDA_ACCERTAMENTO_DEL_RAPPORTO_DI_LAVORO_SUBORDINATO_FALSO_AUTONOMO_COLLABORA_220035",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220035"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_SOCIET_DI_PERSONE_ARTT_2272_2312_C_C_155005",
+      "denominazione": "Scioglimento e liquidazione di società di persone (artt. 2272-2312 c.c.)",
+      "categoria": "Diritto societario – società di persone",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2272",
+          "descrizione": "Cause di scioglimento della s.n.c. – applicabili per rinvio a s.a.s. e s.s."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2273",
+          "descrizione": "Liquidazione della s.n.c."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2274",
+          "descrizione": "Nomina dei liquidatori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2275-2282",
+          "descrizione": "Operazioni di liquidazione – obblighi dei liquidatori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2289",
+          "descrizione": "LIQUIDAZIONE DELLA QUOTA del socio uscente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2290",
+          "descrizione": "Responsabilità del socio uscente per debiti anteriori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2291",
+          "descrizione": "S.n.c. – responsabilità illimitata dei soci"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2308-2312",
+          "descrizione": "S.a.s. – rinvio a s.n.c. con adattamenti"
+        },
+        {
+          "fonte": "Cass. SU 9671/2021",
+          "descrizione": "Liquidazione quota socio uscente – criteri di calcolo"
+        },
+        {
+          "fonte": "Cass. SU 20985/2023",
+          "descrizione": "Scioglimento s.n.c. – obblighi procedurali"
+        }
+      ],
+      "cause_di_scioglimento_2272": [
+        "Decorso del termine di durata",
+        "Conseguimento dell'oggetto sociale o sopravvenuta impossibilità",
+        "Volontà di tutti i soci",
+        "Mancanza della pluralità dei soci per più di 6 mesi (salvo ricostituirla)",
+        "Dichiarazione di liquidazione giudiziale"
+      ],
+      "liquidazione_quota_socio_uscente_2289": {
+        "quando": "Morte del socio, recesso, esclusione",
+        "criterio": "Valore della quota determinata in base alla situazione patrimoniale della società alla data dell'evento",
+        "avviamento": "Incluso nel calcolo se l'azienda ha avviamento",
+        "termine_pagamento": "Di norma 6 mesi dall'evento",
+        "Cass_SU_9671_2021": "Il calcolo deve tenere conto del valore effettivo incluso l'avviamento"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare la causa di scioglimento"
+        },
+        {
+          "step": 2,
+          "descrizione": "Tentare scioglimento consensuale con tutti i soci"
+        },
+        {
+          "step": 3,
+          "descrizione": "Se controversia: azione giudiziaria per accertamento scioglimento + nomina liquidatori"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per liquidazione quota: perizia estimativa del valore"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_scioglimento_liquidazione_societa_persone",
+        "denominazione": "Atto di citazione per scioglimento e liquidazione s.n.c./s.a.s. ex artt. 2272 e ss. c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "socio_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "societa_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "altri_soci_convenuti",
+            "type": "array_persone"
+          },
+          {
+            "id": "tipo_societa",
+            "type": "select",
+            "required": true,
+            "options": [
+              "snc",
+              "sas",
+              "ss"
+            ]
+          },
+          {
+            "id": "causa_scioglimento",
+            "type": "select",
+            "required": true,
+            "options": [
+              "decorso_termine",
+              "impossibilita_oggetto",
+              "volonta_soci",
+              "mancanza_pluralita_soci_6_mesi",
+              "altro"
+            ]
+          },
+          {
+            "id": "situazione_patrimoniale",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "attivo_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "passivo_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_scioglimento",
+              "nomina_liquidatori",
+              "liquidazione_quota_socio_uscente_2289",
+              "ordine_iscrizione_scioglimento_RI",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Litisconsorzio necessario con TUTTI i soci",
+          "Liquidazione quota socio uscente: include avviamento (Cass. SU 9671/2021)",
+          "Responsabilità illimitata soci s.n.c. anche post-scioglimento per debiti anteriori",
+          "Iscrizione scioglimento nel registro imprese obbligatoria"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costitutivo_e_statuto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visura_camerale_storica",
+          "required": true
+        },
+        {
+          "id": "bilanci_ultimi_anni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "perizia_estimativa_quota_se_richiesta",
+          "required_if": "liquidazione_quota"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120
+        }
+      ],
+      "codice_originale_ricevuto": "155005",
+      "codice_logico": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_SOCIET_DI_PERSONE_ARTT_2272_2312_C_C_155005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "155005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "155005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "155005"
+        }
+      ]
+    }
+  ]
+}

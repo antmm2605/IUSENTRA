@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.249.11 - 2026-06-03
+
+- Integrati nella Guida Pratica i pacchetti utente `files (10).zip` e `files (11).zip`: aggiunti moduli set15/set16, rigenerata la knowledge base completa e documentata la conversione prudente del caso non coincidente con il codice ministeriale `140035`.
+- Aggiornato lo Scadenziario con i termini processuali della Guida Pratica e corretto il calcolatore: le opzioni duplicate vengono accorpate o rese distinguibili con durata, direzione, fonte e pratica, senza perdere il contesto operativo.
+- Rafforzata la pipeline PEC/allegati: gli allegati non disponibili come file sciolto vengono recuperati dal MIME/EML originale quando presente, con endpoint di acquisizione locale e test dedicati.
+- Aggiornati audit voce per voce e test mirati: nessun campo utente perso tra moduli, full KB, service, UI e Lex.
+
 ## 2.249.10 - 2026-06-03
 
 - Rifinito il calcolatore termini processuali dello Scadenziario: la spiegazione visibile usa accenti italiani corretti e date in formato `gg/mm/aaaa`, mantenendo invariati payload tecnico, audit hash e calcolo.

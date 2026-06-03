@@ -1,0 +1,1302 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET16_PARTE2",
+  "denominazione": "Sedicesimo set - 18 nuovi codici - PARTE 2 di 4",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035",
+      "denominazione": "Annullamento del contratto per dolo, errore o violenza (artt. 1427-1440 c.c.)",
+      "categoria": "Contratti – patologia – vizi del consenso",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro residenza convenuto o luogo esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1427",
+          "descrizione": "Vizi del consenso – errore, dolo, violenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1428-1432",
+          "descrizione": "Errore – essenziale e riconoscibile"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1433",
+          "descrizione": "Violenza – nullità se determinante il consenso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1434-1438",
+          "descrizione": "Dolo – raggiri determinanti il consenso + dolo del terzo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1439",
+          "descrizione": "Dolo incidente – non annulla ma obbliga al risarcimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1441",
+          "descrizione": "Legittimazione all'annullamento – solo la parte protetta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1442",
+          "descrizione": "PRESCRIZIONE dell'azione – 5 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1444",
+          "descrizione": "Convalida del contratto annullabile"
+        },
+        {
+          "fonte": "Cass. SU 10640/2020",
+          "descrizione": "Dolo – raggiri determinanti + reticenza integrante dolo omissivo"
+        },
+        {
+          "fonte": "Cass. SU 8061/2023",
+          "descrizione": "Errore sul valore – irrilevante salvo dolo di controparte"
+        }
+      ],
+      "tipologie_di_vizi": {
+        "dolo_1434_1435": {
+          "dolo_determinante": "I raggiri sono stati determinanti nel convincere la vittima a concludere – ANNULLAMENTO",
+          "dolo_incidente_1439": "I raggiri hanno influenzato solo le condizioni, non la conclusione – RISARCIMENTO (non annullamento)",
+          "dolo_omissivo": "Reticenza su informazioni che la controparte era tenuta a comunicare (Cass. SU 10640/2020)"
+        },
+        "errore_1428_1432": {
+          "essenzialita": "L'errore deve riguardare la natura, l'oggetto, la qualità o la persona essenziale",
+          "riconoscibilita": "L'errore deve essere riconoscibile dall'altro contraente usando la normale diligenza",
+          "errore_sul_valore": "Irrilevante di regola salvo dolo della controparte (Cass. SU 8061/2023)"
+        },
+        "violenza_1433_1435": {
+          "requisiti": "Male notevole + ingiusto + determinante il consenso",
+          "violenza_del_terzo": "Annullabile anche se la violenza proviene da un terzo"
+        }
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare il tipo di vizio (dolo/errore/violenza) e raccogliere le prove"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare i raggiri del convenuto o la falsa rappresentazione"
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICARE il termine di 5 anni dalla scoperta del vizio"
+        },
+        {
+          "step": 4,
+          "descrizione": "Evitare comportamenti di CONVALIDA (art. 1444) che impediscono l'azione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_annullamento_vizi_consenso",
+        "denominazione": "Atto di citazione per annullamento del contratto per dolo/errore/violenza ex artt. 1427 e ss. c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "parte_lesa_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto_impugnato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "string"
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "tipo_vizio",
+            "type": "select",
+            "required": true,
+            "options": [
+              "dolo_determinante_1434",
+              "dolo_incidente_1439",
+              "errore_essenziale_1428",
+              "violenza_1433"
+            ]
+          },
+          {
+            "id": "descrizione_vizio",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "data_scoperta_del_vizio",
+            "type": "date",
+            "critico_per_prescrizione": true
+          },
+          {
+            "id": "assenza_di_convalida_1444",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_contratto",
+              "restituzione_prestazioni_eseguite",
+              "risarcimento_danni_da_dolo_o_violenza",
+              "in_subordine_dolo_incidente_solo_risarcimento_1439",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Dolo incidente (1439): non annulla il contratto, solo risarcimento",
+          "Prescrizione 5 anni dalla SCOPERTA del vizio (non dalla stipula)",
+          "Convalida (1444): se la parte protetta esegue il contratto consapevole del vizio → azione preclusa",
+          "Legittimazione: SOLO la parte cui appartiene il vizio (art. 1441)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_impugnato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_del_vizio_dolo_errore_violenza",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 5,
+          "decorrenza": "scoperta del vizio",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120
+        }
+      ],
+      "codice_originale_ricevuto": "140035",
+      "codice_logico": "GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "140999",
+        "140031",
+        "140041"
+      ],
+      "nota_integrazione_iusentra": "Il codice 140035 è ufficiale nel catalogo locale per agenzia; la scheda ricevuta riguarda annullamento del contratto per dolo, errore o violenza e resta guida interna per non alterare il deposito.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140035"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRAFFAZIONE_DI_MARCHIO_E_CONCORRENZA_SLEALE_CONFUSORIA_ARTT_20_28_COD_170020",
+      "denominazione": "Contraffazione di marchio e concorrenza sleale confusoria (artt. 20-28 Cod. PI + 2598 c.c.)",
+      "categoria": "Proprietà industriale – marchi",
+      "rito": "Rito ordinario – Tribunale delle Imprese (sezione specializzata PI)",
+      "competenza": "Tribunale delle Imprese – sede del convenuto o luogo della violazione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 30/2005 (Cod. PI)",
+          "articolo": "20",
+          "descrizione": "Diritti conferiti dalla registrazione del marchio"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "21",
+          "descrizione": "Usi consentiti del marchio altrui"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "22",
+          "descrizione": "Contraffazione – uso illecito del marchio"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "124",
+          "descrizione": "Azioni a tutela dei diritti di proprietà industriale"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "125",
+          "descrizione": "Risarcimento del danno – anche reversione degli utili del contraffattore"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "126",
+          "descrizione": "Inibitoria + misure accessorie (distruzione, ritiro, pubblicazione sentenza)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2598",
+          "descrizione": "Atti di concorrenza sleale – confusione, denigrazione, storno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2599-2600",
+          "descrizione": "Inibitoria e risarcimento per concorrenza sleale"
+        },
+        {
+          "fonte": "Reg. UE 2017/1001 (Marchio UE)",
+          "descrizione": "Marchio dell'Unione Europea"
+        },
+        {
+          "fonte": "Cass. SU 12430/2021",
+          "descrizione": "Marchio – confusione del consumatore medio"
+        },
+        {
+          "fonte": "Cass. SU 5434/2022",
+          "descrizione": "Reversione degli utili – calcolo e prova"
+        }
+      ],
+      "azioni_disponibili": {
+        "inibitoria_urgente": "Ex art. 700 c.p.c. o art. 129 Cod. PI se urgenza – blocca immediatamente la contraffazione",
+        "azione_di_merito": "Accertamento contraffazione + inibitoria definitiva + risarcimento",
+        "reversione_degli_utili_125": "Il titolare può chiedere la consegna degli utili realizzati dal contraffattore (alternativa al risarcimento)"
+      },
+      "presupposti_contraffazione_20_22_CodPI": [
+        "Il convenuto usa un segno IDENTICO o SIMILE al marchio registrato",
+        "Per prodotti/servizi IDENTICI o SIMILI (rischio di confusione) o anche diversi (per marchi notori)",
+        "L'uso è nel commercio",
+        "L'uso è SENZA CONSENSO del titolare"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire la registrazione del marchio (visura UIBM o EUIPO)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare la contraffazione (acquisti di prova, fotografie, siti web)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare misura cautelare urgente (blocca il danno in corso)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificare i danni (perdita di fatturato, danno all'immagine, utili del contraffattore)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_contraffazione_marchio",
+        "denominazione": "Atto di citazione per contraffazione di marchio ex artt. 20-22 Cod. PI + concorrenza sleale",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "titolare_marchio_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contraffattore_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "marchio_tutelato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "numero_registrazione_UIBM_o_EUIPO",
+                "type": "string"
+              },
+              {
+                "id": "classi_di_protezione",
+                "type": "string"
+              },
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "marchio_denominativo",
+                  "marchio_figurativo",
+                  "marchio_misto",
+                  "marchio_3D"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "segno_contraffatto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "grado_somiglianza",
+                "type": "select",
+                "options": [
+                  "identico",
+                  "simile_con_rischio_confusione",
+                  "simile_su_marchio_notorio"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "perdita_fatturato_stimata",
+                "type": "currency"
+              },
+              {
+                "id": "danno_immagine",
+                "type": "currency"
+              },
+              {
+                "id": "reversione_utili_contraffattore",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_cautelare_urgente",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_contraffazione",
+              "inibitoria_definitiva",
+              "distruzione_prodotti_contraffatti",
+              "risarcimento_danni",
+              "reversione_utili_125_CodPI",
+              "pubblicazione_sentenza",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza esclusiva TRIBUNALE DELLE IMPRESE",
+          "Cautelare urgente: valutare sempre se contraffazione è in corso",
+          "Reversione utili (art. 125): alternativa al risarcimento – scegliere la maggiore",
+          "Acquisti di prova: ammessi e fondamentali come prova della contraffazione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "certificato_registrazione_marchio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_contraffazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "campioni_prodotti_contraffatti_se_disponibili",
+          "required": false,
+          "critico_se_disponibili": true
+        },
+        {
+          "id": "perizia_di_parte_su_danni_e_utili",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 5,
+          "norma": "art. 2947 c.c. per la parte aquiliana"
+        }
+      ],
+      "codice_originale_ricevuto": "170020",
+      "codice_logico": "GUIDA_CONTRAFFAZIONE_DI_MARCHIO_E_CONCORRENZA_SLEALE_CONFUSORIA_ARTT_20_28_COD_170020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LIQUIDAZIONE_GIUDIZIALE_DEL_COMPENSO_DEL_PROFESSIONISTA_ART_14_D_LGS_150_413090",
+      "denominazione": "Liquidazione giudiziale del compenso del professionista (art. 14 D.Lgs. 150/2011)",
+      "categoria": "Contratti – professioni – recupero compensi",
+      "rito": "Procedimento sommario di cognizione ex art. 14 D.Lgs. 150/2011 davanti al Tribunale",
+      "competenza": "Tribunale del luogo in cui è stato eseguito il rapporto di lavoro autonomo",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "14",
+          "descrizione": "Liquidazione delle spese di giudizio e dei compensi degli ausiliari del giudice + professionisti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2233",
+          "descrizione": "Compenso delle professioni intellettuali – tariffe o accordo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2234",
+          "descrizione": "Anticipazioni e spese – obblighi del cliente"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "702-bis e ss.",
+          "descrizione": "Procedimento sommario di cognizione"
+        },
+        {
+          "fonte": "D.M. 55/2014 (aggiornato D.M. 147/2022)",
+          "descrizione": "Parametri per la liquidazione dei compensi degli avvocati"
+        },
+        {
+          "fonte": "D.M. 140/2012",
+          "descrizione": "Parametri per professionisti diversi dagli avvocati"
+        },
+        {
+          "fonte": "L. 247/2012 (Ord. Forense)",
+          "articolo": "13",
+          "descrizione": "Compenso dell'avvocato – accordo scritto o parametri ministeriali"
+        },
+        {
+          "fonte": "Cass. SU 19873/2022",
+          "descrizione": "Compenso avvocato – liquidazione in assenza di accordo scritto"
+        },
+        {
+          "fonte": "Cass. SU 4721/2024",
+          "descrizione": "Parametri D.M. 55/2014 aggiornati – applicazione retroattiva"
+        }
+      ],
+      "procedimento_14_D_Lgs_150_2011": {
+        "ambito": "Liquidazione dei compensi degli ausiliari del giudice (CTU, CTP) e dei professionisti",
+        "competenza": "Tribunale in composizione monocratica",
+        "forma_atto": "Ricorso + decreto ingiuntivo oppure procedimento sommario",
+        "alternativa": "Decreto ingiuntivo ordinario ex art. 633 c.p.c. se c'è una nota spese"
+      },
+      "tariffe_e_parametri": {
+        "avvocati_DM_55_2014_aggiornato_DM_147_2022": "Parametri ministeriali per fasi processuali",
+        "non_avvocati_DM_140_2012": "Parametri per ingegneri, architetti, commercialisti, consulenti tecnici",
+        "accordo_scritto_prevalente": "Se esiste accordo scritto valido – prevale sui parametri ministeriali"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Predisporre la nota spese/parcella dettagliata"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se esiste accordo scritto (L. 247/2012 per avvocati)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Applicare i parametri ministeriali corretti alla prestazione svolta"
+        },
+        {
+          "step": 4,
+          "descrizione": "Scegliere tra ricorso ex art. 14 D.Lgs. 150/2011 o decreto ingiuntivo ordinario"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_liquidazione_compenso_professionista_14_DLgs150",
+        "denominazione": "Ricorso per liquidazione del compenso professionale ex art. 14 D.Lgs. 150/2011",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "professionista_ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "categoria",
+                "type": "select",
+                "options": [
+                  "avvocato",
+                  "ingegnere",
+                  "architetto",
+                  "commercialista_revisore",
+                  "CTU_ausiliario_giudice",
+                  "altro_professionista"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "debitore_resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "prestazione_professionale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_e_oggetto",
+                "type": "textarea"
+              },
+              {
+                "id": "periodo",
+                "type": "string"
+              },
+              {
+                "id": "accordo_scritto_sul_compenso",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "compenso_richiesto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "parametri_applicati",
+                "type": "select",
+                "options": [
+                  "DM_55_2014_DM_147_2022_avvocati",
+                  "DM_140_2012_altri_professionisti",
+                  "accordo_contrattuale"
+                ]
+              },
+              {
+                "id": "importo_compenso",
+                "type": "currency"
+              },
+              {
+                "id": "spese_e_anticipazioni",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "liquidazione_compenso_ex_14_DLgs150",
+              "condanna_pagamento_compenso_e_spese",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Avvocati: accordo scritto sul compenso obbligatorio ex L. 247/2012 (altrimenti parametri D.M.)",
+          "Cass. SU 19873/2022: in assenza accordo → parametri D.M. 55/2014 aggiornato D.M. 147/2022",
+          "Alternativa: decreto ingiuntivo ordinario ex 633 c.p.c. con nota spese"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "nota_spese_parcella_dettagliata",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_accordo_scritto_compenso",
+          "required_if": "accordo_presente"
+        },
+        {
+          "id": "documentazione_attivita_svolta",
+          "required": true
+        },
+        {
+          "id": "parametri_ministeriali_applicati",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione del compenso professionale",
+          "anni": 3,
+          "norma": "art. 2956 n. 2 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "413090",
+      "codice_logico": "GUIDA_LIQUIDAZIONE_GIUDIZIALE_DEL_COMPENSO_DEL_PROFESSIONISTA_ART_14_D_LGS_150_413090",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413090"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PIANO_DEL_CONSUMATORE_ACCORDO_DI_COMPOSIZIONE_DELLA_CRISI_DA_SOVRAINDEBI_620010",
+      "denominazione": "Piano del consumatore / accordo di composizione della crisi da sovraindebitamento (D.Lgs. 14/2019 CCII)",
+      "categoria": "Procedure concorsuali – sovraindebitamento",
+      "rito": "Procedimento speciale ex artt. 65-83 D.Lgs. 14/2019 (CCII) davanti al Tribunale",
+      "competenza": "Tribunale del luogo di residenza del debitore (consumatore) o sede professionale",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "65-83",
+          "descrizione": "Procedure di composizione della crisi da sovraindebitamento"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "67",
+          "descrizione": "Piano del consumatore – presupposti e contenuto"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "69",
+          "descrizione": "Accordo di ristrutturazione dei debiti – con adesione dei creditori"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "75-83",
+          "descrizione": "Liquidazione controllata del sovraindebitato"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "282-283",
+          "descrizione": "OCC (Organismo di Composizione della Crisi) – ruolo e funzioni"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "284-285",
+          "descrizione": "Esdebitazione – liberazione dai debiti residui"
+        },
+        {
+          "fonte": "L. 3/2012 (abrogata)",
+          "descrizione": "Vecchia disciplina – superata dal CCII"
+        },
+        {
+          "fonte": "Cass. SU 17834/2022",
+          "descrizione": "Piano consumatore – meritevolezza del debitore"
+        },
+        {
+          "fonte": "Cass. SU 9066/2024",
+          "descrizione": "Esdebitazione – presupposti e limite del minimo vitale"
+        }
+      ],
+      "strumenti_del_CCII_per_sovraindebitamento": {
+        "piano_del_consumatore_67": {
+          "chi": "Persone fisiche che hanno contratto debiti per scopi estranei ad attività imprenditoriale o professionale",
+          "caratteristica": "Non richiede l'accordo dei creditori – decide il Tribunale",
+          "requisito_meritevolezza": "Il debitore non deve aver causato il sovraindebitamento per colpa grave, malafede o frode"
+        },
+        "accordo_di_ristrutturazione_69": {
+          "chi": "Consumatori, professionisti e imprenditori non fallibili",
+          "caratteristica": "Richiede l'adesione della maggioranza dei creditori (per valore)",
+          "vantaggio": "Omologazione anche con creditori dissenzienti minoranza"
+        },
+        "liquidazione_controllata_75_83": {
+          "chi": "Qualsiasi debitore sovraindebitato",
+          "caratteristica": "Liquidazione di tutti i beni + esdebitazione al termine"
+        }
+      },
+      "ruolo_OCC": {
+        "obbligatorio": "Obbligo di rivolgersi a un OCC (Organismo di Composizione della Crisi) iscritto",
+        "funzioni": [
+          "Attestazione della situazione debitoria",
+          "Predisposizione del piano",
+          "Attestazione di fattibilità",
+          "Vigilanza sull'esecuzione"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Contattare un OCC (lista sul sito Ministero della Giustizia)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere la documentazione su tutti i debiti e i creditori"
+        },
+        {
+          "step": 3,
+          "descrizione": "Predisporre con l'OCC il piano del consumatore o l'accordo"
+        },
+        {
+          "step": 4,
+          "descrizione": "Verificare la meritevolezza del debitore (assenza di colpa grave/frode)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_piano_consumatore_sovraindebitamento_CCII",
+        "denominazione": "Ricorso per piano del consumatore ex art. 67 D.Lgs. 14/2019 (CCII)",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "debitore_consumatore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "OCC_incaricato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione_OCC",
+                "type": "string"
+              },
+              {
+                "id": "gestore_della_crisi_nominato",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "situazione_debitoria",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "debiti_totali",
+                "type": "currency"
+              },
+              {
+                "id": "numero_creditori",
+                "type": "integer"
+              },
+              {
+                "id": "entrate_mensili_nette",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "tipo_procedura",
+            "type": "select",
+            "required": true,
+            "options": [
+              "piano_consumatore_67",
+              "accordo_ristrutturazione_69",
+              "liquidazione_controllata_75"
+            ]
+          },
+          {
+            "id": "meritevolezza_debitore",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "proposta_piano",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "omologazione_piano_consumatore",
+              "sospensione_procedure_esecutive_in_corso",
+              "esdebitazione_finale_284"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "OCC obbligatorio – senza attestazione dell'OCC il ricorso è inammissibile",
+          "Meritevolezza: no colpa grave, malafede o frode (Cass. SU 17834/2022)",
+          "Piano consumatore: il Tribunale decide senza adesione dei creditori",
+          "Esdebitazione: liberazione dai debiti residui al termine (art. 284-285 CCII)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "relazione_OCC_con_attestazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_creditori_e_importi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_redditi_e_patrimonio",
+          "required": true
+        },
+        {
+          "id": "piano_proposto_con_calcoli",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente per consumatori con reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine specifico – proponibile quando insorge il sovraindebitamento"
+        }
+      ],
+      "codice_originale_ricevuto": "620010",
+      "codice_logico": "GUIDA_PIANO_DEL_CONSUMATORE_ACCORDO_DI_COMPOSIZIONE_DELLA_CRISI_DA_SOVRAINDEBI_620010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "620010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "620010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "620010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PETIZIONE_DI_EREDIT_ART_533_C_C_AZIONE_DELL_EREDE_PER_LA_RESTITUZIONE_DE_130005",
+      "denominazione": "Petizione di eredità (art. 533 c.c.) – azione dell'erede per la restituzione dei beni ereditari",
+      "categoria": "Successioni – tutela petitoria ereditaria",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (successioni)",
+      "competenza": "Tribunale del luogo di apertura della successione (residenza del de cuius – art. 22 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "533",
+          "descrizione": "Petizione di eredità – l'erede può chiedere la restituzione dei beni ereditari a chiunque li possegda a titolo di erede o senza titolo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "534",
+          "descrizione": "Acquisti a titolo oneroso da erede apparente – tutela del terzo di buona fede"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "535",
+          "descrizione": "Frutti e spese – obblighi del possessore delle universalità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "480-482",
+          "descrizione": "Prescrizione dell'azione – 10 anni dall'apertura"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1141-1143",
+          "descrizione": "Possesso – rilevante per la difesa del convenuto"
+        },
+        {
+          "fonte": "Cass. SU 24657/2019",
+          "descrizione": "Petizione di eredità – distinzione da rivendicazione e azione di nullità divisione"
+        },
+        {
+          "fonte": "Cass. SU 16098/2022",
+          "descrizione": "Erede apparente – buona fede del terzo acquirente"
+        }
+      ],
+      "distinzione_da_rei_vindicatio": {
+        "petitio_hereditatis_533": "L'attore rivendica la qualità di EREDE e chiede la consegna dei beni come universalità ereditaria",
+        "rei_vindicatio_948": "L'attore rivendica la PROPRIETÀ di un singolo bene determinato",
+        "differenza_pratica": "La petitio comprende tutti i beni ereditari anche non specificamente identificati al momento della proposizione"
+      },
+      "convenuto_tipico": [
+        "Chi possiede i beni SOSTENENDO di essere erede (erede apparente)",
+        "Chi possiede i beni SENZA TITOLO di erede (possessore di fatto)",
+        "Chi ha ricevuto i beni dall'erede apparente (ma con minore tutela se mala fede)"
+      ],
+      "tutela_del_terzo_acquirente_534": {
+        "buona_fede": "Il terzo che ha acquistato a titolo oneroso dall'erede apparente in BUONA FEDE è tutelato",
+        "mala_fede": "Il terzo in mala fede non è tutelato – l'erede vero può rivendicare"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la qualità di erede (testamento + accettazione, o successione legittima)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare i beni ereditari posseduti dal convenuto"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se il convenuto vanta un titolo (finto erede o senza titolo)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_petizione_eredita_533",
+        "denominazione": "Atto di citazione per petizione di eredità ex art. 533 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "erede_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "possessore_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "de_cuius",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "nome",
+                "type": "string"
+              },
+              {
+                "id": "data_decesso",
+                "type": "date"
+              },
+              {
+                "id": "luogo_ultima_residenza",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "titolo_ereditario_attore",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "erede_testamentario",
+                  "erede_legittimo",
+                  "erede_legatario"
+                ]
+              },
+              {
+                "id": "documentazione",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "beni_rivendicati",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "titolo_possesso_convenuto",
+            "type": "select",
+            "options": [
+              "preteso_erede_apparente",
+              "senza_titolo",
+              "terzo_acquirente_da_erede_apparente"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_qualita_erede_attore",
+              "restituzione_beni_ereditari",
+              "condanna_frutti_e_rendite_535",
+              "trascrizione_sentenza",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria (successioni)",
+          "Distinzione da rei vindicatio: la petitio riguarda l'universalità ereditaria",
+          "Terzo acquirente in buona fede da erede apparente: tutelato (art. 534)",
+          "Prescrizione: 10 anni dall'apertura della successione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "certificato_morte_de_cuius",
+          "required": true
+        },
+        {
+          "id": "testamento_o_documentazione_successione_legittima",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_qualita_erede_attore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_beni_ereditari_rivendicati",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 10,
+          "decorrenza": "apertura della successione",
+          "norma": "art. 480 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "130005",
+      "codice_logico": "GUIDA_PETIZIONE_DI_EREDIT_ART_533_C_C_AZIONE_DELL_EREDE_PER_LA_RESTITUZIONE_DE_130005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130005"
+        }
+      ]
+    }
+  ]
+}

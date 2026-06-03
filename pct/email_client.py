@@ -438,12 +438,108 @@ class GestioneEmailRicevute:
     def _allegato_salvato(self, info: dict) -> bool:
         return self._percorso_allegato_da_info(info) is not None or self._allegato_archiviato(info)
 
+    def _percorso_eml_originale(self, em: EmailRicevuta) -> Path | None:
+        eml_rel = str(getattr(em, "eml_file", "") or "").strip().replace("\\", "/")
+        if not eml_rel:
+            return None
+        rel_path = Path(eml_rel)
+        if rel_path.is_absolute() or ".." in rel_path.parts:
+            return None
+        percorso = (self.db_path.parent / rel_path).resolve()
+        root = self.db_path.parent.resolve()
+        try:
+            percorso.relative_to(root)
+        except ValueError:
+            return None
+        if not percorso.exists() or not percorso.is_file():
+            return None
+        return percorso
+
+    def leggi_eml_originale(self, em: EmailRicevuta) -> bytes | None:
+        percorso = self._percorso_eml_originale(em)
+        if not percorso:
+            return None
+        try:
+            return percorso.read_bytes()
+        except OSError:
+            return None
+
+    @classmethod
+    def _iter_allegati_da_eml(cls, raw_eml: bytes) -> list[dict[str, Any]]:
+        if not raw_eml:
+            return []
+        try:
+            msg = email.message_from_bytes(raw_eml, policy=policy.default)
+        except Exception:
+            return []
+        allegati: list[dict[str, Any]] = []
+        parts = msg.walk() if msg.is_multipart() else [msg]
+        for part in parts:
+            fname = cls._decode_header_val(part.get_filename() or "")
+            if not cls._is_allegato_part(part, fname):
+                continue
+            payload = cls._payload_allegato(part)
+            if not payload:
+                continue
+            allegati.append(
+                {
+                    "nome": fname or f"allegato-{len(allegati) + 1}.bin",
+                    "mime": str(part.get_content_type() or "application/octet-stream"),
+                    "size": len(payload),
+                    "sha256": content_sha256(payload),
+                    "data": payload,
+                }
+            )
+        return allegati
+
+    @staticmethod
+    def _nome_allegato_info(info: dict) -> str:
+        return str((info or {}).get("nome") or (info or {}).get("nome_file") or "").strip().lower()
+
+    @staticmethod
+    def _size_allegato_info(info: dict) -> int:
+        try:
+            return int((info or {}).get("size") or (info or {}).get("dimensione") or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def _leggi_allegato_da_eml(self, em: EmailRicevuta, info: dict, indice_allegato: int) -> bytes | None:
+        raw_eml = self.leggi_eml_originale(em)
+        if not raw_eml:
+            return None
+        allegati = self._iter_allegati_da_eml(raw_eml)
+        if not allegati:
+            return None
+
+        target_sha = str((info or {}).get("sha256") or "").strip().lower()
+        if re.fullmatch(r"[a-f0-9]{64}", target_sha):
+            for item in allegati:
+                if item["sha256"] == target_sha:
+                    return item["data"]
+
+        target_name = self._nome_allegato_info(info)
+        target_size = self._size_allegato_info(info)
+        if target_name:
+            for item in allegati:
+                same_name = str(item.get("nome") or "").strip().lower() == target_name
+                same_size = not target_size or int(item.get("size") or 0) == target_size
+                if same_name and same_size:
+                    return item["data"]
+
+        if 0 <= indice_allegato < len(allegati):
+            item = allegati[indice_allegato]
+            same_size = not target_size or int(item.get("size") or 0) == target_size
+            same_name = not target_name or str(item.get("nome") or "").strip().lower() == target_name
+            if same_name and same_size:
+                return item["data"]
+        return None
+
     def allegato_disponibile(self, em: EmailRicevuta, indice_allegato: int) -> bool:
         allegati = list(getattr(em, "allegati", []) or [])
         if indice_allegato < 0 or indice_allegato >= len(allegati):
             return False
         info = allegati[indice_allegato] or {}
-        return self._allegato_salvato(info)
+        return self._allegato_salvato(info) or self._leggi_allegato_da_eml(em, info, indice_allegato) is not None
 
     def leggi_allegato(self, em: EmailRicevuta, indice_allegato: int) -> bytes | None:
         allegati = list(getattr(em, "allegati", []) or [])
@@ -458,13 +554,14 @@ class GestioneEmailRicevute:
                 return None
         archive_info = self._archivio_allegato_da_info(info)
         if not archive_info:
-            return None
+            return self._leggi_allegato_da_eml(em, info, indice_allegato)
         archivio, member = archive_info
         try:
             with zipfile.ZipFile(archivio, "r") as archive:
                 return archive.read(member)
         except (KeyError, OSError, zipfile.BadZipFile):
-            return None
+            pass
+        return self._leggi_allegato_da_eml(em, info, indice_allegato)
 
     def comprimi_allegati(self, *, apply: bool = False) -> dict[str, Any]:
         db = self._carica()

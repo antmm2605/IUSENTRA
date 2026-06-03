@@ -1,0 +1,1408 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP18_SET15_PARTE1",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 1 di 4",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RC_DA_CIRCOLAZIONE_VEICOLI_SCONTRO_TRA_VEICOLI_ART_2054_C_C_REGIME_ORDIN_160001",
+      "denominazione": "RC da circolazione veicoli – scontro tra veicoli (art. 2054 c.c.) – regime ordinario",
+      "categoria": "Responsabilità civile – RC veicoli",
+      "rito": "Rito ordinario; negoziazione assistita obbligatoria D.L. 132/2014",
+      "competenza": "Tribunale del luogo del sinistro o residenza del danneggiato",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2054",
+          "descrizione": "Responsabilità da circolazione veicoli – presunzione colpa concorrente pari 50%"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2054 c. 1",
+          "descrizione": "Conducente presunto responsabile – si libera con prova caso fortuito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2054 c. 2",
+          "descrizione": "Presunzione colpa uguale 50/50 tra conducenti in caso di scontro"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2054 c. 3",
+          "descrizione": "Proprietario responsabile solidale salvo prova circolazione senza consenso"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "144",
+          "descrizione": "Azione diretta del danneggiato verso assicuratore"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "149",
+          "descrizione": "CARD – risarcimento diretto per scontro tra veicoli assicurati"
+        },
+        {
+          "fonte": "Cass. SU 6651/2024",
+          "descrizione": "Tabelle uniformi danno biologico"
+        },
+        {
+          "fonte": "Cass. SU 26513/2023",
+          "descrizione": "Concorso di colpa – criteri di valutazione"
+        }
+      ],
+      "presunzione_colpa_concorrente_2054_c2": {
+        "regola": "In caso di scontro tra veicoli: PRESUNZIONE DI PARI RESPONSABILITÀ (50/50) salvo prova contraria",
+        "superamento": "Chi vuole una percentuale diversa deve provare la maggiore colpa dell'altro"
+      },
+      "procedura_CARD_art149": {
+        "obbligatorieta": "Per scontro tra veicoli identificati e assicurati: rivolgersi alla PROPRIA assicurazione",
+        "termini_offerta": "30 gg danni a cose; 90 gg danni alla persona"
+      },
+      "obbligo_mediazione": {
+        "negoziazione_assistita_obbligatoria": true,
+        "fonte": "D.L. 132/2014"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Denuncia alla propria assicurazione + documentazione sinistro (verbale FFOO)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Visita medico-legale di parte se lesioni biologiche > 9% (tabelle macropermanenti art. 138)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Acquisire perizia cinematica se dinamica contestata"
+        },
+        {
+          "step": 4,
+          "descrizione": "Negoziazione assistita obbligatoria prima del giudizio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_RC_veicoli_scontro",
+        "denominazione": "Atto di citazione per RC da scontro tra veicoli ex art. 2054 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "conducente_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "proprietario_veicolo_convenuto",
+            "type": "object_persona"
+          },
+          {
+            "id": "assicuratore_RC_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "sinistro",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo",
+                "type": "address"
+              },
+              {
+                "id": "dinamica",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "verbale_ffoo",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "lesioni_subite",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "micropermanenti_1_9_art139",
+                  "macropermanenti_10_plus_art138",
+                  "solo_danni_a_cose",
+                  "morte"
+                ]
+              },
+              {
+                "id": "percentuale_IP_se_permanenti",
+                "type": "percentage"
+              },
+              {
+                "id": "perizia_medico_legale_di_parte",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "danno_biologico",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale",
+                "type": "currency"
+              },
+              {
+                "id": "spese_mediche",
+                "type": "currency"
+              },
+              {
+                "id": "danni_a_cose_veicolo",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "CARD_seguita",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "id": "negoziazione_assistita_effettuata",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_solidale_conducente_proprietario_assicuratore",
+              "risarcimento_danno_biologico",
+              "risarcimento_danni_a_cose",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Presunzione 50/50 ex 2054 c.2 – chi vuole diversa ripartizione deve provarla",
+          "CARD obbligatoria come primo passo per scontro tra veicoli assicurati",
+          "Tabelle: micropermanenti (1-9%) → tabella ministeriale; macropermanenti (10%+) → tabella ministeriale art. 138",
+          "Negoziazione assistita obbligatoria",
+          "Prescrizione 2 anni dal sinistro"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbale_ffoo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria",
+          "required": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_negoziazione_assistita",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 2,
+          "decorrenza": "sinistro",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "160001",
+      "codice_logico": "GUIDA_RC_DA_CIRCOLAZIONE_VEICOLI_SCONTRO_TRA_VEICOLI_ART_2054_C_C_REGIME_ORDIN_160001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_SEPARAZIONE_O_DIVORZIO_PER_SOPRAVVENIENZE_A_111030",
+      "denominazione": "Modifica delle condizioni di separazione o divorzio per sopravvenienze (art. 337-quinquies c.c.)",
+      "categoria": "Persone e famiglia – modifica condizioni",
+      "rito": "Rito unificato 473-bis c.p.c. (Cartabia)",
+      "competenza": "Tribunale sezione famiglia – residenza abituale del minore o foro originario",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "337-quinquies",
+          "descrizione": "Revisione delle disposizioni sull'affidamento e il mantenimento in caso di sopravvenienze"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "155-bis e ss.",
+          "descrizione": "Applicabili per rinvio"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.30",
+          "descrizione": "Procedimento di modifica condizioni – rito Cartabia"
+        },
+        {
+          "fonte": "L. 898/1970 (divorzio)",
+          "articolo": "9",
+          "descrizione": "Revisione condizioni divorzio"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022 (Cartabia)",
+          "descrizione": "Riforma"
+        },
+        {
+          "fonte": "Cass. SU 9372/2021",
+          "descrizione": "Modifica assegno – sopravvenienza rilevante"
+        },
+        {
+          "fonte": "Cass. SU 18287/2018",
+          "descrizione": "Assegno divorzile – criteri revisione"
+        }
+      ],
+      "presupposti_sopravvenienza": {
+        "cosa_giustifica_la_modifica": [
+          "Cambiamento significativo delle CONDIZIONI ECONOMICHE di uno dei coniugi",
+          "Cambiamento delle ESIGENZE DEI FIGLI (salute, istruzione, età)",
+          "Nuova convivenza o matrimonio del coniuge beneficiario dell'assegno",
+          "Perdita del lavoro del coniuge obbligato",
+          "Peggioramento o miglioramento significativo della situazione patrimoniale",
+          "CRESCITA DEI FIGLI (maggiore età, autonomia, cambio di residenza)"
+        ],
+        "irrilevante": "Non sono sufficienti variazioni marginali – serve sopravvenienza rilevante (Cass. SU 9372/2021)"
+      },
+      "tipi_di_modifica_possibili": [
+        "Aumento o riduzione dell'assegno di mantenimento per i figli",
+        "Aumento o riduzione dell'assegno divorzile",
+        "Modifica del regime di affidamento (da condiviso a esclusivo o viceversa)",
+        "Modifica del calendario di visita e frequentazione",
+        "Modifica dell'assegnazione della casa familiare",
+        "Modifica della ripartizione delle spese straordinarie"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la sopravvenienza rilevante (nuova situazione economica, buste paga, dichiarazioni redditi)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere documentazione sulle nuove esigenze dei figli (scolastica, sanitaria)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Produrre piano genitoriale aggiornato se si modifica l'affidamento"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_modifica_condizioni_separazione_divorzio",
+        "denominazione": "Ricorso per modifica condizioni di separazione/divorzio ex art. 337-quinquies c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente_ex_coniuge",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente_ex_coniuge",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "figli_minori_o_maggiorenni_non_autosufficienti",
+            "type": "array_persone"
+          },
+          {
+            "id": "provvedimento_da_modificare",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "sentenza_separazione",
+                  "sentenza_divorzio",
+                  "decreto_presidenziale",
+                  "precedente_modifica"
+                ]
+              },
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "condizioni_attuali_sintetiche",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "sopravvenienza_dedotta",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select_multi",
+                "options": [
+                  "variazione_reddito_ricorrente",
+                  "variazione_reddito_resistente",
+                  "nuova_convivenza_o_matrimonio_resistente",
+                  "crescita_figli_e_nuove_esigenze",
+                  "cambio_residenza_figli",
+                  "perdita_lavoro",
+                  "peggioramento_salute_figlio",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "modifica_richiesta",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "riduzione_assegno_mantenimento_figli",
+              "aumento_assegno_mantenimento_figli",
+              "riduzione_assegno_divorzile",
+              "aumento_assegno_divorzile",
+              "modifica_affidamento",
+              "modifica_calendario_visite",
+              "modifica_casa_familiare",
+              "modifica_spese_straordinarie"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "modifica_condizioni_economiche",
+              "modifica_regime_affidamento",
+              "modifica_calendario_frequentazione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Serve SOPRAVVENIENZA RILEVANTE – non bastano variazioni marginali",
+          "Piano genitoriale obbligatorio se si modifica l'affidamento (473-bis.12)",
+          "Parere PM obbligatorio",
+          "Audizione minore obbligatoria >12 anni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_da_modificare",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sopravvenienza",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_economica_ricorrente",
+          "required": true
+        },
+        {
+          "id": "piano_genitoriale_se_modifica_affidamento",
+          "required_if": "modifica_affidamento"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente (rapporti familiari)",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine specifico – azione proponibile in qualunque momento su sopravvenienza"
+        }
+      ],
+      "codice_originale_ricevuto": "111030",
+      "codice_logico": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_SEPARAZIONE_O_DIVORZIO_PER_SOPRAVVENIENZE_A_111030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RISOLUZIONE_PER_ECCESSIVA_ONEROSIT_SOPRAVVENUTA_ART_1467_C_C_140020",
+      "denominazione": "Risoluzione per eccessiva onerosità sopravvenuta (art. 1467 c.c.)",
+      "categoria": "Contratti – patologia – onerosità sopravvenuta",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro residenza convenuto o luogo esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1467",
+          "descrizione": "Risoluzione per eccessiva onerosità sopravvenuta nei contratti a esecuzione continuata o differita"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1467 c. 3",
+          "descrizione": "La parte convenuta può offrire di modificare equamente le condizioni del contratto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1468",
+          "descrizione": "Contratto con obbligazioni di una sola parte – riduzione equa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1469",
+          "descrizione": "Contratto aleatorio – inapplicabilità dell'art. 1467"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1271",
+          "descrizione": "Alea normale del contratto"
+        },
+        {
+          "fonte": "Cass. SU 25767/2020",
+          "descrizione": "Eccessiva onerosità – straordinarietà e imprevedibilità dell'evento"
+        },
+        {
+          "fonte": "Cass. SU 12235/2021",
+          "descrizione": "Covid-19 come evento straordinario imprevedibile – applicabilità 1467"
+        }
+      ],
+      "presupposti_1467": {
+        "contratto_a_esecuzione_continuata_o_differita": "Non si applica ai contratti ad esecuzione istantanea già eseguiti",
+        "sopravvenienza_straordinaria_e_imprevedibile": "L'evento che causa l'onerosità deve essere STRAORDINARIO E IMPREVEDIBILE al momento della conclusione",
+        "eccessiva_onerosita": "La prestazione è diventata eccessivamente onerosa rispetto alla controprestazione",
+        "NON_applicabile_a_contratti_aleatori": "Sono esclusi i contratti per loro natura aleatori (es. scommesse, assicurazioni sul rischio specifico)"
+      },
+      "alea_normale_limite": {
+        "descrizione": "Se l'evento rientra nell'alea normale del contratto → NO risoluzione",
+        "esempi_alea_normale": [
+          "Oscillazioni ordinarie dei prezzi di mercato",
+          "Inflazione ordinaria",
+          "Variazioni valutarie normali"
+        ]
+      },
+      "diritto_di_offerta_di_riconduzione_1467_c3": {
+        "chi": "La parte convenuta in risoluzione",
+        "contenuto": "Offrire di ricondurre equamente le condizioni del contratto",
+        "effetto": "Paralizza l'azione di risoluzione dell'attore"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare contratto a esecuzione continuata/differita"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare l'evento straordinario e imprevedibile"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare il divario tra prestazione e controprestazione (perizia contabile o economica)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Verificare se l'evento rientra o meno nell'alea normale del contratto specifico"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_eccessiva_onerosita_1467",
+        "denominazione": "Atto di citazione per risoluzione per eccessiva onerosità sopravvenuta ex art. 1467 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_parte_onerata",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "locazione",
+                  "appalto",
+                  "somministrazione",
+                  "contratto_a_lungo_termine",
+                  "mutuo_a_tasso_variabile",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "prestazione_onerosa",
+                "type": "textarea"
+              },
+              {
+                "id": "controprestazione",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "evento_sopravvenuto",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "straordinarieta",
+                "type": "textarea"
+              },
+              {
+                "id": "imprevedibilita",
+                "type": "textarea"
+              },
+              {
+                "id": "non_rientra_in_alea_normale",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "misura_onerosita",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "valore_prestazione_attuale",
+                "type": "currency"
+              },
+              {
+                "id": "valore_controprestazione",
+                "type": "currency"
+              },
+              {
+                "id": "percentuale_squilibrio",
+                "type": "percentage"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risoluzione_contratto_per_eccessiva_onerosita_1467",
+              "restituzione_prestazioni_gia_eseguite",
+              "in_alternativa_riconduzione_equa_condizioni_1467_c3",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Solo contratti a esecuzione CONTINUATA o DIFFERITA",
+          "Evento deve essere STRAORDINARIO E IMPREVEDIBILE",
+          "Non applicabile a contratti aleatori (1469)",
+          "Convenuto può offrire riconduzione equa per paralizzare la risoluzione (1467 c.3)",
+          "Covid-19: riconosciuto come evento straordinario (Cass. SU 12235/2021)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_evento_sopravvenuto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_economica_squilibrio_prestazioni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10,
+          "norma": "art. 2946 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "140020",
+      "codice_logico": "GUIDA_RISOLUZIONE_PER_ECCESSIVA_ONEROSIT_SOPRAVVENUTA_ART_1467_C_C_140020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DANNO_DA_CADUTA_SU_SUOLO_PUBBLICO_BUCA_STRADALE_ART_2051_C_C_COSE_IN_CUS_160015",
+      "denominazione": "Danno da caduta su suolo pubblico / buca stradale (art. 2051 c.c. – cose in custodia P.A.)",
+      "categoria": "Responsabilità civile – cose in custodia – P.A.",
+      "rito": "Rito ordinario di cognizione – GIURISDIZIONE ORDINARIA",
+      "competenza": "Tribunale del luogo del fatto; GdP per valori bassi",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2051",
+          "descrizione": "Responsabilità per danni da cose in custodia – responsabilità oggettiva"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "In subordine se non custodia ma condotta colposa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione 5 anni"
+        },
+        {
+          "fonte": "Cass. SU 20943/2022",
+          "descrizione": "Art. 2051 – inversione onere prova + caso fortuito come unica esimente"
+        },
+        {
+          "fonte": "Cass. SU 17403/2023",
+          "descrizione": "Caduta su suolo pubblico – prova insidia/trabocchetto non più necessaria"
+        },
+        {
+          "fonte": "Cass. SU 21045/2024",
+          "descrizione": "Onere contributivo del danneggiato – condotta incauta"
+        }
+      ],
+      "rivoluzione_cass_su_20943_2022": {
+        "ante_2022": "Il danneggiato doveva provare l'INSIDIA (non visibilità + imprevedibilità) – onere molto gravoso",
+        "post_2022": "NON occorre più provare l'insidia – basta provare il nesso causale tra la cosa e il danno; è il custode (P.A.) che deve provare il caso fortuito",
+        "caso_fortuito": "Può essere il comportamento incauto della stessa vittima (Cass. SU 21045/2024)"
+      },
+      "enti_tipicamente_responsabili": [
+        "COMUNE per strade comunali, marciapiedi, piazze, parchi pubblici",
+        "PROVINCIA/CITTÀ METROPOLITANA per strade provinciali",
+        "ANAS per strade statali",
+        "CONCESSIONARI per autostrade",
+        "REGIONE per strade regionali"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Richiesta risarcimento alla P.A. consigliata per interrompere prescrizione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTARE IMMEDIATAMENTE il luogo: fotografie del difetto (buca, dissesto, ecc.) con misure"
+        },
+        {
+          "step": 2,
+          "descrizione": "Chiamare il 118/PS se lesioni – documentazione sanitaria immediata"
+        },
+        {
+          "step": 3,
+          "descrizione": "Segnalare all'ente gestore con raccomandata/PEC – interrompe prescrizione"
+        },
+        {
+          "step": 4,
+          "descrizione": "Perizia medico-legale di parte per le lesioni"
+        },
+        {
+          "step": 5,
+          "descrizione": "Raccogliere testimonianze di presenti"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_danno_caduta_suolo_pubblico_2051",
+        "denominazione": "Atto di citazione per danno da cosa in custodia pubblica ex art. 2051 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "ente_custode_convenuto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_ente",
+                "type": "select",
+                "options": [
+                  "comune",
+                  "provincia",
+                  "regione",
+                  "ANAS",
+                  "concessionario_autostradale",
+                  "altro"
+                ]
+              },
+              {
+                "id": "denominazione",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "fatto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo_preciso",
+                "type": "address"
+              },
+              {
+                "id": "tipo_difetto",
+                "type": "select",
+                "options": [
+                  "buca_stradale",
+                  "dissesto_manto_stradale",
+                  "marciapiede_dissestato",
+                  "tombino_rotto",
+                  "pavimentazione_scivolosa",
+                  "altro"
+                ]
+              },
+              {
+                "id": "dinamica_caduta",
+                "type": "textarea",
+                "min_length": 200
+              },
+              {
+                "id": "documentazione_fotografica_del_difetto",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "lesioni",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "textarea"
+              },
+              {
+                "id": "ip_permanente_stimata",
+                "type": "percentage"
+              },
+              {
+                "id": "perizia_medico_legale_di_parte",
+                "type": "boolean",
+                "consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "danno_biologico",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale",
+                "type": "currency"
+              },
+              {
+                "id": "spese_mediche",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_ente_pubblico_2051",
+              "risarcimento_danno_biologico",
+              "rimborso_spese_mediche",
+              "interessi_e_rivalutazione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "GIURISDIZIONE ORDINARIA (non TAR) per danni da comportamento materiale P.A.",
+          "POST Cass. SU 20943/2022: NO insidia – basta nesso causale + P.A. prova caso fortuito",
+          "Fotografare SUBITO il difetto (rischio riparazione rapida da parte del Comune)",
+          "Segnalare all'ente per interrompere prescrizione",
+          "Prescrizione 5 anni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "fotografie_del_difetto_datate",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "segnalazione_pregressa_all_ente",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "testimonianze_se_disponibili",
+          "required": false
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 5,
+          "norma": "art. 2947 c.c.",
+          "criticita": "ALTA"
+        }
+      ],
+      "codice_originale_ricevuto": "160015",
+      "codice_logico": "GUIDA_DANNO_DA_CADUTA_SU_SUOLO_PUBBLICO_BUCA_STRADALE_ART_2051_C_C_COSE_IN_CUS_160015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160015"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARI_NON_RETRIBUITI_FERIE_E_RIPOSI_NON_GODUTI_220025",
+      "denominazione": "Orario di lavoro, straordinari non retribuiti, ferie e riposi non goduti",
+      "categoria": "Lavoro – retribuzione e orario",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 66/2003 (attuazione Dir. 2003/88/CE)",
+          "articolo": "3-17",
+          "descrizione": "Disciplina organica dell'orario di lavoro, riposi giornalieri, pause, lavoro notturno, straordinari"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "4",
+          "descrizione": "Orario normale – 40 ore settimanali; media su 4 mesi"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "5",
+          "descrizione": "Lavoro straordinario – max 8 ore settimanali / 250 annue"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "7",
+          "descrizione": "Riposo giornaliero – 11 ore consecutive ogni 24"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "9",
+          "descrizione": "Riposo settimanale – 24 ore + 11 riposo giornaliero"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "10",
+          "descrizione": "FERIE – minimo 4 settimane annue; almeno 2 consecutive"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2109",
+          "descrizione": "Riposo settimanale e ferie – irrinunciabilità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2126",
+          "descrizione": "Lavoro di fatto – retribuzione dovuta"
+        },
+        {
+          "fonte": "CCNL di categoria",
+          "descrizione": "Disciplina di dettaglio su straordinari, maggiorazioni, ferie aggiuntive"
+        },
+        {
+          "fonte": "Cass. SU 13290/2021",
+          "descrizione": "Ferie non godute – irrinunciabilità e indennità sostitutiva"
+        },
+        {
+          "fonte": "CGUE C-619/16 (Kreuziger 2018)",
+          "descrizione": "Ferie non godute – divieto di estinzione senza verifica possibilità di godimento"
+        },
+        {
+          "fonte": "Cass. SU 17657/2023",
+          "descrizione": "Straordinari – prova e quantificazione"
+        }
+      ],
+      "diritti_fondamentali_irrinunciabili": {
+        "ferie_minime_4_settimane": "Irrinunciabili – non sostituibili con indennità in costanza di rapporto (solo alla cessazione)",
+        "riposo_giornaliero_11_ore": "Inderogabile",
+        "riposo_settimanale_24_ore": "Inderogabile",
+        "straordinari_oltre_limite": "Illeciti se superano 250 ore annue o limite CCNL"
+      },
+      "prova_degli_straordinari_Cass_SU_17657_2023": {
+        "onere_del_lavoratore": "Provare i turni e le ore effettuate (registri, email, badge, testimoni)",
+        "onere_del_datore": "Confutare le prove del lavoratore con i dati aziendali"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Ricostruire le ore lavorate effettive (registro timbrature, badge, email)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Calcolare le differenze rispetto a quanto pagato (buste paga)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare il CCNL applicato per le maggiorazioni orarie"
+        },
+        {
+          "step": 4,
+          "descrizione": "Calcolare ferie e permessi maturati e non goduti"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_straordinari_ferie_orario_lavoro",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per straordinari non retribuiti, ferie e riposi non goduti",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_di_lavoro",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "qualifica",
+                "type": "string"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string"
+              },
+              {
+                "id": "orario_contrattuale_settimanale",
+                "type": "integer"
+              }
+            ]
+          },
+          {
+            "id": "straordinari_non_retribuiti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "periodo",
+                "type": "string"
+              },
+              {
+                "id": "ore_totali_non_retribuite",
+                "type": "integer"
+              },
+              {
+                "id": "importo_calcolato",
+                "type": "currency"
+              },
+              {
+                "id": "prove_disponibili",
+                "type": "select_multi",
+                "options": [
+                  "badge_timbrature",
+                  "email_con_orari",
+                  "testimonianze",
+                  "registri_aziendali"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "ferie_non_godute",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "giorni_ferie_non_godute",
+                "type": "integer"
+              },
+              {
+                "id": "indennita_sostitutiva_calcolata",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "permessi_rol_non_goduti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "ore_permessi",
+                "type": "integer"
+              },
+              {
+                "id": "importo",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "totale_richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_pagamento_straordinari",
+              "condanna_indennita_ferie_non_godute",
+              "condanna_permessi_non_goduti",
+              "rivalutazione_interessi",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Ferie: irrinunciabili in costanza rapporto (CGUE Kreuziger 2018)",
+          "Straordinari: prova rigorosa delle ore (Cass. SU 17657/2023)",
+          "Maggiorazioni: verificare CCNL (orario notturno, festivo, ecc.)",
+          "Prescrizione in costanza rapporto: 5 anni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "buste_paga_periodo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "badge_o_registro_presenze",
+          "required": false,
+          "critico": true
+        },
+        {
+          "id": "calcolo_dettagliato_ore_e_importi",
+          "required": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        },
+        {
+          "termine": "Prescrizione post cessazione",
+          "anni": 5,
+          "norma": "art. 2948 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "220025",
+      "codice_logico": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARI_NON_RETRIBUITI_FERIE_E_RIPOSI_NON_GODUTI_220025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220025"
+        }
+      ]
+    }
+  ]
+}

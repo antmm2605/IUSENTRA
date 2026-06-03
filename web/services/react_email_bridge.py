@@ -142,7 +142,14 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
     attachments = summary.get("attachments") if isinstance(summary.get("attachments"), list) else []
     provisional = bool(summary.get("provisional"))
     source_email_id = _safe_text(summary.get("source_email_id"))
-    run_audit_href = "/api/pec/fetch?limit=50" if provisional else "/api/pec/workers/run"
+    mime_available = bool(summary.get("mime_available"))
+    run_audit_href = (
+        f"/api/pec/email/{quote(source_email_id, safe='')}/acquisisci"
+        if provisional and mime_available and source_email_id
+        else "/api/pec/fetch?limit=50"
+        if provisional
+        else "/api/pec/workers/run"
+    )
     return {
         "id": pec_id,
         "qualityStatus": str(summary.get("quality_status") or ""),
@@ -184,7 +191,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
             "runAudit": run_audit_href,
         },
         "persisted": not provisional,
-        "storageLabel": "MIME da acquisire automaticamente" if provisional else "MIME originale conservato",
+        "storageLabel": "MIME pronto da acquisire" if provisional and mime_available else "MIME da acquisire automaticamente" if provisional else "MIME originale conservato",
         "storageTone": "warning" if provisional else "success",
         "sourceEmailId": source_email_id,
     }
@@ -392,6 +399,7 @@ def _provisional_pec_audit_summary(email_obj: Any, *, include_telematic: bool = 
         "attachments": attachments,
         "provisional": True,
         "source_email_id": str(getattr(email_obj, "id", "") or ""),
+        "mime_available": bool(str(getattr(email_obj, "eml_file", "") or "").strip()),
     }
 
 
@@ -866,6 +874,7 @@ def build_react_email_payload(
             "sync": sync_href,
             "bulkAction": "/api/v1/ui/email/bulk-action" if include_telematic else "/api/v1/ui/email-ordinaria/bulk-action",
             "autoEsiti": auto_esiti_path if include_telematic else "",
+            "pecLocalAcquire": "/api/pec/email/acquisisci-locali?limit=250" if include_telematic else "",
             "operationalInbox": f"{base}/",
             "localPecTest": local_test_path,
             "legalNotice": "/notifiche-legali",

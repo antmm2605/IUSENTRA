@@ -518,10 +518,101 @@ def _deadline_repository_path(scadenziario_db_path: str) -> str:
     return str(Path(scadenziario_db_path).with_name("termini_processuali.json"))
 
 
+def _normalizza_chiave_template(value: Any) -> str:
+    return " ".join(str(value or "").strip().casefold().split())
+
+
+def _template_metadata(template: Mapping[str, Any]) -> Mapping[str, Any]:
+    metadata = template.get("metadata") if isinstance(template.get("metadata"), Mapping) else {}
+    return metadata
+
+
+def _calculator_template_dedupe_key(template: Mapping[str, Any]) -> tuple[Any, ...]:
+    metadata = _template_metadata(template)
+    return (
+        _normalizza_chiave_template(template.get("name")),
+        _normalizza_chiave_template(template.get("matter_type")),
+        int(template.get("base_value") or 0),
+        _normalizza_chiave_template(template.get("period_type")),
+        _normalizza_chiave_template(template.get("direction")),
+        bool(template.get("suspend_august")),
+        _normalizza_chiave_template(template.get("ferial_suspension_policy")),
+        bool(template.get("free_term")),
+        bool(template.get("urgent")),
+        bool(template.get("extend_saturday")),
+        bool(template.get("extend_holiday")),
+        _normalizza_chiave_template(template.get("reference_law")),
+        bool(template.get("cartabia_compliant", True)),
+        _normalizza_chiave_template(metadata.get("decorrenza") or metadata.get("source_event")),
+        _normalizza_chiave_template(metadata.get("natura")),
+    )
+
+
+def dedupe_calculator_templates(templates: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Riduce i duplicati di presentazione senza fondere regole diverse.
+
+    Le schede della Guida Pratica possono generare molti template con codici
+    interni differenti ma identica regola di calcolo. Nel calcolatore l'avvocato
+    deve vedere una sola voce per ogni termine realmente distinto.
+    """
+
+    unique: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for template in templates:
+        if not isinstance(template, Mapping):
+            continue
+        key = _calculator_template_dedupe_key(template)
+        if key not in unique:
+            unique[key] = dict(template)
+    return _calculator_templates_with_display_names(list(unique.values()))
+
+
+def _template_period_label(template: Mapping[str, Any]) -> str:
+    unit = "mesi" if str(template.get("period_type") or "").strip() == "months" else "giorni"
+    value = int(template.get("base_value") or 0)
+    direction = "a ritroso" if str(template.get("direction") or "").strip() == "backward" else "in avanti"
+    return f"{value} {unit} {direction}"
+
+
+def _calculator_templates_with_display_names(templates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    name_counts: dict[str, int] = {}
+    for template in templates:
+        name = _normalizza_chiave_template(template.get("name"))
+        name_counts[name] = name_counts.get(name, 0) + 1
+
+    labelled: list[tuple[dict[str, Any], str]] = []
+    label_counts: dict[str, int] = {}
+    for template in templates:
+        name = str(template.get("name") or "Termine processuale").strip() or "Termine processuale"
+        label = name
+        if name_counts.get(_normalizza_chiave_template(name), 0) > 1:
+            metadata = _template_metadata(template)
+            detail_parts = [
+                _template_period_label(template),
+                str(template.get("reference_law") or "").strip(),
+                str(metadata.get("denominazione_guida") or metadata.get("codice_guida") or "").strip(),
+            ]
+            details = " - ".join(part for part in detail_parts if part)
+            label = f"{name} - {details}" if details else name
+        labelled.append((template, label))
+        label_counts[label] = label_counts.get(label, 0) + 1
+
+    out: list[dict[str, Any]] = []
+    for template, label in labelled:
+        if label_counts.get(label, 0) > 1:
+            metadata = _template_metadata(template)
+            suffix = str(metadata.get("codice_guida") or template.get("code") or "").strip()
+            if suffix:
+                label = f"{label} - {suffix}"
+        enriched = dict(template)
+        enriched["displayName"] = label
+        out.append(enriched)
+    return out
+
+
 def _templates_for_guide(templates: list[dict[str, Any]], codice_guida: str) -> list[dict[str, Any]]:
     code = str(codice_guida or "").strip()
     if not code:
-        return templates
+        return dedupe_calculator_templates(templates)
     matched: list[dict[str, Any]] = []
     for template in templates:
         metadata = template.get("metadata") if isinstance(template.get("metadata"), dict) else {}
@@ -530,7 +621,7 @@ def _templates_for_guide(templates: list[dict[str, Any]], codice_guida: str) -> 
             continue
         if str(metadata.get("codice_originale_guida") or "").strip() == code:
             matched.append(template)
-    return matched or templates
+    return dedupe_calculator_templates(matched or templates)
 
 
 def build_react_scadenziario_payload(

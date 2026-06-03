@@ -1,0 +1,44 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (10).zip::kb_set15_parte3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set15_parte3.json",
+  "sha256": "5786449BD04B1659B9092301C6165F2E615C63F16AF821E6F0F824B5C54C7C6B",
+  "changed": false,
+  "macro_area_id": "TOP18_SET15_PARTE3",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 3 di 4",
+  "codici_materia_originali": [
+    "411001",
+    "143025",
+    "220035",
+    "155005"
+  ],
+  "codici_materia_integrati": [
+    "411001",
+    "GUIDA_RISOLUZIONE_CONTRATTO_DI_MUTUO_PER_INADEMPIMENTO_E_RECUPERO_DEL_CAPITALE_143025",
+    "GUIDA_ACCERTAMENTO_DEL_RAPPORTO_DI_LAVORO_SUBORDINATO_FALSO_AUTONOMO_COLLABORA_220035",
+    "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_SOCIET_DI_PERSONE_ARTT_2272_2312_C_C_155005"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "143025",
+      "codice_integrato": "GUIDA_RISOLUZIONE_CONTRATTO_DI_MUTUO_PER_INADEMPIMENTO_E_RECUPERO_DEL_CAPITALE_143025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220035",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_DEL_RAPPORTO_DI_LAVORO_SUBORDINATO_FALSO_AUTONOMO_COLLABORA_220035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155005",
+      "codice_integrato": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_SOCIET_DI_PERSONE_ARTT_2272_2312_C_C_155005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "411001"
+  ],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,1074 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP18_SET15_PARTE4",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 4 di 4",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_FUSIONE_E_SCISSIONE_SOCIETARIA_IMPUGNAZIONE_DELIBERA_E_RESPONSABILIT_ART_150040",
+      "denominazione": "Fusione e scissione societaria: impugnazione delibera e responsabilità (artt. 2501-2505 c.c.)",
+      "categoria": "Diritto societario – operazioni straordinarie",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2501",
+          "descrizione": "Fusione – nozione e tipi (per incorporazione o propria)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2501-ter",
+          "descrizione": "Progetto di fusione – contenuto obbligatorio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2501-quater",
+          "descrizione": "Situazione patrimoniale per la fusione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2501-quinquies",
+          "descrizione": "Relazione degli amministratori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2501-sexies",
+          "descrizione": "Relazione degli esperti sul rapporto di cambio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2502",
+          "descrizione": "Decisione di fusione – quorum deliberativi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2502-bis",
+          "descrizione": "Opposizione dei creditori – 60 giorni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2504",
+          "descrizione": "Atto di fusione – effetti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2504-quater",
+          "descrizione": "Invalidità della fusione – limiti (NO nullità post-iscrizione)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2506-2506-quater",
+          "descrizione": "Scissione – disciplina"
+        },
+        {
+          "fonte": "Cass. SU 25021/2020",
+          "descrizione": "Impugnazione fusione – post iscrizione solo risarcimento"
+        },
+        {
+          "fonte": "Cass. SU 11526/2022",
+          "descrizione": "Rapporto di cambio – contestazione e rimedi"
+        }
+      ],
+      "peculiarita_invalidita_fusione_2504_quater": {
+        "regola": "POST-ISCRIZIONE dell'atto di fusione: NON si può chiedere la nullità della fusione – si può solo il RISARCIMENTO del danno",
+        "pre_iscrizione": "Prima dell'iscrizione: impugnazione della delibera di fusione possibile"
+      },
+      "opposizione_creditori_2502_bis": {
+        "chi": "Creditori anteriori alla fusione",
+        "termine": "60 GIORNI dalla pubblicazione nel Registro Imprese",
+        "effetto": "Sospende l'efficacia della fusione finché l'opposizione è definita"
+      },
+      "contestazione_rapporto_di_cambio": {
+        "when": "Soci di minoranza che ritengono il rapporto di cambio iniquo",
+        "rimedio_Cass_SU_11526_2022": "Non si chiede l'invalidità della fusione ma il CONGUAGLIO in denaro"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare se la fusione è già iscritta al RI (se sì: solo risarcimento)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Se pre-iscrizione: impugnare la delibera per vizi procedurali"
+        },
+        {
+          "step": 3,
+          "descrizione": "Perizia indipendente sul rapporto di cambio per la contestazione"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per creditori: verifica entro 60 gg dalla pubblicazione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_fusione_scissione_societa",
+        "denominazione": "Atto di citazione per impugnazione delibera fusione/scissione o risarcimento danni",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "socio_di_minoranza",
+                  "creditore_anteriore",
+                  "terzo_leso"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "societa_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "operazione_contestata",
+            "type": "select",
+            "required": true,
+            "options": [
+              "fusione_per_incorporazione",
+              "fusione_propria",
+              "scissione"
+            ]
+          },
+          {
+            "id": "stato_operazione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "deliberata_ma_non_iscritta",
+              "iscritta_nel_RI"
+            ]
+          },
+          {
+            "id": "vizi_contestati",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "vizi_procedurali_delibera",
+              "rapporto_cambio_iniquo",
+              "situazione_patrimoniale_errata",
+              "mancata_relazione_esperti",
+              "violazione_diritti_creditori"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_delibera_se_pre_iscrizione",
+              "risarcimento_danni_se_post_iscrizione",
+              "conguaglio_rapporto_cambio",
+              "opposizione_creditori_2502_bis",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "POST-ISCRIZIONE: IMPOSSIBILE chiedere nullità – solo risarcimento (art. 2504-quater)",
+          "Opposizione creditori: TERMINE 60 GG dalla pubblicazione nel RI",
+          "Rapporto di cambio iniquo: conguaglio in denaro, non invalidità"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "progetto_fusione_o_scissione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "delibere_assembleari",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_rapporto_cambio_di_parte",
+          "required_if": "contestazione_rapporto_cambio"
+        },
+        {
+          "id": "visura_RI_con_iscrizione",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Opposizione creditori",
+          "giorni": 60,
+          "decorrenza": "pubblicazione RI",
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120
+        }
+      ],
+      "codice_originale_ricevuto": "150040",
+      "codice_logico": "GUIDA_FUSIONE_E_SCISSIONE_SOCIETARIA_IMPUGNAZIONE_DELIBERA_E_RESPONSABILIT_ART_150040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_OPPOSIZIONE_A_CARTELLA_DI_PAGAMENTO_INTIMAZIONE_DI_PAGAMENTO_AGENZIA_ENT_512005",
+      "denominazione": "Opposizione a cartella di pagamento / intimazione di pagamento Agenzia Entrate Riscossione",
+      "categoria": "Diritto tributario – riscossione coattiva",
+      "rito": "Rito TRIBUTARIO davanti alla CORTE DI GIUSTIZIA TRIBUTARIA per crediti fiscali; rito ordinario (GdP/Tribunale) per crediti non fiscali",
+      "competenza": "CORTE DI GIUSTIZIA TRIBUTARIA I° GRADO – luogo sede contribuente (per crediti fiscali); GdP o Tribunale per crediti previdenziali/extrafiscali",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.P.R. 602/1973",
+          "articolo": "26-49",
+          "descrizione": "Riscossione coattiva delle imposte – cartella di pagamento"
+        },
+        {
+          "fonte": "D.P.R. 602/1973",
+          "articolo": "57",
+          "descrizione": "Opposizione all'esecuzione – rinvio al c.p.c."
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "19",
+          "descrizione": "Atti impugnabili davanti alla CGT – cartella di pagamento"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "21",
+          "descrizione": "TERMINE di impugnazione – 60 GIORNI dalla notifica"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "47",
+          "descrizione": "Sospensione dell'atto impugnato"
+        },
+        {
+          "fonte": "D.Lgs. 219/2023 (riforma fiscale)",
+          "descrizione": "Riforma del contenzioso tributario"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "615-617",
+          "descrizione": "Opposizione all'esecuzione e agli atti esecutivi (per crediti non fiscali)"
+        },
+        {
+          "fonte": "Cass. SU 7822/2022",
+          "descrizione": "Cartella di pagamento – vizi di notifica e decadenza"
+        },
+        {
+          "fonte": "Cass. SU 15869/2023",
+          "descrizione": "Pignoramento su cartella prescritta – opposizione ammissibile"
+        }
+      ],
+      "distinzione_crediti_fiscali_vs_non_fiscali": {
+        "crediti_fiscali_CGT": [
+          "Imposte dirette (IRPEF, IRES, IRAP)",
+          "IVA",
+          "Imposte locali (IMU, TARI)",
+          "Tributi doganali"
+        ],
+        "crediti_non_fiscali_rito_ordinario": [
+          "Contributi INPS e INAIL",
+          "Sanzioni amministrative diverse",
+          "Crediti dell'INAIL non assicurativi"
+        ]
+      },
+      "motivi_tipici_di_opposizione": [
+        "Omessa o irregolare NOTIFICA della cartella (vizi di notifica)",
+        "PRESCRIZIONE del credito (5 anni per imposte annuali; 10 anni per altre)",
+        "DECADENZA dell'iscrizione a ruolo (entro i termini di legge)",
+        "Pagamento già avvenuto non considerato",
+        "ERRORE MATERIALE nell'importo",
+        "Credito già oggetto di definizione agevolata o condono",
+        "Omessa motivazione",
+        "Vizi dell'atto presupposto non impugnato separatamente"
+      ],
+      "richiesta_sospensione_47_D_Lgs_546": {
+        "importanza": "CRITICA per bloccare il pignoramento nelle more del giudizio",
+        "presupposti": "Fumus + periculum (danno grave e irreparabile)",
+        "forma": "Istanza contestuale al ricorso + trattazione urgente"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Reclamo/mediazione obbligatoria ex art. 17-bis D.Lgs. 546/1992 per valore fino a €50.000"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICARE il termine di 60 GG dalla notifica – CRITICO"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare il tipo di credito (fiscale → CGT; previdenziale → rito ordinario)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Analizzare i motivi di opposizione (prescrizione, notifica, pagamento, ecc.)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare se richiedere la sospensione dell'atto (per bloccare l'esecuzione)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_cartella_pagamento_CGT",
+        "denominazione": "Ricorso alla CGT per opposizione a cartella di pagamento ex art. 19 D.Lgs. 546/1992",
+        "campi_chiave": [
+          {
+            "id": "CGT_competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "contribuente_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "AER_agenzia_entrate_riscossione_resistente",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "ente_impositore",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "agenzia_entrate",
+                  "INPS",
+                  "INAIL",
+                  "comune",
+                  "regione",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cartella_impugnata",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "numero_cartella",
+                "type": "string"
+              },
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "required": true,
+                "critico_per_60_gg": true
+              },
+              {
+                "id": "importo_totale",
+                "type": "currency"
+              },
+              {
+                "id": "tipo_tributo_o_credito",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "rispetto_termine_60_gg",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "motivi_opposizione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "vizi_notifica_cartella",
+              "prescrizione_credito",
+              "decadenza_iscrizione_ruolo",
+              "pagamento_pregresso",
+              "errore_importo",
+              "definizione_agevolata_o_condono",
+              "omessa_motivazione",
+              "vizio_atto_presupposto"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "richiesta_sospensione_atto_47",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "sospensione_atto_impugnato_47",
+              "annullamento_cartella",
+              "riduzione_importo",
+              "dichiarazione_prescrizione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 60 GG dalla notifica – DECADENZIALE",
+          "Per crediti fiscali: Corte di Giustizia Tributaria (non Tribunale ordinario)",
+          "Per crediti INPS/INAIL: GdP o Tribunale ordinario",
+          "Reclamo/mediazione obbligatoria per valori ≤ €50.000 (art. 17-bis D.Lgs. 546/1992)",
+          "Sospensione: richiedere contestualmente al ricorso per bloccare l'esecuzione",
+          "Prescrizione tributi periodici: 5 anni (non 10)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "cartella_pagamento_e_relata_notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_motivi_opposizione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_prove_pagamento_o_condono",
+          "required_if": "pagamento_o_condono"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore – tariffe CGT speciali",
+        "marca_bollo": "€ 27,00"
+      },
+      "termini_processuali": [
+        {
+          "termine": "RICORSO ALLA CGT",
+          "giorni": 60,
+          "decorrenza": "notifica cartella",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "512005",
+      "codice_logico": "GUIDA_OPPOSIZIONE_A_CARTELLA_DI_PAGAMENTO_INTIMAZIONE_DI_PAGAMENTO_AGENZIA_ENT_512005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512005"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DICHIARAZIONE_GIUDIZIALE_DI_PATERNIT_MATERNIT_FUORI_MATRIMONIO_ART_269_C_120040",
+      "denominazione": "Dichiarazione giudiziale di paternità/maternità fuori matrimonio (art. 269 c.c.)",
+      "categoria": "Persone e famiglia – filiazione",
+      "rito": "Rito unificato persone e famiglia ex 473-bis c.p.c. (Cartabia)",
+      "competenza": "Tribunale sezione famiglia – residenza abituale del minore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "269",
+          "descrizione": "Dichiarazione giudiziale di paternità o maternità – azione imprescrittibile per il figlio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "270",
+          "descrizione": "Legittimazione ad agire – figlio, discendenti, rappresentante legale del figlio minore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "271",
+          "descrizione": "Prove ammissibili – qualsiasi mezzo incluso DNA"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "273",
+          "descrizione": "Efficacia della sentenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "276",
+          "descrizione": "Effetti retroattivi del riconoscimento giudiziale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "277-279",
+          "descrizione": "Alimenti e mantenimento durante il giudizio"
+        },
+        {
+          "fonte": "L. 219/2012 (riforma filiazione)",
+          "descrizione": "Unicità dello stato di figlio"
+        },
+        {
+          "fonte": "D.Lgs. 154/2013",
+          "descrizione": "Attuazione riforma filiazione"
+        },
+        {
+          "fonte": "Cass. SU 6478/2024",
+          "descrizione": "Prova della paternità – anche presuntiva + DNA"
+        },
+        {
+          "fonte": "Cass. SU 21161/2013",
+          "descrizione": "Rifiuto esame DNA – argomento di prova decisivo"
+        }
+      ],
+      "elementi_fondamentali": {
+        "azione_imprescrittibile_per_il_figlio": "L'azione ex art. 269 è imprescrittibile per il figlio (art. 270 c.c.)",
+        "prova_bilogica_DNA_centrale": "Il test del DNA è lo strumento probatorio principale",
+        "rifiuto_DNA_Cass_SU_21161_2013": "Il rifiuto di sottoporsi al test può essere valutato come argomento di prova decisivo dal giudice",
+        "prova_presuntiva_ammessa_Cass_SU_6478_2024": "In assenza di DNA, ammessa la prova per presunzioni gravi, precise e concordanti"
+      },
+      "effetti_della_dichiarazione_276": [
+        "Il figlio acquista lo stato di figlio del genitore",
+        "Effetti RETROATTIVI dalla nascita",
+        "Diritto al mantenimento retroattivo",
+        "Diritti successori retroattivi",
+        "Acquisizione del cognome"
+      ],
+      "misure_provvisorie_durante_il_giudizio_277": {
+        "alimenti_provvisori": "Il figlio può chiedere alimenti durante il giudizio",
+        "mantenimento_provvisorio": "Determinato dal giudice in via d'urgenza"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Raccogliere elementi che provano la relazione tra la madre e il presunto padre (corrispondenza, testimonianze, fotografie del periodo del concepimento)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Richiedere il test DNA (in giudizio o su base volontaria se disponibile)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare il mantenimento retroattivo dovuto"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare istanza di alimenti provvisori durante il giudizio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_dichiarazione_giudiziale_paternita_269",
+        "denominazione": "Ricorso per dichiarazione giudiziale di paternità ex art. 269 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "figlio_o_madre_o_rappresentante_ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "figlio_maggiorenne",
+                  "madre_per_figlio_minore",
+                  "tutore_o_curatore_speciale"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "presunto_padre_o_madre_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "figlio_di_cui_si_chiede_riconoscimento",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "stato_civile_attuale",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "elementi_probatori",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "test_DNA_disponibile",
+                "type": "boolean"
+              },
+              {
+                "id": "test_DNA_da_richiedere_in_causa",
+                "type": "boolean"
+              },
+              {
+                "id": "prove_relazione_genitori_periodo_concepimento",
+                "type": "textarea"
+              },
+              {
+                "id": "testimonianze",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_alimenti_provvisori_277",
+            "type": "boolean"
+          },
+          {
+            "id": "mantenimento_retroattivo_richiesto",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "dal_periodo",
+                "type": "string"
+              },
+              {
+                "id": "importo_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_giudiziale_paternita_o_maternita",
+              "alimenti_provvisori_277",
+              "mantenimento_retroattivo",
+              "acquisizione_cognome_genitore",
+              "annotazione_atti_stato_civile",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Azione IMPRESCRITTIBILE per il figlio (art. 270 c.c.)",
+          "Test DNA: strumento principale – rifiuto è argomento di prova (Cass. SU 21161/2013)",
+          "Prova presuntiva ammessa in assenza di DNA (Cass. SU 6478/2024)",
+          "Effetti retroattivi dalla nascita inclusi diritti successori",
+          "Parere PM obbligatorio",
+          "Curatore speciale per il minore se conflitto con la madre"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_nascita_figlio",
+          "required": true
+        },
+        {
+          "id": "documentazione_relazione_periodo_concepimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "test_DNA_se_disponibile",
+          "required": false,
+          "critico_se_presente": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente (azione di stato)",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "IMPRESCRITTIBILE per il figlio",
+          "natura": "imprescrittibile"
+        },
+        {
+          "termine": "Per gli eredi: 2 anni dalla morte del figlio"
+        }
+      ],
+      "codice_originale_ricevuto": "120040",
+      "codice_logico": "GUIDA_DICHIARAZIONE_GIUDIZIALE_DI_PATERNIT_MATERNIT_FUORI_MATRIMONIO_ART_269_C_120040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AZIONE_DI_REGOLAMENTO_DI_CONFINI_IMMOBILIARI_COMPLEMENTO_E_PROCEDURE_ACC_130020",
+      "denominazione": "Azione di regolamento di confini immobiliari – complemento e procedure accessorie (art. 950 c.c.)",
+      "denominazione_estesa": "Azione petitoria di regolamento di confini con misure accessorie (apposizione termini, CTU topografica, trascrizione)",
+      "categoria": "Diritti reali – confini e vicinato",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo immobile – foro esclusivo (art. 21 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "950",
+          "descrizione": "Azione di regolamento di confini – ciascun proprietario può chiederlo; in assenza di prove: metà per parte"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "951",
+          "descrizione": "Apposizione di termini – obbligo di apporre a proprie spese"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2643",
+          "descrizione": "Trascrizione della sentenza che accerta il confine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1159",
+          "descrizione": "Usucapione abbreviata – rilevante per strisce contese"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "118",
+          "descrizione": "Ispezione dei luoghi – disposta frequentemente"
+        },
+        {
+          "fonte": "Cass. SU 14594/2021",
+          "descrizione": "Regolamento confini – natura petitoria + onere probatorio"
+        },
+        {
+          "fonte": "Cass. SU 9392/2019",
+          "descrizione": "Catasto: solo indizio, non prova piena del confine"
+        },
+        {
+          "fonte": "Cass. SU 16612/2023",
+          "descrizione": "Catena dei titoli vs stato dei luoghi – criteri di prevalenza"
+        }
+      ],
+      "differenza_da_130060": {
+        "130060_gia_coperto": "Set11 – copre la fattispecie base del regolamento di confini",
+        "130020_questo_codice": "Approfondisce le PROCEDURE ACCESSORIE: CTU topografica dettagliata, apposizione termini ex art. 951, trascrizione della sentenza, coordinamento con eventuali accordi stragiudiziali"
+      },
+      "CTU_topografica_come_strumento_centrale": {
+        "ruolo": "Il CTU topografico effettua il rilievo sul campo e ricostruisce il confine secondo i titoli e lo stato dei luoghi",
+        "quesiti_tipici": [
+          "Determinare il confine catastale tra i fondi",
+          "Rilevare lo stato attuale dei luoghi",
+          "Confrontare confine catastale con confine risultante dai titoli",
+          "Indicare l'estensione della striscia contesa"
+        ]
+      },
+      "apposizione_termini_951": {
+        "quando": "Dopo la determinazione del confine (in via consensuale o per sentenza)",
+        "a_spese_di_chi": "A spese di entrambi in parti eguali (salvo diverso accordo)",
+        "tipologie_termini": "Cippi, pali, muretti, recinzioni"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Commissione di un rilievo topografico di parte (geom./ing.) PRIMA del giudizio"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccolta di tutti i titoli di proprietà e mappe catastali storiche"
+        },
+        {
+          "step": 3,
+          "descrizione": "Tentativo di accordo stragiudiziale con il vicino sulla base del rilievo"
+        },
+        {
+          "step": 4,
+          "descrizione": "Se nessun accordo: mediazione obbligatoria poi ricorso"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_regolamento_confini_950_completo",
+        "denominazione": "Atto di citazione per regolamento di confini ex art. 950 c.c. + apposizione termini 951",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_proprietario",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_proprietario_confinante",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondi_in_questione",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "fondo_attore",
+                "type": "object_immobile"
+              },
+              {
+                "id": "fondo_convenuto",
+                "type": "object_immobile"
+              }
+            ]
+          },
+          {
+            "id": "incertezza_o_contestazione_confine",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "rilievo_topografico_di_parte",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "titoli_disponibili_e_loro_concordanza",
+            "type": "select",
+            "options": [
+              "titoli_concordanti",
+              "titoli_discordanti",
+              "titoli_assenti_prova_per_possesso"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "determinazione_linea_confine",
+              "ordine_apposizione_termini_951",
+              "trascrizione_sentenza_2643",
+              "rimozione_opere_oltre_confine",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Catasto: solo indizio – non prova piena (Cass. SU 9392/2019)",
+          "Divisione a metà se nessuna prova prevalente (art. 950 c.2)",
+          "Mediazione obbligatoria preventiva",
+          "CTU topografica quasi sempre necessaria",
+          "Trascrizione sentenza per opponibilità ai terzi"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titoli_proprieta_entrambi_fondi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_e_mappe",
+          "required": true
+        },
+        {
+          "id": "rilievo_topografico_di_parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "IMPRESCRITTIBILE finché persiste incertezza"
+        },
+        {
+          "termine": "Mediazione max",
+          "giorni": 90
+        }
+      ],
+      "codice_originale_ricevuto": "130020",
+      "codice_logico": "GUIDA_AZIONE_DI_REGOLAMENTO_DI_CONFINI_IMMOBILIARI_COMPLEMENTO_E_PROCEDURE_ACC_130020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130020"
+        }
+      ]
+    }
+  ]
+}

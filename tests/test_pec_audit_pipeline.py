@@ -265,6 +265,91 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert digest.get_json()["data"]["new_messages"] == 5
 
 
+def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch):
+    from email.message import EmailMessage
+
+    from pct.email_client import CartellaEmail
+    from web.blueprints.pec_pipeline_api import pec_pipeline_api
+
+    paths = {
+        "EMAIL_CASELLA_DB": tmp_path / "email" / "casella.json",
+        "PEC_AUDIT_DB": tmp_path / "email" / "pec_audit.sqlite",
+        "CLIENTI_DB": tmp_path / "clienti" / "anagrafica.json",
+        "FASCICOLI_DB": tmp_path / "fascicoli" / "fascicoli.json",
+        "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
+        "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
+        "AGENDA_DB": tmp_path / "agenda" / "appuntamenti.json",
+    }
+
+    def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
+        value = paths.get(key)
+        if not value:
+            raise AssertionError(f"Path tenant non atteso: {key}")
+        value.parent.mkdir(parents=True, exist_ok=True)
+        return str(value)
+
+    msg = EmailMessage()
+    msg["From"] = "posta-certificata@legalmail.it"
+    msg["To"] = "studio@example.pec.it"
+    msg["Subject"] = "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026"
+    msg["Message-ID"] = "<legacy-pec-98-2026@example.test>"
+    msg.set_content("Messaggio di posta certificata. ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026.")
+    msg.add_attachment(b"<EsitoAtto><Stato>ACCETTATO</Stato></EsitoAtto>", maintype="application", subtype="xml", filename="EsitoAtto.xml")
+    msg.add_attachment(b"<daticert><msgid>legacy-pec-98</msgid></daticert>", maintype="application", subtype="xml", filename="daticert.xml")
+    raw_mime = msg.as_bytes()
+
+    gestore = GestioneEmailRicevute(str(paths["EMAIL_CASELLA_DB"]))
+    eml_info = gestore._salva_eml_originale("MAIL-LEGACY-PEC", raw_mime)
+    gestore.aggiungi(
+        EmailRicevuta(
+            id="MAIL-LEGACY-PEC",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="Per conto di: tribunale.palmi@civile.ptel.giustiziacert.it",
+            destinatari="studio@example.pec.it",
+            oggetto="POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026",
+            corpo_testo="Messaggio di posta certificata. ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026.",
+            allegati=[
+                {"nome": "EsitoAtto.xml", "mime": "application/xml", "size": 49},
+                {"nome": "daticert.xml", "mime": "application/xml", "size": 48},
+            ],
+            eml_file=eml_info["eml_file"],
+            eml_sha256=eml_info["eml_sha256"],
+        )
+    )
+
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.register_blueprint(pec_pipeline_api, url_prefix="/api/pec")
+    monkeypatch.setattr("web.blueprints.pec_pipeline_api.tenant_data_path", fake_tenant_data_path)
+
+    @app.before_request
+    def _inject_user():
+        g.utente_corrente = _User()
+        g.tenant_slug = "default"
+        g.data_paths = {"PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"])}
+
+    client = app.test_client()
+    single = client.post("/api/pec/email/MAIL-LEGACY-PEC/acquisisci")
+    assert single.status_code == 200
+    single_payload = single.get_json()
+    assert single_payload["ok"] is True
+    assert single_payload["pec_message_id"]
+
+    repo = PecAuditRepository(paths["PEC_AUDIT_DB"], tenant_id="default")
+    rows = repo.list_messages(limit=20)
+    assert len(rows) == 1
+    assert rows[0]["validation_report"]["event_type"] == "pct_deposito"
+
+    massivo = client.post("/api/pec/email/acquisisci-locali?limit=20")
+    assert massivo.status_code == 200
+    massivo_payload = massivo.get_json()
+    assert massivo_payload["ok"] is True
+    assert massivo_payload["acquired"] == 1
+    assert massivo_payload["duplicates"] == 1
+    assert "Presidio PEC eseguito" in massivo_payload["messaggio"]
+
+
 def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     from web.services.react_email_bridge import build_react_email_payload
 
@@ -332,3 +417,44 @@ def test_react_email_bridge_exposes_provisional_audit_for_legacy_pec(tmp_path):
     assert detail is not None
     assert detail["pecAudit"]["persisted"] is False
     assert detail["pecAudit"]["quickActions"]["runAudit"] == "/api/pec/fetch?limit=50"
+
+
+def test_react_email_bridge_provisional_pec_usa_mime_locale_quando_presente(tmp_path):
+    from email.message import EmailMessage
+
+    from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
+
+    email_db = tmp_path / "email" / "casella.json"
+    gestore = GestioneEmailRicevute(str(email_db))
+    msg = EmailMessage()
+    msg["From"] = "posta-certificata@legalmail.it"
+    msg["To"] = "studio@example.pec.it"
+    msg["Subject"] = "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026"
+    msg.set_content("Messaggio di posta certificata. ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026.")
+    raw_mime = msg.as_bytes()
+    eml_info = gestore._salva_eml_originale("MAIL-GDP-EML", raw_mime)
+    gestore.aggiungi(
+        EmailRicevuta(
+            id="MAIL-GDP-EML",
+            cartella="INBOX",
+            stato=StatoEmail.NON_LETTA,
+            mittente="Per conto di: tribunale.palmi@civile.ptel.giustiziacert.it",
+            destinatari="studio@example.pec.it",
+            oggetto="POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026",
+            corpo_testo="Messaggio di posta certificata. ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026.",
+            allegati=[{"nome": "daticert.xml", "mime": "application/xml", "size": 928}],
+            eml_file=eml_info["eml_file"],
+            eml_sha256=eml_info["eml_sha256"],
+        )
+    )
+
+    payload = build_react_email_payload(db_path=str(email_db), tenant_id="default")
+    assert payload["actions"]["pecLocalAcquire"] == "/api/pec/email/acquisisci-locali?limit=250"
+    audit = payload["items"][0]["pecAudit"]
+    assert audit["persisted"] is False
+    assert audit["storageLabel"] == "MIME pronto da acquisire"
+    assert audit["quickActions"]["runAudit"] == "/api/pec/email/MAIL-GDP-EML/acquisisci"
+
+    detail = build_react_email_detail_payload(db_path=str(email_db), id_email="MAIL-GDP-EML", tenant_id="default")
+    assert detail is not None
+    assert detail["pecAudit"]["quickActions"]["runAudit"] == "/api/pec/email/MAIL-GDP-EML/acquisisci"

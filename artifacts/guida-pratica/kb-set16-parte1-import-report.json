@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (11).zip::kb_set16_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set16_p1.json",
+  "sha256": "E5B6A51CAAA3FEF2120DBFAA489F2B751F4ED836F698EEA22369731F4426F9C4",
+  "changed": false,
+  "macro_area_id": "SET16_PARTE1",
+  "denominazione": "Sedicesimo set - 18 nuovi codici - PARTE 1 di 4",
+  "codici_materia_originali": [
+    "180020",
+    "111040",
+    "140025",
+    "190010",
+    "220090"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_CLASSE_ART_840_BIS_C_P_C_E_AZIONE_INIBITORIA_COLLETTIVA_180020",
+    "GUIDA_SEPARAZIONE_CONSENSUALE_E_OMOLOGAZIONE_ART_158_C_C_473_BIS_51_C_P_C_111040",
+    "GUIDA_RESCISSIONE_DEL_CONTRATTO_PER_LESIONE_ULTRA_DIMIDIUM_ART_1448_C_C_140025",
+    "GUIDA_SEQUESTRO_CONSERVATIVO_ANTE_CAUSAM_E_IN_CORSO_DI_CAUSA_ART_671_C_P_C_190010",
+    "GUIDA_INFORTUNIO_SUL_LAVORO_E_MALATTIA_PROFESSIONALE_AZIONE_CIVILE_DEL_LAVORAT_220090"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "180020",
+      "codice_integrato": "GUIDA_AZIONE_DI_CLASSE_ART_840_BIS_C_P_C_E_AZIONE_INIBITORIA_COLLETTIVA_180020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "111040",
+      "codice_integrato": "GUIDA_SEPARAZIONE_CONSENSUALE_E_OMOLOGAZIONE_ART_158_C_C_473_BIS_51_C_P_C_111040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140025",
+      "codice_integrato": "GUIDA_RESCISSIONE_DEL_CONTRATTO_PER_LESIONE_ULTRA_DIMIDIUM_ART_1448_C_C_140025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190010",
+      "codice_integrato": "GUIDA_SEQUESTRO_CONSERVATIVO_ANTE_CAUSAM_E_IN_CORSO_DI_CAUSA_ART_671_C_P_C_190010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220090",
+      "codice_integrato": "GUIDA_INFORTUNIO_SUL_LAVORO_E_MALATTIA_PROFESSIONALE_AZIONE_CIVILE_DEL_LAVORAT_220090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 7
+}

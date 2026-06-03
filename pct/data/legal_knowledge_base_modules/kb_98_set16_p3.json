@@ -1,0 +1,1079 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET16_PARTE3",
+  "denominazione": "Sedicesimo set - 18 nuovi codici - PARTE 3 di 4",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_IMPUGNAZIONE_DELIBERA_ASSEMBLEARE_DI_S_P_A_NULLIT_E_ANNULLABILIT_ARTT_23_150060",
+      "denominazione": "Impugnazione delibera assembleare di S.p.A. – nullità e annullabilità (artt. 2377-2379 c.c.)",
+      "categoria": "Diritto societario – S.p.A. – assemblea",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2377",
+          "descrizione": "Annullabilità delle delibere – vizi di procedura, contenuto o conflitto di interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2378",
+          "descrizione": "Procedimento di impugnazione – termine 90 giorni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2379",
+          "descrizione": "Nullità – delibere con oggetto impossibile o illecito, mancata convocazione, assenza di verbale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2379-bis",
+          "descrizione": "Sanatoria della nullità – in alcuni casi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2379-ter",
+          "descrizione": "Impugnazione delibere di società quotate"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2373",
+          "descrizione": "Conflitto di interessi del socio – rilevanza per annullamento"
+        },
+        {
+          "fonte": "Cass. SU 6361/2017",
+          "descrizione": "Delibera nulla vs annullabile – distinzione rigorosa"
+        },
+        {
+          "fonte": "Cass. SU 13443/2021",
+          "descrizione": "Nullità assoluta – imprescrittibile; annullabilità – 90 giorni"
+        },
+        {
+          "fonte": "Cass. SU 21564/2023",
+          "descrizione": "Delibera con oggetto illecito – nullità insanabile"
+        }
+      ],
+      "distinzione_nullita_vs_annullabilita": {
+        "nullita_2379": {
+          "cause": [
+            "Oggetto impossibile o illecito",
+            "Mancata convocazione dell'assemblea (salvo partecipazione universale)",
+            "Mancanza del verbale"
+          ],
+          "regime": "IMPRESCRITTIBILE – può essere fatta valere da chiunque abbia interesse",
+          "sanatoria": "Molto limitata (art. 2379-bis)"
+        },
+        "annullabilita_2377": {
+          "cause": [
+            "Violazione di legge o dello statuto",
+            "Vizi procedurali (convocazione irregolare, quorum non raggiunto)",
+            "Conflitto di interessi del socio votante (art. 2373)"
+          ],
+          "regime": "TERMINE 90 GIORNI dall'iscrizione nel registro delle imprese o dalla trascrizione nel libro delle adunanze",
+          "legittimati": "Soci assenti, dissenzienti o astenuti + amministratori + sindaci"
+        }
+      },
+      "sospensione_cautelare_della_delibera": {
+        "chi": "Il tribunale su istanza dell'impugnante",
+        "quando": "Fumus + periculum – rischio di danno grave e irreparabile dall'esecuzione della delibera",
+        "forma": "Istanza cautelare contestuale all'impugnazione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Qualificazione del vizio: nullità (imprescrittibile) o annullabilità (90 gg)"
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICARE il termine di 90 gg se si tratta di annullabilità – CRITICO"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentare il vizio (verbale assemblea, convocazione, votazioni)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare istanza cautelare di sospensione della delibera"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_impugnazione_delibera_spa",
+        "denominazione": "Atto di citazione per impugnazione delibera assembleare S.p.A. ex artt. 2377-2379 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "socio_assente",
+                  "socio_dissenziente",
+                  "socio_astenuto",
+                  "amministratore",
+                  "sindaco"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "societa_spa_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "delibera_impugnata",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_assemblea",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_iscrizione_RI_o_verbale",
+                "type": "date",
+                "critico_per_90_gg": true
+              },
+              {
+                "id": "oggetto_delibera",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "tipo_vizio",
+            "type": "select",
+            "required": true,
+            "options": [
+              "nullita_2379",
+              "annullabilita_2377"
+            ]
+          },
+          {
+            "id": "causa_specifica_vizio",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "oggetto_impossibile_o_illecito",
+              "mancata_convocazione",
+              "mancanza_verbale",
+              "violazione_legge_o_statuto",
+              "quorum_non_raggiunto",
+              "convocazione_irregolare",
+              "conflitto_interessi_socio_2373"
+            ]
+          },
+          {
+            "id": "rispetto_termine_90_gg_se_annullabile",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "richiesta_sospensiva_cautelare",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_nullita_2379",
+              "annullamento_delibera_2377",
+              "sospensione_cautelare_delibera",
+              "risarcimento_danni",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "ANNULLABILITÀ: termine DECADENZIALE 90 GG dall'iscrizione RI o dalla trascrizione nel libro verbali",
+          "NULLITÀ: imprescrittibile – da chiunque abbia interesse",
+          "Competenza esclusiva TRIBUNALE DELLE IMPRESE",
+          "Sospensiva cautelare: valutare sempre se la delibera è in esecuzione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbale_assemblea_impugnata",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "convocazione_assemblea",
+          "required": true
+        },
+        {
+          "id": "statuto_societario",
+          "required": true
+        },
+        {
+          "id": "documentazione_del_vizio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE PER ANNULLABILITÀ",
+          "giorni": 90,
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "IMPUGNAZIONE PER NULLITÀ",
+          "natura": "imprescrittibile"
+        }
+      ],
+      "codice_originale_ricevuto": "150060",
+      "codice_logico": "GUIDA_IMPUGNAZIONE_DELIBERA_ASSEMBLEARE_DI_S_P_A_NULLIT_E_ANNULLABILIT_ARTT_23_150060",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150060"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_COLLAZIONE_EREDITARIA_ARTT_737_751_C_C_CONFERIMENTO_DI_DONAZIONI_E_ANTIC_121010",
+      "denominazione": "Collazione ereditaria (artt. 737-751 c.c.) – conferimento di donazioni e anticipazioni nel patrimonio ereditario",
+      "categoria": "Successioni – collazione",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (successioni)",
+      "competenza": "Tribunale del luogo di apertura della successione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "737",
+          "descrizione": "Obbligo di collazione – discendenti e coniuge che vengono alla successione per conferire donazioni ricevute"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "738",
+          "descrizione": "Liberalità esenti da collazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "739",
+          "descrizione": "Collazione per imputazione – il bene viene imputato alla quota"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "740",
+          "descrizione": "Collazione in natura – restituzione del bene alla massa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "747-748",
+          "descrizione": "Immobili e mobili – modalità di collazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "749-751",
+          "descrizione": "Collazione di somme e spese di mantenimento/istruzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "564",
+          "descrizione": "Imputazione – obbligo del legittimario di imputare donazioni ricevute"
+        },
+        {
+          "fonte": "Cass. SU 24309/2019",
+          "descrizione": "Collazione – distinzione da riduzione e imputazione"
+        },
+        {
+          "fonte": "Cass. SU 11688/2023",
+          "descrizione": "Valore del bene donato – al momento della collazione o della donazione"
+        }
+      ],
+      "soggetti_obbligati_alla_collazione_737": [
+        "FIGLI e discendenti del defunto",
+        "CONIUGE del defunto",
+        "Solo se vengono alla successione – non se rinunciano"
+      ],
+      "cosa_si_collaziona": [
+        "DONAZIONI ricevute dal de cuius in vita",
+        "SPESE STRAORDINARIE per istruzione (art. 750)",
+        "NON si collazionano: spese ordinarie di mantenimento, regali d'uso, donazioni manuali di modico valore"
+      ],
+      "modalita_di_collazione": {
+        "imputazione_739": "Il valore della donazione viene imputato alla quota dell'erede senza restituire il bene – più comune",
+        "in_natura_740": "Restituzione del bene fisico alla massa ereditaria – raramente applicata"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire tutti gli atti di donazione del de cuius verso i coeredi"
+        },
+        {
+          "step": 2,
+          "descrizione": "Valutare il bene donato al momento della collazione (o della donazione – controverso)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare la massa ereditaria comprensiva delle donazioni collazionabili"
+        },
+        {
+          "step": 4,
+          "descrizione": "Confrontare le quote rettificate per determinare il conguaglio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_collazione_ereditaria",
+        "denominazione": "Atto di citazione per collazione ereditaria ex artt. 737-751 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coerede_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "coerede_convenuto_donatario",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "de_cuius",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "donazioni_da_collazionare",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_donazione",
+                "type": "date"
+              },
+              {
+                "id": "oggetto",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_donazione",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "massa_ereditaria",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "patrimonio_relitto",
+                "type": "currency"
+              },
+              {
+                "id": "donazioni_collazionabili",
+                "type": "currency"
+              },
+              {
+                "id": "massa_totale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "modalita_collazione_richiesta",
+            "type": "select",
+            "options": [
+              "imputazione_739",
+              "in_natura_740"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_obbligo_collazione",
+              "collazione_per_imputazione_739",
+              "rettifica_delle_quote_ereditarie",
+              "conguaglio_in_denaro",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria (successioni)",
+          "Obbligati: solo figli, discendenti e coniuge che vengono alla successione",
+          "Valore al momento della collazione o della donazione: questione controversa (Cass. SU 11688/2023)",
+          "Distinguere da RIDUZIONE (per lesione legittima) e da IMPUTAZIONE (sulla quota legittima)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_di_donazione_da_collazionare",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "certificato_morte_de_cuius_e_atto_successione",
+          "required": true
+        },
+        {
+          "id": "perizia_estimativa_beni_donati",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10,
+          "norma": "art. 2946 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "121010",
+      "codice_logico": "GUIDA_COLLAZIONE_EREDITARIA_ARTT_737_751_C_C_CONFERIMENTO_DI_DONAZIONI_E_ANTIC_121010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_VIOLAZIONE_DEL_DIRITTO_D_AUTORE_E_RISARCIMENTO_DEL_DANNO_L_633_1941_170025",
+      "denominazione": "Violazione del diritto d'autore e risarcimento del danno (L. 633/1941)",
+      "categoria": "Proprietà intellettuale – diritto d'autore",
+      "rito": "Rito ordinario – Tribunale delle Imprese (sezione specializzata PI)",
+      "competenza": "Tribunale delle Imprese – luogo della violazione o sede dell'autore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 633/1941 (LDA)",
+          "articolo": "1-5",
+          "descrizione": "Opere protette – tutela automatica dalla creazione, senza registrazione"
+        },
+        {
+          "fonte": "LDA",
+          "articolo": "12-19",
+          "descrizione": "Diritti patrimoniali – riproduzione, distribuzione, comunicazione al pubblico"
+        },
+        {
+          "fonte": "LDA",
+          "articolo": "20-24",
+          "descrizione": "Diritti morali – irrinunciabili + intrasmissibili"
+        },
+        {
+          "fonte": "LDA",
+          "articolo": "158",
+          "descrizione": "Azione in giudizio – inibitoria + risarcimento + distruzione"
+        },
+        {
+          "fonte": "LDA",
+          "articolo": "158-bis",
+          "descrizione": "Reversione degli utili"
+        },
+        {
+          "fonte": "LDA",
+          "articolo": "159",
+          "descrizione": "Sequestro e descrizione delle opere illecite"
+        },
+        {
+          "fonte": "Direttiva UE 2019/790 (Copyright nel mercato unico digitale)",
+          "descrizione": "Tutela online"
+        },
+        {
+          "fonte": "Direttiva UE 2004/48/CE (Enforcement PI)",
+          "descrizione": "Misure, procedure e rimedi"
+        },
+        {
+          "fonte": "Cass. SU 18773/2021",
+          "descrizione": "Plagio – accertamento e criteri"
+        },
+        {
+          "fonte": "Cass. SU 7680/2024",
+          "descrizione": "Violazione online – giurisdizione e quantificazione del danno"
+        }
+      ],
+      "protezione_automatica_senza_registrazione": {
+        "principio": "Il diritto d'autore nasce automaticamente con la CREAZIONE dell'opera – nessuna registrazione necessaria",
+        "prova_della_paternita": "Autore deve provare di aver creato l'opera prima del presunto plagiante (data certa: registrazione SIAE, deposito notarile, email datata, metadati file)"
+      },
+      "violazioni_tipiche": [
+        "Riproduzione senza autorizzazione (copia fisica o digitale)",
+        "Distribuzione di copie non autorizzate",
+        "Comunicazione al pubblico senza autorizzazione (upload online, streaming)",
+        "Plagio (appropriazione dell'opera altrui spacciandola per propria)",
+        "Elaborazione/trasformazione senza consenso",
+        "Violazione dei diritti morali (falsa attribuzione, mutilazione dell'opera)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la titolarità del diritto d'autore (data certa della creazione)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare la violazione (screenshot, copie, link, acquisti di prova)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare misura cautelare urgente (inibitoria) se violazione in corso"
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificare il danno (canone ipotetico, perdita di fatturato, reversione utili)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_violazione_diritto_autore_LDA",
+        "denominazione": "Atto di citazione per violazione del diritto d'autore ex L. 633/1941",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "autore_o_avente_causa_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_violatore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "opera_protetta",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_opera",
+                "type": "select",
+                "options": [
+                  "opera_letteraria",
+                  "opera_musicale",
+                  "opera_fotografica",
+                  "software",
+                  "opera_cinematografica",
+                  "opera_artistica",
+                  "database",
+                  "altro"
+                ]
+              },
+              {
+                "id": "titolo_o_descrizione",
+                "type": "string"
+              },
+              {
+                "id": "data_creazione",
+                "type": "date"
+              },
+              {
+                "id": "prova_paternita_data_certa",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "violazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_violazione",
+                "type": "select_multi",
+                "options": [
+                  "riproduzione_non_autorizzata",
+                  "distribuzione_non_autorizzata",
+                  "comunicazione_al_pubblico_online",
+                  "plagio",
+                  "elaborazione_senza_consenso",
+                  "violazione_diritti_morali"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "canone_ipotetico_non_percepito",
+                "type": "currency"
+              },
+              {
+                "id": "danno_immagine",
+                "type": "currency"
+              },
+              {
+                "id": "reversione_utili_158bis",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_cautelare_urgente",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_violazione_diritto_autore",
+              "inibitoria_definitiva",
+              "sequestro_prodotti_illeciti",
+              "distruzione_copie_illegali",
+              "risarcimento_danni",
+              "reversione_utili_158bis",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Protezione AUTOMATICA dalla creazione – nessuna registrazione necessaria",
+          "Prove della paternità e della data certa fondamentali",
+          "Competenza TRIBUNALE DELLE IMPRESE",
+          "Cautelare urgente se violazione online in corso (upload/streaming)",
+          "Reversione utili (art. 158-bis): alternativa o cumulo con risarcimento"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_paternita_e_data_certa_opera",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_violazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_quantificazione_danni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 5,
+          "norma": "art. 2947 c.c. per la parte aquiliana"
+        }
+      ],
+      "codice_originale_ricevuto": "170025",
+      "codice_logico": "GUIDA_VIOLAZIONE_DEL_DIRITTO_D_AUTORE_E_RISARCIMENTO_DEL_DANNO_L_633_1941_170025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DISCRIMINAZIONE_SUL_LAVORO_PER_ET_RELIGIONE_DISABILIT_ORIENTAMENTO_SESSU_220085",
+      "denominazione": "Discriminazione sul lavoro per età, religione, disabilità, orientamento sessuale (D.Lgs. 216/2003 + D.Lgs. 215/2003)",
+      "categoria": "Lavoro – parità di trattamento e non discriminazione",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c. + procedimento sommario ex D.Lgs. 150/2011 art. 28",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 216/2003 (attuazione Dir. 2000/78/CE)",
+          "descrizione": "Parità di trattamento in materia di occupazione per religione, convinzioni personali, disabilità, età, orientamento sessuale"
+        },
+        {
+          "fonte": "D.Lgs. 215/2003 (attuazione Dir. 2000/43/CE)",
+          "descrizione": "Parità di trattamento senza distinzione di razza ed origine etnica"
+        },
+        {
+          "fonte": "D.Lgs. 198/2006 (Codice pari opportunità)",
+          "descrizione": "Discriminazione di genere + parità uomo/donna"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "28",
+          "descrizione": "Procedimento sommario per discriminazione – tutela urgente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Complementare per violazioni della dignità"
+        },
+        {
+          "fonte": "Direttiva UE 2000/78/CE",
+          "descrizione": "Parità di trattamento in materia di occupazione"
+        },
+        {
+          "fonte": "Cass. SU 12705/2020",
+          "descrizione": "Discriminazione diretta vs indiretta – onere della prova"
+        },
+        {
+          "fonte": "Cass. SU 9867/2023",
+          "descrizione": "Età: discriminazione nelle politiche di pensionamento forzato"
+        },
+        {
+          "fonte": "Cass. SU 3636/2024",
+          "descrizione": "Disabilità – onere del datore di accomodamento ragionevole"
+        }
+      ],
+      "discriminazione_diretta_vs_indiretta": {
+        "diretta": "Una persona è trattata MENO FAVOREVOLMENTE di un'altra in situazione analoga a causa di uno dei fattori protetti",
+        "indiretta": "Una disposizione, criterio o prassi apparentemente neutri mettono in posizione di particolare svantaggio le persone con un certo fattore protetto"
+      },
+      "onere_della_prova_invertito_Cass_SU_12705_2020": {
+        "a_carico_del_lavoratore": "Fornire ELEMENTI DI FATTO idonei a presumere l'esistenza di discriminazione",
+        "a_carico_del_datore": "Provare che non vi è stata discriminazione – onere si inverte dopo la prima prova"
+      },
+      "accomodamento_ragionevole_per_disabilita_Cass_SU_3636_2024": {
+        "obbligo": "Il datore deve adottare ACCOMODAMENTI RAGIONEVOLI per il lavoratore con disabilità",
+        "limite": "Onere sproporzionato – il datore può esimersi se l'accomodamento è eccessivamente gravoso"
+      },
+      "procedimento_urgente_art28_D_Lgs_150": {
+        "quando": "Discriminazione in corso + urgenza",
+        "iter": "Ricorso in via d'urgenza → decreto del giudice → eventuale opposizione",
+        "vantaggio": "Più rapido del giudizio ordinario"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare il fattore protetto discriminato (età, disabilità, religione, ecc.)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere elementi di fatto che presumono la discriminazione"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare se richiedere il procedimento urgente ex art. 28 D.Lgs. 150/2011"
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificare i danni (retributivi + non patrimoniali)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_discriminazione_lavoro_D_Lgs_216_2003",
+        "denominazione": "Ricorso ex art. 414 c.p.c. (o art. 28 D.Lgs. 150/2011) per discriminazione sul lavoro",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_discriminato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "fattore_protetto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "eta",
+              "religione_o_convinzioni",
+              "disabilita",
+              "orientamento_sessuale",
+              "razza_o_etnia",
+              "sesso_o_genere"
+            ]
+          },
+          {
+            "id": "tipo_discriminazione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "diretta",
+              "indiretta",
+              "molestia_discriminatoria"
+            ]
+          },
+          {
+            "id": "condotta_discriminatoria",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "min_length": 400
+              },
+              {
+                "id": "confronto_con_trattamento_altri_lavoratori",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "elementi_di_fatto_per_presunzione",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "tipo_procedimento",
+            "type": "select",
+            "options": [
+              "ordinario_414_cpc",
+              "urgente_art28_D_Lgs_150"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_discriminazione",
+              "cessazione_condotta_discriminatoria",
+              "ripristino_situazione_ante",
+              "risarcimento_danni_non_patrimoniali",
+              "condanna_retribuzioni_perse",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Onere probatorio INVERTITO dopo prima prova del lavoratore (Cass. SU 12705/2020)",
+          "Disabilità: obbligo di accomodamento ragionevole del datore (Cass. SU 3636/2024)",
+          "Procedimento urgente ex art. 28 D.Lgs. 150/2011 se discriminazione in corso",
+          "Discriminazione indiretta: anche prassi neutre che creano svantaggio sproporzionato"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_elementi_di_fatto_discriminazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "confronto_con_colleghi_non_discriminati",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "eventuale_denuncia_allispettorato_lavoro",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        },
+        {
+          "termine": "Prescrizione post cessazione",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220085",
+      "codice_logico": "GUIDA_DISCRIMINAZIONE_SUL_LAVORO_PER_ET_RELIGIONE_DISABILIT_ORIENTAMENTO_SESSU_220085",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220085"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220085"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220085"
+        }
+      ]
+    }
+  ]
+}

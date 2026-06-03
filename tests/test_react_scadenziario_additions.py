@@ -8,6 +8,7 @@ from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 from web.helpers import get_scadenziario
+from web.services.react_scadenziario_bridge import dedupe_calculator_templates
 
 
 def _app(tmp_path: Path):
@@ -98,6 +99,40 @@ def test_react_scadenziario_bridge_usa_repository_reale(tmp_path: Path):
     assert payload["calculator"]["templates"]
     assert payload["calculator"]["endpoints"]["calculate"].endswith("/termini/calculate")
     assert payload["calculator"]["scheduler"]["channel"] == "PEC"
+
+
+def test_react_scadenziario_calcolatore_non_ripete_template_identici():
+    base = {
+        "name": "Reclamo contro provvedimento cautelare",
+        "matter_type": "civil",
+        "base_value": 15,
+        "period_type": "days",
+        "direction": "forward",
+        "suspend_august": True,
+        "ferial_suspension_policy": "applies",
+        "free_term": False,
+        "urgent": False,
+        "extend_saturday": True,
+        "extend_holiday": True,
+        "reference_law": "c.p.c. art. 669-terdecies",
+        "cartabia_compliant": True,
+        "metadata": {
+            "source": "guida_pratica",
+            "decorrenza": "Dalla comunicazione o notificazione del provvedimento",
+            "natura": "termine di reclamo",
+        },
+        "version": 1,
+    }
+    templates = [
+        {"code": "GP_A", **base, "metadata": {**base["metadata"], "codice_guida": "190010"}},
+        {"code": "GP_B", **base, "metadata": {**base["metadata"], "codice_guida": "190020"}},
+        {"code": "GP_C", **base, "base_value": 30},
+    ]
+
+    visible = dedupe_calculator_templates(templates)
+
+    assert [template["code"] for template in visible] == ["GP_A", "GP_C"]
+    assert len({template["displayName"] for template in visible}) == 2
 
 
 def test_route_ufficiale_scadenziario_serve_react_con_vista_classica_tecnica(tmp_path: Path):

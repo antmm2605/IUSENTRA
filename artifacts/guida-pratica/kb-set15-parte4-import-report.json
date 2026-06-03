@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (10).zip::kb_set15_parte4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set15_parte4.json",
+  "sha256": "2E253A97290050727EDFB3C77AA322F45D89A8E20EFAE382B4E9614E6E668DBC",
+  "changed": false,
+  "macro_area_id": "TOP18_SET15_PARTE4",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 4 di 4",
+  "codici_materia_originali": [
+    "150040",
+    "512005",
+    "120040",
+    "130020"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_FUSIONE_E_SCISSIONE_SOCIETARIA_IMPUGNAZIONE_DELIBERA_E_RESPONSABILIT_ART_150040",
+    "GUIDA_OPPOSIZIONE_A_CARTELLA_DI_PAGAMENTO_INTIMAZIONE_DI_PAGAMENTO_AGENZIA_ENT_512005",
+    "GUIDA_DICHIARAZIONE_GIUDIZIALE_DI_PATERNIT_MATERNIT_FUORI_MATRIMONIO_ART_269_C_120040",
+    "GUIDA_AZIONE_DI_REGOLAMENTO_DI_CONFINI_IMMOBILIARI_COMPLEMENTO_E_PROCEDURE_ACC_130020"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150040",
+      "codice_integrato": "GUIDA_FUSIONE_E_SCISSIONE_SOCIETARIA_IMPUGNAZIONE_DELIBERA_E_RESPONSABILIT_ART_150040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512005",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_A_CARTELLA_DI_PAGAMENTO_INTIMAZIONE_DI_PAGAMENTO_AGENZIA_ENT_512005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "120040",
+      "codice_integrato": "GUIDA_DICHIARAZIONE_GIUDIZIALE_DI_PATERNIT_MATERNIT_FUORI_MATRIMONIO_ART_269_C_120040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130020",
+      "codice_integrato": "GUIDA_AZIONE_DI_REGOLAMENTO_DI_CONFINI_IMMOBILIARI_COMPLEMENTO_E_PROCEDURE_ACC_130020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 7
+}

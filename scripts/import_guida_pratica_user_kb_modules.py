@@ -139,6 +139,11 @@ CONVERSION_RULES: dict[str, ConversionRule] = {
         ("111101", "111102", "111402", "110999", "400240", "411681"),
         "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda stato familiare e filiazione e resta guida interna non depositabile.",
     ),
+    "140035": ConversionRule(
+        "GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035",
+        ("140999", "140031", "140041"),
+        "Il codice 140035 è ufficiale nel catalogo locale per agenzia; la scheda ricevuta riguarda annullamento del contratto per dolo, errore o violenza e resta guida interna per non alterare il deposito.",
+    ),
 }
 
 WEB_SOURCE_LIBRARY = SOURCE_LIBRARY
@@ -385,7 +390,7 @@ def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, ar
         aliases.extend(item["codice_integrato"] for item in report["conversioni_deposito"])
         total_terms += int(report["termini_processuali_raw"])
 
-        match = re.search(r"set(\d+)_parte(\d+)", destination.name)
+        match = re.search(r"set(\d+)_(?:parte|p)(\d+)", destination.name)
         if match:
             dedicated = artifacts_dir / f"kb-set{match.group(1)}-parte{match.group(2)}-import-report.json"
             dedicated.parent.mkdir(parents=True, exist_ok=True)
@@ -402,7 +407,7 @@ def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, ar
         "termini_processuali_raw": total_terms,
     }
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    set_ids = sorted({match.group(1) for file in files if (match := re.search(r"set(\d+)_parte", str(file.get("destination", ""))))})
+    set_ids = sorted({match.group(1) for file in files if (match := re.search(r"set(\d+)_(?:parte|p)", str(file.get("destination", ""))))})
     suffix = "set" + "-".join(set_ids) if set_ids else "import"
     (artifacts_dir / f"kb-{suffix}-structural-validation-report.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",

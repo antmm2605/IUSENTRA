@@ -124,6 +124,10 @@ Aggiornamento 2 giugno 2026: i materiali successivi ricevuti dall'utente sono st
 
 Audit voce per voce aggiornato al 2 giugno 2026: 25 moduli utente controllati, 117 schede, 2.614 righe di audit, 2.061 voci presenti nei file ricevuti, 0 perdite tra materiale utente, KB completo, servizio/API, UI Guida Pratica e Lex, 0 valori scalar sostituiti nel servizio. Report correnti: `artifacts/guida-pratica/guida-pratica-user-material-field-audit.json` e `artifacts/guida-pratica/guida-pratica-user-material-field-audit.csv`.
 
+Aggiornamento 3 giugno 2026: i pacchetti `files (10).zip` e `files (11).zip` sono stati importati come moduli `kb_98_set15_parte1/2/3/4` e `kb_98_set16_p1/p2/p3/p4`. Hanno prodotto 36 schede ricevute e integrate, 50 termini processuali grezzi e il knowledge base completo è salito a 1.164 schede. Il codice ricevuto `140035` è stato convertito in guida interna `GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035` perché nel catalogo PST/XSD locale `140035` identifica `Agenzia`: il codice ufficiale del fascicolo/deposito non viene sostituito dalla guida. Report: `artifacts/guida-pratica/kb-set15-16-import-report.json` e `artifacts/guida-pratica/kb-set15-16-structural-validation-report.json`.
+
+Audit voce per voce aggiornato al 3 giugno 2026: 33 moduli utente controllati, 153 schede, 3.424 righe di audit, 2.619 voci presenti nei file ricevuti, 0 perdite tra materiale utente, KB completo, servizio/API, UI Guida Pratica e Lex, 0 valori scalar sostituiti nel servizio. Report correnti: `artifacts/guida-pratica/guida-pratica-user-material-field-audit.json` e `artifacts/guida-pratica/guida-pratica-user-material-field-audit.csv`.
+
 Schede ricevute con codice numerico non coerente con la descrizione ministeriale locale e quindi convertite in guide interne non depositabili:
 
 - `GUIDA_ONORARI_PROFESSIONALI_L794`, ricevuta come `141001`;
@@ -153,6 +157,7 @@ Schede ricevute con codice numerico non coerente con la descrizione ministeriale
 - `GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051`, ricevuta come `413051`;
 - `GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001`, ricevuta come `142001`;
 - `GUIDA_OPPOSIZIONE_PRECETTO_199001`, ricevuta come `199001`.
+- `GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035`, ricevuta come `140035`;
 
 Questa conversione è obbligatoria: protegge il deposito, conserva integralmente la guida pratica dell'utente e impedisce che una scheda operativa non combaciante venga mostrata come codice ministeriale ufficiale.
 
@@ -528,6 +533,16 @@ Aggiornamento 2 giugno 2026 dopo l'import dei set successivi e del repository gl
 - fasi: 2.157 termini di notifica, 648 di impugnazione, 137 di costituzione, 133 prescrizione/decadenza, 40 deposito, 25 procedimentali, 4 udienza, 2 adempimento amministrativo e 2 presupposto temporale;
 - report CSV globale: `artifacts/guida-pratica/termini-processuali-top9-global-audit.csv`;
 - report import globale: `artifacts/guida-pratica/termini-processuali-top9-global-import-report.json`.
+
+Aggiornamento 3 giugno 2026 dopo l'import dei set15/set16 e la pulizia delle opzioni duplicate del calcolatore:
+
+- 3.266 record `guida_pratica_terms` presenti in `data/scadenziario/termini_processuali.json`;
+- 1.060 template calcolabili importati dal materiale Guida Pratica;
+- classificazione: 975 termini calcolabili in giorni, 85 in mesi, 38 in anni da verificare, 2.017 in `manual_review`, 86 termini lunghi o prescrizionali, 65 informativi non calcolabili;
+- fasi: 2.161 termini di notifica, 655 di impugnazione, 140 di costituzione, 161 prescrizione/decadenza, 41 deposito, 26 procedimentali, 4 udienza, 2 adempimento amministrativo e 2 presupposto temporale;
+- il repository conserva i record grezzi, mentre l'endpoint e la UI del calcolatore espongono opzioni visibili deduplicate e, quando più regole hanno lo stesso titolo, mostrano una `displayName` con durata, norma e riferimento pratica;
+- report CSV globale: `artifacts/guida-pratica/termini-processuali-kb-audit.csv`;
+- report import globale: `artifacts/guida-pratica/termini-processuali-import-report.json`.
 
 Nota runtime: `data/scadenziario/termini_processuali.json` è un repository operativo sotto `/data` e non deve essere trattato come sorgente Git primaria. Per evitare che locale o produzione restino con i soli template base dopo un deploy pulito, l'API React dello Scadenziario esegue un bootstrap prudente dai moduli KB versionati quando il repository runtime non contiene ancora `guida_pratica_terms`. Il bootstrap non sostituisce un repository già popolato, conserva audit e calendari presenti e importa soltanto i termini Guida Pratica derivati dalle sorgenti versionate.
 

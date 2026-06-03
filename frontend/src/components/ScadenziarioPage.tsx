@@ -355,6 +355,15 @@ function formFromTemplate(current: CalculatorForm, template: DeadlineCalculatorT
   }
 }
 
+function templateOptionLabel(template: DeadlineCalculatorTemplate, sameNameCount: number): string {
+  if (template.displayName) return template.displayName
+  if (sameNameCount <= 1) return template.name
+  const period = template.period_type === 'months' ? 'mesi' : 'giorni'
+  const direction = template.direction === 'backward' ? 'a ritroso' : 'in avanti'
+  const reference = template.reference_law ? ` · ${template.reference_law}` : ''
+  return `${template.name} · ${template.base_value} ${period} ${direction}${reference}`
+}
+
 function calculatorRequest(form: CalculatorForm): Record<string, unknown> {
   return {
     template_code: form.templateCode,
@@ -393,6 +402,10 @@ function ProcessDeadlineCalculator({
   onCreate: () => void
 }) {
   const selected = templates.find((template) => template.code === form.templateCode)
+  const templateNameCounts = templates.reduce((acc, template) => {
+    acc.set(template.name, (acc.get(template.name) || 0) + 1)
+    return acc
+  }, new Map<string, number>())
   return (
     <section id="calcolatore-termini-processuali" className="iu-scad-calculator" aria-label="Calcolatore termini processuali">
       <header>
@@ -408,7 +421,11 @@ function ProcessDeadlineCalculator({
           <label>
             <span>Template</span>
             <select value={form.templateCode} onChange={(event) => onForm(formFromTemplate(form, templates.find((template) => template.code === event.target.value)))}>
-              {templates.map((template) => <option value={template.code} key={template.code}>{template.name}</option>)}
+              {templates.map((template) => (
+                <option value={template.code} key={template.code}>
+                  {templateOptionLabel(template, templateNameCounts.get(template.name) || 0)}
+                </option>
+              ))}
             </select>
           </label>
           <label>

@@ -1,0 +1,1431 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP18_SET15_PARTE2",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 2 di 4",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_OPPOSIZIONE_A_ORDINANZA_INGIUNZIONE_PER_SANZIONE_AMMINISTRATIVA_ARTT_22__240010",
+      "denominazione": "Opposizione a ordinanza-ingiunzione per sanzione amministrativa (artt. 22-23 L. 689/1981)",
+      "categoria": "Diritto amministrativo – sanzioni amministrative",
+      "rito": "Rito ordinario davanti al Giudice di Pace o al Tribunale secondo il valore",
+      "competenza": "Giudice di Pace (entro €15.493) o Tribunale – luogo della violazione o residenza dell'opponente",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "18",
+          "descrizione": "Ordinanza-ingiunzione – emissione dopo il rapporto di accertamento"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "22",
+          "descrizione": "OPPOSIZIONE all'ordinanza-ingiunzione – termini e forme"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "23",
+          "descrizione": "Giudizio di opposizione – rito"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "28",
+          "descrizione": "Prescrizione dell'azione sanzionatoria – 5 anni"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "414 e ss.",
+          "descrizione": "Non applicabile – rito speciale L. 689"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011 (semplificazione riti)",
+          "articolo": "6",
+          "descrizione": "Controversie in materia di opposizione a sanzioni amministrative"
+        },
+        {
+          "fonte": "Cass. SU 8767/2019",
+          "descrizione": "Opposizione sanzione – onere della prova PA vs opponente"
+        },
+        {
+          "fonte": "Cass. SU 15314/2022",
+          "descrizione": "Tardività dell'opposizione – inammissibilità"
+        }
+      ],
+      "termini_di_opposizione": {
+        "termine_generale": "30 GIORNI dalla notifica dell'ordinanza-ingiunzione",
+        "termine_per_non_residenti_in_Italia": "60 GIORNI",
+        "natura_del_termine": "DECADENZIALE – mancato rispetto → inammissibilità dell'opposizione"
+      },
+      "motivi_tipici_di_opposizione": [
+        "Insussistenza della violazione contestata",
+        "Difetto di identità del trasgressore",
+        "Vizi formali dell'atto di accertamento o dell'ordinanza",
+        "Vizi di notifica dell'ordinanza",
+        "Violazione del diritto di difesa in fase procedimentale",
+        "Prescrizione della violazione (5 anni – art. 28)",
+        "Sproporzione della sanzione applicata",
+        "Errata applicazione della norma sanzionatoria"
+      ],
+      "onere_della_prova_Cass_SU_8767_2019": {
+        "PA": "Deve provare i presupposti della sanzione",
+        "opponente": "Deve confutare le prove della PA e fornire prove a discarico"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICARE il termine di 30 gg dalla notifica – CRITICO"
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisire il verbale di accertamento + l'ordinanza-ingiunzione"
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificare i motivi di opposizione (formali o sostanziali)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Raccogliere prove a discarico (testimonianze, documenti, fotografie)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_ordinanza_ingiunzione",
+        "denominazione": "Ricorso in opposizione all'ordinanza-ingiunzione ex art. 22 L. 689/1981",
+        "campi_chiave": [
+          {
+            "id": "giudice_di_pace_o_tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "opponente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "autorita_emittente_opposta",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "comune",
+                  "prefettura",
+                  "regione",
+                  "autorita_garante",
+                  "AGCM",
+                  "banca_d_italia",
+                  "altra_autorita"
+                ]
+              },
+              {
+                "id": "denominazione",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "ordinanza_ingiunzione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "required": true,
+                "critico_per_30_gg": true
+              },
+              {
+                "id": "data_violazione",
+                "type": "date"
+              },
+              {
+                "id": "norma_violata",
+                "type": "string"
+              },
+              {
+                "id": "importo_sanzione",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "rispetto_termine_30_gg",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "motivi_opposizione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "insussistenza_violazione",
+              "difetto_identita_trasgressore",
+              "vizi_formali_verbale",
+              "vizi_notifica",
+              "violazione_diritto_difesa",
+              "prescrizione_5_anni",
+              "sproporzione_sanzione",
+              "errata_applicazione_norma",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_ordinanza_ingiunzione",
+              "riduzione_sanzione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 30 GG dalla notifica – DECADENZIALE (Cass. SU 15314/2022)",
+          "Competenza: GdP per importi ≤ €15.493; Tribunale per importi maggiori",
+          "La PA deve provare la violazione (Cass. SU 8767/2019)",
+          "Prescrizione della sanzione: 5 anni dal fatto (art. 28 L. 689/1981)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "ordinanza_ingiunzione_e_relata_notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_di_accertamento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_a_discarico",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE",
+          "giorni": 30,
+          "decorrenza": "notifica ordinanza",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "240010",
+      "codice_logico": "GUIDA_OPPOSIZIONE_A_ORDINANZA_INGIUNZIONE_PER_SANZIONE_AMMINISTRATIVA_ARTT_22__240010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_APERTURA_E_GESTIONE_ARTT_404_413_C_C_413080",
+      "denominazione": "Amministrazione di sostegno: apertura e gestione (artt. 404-413 c.c.)",
+      "categoria": "Persone e famiglia – protezione soggetti deboli",
+      "rito": "Procedimento camerale ex art. 407 c.c. e artt. 712-720-bis c.p.c. davanti al GIUDICE TUTELARE",
+      "competenza": "Giudice Tutelare del luogo di residenza/domicilio del beneficiario",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "404",
+          "descrizione": "Amministrazione di sostegno – presupposti: infermità o menomazione che impedisce di provvedere ai propri interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "405",
+          "descrizione": "Procedimento – ricorso al GT"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "406",
+          "descrizione": "Legittimati a proporre l'AdS"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "407",
+          "descrizione": "Procedimento – audizione del beneficiario, parenti, PM"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "408",
+          "descrizione": "Scelta dell'amministratore di sostegno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "409",
+          "descrizione": "Effetti dell'AdS – capacità residua del beneficiario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "410",
+          "descrizione": "Obblighi dell'AdS"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "411",
+          "descrizione": "Applicazione delle norme sulla tutela"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "412",
+          "descrizione": "Atti compiuti in violazione dell'AdS – annullabilità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "413",
+          "descrizione": "Revoca e modifica dell'AdS"
+        },
+        {
+          "fonte": "L. 6/2004",
+          "descrizione": "Istituzione dell'AdS – misura preferita alla tutela piena"
+        },
+        {
+          "fonte": "Cass. SU 11019/2019",
+          "descrizione": "AdS misura ordinaria e preferita rispetto a interdizione"
+        },
+        {
+          "fonte": "Cass. SU 6758/2022",
+          "descrizione": "AdS – ampiezza dei poteri del GT e adattamento alle esigenze specifiche"
+        }
+      ],
+      "vantaggi_AdS_su_interdizione": {
+        "flessibilita": "Il GT definisce caso per caso gli atti per cui è necessaria l'assistenza – non c'è perdita totale della capacità",
+        "dignita_del_beneficiario": "Il beneficiario mantiene capacità per gli atti non inclusi nel decreto",
+        "proporzionalita": "Misura calibrata sulle specifiche esigenze – PREFERITA dalla giurisprudenza",
+        "Cass_SU_11019_2019": "AdS è la misura ORDINARIA; interdizione e inabilitazione sono RESIDUALI"
+      },
+      "atti_tipici_del_AdS": {
+        "assistenza_ordinaria": [
+          "Gestione conti correnti",
+          "Pagamento bollette e affitti",
+          "Acquisti ordinari"
+        ],
+        "assistenza_straordinaria": [
+          "Vendita/acquisto immobili",
+          "Successioni e donazioni",
+          "Contratti di valore rilevante"
+        ],
+        "rappresentanza_esclusiva": [
+          "Per persone totalmente incapaci – GT può attribuire rappresentanza piena"
+        ]
+      },
+      "legittimati_attivi_406": [
+        "Il beneficiario stesso",
+        "Il coniuge/convivente",
+        "I parenti entro il 4° grado",
+        "Gli affini entro il 2° grado",
+        "Il tutore/curatore in carica",
+        "I responsabili dei servizi sanitari e sociali",
+        "Il PM"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentazione sanitaria: diagnosi, certificati medici specialistici"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentazione dell'incapacità di provvedere ai propri interessi"
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificare l'amministratore di sostegno proposto (familiare o professionista)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Descrivere le specifiche esigenze del beneficiario e gli atti che richiedono assistenza"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_apertura_AdS",
+        "denominazione": "Ricorso per apertura dell'amministrazione di sostegno ex art. 404 c.c.",
+        "campi_chiave": [
+          {
+            "id": "giudice_tutelare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "beneficiario_stesso",
+                  "coniuge_convivente",
+                  "parente_entro_4_grado",
+                  "affine_entro_2_grado",
+                  "servizi_sociali_sanitari",
+                  "PM"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "beneficiario",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              },
+              {
+                "id": "situazione_attuale",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "infermita_o_menomazione",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select_multi",
+                "options": [
+                  "malattia_neurodegenErativa",
+                  "disturbo_psichiatrico",
+                  "disabilita_fisica_grave",
+                  "demenza_senile",
+                  "disabilita_intellettiva",
+                  "dipendenze_gravi",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "atti_che_richiedono_assistenza",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "atti_ordinaria_amministrazione",
+                "type": "textarea"
+              },
+              {
+                "id": "atti_straordinaria_amministrazione",
+                "type": "textarea"
+              },
+              {
+                "id": "atti_di_rappresentanza_esclusiva",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "amministratore_proposto",
+            "type": "object_persona",
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "relazione_con_beneficiario",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_provvedimenti_urgenti",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "apertura_AdS",
+              "nomina_amministratore_di_sostegno",
+              "definizione_atti_soggetti_ad_assistenza",
+              "provvedimenti_urgenti_art407_c4",
+              "autorizzazione_atti_specifici"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "AdS è misura PREFERITA rispetto a interdizione/inabilitazione (Cass. SU 11019/2019)",
+          "Audizione OBBLIGATORIA del beneficiario (art. 407 c.c.)",
+          "Parere PM obbligatorio",
+          "Il beneficiario mantiene capacità per gli atti non inclusi nel decreto (art. 409)",
+          "Atti compiuti in violazione dell'AdS sono ANNULLABILI (art. 412)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_sanitaria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stato_di_famiglia",
+          "required": true
+        },
+        {
+          "id": "documentazione_patrimonio_beneficiario",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "curriculum_amministratore_proposto",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Provvedimenti urgenti",
+          "natura": "immediata su richiesta"
+        },
+        {
+          "termine": "Reclamo al Tribunale",
+          "giorni": 30
+        }
+      ],
+      "codice_originale_ricevuto": "413080",
+      "codice_logico": "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_APERTURA_E_GESTIONE_ARTT_404_413_C_C_413080",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413080"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ESPROPRIAZIONE_MOBILIARE_PRESSO_IL_DEBITORE_PIGNORAMENTO_E_VENDITA_ARTT__510005",
+      "denominazione": "Espropriazione mobiliare presso il debitore – pignoramento e vendita (artt. 513-542 c.p.c.)",
+      "categoria": "Esecuzioni forzate – espropriazione mobiliare diretta",
+      "rito": "Procedimento esecutivo davanti al GE",
+      "competenza": "GIUDICE DELL'ESECUZIONE del luogo in cui si trovano i beni",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "474-491",
+          "descrizione": "Titoli esecutivi, precetto, principi generali"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "513",
+          "descrizione": "Accesso dell'ufficiale giudiziario – modalità"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "514-515",
+          "descrizione": "Cose impignorabili e parzialmente pignorabili"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "516-518",
+          "descrizione": "Atti del pignoramento – descrizione beni + relazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "521",
+          "descrizione": "Custodia dei beni pignorati"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "528-529",
+          "descrizione": "Istanza di vendita + termini"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "530",
+          "descrizione": "Ordinanza di vendita del GE"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "533-540",
+          "descrizione": "Vendita senza incanto / asta"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "541-542",
+          "descrizione": "Distribuzione del ricavato"
+        },
+        {
+          "fonte": "Cass. SU 16540/2020",
+          "descrizione": "Impignorabili – interpretazione restrittiva delle eccezioni"
+        }
+      ],
+      "beni_impignorabili_514": [
+        "Beni sacri e destinati al culto",
+        "Strumenti necessari alla professione del debitore (nei limiti di un mese di sussistenza)",
+        "Viveri necessari per un mese",
+        "Beni del coniuge non obbligato (salvo per debiti comuni)"
+      ],
+      "fasi_del_pignoramento_mobiliare": [
+        "1. PRECETTO notificato con termine di 10 gg",
+        "2. ACCESSO dell'ufficiale giudiziario presso il debitore",
+        "3. DESCRIZIONE dei beni pignorabili presenti",
+        "4. NOMINA DEL CUSTODE (spesso lo stesso debitore)",
+        "5. ISTANZA DI VENDITA entro 45 gg dal pignoramento",
+        "6. ORDINANZA DI VENDITA del GE",
+        "7. VENDITA (di norma tramite portale delle vendite pubbliche)",
+        "8. DISTRIBUZIONE del ricavato"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il titolo esecutivo in forma esecutiva"
+        },
+        {
+          "step": 2,
+          "descrizione": "Notificare il precetto e attendere i 10 gg"
+        },
+        {
+          "step": 3,
+          "descrizione": "Richiedere l'accesso dell'UG per il pignoramento (istanza scritta)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Dopo il pignoramento: istanza di vendita entro 45 gg"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_pignoramento_mobiliare_e_vendita",
+        "denominazione": "Istanza di espropriazione mobiliare + vendita ex artt. 513 e ss. c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_GE",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "titolo_esecutivo",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "sentenza",
+                  "decreto_ingiuntivo",
+                  "titolo_stragiudiziale"
+                ]
+              },
+              {
+                "id": "importo_credito",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "precetto",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "termine_10_gg_scaduto",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "luogo_pignoramento",
+            "type": "address"
+          },
+          {
+            "id": "beni_da_pignorare_presunti",
+            "type": "select_multi",
+            "options": [
+              "autoveicoli",
+              "macchinari_industriali",
+              "attrezzature",
+              "mobili_pregio",
+              "elettrodomestici",
+              "denaro_contante",
+              "altro"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accesso_UG_pignoramento_513",
+              "istanza_vendita_530",
+              "distribuzione_ricavato_541"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine 10 GG dal precetto prima dell'esecuzione (art. 482 c.p.c.)",
+          "Istanza di vendita entro 45 GG dal pignoramento",
+          "Verificare beni impignorabili ex art. 514-515",
+          "Custode nominato dal GE – spesso il debitore stesso con responsabilità penale"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo_in_forma_esecutiva",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "precetto_e_relata_notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore del credito",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "INIZIO ESECUZIONE dopo precetto",
+          "giorni": 90,
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "Istanza di vendita",
+          "giorni": 45,
+          "decorrenza": "pignoramento",
+          "natura": "decadenziale"
+        }
+      ],
+      "codice_originale_ricevuto": "510005",
+      "codice_logico": "GUIDA_ESPROPRIAZIONE_MOBILIARE_PRESSO_IL_DEBITORE_PIGNORAMENTO_E_VENDITA_ARTT__510005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510005"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DISTANZE_LEGALI_TRA_COSTRUZIONI_E_VIOLAZIONE_DELLE_NORME_URBANISTICHE_AR_130025",
+      "denominazione": "Distanze legali tra costruzioni e violazione delle norme urbanistiche (art. 873 c.c.)",
+      "categoria": "Diritti reali – rapporti di vicinato – costruzioni",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "873",
+          "descrizione": "Distanze nelle costruzioni – minimo 3 metri tra pareti; i regolamenti locali possono aumentarla"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "874",
+          "descrizione": "Diritto di costruire in aderenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "875",
+          "descrizione": "Diritto di chiedere la comunione del muro"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "877",
+          "descrizione": "Costruzione in aderenza al muro esistente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "889",
+          "descrizione": "Distanze per fossi, canali, pozzi, cisterne"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "890",
+          "descrizione": "Distanze per depositi di materiali nocivi"
+        },
+        {
+          "fonte": "Reg. Edilizio Comunale",
+          "descrizione": "Integra e può aumentare le distanze minime del c.c. – norma prevalente se più restrittiva"
+        },
+        {
+          "fonte": "D.M. 1444/1968",
+          "articolo": "9",
+          "descrizione": "Distanze minime di 10 metri tra pareti finestrate"
+        },
+        {
+          "fonte": "Cass. SU 11486/2023",
+          "descrizione": "Violazione distanze – tutela reale (arretramento) o solo risarcitoria"
+        },
+        {
+          "fonte": "Cass. SU 7949/2024",
+          "descrizione": "Regolamento edilizio come integrazione dell'art. 873"
+        }
+      ],
+      "tutele_disponibili_per_violazione_distanze": {
+        "tutela_reale": "Condanna all'ARRETRAMENTO della costruzione alla distanza legale",
+        "tutela_risarcitoria": "Risarcimento del danno per il periodo della violazione",
+        "tutela_cautelare": "Sequestro giudiziario del cantiere (per costruzione in corso) ex art. 670 c.p.c."
+      },
+      "distanze_minime": {
+        "regola_generale_873": "3 metri tra pareti di edifici su fondi diversi (o in aderenza se consentito)",
+        "D_M_1444_1968": "10 metri tra pareti FINESTRATE su fondi diversi in zone A, B, C",
+        "regolamento_edilizio_locale": "Prevalente se più restrittivo – verificare sempre PRG/PUC del Comune"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Rilievo tecnico professionale della distanza effettiva"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verifica del Regolamento Edilizio Comunale e PRG/PUC per le distanze previste"
+        },
+        {
+          "step": 3,
+          "descrizione": "Se costruzione in corso: valutare misure cautelari urgenti (sequestro cantiere)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_violazione_distanze_873",
+        "denominazione": "Atto di citazione per violazione distanze legali tra costruzioni ex art. 873 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_proprietario_leso",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_costruttore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "immobili",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "fondo_attore",
+                "type": "object_immobile"
+              },
+              {
+                "id": "fondo_convenuto_con_costruzione_contestata",
+                "type": "object_immobile"
+              }
+            ]
+          },
+          {
+            "id": "violazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "distanza_legale_applicabile",
+                "type": "string"
+              },
+              {
+                "id": "distanza_effettiva",
+                "type": "string"
+              },
+              {
+                "id": "fonte_normativa_violata",
+                "type": "select",
+                "options": [
+                  "art_873_cc_3_metri",
+                  "DM_1444_1968_10_metri_pareti_finestrate",
+                  "regolamento_edilizio_comunale",
+                  "altra"
+                ]
+              },
+              {
+                "id": "costruzione_completata_o_in_corso",
+                "type": "select",
+                "options": [
+                  "completata",
+                  "in_corso"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "rilievo_tecnico_di_parte",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_arretramento_costruzione",
+              "risarcimento_danni",
+              "misura_cautelare_sequestro_cantiere_se_in_corso",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "richiesta_cautelare_urgente",
+            "type": "boolean"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Verificare SEMPRE il Regolamento Edilizio Comunale (può essere più restrittivo del c.c.)",
+          "D.M. 1444/1968: 10 metri tra pareti FINESTRATE – prevalente sul c.c.",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Foro esclusivo luogo immobile",
+          "Se cantiere in corso: misura cautelare urgente (sequestro)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "rilievo_tecnico_distanze",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "regolamento_edilizio_comunale_estratto",
+          "required": true
+        },
+        {
+          "id": "fotografie_costruzione",
+          "required": true
+        },
+        {
+          "id": "visure_catastali_fondi",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Azione per arretramento: IMPRESCRITTIBILE finché la violazione persiste"
+        },
+        {
+          "termine": "Risarcimento danni: prescrizione 5 anni dal fatto"
+        }
+      ],
+      "codice_originale_ricevuto": "130025",
+      "codice_logico": "GUIDA_DISTANZE_LEGALI_TRA_COSTRUZIONI_E_VIOLAZIONE_DELLE_NORME_URBANISTICHE_AR_130025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DA_INFILTRAZIONI_DI_ACQUA_TRA_IMMOBILI_E_DANNI_CONDOMINIAL_160005",
+      "denominazione": "Responsabilità da infiltrazioni di acqua tra immobili e danni condominiali (art. 2051 c.c.)",
+      "categoria": "Responsabilità civile – cose in custodia – condominio",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (condominio)",
+      "competenza": "Tribunale del luogo dell'immobile",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2051",
+          "descrizione": "Responsabilità del custode per danni dalla cosa – responsabilità oggettiva"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1117",
+          "descrizione": "Parti comuni del condominio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1130",
+          "descrizione": "Obblighi dell'amministratore – manutenzione parti comuni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1135",
+          "descrizione": "Delibere assembleari per interventi straordinari"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana in subordine"
+        },
+        {
+          "fonte": "L. 220/2012 (riforma condominio)",
+          "descrizione": "Aggiornamento disciplina condominiale"
+        },
+        {
+          "fonte": "Cass. SU 20943/2022",
+          "descrizione": "Art. 2051 – inversione onere prova: custode deve provare caso fortuito"
+        },
+        {
+          "fonte": "Cass. SU 14996/2023",
+          "descrizione": "Infiltrazioni condominiali – responsabilità del condominio per parti comuni"
+        },
+        {
+          "fonte": "Cass. SU 7697/2024",
+          "descrizione": "Infiltrazioni tra unità private – responsabilità del proprietario del piano superiore"
+        }
+      ],
+      "soggetti_responsabili_nelle_infiltrazioni": {
+        "CONDOMINIO_per_parti_comuni": {
+          "norma": "art. 2051 c.c. – il condominio è custode delle parti comuni",
+          "esempi": [
+            "Lastrico solare condominiale",
+            "Terrazza a livello condominiale",
+            "Tubazioni comuni",
+            "Facciata comune"
+          ],
+          "responsabilita": "OGGETTIVA – senza colpa"
+        },
+        "PROPRIETARIO_piano_superiore_per_propria_unita": {
+          "norma": "art. 2051 c.c. – il proprietario è custode della propria unità",
+          "esempi": [
+            "Perdita da impianti idraulici privati",
+            "Infiltrazione da terrazza privata",
+            "Rottura tubazione privata"
+          ],
+          "responsabilita": "OGGETTIVA"
+        }
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONDOMINIO"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "PERIZIA TECNICA per identificare l'origine delle infiltrazioni (parte comune o privata)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentazione fotografica e video dei danni"
+        },
+        {
+          "step": 3,
+          "descrizione": "Segnalazione all'amministratore di condominio se parte comune"
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificazione dei danni (perizia estimativa)"
+        },
+        {
+          "step": 5,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_infiltrazioni_2051",
+        "denominazione": "Atto di citazione per danni da infiltrazioni ex art. 2051 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_responsabile",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "condominio_per_parti_comuni",
+                  "proprietario_piano_superiore",
+                  "entrambi_in_subordine"
+                ]
+              },
+              {
+                "id": "denominazione_o_nome",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "immobile_danneggiato",
+            "type": "object_immobile"
+          },
+          {
+            "id": "fonte_infiltrazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_fonte",
+                "type": "select",
+                "options": [
+                  "lastrico_solare_condominiale",
+                  "terrazza_piano_superiore",
+                  "tubazioni_comuni",
+                  "tubazioni_private",
+                  "facciata_comune",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 200
+              },
+              {
+                "id": "perizia_tecnica_di_parte",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "danni_subiti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "tipo_danni",
+                "type": "select_multi",
+                "options": [
+                  "muffe_e_umidita",
+                  "danni_a_intonaci_e_pitture",
+                  "danni_a_mobili_e_suppellettili",
+                  "danni_a_pavimenti",
+                  "danni_strutturali"
+                ]
+              },
+              {
+                "id": "valore_danni",
+                "type": "currency"
+              },
+              {
+                "id": "spese_gia_sostenute",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "segnalazioni_pregresse",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_segnalazione_all_amministratore",
+                "type": "date"
+              },
+              {
+                "id": "risposta_ottenuta",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_condominio_2051",
+              "condanna_proprietario_piano_superiore_2051",
+              "ordine_esecuzione_opere_riparazione",
+              "risarcimento_danni_subiti",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria preventiva (condominio)",
+          "PERIZIA TECNICA per identificare l'origine: fondamentale per stabilire il responsabile",
+          "Responsabilità OGGETTIVA ex 2051: custode si libera solo con caso fortuito",
+          "Post Cass. SU 20943/2022: non serve provare la colpa del condominio",
+          "Se incerto se parte comune o privata: convenire entrambi in subordine"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "perizia_tecnica_origine_infiltrazioni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_fotografica_danni",
+          "required": true
+        },
+        {
+          "id": "perizia_estimativa_danni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "segnalazioni_all_amministratore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 5,
+          "norma": "art. 2947 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "160005",
+      "codice_logico": "GUIDA_RESPONSABILIT_DA_INFILTRAZIONI_DI_ACQUA_TRA_IMMOBILI_E_DANNI_CONDOMINIAL_160005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160005"
+        }
+      ]
+    }
+  ]
+}

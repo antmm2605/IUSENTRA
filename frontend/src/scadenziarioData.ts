@@ -89,6 +89,7 @@ export type ScadenziarioActionCard = {
 export type DeadlineCalculatorTemplate = {
   code: string
   name: string
+  displayName: string
   matter_type: string
   base_value: number
   period_type: 'days' | 'months'
@@ -569,6 +570,7 @@ function normalizeTemplate(value: unknown): DeadlineCalculatorTemplate | null {
   return {
     code: asString(value.code),
     name: asString(value.name, 'Termine processuale'),
+    displayName: asString(value.displayName || value.display_name || value.name, 'Termine processuale'),
     matter_type: asString(value.matter_type, 'civil'),
     base_value: asNumber(value.base_value, 30),
     period_type: period === 'months' ? 'months' : 'days',

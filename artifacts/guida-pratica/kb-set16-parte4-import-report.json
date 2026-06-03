@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (11).zip::kb_set16_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set16_p4.json",
+  "sha256": "2835772DE8FC0499AE82B6EAB3787694167114A9D6DF110EE33F6C9AC5CE44A8",
+  "changed": false,
+  "macro_area_id": "SET16_PARTE4",
+  "denominazione": "Sedicesimo set - 18 nuovi codici - PARTE 4 di 4",
+  "codici_materia_originali": [
+    "410010",
+    "160025",
+    "191020",
+    "101010"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_NOMINA_DEL_TUTORE_DEL_MINORE_PRIVO_DI_GENITORI_O_IN_CONFLITTO_DI_INTERES_410010",
+    "GUIDA_RESPONSABILIT_DA_COSE_IN_CUSTODIA_PRIVATA_CADUTE_SU_AREE_PRIVATE_APERTE__160025",
+    "GUIDA_DECRETO_INGIUNTIVO_SU_TITOLO_DI_CREDITO_CAMBIALE_E_ASSEGNO_PROTESTATO_AR_191020",
+    "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_SU_ISTANZA_DEL_CRED_101010"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "410010",
+      "codice_integrato": "GUIDA_NOMINA_DEL_TUTORE_DEL_MINORE_PRIVO_DI_GENITORI_O_IN_CONFLITTO_DI_INTERES_410010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160025",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_COSE_IN_CUSTODIA_PRIVATA_CADUTE_SU_AREE_PRIVATE_APERTE__160025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191020",
+      "codice_integrato": "GUIDA_DECRETO_INGIUNTIVO_SU_TITOLO_DI_CREDITO_CAMBIALE_E_ASSEGNO_PROTESTATO_AR_191020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "101010",
+      "codice_integrato": "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_SU_ISTANZA_DEL_CRED_101010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

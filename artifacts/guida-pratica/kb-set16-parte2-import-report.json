@@ -1,0 +1,60 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (11).zip::kb_set16_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set16_p2.json",
+  "sha256": "2519A093052E59591354AB42D87D433BDAAB1584A4294CFDAD96E913CA923BD1",
+  "changed": false,
+  "macro_area_id": "SET16_PARTE2",
+  "denominazione": "Sedicesimo set - 18 nuovi codici - PARTE 2 di 4",
+  "codici_materia_originali": [
+    "140035",
+    "170020",
+    "413090",
+    "620010",
+    "130005"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035",
+    "GUIDA_CONTRAFFAZIONE_DI_MARCHIO_E_CONCORRENZA_SLEALE_CONFUSORIA_ARTT_20_28_COD_170020",
+    "GUIDA_LIQUIDAZIONE_GIUDIZIALE_DEL_COMPENSO_DEL_PROFESSIONISTA_ART_14_D_LGS_150_413090",
+    "GUIDA_PIANO_DEL_CONSUMATORE_ACCORDO_DI_COMPOSIZIONE_DELLA_CRISI_DA_SOVRAINDEBI_620010",
+    "GUIDA_PETIZIONE_DI_EREDIT_ART_533_C_C_AZIONE_DELL_EREDE_PER_LA_RESTITUZIONE_DE_130005"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "140035",
+      "codice_integrato": "GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140999",
+        "140031",
+        "140041"
+      ],
+      "reason": "Il codice 140035 è ufficiale nel catalogo locale per agenzia; la scheda ricevuta riguarda annullamento del contratto per dolo, errore o violenza e resta guida interna per non alterare il deposito."
+    },
+    {
+      "codice_originale": "170020",
+      "codice_integrato": "GUIDA_CONTRAFFAZIONE_DI_MARCHIO_E_CONCORRENZA_SLEALE_CONFUSORIA_ARTT_20_28_COD_170020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413090",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_GIUDIZIALE_DEL_COMPENSO_DEL_PROFESSIONISTA_ART_14_D_LGS_150_413090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620010",
+      "codice_integrato": "GUIDA_PIANO_DEL_CONSUMATORE_ACCORDO_DI_COMPOSIZIONE_DELLA_CRISI_DA_SOVRAINDEBI_620010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130005",
+      "codice_integrato": "GUIDA_PETIZIONE_DI_EREDIT_ART_533_C_C_AZIONE_DELL_EREDE_PER_LA_RESTITUZIONE_DE_130005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

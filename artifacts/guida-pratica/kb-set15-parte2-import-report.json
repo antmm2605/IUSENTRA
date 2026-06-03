@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (10).zip::kb_set15_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set15_parte2.json",
+  "sha256": "D6AD010D0CCC00A50BC9388E74726A9BE0C366DA13800A17F08E14EFB15F55FA",
+  "changed": false,
+  "macro_area_id": "TOP18_SET15_PARTE2",
+  "denominazione": "Quindicesimo set - 18 nuovi codici - PARTE 2 di 4",
+  "codici_materia_originali": [
+    "240010",
+    "413080",
+    "510005",
+    "130025",
+    "160005"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_OPPOSIZIONE_A_ORDINANZA_INGIUNZIONE_PER_SANZIONE_AMMINISTRATIVA_ARTT_22__240010",
+    "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_APERTURA_E_GESTIONE_ARTT_404_413_C_C_413080",
+    "GUIDA_ESPROPRIAZIONE_MOBILIARE_PRESSO_IL_DEBITORE_PIGNORAMENTO_E_VENDITA_ARTT__510005",
+    "GUIDA_DISTANZE_LEGALI_TRA_COSTRUZIONI_E_VIOLAZIONE_DELLE_NORME_URBANISTICHE_AR_130025",
+    "GUIDA_RESPONSABILIT_DA_INFILTRAZIONI_DI_ACQUA_TRA_IMMOBILI_E_DANNI_CONDOMINIAL_160005"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240010",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_A_ORDINANZA_INGIUNZIONE_PER_SANZIONE_AMMINISTRATIVA_ARTT_22__240010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413080",
+      "codice_integrato": "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_APERTURA_E_GESTIONE_ARTT_404_413_C_C_413080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510005",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_MOBILIARE_PRESSO_IL_DEBITORE_PIGNORAMENTO_E_VENDITA_ARTT__510005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130025",
+      "codice_integrato": "GUIDA_DISTANZE_LEGALI_TRA_COSTRUZIONI_E_VIOLAZIONE_DELLE_NORME_URBANISTICHE_AR_130025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160005",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_INFILTRAZIONI_DI_ACQUA_TRA_IMMOBILI_E_DANNI_CONDOMINIAL_160005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 8
+}

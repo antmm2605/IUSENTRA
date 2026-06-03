@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (11).zip::kb_set16_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set16_p3.json",
+  "sha256": "F00FC05AC8CC07F089B296159F43DAE1B7E6A05783A7D27B8455E0CF96208298",
+  "changed": false,
+  "macro_area_id": "SET16_PARTE3",
+  "denominazione": "Sedicesimo set - 18 nuovi codici - PARTE 3 di 4",
+  "codici_materia_originali": [
+    "150060",
+    "121010",
+    "170025",
+    "220085"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMPUGNAZIONE_DELIBERA_ASSEMBLEARE_DI_S_P_A_NULLIT_E_ANNULLABILIT_ARTT_23_150060",
+    "GUIDA_COLLAZIONE_EREDITARIA_ARTT_737_751_C_C_CONFERIMENTO_DI_DONAZIONI_E_ANTIC_121010",
+    "GUIDA_VIOLAZIONE_DEL_DIRITTO_D_AUTORE_E_RISARCIMENTO_DEL_DANNO_L_633_1941_170025",
+    "GUIDA_DISCRIMINAZIONE_SUL_LAVORO_PER_ET_RELIGIONE_DISABILIT_ORIENTAMENTO_SESSU_220085"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150060",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DELIBERA_ASSEMBLEARE_DI_S_P_A_NULLIT_E_ANNULLABILIT_ARTT_23_150060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "121010",
+      "codice_integrato": "GUIDA_COLLAZIONE_EREDITARIA_ARTT_737_751_C_C_CONFERIMENTO_DI_DONAZIONI_E_ANTIC_121010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170025",
+      "codice_integrato": "GUIDA_VIOLAZIONE_DEL_DIRITTO_D_AUTORE_E_RISARCIMENTO_DEL_DANNO_L_633_1941_170025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220085",
+      "codice_integrato": "GUIDA_DISCRIMINAZIONE_SUL_LAVORO_PER_ET_RELIGIONE_DISABILIT_ORIENTAMENTO_SESSU_220085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

@@ -1195,6 +1195,78 @@ def test_email_dettaglio_scarica_allegato_da_archivio_zip(tmp_path, monkeypatch)
         assert inline.headers.get("Content-Type", "").lower().startswith("application/pdf")
 
 
+def test_email_dettaglio_recupera_allegati_da_eml_originale(tmp_path):
+    from pct.email_attachments import content_sha256
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+
+    inner = EmailMessage()
+    inner["From"] = "tribunale.palmi@civile.ptel.giustiziacert.it"
+    inner["To"] = "studio@example.pec.it"
+    inner["Subject"] = "Comunicazione originale RG 98/2026"
+    inner.set_content("Comunicazione di cancelleria con esito telematico.")
+
+    xml_bytes = b"<EsitoAtto><Stato>ACCETTATO</Stato></EsitoAtto>"
+    outer = EmailMessage()
+    outer["From"] = "posta-certificata@legalmail.it"
+    outer["To"] = "studio@example.pec.it"
+    outer["Subject"] = "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026"
+    outer.set_content("Messaggio di posta certificata con allegati originali.")
+    outer.make_mixed()
+    original_part = EmailMessage()
+    original_part.set_type("message/rfc822")
+    original_part.set_param("name", "postacert.eml")
+    original_part.set_payload([inner])
+    outer.attach(original_part)
+    outer.add_attachment(xml_bytes, maintype="application", subtype="xml", filename="EsitoAtto.xml")
+    raw_eml = outer.as_bytes()
+
+    eml_info = ge._salva_eml_originale("MAIL-ATT-EML", raw_eml)
+    em = EmailRicevuta(
+        id="MAIL-ATT-EML",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="posta-certificata@legalmail.it",
+        oggetto="POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026",
+        data="2026-06-01T12:24:11+02:00",
+        corpo_testo="Messaggio PEC con allegati conservati solo nel MIME originale.",
+        allegati=[
+            {"nome": "postacert.eml", "mime": "message/rfc822", "size": 0},
+            {"nome": "EsitoAtto.xml", "mime": "application/xml", "size": len(xml_bytes), "sha256": content_sha256(xml_bytes)},
+        ],
+        eml_file=eml_info["eml_file"],
+        eml_sha256=eml_info["eml_sha256"],
+    )
+    ge.aggiungi(em)
+
+    assert ge.percorso_allegato(em, 0) is None
+    assert ge.allegato_disponibile(em, 0) is True
+    assert ge.allegato_disponibile(em, 1) is True
+    assert b"Comunicazione originale RG 98/2026" in (ge.leggi_allegato(em, 0) or b"")
+    assert ge.leggi_allegato(em, 1) == xml_bytes
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        dettaglio_json = client.get("/api/v1/ui/email/messaggio/MAIL-ATT-EML")
+        assert dettaglio_json.status_code == 200
+        payload = dettaglio_json.get_json()
+        assert [item["available"] for item in payload["attachments"]] == [True, True]
+        assert payload["attachments"][0]["viewHref"] == "/email/messaggio/MAIL-ATT-EML/allegato/0"
+        assert payload["attachments"][1]["downloadHref"] == "/email/messaggio/MAIL-ATT-EML/allegato/1?download=1"
+
+        postacert = client.get("/email/messaggio/MAIL-ATT-EML/allegato/0")
+        assert postacert.status_code == 200
+        assert b"Comunicazione originale RG 98/2026" in postacert.data
+
+        esito = client.get("/email/messaggio/MAIL-ATT-EML/allegato/1")
+        assert esito.status_code == 200
+        assert esito.data == xml_bytes
+
+
 def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
     from web.app import create_app
 

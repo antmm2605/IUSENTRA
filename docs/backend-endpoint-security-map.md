@@ -8,10 +8,10 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 229.
-- Endpoint con `_richiedi_auth`: 229/229.
+- Endpoint React API censiti: 230.
+- Endpoint con `_richiedi_auth`: 230/230.
 - Endpoint con metodo di scrittura o cancellazione: 113.
-- Endpoint con superficie file/upload/download/export/evidence: 12.
+- Endpoint con superficie file/upload/download/export/evidence: 13.
 - Route manifest censite: 109; critical: 18; high/P1: 71.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
 - Denial log: `policy_denied.backend_security` e warning applicativo `policy_denied backend_security_control_param` senza valori sensibili.
@@ -172,6 +172,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/notifiche-legali/comunicazione-cliente` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/modelli-relata` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/notifica` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/notifiche-legali/pratiche/<id_fascicolo>/documenti` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/prova-deposito` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/preventivi` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/preventivi/<id_preventivo>` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

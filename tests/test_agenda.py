@@ -290,3 +290,23 @@ def test_upsert_evento_esterno_skippa_se_gia_allineato(agenda):
     )
     assert report["outcome"] == "skipped"
     assert len(agenda.tutti()) == 1
+
+
+def test_upsert_evento_esterno_consente_sovrapposizione_per_presidi_automatici(agenda):
+    primo = EventoImportato(
+        uid="pec-1",
+        titolo="Presidio PEC 1",
+        data_ora=_domani_ore("09:00"),
+        durata_minuti=30,
+    )
+    secondo = EventoImportato(
+        uid="pec-2",
+        titolo="Presidio PEC 2",
+        data_ora=_domani_ore("09:00"),
+        durata_minuti=30,
+    )
+
+    assert agenda.upsert_da_evento_importato(primo, provider="pec_audit")["outcome"] == "created"
+    assert agenda.upsert_da_evento_importato(secondo, provider="pec_audit")["outcome"] == "conflict"
+    assert agenda.upsert_da_evento_importato(secondo, provider="pec_audit", allow_overlap=True)["outcome"] == "created"
+    assert len(agenda.tutti()) == 2

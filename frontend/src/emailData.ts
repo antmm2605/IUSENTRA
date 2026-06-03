@@ -208,7 +208,7 @@ export const emptyEmailPecPage: EmailPecPageData = {
     sync: '/email/sincronizza',
     bulkAction: '/api/v1/ui/email/bulk-action',
     autoEsiti: '/email/auto-esiti',
-    pecLocalAcquire: '/api/pec/email/acquisisci-locali?limit=250',
+    pecLocalAcquire: '/api/pec/email/acquisisci-locali?limit=1500',
     operationalInbox: '/email/',
     localPecTest: '/email/impostazioni',
     legalNotice: '/notifiche-legali',

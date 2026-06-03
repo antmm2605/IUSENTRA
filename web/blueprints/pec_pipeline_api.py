@@ -9,7 +9,7 @@ from typing import Any, Callable
 from flask import Blueprint, Response, g, jsonify, request
 
 from pct.email_client import GestioneEmailRicevute
-from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset
+from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset, parse_pec_message
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
@@ -28,7 +28,7 @@ def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def _tenant_id() -> str:
-    return str(g.get("tenant_slug", "") or g.get("auth_tenant_slug", "") or "default")
+    return "default"
 
 
 def _actor() -> str:
@@ -45,6 +45,22 @@ def _repo() -> PecAuditRepository:
     paths = getattr(g, "data_paths", {}) or {}
     configured_db = paths.get("PEC_AUDIT_DB")
     db_path = Path(str(configured_db)) if configured_db else email_db.parent / "pec_audit.sqlite"
+    return PecAuditRepository(
+        db_path,
+        tenant_id=_tenant_id(),
+        clienti_db_path=_runtime_path("CLIENTI_DB", "./clienti/anagrafica.json"),
+        fascicoli_db_path=_runtime_path("FASCICOLI_DB", "./fascicoli/fascicoli.json"),
+        fascicoli_docs_path=_runtime_path("FASCICOLI_DOCS", "./fascicoli/documenti"),
+        scadenziario_db_path=_runtime_path("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
+        agenda_db_path=_runtime_path("AGENDA_DB", "./agenda/appuntamenti.json"),
+    )
+
+
+def _deadline_fallback_repo() -> PecAuditRepository:
+    import tempfile
+
+    safe_tenant = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in _tenant_id()) or "default"
+    db_path = Path(tempfile.gettempdir()) / f"iusentra-pec-deadline-fallback-{safe_tenant}.sqlite"
     return PecAuditRepository(
         db_path,
         tenant_id=_tenant_id(),
@@ -161,16 +177,35 @@ def pec_acquire_legacy_email(email_id: str):
                 },
                 409,
             )
-        repo = _repo()
+        audit_available = True
+        try:
+            repo = _repo()
+        except Exception as exc:
+            audit_available = False
+            repo = _deadline_fallback_repo()
+            audit_error = str(exc)[:180]
         account_email = str(getattr(email_obj, "destinatari", "") or getattr(email_obj, "mittente", "") or "casella PEC locale")
-        result = repo.ingest_mime(
-            raw_mime,
-            account_email=account_email[:240],
-            folder=str(getattr(email_obj, "cartella", "") or "INBOX"),
-            imap_uid=str(getattr(email_obj, "uid_imap", "") or f"legacy:{email_id}"),
+        if audit_available:
+            result = repo.ingest_mime(
+                raw_mime,
+                account_email=account_email[:240],
+                folder=str(getattr(email_obj, "cartella", "") or "INBOX"),
+                imap_uid=str(getattr(email_obj, "uid_imap", "") or f"legacy:{email_id}"),
+                actor=_actor(),
+            )
+        else:
+            result = {"id": f"email:{email_id}", "duplicate": False, "audit_unavailable": True, "message": audit_error}
+        message_id = str(result.get("id") or "") or f"email:{email_id}"
+        deadline = _schedule_deadline_with_local_mime(
+            repo,
+            message_id=message_id,
+            raw_mime=raw_mime,
             actor=_actor(),
         )
-        worker = repo.run_pending_jobs(limit=200, actor=_actor())
+        try:
+            worker = repo.run_pending_jobs(limit=80, actor=_actor())
+        except Exception as exc:
+            worker = {"processed": 0, "failed": 1, "jobs": [], "error": str(exc)[:180]}
         message = "MIME PEC acquisito: allegati, controllo qualità e presidio operativo aggiornati."
         return _json_success(
             {
@@ -178,9 +213,10 @@ def pec_acquire_legacy_email(email_id: str):
                 "message": message,
                 "messaggio": message,
                 "email_id": email_id,
-                "pec_message_id": result.get("id") or "",
+                "pec_message_id": message_id,
                 "duplicate": bool(result.get("duplicate")),
                 "ingest": result,
+                "deadline": deadline,
                 "workers": worker,
             }
         )
@@ -216,6 +252,34 @@ def _email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
     )
 
 
+def _schedule_deadline_with_local_mime(
+    repo: PecAuditRepository,
+    *,
+    message_id: str,
+    raw_mime: bytes,
+    actor: str,
+) -> dict[str, Any]:
+    try:
+        persisted = repo.schedule_deadline(message_id, actor=actor)
+        if persisted.get("ok") or persisted.get("expired"):
+            return persisted
+    except Exception as exc:
+        persisted = {"ok": False, "message": f"Audit PEC non disponibile: {exc}"}
+    try:
+        parsed = parse_pec_message(raw_mime)
+        return repo.schedule_deadline_from_payload(
+            message_id,
+            parsed=parsed,
+            message={"linked_fascicolo_id": ""},
+            actor=actor,
+        )
+    except Exception as exc:
+        return {
+            "ok": False,
+            "message": f"Presidio non pronto: {persisted.get('message') or 'report mancante'}; MIME locale non schedulabile: {exc}",
+        }
+
+
 @pec_pipeline_api.post("/email/acquisisci-locali")
 @_richiedi_auth
 def pec_acquire_local_emails():
@@ -224,26 +288,74 @@ def pec_acquire_local_emails():
     try:
         email_db = _runtime_path("EMAIL_CASELLA_DB", "./email/casella.json")
         gestore = GestioneEmailRicevute(email_db)
-        repo = _repo()
+        audit_available = True
+        audit_error = ""
         try:
-            limit = max(1, min(int(request.args.get("limit", "250") or 250), 1000))
+            repo = _repo()
+        except Exception as exc:
+            audit_available = False
+            audit_error = str(exc)[:180]
+            repo = _deadline_fallback_repo()
+        try:
+            limit = max(1, min(int(request.args.get("limit", "1500") or 1500), 5000))
         except ValueError:
-            limit = 250
+            limit = 1500
         acquired = 0
         duplicates = 0
         skipped_missing_mime = 0
         skipped_not_pec = 0
+        queued_repairs = 0
+        controlled_ids: list[str] = []
+        local_mime_by_message_id: dict[str, bytes] = {}
+        repair_stages: dict[str, int] = {}
         errors: list[dict[str, str]] = []
-        for email_obj in list(gestore._carica().values()):  # noqa: SLF001 - manutenzione tenant-aware su casella locale
+        force_repairs = str(request.args.get("queue_repairs") or "").strip().lower() in {"1", "true", "si", "sì", "yes"}
+        if not audit_available:
+            errors.append({"email_id": "audit-pec", "errore": f"Audit PEC persistente non disponibile: {audit_error}"})
+        emails = list(gestore._carica().values())  # noqa: SLF001 - manutenzione tenant-aware su casella locale
+        existing_by_header: dict[str, str] = {}
+        if audit_available:
+            try:
+                existing_by_header = repo.ids_by_header_message_ids(
+                    str(getattr(item, "message_id", "") or "").strip()
+                    for item in emails
+                    if _email_rilevante_per_presidio_pec(item)
+                )
+            except Exception as exc:
+                errors.append({"email_id": "audit-pec", "errore": f"Lookup PEC già acquisite non disponibile: {exc}"[:180]})
+        for email_obj in emails:
             if acquired >= limit:
                 break
             if not _email_rilevante_per_presidio_pec(email_obj):
                 skipped_not_pec += 1
                 continue
+            existing_message_id = existing_by_header.get(str(getattr(email_obj, "message_id", "") or "").strip())
+            if existing_message_id:
+                acquired += 1
+                duplicates += 1
+                controlled_ids.append(existing_message_id)
+                raw_mime = gestore.leggi_eml_originale(email_obj)
+                if raw_mime:
+                    local_mime_by_message_id[existing_message_id] = raw_mime
+                else:
+                    skipped_missing_mime += 1
+                if force_repairs:
+                    try:
+                        repair = repo.enqueue_missing_operational_jobs(existing_message_id, actor=_actor())
+                        if repair.get("queued"):
+                            queued_repairs += 1
+                            stage = str(repair.get("stage") or "queued")
+                            repair_stages[stage] = repair_stages.get(stage, 0) + 1
+                    except Exception as exc:
+                        errors.append({"email_id": str(getattr(email_obj, "id", "") or ""), "errore": f"Riparazione audit non accodata: {exc}"[:180]})
+                continue
             raw_mime = gestore.leggi_eml_originale(email_obj)
             if not raw_mime:
                 skipped_missing_mime += 1
                 continue
+            acquired += 1
+            fallback_message_id = f"email:{getattr(email_obj, 'id', '') or acquired}"
+            message_id = fallback_message_id
             try:
                 result = repo.ingest_mime(
                     raw_mime,
@@ -252,15 +364,127 @@ def pec_acquire_local_emails():
                     imap_uid=str(getattr(email_obj, "uid_imap", "") or f"legacy:{getattr(email_obj, 'id', '')}"),
                     actor=_actor(),
                 )
-                acquired += 1
                 if result.get("duplicate"):
                     duplicates += 1
+                message_id = str(result.get("id") or "") or fallback_message_id
+                if message_id:
+                    controlled_ids.append(message_id)
+                    local_mime_by_message_id[message_id] = raw_mime
+                    if force_repairs:
+                        try:
+                            repair = repo.enqueue_missing_operational_jobs(message_id, actor=_actor())
+                            if repair.get("queued"):
+                                queued_repairs += 1
+                                stage = str(repair.get("stage") or "queued")
+                                repair_stages[stage] = repair_stages.get(stage, 0) + 1
+                        except Exception as exc:
+                            errors.append({"email_id": str(getattr(email_obj, "id", "") or ""), "errore": f"Riparazione audit non accodata: {exc}"[:180]})
             except Exception as exc:
+                controlled_ids.append(message_id)
+                local_mime_by_message_id[message_id] = raw_mime
                 errors.append({"email_id": str(getattr(email_obj, "id", "") or ""), "errore": str(exc)[:180]})
-        worker = repo.run_pending_jobs(limit=500, actor=_actor())
+        worker: dict[str, Any] = {"processed": 0, "failed": 0, "jobs": []}
+        deadline_report = {
+            "created": 0,
+            "already_exists": 0,
+            "expired": 0,
+            "not_ready": 0,
+            "agenda_linked": 0,
+            "errors": 0,
+            "items": [],
+        }
+        seen_message_ids: set[str] = set()
+        existing_deadlines = repo.existing_deadlines_by_message_id(controlled_ids)
+        skipped_deadlines = repo.skipped_deadlines_by_message_id(controlled_ids)
+        for message_id in controlled_ids:
+            if message_id in seen_message_ids:
+                continue
+            seen_message_ids.add(message_id)
+            existing = existing_deadlines.get(message_id) if isinstance(existing_deadlines, dict) else None
+            if existing and existing.get("agenda_id"):
+                deadline_report["already_exists"] += 1
+                deadline_report["agenda_linked"] += 1
+                deadline_report["items"].append(
+                    {
+                        "message_id": message_id,
+                        "ok": True,
+                        "message": "Scadenza PEC già presente e collegata all'agenda.",
+                        "due_date": str(existing.get("due_date") or ""),
+                        "already_exists": True,
+                        "expired": False,
+                    }
+                )
+                continue
+            skipped = skipped_deadlines.get(message_id) if isinstance(skipped_deadlines, dict) else None
+            if skipped:
+                deadline_report["expired"] += 1
+                deadline_report["items"].append(
+                    {
+                        "message_id": message_id,
+                        "ok": False,
+                        "message": str(skipped.get("message") or "Termine già superato: non riportato in scadenziario o agenda."),
+                        "due_date": str(skipped.get("due_date") or ""),
+                        "already_exists": False,
+                        "expired": True,
+                    }
+                )
+                continue
+            try:
+                result = _schedule_deadline_with_local_mime(
+                    repo,
+                    message_id=message_id,
+                    raw_mime=local_mime_by_message_id.get(message_id, b""),
+                    actor=_actor(),
+                )
+                if result.get("ok") and result.get("already_exists"):
+                    deadline_report["already_exists"] += 1
+                elif result.get("ok"):
+                    deadline_report["created"] += 1
+                elif result.get("expired"):
+                    deadline_report["expired"] += 1
+                else:
+                    deadline_report["not_ready"] += 1
+                agenda = result.get("agenda") if isinstance(result.get("agenda"), dict) else {}
+                if agenda.get("agenda_id"):
+                    deadline_report["agenda_linked"] += 1
+                deadline_report["items"].append(
+                    {
+                        "message_id": message_id,
+                        "ok": bool(result.get("ok")),
+                        "message": str(result.get("message") or "")[:180],
+                        "due_date": str(result.get("due_date") or ""),
+                        "already_exists": bool(result.get("already_exists")),
+                        "expired": bool(result.get("expired")),
+                    }
+                )
+            except Exception as exc:
+                deadline_report["errors"] += 1
+                deadline_report["items"].append({"message_id": message_id, "ok": False, "message": str(exc)[:180]})
+        try:
+            worker_limit = max(0, min(int(request.args.get("worker_limit", "0") or 0), 300))
+        except ValueError:
+            worker_limit = 0
+        if worker_limit:
+            try:
+                worker = repo.run_pending_jobs(limit=worker_limit, actor=_actor())
+            except Exception as exc:
+                worker = {"processed": 0, "failed": 1, "jobs": [], "error": str(exc)[:180]}
+        else:
+            worker = {
+                "processed": 0,
+                "failed": 0,
+                "jobs": [],
+                "queued": queued_repairs,
+                "message": "Controlli pesanti accodati al worker PEC schedulato.",
+            }
         message = (
             f"Presidio PEC eseguito su {acquired} MIME locali"
-            f" ({duplicates} già presenti)."
+            f" ({duplicates} già presenti): "
+            f"{deadline_report['created']} scadenze create, "
+            f"{deadline_report['already_exists']} già presenti, "
+            f"{deadline_report['expired']} scadute ignorate, "
+            f"{deadline_report['agenda_linked']} collegate all'agenda. "
+            f"{queued_repairs} controlli tecnici accodati."
         )
         return _json_success(
             {
@@ -271,6 +495,9 @@ def pec_acquire_local_emails():
                 "duplicates": duplicates,
                 "skipped_missing_mime": skipped_missing_mime,
                 "skipped_not_pec": skipped_not_pec,
+                "queued_repairs": queued_repairs,
+                "repair_stages": repair_stages,
+                "deadline_report": {**deadline_report, "items": deadline_report["items"][:50]},
                 "errors": errors[:20],
                 "workers": worker,
             }

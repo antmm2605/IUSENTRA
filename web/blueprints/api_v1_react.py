@@ -100,7 +100,10 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_form_payload,
 )
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
-from web.services.react_notifiche_legali_bridge import build_react_notifiche_legali_payload
+from web.services.react_notifiche_legali_bridge import (
+    build_react_notifiche_legali_payload,
+    build_react_notifiche_legali_practice_documents_payload,
+)
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 from web.services.react_privacy_bridge import build_react_privacy_registro_payload
 from web.services.react_scadenziario_bridge import (
@@ -2458,6 +2461,15 @@ def notifiche_legali_payload():
         get_fascicoli=get_fascicoli,
         get_soggetti=get_soggetti,
         custom_templates=_load_custom_relata_templates(),
+    ))
+
+
+@api_v1_react.get("/notifiche-legali/pratiche/<id_fascicolo>/documenti")
+@_richiedi_auth
+def notifiche_legali_pratica_documenti(id_fascicolo: str):
+    return jsonify(build_react_notifiche_legali_practice_documents_payload(
+        id_fascicolo,
+        get_fascicoli=get_fascicoli,
     ))
 
 

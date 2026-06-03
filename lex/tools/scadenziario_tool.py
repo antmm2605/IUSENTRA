@@ -29,9 +29,14 @@ def _to_date(value: Any) -> date | None:
     raw = _clean(value)
     if not raw:
         return None
-    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M", "%d/%m/%Y"):
+    for sample, fmt in (
+        (raw[:19], "%Y-%m-%dT%H:%M:%S"),
+        (raw[:16], "%Y-%m-%dT%H:%M"),
+        (raw[:10], "%Y-%m-%d"),
+        (raw[:10], "%d/%m/%Y"),
+    ):
         try:
-            return datetime.strptime(raw[: len(fmt)], fmt).date()
+            return datetime.strptime(sample, fmt).date()
         except Exception:
             continue
     return None
@@ -41,7 +46,8 @@ def _serialize(scadenza: Any) -> dict[str, Any]:
     tipo = getattr(scadenza, "tipo", None)
     stato = getattr(scadenza, "stato", None)
     priorita = getattr(scadenza, "priorita", None)
-    data_val = _to_date(getattr(scadenza, "data", ""))
+    data_raw = getattr(scadenza, "data_scadenza", "") or getattr(scadenza, "data", "")
+    data_val = _to_date(data_raw)
     giorni = None
     if data_val is not None:
         try:
@@ -51,7 +57,8 @@ def _serialize(scadenza: Any) -> dict[str, Any]:
     return {
         "id": getattr(scadenza, "id", ""),
         "titolo": getattr(scadenza, "titolo", ""),
-        "data": getattr(scadenza, "data", ""),
+        "data": data_raw,
+        "data_scadenza": data_raw,
         "giorni_al_termine": giorni,
         "tipo": getattr(tipo, "value", "") if tipo is not None else "",
         "stato": getattr(stato, "value", "") if stato is not None else "",
@@ -92,7 +99,7 @@ class ScadenziarioTool(BaseLexTool):
                 if stato_val in {"completata", "chiusa", "annullata"}:
                     continue
             if giorni_entro is not None:
-                data_val = _to_date(getattr(sc, "data", ""))
+                data_val = _to_date(getattr(sc, "data_scadenza", "") or getattr(sc, "data", ""))
                 if data_val is None:
                     continue
                 try:

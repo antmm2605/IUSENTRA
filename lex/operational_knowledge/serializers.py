@@ -303,6 +303,11 @@ def serialize_documento(record: Any) -> dict[str, Any]:
             "status": data.get("status"),
             "current_version_id": data.get("current_version_id"),
             "version_count": len(versions),
+            "anteprima": data.get("anteprima"),
+            "summary": data.get("summary"),
+            "content": data.get("content"),
+            "text": data.get("text"),
+            "text_available": data.get("text_available"),
             "data_caricamento": data.get("data_caricamento") or data.get("created_at"),
             "firmato": data.get("firmato"),
         }

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
+import os
+import time
 from types import SimpleNamespace
 
 from flask import Flask, g
@@ -347,7 +349,174 @@ def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch
     assert massivo_payload["ok"] is True
     assert massivo_payload["acquired"] == 1
     assert massivo_payload["duplicates"] == 1
+    assert massivo_payload["deadline_report"]["created"] + massivo_payload["deadline_report"]["already_exists"] == 1
+    assert massivo_payload["deadline_report"]["agenda_linked"] == 1
+    assert massivo_payload["workers"]["processed"] == 0
+    assert "accodati" in massivo_payload["messaggio"]
     assert "Presidio PEC eseguito" in massivo_payload["messaggio"]
+    assert "scadenze" in massivo_payload["messaggio"]
+    from pct.scadenziario import GestioneScadenziario
+    from pct.agenda import Agenda
+
+    scadenze = GestioneScadenziario(str(paths["SCADENZIARIO_DB"])).tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert scadenze[0].deadline_profile_code == "PEC_AUTO_PRESIDIO"
+    assert scadenze[0].id_appuntamento
+    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
+
+
+def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, monkeypatch):
+    from email.message import EmailMessage
+
+    from pct.email_client import CartellaEmail
+    from web.blueprints.pec_pipeline_api import pec_pipeline_api
+
+    paths = {
+        "EMAIL_CASELLA_DB": tmp_path / "email" / "casella.json",
+        "PEC_AUDIT_DB": tmp_path / "email" / "pec_audit.sqlite",
+        "CLIENTI_DB": tmp_path / "clienti" / "anagrafica.json",
+        "FASCICOLI_DB": tmp_path / "fascicoli" / "fascicoli.json",
+        "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
+        "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
+        "AGENDA_DB": tmp_path / "agenda" / "appuntamenti.json",
+    }
+
+    def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
+        value = paths.get(key)
+        if not value:
+            raise AssertionError(f"Path tenant non atteso: {key}")
+        value.parent.mkdir(parents=True, exist_ok=True)
+        return str(value)
+
+    msg = EmailMessage()
+    msg["From"] = "posta-certificata@legalmail.it"
+    msg["To"] = "studio@example.pec.it"
+    msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 3001/2025/LAV"
+    msg["Message-ID"] = "<duplicato-audit-senza-report@example.test>"
+    msg["Date"] = "Thu, 01 Jan 2026 12:00:00 +0100"
+    msg.set_content(
+        "Messaggio di posta certificata. Il messaggio COMUNICAZIONE 3001/2025/LAV "
+        "è stato inviato dal Tribunale. UDIENZA DEL 09/07/2030."
+    )
+    msg.add_attachment(
+        (
+            b"<Comunicazione><Numero>3001</Numero><Anno>2025</Anno><Materia>LAV</Materia>"
+            b"<Contenuto>NRG: 3001/2025 UDIENZA DEL 09/07/2030 PARTI: Rossi</Contenuto>"
+            b"</Comunicazione>"
+        ),
+        maintype="application",
+        subtype="xml",
+        filename="Comunicazione.xml",
+    )
+    msg.add_attachment(
+        b"<daticert><msgid>duplicato-audit-senza-report</msgid></daticert>",
+        maintype="application",
+        subtype="xml",
+        filename="daticert.xml",
+    )
+    raw_mime = msg.as_bytes()
+
+    gestore = GestioneEmailRicevute(str(paths["EMAIL_CASELLA_DB"]))
+    eml_info = gestore._salva_eml_originale("MAIL-DUPLICATA-SENZA-REPORT", raw_mime)
+    gestore.aggiungi(
+        EmailRicevuta(
+            id="MAIL-DUPLICATA-SENZA-REPORT",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="Per conto di: tribunale.santamariacapuavetere@civile.ptel.giustiziacert.it",
+            destinatari="studio@example.pec.it",
+            oggetto="POSTA CERTIFICATA: COMUNICAZIONE 3001/2025/LAV",
+            corpo_testo="Messaggio di posta certificata. COMUNICAZIONE 3001/2025/LAV.",
+            allegati=[
+                {"nome": "Comunicazione.xml", "mime": "application/xml", "size": 86},
+                {"nome": "daticert.xml", "mime": "application/xml", "size": 63},
+            ],
+            message_id="<duplicato-audit-senza-report@example.test>",
+            eml_file=eml_info["eml_file"],
+            eml_sha256=eml_info["eml_sha256"],
+        )
+    )
+    pre_repo = PecAuditRepository(paths["PEC_AUDIT_DB"], tenant_id="default")
+    ingest = pre_repo.ingest_mime(
+        raw_mime,
+        account_email="studio@example.pec.it",
+        folder="INBOX",
+        imap_uid="legacy:MAIL-DUPLICATA-SENZA-REPORT",
+        actor="test",
+    )
+    assert ingest["duplicate"] is False
+    with sqlite3.connect(paths["PEC_AUDIT_DB"]) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM pec_validation_reports").fetchone()[0] == 0
+
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.register_blueprint(pec_pipeline_api, url_prefix="/api/pec")
+    monkeypatch.setattr("web.blueprints.pec_pipeline_api.tenant_data_path", fake_tenant_data_path)
+
+    @app.before_request
+    def _inject_user():
+        g.utente_corrente = _User()
+        g.tenant_slug = "default"
+        g.data_paths = {"PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"])}
+
+    client = app.test_client()
+    massivo = client.post("/api/pec/email/acquisisci-locali?limit=20&worker_limit=0")
+    assert massivo.status_code == 200
+    payload = massivo.get_json()
+    assert payload["ok"] is True
+    assert payload["duplicates"] == 1
+    assert payload["deadline_report"]["created"] == 1
+    assert payload["deadline_report"]["agenda_linked"] == 1
+
+    from pct.scadenziario import GestioneScadenziario
+    from pct.agenda import Agenda
+
+    scadenze = GestioneScadenziario(str(paths["SCADENZIARIO_DB"])).tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert f"PEC_AUDIT:{ingest['id']}" in scadenze[0].note
+    assert scadenze[0].data_scadenza == "2030-07-09"
+    assert "Udienza da PEC" in scadenze[0].titolo
+    assert scadenze[0].id_appuntamento
+    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
+
+
+def test_pec_repository_quarantines_stale_sqlite_journal(tmp_path):
+    db_path = tmp_path / "pec_audit.sqlite"
+    db_path.write_bytes(b"interrupted sqlite data")
+    journal_path = tmp_path / "pec_audit.sqlite-journal"
+    journal_path.write_bytes(b"x" * (1024 * 1024 + 1))
+    old_time = time.time() - 300
+    os.utime(db_path, (old_time, old_time))
+    os.utime(journal_path, (old_time, old_time))
+
+    repo = PecAuditRepository(db_path)
+
+    assert repo.db_path.exists()
+    assert list(tmp_path.glob("pec_audit.sqlite.interrotto-*"))
+    assert list(tmp_path.glob("pec_audit.sqlite-journal.interrotto-*"))
+    with repo.connect() as conn:
+        assert conn.execute("SELECT name FROM sqlite_master WHERE name='pec_messages'").fetchone()
+
+
+def test_email_search_normalizza_plurali_accenti_e_allegati(tmp_path):
+    from pct.email_client import CartellaEmail
+
+    gestore = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
+    gestore.aggiungi(
+        EmailRicevuta(
+            id="MAIL-COMUNICAZIONE",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@example.test",
+            destinatari="studio@example.pec.it",
+            oggetto="Comunicazione di cancelleria",
+            corpo_testo="Deposito provvedimento.",
+            allegati=[{"nome": "Comunicazione.xml", "mime": "application/xml", "size": 10}],
+        )
+    )
+
+    assert [item.id for item in gestore.tutte(q="comunicazioni")] == ["MAIL-COMUNICAZIONE"]
+    assert [item.id for item in gestore.tutte(q="cancellerìa comunicazioni")] == ["MAIL-COMUNICAZIONE"]
 
 
 def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
@@ -449,7 +618,7 @@ def test_react_email_bridge_provisional_pec_usa_mime_locale_quando_presente(tmp_
     )
 
     payload = build_react_email_payload(db_path=str(email_db), tenant_id="default")
-    assert payload["actions"]["pecLocalAcquire"] == "/api/pec/email/acquisisci-locali?limit=250"
+    assert payload["actions"]["pecLocalAcquire"] == "/api/pec/email/acquisisci-locali?limit=1500"
     audit = payload["items"][0]["pecAudit"]
     assert audit["persisted"] is False
     assert audit["storageLabel"] == "MIME pronto da acquisire"

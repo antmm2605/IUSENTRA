@@ -698,8 +698,13 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
                 pages.append(DocumentAIPageText(page_number=index, text=text))
         pages, full_text, repair_warnings = _repair_pdf_text(pages)
         warnings.extend(repair_warnings)
-        if not full_text.strip():
-            warnings.append("Il PDF non contiene testo estraibile: potrebbe essere una scansione.")
+        quality = score_extracted_text_quality(full_text)
+        if not full_text.strip() or quality.cid_placeholders or quality.score < 0.55:
+            if full_text.strip() and quality.cid_placeholders:
+                warnings.append("Testo PDF nativo non affidabile: rilevati segnaposto CID residui.")
+            elif full_text.strip():
+                warnings.append("Testo PDF nativo di qualità insufficiente: tentativo OCR.")
+            warnings.append("Il PDF non fornisce testo nativo affidabile: OCR richiesto per l'indice Lex.")
             ocr_result = _extract_scanned_pdf_with_ocr(content, base_warnings=warnings, base_engine="pdfplumber")
             if ocr_result is not None:
                 return ocr_result
@@ -722,8 +727,13 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
             pages, full_text, repair_warnings = _repair_pdf_text(pages)
             warnings.append("Estrattore PDF primario non disponibile; usato parser alternativo.")
             warnings.extend(repair_warnings)
-            if not full_text.strip():
-                warnings.append("Il PDF non contiene testo estraibile: potrebbe essere una scansione.")
+            quality = score_extracted_text_quality(full_text)
+            if not full_text.strip() or quality.cid_placeholders or quality.score < 0.55:
+                if full_text.strip() and quality.cid_placeholders:
+                    warnings.append("Testo PDF nativo non affidabile: rilevati segnaposto CID residui.")
+                elif full_text.strip():
+                    warnings.append("Testo PDF nativo di qualità insufficiente: tentativo OCR.")
+                warnings.append("Il PDF non fornisce testo nativo affidabile: OCR richiesto per l'indice Lex.")
                 ocr_result = _extract_scanned_pdf_with_ocr(content, base_warnings=warnings, base_engine="pypdf")
                 if ocr_result is not None:
                     return ocr_result

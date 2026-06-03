@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
@@ -24,6 +28,9 @@ from pct.notifiche_legali import (
     template_preview_text,
     template_catalog_version,
 )
+
+
+_QUICKORGANIZER_CONTENT_LABEL_CACHE: dict[str, str] = {}
 
 
 def _text(value: Any) -> str:
@@ -52,6 +59,14 @@ def _enum_value(value: Any) -> str:
 def _first_attr(obj: Any, *names: str) -> str:
     for name in names:
         value = _text(getattr(obj, name, ""))
+        if value:
+            return value
+    return ""
+
+
+def _first_mapping_value(row: dict[str, Any], *names: str) -> str:
+    for name in names:
+        value = _text(row.get(name))
         if value:
             return value
     return ""
@@ -101,13 +116,299 @@ def _infer_recipient_role(soggetto: Any, ruolo: str = "") -> str:
     return "terzo"
 
 
+_TITLE_PARTS_RE = re.compile(r"^\s*(?:RG\s+\d+\s*/\s*\d{4}\s*[–—-]\s*)?(?P<left>.+?)\s+(?:c\.|contro|/)\s+(?P<right>.+?)\s*$", re.IGNORECASE)
+_RG_RE = re.compile(r"\b(?:R\.?\s*G\.?|NRG|N\.?\s*RG)\s*:?\s*0*(?P<num>\d{1,8})(?:\s*/\s*|\s+)(?P<anno>20\d{2})\b", re.IGNORECASE)
+_PEC_RE = re.compile(r"\b[A-Z0-9._%+\-']+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+
+
+def _derive_parties_from_title(title: str) -> tuple[str, str]:
+    clean = re.sub(r"\s+", " ", _text(title))
+    match = _TITLE_PARTS_RE.search(clean)
+    if not match:
+        return "", ""
+    return _display_text(match.group("left")), _display_text(match.group("right"))
+
+
+def _derive_rg_from_text(*values: Any) -> tuple[str, str]:
+    haystack = " ".join(_text(value) for value in values if _text(value))
+    match = _RG_RE.search(haystack)
+    if not match:
+        return "", ""
+    return match.group("num"), match.group("anno")
+
+
+def _is_timestamp_filename(value: str) -> bool:
+    stem = re.sub(r"\.[A-Za-z0-9.]+$", "", _text(value))
+    return bool(re.fullmatch(r"\d{12,20}", stem))
+
+
+def _clean_operational_filename(value: str) -> str:
+    cleaned = _display_text(value)
+    replacements = {
+        "conformit_": "conformità",
+        "identit_": "identità",
+        "annualit_": "annualità",
+        "l¿udienza": "l'udienza",
+        "¿CARTA DEL DOCENTE¿": "Carta del docente",
+        "RG_": "RG ",
+        "_": " ",
+    }
+    for source, target in replacements.items():
+        cleaned = cleaned.replace(source, target)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip(" -")
+    return cleaned
+
+
+def _quickorganizer_note_filename(documento: Any) -> str:
+    note = _text(getattr(documento, "note", ""))
+    if "QuickOrganizer." not in note:
+        return ""
+    candidate = note.split("QuickOrganizer.", 1)[1].strip()
+    if not candidate:
+        return ""
+    candidate = re.split(r"\s+-\s+Depositante:|\s+-\s+Tipologia:|\s+copia informatica|\s+data notifica:", candidate, maxsplit=1, flags=re.IGNORECASE)[0]
+    candidate = _clean_operational_filename(candidate)
+    if not candidate or candidate.lower() in {"scaricato dal polisweb", "conformità"}:
+        return ""
+    return candidate
+
+
+def _clean_ocr_document_title(value: str) -> str:
+    title = _display_text(value)
+    title = title.replace("“", " ").replace("”", " ").replace("«", " ").replace("»", " ")
+    title = re.sub(r"\b(?:c\.?\s*f\.?|codice\s+fiscale|nato\s+a|nata\s+a)\b.*$", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\b(?:stipulato|sottoscritto)\s+tra\b.*$", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s{2,}", " ", title).strip(" .,:;-")
+    if not title:
+        return ""
+    return title[:1].upper() + title[1:160]
+
+
+def _derive_document_title_from_text(text: str) -> str:
+    lines = [
+        _display_text(line)
+        for line in str(text or "").replace("\r", "\n").split("\n")
+        if _display_text(line)
+    ]
+    if not lines:
+        return ""
+    joined = " ".join(lines[:18])
+    upper_joined = joined.upper()
+    if "CONTRATTO INDIVIDUALE DI LAVORO" in upper_joined and "TEMPO DETERMINATO" in upper_joined:
+        return "Contratto individuale di lavoro a tempo determinato"
+    if "CARTA DEL DOCENTE" in upper_joined and "RICORSO" in upper_joined and "RECUPERO" in upper_joined:
+        return "Ricorso per il recupero della Carta del docente"
+    if "CARTA DEL DOCENTE" in upper_joined and "RICHIESTA" in upper_joined and "PAGAMENTO" in upper_joined:
+        return "Richiesta pagamento Carta del docente"
+    if "CORTE SUPREMA DI CASSAZIONE" in upper_joined and "CARTA DOCENTE" in upper_joined and "SENTENZA" in upper_joined:
+        return "Sentenza Cassazione Carta del docente"
+    if "RICORSO EX ART. 414" in upper_joined and (
+        "DIRITTO INSEGNANTI PRECARI" in upper_joined or "LEGGE N. 107/2015" in upper_joined
+    ):
+        return "Ricorso lavoro Carta del docente"
+    if "TRIBUNALE ORDINARIO" in upper_joined and "SENTENZA" in upper_joined and "DOCENTE" in upper_joined and "TEMPO DETERMINATO" in upper_joined:
+        return "Sentenza lavoro personale docente a tempo determinato"
+    if "ATTESTAZIONE DI CONFORMIT" in upper_joined:
+        return "Attestazione di conformità"
+    if "RELATA DI NOTIFICA" in upper_joined:
+        return "Relata di notifica"
+    if "DIRITTO INSEGNANTI PRECARI" in upper_joined and "CARTA DEL DOCENTE" in upper_joined:
+        return "Approfondimento Carta del docente"
+    oggetto = re.search(r"\bOggetto\s*:\s*(.{18,180})", joined, flags=re.IGNORECASE)
+    if oggetto:
+        title = re.split(r"\b(?:Dirigente|PREMESSO|Il/La|Spett\.le)\b|\.\s+[A-Z]", oggetto.group(1), maxsplit=1)[0]
+        title = _clean_ocr_document_title(title)
+        if len(title) >= 16:
+            return title
+    for marker, title in (
+        ("RICORSO", "Ricorso"),
+        ("PROCURA", "Procura alle liti"),
+        ("CONTRATTO INDIVIDUALE DI LAVORO", "Contratto individuale di lavoro"),
+        ("AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE", "Autocertificazione della situazione reddituale"),
+        ("ESENZIONE DAL CONTRIBUTO UNIFICATO", "Dichiarazione esenzione contributo unificato"),
+        ("ATTESTAZIONE DI CONFORMIT", "Attestazione di conformità"),
+        ("RELATA DI NOTIFICA", "Relata di notifica"),
+        ("STUDIO LEGALE", "Comunicazione dello studio legale"),
+    ):
+        if marker in upper_joined:
+            return title
+    for line in lines[:8]:
+        upper = line.upper()
+        if len(line) >= 18 and not upper.startswith(("MINISTERO", "ISTITUTO", "REPUBBLICA", "TRIBUNALE")):
+            return _clean_ocr_document_title(line)[:110]
+    return ""
+
+
+def _resolve_document_path(documento: Any) -> Path | None:
+    raw_path = _text(getattr(documento, "percorso", ""))
+    raw_name = _first_attr(documento, "nome", "nome_originale")
+    if not raw_path and not raw_name:
+        return None
+    candidates: list[Path] = []
+    if raw_path:
+        path = Path(raw_path)
+        if path.is_absolute():
+            candidates.append(path)
+    try:
+        from flask import g
+
+        docs_root = _text((getattr(g, "data_paths", {}) or {}).get("FASCICOLI_DOCS"))
+        if docs_root:
+            if raw_path:
+                candidates.append(Path(docs_root) / raw_path)
+                candidates.append(Path(docs_root) / raw_path.replace("\\", "/"))
+            if raw_name:
+                candidates.extend(Path(docs_root).glob(f"**/{raw_name}"))
+    except Exception:
+        pass
+    for candidate in candidates:
+        try:
+            if candidate.exists() and candidate.is_file():
+                return candidate
+        except OSError:
+            continue
+    return None
+
+
+def _extract_first_page_text(path: Path) -> str:
+    cache_key = ""
+    try:
+        stat = path.stat()
+        cache_key = f"{path}:{stat.st_size}:{int(stat.st_mtime)}"
+        if cache_key in _QUICKORGANIZER_CONTENT_LABEL_CACHE:
+            return _QUICKORGANIZER_CONTENT_LABEL_CACHE[cache_key]
+        if stat.st_size > int(os.getenv("IUSENTRA_NOTIFICHE_OCR_MAX_BYTES", "6000000")):
+            return ""
+    except (OSError, ValueError):
+        return ""
+    extracted = ""
+    try:
+        result = subprocess.run(
+            ["pdftotext", "-l", "1", str(path), "-"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        extracted = _text(result.stdout)
+    except (OSError, subprocess.SubprocessError):
+        extracted = ""
+    if not extracted:
+        with tempfile.TemporaryDirectory(prefix="iusentra-doc-label-") as tmpdir:
+            image_prefix = str(Path(tmpdir) / "page")
+            try:
+                subprocess.run(
+                    ["pdftoppm", "-f", "1", "-l", "1", "-png", "-r", "140", str(path), image_prefix],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                image_path = Path(f"{image_prefix}-1.png")
+                if image_path.exists():
+                    result = subprocess.run(
+                        ["tesseract", str(image_path), "stdout", "-l", "ita", "--psm", "6"],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=18,
+                    )
+                    extracted = _text(result.stdout)
+            except (OSError, subprocess.SubprocessError):
+                extracted = ""
+    if cache_key:
+        _QUICKORGANIZER_CONTENT_LABEL_CACHE[cache_key] = extracted
+    return extracted
+
+
+def _quickorganizer_content_label(documento: Any) -> str:
+    name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
+    marker = _first_attr(documento, "classificazione_portale", "note", "fonte_documento")
+    tags = " ".join(_text(item) for item in (getattr(documento, "tags", []) or []))
+    if not (_is_timestamp_filename(name) and "quickorganizer" in f"{marker} {tags}".lower()):
+        return ""
+    path = _resolve_document_path(documento)
+    if path is None:
+        return ""
+    return _derive_document_title_from_text(_extract_first_page_text(path))
+
+
+def _infer_fallback_recipient_role(name: str) -> str:
+    text = _text(name).lower()
+    if any(token in text for token in ("ministero", "mim", "miur", "avvocatura", "comune", "agenzia", "inps", "inail")):
+        return "pa"
+    if any(token in text for token in ("s.p.a", "spa", "s.r.l", "srl", "banca", "ass.ni", "assicur")):
+        return "impresa"
+    return "controparte"
+
+
+def _recipient_from_plain(
+    *,
+    recipient_id: str,
+    name: str,
+    pec: str = "",
+    represented: str = "",
+    role: str = "",
+    source: str = "",
+) -> dict[str, Any]:
+    clean_name = _display_text(name)
+    clean_pec = _text(pec).lower()
+    resolved_role = role or _infer_fallback_recipient_role(clean_name)
+    resolved_source = source or ("registro_ppaa" if resolved_role == "pa" else "ini_pec")
+    return {
+        "id": recipient_id,
+        "label": clean_name or clean_pec,
+        "nome": clean_name,
+        "codiceFiscalePiva": "",
+        "pec": clean_pec,
+        "ruolo": resolved_role,
+        "ruoloPratica": resolved_role,
+        "fontePecSuggerita": resolved_source,
+        "parteRappresentata": _display_text(represented or clean_name),
+        "verificaRichiesta": bool(clean_pec),
+    }
+
+
+def _recipient_source_from_pec(address: str) -> tuple[str, str]:
+    lower = address.lower()
+    if "avvocaturastato" in lower or "mailcert.avvocaturastato" in lower:
+        return "Avvocatura dello Stato", "reginde"
+    if "istruzione" in lower or "postcert" in lower or "pec.istruzione" in lower:
+        return "Ministero dell'Istruzione e del Merito", "registro_ppaa"
+    return address, "ini_pec"
+
+
+def _recipients_from_document_notes(documenti: list[Any], *, represented: str) -> list[dict[str, Any]]:
+    recipients: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for documento in documenti:
+        note = _text(getattr(documento, "note", ""))
+        for match in _PEC_RE.finditer(note):
+            pec = match.group(0).lower()
+            if pec in seen:
+                continue
+            seen.add(pec)
+            label, source = _recipient_source_from_pec(pec)
+            recipients.append(
+                _recipient_from_plain(
+                    recipient_id=f"pec:{pec}",
+                    name=label,
+                    pec=pec,
+                    represented=represented or label,
+                    role="pa" if source == "registro_ppaa" else "difensore" if source == "reginde" else "",
+                    source=source,
+                )
+            )
+    return recipients
+
+
 def _recipient_from_subject(soggetto: Any, *, ruolo: str = "", note: str = "", fascicolo: Any = None) -> dict[str, Any]:
     pec = _text(getattr(getattr(soggetto, "recapiti", None), "pec", ""))
     role = _infer_recipient_role(soggetto, ruolo)
     source = _infer_public_register(soggetto, ruolo)
-    represented = ""
-    if role == "difensore":
-        represented = _text(note) or _text(getattr(fascicolo, "controparte", ""))
+    represented = _text(note) or _text(getattr(fascicolo, "controparte", ""))
+    if not represented and role in {"difensore", "controparte", "impresa", "professionista", "terzo"}:
+        represented = _text(getattr(soggetto, "nome_completo", "")) or _text(getattr(soggetto, "ragione_sociale", ""))
     return {
         "id": _text(getattr(soggetto, "id", "")),
         "label": _display_text(getattr(soggetto, "nome_completo", "")) or _display_text(getattr(soggetto, "ragione_sociale", "")),
@@ -137,9 +438,11 @@ def _infer_document_origin(documento: Any) -> str:
 
 
 def _document_label(documento: Any) -> str:
-    name = _first_attr(documento, "nome_originale", "nome_portale", "nome", "percorso")
-    description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note")
-    return _display_text(" - ".join(part for part in (name, description) if part))
+    name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
+    operational_name = _quickorganizer_note_filename(documento)
+    if operational_name and (_is_timestamp_filename(name) or "QuickOrganizer" in _first_attr(documento, "classificazione_portale", "note")):
+        name = operational_name
+    return _display_text(name)
 
 
 def _portal_acquisition_href(fascicolo: Any, *, portale: str = "pst") -> str:
@@ -198,10 +501,22 @@ def _document_from_fascicolo(
     *,
     office_names: set[str] | None = None,
     office_hashes: set[str] | None = None,
+    resolve_content_label: bool = False,
 ) -> dict[str, Any]:
     origin = normalise_document_origin(_infer_document_origin(documento))
-    name = _first_attr(documento, "nome_originale", "nome_portale", "nome", "percorso")
-    description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note") or name
+    name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
+    original_name = name
+    operational_name = _quickorganizer_note_filename(documento)
+    raw_description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note")
+    if operational_name and (_is_timestamp_filename(name) or "QuickOrganizer" in raw_description):
+        name = operational_name
+    content_label = _quickorganizer_content_label(documento) if resolve_content_label and not operational_name else ""
+    label = content_label or _document_label(documento) or _display_text(name)
+    description = raw_description or name
+    if operational_name and "QuickOrganizer" in description:
+        description = "Documento importato dal fascicolo"
+    elif content_label and "QuickOrganizer" in description:
+        description = f"Nome file originale: {original_name}"
     portal_ref = _first_attr(documento, "id_documento_portale", "id_portale", "codice_portale", "riferimento_portale")
     source_name = _text(getattr(documento, "fonte_documento", ""))
     portal_service = _first_attr(documento, "servizio_portale", "nome_portale")
@@ -222,8 +537,9 @@ def _document_from_fascicolo(
     )
     return {
         "id": _text(getattr(documento, "id", "")) or name,
-        "label": _document_label(documento) or _display_text(name),
+        "label": label,
         "nomeFile": name,
+        "nomeOriginale": original_name,
         "descrizione": _display_text(description),
         "origine": origin,
         "hashSha256": _text(getattr(documento, "hash_sha256", "")),
@@ -249,10 +565,21 @@ def _cliente_option(cliente: Any) -> dict[str, Any]:
 
 
 def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any = None, pec_emails: list[Any] | None = None) -> dict[str, Any]:
+    title = _text(getattr(fascicolo, "titolo", ""))
+    title_assistito, title_controparte = _derive_parties_from_title(title)
+    derived_numero_rg, derived_anno_rg = _derive_rg_from_text(
+        title,
+        getattr(fascicolo, "note", ""),
+        getattr(fascicolo, "oggetto", ""),
+    )
+    raw_anno_rg = _text(getattr(fascicolo, "anno_rg", ""))
+    numero_rg = _text(getattr(fascicolo, "numero_rg", "")) or derived_numero_rg
+    anno_rg = "" if raw_anno_rg in {"0", "0.0"} else raw_anno_rg
+    anno_rg = anno_rg or derived_anno_rg
     proceeding_present = bool(
         _text(getattr(fascicolo, "tribunale", ""))
-        or _text(getattr(fascicolo, "numero_rg", ""))
-        or _text(getattr(fascicolo, "anno_rg", ""))
+        or numero_rg
+        or anno_rg
     )
     recipients: list[dict[str, Any]] = []
     if soggetti_repo is not None:
@@ -288,6 +615,35 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         _document_from_fascicolo(documento, office_names=office_names, office_hashes=office_hashes)
         for documento in (getattr(fascicolo, "documenti", []) or [])[:60]
     ]
+    client_name = (
+        _text(getattr(cliente, "nome_completo", ""))
+        or _text(getattr(fascicolo, "nome_cliente", ""))
+        or title_assistito
+    )
+    client_cf = _text(getattr(cliente, "identificativo_fiscale", ""))
+    counterpart_name = _text(getattr(fascicolo, "controparte", "")) or title_controparte
+    counterpart_cf = _text(getattr(fascicolo, "cf_controparte", ""))
+    if counterpart_name and not any(
+        _text(item.get("nome")).lower() == counterpart_name.lower()
+        or _text(item.get("label")).lower() == counterpart_name.lower()
+        for item in recipients
+    ):
+        recipients.append(
+            _recipient_from_plain(
+                recipient_id=f"fascicolo:{_text(getattr(fascicolo, 'id', ''))}:controparte",
+                name=counterpart_name,
+                represented=counterpart_name,
+                role=_infer_fallback_recipient_role(counterpart_name),
+                source="",
+            )
+        )
+    for recipient in _recipients_from_document_notes(getattr(fascicolo, "documenti", []) or [], represented=counterpart_name or client_name):
+        recipient_key = _text(recipient.get("pec")).lower() or _text(recipient.get("nome")).lower()
+        if recipient_key and not any(
+            (_text(item.get("pec")).lower() or _text(item.get("nome")).lower()) == recipient_key
+            for item in recipients
+        ):
+            recipients.append(recipient)
     office_documents = [
         documento
         for documento in documents
@@ -304,8 +660,6 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         if proceeding_present
         else "non_rilevato"
     )
-    client_name = _text(getattr(cliente, "nome_completo", "")) or _text(getattr(fascicolo, "nome_cliente", ""))
-    client_cf = _text(getattr(cliente, "identificativo_fiscale", ""))
     label = _display_text(" - ".join(part for part in (_text(getattr(fascicolo, "numero", "")), _text(getattr(fascicolo, "titolo", ""))) if part))
     return {
         "id": _text(getattr(fascicolo, "id", "")),
@@ -315,14 +669,14 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         "assistitoNome": client_name,
         "assistitoCf": client_cf,
         "clienteId": _text(getattr(fascicolo, "id_cliente", "")),
-        "controparte": _text(getattr(fascicolo, "controparte", "")),
-        "controparteCf": _text(getattr(fascicolo, "cf_controparte", "")),
+        "controparte": counterpart_name,
+        "controparteCf": counterpart_cf,
         "procedimento": {
             "presente": proceeding_present,
             "ufficio": _text(getattr(fascicolo, "tribunale", "")),
             "sezione": _text(getattr(fascicolo, "sezione", "")),
-            "numeroRg": _text(getattr(fascicolo, "numero_rg", "")),
-            "annoRg": _text(getattr(fascicolo, "anno_rg", "")),
+            "numeroRg": numero_rg,
+            "annoRg": anno_rg,
             "giudice": _text(getattr(fascicolo, "giudice", "")),
             "tipoProcedimento": _text(getattr(fascicolo, "tipo_procedimento", "")),
         },
@@ -390,6 +744,26 @@ def _build_prefill_payload(*, get_clienti: Any = None, get_fascicoli: Any = None
             "La fonte PEC viene suggerita in base al ruolo e al tipo di soggetto; la verifica sul pubblico elenco resta da confermare.",
             "La data di verifica PEC non viene inventata: va registrata quando l'elenco pubblico viene controllato.",
         ],
+    }
+
+
+def build_react_notifiche_legali_practice_documents_payload(
+    id_fascicolo: str,
+    *,
+    get_fascicoli: Any = None,
+) -> dict[str, Any]:
+    repo = _repo_from_getter(get_fascicoli)
+    fascicolo = _safe_call("fascicolo", lambda: repo.get(_text(id_fascicolo)), None) if repo is not None else None
+    if fascicolo is None:
+        return {"ok": False, "message": "Pratica non trovata.", "documenti": []}
+    documents = [
+        _document_from_fascicolo(documento, resolve_content_label=True)
+        for documento in (getattr(fascicolo, "documenti", []) or [])[:40]
+    ]
+    return {
+        "ok": True,
+        "practiceId": _text(getattr(fascicolo, "id", "")) or _text(id_fascicolo),
+        "documenti": documents,
     }
 
 
@@ -488,6 +862,7 @@ def build_react_notifiche_legali_payload(
             "areaWebPst": "/api/v1/ui/notifiche-legali/area-web-pst",
             "pecCompose": "/email/scrivi?tipo=notifica_l53",
             "clientCompose": "/email-ordinaria/scrivi?tipo=comunicazione_cliente",
+            "firmaDigitale": "/guida/firma-digitale",
             "fascicoli": "/fascicoli",
             "depositoChecklist": "/deposito/checklist",
         },

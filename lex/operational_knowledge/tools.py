@@ -50,7 +50,7 @@ class OperationalKnowledgeTools:
             context,
             query=query,
             limit=limit,
-            manager_factory=lambda: self._manager("clienti", "get_clienti"),
+            manager_factory=lambda: self._manager("clienti", "get_clienti", context),
             search_method="cerca",
             all_method="tutti",
             serializer=serialize_cliente,
@@ -62,7 +62,7 @@ class OperationalKnowledgeTools:
             "clienti",
             context,
             identifier=cliente_id,
-            manager_factory=lambda: self._manager("clienti", "get_clienti"),
+            manager_factory=lambda: self._manager("clienti", "get_clienti", context),
             serializer=serialize_cliente,
             object_type="cliente",
         )
@@ -73,7 +73,7 @@ class OperationalKnowledgeTools:
             context,
             query=query,
             limit=limit,
-            manager_factory=lambda: self._manager("soggetti", "get_soggetti"),
+            manager_factory=lambda: self._manager("soggetti", "get_soggetti", context),
             search_method="cerca",
             all_method="tutti",
             serializer=serialize_soggetto,
@@ -85,7 +85,7 @@ class OperationalKnowledgeTools:
             "soggetti",
             context,
             identifier=soggetto_id,
-            manager_factory=lambda: self._manager("soggetti", "get_soggetti"),
+            manager_factory=lambda: self._manager("soggetti", "get_soggetti", context),
             serializer=serialize_soggetto,
             object_type="soggetto",
         )
@@ -94,7 +94,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("soggetti", context)
         if not decision.allowed:
             return self._blocked("soggetti", decision)
-        manager = self._safe_manager("soggetti", lambda: self._manager("soggetti", "get_soggetti"))
+        manager = self._safe_manager("soggetti", lambda: self._manager("soggetti", "get_soggetti", context))
         if manager is None:
             return self._unavailable("soggetti", "Repository soggetti e parti non disponibile.")
         try:
@@ -118,7 +118,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("soggetti", context)
         if not decision.allowed:
             return self._blocked("soggetti", decision)
-        manager = self._safe_manager("soggetti", lambda: self._manager("soggetti", "get_soggetti"))
+        manager = self._safe_manager("soggetti", lambda: self._manager("soggetti", "get_soggetti", context))
         if manager is None:
             return self._unavailable("soggetti", "Repository soggetti e parti non disponibile.")
         try:
@@ -143,7 +143,7 @@ class OperationalKnowledgeTools:
         decision = self._decision(source_id, context)
         if not decision.allowed:
             return self._blocked(source_id, decision)
-        manager = self._safe_manager(source_id, lambda: self._manager("fascicoli", "get_fascicoli"))
+        manager = self._safe_manager(source_id, lambda: self._manager("fascicoli", "get_fascicoli", context))
         if manager is None:
             return self._unavailable(source_id, "Repository fascicoli non disponibile.")
         try:
@@ -171,7 +171,7 @@ class OperationalKnowledgeTools:
             "fascicoli",
             context,
             identifier=fascicolo_id,
-            manager_factory=lambda: self._manager("fascicoli", "get_fascicoli"),
+            manager_factory=lambda: self._manager("fascicoli", "get_fascicoli", context),
             serializer=serialize_fascicolo,
             object_type="fascicolo",
         )
@@ -180,7 +180,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("scadenziario", context)
         if not decision.allowed:
             return self._blocked("scadenziario", decision)
-        manager = self._safe_manager("scadenziario", lambda: self._manager("scadenziario", "get_scadenziario"))
+        manager = self._safe_manager("scadenziario", lambda: self._manager("scadenziario", "get_scadenziario", context))
         if manager is None:
             return self._unavailable("scadenziario", "Scadenziario non disponibile.")
         try:
@@ -216,7 +216,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("agenda", context)
         if not decision.allowed:
             return self._blocked("agenda", decision)
-        manager = self._safe_manager("agenda", lambda: self._manager("agenda", "get_agenda"))
+        manager = self._safe_manager("agenda", lambda: self._manager("agenda", "get_agenda", context))
         if manager is None:
             return self._unavailable("agenda", "Agenda non disponibile.")
         try:
@@ -242,7 +242,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("agenda", context)
         if not decision.allowed:
             return self._blocked("agenda", decision)
-        manager = self._safe_manager("agenda", lambda: self._manager("agenda", "get_agenda"))
+        manager = self._safe_manager("agenda", lambda: self._manager("agenda", "get_agenda", context))
         if manager is None:
             return self._unavailable("agenda", "Agenda non disponibile.")
         try:
@@ -269,7 +269,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("preventivi", context)
         if not decision.allowed:
             return self._blocked("preventivi", decision)
-        manager = self._safe_manager("preventivi", lambda: self._manager("preventivi", "get_preventivi"))
+        manager = self._safe_manager("preventivi", lambda: self._manager("preventivi", "get_preventivi", context))
         if manager is None:
             return self._unavailable("preventivi", "Repository preventivi non disponibile.")
         rows = list(_call(manager, "tutti_preventivi") or [])
@@ -280,7 +280,7 @@ class OperationalKnowledgeTools:
             "preventivi",
             context,
             identifier=preventivo_id,
-            manager_factory=lambda: self._manager("preventivi", "get_preventivi"),
+            manager_factory=lambda: self._manager("preventivi", "get_preventivi", context),
             get_method="get_preventivo",
             serializer=serialize_generic,
             object_type="preventivo",
@@ -290,7 +290,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("conferimenti", context)
         if not decision.allowed:
             return self._blocked("conferimenti", decision)
-        manager = self._safe_manager("conferimenti", lambda: self._manager("preventivi", "get_preventivi"))
+        manager = self._safe_manager("conferimenti", lambda: self._manager("preventivi", "get_preventivi", context))
         if manager is None:
             return self._unavailable("conferimenti", "Repository conferimenti non disponibile.")
         rows = list(_call(manager, "tutti_conferimenti") or [])
@@ -301,7 +301,7 @@ class OperationalKnowledgeTools:
             "conferimenti",
             context,
             identifier=conferimento_id,
-            manager_factory=lambda: self._manager("preventivi", "get_preventivi"),
+            manager_factory=lambda: self._manager("preventivi", "get_preventivi", context),
             get_method="get_conferimento",
             serializer=serialize_generic,
             object_type="conferimento",
@@ -355,7 +355,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("pagamenti", context)
         if not decision.allowed:
             return self._blocked("pagamenti", decision)
-        manager = self._safe_manager("pagamenti", lambda: self._manager("pagamenti", "get_pagamenti"))
+        manager = self._safe_manager("pagamenti", lambda: self._manager("pagamenti", "get_pagamenti", context))
         if manager is None:
             return self._unavailable("pagamenti", "Repository pagamenti non disponibile.")
         try:
@@ -381,7 +381,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("fascicoli", context)
         if not decision.allowed:
             return self._blocked("fascicoli", decision)
-        manager = self._safe_manager("fascicoli", lambda: self._manager("fascicoli", "get_fascicoli"))
+        manager = self._safe_manager("fascicoli", lambda: self._manager("fascicoli", "get_fascicoli", context))
         if manager is None:
             return self._unavailable("fascicoli", "Repository fascicoli non disponibile.")
         try:
@@ -406,10 +406,16 @@ class OperationalKnowledgeTools:
                 coverage_gaps=["Fascicolo non trovato o non accessibile."],
                 permission=decision,
             )
-        manager = self._safe_manager("fascicoli", lambda: self._manager("fascicoli", "get_fascicoli"))
+        manager = self._safe_manager("fascicoli", lambda: self._manager("fascicoli", "get_fascicoli", context))
         fascicolo = getattr(manager, "get", lambda _id: None)(fascicolo_id) if manager is not None else None
         docs = list(getattr(fascicolo, "documenti", []) or [])
         rows = [serialize_documento(item) for item in docs]
+        for index, row in enumerate(rows[:12]):
+            if _document_ai_excerpt(row.get("anteprima") or row.get("summary") or row.get("content") or row.get("text")):
+                continue
+            extracted = self._document_file_row(manager, fascicolo_id, docs[index])
+            if extracted:
+                row.update(extracted)
         rows.extend(self._document_ai_rows(fascicolo_id, context))
         for row in rows:
             row.setdefault("id_fascicolo", fascicolo_id)
@@ -509,7 +515,7 @@ class OperationalKnowledgeTools:
         repo = self._pec_audit_repository()
         if repo is None:
             return self._unavailable("pec_audit", "Controlli automatici PEC non ancora disponibili.")
-        manager = self._safe_manager("email_pec", lambda: self._email_manager("email_pec"))
+        manager = self._safe_manager("email_pec", lambda: self._email_manager("email_pec", context))
         if manager is None:
             return self._unavailable("pec_audit", "Casella PEC non disponibile per collegare il controllo.")
         try:
@@ -619,7 +625,7 @@ class OperationalKnowledgeTools:
         if not decision.allowed:
             return self._blocked("legal_intelligence", decision)
         try:
-            manager = self._manager("legal_intelligence", "get_legal_intelligence")
+            manager = self._manager("legal_intelligence", "get_legal_intelligence", context)
             alerts = list(_call(manager, "recent_alerts", limit=limit) or [])
             fonti = list(_call(manager, "catalogo_fonti") or [])[:limit]
             rows = [{"kind": "alert", **serialize_generic(item)} for item in alerts]
@@ -709,25 +715,101 @@ class OperationalKnowledgeTools:
     def _unavailable(self, source_id: str, message: str) -> OperationalToolResult:
         return OperationalToolResult(False, source_id, coverage_gaps=[message], blocked_reason="source_unavailable")
 
-    def _manager(self, source_id: str, helper_name: str) -> Any:
+    def _manager(self, source_id: str, helper_name: str, context: OperationalQueryContext | None = None) -> Any:
         if source_id in self.repositories:
             return self.repositories[source_id]
+        tenant_manager = self._tenant_manager(source_id, context)
+        if tenant_manager is not None:
+            return tenant_manager
         if helper_name == "get_messaggi":
+            from pct.messaggi import GestioneMessaggi
+            paths = self._tenant_paths(context)
+            if paths.get("MESSAGGI_DB"):
+                return GestioneMessaggi(config=None, db_path=paths["MESSAGGI_DB"])
             from flask import current_app
 
-            from pct.messaggi import GestioneMessaggi
             from web.services.tenant_paths import tenant_data_path
 
             db_path = tenant_data_path("MESSAGGI_DB", current_app.config.get("MESSAGGI_DB", ""), require_tenant=True)
             return GestioneMessaggi(config=None, db_path=db_path)
         if helper_name == "get_email_pec":
-            return self._email_manager("email_pec")
+            return self._email_manager("email_pec", context)
         if helper_name == "get_email_ordinaria":
-            return self._email_manager("email_ordinaria")
+            return self._email_manager("email_ordinaria", context)
         from web import helpers
 
         helper = getattr(helpers, helper_name)
         return helper()
+
+    def _tenant_paths(self, context: OperationalQueryContext | None) -> dict[str, str]:
+        tenant_id = clean_spaces(getattr(context, "tenant_id", "") if context is not None else "")
+        if not tenant_id:
+            return {}
+        try:
+            from flask import current_app, has_app_context
+
+            if not has_app_context():
+                return {}
+            from pct.tenant import GestioneTenant
+
+            registry = current_app.config.get("TENANTS_REGISTRY", "")
+            if not registry:
+                return {}
+            manager = GestioneTenant(registry_path=registry)
+            if not manager.get(tenant_id):
+                return {}
+            return manager.percorsi_dati(tenant_id, reconcile_aliases=False)
+        except Exception:
+            return {}
+
+    def _tenant_manager(self, source_id: str, context: OperationalQueryContext | None) -> Any | None:
+        paths = self._tenant_paths(context)
+        if not paths:
+            return None
+        try:
+            if source_id == "clienti":
+                from pct.clienti import GestioneClienti
+
+                return GestioneClienti(db_path=paths["CLIENTI_DB"])
+            if source_id == "soggetti":
+                from pct.soggetti import GestioneSoggetti
+
+                return GestioneSoggetti(paths["SOGGETTI_DB"], paths["SOGGETTI_PARTI_DB"])
+            if source_id == "fascicoli":
+                from pct.fascicoli import GestioneFascicoli
+
+                return GestioneFascicoli(
+                    db_path=paths["FASCICOLI_DB"],
+                    documents_dir=paths["FASCICOLI_DOCS"],
+                    archive_dir=paths["FASCICOLI_ARCH"],
+                )
+            if source_id == "agenda":
+                from pct.agenda import Agenda
+
+                return Agenda(db_path=paths["AGENDA_DB"])
+            if source_id == "scadenziario":
+                from pct.scadenziario import GestioneScadenziario
+
+                return GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"])
+            if source_id in {"preventivi", "conferimenti"}:
+                from pct.preventivi import GestionePreventivi
+
+                return GestionePreventivi(db_path=paths["PREVENTIVI_DB"])
+            if source_id == "fatturazione":
+                from pct.fatturazione import GestioneFatturazione
+
+                return GestioneFatturazione(db_path=paths["FATTURAZIONE_DB"])
+            if source_id == "timesheet":
+                from pct.timesheet import GestioneTimesheet
+
+                return GestioneTimesheet(db_path=paths["TIMESHEET_DB"])
+            if source_id == "pagamenti":
+                from pct.pagamenti import GestionePagamenti
+
+                return GestionePagamenti(db_dir=paths["PAGAMENTI_DIR"])
+        except Exception:
+            return None
+        return None
 
     def _safe_manager(self, source_id: str, factory: Callable[[], Any]) -> Any | None:
         if source_id in self.repositories:
@@ -763,7 +845,7 @@ class OperationalKnowledgeTools:
         decision = self._decision(source_id, context)
         if not decision.allowed:
             return self._blocked(source_id, decision)
-        manager = self._safe_manager(source_id, lambda: self._manager(source_id, helper_name))
+        manager = self._safe_manager(source_id, lambda: self._manager(source_id, helper_name, context))
         if manager is None:
             return self._unavailable(source_id, f"Repository {source_id} non disponibile.")
         try:
@@ -772,9 +854,17 @@ class OperationalKnowledgeTools:
             return self._unavailable(source_id, f"Sorgente {source_id} non interrogabile: {exc}")
         return self._rows_result(source_id, context, rows, serialize_generic, object_type, decision)
 
-    def _email_manager(self, source_id: str) -> Any:
+    def _email_manager(self, source_id: str, context: OperationalQueryContext | None = None) -> Any:
         if source_id in self.repositories:
             return self.repositories[source_id]
+        paths = self._tenant_paths(context)
+        if paths:
+            from pct.email_client import GestioneEmailRicevute
+
+            key = "EMAIL_CASELLA_DB" if source_id == "email_pec" else "EMAIL_ORDINARIA_DB"
+            db_path = paths.get(key, "")
+            if db_path:
+                return GestioneEmailRicevute(db_path=db_path)
         from flask import current_app
 
         from pct.email_client import GestioneEmailRicevute
@@ -824,7 +914,7 @@ class OperationalKnowledgeTools:
         decision = self._decision(source_id, context)
         if not decision.allowed:
             return self._blocked(source_id, decision)
-        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id))
+        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id, context))
         if manager is None:
             return self._unavailable(source_id, f"Casella {source_id} non disponibile.")
         try:
@@ -844,7 +934,7 @@ class OperationalKnowledgeTools:
         decision = self._decision(source_id, context)
         if not decision.allowed:
             return self._blocked(source_id, decision)
-        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id))
+        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id, context))
         if manager is None:
             return self._unavailable(source_id, f"Casella {source_id} non disponibile.")
         try:
@@ -871,7 +961,7 @@ class OperationalKnowledgeTools:
         decision = self._decision(source_id, context)
         if not decision.allowed:
             return self._blocked(source_id, decision)
-        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id))
+        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id, context))
         if manager is None:
             return self._unavailable(source_id, f"Casella {source_id} non disponibile.")
         try:
@@ -1076,20 +1166,96 @@ class OperationalKnowledgeTools:
 
     def _document_ai_rows(self, fascicolo_id: str, context: OperationalQueryContext) -> list[dict[str, Any]]:
         try:
-            from flask import current_app
-
             from pct.document_intelligence.repository import DocumentAIRepository
             from pct.document_intelligence.service import DocumentAIService
-            from web.helpers import get_fascicoli
-            from web.services.tenant_paths import tenant_data_path
+            paths = self._tenant_paths(context)
+            if paths:
+                fascicoli_db = paths["FASCICOLI_DB"]
+                fascicoli_manager = self._tenant_manager("fascicoli", context)
+            else:
+                from flask import current_app
+                from web.helpers import get_fascicoli
+                from web.services.tenant_paths import tenant_data_path
 
-            fascicoli_db = tenant_data_path("FASCICOLI_DB", current_app.config.get("FASCICOLI_DB", ""), require_tenant=True)
+                fascicoli_db = tenant_data_path("FASCICOLI_DB", current_app.config.get("FASCICOLI_DB", ""), require_tenant=True)
+                fascicoli_manager = get_fascicoli()
             repository = self.repositories.get("documenti_ai") or DocumentAIRepository.from_fascicoli_db(fascicoli_db)
-            service = DocumentAIService(repository, get_fascicoli())
+            service = DocumentAIService(repository, fascicoli_manager)
             rows = service.list_fascicolo_documents(context.tenant_id or "default", fascicolo_id, context.user)
-            return [serialize_documento(row) for row in rows]
+            payload: list[dict[str, Any]] = []
+            for row in rows:
+                serialized = serialize_documento(row)
+                if serialized.get("status") == "ready" and serialized.get("current_version_id"):
+                    try:
+                        extracted = service.get_fascicolo_document_text(
+                            context.tenant_id or "default",
+                            fascicolo_id,
+                            str(serialized.get("id") or ""),
+                            context.user,
+                        )
+                        excerpt = _document_ai_excerpt(getattr(extracted, "text", "") or "")
+                        if excerpt:
+                            serialized["anteprima"] = excerpt
+                            serialized["summary"] = excerpt
+                            serialized["content"] = excerpt
+                            serialized["extraction_engine"] = getattr(extracted, "extraction_engine", "")
+                            serialized["text_available"] = True
+                    except Exception as exc:
+                        serialized["text_available"] = False
+                        serialized["text_read_warning"] = clean_spaces(str(exc))[:220]
+                payload.append(serialized)
+            return payload
         except Exception:
             return []
+
+    def _document_file_row(self, manager: Any, fascicolo_id: str, document: Any) -> dict[str, Any]:
+        if manager is None or document is None:
+            return {}
+        document_id = clean_spaces(getattr(document, "id", "") or _dict_get(document, "id"))
+        if not document_id:
+            return {}
+        try:
+            resolver = getattr(manager, "percorso_documento_lettura", None)
+            if callable(resolver):
+                path = resolver(fascicolo_id, document_id)
+            else:
+                from pathlib import Path
+
+                root_raw = clean_spaces(str(getattr(manager, "documents_dir", "") or ""))
+                relative = clean_spaces(getattr(document, "percorso", "") or _dict_get(document, "percorso")).replace("\\", "/")
+                if not root_raw or not relative:
+                    return {}
+                root = Path(root_raw).resolve()
+                rel_path = Path(relative)
+                if rel_path.is_absolute():
+                    return {}
+                path = (root / rel_path).resolve()
+                try:
+                    path.relative_to(root)
+                except ValueError:
+                    return {}
+            from pathlib import Path
+
+            path = Path(path)
+            if not path.exists() or not path.is_file():
+                return {"text_available": False, "text_read_warning": "File del documento non trovato nel fascicolo."}
+            from lex.tools._doc_extractor import extract_text_from_file
+
+            text = extract_text_from_file(path)
+            if text.startswith("[Impossibile leggere"):
+                return {"text_available": False, "text_read_warning": _document_ai_excerpt(text, limit=220)}
+            excerpt = _document_ai_excerpt(text)
+            if not excerpt:
+                return {"text_available": False, "text_read_warning": "Documento presente, ma senza testo estraibile in lettura rapida."}
+            return {
+                "anteprima": excerpt,
+                "summary": excerpt,
+                "content": excerpt,
+                "text_available": True,
+                "extraction_engine": "fascicolo_file",
+            }
+        except Exception as exc:
+            return {"text_available": False, "text_read_warning": clean_spaces(str(exc))[:220]}
 
     def _party_belongs_to_tenant(self, context: OperationalQueryContext, row: Any) -> bool:
         if isinstance(row, (tuple, list)):
@@ -1129,6 +1295,15 @@ def _with_action_links(source_id: str, object_type: str, row: dict[str, Any]) ->
             attachments.append(enriched)
         row["allegati"] = attachments
     return row
+
+
+def _document_ai_excerpt(value: Any, *, limit: int = 1200) -> str:
+    text = clean_spaces(value)
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
 
 
 def _action_url(source_id: str, object_type: str, row: dict[str, Any]) -> str:

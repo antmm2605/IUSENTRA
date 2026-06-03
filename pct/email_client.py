@@ -37,6 +37,27 @@ from pct.imap_runtime import (
 )
 
 
+def _normalizza_ricerca_email(value: Any) -> str:
+    text = unicodedata.normalize("NFD", str(value or "").lower())
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    return " ".join(text.split())
+
+
+def _match_ricerca_email(haystack: str, query: str) -> bool:
+    haystack_norm = _normalizza_ricerca_email(haystack)
+    tokens = [token for token in _normalizza_ricerca_email(query).split() if token]
+    if not tokens:
+        return True
+    for token in tokens:
+        if token in haystack_norm:
+            continue
+        stem = token[:-1] if len(token) > 4 and token[-1] in "aeiou" else token
+        if stem and stem != token and stem in haystack_norm:
+            continue
+        return False
+    return True
+
+
 # ------------------------------------------------------------------ Enums / cost.
 
 class CartellaEmail(str):
@@ -1191,16 +1212,28 @@ class GestioneEmailRicevute:
         if data_a:
             emails = [e for e in emails if (e.timestamp or "")[:10] <= data_a]
         if q:
-            ql = q.lower()
+            def _search_text(email_obj: EmailRicevuta) -> str:
+                allegati = " ".join(
+                    str(item.get("nome") or item.get("nome_file") or item.get("filename") or "")
+                    for item in list(email_obj.allegati or [])
+                    if isinstance(item, dict)
+                )
+                return " ".join(
+                    [
+                        email_obj.oggetto,
+                        email_obj.mittente,
+                        email_obj.mittente_nome,
+                        email_obj.corpo_testo,
+                        email_obj.destinatari,
+                        email_obj.corpo_html,
+                        email_obj.stato_pct,
+                        allegati,
+                    ]
+                )
+
             emails = [
                 e for e in emails
-                if ql in e.oggetto.lower()
-                or ql in e.mittente.lower()
-                or ql in e.mittente_nome.lower()
-                or ql in e.corpo_testo.lower()
-                or ql in e.destinatari.lower()
-                or ql in e.corpo_html.lower()
-                or ql in e.stato_pct.lower()
+                if _match_ricerca_email(_search_text(e), q)
             ]
         emails.sort(key=lambda e: e.timestamp, reverse=True)
         return emails

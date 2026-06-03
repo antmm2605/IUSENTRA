@@ -68,12 +68,15 @@ def _pdf_to_text(data: bytes) -> str:
     lines: list[str] = []
     try:
         import pdfplumber
+        from pct.document_intelligence.pdf_quality import score_extracted_text_quality
+
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             for i, page in enumerate(pdf.pages):
                 if i >= _MAX_PAGES:
                     break
                 text = (page.extract_text() or "").strip()
-                if text:
+                quality = score_extracted_text_quality(text)
+                if text and not quality.cid_placeholders and quality.score >= 0.55:
                     lines.append(text)
                 else:
                     # OCR fallback
@@ -127,6 +130,20 @@ def extract_text_from_bytes(data: bytes, filename: str) -> str:
         inner = _extract_p7m(data, filename)
         inner_name = filename[:-4] if filename.lower().endswith(".p7m") else filename
         return extract_text_from_bytes(inner, inner_name)
+
+    try:
+        from pct.document_intelligence.extraction import extract_text_from_document
+        from pct.document_intelligence.pdf_quality import score_extracted_text_quality
+
+        suffix = Path(filename).suffix.lower().lstrip(".")
+        if suffix:
+            result = extract_text_from_document(data, filename, suffix)
+            if result.ok and result.text.strip():
+                quality = score_extracted_text_quality(result.text)
+                if not quality.cid_placeholders and quality.score >= 0.55:
+                    return _normalize(result.text)
+    except Exception:
+        pass
 
     if name_lower.endswith(".pdf"):
         return _normalize(_pdf_to_text(data))

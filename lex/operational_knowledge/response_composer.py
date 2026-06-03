@@ -292,12 +292,18 @@ class OperationalResponseComposer:
             lines.append(f"Documenti del fascicolo collegati o indicizzati: {len(documenti)}.")
             if route.intent == "documenti_fascicolo" and _looks_like_document_analysis(question):
                 lines.append("Punti importanti verificabili dai documenti disponibili:")
-            lines.extend(f"- {_document_line(row)}" for row in documenti[:5])
             if route.intent == "documenti_fascicolo" and _looks_like_document_analysis(question):
+                for row in documenti[:5]:
+                    lines.append(f"- {_document_line(row)}")
+                    excerpt = _document_excerpt(row)
+                    if excerpt:
+                        lines.append(f"  Estratto leggibile: {excerpt}")
                 if any(clean_spaces(row.get("anteprima") or row.get("summary") or row.get("content") or row.get("text")) for row in documenti):
                     lines.append("Ho usato il testo indicizzato disponibile; eventuali sezioni non indicizzate restano da verificare nel documento originale.")
                 else:
                     lines.append("Il testo integrale non risulta disponibile in questa evidenza: non invento contenuti e segnalo solo metadati, data, tipo, hash e link editor.")
+            else:
+                lines.extend(f"- {_document_line(row)}" for row in documenti[:5])
         for source_id, label in (("scadenziario", "Scadenze"), ("agenda", "Agenda"), ("preventivi", "Preventivi"), ("fatturazione", "Parcelle")):
             rows = _data_for(results, source_id)
             if rows:
@@ -730,6 +736,15 @@ def _document_line(row: dict[str, Any]) -> str:
     if clean_spaces(row.get("status")):
         details.append(f"stato {clean_spaces(row.get('status'))}")
     return label + (f" ({'; '.join(details)})." if details else ".")
+
+
+def _document_excerpt(row: dict[str, Any], *, limit: int = 520) -> str:
+    excerpt = clean_spaces(row.get("anteprima") or row.get("summary") or row.get("content") or row.get("text"))
+    if not excerpt:
+        return ""
+    if len(excerpt) <= limit:
+        return excerpt
+    return excerpt[: limit - 3].rstrip() + "..."
 
 
 def _payment_line(row: dict[str, Any]) -> str:

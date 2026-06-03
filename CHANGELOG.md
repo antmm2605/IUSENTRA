@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.249.12 - 2026-06-03
+
+- Rafforzato il presidio PEC reale: l'acquisizione dei MIME locali genera scadenze operative non scadute e le collega all'agenda, con risposta idempotente e messaggio riepilogativo su create, già presenti, scadute ignorate e collegate all'agenda.
+- Corretto il fallback Lex sui fascicoli: quando l'indice DocumentAI non contiene testo, Lex legge in modo sicuro il file già presente nel fascicolo e usa l'estratto nella sintesi, invece di fermarsi a nome, data, hash e link editor.
+- Rafforzata l'estrazione PDF per Lex/DocumentAI: i segnaposto CID residui non vengono più trattati come testo leggibile; il motore tenta OCR e, se non recupera contenuto affidabile, non passa spazzatura alla risposta.
+- Migliorata la superficie Notifiche legali: destinatari suggeriti multipli, parte rappresentata e R.G./anno precompilati dal fascicolo, nomi documenti leggibili, pannello attestazione di conformità, apertura firma digitale e controllo relata con stato operativo.
+
 ## 2.249.11 - 2026-06-03
 
 - Integrati nella Guida Pratica i pacchetti utente `files (10).zip` e `files (11).zip`: aggiunti moduli set15/set16, rigenerata la knowledge base completa e documentata la conversione prudente del caso non coincidente con il codice ministeriale `140035`.

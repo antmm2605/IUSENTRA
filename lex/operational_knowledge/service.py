@@ -445,9 +445,10 @@ class OperationalKnowledgeService:
         return results
 
     def _first_fascicolo_id(self, entity_query: str, context) -> str:
-        result = self.tools.search_fascicoli(entity_query, context, limit=2)
-        if result.ok and len(result.data or []) == 1:
-            return str((result.data or [{}])[0].get("id") or "")
+        for query in _fascicolo_resolution_queries(entity_query):
+            result = self.tools.search_fascicoli(query, context, limit=2)
+            if result.ok and len(result.data or []) == 1:
+                return str((result.data or [{}])[0].get("id") or "")
         return ""
 
     def _all_scadenze(self, context) -> OperationalToolResult:
@@ -455,7 +456,7 @@ class OperationalKnowledgeService:
         decision = self.tools._decision(source_id, context)
         if not decision.allowed:
             return self.tools._blocked(source_id, decision)
-        manager = self.tools._safe_manager(source_id, lambda: self.tools._manager(source_id, "get_scadenziario"))
+        manager = self.tools._safe_manager(source_id, lambda: self.tools._manager(source_id, "get_scadenziario", context))
         if manager is None:
             return self.tools._unavailable(source_id, "Scadenziario non disponibile.")
         try:
@@ -482,6 +483,51 @@ def _policy_blocked_reason(results: list[OperationalToolResult]) -> str:
         if result.blocked_reason in policy_reasons:
             return result.blocked_reason
     return ""
+
+
+_FASCICOLO_RESOLUTION_STOPWORDS = {
+    "agenda",
+    "analisi",
+    "analizza",
+    "aperti",
+    "aperte",
+    "atti",
+    "attivo",
+    "chiave",
+    "documenti",
+    "manca",
+    "mancano",
+    "passi",
+    "prossimi",
+    "punti",
+    "rischi",
+    "scadenze",
+    "sintesi",
+    "timeline",
+}
+
+
+def _fascicolo_resolution_queries(entity_query: str) -> list[str]:
+    """Return progressively narrower queries to resolve a case from a long prompt."""
+
+    original = clean_spaces(entity_query)
+    if not original:
+        return []
+    tokens = [
+        token
+        for token in original.lower().split()
+        if len(token) >= 2 and token not in _FASCICOLO_RESOLUTION_STOPWORDS
+    ]
+    queries: list[str] = [original]
+    for size in (3, 2):
+        for index in range(0, max(len(tokens) - size + 1, 0)):
+            candidate = clean_spaces(" ".join(tokens[index : index + size]))
+            if candidate and candidate not in queries:
+                queries.append(candidate)
+    for token in tokens:
+        if token and token not in queries:
+            queries.append(token)
+    return queries
 
 
 def _apply_conversation_followup(question: str, metadata: dict[str, Any]) -> tuple[str, dict[str, Any]]:

@@ -61,6 +61,7 @@ export type LegalDocumentSuggestion = {
   id: string
   label: string
   nomeFile: string
+  nomeOriginale: string
   descrizione: string
   origine: string
   hashSha256: string
@@ -266,6 +267,7 @@ export type NotificheLegaliData = {
     areaWebPst: string
     pecCompose: string
     clientCompose: string
+    firmaDigitale: string
     fascicoli: string
     depositoChecklist: string
   }
@@ -354,6 +356,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     areaWebPst: '/api/v1/ui/notifiche-legali/area-web-pst',
     pecCompose: '/email/scrivi?tipo=notifica_l53',
     clientCompose: '/email-ordinaria/scrivi?tipo=comunicazione_cliente',
+    firmaDigitale: '/guida/firma-digitale',
     fascicoli: '/fascicoli',
     depositoChecklist: '/deposito/checklist',
   },
@@ -474,6 +477,7 @@ function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
       id: text(row.id),
       label: text(row.label, text(row.nomeFile)),
       nomeFile: text(row.nomeFile),
+      nomeOriginale: text(row.nomeOriginale),
       descrizione: text(row.descrizione),
       origine: text(row.origine, 'originale_informatico'),
       hashSha256: text(row.hashSha256),
@@ -722,6 +726,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       areaWebPst: text(azioni.areaWebPst, emptyNotificheLegaliData.azioni.areaWebPst),
       pecCompose: text(azioni.pecCompose, emptyNotificheLegaliData.azioni.pecCompose),
       clientCompose: text(azioni.clientCompose, emptyNotificheLegaliData.azioni.clientCompose),
+      firmaDigitale: text(azioni.firmaDigitale, emptyNotificheLegaliData.azioni.firmaDigitale),
       fascicoli: text(azioni.fascicoli, emptyNotificheLegaliData.azioni.fascicoli),
       depositoChecklist: text(azioni.depositoChecklist, emptyNotificheLegaliData.azioni.depositoChecklist),
     },
@@ -736,6 +741,18 @@ export async function getNotificheLegaliData(): Promise<NotificheLegaliData> {
   })
   if (!response.ok) return emptyNotificheLegaliData
   return normalisePayload(await response.json())
+}
+
+export async function getNotificheLegaliPracticeDocuments(practiceId: string): Promise<LegalDocumentSuggestion[]> {
+  if (!practiceId) return []
+  const response = await fetch(`/api/v1/ui/notifiche-legali/pratiche/${encodeURIComponent(practiceId)}/documenti`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) return []
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body) || !bool(body.ok)) return []
+  return documentSuggestions(body.documenti)
 }
 
 export async function postLegalWorkflow(endpoint: string, payload: Record<string, unknown>): Promise<LegalWorkflowResult> {

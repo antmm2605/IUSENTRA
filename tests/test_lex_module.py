@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from lex.contracts import LexRequest
 from lex.context.builder import LexContextBuilder
@@ -25,6 +26,62 @@ from web.app import create_app
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_lex_scadenziario_tool_legge_data_scadenza(monkeypatch):
+    from lex.tools import scadenziario_tool
+    from lex.tools.scadenziario_tool import ScadenziarioTool
+
+    class Store:
+        def tutte(self):
+            return [SimpleNamespace(id="sca-pec", titolo="Udienza da PEC", data_scadenza="2026-07-09")]
+
+    monkeypatch.setattr(scadenziario_tool, "_get_scadenziario_store", lambda: Store())
+
+    result = ScadenziarioTool().run(giorni=60)
+
+    assert result["total"] == 1
+    assert result["items"][0]["data_scadenza"] == "2026-07-09"
+
+
+def test_lex_agenda_tool_legge_data_inizio(monkeypatch):
+    from lex.tools import agenda_tool
+    from lex.tools.agenda_tool import AgendaTool
+
+    class Store:
+        def tutti(self):
+            return [SimpleNamespace(id="app-pec", titolo="Presidio PEC", data_inizio="2026-07-09T09:00:00")]
+
+    monkeypatch.setattr(agenda_tool, "_get_agenda_store", lambda: Store())
+
+    result = AgendaTool().run(futuri=True)
+
+    assert result["total"] == 1
+    assert result["items"][0]["data_inizio"] == "2026-07-09T09:00:00"
+
+
+def test_lex_agenda_tool_filtra_giorni_senza_ripescare_vecchi_eventi(monkeypatch):
+    from datetime import date, timedelta
+
+    from lex.tools import agenda_tool
+    from lex.tools.agenda_tool import AgendaTool
+
+    today = date.today()
+
+    class Store:
+        def tutti(self):
+            return [
+                SimpleNamespace(id="old", titolo="Vecchio evento", data_ora="2014-06-27T08:00:00"),
+                SimpleNamespace(id="pec", titolo="Presidio PEC", data_ora=f"{today.isoformat()}T09:00:00"),
+                SimpleNamespace(id="late", titolo="Evento fuori periodo", data_ora=f"{(today + timedelta(days=90)).isoformat()}T09:00:00"),
+            ]
+
+    monkeypatch.setattr(agenda_tool, "_get_agenda_store", lambda: Store())
+
+    result = AgendaTool().run(giorni=60)
+
+    assert result["total"] == 1
+    assert result["items"][0]["id"] == "pec"
 
 
 def _write_studio_config(path: Path) -> None:

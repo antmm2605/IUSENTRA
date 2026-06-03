@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from lex.operational_knowledge.audit import OperationalAuditRecorder
+from lex.operational_knowledge.models import OperationalQueryContext
 from lex.operational_knowledge.permission_guard import resolve_query_context
 from lex.operational_knowledge.query_router import OperationalQueryRouter
 from lex.operational_knowledge.service import OperationalKnowledgeService
@@ -383,6 +384,59 @@ def test_operational_knowledge_feature_flag_off_returns_none():
     assert answer is None
 
 
+def test_operational_knowledge_document_analysis_usa_testo_indicizzato():
+    repositories = _base_repositories()
+    fascicolo = repositories["fascicoli"].rows[0]
+    fascicolo.documenti[0].anteprima = (
+        "Il ricorso espone opposizione a decreto ingiuntivo, eccezione sulla prova del credito "
+        "e richiesta di sospensione della provvisoria esecutorietà."
+    )
+    service, user = _service(repositories=repositories)
+
+    answer = service.answer(
+        question="Fammi una sintesi del fascicolo attivo: documenti chiave, rischi aperti, cosa manca e prossimi passi.",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        metadata={"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+    )
+
+    assert answer is not None
+    assert "Estratto leggibile" in answer.answer
+    assert "opposizione a decreto ingiuntivo" in answer.answer
+    assert "non invento contenuti" not in answer.answer
+
+
+def test_operational_knowledge_document_analysis_legge_file_fascicolo_se_indice_ai_manca(tmp_path: Path):
+    repositories = _base_repositories()
+    fascicolo = repositories["fascicoli"].rows[0]
+    fascicolo.documenti[0].anteprima = ""
+    fascicolo.documenti[0].summary = ""
+    fascicolo.documenti[0].percorso = "fas-1/ricorso.txt"
+    documents_dir = tmp_path / "documenti"
+    document_path = documents_dir / "fas-1" / "ricorso.txt"
+    document_path.parent.mkdir(parents=True)
+    document_path.write_text(
+        "Il fascicolo Betti C. MIM contiene contratti scolastici, rischio di decadenza "
+        "e termine lungo di impugnazione da presidiare.",
+        encoding="utf-8",
+    )
+    repositories["fascicoli"].documents_dir = documents_dir
+    service, user = _service(repositories=repositories)
+
+    answer = service.answer(
+        question="Fammi una sintesi del fascicolo attivo: documenti chiave, rischi aperti, cosa manca e prossimi passi.",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        metadata={"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+    )
+
+    assert answer is not None
+    assert "Estratto leggibile" in answer.answer
+    assert "contratti scolastici" in answer.answer
+    assert "termine lungo di impugnazione" in answer.answer
+    assert "Il testo integrale non risulta disponibile" not in answer.answer
+
+
 def test_operational_knowledge_settings_default_on(monkeypatch):
     monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
 
@@ -512,6 +566,81 @@ def test_deadline_and_agenda_retrieval_are_structured():
     assert answer is not None
     assert "Scadenze consultabili" in answer.answer
     assert any(source.source_id in {"agenda", "scadenziario"} for source in answer.sources)
+
+
+def test_scadenziario_non_filtra_studio_id_tecnico_come_tenant():
+    repositories = _base_repositories()
+    repositories["scadenziario"] = _ScadenziarioManager(
+        [
+            SimpleNamespace(
+                id="sca-pec-1",
+                titolo="Udienza da PEC",
+                data_scadenza="2026-07-09",
+                note="PEC_AUDIT:pec-test",
+                studio_id="default-studio",
+            )
+        ]
+    )
+    service, user = _service(repositories=repositories)
+
+    answer = service.answer(question="Quali scadenze ho questa settimana?", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    assert "Scadenze consultabili: 1" in answer.answer
+    assert "Udienza da PEC" in answer.answer
+    assert not any("tenant diverso" in gap for gap in answer.coverage_gaps)
+
+
+def test_all_scadenze_passa_contesto_tenant_al_manager():
+    service, user = _service(repositories={})
+    calls: list[str] = []
+
+    def fake_manager(source_id: str, helper_name: str, context=None):
+        calls.append(str(getattr(context, "tenant_id", "") or ""))
+        assert source_id == "scadenziario"
+        assert helper_name == "get_scadenziario"
+        return _ScadenziarioManager(
+            [
+                SimpleNamespace(
+                    id="sca-tenant-1",
+                    titolo="Presidio PEC tenant",
+                    data_scadenza="2026-07-09",
+                    note="PEC_AUDIT:pec-tenant",
+                )
+            ]
+        )
+
+    service.tools._manager = fake_manager
+    context = OperationalQueryContext(
+        tenant_id="tenant-a",
+        user_id=user.id,
+        user=user,
+        permissions=_all_permissions(),
+    )
+
+    result = service._all_scadenze(context)
+
+    assert result.ok
+    assert calls == ["tenant-a"]
+    assert result.data[0]["titolo"] == "Presidio PEC tenant"
+
+
+def test_fascicolo_route_risolve_domanda_lunga_senza_perdere_il_nucleo_pratica():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(
+        question=(
+            "Fammi una sintesi del fascicolo Rossi Bianchi: "
+            "documenti chiave, rischi aperti, cosa manca e prossimi passi."
+        ),
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+    )
+
+    assert answer is not None
+    assert "Fascicolo: Rossi / Bianchi" in answer.answer
+    assert "Documenti del fascicolo collegati o indicizzati" in answer.answer
+    assert not any("Nessun dato reale disponibile dalla sorgente fascicoli" in gap for gap in answer.coverage_gaps)
 
 
 def test_preventivo_conferimento_and_billing_do_not_invent_amounts():

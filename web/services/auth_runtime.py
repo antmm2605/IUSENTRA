@@ -318,11 +318,13 @@ def register_auth_runtime(
         last = session.get("last_activity")
         if last:
             try:
-                delta = datetime.now() - datetime.fromisoformat(last)
+                last_activity = datetime.fromisoformat(last)
+                now = datetime.now(tz=last_activity.tzinfo) if last_activity.tzinfo else datetime.now()
+                delta = now - last_activity
                 if delta.total_seconds() > 8 * 3600:
                     session.clear()
                     return redirect(url_for("login", next=request.full_path.rstrip("?"), timeout=1))
-            except ValueError:
+            except (TypeError, ValueError):
                 pass
 
         session["last_activity"] = datetime.now().isoformat()
@@ -454,7 +456,14 @@ def register_auth_runtime(
             return None
         if any(
             str(request.path or "").startswith(prefix)
-            for prefix in ("/support/join/", "/support/operatore/", "/support/api/", "/support/ws/", "/web/")
+            for prefix in (
+                "/support/join/",
+                "/support/operatore/",
+                "/support/api/",
+                "/support/ws/",
+                "/web/",
+                "/api/pec/",
+            )
         ):
             return None
         if request.endpoint and request.endpoint.startswith(("api_", "portale")):

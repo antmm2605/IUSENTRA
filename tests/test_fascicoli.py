@@ -53,6 +53,26 @@ def test_gestione_fascicoli_deriva_documenti_e_archivio_dal_db_path_quando_non_s
     assert gf.archive_dir == db_path.parent / "archivio"
 
 
+def test_percorso_documento_lettura_normalizza_separatori_windows(gf, fascicolo_base):
+    fasc_dir = gf.documents_dir / fascicolo_base.id
+    fasc_dir.mkdir(parents=True, exist_ok=True)
+    target = fasc_dir / "atto.pdf"
+    target.write_bytes(b"%PDF-1.4 test")
+    doc = Documento(
+        id="DOCWIN01",
+        nome="atto.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        percorso=f"{fascicolo_base.id}\\atto.pdf",
+        dimensione_bytes=target.stat().st_size,
+        hash_sha256="",
+    )
+    fascicolo_base.documenti.append(doc)
+    gf._salva()
+
+    assert gf.percorso_documento(fascicolo_base.id, doc.id) == target
+    assert gf.percorso_documento_lettura(fascicolo_base.id, doc.id) == target
+
+
 # ------------------------------------------------------------------ CRUD
 
 def test_crea_fascicolo(fascicolo_base):

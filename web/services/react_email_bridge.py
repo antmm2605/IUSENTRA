@@ -10,6 +10,7 @@ from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+import unicodedata
 from urllib.parse import quote
 
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
@@ -42,6 +43,27 @@ def _short_text(value: Any, limit: int = 180) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "..."
+
+
+def _normalise_search(value: Any) -> str:
+    text = unicodedata.normalize("NFD", _safe_text(value).lower())
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    return " ".join(text.split())
+
+
+def _matches_search(haystack: str, query: str) -> bool:
+    haystack_norm = _normalise_search(haystack)
+    tokens = [token for token in _normalise_search(query).split() if token]
+    if not tokens:
+        return True
+    for token in tokens:
+        if token in haystack_norm:
+            continue
+        stem = token[:-1] if len(token) > 4 and token[-1] in "aeiou" else token
+        if stem and stem != token and stem in haystack_norm:
+            continue
+        return False
+    return True
 
 
 def _pec_quality_label(value: str) -> tuple[str, str]:
@@ -410,9 +432,11 @@ def _pec_audit_text(summary: dict[str, Any]) -> str:
     parts = [
         headers.get("subject"),
         headers.get("from"),
+        headers.get("to"),
         summary.get("body_text"),
         report.get("event_type"),
         " ".join(str(item.get("title") or "") for item in list(report.get("issues") or []) if isinstance(item, dict)),
+        " ".join(str(item.get("filename") or item.get("name") or "") for item in list(summary.get("attachments") or []) if isinstance(item, dict)),
     ]
     return " ".join(_safe_text(item).lower() for item in parts if _safe_text(item))
 
@@ -434,7 +458,7 @@ def _pec_audit_matches_filters(
     attachments = list(summary.get("attachments") or [])
     if con_allegati and not attachments:
         return False
-    if query and query.strip().lower() not in _pec_audit_text(summary):
+    if query and not _matches_search(_pec_audit_text(summary), query):
         return False
     report = summary.get("validation_report") if isinstance(summary.get("validation_report"), dict) else {}
     if stato_pct:
@@ -874,7 +898,7 @@ def build_react_email_payload(
             "sync": sync_href,
             "bulkAction": "/api/v1/ui/email/bulk-action" if include_telematic else "/api/v1/ui/email-ordinaria/bulk-action",
             "autoEsiti": auto_esiti_path if include_telematic else "",
-            "pecLocalAcquire": "/api/pec/email/acquisisci-locali?limit=250" if include_telematic else "",
+            "pecLocalAcquire": "/api/pec/email/acquisisci-locali?limit=1500" if include_telematic else "",
             "operationalInbox": f"{base}/",
             "localPecTest": local_test_path,
             "legalNotice": "/notifiche-legali",

@@ -341,6 +341,18 @@ def test_auth_guard_keeps_login_public_and_redirects_protected_routes(tmp_path: 
     assert protected.headers["Location"].endswith("/login?next=/profilo")
 
 
+def test_auth_guard_keeps_pec_api_json_instead_of_login_redirect(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        response = client.get("/api/pec/messages")
+
+    assert response.status_code == 401
+    assert response.is_json
+    assert response.get_json()["errore"] == "Autenticazione richiesta."
+
+
 def test_api_pronto_restituisce_subito_stato_pronto(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))

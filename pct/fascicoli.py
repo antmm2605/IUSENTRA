@@ -2065,7 +2065,7 @@ class GestioneFascicoli:
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato.")
-        return self.documents_dir / doc.percorso
+        return self.documents_dir / Path(str(doc.percorso or "").replace("\\", "/"))
 
     def percorso_documento_lettura(self, id_fasc: str, id_doc: str) -> Path:
         """Restituisce il file del documento, con recupero best-effort per duplicati storici.
@@ -2080,10 +2080,10 @@ class GestioneFascicoli:
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato.")
-        direct = self.documents_dir / doc.percorso
+        rel = Path(str(doc.percorso or "").replace("\\", "/"))
+        direct = self.documents_dir / rel
         if direct.exists():
             return direct
-        rel = Path(doc.percorso)
         if not rel.name:
             return direct
         fasc_dir = self.documents_dir / rel.parent

@@ -147,6 +147,70 @@ def test_document_ai_extraction_pdf_scansionato_usa_ocr_quando_il_testo_manca(mo
     assert any("OCR applicato" in warning for warning in result.warnings)
 
 
+def test_document_ai_extraction_pdf_con_cid_residui_usa_ocr(monkeypatch):
+    class FakePdfPlumberPage:
+        def extract_text(self):
+            return "(cid:0)(cid:1)(cid:2)(cid:3)(cid:4)(cid:5)"
+
+    class FakePdfPlumberDocument:
+        pages = [FakePdfPlumberPage()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    class FakeBitmap:
+        def to_pil(self):
+            return object()
+
+        def close(self):
+            return None
+
+    class FakePdfiumPage:
+        def render(self, *, scale: float):
+            assert scale >= 1.0
+            return FakeBitmap()
+
+        def close(self):
+            return None
+
+    class FakePdfiumDocument:
+        def __init__(self, content: bytes):
+            assert content.startswith(b"%PDF")
+
+        def __len__(self):
+            return 1
+
+        def __getitem__(self, index: int):
+            assert index == 0
+            return FakePdfiumPage()
+
+        def close(self):
+            return None
+
+    monkeypatch.setitem(
+        sys.modules,
+        "pdfplumber",
+        SimpleNamespace(open=lambda _stream: FakePdfPlumberDocument()),
+    )
+    monkeypatch.setitem(sys.modules, "pypdfium2", SimpleNamespace(PdfDocument=FakePdfiumDocument))
+    monkeypatch.setitem(
+        sys.modules,
+        "pytesseract",
+        SimpleNamespace(image_to_string=lambda _image, lang: "Contratto scolastico Betti Alice"),
+    )
+
+    result = extract_text_from_document(b"%PDF-1.7\n% cid", "contratto.pdf", "pdf")
+
+    assert result.ok is True
+    assert result.extraction_engine == "pdfplumber+ocr"
+    assert "(cid:" not in result.text
+    assert "Contratto scolastico Betti Alice" in result.text
+    assert any("CID" in warning for warning in result.warnings)
+
+
 def test_document_ai_extraction_p7m_esterno_usa_payload_firmato(tmp_path: Path, monkeypatch):
     pytest.importorskip("reportlab")
     from reportlab.pdfgen import canvas

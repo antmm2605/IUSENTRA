@@ -171,6 +171,7 @@ class Agenda:
         data_ora: str,
         durata_minuti: int = 60,
         luogo: str = "",
+        allow_overlap: bool = False,
         **kwargs,
     ) -> Appuntamento:
         """
@@ -188,12 +189,13 @@ class Agenda:
             Appuntamento creato
         """
         # Controlla sovrapposizioni
-        sovrapposizioni = self._controlla_sovrapposizioni(data_ora, durata_minuti)
-        if sovrapposizioni:
-            titoli = ", ".join(a.titolo for a in sovrapposizioni)
-            raise ValueError(
-                f"Sovrapposizione con appuntamento/i esistente/i: {titoli}"
-            )
+        if not allow_overlap:
+            sovrapposizioni = self._controlla_sovrapposizioni(data_ora, durata_minuti)
+            if sovrapposizioni:
+                titoli = ", ".join(a.titolo for a in sovrapposizioni)
+                raise ValueError(
+                    f"Sovrapposizione con appuntamento/i esistente/i: {titoli}"
+                )
 
         app = Appuntamento(
             id=uuid.uuid4().hex[:8].upper(),
@@ -482,6 +484,7 @@ class Agenda:
         profile_id: str = "",
         default_tipo: TipoAppuntamento | str | None = None,
         reminder_minuti: int = 60,
+        allow_overlap: bool = False,
         now: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         payload = self._payload_da_evento_importato(
@@ -500,17 +503,18 @@ class Agenda:
         )
 
         if esistente:
-            conflitti = self._controlla_sovrapposizioni(
-                payload["data_ora"],
-                int(payload["durata_minuti"]),
-                exclude_id=esistente.id,
-            )
-            if conflitti:
-                return {
-                    "outcome": "conflict",
-                    "appuntamento": esistente,
-                    "message": ", ".join(a.titolo for a in conflitti),
-                }
+            if not allow_overlap:
+                conflitti = self._controlla_sovrapposizioni(
+                    payload["data_ora"],
+                    int(payload["durata_minuti"]),
+                    exclude_id=esistente.id,
+                )
+                if conflitti:
+                    return {
+                        "outcome": "conflict",
+                        "appuntamento": esistente,
+                        "message": ", ".join(a.titolo for a in conflitti),
+                    }
             campi_verifica = (
                 "titolo",
                 "tipo",
@@ -539,16 +543,17 @@ class Agenda:
                 "message": "Evento esterno aggiornato.",
             }
 
-        conflitti = self._controlla_sovrapposizioni(
-            payload["data_ora"],
-            int(payload["durata_minuti"]),
-        )
-        if conflitti:
-            return {
-                "outcome": "conflict",
-                "appuntamento": None,
-                "message": ", ".join(a.titolo for a in conflitti),
-            }
+        if not allow_overlap:
+            conflitti = self._controlla_sovrapposizioni(
+                payload["data_ora"],
+                int(payload["durata_minuti"]),
+            )
+            if conflitti:
+                return {
+                    "outcome": "conflict",
+                    "appuntamento": None,
+                    "message": ", ".join(a.titolo for a in conflitti),
+                }
 
         creato = self.aggiungi(
             titolo=payload.pop("titolo"),
@@ -556,6 +561,7 @@ class Agenda:
             data_ora=payload.pop("data_ora"),
             durata_minuti=payload.pop("durata_minuti"),
             luogo=payload.pop("luogo"),
+            allow_overlap=allow_overlap,
             **payload,
         )
         return {

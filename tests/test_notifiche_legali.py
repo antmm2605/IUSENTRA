@@ -28,6 +28,7 @@ from pct.notifiche_legali import (
 )
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
+from web.services import react_notifiche_legali_bridge
 from web.services.react_notifiche_legali_bridge import build_react_notifiche_legali_payload
 
 
@@ -1129,10 +1130,10 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     )
     documento = SimpleNamespace(
         id="doc-1",
-        nome_originale="ordinanza_rg_1234_2026.pdf",
+        nome_originale="20260510185021337.PDF",
         nome_portale="",
-        nome="ordinanza.pdf",
-        percorso="ordinanza.pdf",
+        nome="Ordinanza udienza 10 maggio 2026.pdf",
+        percorso="20260510185021337.PDF",
         tipo_atto_portale="ordinanza emessa dal Tribunale di Roma",
         classificazione_portale="",
         note="",
@@ -1187,8 +1188,14 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
 
     assert pratica["assistitoNome"] == "Cliente S.r.l."
     assert pratica["procedimento"]["ufficio"] == "Tribunale di Roma"
+    assert pratica["procedimento"]["numeroRg"] == "1234"
+    assert pratica["procedimento"]["annoRg"] == "2026"
     assert destinatario["pec"] == "alfa@example.pec.it"
     assert destinatario["fontePecSuggerita"] == "ini_pec"
+    assert destinatario["parteRappresentata"] == "Alfa S.p.A."
+    assert documento_payload["nomeFile"] == "Ordinanza udienza 10 maggio 2026.pdf"
+    assert documento_payload["label"].startswith("Ordinanza udienza 10 maggio 2026.pdf")
+    assert "20260510185021337.PDF" not in documento_payload["label"]
     assert documento_payload["origine"] == "copia_fascicolo_informatico"
     assert documento_payload["riferimentoPortale"] == "pst-doc-1"
     assert documento_payload["servizioPortale"] == "PST"
@@ -1198,6 +1205,169 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert documento_payload["necessitaAttestazione"] is True
     assert pratica["portaleAcquisizioneHref"].startswith("/portali/pst/acquisizione?")
     assert pratica["documentoUfficioMonitor"]["stato"] == "da_verificare"
+    assert payload["azioni"]["firmaDigitale"] == "/guida/firma-digitale"
+
+
+def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_quickorganizer():
+    documento = SimpleNamespace(
+        id="doc-quick-1",
+        nome_originale="20260510185021337.PDF",
+        nome_portale="",
+        nome="20260510185021337.PDF",
+        percorso="20260510185021337.PDF",
+        tipo_atto_portale="",
+        classificazione_portale="QuickOrganizer",
+        note=(
+            "Import QuickOrganizer. Ricorso Lisciotto.pdf - Depositante: Studio. "
+            "PEC: ads.rc@mailcert.avvocaturastato.it; dgosv@postcert.istruzione.it"
+        ),
+        fonte_documento="PORTALE_TELEMATICO",
+        servizio_portale="PST",
+        hash_sha256="f" * 64,
+        data_documento="2026-05-10",
+        data_deposito_portale="",
+        id_documento_portale="",
+        tags=[],
+    )
+    fascicolo = SimpleNamespace(
+        id="fascicolo-quick",
+        numero="2026/332",
+        titolo="RG 2048/2025 - Lorenzetto II c. MIM",
+        id_cliente="",
+        nome_cliente="",
+        controparte="",
+        cf_controparte="",
+        tribunale="Tribunale di Milano",
+        sezione="",
+        numero_rg="",
+        anno_rg=0,
+        giudice="",
+        tipo_procedimento="",
+        documenti=[documento],
+        depositi_pct=[],
+        note="",
+        oggetto="",
+    )
+
+    payload = build_react_notifiche_legali_payload(
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
+        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
+    )
+
+    pratica = payload["precompilazione"]["pratiche"][0]
+    recipient_names = {item["nome"] for item in pratica["destinatari"]}
+    recipient_pecs = {item["pec"] for item in pratica["destinatari"] if item["pec"]}
+    documento_payload = pratica["documenti"][0]
+
+    assert pratica["assistitoNome"] == "Lorenzetto II"
+    assert pratica["controparte"] == "MIM"
+    assert pratica["procedimento"]["numeroRg"] == "2048"
+    assert pratica["procedimento"]["annoRg"] == "2025"
+    assert "MIM" in recipient_names
+    assert "ads.rc@mailcert.avvocaturastato.it" in recipient_pecs
+    assert "dgosv@postcert.istruzione.it" in recipient_pecs
+    assert documento_payload["nomeFile"] == "Ricorso Lisciotto.pdf"
+    assert documento_payload["label"] == "Ricorso Lisciotto.pdf"
+    assert "QuickOrganizer" not in documento_payload["label"]
+
+
+def test_payload_documenti_pratica_idrata_nome_timestamp_da_contenuto(monkeypatch):
+    documento = SimpleNamespace(
+        id="doc-ocr",
+        nome="20260510185021337.PDF",
+        nome_originale="20260510185021337.PDF",
+        nome_portale="",
+        percorso="fascicolo-1\\20260510185021337.PDF",
+        tipo_atto_portale="",
+        classificazione_portale="QuickOrganizer",
+        note="Import QuickOrganizer. ",
+        fonte_documento="IMPORT_ESTERNO",
+        servizio_portale="",
+        hash_sha256="",
+        data_documento="",
+        data_deposito_portale="",
+        id_documento_portale="",
+        tags=["quickorganizer"],
+    )
+    fascicolo = SimpleNamespace(id="fascicolo-1", documenti=[documento])
+
+    monkeypatch.setattr(
+        react_notifiche_legali_bridge,
+        "_quickorganizer_content_label",
+        lambda _documento: "Contratto individuale di lavoro a tempo determinato",
+    )
+
+    payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_documents_payload(
+        "fascicolo-1",
+        get_fascicoli=lambda: SimpleNamespace(get=lambda id_fascicolo: fascicolo if id_fascicolo == "fascicolo-1" else None),
+    )
+
+    documento_payload = payload["documenti"][0]
+
+    assert payload["ok"] is True
+    assert documento_payload["label"] == "Contratto individuale di lavoro a tempo determinato"
+    assert documento_payload["nomeFile"] == "20260510185021337.PDF"
+    assert documento_payload["nomeOriginale"] == "20260510185021337.PDF"
+
+
+def test_deriva_titolo_documento_da_testo_ocr():
+    text = """
+    ISTITUTO COMPRENSIVO IC 2 E 4 DI VICENZA
+    Oggetto: contratto individuale di lavoro a tempo determinato stipulato tra il
+    Dirigente scolastico e il sig. Rossi Mario
+    """
+
+    assert (
+        react_notifiche_legali_bridge._derive_document_title_from_text(text)
+        == "Contratto individuale di lavoro a tempo determinato"
+    )
+
+
+def test_deriva_titoli_documenti_carta_docente_da_testo_ocr():
+    richiesta = """
+    Oggetto: Richiesta pagamento annualità “CARTA DEL DOCENTE” Grosso Angelo Eugenio, C.F.
+    """
+    ricorso = """
+    STUDIO LEGALE
+    Ricorso per il recupero della cd. carta del docente
+    Tribunale di Milano
+    """
+
+    assert react_notifiche_legali_bridge._derive_document_title_from_text(richiesta) == "Richiesta pagamento Carta del docente"
+    assert react_notifiche_legali_bridge._derive_document_title_from_text(ricorso) == "Ricorso per il recupero della Carta del docente"
+
+
+def test_deriva_titoli_provvedimenti_carta_docente_da_ocr_reale():
+    ricorso_lavoro = """
+    STUDIO LEGALE MONTAGNESE Tribunale Civile di Vicenza SEZIONE LAVORO
+    Ricorso ex Art. 414 C.p.c. contro MINISTERO DELL'ISTRUZIONE E DEL MERITO.
+    OGGETTO: Diritto insegnanti precari e personale educativo ad usufruire del beneficio previsto dall'art. 1 della Legge n. 107/2015.
+    """
+    cassazione = """
+    REPUBBLICA ITALIANA IN NOME DEL POPOLO ITALIANO LA CORTE SUPREMA DI CASSAZIONE SEZIONE LAVORO.
+    Oggetto: Composta dagli Ill.mi Sigg.ri Magistrati. CARTA DOCENTE. Ha pronunciato la seguente SENTENZA.
+    """
+    sentenza_lavoro = """
+    REPUBBLICA ITALIANA TRIBUNALE ORDINARIO di VICENZA SETTORE LAVORO.
+    Ha pronunciato la seguente SENTENZA. Oggetto: Altre ipotesi. docente a tempo determinato.
+    """
+
+    assert react_notifiche_legali_bridge._derive_document_title_from_text(ricorso_lavoro) == "Ricorso lavoro Carta del docente"
+    assert react_notifiche_legali_bridge._derive_document_title_from_text(cassazione) == "Sentenza Cassazione Carta del docente"
+    assert (
+        react_notifiche_legali_bridge._derive_document_title_from_text(sentenza_lavoro)
+        == "Sentenza lavoro personale docente a tempo determinato"
+    )
+
+
+def test_ui_notifiche_legali_carica_relata_firmata_nel_flusso_operativo():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    assert "handleSignedRelataFile" in page
+    assert "Carica relata firmata" in page
+    assert "relata_sha256" in page
+    assert "setNotifica((current) => ({ ...current, relata_firmata: true }))" in page
 
 
 def test_payload_react_notifiche_legali_segnala_pec_ufficio_da_collegare(monkeypatch):

@@ -138,12 +138,11 @@ class OperationalPermissionGuard:
         if not context.tenant_id:
             return True
         if isinstance(record, dict):
-            raw_tenant = record.get("tenant_id") or record.get("tenant_slug") or record.get("studio_id")
+            raw_tenant = record.get("tenant_id") or record.get("tenant_slug")
         else:
             raw_tenant = (
                 getattr(record, "tenant_id", "")
                 or getattr(record, "tenant_slug", "")
-                or getattr(record, "studio_id", "")
             )
         value = _clean(raw_tenant)
         if not value:

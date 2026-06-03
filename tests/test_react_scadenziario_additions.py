@@ -31,6 +31,10 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "calculateProcessDeadline" in page_source
     assert "createProcessDeadline" in page_source
     assert "Hash audit" in page_source
+    assert "formatItalianDate(result.deadline)" in page_source
+    assert "formatItalianDate(step.date)" in page_source
+    assert "Il risultato mostrerà la data" in page_source
+    assert "mostrera" not in page_source
     assert "OperativeCards" in page_source
     assert "Completa selezionate" in page_source
     assert "Elimina selezionate" in page_source

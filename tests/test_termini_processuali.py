@@ -45,6 +45,8 @@ def test_sospensione_feriale_salta_agosto_con_regola_versionata():
     )
 
     assert result["deadline"] == "2026-09-04"
+    assert "La scadenza finale è 04/09/2026." in result["explanation"]
+    assert "e'" not in result["explanation"]
     assert "ferial_suspension_1_31_august" in result["rulesApplied"]
     assert result["rulesetVersion"]
     assert result["calendarVersion"]

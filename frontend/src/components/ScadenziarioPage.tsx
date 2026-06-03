@@ -82,6 +82,13 @@ const priorityWeight: Record<ScadenziarioPriority, number> = {
   BASSA: 3,
 }
 
+function formatItalianDate(value?: string): string {
+  if (!value) return '-'
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return value
+  return `${match[3]}/${match[2]}/${match[1]}`
+}
+
 function initialView(): ScadenziarioView {
   const params = new URLSearchParams(window.location.search)
   const raw = params.get('vista') || 'aperte'
@@ -460,7 +467,7 @@ function ProcessDeadlineCalculator({
             <>
               <div className="iu-scad-calculator__deadline">
                 <span>Scadenza calcolata</span>
-                <strong>{result.deadline}</strong>
+                <strong>{formatItalianDate(result.deadline)}</strong>
                 <Badge tone={result.confidence === 'alta' ? 'success' : result.confidence === 'media' ? 'warning' : 'danger'}>confidenza {result.confidence}</Badge>
               </div>
               <p>{result.explanation}</p>
@@ -468,7 +475,7 @@ function ProcessDeadlineCalculator({
                 {result.rulesApplied.map((rule) => <Badge tone="neutral" key={rule}>{rule.split('_').join(' ')}</Badge>)}
               </div>
               <ol>
-                {result.steps.slice(0, 6).map((step) => <li key={`${step.code}-${step.date}`}>{step.date} · {step.label}</li>)}
+                {result.steps.slice(0, 6).map((step) => <li key={`${step.code}-${step.date}`}>{formatItalianDate(step.date)} · {step.label}</li>)}
               </ol>
               <dl>
                 <div><dt>Motore</dt><dd>{result.engineVersion}</dd></div>
@@ -485,7 +492,7 @@ function ProcessDeadlineCalculator({
             <div className="iu-scad-calculator__empty">
               <Wand2 size={28}/>
               <strong>Pronto per il calcolo</strong>
-              <span>Il risultato mostrera data, regole applicate, spiegazione, versioni e hash audit.</span>
+              <span>Il risultato mostrerà la data, le regole applicate, la spiegazione, le versioni e l'hash audit.</span>
             </div>
           )}
         </div>

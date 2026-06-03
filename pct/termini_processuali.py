@@ -465,9 +465,12 @@ class ItalianDeadlineCalculator:
         )
 
     def _explain(self, input_date: date, raw: date, adjusted: date, template: DeadlineTemplate, rules: Iterable[str]) -> str:
-        parts = [f"Il termine decorre dal giorno successivo all'evento del {input_date.isoformat()}."]
+        input_label = input_date.strftime("%d/%m/%Y")
+        raw_label = raw.strftime("%d/%m/%Y")
+        adjusted_label = adjusted.strftime("%d/%m/%Y")
+        parts = [f"Il termine decorre dal giorno successivo all'evento del {input_label}."]
         if template.period_type == "months":
-            parts.append("Il periodo e' computato a mesi secondo calendario comune.")
+            parts.append("Il periodo è computato a mesi secondo calendario comune.")
         if "ferial_suspension_1_31_august" in rules:
             parts.append("I giorni dal 1 al 31 agosto sono esclusi dal computo.")
         if template.urgent:
@@ -476,9 +479,9 @@ class ItalianDeadlineCalculator:
             parts.append("Il termine libero esclude anche il giorno finale.")
         if adjusted != raw:
             action = "prorogata" if template.direction == "forward" else "anticipata"
-            parts.append(f"La scadenza grezza {raw.isoformat()} e' stata {action} a {adjusted.isoformat()}.")
+            parts.append(f"La scadenza grezza {raw_label} è stata {action} a {adjusted_label}.")
         else:
-            parts.append(f"La scadenza finale e' {adjusted.isoformat()}.")
+            parts.append(f"La scadenza finale è {adjusted_label}.")
         return " ".join(parts)
 
 

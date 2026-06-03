@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.249.10 - 2026-06-03
+
+- Rifinito il calcolatore termini processuali dello Scadenziario: la spiegazione visibile usa accenti italiani corretti e date in formato `gg/mm/aaaa`, mantenendo invariati payload tecnico, audit hash e calcolo.
+- Aggiunte regressioni mirate per impedire il ritorno di `e'` nei testi runtime e di date ISO nella visualizzazione del risultato calcolato.
+
 ## 2.249.9 - 2026-06-02
 
 - Completato il presidio Guida Pratica/Scadenziario sui nuovi materiali utente: moduli KB set10, set11, set12 e set14 integrati, termini processuali globali importati nel repository, audit voce per voce aggiornato, bootstrap runtime dei termini Guida Pratica da sorgenti versionate e regole operative documentate.

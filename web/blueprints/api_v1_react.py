@@ -2208,7 +2208,7 @@ def _email_bulk_action(
         if action == "trash" and skipped and not missing:
             return jsonify({
                 "ok": False,
-                "message": "I messaggi selezionati sono gia' nel cestino.",
+                "message": "I messaggi selezionati sono già nel cestino.",
                 "updated": [],
                 "missing": missing,
                 "skipped": skipped,
@@ -2231,10 +2231,10 @@ def _email_bulk_action(
         audit_action,
         "email",
         "bulk",
-        f"{len(updated)} messaggi; {len(missing)} non trovati; {len(skipped)} gia' nel cestino",
+        f"{len(updated)} messaggi; {len(missing)} non trovati; {len(skipped)} già nel cestino",
     )
     if skipped:
-        base_message = f"{base_message} {len(skipped)} gia' presenti nel cestino."
+        base_message = f"{base_message} {len(skipped)} già presenti nel cestino."
     if missing:
         base_message = f"{base_message} {len(missing)} non trovati."
     return jsonify({
@@ -3392,7 +3392,7 @@ def strumenti_legali_react_calcola(tool_id: str):
             "tables": [],
             "previewText": "",
             "notes": [],
-            "warnings": ["Il calcolo non e' stato completato. Verifica i dati inseriti."],
+            "warnings": ["Il calcolo non è stato completato. Verifica i dati inseriti."],
             "sources": [],
         }), 200
 
@@ -4702,7 +4702,7 @@ def utenti_nuovo_crea():
     if current_app.config.get("MULTI_TENANT") and getattr(utente, "is_superadmin", False):
         return _json_validation_error(
             "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma dedicato.",
-            {"ruolo": "SUPERADMIN non e' assegnabile agli utenti di studio."},
+            {"ruolo": "SUPERADMIN non è assegnabile agli utenti di studio."},
             status=403,
         )
 
@@ -6577,6 +6577,208 @@ def _react_template_compliance_payload(
         }
 
 
+def _react_template_editor_workflow_payload() -> list[dict[str, Any]]:
+    labels = [
+        "Template selezionato",
+        "Autocompilazione dati studio/cliente/fascicolo",
+        "Editor documento",
+        "Lex Correttore",
+        "Lex Revisore stile legale",
+        "Lex Revisore placeholder",
+        "Lex Revisore normativa/privacy",
+        "Final check",
+        "Versione finale",
+        "Export DOCX / PDF / RTF",
+    ]
+    return [
+        {
+            "id": f"step_{index:02d}",
+            "label": label,
+            "state": "active" if index == 3 else "done" if index < 3 else "pending",
+        }
+        for index, label in enumerate(labels, start=1)
+    ]
+
+
+def _react_template_lex_revision_payload(
+    *,
+    fields: list[dict[str, Any]],
+    compliance: dict[str, Any],
+    assistant_analysis: dict[str, Any],
+) -> dict[str, Any]:
+    missing = [field for field in fields if not str(field.get("value") or "").strip()]
+    privacy_warnings = [
+        str(item)
+        for item in (compliance.get("warnings") or [])
+        if "privacy" in str(item).casefold() or "dati personali" in str(item).casefold()
+    ]
+    normative_warnings = [
+        str(item)
+        for item in (compliance.get("blocking") or []) + (compliance.get("recommended") or [])
+        if str(item or "").strip()
+    ][:4]
+    seed_proposals: list[dict[str, Any]] = []
+    if missing:
+        first = missing[0]
+        field_name = str(first.get("name") or "").upper()
+        seed_proposals.append(
+            {
+                "id": f"placeholder_{field_name.lower()}",
+                "mode": "Revisore Placeholder",
+                "title": "Campo da completare prima della versione finale",
+                "original": f"[{field_name}]",
+                "proposed": str(first.get("label") or field_name),
+                "reason": "Il campo resta evidenziato e richiede conferma dell'avvocato.",
+                "risk": "warning",
+                "status": "pending",
+            }
+        )
+    if normative_warnings:
+        seed_proposals.append(
+            {
+                "id": "controllo_normativo",
+                "mode": "Revisore Normativo",
+                "title": "Verifica normativa richiesta",
+                "original": normative_warnings[0],
+                "proposed": "Verifica la fonte applicabile e integra il riferimento solo dopo controllo professionale.",
+                "reason": "La proposta non modifica il testo: segnala il punto da confermare.",
+                "risk": "warning",
+                "status": "pending",
+            }
+        )
+    if privacy_warnings:
+        seed_proposals.append(
+            {
+                "id": "controllo_privacy",
+                "mode": "Revisore Privacy",
+                "title": "Controllo privacy e dati personali",
+                "original": privacy_warnings[0],
+                "proposed": "Riduci i dati personali non necessari e conserva solo quanto serve alla pratica.",
+                "reason": "Controllo locale, senza invio a servizi esterni.",
+                "risk": "warning",
+                "status": "pending",
+            }
+        )
+    return {
+        "title": "Revisione testo",
+        "assistantTitle": "Assistente redazionale Lex",
+        "privacyPolicy": {
+            "localOnly": True,
+            "externalAllowed": False,
+            "message": "Analisi locale nello studio; nessun invio a servizi esterni senza policy privacy esplicita.",
+        },
+        "auditPolicy": {
+            "proposalVersioning": True,
+            "acceptRejectRequired": True,
+            "automaticApply": False,
+            "tenantIsolated": True,
+        },
+        "modes": [
+            "Correttore",
+            "Redattore",
+            "Revisore Normativo",
+            "Revisore Privacy",
+            "Revisore Placeholder",
+            "Template Builder",
+            "Final Check",
+        ],
+        "actions": [
+            {"id": "correggi_refusi", "label": "Correggi refusi", "mode": "Correttore"},
+            {"id": "migliora_tono", "label": "Migliora tono professionale", "mode": "Redattore"},
+            {"id": "rendi_formale", "label": "Rendi più formale", "mode": "Redattore"},
+            {"id": "rendi_chiaro_cliente", "label": "Rendi più chiaro per il cliente", "mode": "Redattore"},
+            {"id": "rendi_incisivo", "label": "Rendi più incisivo", "mode": "Redattore"},
+            {"id": "controlla_placeholder", "label": "Controlla placeholder", "mode": "Revisore Placeholder"},
+            {"id": "controlla_normativa", "label": "Controlla normativa", "mode": "Revisore Normativo"},
+            {"id": "controlla_privacy", "label": "Controlla privacy", "mode": "Revisore Privacy"},
+            {"id": "genera_clausola", "label": "Genera clausola", "mode": "Template Builder"},
+            {"id": "espandi_premesse", "label": "Espandi premesse", "mode": "Template Builder"},
+            {"id": "versione_finale", "label": "Prepara versione finale", "mode": "Final Check"},
+        ],
+        "seedProposals": seed_proposals,
+        "analysisSummary": str((assistant_analysis or {}).get("summary") or "").strip(),
+    }
+
+
+def _react_template_examples_payload(model_code: str, model_name: str) -> list[dict[str, Any]]:
+    def professional_description(raw: str, title: str, row: Any) -> str:
+        text = str(raw or "").strip()
+        text = re.sub(
+            r"\s*:?\s*template del catalogo master\s*[\w.\- ]*\s*per\s*",
+            ": ",
+            text,
+            flags=re.IGNORECASE,
+        )
+        text = re.sub(
+            r"\btemplate del catalogo master\s*[\w.\- ]*",
+            "modello operativo dello studio",
+            text,
+            flags=re.IGNORECASE,
+        )
+        text = re.sub(r"\bcanale\s+(PST|PCT|PEC)\b", r"canale telematico \1", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s{2,}", " ", text).strip(" .")
+        if text and text.casefold() != str(title or "").casefold():
+            return f"{text}."
+        area = _react_template_attr(row, "area", "categoria") or "atto"
+        rito = _react_template_attr(row, "rito", "fase") or "pratica"
+        return f"Modello operativo per {area}, pronto per la compilazione dalla pratica {rito}."
+
+    examples: list[dict[str, Any]] = []
+    try:
+        manager = _template_atti_loader()
+        rows = list(manager.tutti()) if hasattr(manager, "tutti") else []
+    except Exception:
+        rows = []
+    for row in rows:
+        code = (
+            _react_template_attr(row, "link_compilatore_code")
+            or _react_template_attr(row, "codice")
+            or _react_template_attr(row, "id")
+            or model_code
+        )
+        title = _react_template_attr(row, "titolo", "title") or model_name or code
+        description = _react_template_attr(row, "descrizione", "description", "note")
+        category = _react_template_attr(row, "categoria", "area", "collezione") or "Atti"
+        tags = [
+            tag
+            for tag in (
+                _react_template_attr(row, "area"),
+                _react_template_attr(row, "fase"),
+                _react_template_attr(row, "rito"),
+            )
+            if tag
+        ]
+        examples.append(
+            {
+                "id": _react_template_attr(row, "id") or code,
+                "code": code,
+                "title": title,
+                "description": professional_description(description, title, row),
+                "category": category,
+                "tags": tags,
+                "fieldsCount": len(getattr(row, "campi_guidati", []) or []),
+                "href": url_for("template_atti.compila", model_code=code),
+                "selected": code == model_code or _react_template_attr(row, "id") == model_code,
+            }
+        )
+    if not examples:
+        examples.append(
+            {
+                "id": model_code,
+                "code": model_code,
+                "title": model_name or model_code,
+                "description": "Template corrente collegato alla pratica.",
+                "category": "Atti",
+                "tags": [],
+                "fieldsCount": 0,
+                "href": url_for("template_atti.compila", model_code=model_code),
+                "selected": True,
+            }
+        )
+    examples.sort(key=lambda item: (not item.get("selected"), str(item.get("title") or "").casefold()))
+    return examples[:28]
+
+
 def _react_template_guide_preview_payload(
     *,
     model_code: str,
@@ -6591,7 +6793,47 @@ def _react_template_guide_preview_payload(
     origin = str(request.args.get("origine") or request.args.get("source") or "").strip().lower()
     enabled = bool(guide_code or origin == "guida_pratica")
     if not enabled:
-        return {"enabled": False}
+        return {
+            "enabled": False,
+            "importEndpoint": url_for("template_atti.api_importa_documento"),
+            "previewPdfHref": url_for("template_atti.compila_pdf", model_code=model_code),
+            "wordHref": url_for("template_atti.compila_word", model_code=model_code),
+            "rtfHref": url_for("template_atti.compila_rtf", model_code=model_code),
+            "saveEndpoint": url_for("template_atti.compila_guida_pratica_salva", model_code=model_code),
+            "renderEndpoint": url_for("template_atti.compila_guida_pratica_anteprima", model_code=model_code),
+            "importLabel": "Importa documento",
+            "previewLabel": "Anteprima PDF",
+            "saveLabel": "Salva nel fascicolo",
+            "import": {
+                "enabled": True,
+                "formats": "PDF/DOCX/RTF/TXT",
+                "note": "Importa nell'editor professionale; il testo resta modificabile prima dell'export.",
+            },
+            "layoutChecks": [
+                {"label": "Timbro studio", "value": "alto sinistra, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},
+                {"label": "Corpo atto", "value": "impaginazione coerente al template", "tone": "success"},
+            ],
+            "editorLayout": {
+                "fontSize": 12,
+                "lineHeight": 1.9,
+                "pageScale": 100,
+                "fontFamily": "merriweather",
+                "headingFontFamily": "merriweather",
+                "uiFontFamily": "inter",
+                "placeholderFontFamily": "ibm_plex_mono",
+                "fallbackFontFamily": "times_new_roman",
+                "stylePreset": "giudiziario_civile",
+                "headingSize": 16,
+                "textAlign": "justify",
+                "marginTop": 25,
+                "marginRight": 22,
+                "marginBottom": 25,
+                "marginLeft": 32,
+                "paragraphSpacing": 8,
+                "signatureSpacing": 42,
+                "printCleanPlaceholders": False,
+            },
+        }
     fascicolo_id = _react_template_attr(selected_fascicolo, "id")
     guide_title = str(guidance.get("title") or guidance.get("summary") or "").strip()
     canonical_model_code = _guide_selected_model_code(
@@ -6605,7 +6847,7 @@ def _react_template_guide_preview_payload(
     selected_client_label = _react_template_attr(selected_cliente, "nome_completo", "ragione_sociale", "nome")
     subtitle = (
         "La guida carica il template già filtrato sulla pratica; l'avvocato può cambiarlo o "
-        "importare un proprio PDF/Word senza chiudere il fascicolo."
+        "importare un proprio PDF, DOCX, RTF o TXT senza chiudere il fascicolo."
     )
     if selected_case_label or selected_client_label:
         subtitle = f"{subtitle} Contesto: {' - '.join(part for part in [selected_case_label, selected_client_label] if part)}."
@@ -6622,9 +6864,10 @@ def _react_template_guide_preview_payload(
         "importEndpoint": url_for("template_atti.api_importa_documento"),
         "previewPdfHref": url_for("template_atti.compila_pdf", model_code=model_code),
         "wordHref": url_for("template_atti.compila_word", model_code=model_code),
+        "rtfHref": url_for("template_atti.compila_rtf", model_code=model_code),
         "saveEndpoint": url_for("template_atti.compila_guida_pratica_salva", model_code=model_code),
         "renderEndpoint": url_for("template_atti.compila_guida_pratica_anteprima", model_code=model_code),
-        "importLabel": "Importa PDF/Word",
+        "importLabel": "Importa documento",
         "previewLabel": "Anteprima PDF",
         "saveLabel": "Salva nel fascicolo",
         "initialText": initial_text,
@@ -6645,7 +6888,7 @@ def _react_template_guide_preview_payload(
         },
         "import": {
             "enabled": True,
-            "formats": "PDF/DOCX",
+            "formats": "PDF/DOCX/RTF/TXT",
             "note": "Importa nell'anteprima: modifica se editabile, altrimenti salva l'originale collegato.",
         },
         "layoutChecks": [
@@ -6653,9 +6896,24 @@ def _react_template_guide_preview_payload(
             {"label": "Corpo atto", "value": "impaginazione coerente al template", "tone": "success"},
         ],
         "editorLayout": {
-            "fontSize": 15,
-            "lineHeight": 1.72,
+            "fontSize": 12,
+            "lineHeight": 1.9,
             "pageScale": 100,
+            "fontFamily": "merriweather",
+            "headingFontFamily": "merriweather",
+            "uiFontFamily": "inter",
+            "placeholderFontFamily": "ibm_plex_mono",
+            "fallbackFontFamily": "times_new_roman",
+            "stylePreset": "giudiziario_civile",
+            "headingSize": 16,
+            "textAlign": "justify",
+            "marginTop": 25,
+            "marginRight": 22,
+            "marginBottom": 25,
+            "marginLeft": 32,
+            "paragraphSpacing": 8,
+            "signatureSpacing": 42,
+            "printCleanPlaceholders": False,
         },
     }
 
@@ -6737,6 +6995,7 @@ def template_atti_compila_page(model_code: str):
         from web.blueprints.template_atti import (
             _build_assistant_analysis,
             _contesto_compilatore,
+            _get_gp,
             _resolve_compiler_context,
         )
 
@@ -6853,12 +7112,31 @@ def template_atti_compila_page(model_code: str):
                 )
             except Exception:
                 current_app.logger.debug("Anteprima testo template non generata per %s", model_code, exc_info=True)
+        compliance_payload = _react_template_compliance_payload(
+            model_code=model_code,
+            prefill_resolution=prefill_resolution,
+            form_values=ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values,
+            validation_rules=ctx.get("validation_rules") or [],
+        )
+        all_fields = base_fields + extra_fields
+        try:
+            from pct.template_atti import template_font_registry_payload
+
+            font_registry = template_font_registry_payload()
+        except Exception:
+            current_app.logger.debug("Registro font template atti non disponibile per %s", model_code, exc_info=True)
+            font_registry = {}
+        try:
+            editor_layout = _get_gp().carica()
+        except Exception:
+            editor_layout = {}
+        model_name = str(model.get("name") or model_code)
         return jsonify(
             {
                 "ok": True,
                 "model": {
                     "code": str(model.get("code") or model_code),
-                    "name": str(model.get("name") or model_code),
+                    "name": model_name,
                     "area": str(model.get("area") or ""),
                 },
                 "summary": str(guidance.get("summary") or "Compilazione guidata con dati IUSENTRA."),
@@ -6880,16 +7158,20 @@ def template_atti_compila_page(model_code: str):
                 "requestedModelCode": requested_model_code,
                 "baseFields": base_fields,
                 "extraFields": extra_fields,
+                "templateExamples": _react_template_examples_payload(model_code, model_name),
+                "fontRegistry": font_registry,
+                "editorLayout": editor_layout,
+                "editorWorkflow": _react_template_editor_workflow_payload(),
+                "lexRevision": _react_template_lex_revision_payload(
+                    fields=all_fields,
+                    compliance=compliance_payload,
+                    assistant_analysis=assistant_analysis,
+                ),
                 "stamp": {
                     "lines": stamp.get("lines") or [],
                     "text": str(stamp.get("text") or ""),
                 },
-                "compliance": _react_template_compliance_payload(
-                    model_code=model_code,
-                    prefill_resolution=prefill_resolution,
-                    form_values=ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values,
-                    validation_rules=ctx.get("validation_rules") or [],
-                ),
+                "compliance": compliance_payload,
                 "checks": {
                     "blocking": [item for item in blocking_issues if item],
                     "recommended": [item for item in recommended_issues if item],

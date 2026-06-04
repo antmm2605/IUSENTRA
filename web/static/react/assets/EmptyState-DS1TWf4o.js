@@ -1,1 +1,0 @@
-import{aG as a}from"./index-BVM-KDAW.js";import{I as r}from"./IusEmptyState-B0Q0C9TJ.js";/* empty css           */function i({title:t,message:m,action:s}){return a.jsx(r,{title:t,message:m,action:s,className:"iu-empty-state"})}export{i as E};

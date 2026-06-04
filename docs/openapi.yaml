@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.249.12
+  version: 2.249.13
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -93,7 +93,7 @@ paths:
       tags:
       - Agenda
       summary: 'Agenda: GET /api/v1/ui/agenda'
-      description: 'Contratto fase 6 derivato da `agenda` in `web/blueprints/api_v1_react.py:7852`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `agenda` in `web/blueprints/api_v1_react.py:8134`. Pagina/area collegata:
         Agenda (/app/agenda). I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_agenda_get
       security:
@@ -139,7 +139,7 @@ paths:
       tags:
       - Agenda
       summary: 'Agenda: GET /api/v1/ui/agenda/importa'
-      description: 'Contratto fase 6 derivato da `agenda_importa_defaults` in `web/blueprints/api_v1_react.py:7865`. Pagina/area
+      description: 'Contratto fase 6 derivato da `agenda_importa_defaults` in `web/blueprints/api_v1_react.py:8147`. Pagina/area
         collegata: Agenda. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_agenda_importa_defaults_get
       security:
@@ -185,7 +185,7 @@ paths:
       tags:
       - Agenda
       summary: 'Agenda: GET /api/v1/ui/agenda/nuovo/defaults'
-      description: 'Contratto fase 6 derivato da `agenda_nuovo_defaults` in `web/blueprints/api_v1_react.py:7901`. Pagina/area
+      description: 'Contratto fase 6 derivato da `agenda_nuovo_defaults` in `web/blueprints/api_v1_react.py:8183`. Pagina/area
         collegata: Agenda. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_agenda_nuovo_defaults_get
       security:
@@ -3944,7 +3944,7 @@ paths:
       tags:
       - Lex
       summary: 'Giurisprudenza: GET /api/v1/ui/giurisprudenza'
-      description: 'Contratto fase 6 derivato da `giurisprudenza_page` in `web/blueprints/api_v1_react.py:7038`. Pagina/area
+      description: 'Contratto fase 6 derivato da `giurisprudenza_page` in `web/blueprints/api_v1_react.py:7320`. Pagina/area
         collegata: Giurisprudenza. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_giurisprudenza_page_get
       security:
@@ -3990,7 +3990,7 @@ paths:
       tags:
       - Lex
       summary: 'Giurisprudenza: GET /api/v1/ui/giurisprudenza/nuova'
-      description: 'Contratto fase 6 derivato da `giurisprudenza_nuova_page` in `web/blueprints/api_v1_react.py:7061`. Pagina/area
+      description: 'Contratto fase 6 derivato da `giurisprudenza_nuova_page` in `web/blueprints/api_v1_react.py:7343`. Pagina/area
         collegata: Giurisprudenza. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_giurisprudenza_nuova_page_get
       security:
@@ -4035,7 +4035,7 @@ paths:
       tags:
       - Lex
       summary: 'Giurisprudenza: POST /api/v1/ui/giurisprudenza/nuova'
-      description: 'Contratto fase 6 derivato da `giurisprudenza_nuova_salva` in `web/blueprints/api_v1_react.py:7084`. Pagina/area
+      description: 'Contratto fase 6 derivato da `giurisprudenza_nuova_salva` in `web/blueprints/api_v1_react.py:7366`. Pagina/area
         collegata: Giurisprudenza. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_giurisprudenza_nuova_salva_post
       security:
@@ -5952,7 +5952,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/legal-intelligence'
-      description: 'Contratto fase 6 derivato da `legal_intelligence_page` in `web/blueprints/api_v1_react.py:7141`. Pagina/area
+      description: 'Contratto fase 6 derivato da `legal_intelligence_page` in `web/blueprints/api_v1_react.py:7423`. Pagina/area
         collegata: Lex (/app/lex). I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_legal_intelligence_page_get
       security:
@@ -5998,7 +5998,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/legal-intelligence/mediazione'
-      description: 'Contratto fase 6 derivato da `legal_intelligence_mediazione_page` in `web/blueprints/api_v1_react.py:7160`.
+      description: 'Contratto fase 6 derivato da `legal_intelligence_mediazione_page` in `web/blueprints/api_v1_react.py:7442`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_legal_intelligence_mediazione_page_get
       security:
@@ -6044,7 +6044,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/legal-intelligence/news'
-      description: 'Contratto fase 6 derivato da `legal_intelligence_news_page` in `web/blueprints/api_v1_react.py:7151`.
+      description: 'Contratto fase 6 derivato da `legal_intelligence_news_page` in `web/blueprints/api_v1_react.py:7433`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_legal_intelligence_news_page_get
       security:
@@ -6719,7 +6719,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: GET /api/v1/ui/preventivi'
-      description: 'Contratto fase 6 derivato da `preventivi_page` in `web/blueprints/api_v1_react.py:7233`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `preventivi_page` in `web/blueprints/api_v1_react.py:7515`. Pagina/area collegata:
         Mandato (/app/mandato). I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_page_get
       security:
@@ -6765,7 +6765,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: GET /api/v1/ui/preventivi/{id_preventivo}'
-      description: 'Contratto fase 6 derivato da `preventivi_detail_page` in `web/blueprints/api_v1_react.py:7303`. Pagina/area
+      description: 'Contratto fase 6 derivato da `preventivi_detail_page` in `web/blueprints/api_v1_react.py:7585`. Pagina/area
         collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_detail_page_get
       security:
@@ -6817,7 +6817,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: POST /api/v1/ui/preventivi/{id_preventivo}/stato'
-      description: 'Contratto fase 6 derivato da `preventivi_aggiorna_stato` in `web/blueprints/api_v1_react.py:7343`. Pagina/area
+      description: 'Contratto fase 6 derivato da `preventivi_aggiorna_stato` in `web/blueprints/api_v1_react.py:7625`. Pagina/area
         collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_aggiorna_stato_post
       security:
@@ -6927,7 +6927,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: GET /api/v1/ui/preventivi/conferimento/{id_conferimento}'
-      description: 'Contratto fase 6 derivato da `preventivi_conferimento_detail_page` in `web/blueprints/api_v1_react.py:7323`.
+      description: 'Contratto fase 6 derivato da `preventivi_conferimento_detail_page` in `web/blueprints/api_v1_react.py:7605`.
         Pagina/area collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_conferimento_detail_page_get
       security:
@@ -6979,7 +6979,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: POST /api/v1/ui/preventivi/conferimento/{id_conferimento}/stato'
-      description: 'Contratto fase 6 derivato da `preventivi_conferimento_aggiorna_stato` in `web/blueprints/api_v1_react.py:7368`.
+      description: 'Contratto fase 6 derivato da `preventivi_conferimento_aggiorna_stato` in `web/blueprints/api_v1_react.py:7650`.
         Pagina/area collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_conferimento_aggiorna_stato_post
       security:
@@ -7034,7 +7034,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: GET /api/v1/ui/preventivi/conferimento/nuovo'
-      description: 'Contratto fase 6 derivato da `preventivi_conferimento_nuovo_page` in `web/blueprints/api_v1_react.py:7271`.
+      description: 'Contratto fase 6 derivato da `preventivi_conferimento_nuovo_page` in `web/blueprints/api_v1_react.py:7553`.
         Pagina/area collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_conferimento_nuovo_page_get
       security:
@@ -7079,7 +7079,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: POST /api/v1/ui/preventivi/conferimento/nuovo'
-      description: 'Contratto fase 6 derivato da `preventivi_conferimento_nuovo_crea` in `web/blueprints/api_v1_react.py:7277`.
+      description: 'Contratto fase 6 derivato da `preventivi_conferimento_nuovo_crea` in `web/blueprints/api_v1_react.py:7559`.
         Pagina/area collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_conferimento_nuovo_crea_post
       security:
@@ -7128,7 +7128,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: GET /api/v1/ui/preventivi/nuovo'
-      description: 'Contratto fase 6 derivato da `preventivi_nuovo_page` in `web/blueprints/api_v1_react.py:7239`. Pagina/area
+      description: 'Contratto fase 6 derivato da `preventivi_nuovo_page` in `web/blueprints/api_v1_react.py:7521`. Pagina/area
         collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_nuovo_page_get
       security:
@@ -7173,7 +7173,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: POST /api/v1/ui/preventivi/nuovo'
-      description: 'Contratto fase 6 derivato da `preventivi_nuovo_crea` in `web/blueprints/api_v1_react.py:7245`. Pagina/area
+      description: 'Contratto fase 6 derivato da `preventivi_nuovo_crea` in `web/blueprints/api_v1_react.py:7527`. Pagina/area
         collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_nuovo_crea_post
       security:
@@ -7222,7 +7222,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: GET /api/v1/ui/preventivi/wizard'
-      description: 'Contratto fase 6 derivato da `preventivi_wizard_page` in `web/blueprints/api_v1_react.py:7393`. Pagina/area
+      description: 'Contratto fase 6 derivato da `preventivi_wizard_page` in `web/blueprints/api_v1_react.py:7675`. Pagina/area
         collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_wizard_page_get
       security:
@@ -7268,7 +7268,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: GET /api/v1/ui/preventivi/wizard/bootstrap'
-      description: 'Contratto fase 6 derivato da `preventivi_wizard_bootstrap_page` in `web/blueprints/api_v1_react.py:7417`.
+      description: 'Contratto fase 6 derivato da `preventivi_wizard_bootstrap_page` in `web/blueprints/api_v1_react.py:7699`.
         Pagina/area collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_wizard_bootstrap_page_get
       security:
@@ -7314,7 +7314,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: POST /api/v1/ui/preventivi/wizard/calculate'
-      description: 'Contratto fase 6 derivato da `preventivi_wizard_calculate_page` in `web/blueprints/api_v1_react.py:7423`.
+      description: 'Contratto fase 6 derivato da `preventivi_wizard_calculate_page` in `web/blueprints/api_v1_react.py:7705`.
         Pagina/area collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_wizard_calculate_page_post
       security:
@@ -7363,7 +7363,7 @@ paths:
       tags:
       - Mandato
       summary: 'Preventivi: POST /api/v1/ui/preventivi/wizard/create'
-      description: 'Contratto fase 6 derivato da `preventivi_wizard_create_page` in `web/blueprints/api_v1_react.py:7553`.
+      description: 'Contratto fase 6 derivato da `preventivi_wizard_create_page` in `web/blueprints/api_v1_react.py:7835`.
         Pagina/area collegata: Preventivi. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_preventivi_wizard_create_page_post
       security:
@@ -7598,7 +7598,7 @@ paths:
       tags:
       - Documenti
       summary: 'Redazione atti: GET /api/v1/ui/redazione-atti'
-      description: 'Contratto fase 6 derivato da `redazione_atti_page` in `web/blueprints/api_v1_react.py:7003`. Pagina/area
+      description: 'Contratto fase 6 derivato da `redazione_atti_page` in `web/blueprints/api_v1_react.py:7285`. Pagina/area
         collegata: Redazione atti. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_redazione_atti_page_get
       security:
@@ -7644,7 +7644,7 @@ paths:
       tags:
       - Documenti
       summary: 'Redazione atti: POST /api/v1/ui/redazione-atti/produci'
-      description: 'Contratto fase 6 derivato da `redazione_atti_produci` in `web/blueprints/api_v1_react.py:7027`. Pagina/area
+      description: 'Contratto fase 6 derivato da `redazione_atti_produci` in `web/blueprints/api_v1_react.py:7309`. Pagina/area
         collegata: Redazione atti. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_redazione_atti_produci_post
       security:
@@ -7739,7 +7739,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale'
-      description: 'Contratto fase 6 derivato da `ricerca_legale_page` in `web/blueprints/api_v1_react.py:7169`. Pagina/area
+      description: 'Contratto fase 6 derivato da `ricerca_legale_page` in `web/blueprints/api_v1_react.py:7451`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_ricerca_legale_page_get
       security:
@@ -7785,7 +7785,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/mediazione'
-      description: 'Contratto fase 6 derivato da `ricerca_legale_mediazione_page` in `web/blueprints/api_v1_react.py:7188`.
+      description: 'Contratto fase 6 derivato da `ricerca_legale_mediazione_page` in `web/blueprints/api_v1_react.py:7470`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_ricerca_legale_mediazione_page_get
       security:
@@ -7831,7 +7831,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/news'
-      description: 'Contratto fase 6 derivato da `ricerca_legale_news_page` in `web/blueprints/api_v1_react.py:7179`. Pagina/area
+      description: 'Contratto fase 6 derivato da `ricerca_legale_news_page` in `web/blueprints/api_v1_react.py:7461`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_ricerca_legale_news_page_get
       security:
@@ -7877,7 +7877,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/ricerca'
-      description: 'Contratto fase 6 derivato da `ricerca_legale_search_page` in `web/blueprints/api_v1_react.py:7197`. Pagina/area
+      description: 'Contratto fase 6 derivato da `ricerca_legale_search_page` in `web/blueprints/api_v1_react.py:7479`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_ricerca_legale_search_page_get
       security:
@@ -10139,7 +10139,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: GET /api/v1/ui/studio/timbro'
-      description: 'Contratto fase 6 derivato da `studio_timbro_page` in `web/blueprints/api_v1_react.py:6932`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_timbro_page` in `web/blueprints/api_v1_react.py:7214`. Pagina/area
         collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_timbro_page_get
       security:
@@ -10184,7 +10184,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: POST /api/v1/ui/studio/timbro'
-      description: 'Contratto fase 6 derivato da `studio_timbro_save` in `web/blueprints/api_v1_react.py:6960`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_timbro_save` in `web/blueprints/api_v1_react.py:7242`. Pagina/area
         collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_timbro_save_post
       security:
@@ -10233,7 +10233,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: GET /api/v1/ui/studio/timbro/preview'
-      description: 'Contratto fase 6 derivato da `studio_timbro_preview_page` in `web/blueprints/api_v1_react.py:6946`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_timbro_preview_page` in `web/blueprints/api_v1_react.py:7228`. Pagina/area
         collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_timbro_preview_page_get
       security:
@@ -10612,7 +10612,7 @@ paths:
       tags:
       - Documenti
       summary: 'Template atti: GET /api/v1/ui/template-atti/compila/{model_code}'
-      description: 'Contratto fase 6 derivato da `template_atti_compila_page` in `web/blueprints/api_v1_react.py:6732`. Pagina/area
+      description: 'Contratto fase 6 derivato da `template_atti_compila_page` in `web/blueprints/api_v1_react.py:6990`. Pagina/area
         collegata: Template atti. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_template_atti_compila_page_get
       security:

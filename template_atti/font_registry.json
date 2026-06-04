@@ -1,0 +1,206 @@
+{
+  "schema_version": "2026-06-04",
+  "policy": {
+    "tenant_isolation": true,
+    "external_font_downloads": false,
+    "export_fallback_required": true,
+    "note": "I font sono definiti come famiglie professionali e stack di fallback; non viene scaricato alcun font da servizi esterni senza consenso e policy privacy esplicita."
+  },
+  "defaults": {
+    "document": "source_serif",
+    "heading": "merriweather",
+    "ui": "inter",
+    "placeholder": "ibm_plex_mono",
+    "fallback": "times_new_roman",
+    "style_preset": "giudiziario_civile"
+  },
+  "fonts": [
+    {
+      "key": "source_serif",
+      "label": "Source Serif 4",
+      "category": "classico",
+      "usage": ["documento", "contratti", "privacy"],
+      "css_stack": "'Source Serif 4', Georgia, 'Times New Roman', serif",
+      "docx_family": "Source Serif 4",
+      "pdf_family": "times",
+      "rtf_family": "Times New Roman",
+      "fallback_stack": "Georgia, 'Times New Roman', serif",
+      "tone": "serif"
+    },
+    {
+      "key": "merriweather",
+      "label": "Merriweather",
+      "category": "giudiziario",
+      "usage": ["titoli", "atti giudiziari"],
+      "css_stack": "Merriweather, Georgia, 'Times New Roman', serif",
+      "docx_family": "Merriweather",
+      "pdf_family": "times",
+      "rtf_family": "Times New Roman",
+      "fallback_stack": "Georgia, 'Times New Roman', serif",
+      "tone": "serif"
+    },
+    {
+      "key": "libre_baskerville",
+      "label": "Libre Baskerville",
+      "category": "classico",
+      "usage": ["documento", "atti formali"],
+      "css_stack": "'Libre Baskerville', Georgia, 'Times New Roman', serif",
+      "docx_family": "Libre Baskerville",
+      "pdf_family": "times",
+      "rtf_family": "Times New Roman",
+      "fallback_stack": "Georgia, 'Times New Roman', serif",
+      "tone": "serif"
+    },
+    {
+      "key": "spectral",
+      "label": "Spectral",
+      "category": "contrattuale",
+      "usage": ["contratti", "pareri"],
+      "css_stack": "Spectral, Georgia, 'Times New Roman', serif",
+      "docx_family": "Spectral",
+      "pdf_family": "times",
+      "rtf_family": "Times New Roman",
+      "fallback_stack": "Georgia, 'Times New Roman', serif",
+      "tone": "serif"
+    },
+    {
+      "key": "crimson_text",
+      "label": "Crimson Text",
+      "category": "classico",
+      "usage": ["lettere", "diffide"],
+      "css_stack": "'Crimson Text', Georgia, 'Times New Roman', serif",
+      "docx_family": "Crimson Text",
+      "pdf_family": "times",
+      "rtf_family": "Times New Roman",
+      "fallback_stack": "Georgia, 'Times New Roman', serif",
+      "tone": "serif"
+    },
+    {
+      "key": "times_new_roman",
+      "label": "Times New Roman",
+      "category": "giudiziario",
+      "usage": ["fallback export", "atti giudiziari"],
+      "css_stack": "'Times New Roman', Times, serif",
+      "docx_family": "Times New Roman",
+      "pdf_family": "times",
+      "rtf_family": "Times New Roman",
+      "fallback_stack": "Times, serif",
+      "tone": "serif"
+    },
+    {
+      "key": "garamond",
+      "label": "Garamond",
+      "category": "classico",
+      "usage": ["pareri", "memorie"],
+      "css_stack": "Garamond, 'EB Garamond', Georgia, serif",
+      "docx_family": "Garamond",
+      "pdf_family": "times",
+      "rtf_family": "Times New Roman",
+      "fallback_stack": "Georgia, 'Times New Roman', serif",
+      "tone": "serif"
+    },
+    {
+      "key": "inter",
+      "label": "Inter",
+      "category": "moderno",
+      "usage": ["interfaccia", "schede operative"],
+      "css_stack": "Inter, Arial, Helvetica, sans-serif",
+      "docx_family": "Inter",
+      "pdf_family": "helvetica",
+      "rtf_family": "Arial",
+      "fallback_stack": "Arial, Helvetica, sans-serif",
+      "tone": "sans"
+    },
+    {
+      "key": "manrope",
+      "label": "Manrope",
+      "category": "moderno",
+      "usage": ["interfaccia", "titoli secondari"],
+      "css_stack": "Manrope, Arial, Helvetica, sans-serif",
+      "docx_family": "Manrope",
+      "pdf_family": "helvetica",
+      "rtf_family": "Arial",
+      "fallback_stack": "Arial, Helvetica, sans-serif",
+      "tone": "sans"
+    },
+    {
+      "key": "aptos",
+      "label": "Aptos",
+      "category": "moderno",
+      "usage": ["contratti moderni", "privacy"],
+      "css_stack": "Aptos, Calibri, Arial, Helvetica, sans-serif",
+      "docx_family": "Aptos",
+      "pdf_family": "helvetica",
+      "rtf_family": "Arial",
+      "fallback_stack": "Calibri, Arial, Helvetica, sans-serif",
+      "tone": "sans"
+    },
+    {
+      "key": "ibm_plex_mono",
+      "label": "IBM Plex Mono",
+      "category": "placeholder",
+      "usage": ["placeholder", "campi variabili"],
+      "css_stack": "'IBM Plex Mono', 'Courier New', monospace",
+      "docx_family": "IBM Plex Mono",
+      "pdf_family": "courier",
+      "rtf_family": "Courier New",
+      "fallback_stack": "'Courier New', monospace",
+      "tone": "mono"
+    }
+  ],
+  "style_presets": [
+    {
+      "key": "giudiziario_civile",
+      "label": "Giudiziario civile",
+      "document_font": "source_serif",
+      "heading_font": "merriweather",
+      "font_size_pt": 12,
+      "heading_size_pt": 16,
+      "line_height": 1.9,
+      "text_align": "justify",
+      "margins_mm": [25, 22, 25, 32],
+      "paragraph_spacing_pt": 8
+    },
+    {
+      "key": "contratto_professionale",
+      "label": "Contratto professionale",
+      "document_font": "spectral",
+      "heading_font": "libre_baskerville",
+      "font_size_pt": 11,
+      "heading_size_pt": 15,
+      "line_height": 1.65,
+      "text_align": "justify",
+      "margins_mm": [22, 22, 22, 24],
+      "paragraph_spacing_pt": 7
+    },
+    {
+      "key": "privacy_gdpr",
+      "label": "Privacy e GDPR",
+      "document_font": "aptos",
+      "heading_font": "source_serif",
+      "font_size_pt": 11,
+      "heading_size_pt": 14,
+      "line_height": 1.55,
+      "text_align": "left",
+      "margins_mm": [20, 20, 20, 20],
+      "paragraph_spacing_pt": 6
+    },
+    {
+      "key": "parere_legale",
+      "label": "Parere legale",
+      "document_font": "garamond",
+      "heading_font": "merriweather",
+      "font_size_pt": 12,
+      "heading_size_pt": 15,
+      "line_height": 1.75,
+      "text_align": "justify",
+      "margins_mm": [24, 24, 24, 28],
+      "paragraph_spacing_pt": 8
+    }
+  ],
+  "export_fallbacks": {
+    "docx": ["Times New Roman", "Arial", "Courier New"],
+    "pdf": ["Times-Roman", "Helvetica", "Courier"],
+    "rtf": ["Times New Roman", "Arial", "Courier New"]
+  }
+}

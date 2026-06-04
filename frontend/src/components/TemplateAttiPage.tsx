@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Eye, ExternalLink, FileText, Filter, Layers, Palette, RefreshCw, Save, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileText, Filter, HelpCircle, Italic, Layers, List, ListOrdered, Palette, Plus, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound, XCircle } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -16,6 +16,10 @@ import {
   getTemplateAttiPage,
   type TemplateCompilerData,
   type TemplateCompilerField,
+  type TemplateEditorLayout,
+  type TemplateLexAction,
+  type TemplateLexProposal,
+  type TemplateExample,
   type TemplateAttiPageData,
   type TemplateAttiRecord,
 } from '../templateAttiData'
@@ -111,9 +115,20 @@ function appendHiddenInput(form: HTMLFormElement, name: string, value: FormDataE
 
 function guideDraftFromData(data: TemplateCompilerData) {
   if (data.guidePreview.initialText.trim()) return stripFixedStampFromDraft(data.guidePreview.initialText, data)
-  const client = data.selectors.selectedClienteLabel || 'Cliente della pratica'
-  const office = resolveOfficeLabel(data) || 'Seleziona l\'ufficio giudiziario dal catalogo'
-  const title = labelForFieldValue(data.extraFields.find((field) => /titolo|oggetto|ricorso|atto/i.test(`${field.name} ${field.label}`))) || data.model.name
+  const tokenFor = (names: string[], fallback: string) => {
+    const field = fieldValueByName(data, names)
+    return field ? placeholderName(field) : fallback
+  }
+  const office = tokenFor(['court_name', 'recipient_or_court', 'competent_court', 'ufficio', 'tribunale'], '[UFFICIO_GIUDIZIARIO]')
+  const client = tokenFor(['client_or_sender', 'cliente', 'nome_attore', 'plaintiff'], '[CLIENTE]')
+  const counterparty = tokenFor(['counterparty_or_recipient', 'defendant', 'convenuto', 'resistente'], '[CONTROPARTE]')
+  const title = tokenFor(['title', 'subject', 'oggetto', 'titolo_atto'], data.model.name || '[TITOLO_ATTO]')
+  const facts = tokenFor(['facts', 'motivazioni', 'fatti', 'exposition'], '[ESPOSIZIONE_FATTI]')
+  const merits = tokenFor(['merit_exceptions', 'position_on_facts', 'legal_basis', 'normativa'], '[ARGOMENTAZIONI_GIURIDICHE]')
+  const requests = tokenFor(['requests_or_conclusions', 'conclusioni', 'domande', 'requests'], '[CONCLUSIONI]')
+  const place = tokenFor(['place', 'luogo'], '[LUOGO]')
+  const date = tokenFor(['document_date', 'data_atto', 'data'], '[DATA_ATTO]')
+  const signature = tokenFor(['signature', 'lawyer', 'difensore'], '[FIRMA]')
   return [
     office,
     '',
@@ -121,9 +136,23 @@ function guideDraftFromData(data: TemplateCompilerData) {
     '',
     `${client}, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.`,
     '',
-    'Ricorso',
+    `Contro ${counterparty}.`,
     '',
-    'Avverso il provvedimento indicato nel fascicolo, con i dati già acquisiti da pratica, cliente, parti, termini e documenti collegati.',
+    'In fatto',
+    '',
+    facts,
+    '',
+    'In diritto',
+    '',
+    merits,
+    '',
+    'Conclusioni',
+    '',
+    requests,
+    '',
+    `${place}, ${date}`,
+    '',
+    signature,
   ].join('\n')
 }
 
@@ -131,6 +160,14 @@ function htmlToPlainText(html: string) {
   const node = document.createElement('div')
   node.innerHTML = html
   return node.innerText || node.textContent || ''
+}
+
+function fieldForPlaceholder(fields: TemplateCompilerField[], token: string) {
+  const normalized = token.replace(/^\[|\]$/g, '').toLowerCase()
+  return fields.find((field) => (
+    placeholderName(field).replace(/^\[|\]$/g, '').toLowerCase() === normalized
+    || field.name.toLowerCase() === normalized
+  ))
 }
 
 function ContractStrip({ data }: { data: TemplateAttiPageData }) {
@@ -336,7 +373,7 @@ function TemplateDetail({ record }: { record?: TemplateAttiRecord }) {
         </div>
         <div>
           <strong><AlertTriangle size={15} aria-hidden="true" /> Controlli</strong>
-          <p>{record.blockingChecks[0] || record.recommendedChecks[0] || 'Verifica conformita disponibile dalla scheda.'}</p>
+          <p>{record.blockingChecks[0] || record.recommendedChecks[0] || 'Verifica conformità disponibile dalla scheda.'}</p>
         </div>
       </div>
       {record.requiredVariables.length ? (
@@ -747,6 +784,793 @@ function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
   )
 }
 
+type TemplateEditorTab = 'Campi' | 'Stile' | 'Lex' | 'Fonti' | 'Controlli' | 'Export'
+
+type TemplateEditorProps = {
+  data: TemplateCompilerData
+  activeTool: string
+  draftText: string
+  importing: boolean
+  importStatus: string
+  pdfStatus: string
+  saving: boolean
+  bodyFontSize: number
+  bodyLineHeight: number
+  onToolSelect: (tool: string) => void
+  onDraftTextChange: (value: string) => void
+  onBodyFontSizeChange: (value: number) => void
+  onBodyLineHeightChange: (value: number) => void
+  onEditorLayoutChange: (value: Partial<TemplateEditorLayout>) => void
+  onImport: () => void
+  onPreviewPdf: () => void
+  onDownloadWord: () => void
+  onDownloadRtf: () => void
+  onRefreshPreview: () => void
+  onSave: () => void
+}
+
+function placeholderName(field: TemplateCompilerField) {
+  return `[${field.name.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toUpperCase()}]`
+}
+
+function lexModeLabel(mode: string) {
+  return mode === 'Template Editor' ? 'Template Builder' : mode
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function legalDateTimeNow() {
+  return new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date())
+}
+
+function legalDateValue(value: string) {
+  const clean = value.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean
+  const [year, month, day] = clean.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
+  if (Number.isNaN(parsed.getTime())) return clean
+  return new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(parsed)
+}
+
+function fieldDisplayValue(field: TemplateCompilerField) {
+  return field.type === 'date' ? legalDateValue(field.value || '') : field.value || ''
+}
+
+function classToken(value: string | undefined, fallback: string) {
+  const clean = (value || fallback).toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+  return clean || fallback
+}
+
+function fontVariantClass(prefix: string, key: string | undefined, fallback: string) {
+  return `${prefix}--${classToken(key, fallback)}`
+}
+
+function bodySizeClass(value: number) {
+  const size = Math.max(9, Math.min(22, Math.round(value || 12)))
+  return `iu-template-body-size--${size}`
+}
+
+function lineHeightClass(value: number) {
+  const step = Math.max(12, Math.min(26, Math.round((value || 1.9) * 10)))
+  return `iu-template-leading--${step}`
+}
+
+function groupCompilerFields(fields: TemplateCompilerField[]) {
+  const groups: Array<{ id: string; title: string; fields: TemplateCompilerField[] }> = [
+    { id: 'studio', title: 'Dati studio', fields: [] },
+    { id: 'parte', title: 'Dati parte', fields: [] },
+    { id: 'pratica', title: 'Dati pratica', fields: [] },
+    { id: 'dettagli', title: 'Dettagli', fields: [] },
+  ]
+  fields.forEach((field) => {
+    const textValue = `${field.name} ${field.label}`.toLowerCase()
+    if (/studio|avvocato|pec|indirizzo_studio|piva|iban/.test(textValue)) groups[0].fields.push(field)
+    else if (/cliente|attore|convenuto|parte|controparte|destinatario/.test(textValue)) groups[1].fields.push(field)
+    else if (/fascicolo|pratica|rg|tribunale|giudice|ufficio|rito|fase/.test(textValue)) groups[2].fields.push(field)
+    else groups[3].fields.push(field)
+  })
+  return groups.filter((group) => group.fields.length)
+}
+
+function firstMeaningfulSentence(value: string) {
+  const clean = value.replace(/\s+/g, ' ').trim()
+  if (!clean) return ''
+  const sentence = clean.match(/[^.!?]{24,}[.!?]/)
+  return (sentence?.[0] || clean.slice(0, 220)).trim()
+}
+
+function buildLocalLexProposal(action: TemplateLexAction, draftText: string, fields: TemplateCompilerField[], customInstructions: string): TemplateLexProposal {
+  const original = firstMeaningfulSentence(draftText) || '[TESTO_DOCUMENTO]'
+  const missingPlaceholder = fields.map(placeholderName).find((token) => draftText.includes(token))
+  const baseId = `${action.id}_${Date.now()}`
+  if (action.id === 'correggi_refusi') {
+    const proposed = original
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([,.;:])/g, '$1')
+      .replace(/ ,/g, ',')
+      .trim()
+    return {
+      id: baseId,
+      mode: action.mode,
+      title: action.label,
+      original,
+      proposed: proposed === original ? `${original} [nessun refuso evidente nel passaggio selezionato]` : proposed,
+      reason: 'Correzione locale di spaziatura, punteggiatura e refusi evidenti.',
+      risk: 'info',
+      status: 'pending',
+    }
+  }
+  if (action.id === 'controlla_placeholder') {
+    return {
+      id: baseId,
+      mode: action.mode,
+      title: action.label,
+      original: missingPlaceholder || '[CAMPO_VARIABILE]',
+      proposed: missingPlaceholder ? `Completa ${missingPlaceholder} prima dell'export finale.` : 'Nessun placeholder non compilato rilevato nel testo visibile.',
+      reason: 'Controllo campi variabili con applicazione solo su conferma.',
+      risk: missingPlaceholder ? 'warning' : 'success',
+      status: 'pending',
+    }
+  }
+  if (action.id === 'controlla_normativa') {
+    return {
+      id: baseId,
+      mode: action.mode,
+      title: action.label,
+      original,
+      proposed: 'Integra il riferimento normativo solo dopo verifica della fonte già associata alla pratica.',
+      reason: 'Lex segnala il punto, ma non inventa norme né aggiorna il testo senza accettazione.',
+      risk: 'warning',
+      status: 'pending',
+    }
+  }
+  if (action.id === 'controlla_privacy') {
+    return {
+      id: baseId,
+      mode: action.mode,
+      title: action.label,
+      original,
+      proposed: 'Conserva nel testo solo i dati personali necessari alla finalità difensiva e alla pratica collegata.',
+      reason: 'Controllo privacy e dati personali in locale, senza trasmissione a servizi esterni.',
+      risk: 'warning',
+      status: 'pending',
+    }
+  }
+  if (action.id === 'genera_clausola') {
+    return {
+      id: baseId,
+      mode: action.mode,
+      title: action.label,
+      original: '',
+      proposed: `Clausola proposta: le parti prendono atto della documentazione esaminata e confermano che ogni ulteriore integrazione sarà valutata dal difensore prima del deposito.${customInstructions ? ` Indicazione Lex: ${customInstructions}` : ''}`,
+      reason: "Testo aggiuntivo in diff separato, da accettare prima dell'inserimento.",
+      risk: 'info',
+      status: 'pending',
+    }
+  }
+  if (action.id === 'espandi_premesse') {
+    return {
+      id: baseId,
+      mode: action.mode,
+      title: action.label,
+      original,
+      proposed: `${original} La ricostruzione dei fatti viene precisata con riferimento ai documenti già presenti nella pratica e alle circostanze confermate dal cliente.`,
+      reason: 'Espansione redazionale separata, da accettare o modificare.',
+      risk: 'info',
+      status: 'pending',
+    }
+  }
+  const formality = action.id === 'rendi_chiaro_cliente'
+    ? 'in termini più chiari, mantenendo il rigore giuridico'
+    : action.id === 'rendi_incisivo'
+      ? 'con formula più diretta e incisiva'
+      : action.id === 'rendi_formale'
+        ? 'con tono più formale e istituzionale'
+        : 'con tono professionale e lineare'
+  return {
+    id: baseId,
+    mode: action.mode,
+    title: action.label,
+    original,
+    proposed: `${original} [Versione Lex: ${formality}.]`,
+    reason: 'Proposta stilistica locale, da accettare o rifiutare.',
+    risk: 'info',
+    status: 'pending',
+  }
+}
+
+const TEMPLATE_CATEGORY_TABS = ['Tutti', 'Contratti', 'Diffide', 'Deleghe', 'Pareri', 'Atti']
+
+function compactTemplateCategory(item: TemplateExample) {
+  const searchable = `${item.title} ${item.description} ${item.category} ${item.tags.join(' ')}`.toLowerCase()
+  if (/(diffid|mora|sollecito|stragiudizial)/i.test(searchable)) return 'Diffide'
+  if (/(deleg|procura|mandato|rappresentanza)/i.test(searchable)) return 'Deleghe'
+  if (/(parere|responsabilit|consulenz|valutazion)/i.test(searchable)) return 'Pareri'
+  if (/(contratt|locazion|comodat|accordo|incarico|scrittura privata|privacy|gdpr|clausol)/i.test(searchable)) return 'Contratti'
+  return 'Atti'
+}
+
+function ProfessionalTemplateEditorWorkspace({
+  data,
+  activeTool,
+  draftText,
+  importing,
+  importStatus,
+  pdfStatus,
+  saving,
+  bodyFontSize,
+  bodyLineHeight,
+  onToolSelect,
+  onDraftTextChange,
+  onBodyFontSizeChange,
+  onBodyLineHeightChange,
+  onEditorLayoutChange,
+  onImport,
+  onPreviewPdf,
+  onDownloadWord,
+  onDownloadRtf,
+  onRefreshPreview,
+  onSave,
+}: TemplateEditorProps) {
+  const fields = allCompilerFields(data)
+  const fieldGroups = useMemo(() => groupCompilerFields(fields), [data.model.code, data.baseFields, data.extraFields])
+  const [activeTab, setActiveTab] = useState<TemplateEditorTab>('Campi')
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [templateCategory, setTemplateCategory] = useState('Tutti')
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+  const [documentFont, setDocumentFont] = useState(data.editorLayout.fontFamily || data.fontRegistry.defaults.document)
+  const [headingFont, setHeadingFont] = useState(data.editorLayout.headingFontFamily || data.fontRegistry.defaults.heading)
+  const [uiFont, setUiFont] = useState(data.editorLayout.uiFontFamily || data.fontRegistry.defaults.ui)
+  const [placeholderFont, setPlaceholderFont] = useState(data.editorLayout.placeholderFontFamily || data.fontRegistry.defaults.placeholder)
+  const [fallbackFont, setFallbackFont] = useState(data.editorLayout.fallbackFontFamily || data.fontRegistry.defaults.fallback)
+  const [stylePreset, setStylePreset] = useState(data.editorLayout.stylePreset || data.fontRegistry.defaults.stylePreset)
+  const [activeLexMode, setActiveLexMode] = useState(data.lexRevision.modes[0] || 'Correttore')
+  const [customInstructions, setCustomInstructions] = useState('')
+  const [proposals, setProposals] = useState<TemplateLexProposal[]>(data.lexRevision.seedProposals)
+  const [auditRows, setAuditRows] = useState<string[]>([])
+  const [workspaceStatus, setWorkspaceStatus] = useState('')
+  const editorRef = useRef<HTMLTextAreaElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const selectedTemplate = data.templateExamples.find((item) => item.id === selectedTemplateId) || data.templateExamples.find((item) => item.selected) || data.templateExamples[0]
+  const categories = useMemo(() => TEMPLATE_CATEGORY_TABS, [])
+  const visibleTemplates = data.templateExamples.filter((item) => {
+    const byCategory = templateCategory === 'Tutti' || compactTemplateCategory(item) === templateCategory
+    const textValue = `${item.title} ${item.description} ${item.tags.join(' ')}`.toLowerCase()
+    return byCategory && (!templateSearch.trim() || textValue.includes(templateSearch.trim().toLowerCase()))
+  })
+  const completedFields = fields.filter((field) => (fieldValues[field.name] || field.value || '').trim()).length
+  const completion = fields.length ? Math.round((completedFields / fields.length) * 100) : 100
+  const lexActions = data.lexRevision.actions
+  const statusText = [workspaceStatus, importStatus, pdfStatus].filter(Boolean).join(' ')
+  const editorClassName = [
+    'iu-template-pro-editor',
+    fontVariantClass('iu-template-ui-font', uiFont, 'inter'),
+  ].join(' ')
+  const paperClassName = [
+    'iu-template-pro-paper',
+    fontVariantClass('iu-template-doc-font', documentFont, 'source_serif'),
+    fontVariantClass('iu-template-heading-font', headingFont, 'merriweather'),
+    fontVariantClass('iu-template-placeholder-font', placeholderFont, 'ibm_plex_mono'),
+    bodySizeClass(bodyFontSize),
+    lineHeightClass(bodyLineHeight),
+  ].join(' ')
+
+  useEffect(() => {
+    const values: Record<string, string> = {}
+    fields.forEach((field) => {
+      values[field.name] = fieldDisplayValue(field)
+    })
+    setFieldValues(values)
+    setSelectedTemplateId((current) => current || data.templateExamples.find((item) => item.selected)?.id || data.templateExamples[0]?.id || '')
+    setProposals(data.lexRevision.seedProposals)
+  }, [data.model.code])
+
+  useEffect(() => {
+    onEditorLayoutChange({
+      fontFamily: documentFont,
+      headingFontFamily: headingFont,
+      uiFontFamily: uiFont,
+      placeholderFontFamily: placeholderFont,
+      fallbackFontFamily: fallbackFont,
+      stylePreset,
+      fontSize: bodyFontSize,
+      lineHeight: bodyLineHeight,
+    })
+  }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, data.model.code])
+
+  const setTab = (tab: TemplateEditorTab) => {
+    setActiveTab(tab)
+    onToolSelect(tab)
+    window.requestAnimationFrame(() => {
+      if (panelRef.current) panelRef.current.scrollTop = 0
+    })
+  }
+
+  const updateField = (field: TemplateCompilerField, value: string) => {
+    const previousValue = fieldValues[field.name] || field.value || ''
+    const cleanValue = value.trim()
+    setFieldValues((current) => ({ ...current, [field.name]: value }))
+    const token = placeholderName(field)
+    const currentText = draftText || guideDraftFromData(data)
+    if (cleanValue && currentText.includes(token)) {
+      onDraftTextChange(currentText.replaceAll(token, cleanValue))
+      return
+    }
+    const cleanPrevious = previousValue.trim()
+    if (cleanValue && cleanPrevious.length >= 3 && currentText.includes(cleanPrevious)) {
+      onDraftTextChange(currentText.replace(new RegExp(escapeRegExp(cleanPrevious), 'g'), cleanValue))
+    }
+  }
+
+  const editorSegments = useMemo(
+    () => String(draftText || guideDraftFromData(data)).split(/(\[[A-Z0-9_]+\])/g),
+    [data.model.code, draftText, fieldValues],
+  )
+
+  const applyFormat = (command: string, value?: string) => {
+    const editor = editorRef.current
+    const currentText = draftText || guideDraftFromData(data)
+    const start = editor?.selectionStart ?? currentText.length
+    const end = editor?.selectionEnd ?? currentText.length
+    const selected = currentText.slice(start, end)
+    const replaceSelection = (replacement: string, cursorPosition = start + replacement.length) => {
+      const nextText = `${currentText.slice(0, start)}${replacement}${currentText.slice(end)}`
+      onDraftTextChange(nextText)
+      window.setTimeout(() => {
+        editorRef.current?.focus()
+        editorRef.current?.setSelectionRange(cursorPosition, cursorPosition)
+      }, 0)
+    }
+    const wrapSelection = (before: string, after = before, fallback = 'testo') => {
+      const text = selected || fallback
+      replaceSelection(`${before}${text}${after}`, start + before.length + text.length)
+    }
+    if (command === 'bold') {
+      wrapSelection('**')
+      setWorkspaceStatus('Grassetto applicato al testo selezionato.')
+      return
+    }
+    if (command === 'italic') {
+      wrapSelection('*')
+      setWorkspaceStatus('Corsivo applicato al testo selezionato.')
+      return
+    }
+    if (command === 'underline') {
+      wrapSelection('<u>', '</u>')
+      setWorkspaceStatus('Sottolineato applicato al testo selezionato.')
+      return
+    }
+    if (command === 'strikeThrough') {
+      wrapSelection('<s>', '</s>')
+      setWorkspaceStatus('Barrato applicato al testo selezionato.')
+      return
+    }
+    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+      const lines = (selected || 'Voce elenco').split(/\r?\n/)
+      const replacement = lines.map((line, index) => (
+        command === 'insertOrderedList' ? `${index + 1}. ${line.replace(/^\s*[-\d.]+\s*/, '')}` : `- ${line.replace(/^\s*[-\d.]+\s*/, '')}`
+      )).join('\n')
+      replaceSelection(replacement)
+      setWorkspaceStatus(command === 'insertOrderedList' ? 'Elenco numerato applicato.' : 'Elenco puntato applicato.')
+      return
+    }
+    editor?.focus()
+    try {
+      document.execCommand(command, false, value)
+      setWorkspaceStatus(`Comando applicato: ${command}.`)
+    } catch {
+      setWorkspaceStatus('Comando non applicato dal browser corrente.')
+    }
+  }
+
+  const applyPreset = (presetKey: string) => {
+    const preset = data.fontRegistry.stylePresets.find((item) => item.key === presetKey)
+    setStylePreset(presetKey)
+    if (!preset) return
+    if (preset.documentFont) setDocumentFont(preset.documentFont)
+    if (preset.headingFont) setHeadingFont(preset.headingFont)
+    if (preset.fontSize) onBodyFontSizeChange(preset.fontSize)
+    if (preset.lineHeight) onBodyLineHeightChange(preset.lineHeight)
+    setWorkspaceStatus(`Preset stile applicato: ${preset.label}.`)
+  }
+
+  const addAudit = (message: string) => {
+    setAuditRows((current) => [`${legalDateTimeNow()} - ${message}`, ...current].slice(0, 10))
+  }
+
+  const runLexAction = (action: TemplateLexAction) => {
+    const proposal = buildLocalLexProposal(action, draftText || guideDraftFromData(data), fields, customInstructions)
+    setProposals((current) => [proposal, ...current])
+    addAudit(`Lex ha creato una proposta "${action.label}".`)
+    setWorkspaceStatus('Proposta Lex pronta: accetta, modifica o rifiuta prima di applicarla.')
+  }
+
+  const updateProposal = (id: string, proposed: string) => {
+    setProposals((current) => current.map((proposal) => proposal.id === id ? { ...proposal, proposed, status: 'modified' } : proposal))
+  }
+
+  const acceptProposal = (proposal: TemplateLexProposal) => {
+    if (proposal.status === 'accepted') return
+    const currentText = draftText || guideDraftFromData(data)
+    let nextText = currentText
+    if (proposal.original && proposal.proposed && currentText.includes(proposal.original)) {
+      nextText = currentText.replace(proposal.original, proposal.proposed)
+    } else if (proposal.proposed && !proposal.proposed.startsWith('Nessun')) {
+      nextText = `${currentText.trim()}\n\n${proposal.proposed}`.trim()
+    }
+    onDraftTextChange(nextText)
+    setProposals((current) => current.map((item) => item.id === proposal.id ? { ...item, status: 'accepted' } : item))
+    addAudit(`Proposta accettata: ${proposal.title}.`)
+  }
+
+  const rejectProposal = (proposal: TemplateLexProposal) => {
+    setProposals((current) => current.map((item) => item.id === proposal.id ? { ...item, status: 'rejected' } : item))
+    addAudit(`Proposta rifiutata: ${proposal.title}.`)
+  }
+
+  const acceptAll = () => {
+    proposals.filter((proposal) => proposal.status === 'pending' || proposal.status === 'modified').forEach(acceptProposal)
+  }
+
+  const copyDocument = () => {
+    navigator.clipboard?.writeText(stripFixedStampFromDraft(draftText || guideDraftFromData(data), data))
+      .then(() => setWorkspaceStatus('Documento copiato negli appunti.'))
+      .catch(() => setWorkspaceStatus('Copia non disponibile dal browser corrente.'))
+  }
+
+  const panelTabs: TemplateEditorTab[] = ['Campi', 'Stile', 'Lex', 'Fonti', 'Controlli', 'Export']
+  const inlineTools = [
+    { label: 'Grassetto', icon: Bold, action: () => applyFormat('bold') },
+    { label: 'Corsivo', icon: Italic, action: () => applyFormat('italic') },
+    { label: 'Sottolineato', icon: Underline, action: () => applyFormat('underline') },
+    { label: 'Barrato', icon: Strikethrough, action: () => applyFormat('strikeThrough') },
+    { label: 'Allinea a sinistra', icon: AlignLeft, action: () => applyFormat('justifyLeft') },
+    { label: 'Centra', icon: AlignCenter, action: () => applyFormat('justifyCenter') },
+    { label: 'Allinea a destra', icon: AlignRight, action: () => applyFormat('justifyRight') },
+    { label: 'Giustifica', icon: AlignJustify, action: () => applyFormat('justifyFull') },
+    { label: 'Elenco puntato', icon: List, action: () => applyFormat('insertUnorderedList') },
+    { label: 'Elenco numerato', icon: ListOrdered, action: () => applyFormat('insertOrderedList') },
+    { label: 'Annulla', icon: Undo2, action: () => applyFormat('undo') },
+    { label: 'Ripristina', icon: Redo2, action: () => applyFormat('redo') },
+    { label: 'Segnaposto', icon: Code2, action: () => setTab('Campi') },
+  ]
+
+  return (
+    <section className={editorClassName} aria-label="Editor professionale template atti">
+      <header className="iu-template-pro-topbar">
+        <div className="iu-template-pro-brand">
+          <span>
+            <Scale size={17} aria-hidden="true" />
+          </span>
+          <div>
+            <strong>IUSENTRA</strong>
+            <small>Catalogo template legali RTF</small>
+          </div>
+        </div>
+        <div className="iu-template-pro-actions">
+          <button type="button" className="is-success" disabled={importing} onClick={onImport}>
+            <UploadCloud size={15} aria-hidden="true" />
+            {importing ? 'Importazione...' : 'Importa Documento'}
+          </button>
+          <button type="button" onClick={() => setWorkspaceStatus('Compilazione multipla pronta: seleziona pratica e campi da applicare.')}>
+            <Columns3 size={15} aria-hidden="true" />
+            Compilazione Multipla
+          </button>
+          <button type="button" onClick={() => window.location.assign('/template-atti/nuovo')}>
+            <Plus size={15} aria-hidden="true" />
+            Nuovo Template
+          </button>
+          <button type="button" onClick={() => setTab('Fonti')}>
+            <HelpCircle size={15} aria-hidden="true" />
+            Guida
+          </button>
+          <button type="button" className="is-danger" onClick={onDownloadRtf}>
+            <FileDown size={15} aria-hidden="true" />
+            Esporta RTF
+          </button>
+        </div>
+      </header>
+      <div className="iu-template-pro-toolbar" aria-label="Barra strumenti documento">
+        <select aria-label="Font documento" value={documentFont} onChange={(event) => setDocumentFont(event.currentTarget.value)}>
+          {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
+        </select>
+        <select aria-label="Dimensione testo" value={bodyFontSize} onChange={(event) => onBodyFontSizeChange(Number(event.currentTarget.value))}>
+          {[10, 11, 12, 13, 14, 15, 16, 18, 20].map((size) => <option value={size} key={size}>{size}pt</option>)}
+        </select>
+        <div className="iu-template-pro-toolbar__icons">
+          {inlineTools.map((tool) => {
+            const Icon = tool.icon
+            return (
+              <button type="button" title={tool.label} aria-label={tool.label} key={tool.label} onClick={tool.action}>
+                <Icon size={15} aria-hidden="true" />
+              </button>
+            )
+          })}
+        </div>
+        <span className="iu-template-pro-toolbar__spacer" />
+        <span className="iu-template-pro-toolbar__hint">Campi variabili</span>
+        <button type="button" className="iu-template-pro-toolbar__panel" title="Mostra campi" onClick={() => setTab('Campi')}>
+          <Columns3 size={15} aria-hidden="true" />
+        </button>
+      </div>
+      {statusText ? <p className="iu-template-pro-status" role="status">{statusText}</p> : null}
+      <div className="iu-template-pro-layout">
+        <aside className="iu-template-pro-sidebar" aria-label="Catalogo template">
+          <label className="iu-template-pro-search">
+            <Search size={15} aria-hidden="true" />
+            <input value={templateSearch} placeholder="Cerca template..." onChange={(event) => setTemplateSearch(event.currentTarget.value)} />
+          </label>
+          <div className="iu-template-pro-cats" aria-label="Categorie template">
+            {categories.map((category) => (
+              <button type="button" className={templateCategory === category ? 'is-active' : ''} key={category} onClick={() => setTemplateCategory(category)}>
+                {category}
+              </button>
+            ))}
+          </div>
+          <div className="iu-template-pro-list">
+            {visibleTemplates.slice(0, 12).map((item) => (
+              <button type="button" className={`iu-template-pro-card${selectedTemplate?.id === item.id ? ' is-active' : ''}`} key={item.id} onClick={() => { setSelectedTemplateId(item.id); setWorkspaceStatus(`Template selezionato: ${item.title}.`) }}>
+                <span><FileText size={18} aria-hidden="true" /></span>
+                <strong>{item.title}</strong>
+                <small>{item.description || item.category}</small>
+                <em>{item.fieldsCount || fields.length} campi</em>
+              </button>
+            ))}
+          </div>
+          <footer>{visibleTemplates.length} template disponibili</footer>
+        </aside>
+        <main className="iu-template-pro-canvas">
+          <nav className="iu-template-pro-flow" aria-label="Flusso documento">
+            {(data.editorWorkflow.length ? data.editorWorkflow : data.guidePreview.steps).slice(0, 10).map((step) => (
+              <span className={`is-${step.state}`} key={step.id}>{step.label}</span>
+            ))}
+          </nav>
+          <article className={paperClassName}>
+            <div className="iu-template-pro-paper__stamp">
+              {data.stamp.lines.slice(0, 4).length ? data.stamp.lines.slice(0, 4).map((line, index) => (
+                <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
+              )) : (
+                <>
+                  <span className="is-bold">[NOME_STUDIO]</span>
+                  <span>[INDIRIZZO_STUDIO]</span>
+                </>
+              )}
+            </div>
+              <div className="iu-template-pro-paper__body-shell">
+                <div className="iu-template-pro-paper__body-preview" aria-hidden="true">
+                  {editorSegments.map((segment, index) => {
+                    if (!/^\[[A-Z0-9_]+\]$/.test(segment)) return <span key={`${index}-text`}>{segment}</span>
+                    const field = fieldForPlaceholder(fields, segment)
+                    const value = field ? String(fieldValues[field.name] || '').trim() : ''
+                    return (
+                      <mark className={`iu-template-pro-placeholder-token${value ? ' is-filled' : ''}`} data-token={segment} key={`${segment}-${index}`}>
+                        {value || segment}
+                      </mark>
+                    )
+                  })}
+                </div>
+                <textarea
+                  ref={editorRef}
+                  className="iu-template-pro-paper__body"
+                  spellCheck
+                  data-testid="professional-template-editor"
+                  value={draftText || guideDraftFromData(data)}
+                  onChange={(event) => onDraftTextChange(event.currentTarget.value)}
+                  aria-label="Corpo documento modificabile"
+                />
+              </div>
+          </article>
+        </main>
+        <aside className="iu-template-pro-fields" aria-label="Pannello editor template">
+          <header>
+            <div>
+              <strong>{activeTab === 'Campi' ? 'Campi da compilare' : activeTab}</strong>
+              <small>{selectedTemplate?.title || data.model.name}</small>
+            </div>
+            <button type="button" title="Chiudi pannello" aria-label="Chiudi pannello" onClick={() => setTab('Campi')}>
+              <XCircle size={16} aria-hidden="true" />
+            </button>
+          </header>
+          <nav className="iu-template-pro-tabs" aria-label="Schede editor">
+            {panelTabs.map((tab) => (
+              <button type="button" className={activeTab === tab ? 'is-active' : ''} key={tab} onClick={() => setTab(tab)}>
+                {tab}
+              </button>
+            ))}
+          </nav>
+          <div className="iu-template-pro-panel" ref={panelRef}>
+            {activeTab === 'Campi' ? (
+              <>
+                {fieldGroups.map((group) => (
+                  <section className="iu-template-pro-field-group" key={group.id}>
+                    <h3>{group.title}</h3>
+                    {group.fields.map((field) => (
+                      <label key={field.name}>
+                        <span>{field.label}</span>
+                        {field.type === 'textarea' ? (
+                          <textarea value={fieldValues[field.name] || ''} placeholder={field.placeholder || field.label} onChange={(event) => updateField(field, event.currentTarget.value)} />
+                        ) : field.options.length ? (
+                          <select value={fieldValues[field.name] || ''} onChange={(event) => updateField(field, event.currentTarget.value)}>
+                            <option value="">{field.placeholder || 'Seleziona'}</option>
+                            {field.options.map((option) => <option value={option.value} key={`${field.name}-${option.value}`}>{option.label}</option>)}
+                          </select>
+                        ) : (
+                          <input value={fieldValues[field.name] || ''} placeholder={field.placeholder || field.label} onChange={(event) => updateField(field, event.currentTarget.value)} />
+                        )}
+                        <small>{placeholderName(field)}</small>
+                      </label>
+                    ))}
+                  </section>
+                ))}
+                <div className="iu-template-pro-progress">
+                  <span>Compilazione</span>
+                  <progress value={completion} max={100} />
+                  <strong>{completion}%</strong>
+                </div>
+              </>
+            ) : null}
+            {activeTab === 'Stile' ? (
+              <section className="iu-template-pro-style">
+                <label>
+                  <span>Preset stile documento</span>
+                  <select value={stylePreset} onChange={(event) => applyPreset(event.currentTarget.value)}>
+                    {data.fontRegistry.stylePresets.map((preset) => <option value={preset.key} key={preset.key}>{preset.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Font documento</span>
+                  <select value={documentFont} onChange={(event) => setDocumentFont(event.currentTarget.value)}>
+                    {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Font titoli</span>
+                  <select value={headingFont} onChange={(event) => setHeadingFont(event.currentTarget.value)}>
+                    {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Font area di lavoro</span>
+                  <select value={uiFont} onChange={(event) => setUiFont(event.currentTarget.value)}>
+                    {data.fontRegistry.fonts.filter((font) => font.category === 'moderno' || font.usage.includes('interfaccia')).map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Font placeholder</span>
+                  <select value={placeholderFont} onChange={(event) => setPlaceholderFont(event.currentTarget.value)}>
+                    {data.fontRegistry.fonts.filter((font) => font.tone === 'mono' || font.category === 'placeholder').map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Fallback export</span>
+                  <select value={fallbackFont} onChange={(event) => setFallbackFont(event.currentTarget.value)}>
+                    {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
+                  </select>
+                </label>
+                <div className="iu-template-guide-format-controls" aria-label="Formato testo">
+                  <span>Corpo testo</span>
+                  <button type="button" onClick={() => onBodyFontSizeChange(Math.max(9, bodyFontSize - 1))}>A-</button>
+                  <strong>{bodyFontSize} pt</strong>
+                  <button type="button" onClick={() => onBodyFontSizeChange(Math.min(22, bodyFontSize + 1))}>A+</button>
+                  <span>Interlinea</span>
+                  <button type="button" onClick={() => onBodyLineHeightChange(Math.max(1.2, Number((bodyLineHeight - 0.1).toFixed(2))))}>-</button>
+                  <strong>{bodyLineHeight.toFixed(2)}</strong>
+                  <button type="button" onClick={() => onBodyLineHeightChange(Math.min(2.6, Number((bodyLineHeight + 0.1).toFixed(2))))}>+</button>
+                </div>
+              </section>
+            ) : null}
+            {activeTab === 'Lex' ? (
+              <section className="iu-template-pro-lex">
+                <div className="iu-template-pro-privacy">
+                  <ShieldCheck size={16} aria-hidden="true" />
+                  <span>{data.lexRevision.privacyPolicy.message}</span>
+                </div>
+                <div className="iu-template-pro-modes" data-allow-technical-text="true">
+                  {data.lexRevision.modes.map((mode) => (
+                    <button type="button" className={activeLexMode === mode ? 'is-active' : ''} key={mode} onClick={() => setActiveLexMode(mode)}>
+                      {lexModeLabel(mode)}
+                    </button>
+                  ))}
+                </div>
+                <label>
+                  <span>Istruzioni personalizzate per Lex</span>
+                  <textarea value={customInstructions} placeholder="Es. mantieni tono assertivo e richiami sintetici alle fonti già presenti" onChange={(event) => setCustomInstructions(event.currentTarget.value)} />
+                </label>
+                <div className="iu-template-pro-lex-actions">
+                  {lexActions.map((action) => (
+                    <button type="button" key={action.id} onClick={() => runLexAction(action)}>
+                      <Sparkles size={14} aria-hidden="true" />
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="iu-template-pro-proposals">
+                  <header>
+                    <strong>Proposte in diff</strong>
+                    <button type="button" disabled={!proposals.some((proposal) => proposal.status === 'pending' || proposal.status === 'modified')} onClick={acceptAll}>Applica tutte le proposte accettabili</button>
+                  </header>
+                  {proposals.length ? proposals.map((proposal) => (
+                    <article className={`iu-template-pro-diff-card is-${proposal.status}`} key={proposal.id}>
+                      <div>
+                        <Badge tone={proposal.risk}>{proposal.mode}</Badge>
+                        <Badge tone={proposal.status === 'accepted' ? 'success' : proposal.status === 'rejected' ? 'danger' : 'warning'}>{proposal.status === 'accepted' ? 'Accettata' : proposal.status === 'rejected' ? 'Rifiutata' : proposal.status === 'modified' ? 'Modificata' : 'Da decidere'}</Badge>
+                      </div>
+                      <h4>{proposal.title}</h4>
+                      {proposal.original ? <del>{proposal.original}</del> : null}
+                      <textarea value={proposal.proposed} onChange={(event) => updateProposal(proposal.id, event.currentTarget.value)} />
+                      <p>{proposal.reason}</p>
+                      <footer>
+                        <button type="button" onClick={() => acceptProposal(proposal)}>Accetta</button>
+                        <button type="button" onClick={() => rejectProposal(proposal)}>Rifiuta</button>
+                      </footer>
+                    </article>
+                  )) : <p>Nessuna proposta aperta.</p>}
+                </div>
+                {auditRows.length ? (
+                  <div className="iu-template-pro-audit">
+                    <strong>Registro proposte</strong>
+                    {auditRows.map((row) => <span key={row}>{row}</span>)}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+            {activeTab === 'Fonti' ? (
+              <section className="iu-template-pro-sources">
+                <h3>Guida pratica integrata</h3>
+                <p>{data.guidePreview.subtitle || data.summary}</p>
+                {(data.compliance.normativeReferences.length ? data.compliance.normativeReferences : []).slice(0, 8).map((ref) => (
+                  <article key={ref.id || ref.title}>
+                    <strong>{ref.title || ref.sourceTitle || ref.article}</strong>
+                    <span>{ref.article || ref.reasonForApplication}</span>
+                  </article>
+                ))}
+                {!data.compliance.normativeReferences.length ? <p>Fonti disponibili nella pratica e nei controlli del modello.</p> : null}
+              </section>
+            ) : null}
+            {activeTab === 'Controlli' ? (
+              <section className="iu-template-pro-checks">
+                <h3>Final check</h3>
+                <p><CheckCircle2 size={14} aria-hidden="true" /><strong>Controllo placeholder</strong>: verifica campi variabili, segnaposto residui e valori da confermare prima della versione finale.</p>
+                <p><CheckCircle2 size={14} aria-hidden="true" /><strong>Controllo legal_basis</strong>: verifica la base giuridica dichiarata e i riferimenti normativi collegati al modello.</p>
+                <p><CheckCircle2 size={14} aria-hidden="true" /><strong>Controllo privacy/PII</strong>: evidenzia dati personali, dati sensibili e contenuti da trattare con policy privacy esplicita.</p>
+                {[...data.checks.blocking, ...data.checks.recommended, ...data.compliance.nextActions].slice(0, 12).map((item) => (
+                  <p key={item}><CheckCircle2 size={14} aria-hidden="true" />{item}</p>
+                ))}
+                {!data.checks.blocking.length && !data.checks.recommended.length ? <p><CheckCircle2 size={14} aria-hidden="true" />Controlli redazionali pronti.</p> : null}
+              </section>
+            ) : null}
+            {activeTab === 'Export' ? (
+              <section className="iu-template-pro-export">
+                <button type="button" onClick={onDownloadRtf}><Download size={15} aria-hidden="true" />RTF</button>
+                <button type="button" onClick={onDownloadWord}><FileDown size={15} aria-hidden="true" />DOCX</button>
+                <button type="button" onClick={onPreviewPdf}><Eye size={15} aria-hidden="true" />PDF</button>
+                <button type="button" onClick={copyDocument}><Copy size={15} aria-hidden="true" />Copia</button>
+                <button type="button" disabled={saving} onClick={onSave}><Save size={15} aria-hidden="true" />{saving ? 'Salvataggio...' : 'Salva nel fascicolo'}</button>
+                <button type="button" onClick={onRefreshPreview}><RefreshCw size={15} aria-hidden="true" />Rigenera dal template</button>
+              </section>
+            ) : null}
+          </div>
+        </aside>
+      </div>
+    </section>
+  )
+}
+
 function GuidePreviewWorkspace({
   data,
   activeTool,
@@ -761,9 +1585,11 @@ function GuidePreviewWorkspace({
   onDraftTextChange,
   onBodyFontSizeChange,
   onBodyLineHeightChange,
+  onEditorLayoutChange,
   onImport,
   onPreviewPdf,
   onDownloadWord,
+  onDownloadRtf,
   onRefreshPreview,
   onSave,
 }: {
@@ -780,12 +1606,38 @@ function GuidePreviewWorkspace({
   onDraftTextChange: (value: string) => void
   onBodyFontSizeChange: (value: number) => void
   onBodyLineHeightChange: (value: number) => void
+  onEditorLayoutChange: (value: Partial<TemplateEditorLayout>) => void
   onImport: () => void
   onPreviewPdf: () => void
   onDownloadWord: () => void
+  onDownloadRtf: () => void
   onRefreshPreview: () => void
   onSave: () => void
 }) {
+  return (
+    <ProfessionalTemplateEditorWorkspace
+      data={data}
+      activeTool={activeTool}
+      draftText={draftText}
+      importing={importing}
+      importStatus={importStatus}
+      pdfStatus={pdfStatus}
+      saving={saving}
+      bodyFontSize={bodyFontSize}
+      bodyLineHeight={bodyLineHeight}
+      onToolSelect={onToolSelect}
+      onDraftTextChange={onDraftTextChange}
+      onBodyFontSizeChange={onBodyFontSizeChange}
+      onBodyLineHeightChange={onBodyLineHeightChange}
+      onEditorLayoutChange={onEditorLayoutChange}
+      onImport={onImport}
+      onPreviewPdf={onPreviewPdf}
+      onDownloadWord={onDownloadWord}
+      onDownloadRtf={onDownloadRtf}
+      onRefreshPreview={onRefreshPreview}
+      onSave={onSave}
+    />
+  )
   const preview = data.guidePreview
   const toolbar = [
     { label: 'Setup', icon: ShieldCheck },
@@ -797,10 +1649,11 @@ function GuidePreviewWorkspace({
     { label: 'AI', icon: Bot },
   ]
   const lines = data.stamp.lines.slice(0, 7)
-  const editorStyle: CSSProperties = {
-    fontSize: `${bodyFontSize}pt`,
-    lineHeight: bodyLineHeight,
-  }
+  const guideBodyEditorClassName = [
+    'iu-template-guide-body-editor',
+    bodySizeClass(bodyFontSize),
+    lineHeightClass(bodyLineHeight),
+  ].join(' ')
   const visibleTemplateCode = data.model.code || preview.template.code
   const secondaryTemplateCode = preview.template.code && preview.template.code !== visibleTemplateCode ? preview.template.code : ''
   const sourceRows = data.compliance.normativeReferences.length
@@ -950,10 +1803,9 @@ function GuidePreviewWorkspace({
                     <span>Corpo atto modificabile</span>
                     <textarea
                       data-testid="guide-body-editor"
-                      className="iu-template-guide-body-editor"
+                      className={guideBodyEditorClassName}
                       name="testo_generato"
                       value={draftText}
-                      style={editorStyle}
                       onChange={(event) => onDraftTextChange(event.currentTarget.value)}
                       aria-label="Corpo atto modificabile"
                       spellCheck
@@ -1035,13 +1887,19 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   const [pdfStatus, setPdfStatus] = useState('')
   const [activeGuideTool, setActiveGuideTool] = useState('Testi')
   const [guideDraftText, setGuideDraftText] = useState('')
-  const [guideFontSize, setGuideFontSize] = useState(15)
-  const [guideLineHeight, setGuideLineHeight] = useState(1.72)
+  const [guideFontSize, setGuideFontSize] = useState(12)
+  const [guideLineHeight, setGuideLineHeight] = useState(1.9)
   const guideImportRef = useRef<HTMLInputElement>(null)
   const contextRef = useRef<HTMLDivElement>(null)
   const compilerRef = useRef<HTMLDivElement>(null)
   const previewRenderTimerRef = useRef<number | undefined>(undefined)
+  const guideEditorLayoutRef = useRef<Partial<TemplateEditorLayout>>({})
   const hiddenQuery = useMemo(queryHiddenInputs, [])
+
+  useEffect(() => {
+    document.body.classList.add('iu-template-pro-fullscreen')
+    return () => document.body.classList.remove('iu-template-pro-fullscreen')
+  }, [])
 
   function load() {
     setLoading(true)
@@ -1049,8 +1907,8 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       .then((payload) => {
         setData(payload)
         setGuideDraftText((current) => current || guideDraftFromData(payload))
-        setGuideFontSize(payload.guidePreview.editorLayout?.fontSize || 15)
-        setGuideLineHeight(payload.guidePreview.editorLayout?.lineHeight || 1.72)
+        setGuideFontSize(payload.guidePreview.editorLayout?.fontSize || payload.editorLayout.fontSize || 12)
+        setGuideLineHeight(payload.guidePreview.editorLayout?.lineHeight || payload.editorLayout.lineHeight || 1.9)
       })
       .finally(() => setLoading(false))
   }
@@ -1075,6 +1933,10 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     else params.delete('intent')
     const suffix = params.toString()
     window.location.assign(`${window.location.pathname}${suffix ? `?${suffix}` : ''}`)
+  }
+
+  const rememberGuideEditorLayout = (layout: Partial<TemplateEditorLayout>) => {
+    guideEditorLayoutRef.current = { ...guideEditorLayoutRef.current, ...layout }
   }
 
   const submitCompiler = () => {
@@ -1118,7 +1980,13 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     formData.set('title', data.model.name || data.guidePreview.template.name || 'Atto')
     formData.set('testo_generato', stripFixedStampFromDraft(guideDraftText || guideDraftFromData(data), data))
     formData.set('testo_generato__editor_layout', JSON.stringify({
+      font_family: guideEditorLayoutRef.current.fontFamily || data.editorLayout.fontFamily || data.fontRegistry.defaults.document,
+      heading_font_family: guideEditorLayoutRef.current.headingFontFamily || data.editorLayout.headingFontFamily || data.fontRegistry.defaults.heading,
+      placeholder_font_family: guideEditorLayoutRef.current.placeholderFontFamily || data.editorLayout.placeholderFontFamily || data.fontRegistry.defaults.placeholder,
+      fallback_font_family: guideEditorLayoutRef.current.fallbackFontFamily || data.editorLayout.fallbackFontFamily || data.fontRegistry.defaults.fallback,
+      document_style_preset: guideEditorLayoutRef.current.stylePreset || data.editorLayout.stylePreset || data.fontRegistry.defaults.stylePreset,
       font_size: guideFontSize,
+      font_size_pt: guideEditorLayoutRef.current.fontSize || guideFontSize,
       line_height: guideLineHeight,
       page_scale: data.guidePreview.editorLayout.pageScale || 100,
     }))
@@ -1132,7 +2000,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   }
 
   const refreshGuidePreviewFromCompiler = () => {
-    if (!data.guidePreview.enabled || !data.guidePreview.renderEndpoint) return
+    if (!data.guidePreview.renderEndpoint) return
     const formData = buildGuideFormData()
     setPdfStatus('Aggiorno anteprima dal template compilato...')
     submitFormJson(data.guidePreview.renderEndpoint, formData)
@@ -1145,7 +2013,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   }
 
   const scheduleGuidePreviewFromCompiler = () => {
-    if (!data.guidePreview.enabled || !data.guidePreview.renderEndpoint) return
+    if (!data.guidePreview.renderEndpoint) return
     if (previewRenderTimerRef.current) window.clearTimeout(previewRenderTimerRef.current)
     previewRenderTimerRef.current = window.setTimeout(refreshGuidePreviewFromCompiler, 700)
   }
@@ -1171,7 +2039,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
 
   const submitGuideDocument = (endpoint: string, status: string, success: string) => {
     if (!endpoint) return
-    const formData = data.guidePreview.enabled ? buildGuideFormData() : collectControlData(compilerRef.current)
+    const formData = buildGuideFormData()
     const title = data.model.name || data.guidePreview.template.name || 'Atto'
     if (!String(formData.get('title') || '').trim()) formData.set('title', title)
     if (!String(formData.get('testo_generato') || '').trim()) {
@@ -1200,6 +2068,10 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
 
   const downloadGuideWord = () => {
     submitGuideDocument(data.guidePreview.wordHref, 'Preparo documento Word...', 'Documento Word aperto.')
+  }
+
+  const downloadGuideRtf = () => {
+    submitGuideDocument(data.guidePreview.rtfHref, 'Preparo documento RTF...', 'Documento RTF aperto.')
   }
 
   const previewPdf = () => {
@@ -1238,67 +2110,41 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   }
 
   return (
-    <Page
-      title={data.guidePreview.enabled ? 'Anteprima modifica' : 'Compila template atto'}
-      subtitle={`${data.model.name} - ${data.model.code}${data.model.area ? ` - ${data.model.area}` : ''}`}
-      actions={
-        <>
-          <ButtonLink href={data.catalogHref} tone="neutral">
-            <ArrowLeft size={16} aria-hidden="true" />
-            Catalogo
-          </ButtonLink>
-          <Button type="button" tone="neutral" onClick={load}>
-            <RefreshCw size={16} aria-hidden="true" />
-            Aggiorna
-          </Button>
-        </>
-      }
-    >
-      <FloatingLex
-        context="template-atti-compilatore"
-        contextType="template_act"
-        modelCode={data.model.code || modelCode}
-        caseId={data.selectors.selectedFascicoloId}
-        clientId={data.selectors.selectedClienteId}
-        activeContext={{
-          context_type: 'template_act',
-          model_code: data.model.code || modelCode,
-          case_id: data.selectors.selectedFascicoloId,
-          client_id: data.selectors.selectedClienteId,
-        }}
-      />
+    <main className="iu-content iu-page iu-template-pro-host" aria-label="Editor professionale template atti">
       <input
         ref={guideImportRef}
         type="file"
-        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept=".pdf,.doc,.docx,.rtf,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/rtf,text/plain"
         className="iu-template-guide-file-input"
         onChange={(event) => handleGuideImportFile(event.currentTarget.files?.[0])}
       />
       <div className="iu-template-compiler-page">
-        {data.guidePreview.enabled ? (
-          <GuidePreviewWorkspace
-            data={data}
-            activeTool={activeGuideTool}
-            draftText={guideDraftText || guideDraftFromData(data)}
-            importing={importing}
-            importStatus={importStatus}
-            pdfStatus={submitMessage || submitError || pdfStatus}
-            saving={submitting}
-            bodyFontSize={guideFontSize}
-            bodyLineHeight={guideLineHeight}
-            onToolSelect={setActiveGuideTool}
-            onDraftTextChange={setGuideDraftText}
-            onBodyFontSizeChange={setGuideFontSize}
-            onBodyLineHeightChange={setGuideLineHeight}
-            onImport={importGuideDocument}
-            onPreviewPdf={previewPdf}
-            onDownloadWord={downloadGuideWord}
-            onRefreshPreview={refreshGuidePreviewFromCompiler}
-            onSave={saveGuidePreview}
-          />
-        ) : null}
+        <GuidePreviewWorkspace
+          data={data}
+          activeTool={activeGuideTool}
+          draftText={guideDraftText || guideDraftFromData(data)}
+          importing={importing}
+          importStatus={importStatus}
+          pdfStatus={submitMessage || submitError || pdfStatus}
+          saving={submitting}
+          bodyFontSize={guideFontSize}
+          bodyLineHeight={guideLineHeight}
+          onToolSelect={setActiveGuideTool}
+          onDraftTextChange={setGuideDraftText}
+          onBodyFontSizeChange={setGuideFontSize}
+          onBodyLineHeightChange={setGuideLineHeight}
+          onEditorLayoutChange={rememberGuideEditorLayout}
+          onImport={importGuideDocument}
+          onPreviewPdf={previewPdf}
+          onDownloadWord={downloadGuideWord}
+          onDownloadRtf={downloadGuideRtf}
+          onRefreshPreview={refreshGuidePreviewFromCompiler}
+          onSave={saveGuidePreview}
+        />
 
-        <section className={`iu-template-compiler-hero iu-od-surface${data.guidePreview.enabled ? ' iu-template-compiler-hero--compact' : ''}`}>
+        {false ? (
+          <>
+            <section className={`iu-template-compiler-hero iu-od-surface${data.guidePreview.enabled ? ' iu-template-compiler-hero--compact' : ''}`}>
           <div>
             <p className="iu-template-eyebrow">Redazione guidata</p>
             <h2>{data.model.name}</h2>
@@ -1316,7 +2162,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
                 <span className="iu-template-step">1</span>
                 <div>
                   <h3>Precompila dalla pratica</h3>
-                  <p>Cliente e pratica collegano il template ai dati gia' disponibili nello studio.</p>
+                  <p>Cliente e pratica collegano il template ai dati già disponibili nello studio.</p>
                 </div>
               </header>
               <div className="iu-template-context-grid">
@@ -1389,8 +2235,10 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
             <CompilerSidePanel data={data} />
           </div>
         </div>
+          </>
+        ) : null}
       </div>
-    </Page>
+    </main>
   )
 }
 
@@ -1540,7 +2388,7 @@ function TemplateCatalogView() {
           ) : (
             <EmptyState
               title="Nessun template disponibile"
-              message="La schermata resta neutra finche' non sono disponibili template consultabili."
+              message="La schermata resta neutra finché non sono disponibili template consultabili."
               action={
                 <ButtonLink href="/documenti" tone="neutral">
                   Apri documenti

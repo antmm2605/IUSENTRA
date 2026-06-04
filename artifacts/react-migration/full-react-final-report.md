@@ -1093,3 +1093,11 @@ Nel dettaglio fascicolo React è stata aggiunta la sezione persistente `Relata n
 Gate locali: py_compile mirato, typecheck React, contratti React, `tests/test_notifiche_legali.py` 32/32, test top bar mirato, test React shell sulla sezione fascicolo e demo `scripts/demo_notifiche_legali_l53.py` con PDF guida in `artifacts/notifiche-legali/notifica-l53-demo-guida-avvocato.pdf`.
 
 Verifica browser reale: Chrome CDP headless su runtime Flask isolato con fascicolo demo e documento PST rilasciato. `/notifiche-legali?id_fascicolo=...&fase=notifica` e `/fascicoli/<id>#relata-notifica` sono passate in desktop, tablet e mobile senza redirect login, pagina vuota, overflow orizzontale, errori console o testi tecnici vietati. Il click `Acquisisci dal Portale Servizi` apre `/portali/pst/acquisizione` con `id_fasc`, `numero=1234`, `anno=2026` e `ufficio=Tribunale di Roma` già compilati.
+
+## Editor template atti professionale 2.249.13
+
+La superficie `/template-atti/compila/<codice>` è stata promossa a workspace React professionale per l'avvocato: catalogo template laterale, toolbar documento, pagina A4 modificabile, pannello destro per campi, stile, Lex, fonti, controlli ed export. La Guida Pratica mantiene il template filtrato e lo porta nello stesso editor senza aprire una superficie separata.
+
+Il registry `template_atti/font_registry.json` governa font classici, moderni, giudiziari, contrattuali, privacy e placeholder, con preset e fallback DOCX/PDF/RTF. Lex Revisione testo genera proposte locali in diff, accettabili/rifiutabili/modificabili, con audit visibile e senza applicazione automatica.
+
+Gate locali verdi: pytest mirati editor/API/UTF-8 13/13, typecheck React, test frontend, build Vite, contratti OpenAPI, route gate, asset retention, Docker reale `127.0.0.1:8080` con `/api/pronto` su `2.249.13`, browser Playwright con Chrome locale su desktop/tablet/mobile, scroll completo, import documento, campi, stile, Lex, Fonti, Controlli, Export e topbar. La prova ha cliccato le 11 azioni Lex, verificato diff accetta/rifiuta/modifica/applica, audit visibile, nessuna modifica automatica prima dell'accettazione, export RTF/DOCX/PDF, salvataggio e rigenerazione. Esito: overflow 0, console applicativa 0 e date visibili in italiano sui tre viewport. Restano da chiudere nel flusso di rilascio sync branch, check remoti e deploy Hetzner.

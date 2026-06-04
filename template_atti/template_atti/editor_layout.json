@@ -1,14 +1,22 @@
 {
   "editor_layout": {
-    "font_family": "source_serif",
+    "font_family": "merriweather",
+    "heading_font_family": "merriweather",
+    "ui_font_family": "inter",
+    "placeholder_font_family": "ibm_plex_mono",
+    "fallback_font_family": "times_new_roman",
+    "document_style_preset": "giudiziario_civile",
     "font_size_pt": 12,
+    "heading_size_pt": 16,
     "line_height": 1.9,
     "text_align": "justify",
     "margin_top_mm": 25,
     "margin_right_mm": 22,
     "margin_bottom_mm": 25,
     "margin_left_mm": 32,
-    "paragraph_spacing_pt": 8
+    "paragraph_spacing_pt": 8,
+    "signature_spacing_pt": 42,
+    "print_clean_placeholders": false
   },
-  "updated_at": "2026-04-03T21:14:14.333070"
+  "updated_at": "2026-06-04T00:00:00+02:00"
 }

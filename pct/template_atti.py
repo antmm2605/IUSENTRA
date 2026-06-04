@@ -55,54 +55,119 @@ CATEGORIE = [
     "Altro",
 ]
 
+FONT_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "template_atti" / "font_registry.json"
+
 EDITOR_FONT_CATALOG: Dict[str, Dict[str, str]] = {
     "source_serif": {
         "label": "Source Serif 4",
         "css_stack": "'Source Serif 4', Georgia, 'Times New Roman', serif",
+        "docx_family": "Source Serif 4",
         "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "classico",
+        "tone": "serif",
+    },
+    "merriweather": {
+        "label": "Merriweather",
+        "css_stack": "Merriweather, Georgia, 'Times New Roman', serif",
+        "docx_family": "Merriweather",
+        "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "giudiziario",
         "tone": "serif",
     },
     "libre_baskerville": {
         "label": "Libre Baskerville",
         "css_stack": "'Libre Baskerville', Georgia, 'Times New Roman', serif",
+        "docx_family": "Libre Baskerville",
         "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "classico",
         "tone": "serif",
     },
     "spectral": {
         "label": "Spectral",
         "css_stack": "'Spectral', Georgia, 'Times New Roman', serif",
+        "docx_family": "Spectral",
         "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "contrattuale",
         "tone": "serif",
     },
     "crimson_text": {
         "label": "Crimson Text",
         "css_stack": "'Crimson Text', Georgia, 'Times New Roman', serif",
+        "docx_family": "Crimson Text",
         "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "classico",
+        "tone": "serif",
+    },
+    "times_new_roman": {
+        "label": "Times New Roman",
+        "css_stack": "'Times New Roman', Times, serif",
+        "docx_family": "Times New Roman",
+        "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "giudiziario",
+        "tone": "serif",
+    },
+    "garamond": {
+        "label": "Garamond",
+        "css_stack": "Garamond, 'EB Garamond', Georgia, serif",
+        "docx_family": "Garamond",
+        "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "classico",
         "tone": "serif",
     },
     "inter": {
         "label": "Inter",
         "css_stack": "'Inter', Arial, Helvetica, sans-serif",
+        "docx_family": "Inter",
         "pdf_family": "helvetica",
+        "rtf_family": "Arial",
+        "category": "moderno",
         "tone": "sans",
     },
     "manrope": {
         "label": "Manrope",
         "css_stack": "'Manrope', Arial, Helvetica, sans-serif",
+        "docx_family": "Manrope",
         "pdf_family": "helvetica",
+        "rtf_family": "Arial",
+        "category": "moderno",
+        "tone": "sans",
+    },
+    "aptos": {
+        "label": "Aptos",
+        "css_stack": "Aptos, Calibri, Arial, Helvetica, sans-serif",
+        "docx_family": "Aptos",
+        "pdf_family": "helvetica",
+        "rtf_family": "Arial",
+        "category": "moderno",
         "tone": "sans",
     },
     "ibm_plex_mono": {
         "label": "IBM Plex Mono",
         "css_stack": "'IBM Plex Mono', 'Courier New', monospace",
+        "docx_family": "IBM Plex Mono",
         "pdf_family": "courier",
+        "rtf_family": "Courier New",
+        "category": "placeholder",
         "tone": "mono",
     },
 }
 
 DEFAULT_EDITOR_LAYOUT: Dict[str, Any] = {
-    "font_family": "source_serif",
+    "font_family": "merriweather",
+    "heading_font_family": "merriweather",
+    "ui_font_family": "inter",
+    "placeholder_font_family": "ibm_plex_mono",
+    "fallback_font_family": "times_new_roman",
+    "document_style_preset": "giudiziario_civile",
     "font_size_pt": 12,
+    "heading_size_pt": 16,
     "line_height": 1.9,
     "text_align": "justify",
     "margin_top_mm": 25,
@@ -110,7 +175,115 @@ DEFAULT_EDITOR_LAYOUT: Dict[str, Any] = {
     "margin_bottom_mm": 25,
     "margin_left_mm": 32,
     "paragraph_spacing_pt": 8,
+    "signature_spacing_pt": 42,
+    "print_clean_placeholders": False,
 }
+
+
+def _font_key(value: Any, default: str) -> str:
+    raw = str(value or "").strip()
+    if raw in EDITOR_FONT_CATALOG:
+        return raw
+    lowered = raw.casefold()
+    for key, meta in EDITOR_FONT_CATALOG.items():
+        if lowered and lowered == str(meta.get("label") or "").casefold():
+            return key
+    return default
+
+
+def _registry_style_presets() -> list[dict[str, Any]]:
+    return [
+        {
+            "key": "giudiziario_civile",
+            "label": "Giudiziario civile",
+            "document_font": "source_serif",
+            "heading_font": "merriweather",
+            "font_size_pt": 12,
+            "heading_size_pt": 16,
+            "line_height": 1.9,
+            "text_align": "justify",
+            "margins_mm": [25, 22, 25, 32],
+            "paragraph_spacing_pt": 8,
+        },
+        {
+            "key": "contratto_professionale",
+            "label": "Contratto professionale",
+            "document_font": "spectral",
+            "heading_font": "libre_baskerville",
+            "font_size_pt": 11,
+            "heading_size_pt": 15,
+            "line_height": 1.65,
+            "text_align": "justify",
+            "margins_mm": [22, 22, 22, 24],
+            "paragraph_spacing_pt": 7,
+        },
+        {
+            "key": "privacy_gdpr",
+            "label": "Privacy e GDPR",
+            "document_font": "aptos",
+            "heading_font": "source_serif",
+            "font_size_pt": 11,
+            "heading_size_pt": 14,
+            "line_height": 1.55,
+            "text_align": "left",
+            "margins_mm": [20, 20, 20, 20],
+            "paragraph_spacing_pt": 6,
+        },
+        {
+            "key": "parere_legale",
+            "label": "Parere legale",
+            "document_font": "garamond",
+            "heading_font": "merriweather",
+            "font_size_pt": 12,
+            "heading_size_pt": 15,
+            "line_height": 1.75,
+            "text_align": "justify",
+            "margins_mm": [24, 24, 24, 28],
+            "paragraph_spacing_pt": 8,
+        },
+    ]
+
+
+def template_font_registry_payload() -> dict[str, Any]:
+    fallback = {
+        "schema_version": "2026-06-04",
+        "policy": {
+            "tenant_isolation": True,
+            "external_font_downloads": False,
+            "export_fallback_required": True,
+            "note": "Nessun font viene scaricato da servizi esterni senza consenso e policy privacy esplicita.",
+        },
+        "defaults": {
+            "document": DEFAULT_EDITOR_LAYOUT["font_family"],
+            "heading": DEFAULT_EDITOR_LAYOUT["heading_font_family"],
+            "ui": DEFAULT_EDITOR_LAYOUT["ui_font_family"],
+            "placeholder": DEFAULT_EDITOR_LAYOUT["placeholder_font_family"],
+            "fallback": DEFAULT_EDITOR_LAYOUT["fallback_font_family"],
+            "style_preset": DEFAULT_EDITOR_LAYOUT["document_style_preset"],
+        },
+        "fonts": catalogo_font_editor(),
+        "style_presets": _registry_style_presets(),
+        "export_fallbacks": {
+            "docx": ["Times New Roman", "Arial", "Courier New"],
+            "pdf": ["Times-Roman", "Helvetica", "Courier"],
+            "rtf": ["Times New Roman", "Arial", "Courier New"],
+        },
+    }
+    try:
+        raw = json.loads(FONT_REGISTRY_PATH.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return fallback
+    except Exception:
+        return fallback
+    fonts = raw.get("fonts")
+    if not isinstance(fonts, list) or not fonts:
+        raw["fonts"] = fallback["fonts"]
+    raw.setdefault("schema_version", fallback["schema_version"])
+    raw.setdefault("policy", fallback["policy"])
+    raw.setdefault("defaults", fallback["defaults"])
+    raw.setdefault("style_presets", fallback["style_presets"])
+    raw.setdefault("export_fallbacks", fallback["export_fallbacks"])
+    return raw
 
 
 def catalogo_font_editor() -> list[dict[str, str]]:
@@ -118,7 +291,8 @@ def catalogo_font_editor() -> list[dict[str, str]]:
 
 
 def font_editor(key: str) -> dict[str, str]:
-    return EDITOR_FONT_CATALOG.get(key, EDITOR_FONT_CATALOG[DEFAULT_EDITOR_LAYOUT["font_family"]])
+    font_key = _font_key(key, DEFAULT_EDITOR_LAYOUT["font_family"])
+    return EDITOR_FONT_CATALOG.get(font_key, EDITOR_FONT_CATALOG[DEFAULT_EDITOR_LAYOUT["font_family"]])
 
 
 def _clamp_int(value: Any, default: int, minimum: int, maximum: int) -> int:
@@ -139,15 +313,41 @@ def _clamp_float(value: Any, default: float, minimum: float, maximum: float) -> 
 
 def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     raw = layout or {}
-    font_key = raw.get("font_family", DEFAULT_EDITOR_LAYOUT["font_family"])
-    if font_key not in EDITOR_FONT_CATALOG:
+    font_key = _font_key(raw.get("font_family"), DEFAULT_EDITOR_LAYOUT["font_family"])
+    if (
+        font_key == "source_serif"
+        and not any(
+            key in raw
+            for key in (
+                "heading_font_family",
+                "ui_font_family",
+                "placeholder_font_family",
+                "fallback_font_family",
+                "document_style_preset",
+            )
+        )
+    ):
         font_key = DEFAULT_EDITOR_LAYOUT["font_family"]
+    heading_font_key = _font_key(raw.get("heading_font_family"), DEFAULT_EDITOR_LAYOUT["heading_font_family"])
+    ui_font_key = _font_key(raw.get("ui_font_family"), DEFAULT_EDITOR_LAYOUT["ui_font_family"])
+    placeholder_font_key = _font_key(raw.get("placeholder_font_family"), DEFAULT_EDITOR_LAYOUT["placeholder_font_family"])
+    fallback_font_key = _font_key(raw.get("fallback_font_family"), DEFAULT_EDITOR_LAYOUT["fallback_font_family"])
     text_align = str(raw.get("text_align", DEFAULT_EDITOR_LAYOUT["text_align"]) or "").lower()
     if text_align not in {"justify", "left", "center", "right"}:
         text_align = DEFAULT_EDITOR_LAYOUT["text_align"]
+    style_preset = str(raw.get("document_style_preset", DEFAULT_EDITOR_LAYOUT["document_style_preset"]) or "").strip()
+    preset_keys = {str(item.get("key") or "") for item in _registry_style_presets()}
+    if style_preset not in preset_keys:
+        style_preset = DEFAULT_EDITOR_LAYOUT["document_style_preset"]
     return {
         "font_family": font_key,
+        "heading_font_family": heading_font_key,
+        "ui_font_family": ui_font_key,
+        "placeholder_font_family": placeholder_font_key,
+        "fallback_font_family": fallback_font_key,
+        "document_style_preset": style_preset,
         "font_size_pt": _clamp_int(raw.get("font_size_pt"), DEFAULT_EDITOR_LAYOUT["font_size_pt"], 9, 18),
+        "heading_size_pt": _clamp_int(raw.get("heading_size_pt"), DEFAULT_EDITOR_LAYOUT["heading_size_pt"], 11, 24),
         "line_height": round(
             _clamp_float(raw.get("line_height"), DEFAULT_EDITOR_LAYOUT["line_height"], 1.2, 2.6),
             2,
@@ -163,6 +363,13 @@ def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[st
             0,
             18,
         ),
+        "signature_spacing_pt": _clamp_int(
+            raw.get("signature_spacing_pt"),
+            DEFAULT_EDITOR_LAYOUT["signature_spacing_pt"],
+            20,
+            90,
+        ),
+        "print_clean_placeholders": bool(raw.get("print_clean_placeholders", DEFAULT_EDITOR_LAYOUT["print_clean_placeholders"])),
     }
 
 

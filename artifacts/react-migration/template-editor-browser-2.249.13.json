@@ -1,0 +1,592 @@
+{
+  "route": "http://127.0.0.1:8080/template-atti/compila/CIV_COM_001",
+  "startedAt": "2026-06-04T07:53:06.208Z",
+  "viewports": [
+    {
+      "label": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "visibleMs": 3738,
+      "scrolls": [
+        {
+          "selector": "html",
+          "scrollHeight": 2702,
+          "clientHeight": 900,
+          "maxScroll": 1802
+        },
+        {
+          "selector": "body",
+          "scrollHeight": 2702,
+          "clientHeight": 2702,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-sidebar",
+          "scrollHeight": 2576,
+          "clientHeight": 2576,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-canvas",
+          "scrollHeight": 2576,
+          "clientHeight": 2576,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-fields",
+          "scrollHeight": 2576,
+          "clientHeight": 2576,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-panel",
+          "scrollHeight": 2403,
+          "clientHeight": 2403,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-paper__body",
+          "scrollHeight": 784,
+          "clientHeight": 784,
+          "maxScroll": 0
+        }
+      ],
+      "audit": {
+        "textLength": 9384,
+        "bad": [],
+        "overflow": [],
+        "hasItalianDate": true,
+        "hasWorkflow": true,
+        "hasTabs": true
+      },
+      "perf": {
+        "domContentLoaded": 1491,
+        "loadEvent": 1492,
+        "resources": [
+          {
+            "name": "CIV_COM_001",
+            "duration": 1796,
+            "transferSize": 98344
+          },
+          {
+            "name": "manifest.json",
+            "duration": 1664,
+            "transferSize": 685
+          },
+          {
+            "name": "logo-iusentra.png",
+            "duration": 1650,
+            "transferSize": 300
+          },
+          {
+            "name": "iusentra-visible-text-guard.js?v=2.249.13",
+            "duration": 813,
+            "transferSize": 300
+          },
+          {
+            "name": "pct-lex-assistant.js?v=2.249.13",
+            "duration": 476,
+            "transferSize": 300
+          },
+          {
+            "name": "pct-lex-assistant-voice.js?v=2.249.13",
+            "duration": 464,
+            "transferSize": 300
+          },
+          {
+            "name": "tts-engine-registry.js?v=2.249.13",
+            "duration": 453,
+            "transferSize": 300
+          },
+          {
+            "name": "active",
+            "duration": 453,
+            "transferSize": 325
+          }
+        ]
+      }
+    },
+    {
+      "label": "tablet",
+      "viewport": {
+        "width": 820,
+        "height": 1180
+      },
+      "visibleMs": 3707,
+      "scrolls": [
+        {
+          "selector": "html",
+          "scrollHeight": 4381,
+          "clientHeight": 1180,
+          "maxScroll": 3201
+        },
+        {
+          "selector": "body",
+          "scrollHeight": 4381,
+          "clientHeight": 4381,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-sidebar",
+          "scrollHeight": 454,
+          "clientHeight": 454,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-canvas",
+          "scrollHeight": 1125,
+          "clientHeight": 1125,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-fields",
+          "scrollHeight": 2529,
+          "clientHeight": 2529,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-panel",
+          "scrollHeight": 2403,
+          "clientHeight": 2403,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-paper__body",
+          "scrollHeight": 779,
+          "clientHeight": 779,
+          "maxScroll": 0
+        }
+      ],
+      "audit": {
+        "textLength": 9368,
+        "bad": [],
+        "overflow": [],
+        "hasItalianDate": true,
+        "hasWorkflow": true,
+        "hasTabs": true
+      },
+      "perf": {
+        "domContentLoaded": 1371,
+        "loadEvent": 1375,
+        "resources": [
+          {
+            "name": "CIV_COM_001",
+            "duration": 1973,
+            "transferSize": 98344
+          },
+          {
+            "name": "manifest.json",
+            "duration": 1762,
+            "transferSize": 685
+          },
+          {
+            "name": "logo-iusentra.png",
+            "duration": 1743,
+            "transferSize": 300
+          },
+          {
+            "name": "iusentra-visible-text-guard.js?v=2.249.13",
+            "duration": 943,
+            "transferSize": 300
+          },
+          {
+            "name": "pct-lex-assistant.js?v=2.249.13",
+            "duration": 932,
+            "transferSize": 300
+          },
+          {
+            "name": "pct-lex-assistant-voice.js?v=2.249.13",
+            "duration": 919,
+            "transferSize": 300
+          },
+          {
+            "name": "tts-engine-registry.js?v=2.249.13",
+            "duration": 907,
+            "transferSize": 300
+          },
+          {
+            "name": "supertonic-engine.js?v=2.249.13",
+            "duration": 539,
+            "transferSize": 300
+          }
+        ]
+      }
+    },
+    {
+      "label": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "visibleMs": 4065,
+      "scrolls": [
+        {
+          "selector": "html",
+          "scrollHeight": 4901,
+          "clientHeight": 844,
+          "maxScroll": 4057
+        },
+        {
+          "selector": "body",
+          "scrollHeight": 4901,
+          "clientHeight": 4901,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-sidebar",
+          "scrollHeight": 503,
+          "clientHeight": 503,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-canvas",
+          "scrollHeight": 1374,
+          "clientHeight": 1374,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-fields",
+          "scrollHeight": 2529,
+          "clientHeight": 2529,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-panel",
+          "scrollHeight": 2403,
+          "clientHeight": 2403,
+          "maxScroll": 0
+        },
+        {
+          "selector": ".iu-template-pro-paper__body",
+          "scrollHeight": 935,
+          "clientHeight": 935,
+          "maxScroll": 0
+        }
+      ],
+      "audit": {
+        "textLength": 9368,
+        "bad": [],
+        "overflow": [],
+        "hasItalianDate": true,
+        "hasWorkflow": true,
+        "hasTabs": true
+      },
+      "perf": {
+        "domContentLoaded": 1170,
+        "loadEvent": 1171,
+        "resources": [
+          {
+            "name": "CIV_COM_001",
+            "duration": 2427,
+            "transferSize": 98344
+          },
+          {
+            "name": "manifest.json",
+            "duration": 2306,
+            "transferSize": 685
+          },
+          {
+            "name": "logo-iusentra.png",
+            "duration": 2290,
+            "transferSize": 300
+          },
+          {
+            "name": "iusentra-visible-text-guard.js?v=2.249.13",
+            "duration": 783,
+            "transferSize": 300
+          },
+          {
+            "name": "pct-lex-assistant.js?v=2.249.13",
+            "duration": 769,
+            "transferSize": 300
+          },
+          {
+            "name": "pct-lex-assistant-voice.js?v=2.249.13",
+            "duration": 756,
+            "transferSize": 300
+          },
+          {
+            "name": "tts-engine-registry.js?v=2.249.13",
+            "duration": 745,
+            "transferSize": 300
+          },
+          {
+            "name": "supertonic-engine.js?v=2.249.13",
+            "duration": 435,
+            "transferSize": 300
+          }
+        ]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "name": "scroll completo desktop",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "editor documento modificabile",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "toolbar formattazione completa",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "campi compilabili e autocompilazione placeholder",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "preset stile e registry font",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "guida pratica integrata",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "controlli placeholder legal_basis privacy PII",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Lex diff accetta rifiuta modifica audit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "import documento TXT in editor",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "compilazione multipla",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Esporta RTF",
+      "ok": true,
+      "detail": "download comparsa_di_costituzione_e_risposta.rtf 174 byte"
+    },
+    {
+      "name": "RTF",
+      "ok": true,
+      "detail": "download comparsa_di_costituzione_e_risposta.rtf 174 byte"
+    },
+    {
+      "name": "DOCX",
+      "ok": true,
+      "detail": "download comparsa_di_costituzione_e_risposta.doc 1509 byte"
+    },
+    {
+      "name": "PDF",
+      "ok": true,
+      "detail": "aperta scheda http://127.0.0.1:8080/template-atti/compila/CIV_COM_001/pdf"
+    },
+    {
+      "name": "export copia salvataggio rigenera",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "nuovo template apre pagina dedicata",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "responsive desktop",
+      "ok": true,
+      "detail": "contenuto visibile 3738 ms"
+    },
+    {
+      "name": "responsive tablet",
+      "ok": true,
+      "detail": "contenuto visibile 3707 ms"
+    },
+    {
+      "name": "responsive mobile",
+      "ok": true,
+      "detail": "contenuto visibile 4065 ms"
+    }
+  ],
+  "downloads": [
+    {
+      "name": "Esporta RTF",
+      "file": "comparsa_di_costituzione_e_risposta.rtf",
+      "size": 174
+    },
+    {
+      "name": "RTF",
+      "file": "comparsa_di_costituzione_e_risposta.rtf",
+      "size": 174
+    },
+    {
+      "name": "DOCX",
+      "file": "comparsa_di_costituzione_e_risposta.doc",
+      "size": 1509
+    },
+    {
+      "name": "PDF",
+      "popupUrl": "http://127.0.0.1:8080/template-atti/compila/CIV_COM_001/pdf",
+      "textSample": ""
+    }
+  ],
+  "errors": [],
+  "slowResources": [
+    {
+      "label": "desktop",
+      "name": "CIV_COM_001",
+      "duration": 1796,
+      "transferSize": 98344
+    },
+    {
+      "label": "desktop",
+      "name": "manifest.json",
+      "duration": 1664,
+      "transferSize": 685
+    },
+    {
+      "label": "desktop",
+      "name": "logo-iusentra.png",
+      "duration": 1650,
+      "transferSize": 300
+    },
+    {
+      "label": "desktop",
+      "name": "iusentra-visible-text-guard.js?v=2.249.13",
+      "duration": 813,
+      "transferSize": 300
+    },
+    {
+      "label": "desktop",
+      "name": "pct-lex-assistant.js?v=2.249.13",
+      "duration": 476,
+      "transferSize": 300
+    },
+    {
+      "label": "desktop",
+      "name": "pct-lex-assistant-voice.js?v=2.249.13",
+      "duration": 464,
+      "transferSize": 300
+    },
+    {
+      "label": "desktop",
+      "name": "tts-engine-registry.js?v=2.249.13",
+      "duration": 453,
+      "transferSize": 300
+    },
+    {
+      "label": "desktop",
+      "name": "active",
+      "duration": 453,
+      "transferSize": 325
+    },
+    {
+      "label": "tablet",
+      "name": "CIV_COM_001",
+      "duration": 1973,
+      "transferSize": 98344
+    },
+    {
+      "label": "tablet",
+      "name": "manifest.json",
+      "duration": 1762,
+      "transferSize": 685
+    },
+    {
+      "label": "tablet",
+      "name": "logo-iusentra.png",
+      "duration": 1743,
+      "transferSize": 300
+    },
+    {
+      "label": "tablet",
+      "name": "iusentra-visible-text-guard.js?v=2.249.13",
+      "duration": 943,
+      "transferSize": 300
+    },
+    {
+      "label": "tablet",
+      "name": "pct-lex-assistant.js?v=2.249.13",
+      "duration": 932,
+      "transferSize": 300
+    },
+    {
+      "label": "tablet",
+      "name": "pct-lex-assistant-voice.js?v=2.249.13",
+      "duration": 919,
+      "transferSize": 300
+    },
+    {
+      "label": "tablet",
+      "name": "tts-engine-registry.js?v=2.249.13",
+      "duration": 907,
+      "transferSize": 300
+    },
+    {
+      "label": "tablet",
+      "name": "supertonic-engine.js?v=2.249.13",
+      "duration": 539,
+      "transferSize": 300
+    },
+    {
+      "label": "mobile",
+      "name": "CIV_COM_001",
+      "duration": 2427,
+      "transferSize": 98344
+    },
+    {
+      "label": "mobile",
+      "name": "manifest.json",
+      "duration": 2306,
+      "transferSize": 685
+    },
+    {
+      "label": "mobile",
+      "name": "logo-iusentra.png",
+      "duration": 2290,
+      "transferSize": 300
+    },
+    {
+      "label": "mobile",
+      "name": "iusentra-visible-text-guard.js?v=2.249.13",
+      "duration": 783,
+      "transferSize": 300
+    },
+    {
+      "label": "mobile",
+      "name": "pct-lex-assistant.js?v=2.249.13",
+      "duration": 769,
+      "transferSize": 300
+    },
+    {
+      "label": "mobile",
+      "name": "pct-lex-assistant-voice.js?v=2.249.13",
+      "duration": 756,
+      "transferSize": 300
+    },
+    {
+      "label": "mobile",
+      "name": "tts-engine-registry.js?v=2.249.13",
+      "duration": 745,
+      "transferSize": 300
+    },
+    {
+      "label": "mobile",
+      "name": "supertonic-engine.js?v=2.249.13",
+      "duration": 435,
+      "transferSize": 300
+    }
+  ],
+  "completedAt": "2026-06-04T07:54:21.653Z",
+  "ok": true
+}

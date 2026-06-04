@@ -87,6 +87,117 @@ export type TemplateEditorLayout = {
   fontSize: number
   lineHeight: number
   pageScale: number
+  fontFamily?: string
+  headingFontFamily?: string
+  uiFontFamily?: string
+  placeholderFontFamily?: string
+  fallbackFontFamily?: string
+  stylePreset?: string
+  headingSize?: number
+  textAlign?: string
+  marginTop?: number
+  marginRight?: number
+  marginBottom?: number
+  marginLeft?: number
+  paragraphSpacing?: number
+  signatureSpacing?: number
+  printCleanPlaceholders?: boolean
+}
+
+export type TemplateFontRegistryFont = {
+  key: string
+  label: string
+  category: string
+  cssStack: string
+  docxFamily: string
+  pdfFamily: string
+  rtfFamily: string
+  tone: string
+  usage: string[]
+}
+
+export type TemplateStylePreset = {
+  key: string
+  label: string
+  documentFont: string
+  headingFont: string
+  fontSize: number
+  headingSize: number
+  lineHeight: number
+  textAlign: string
+  margins: number[]
+  paragraphSpacing: number
+}
+
+export type TemplateFontRegistry = {
+  schemaVersion: string
+  policy: Record<string, unknown>
+  defaults: {
+    document: string
+    heading: string
+    ui: string
+    placeholder: string
+    fallback: string
+    stylePreset: string
+  }
+  fonts: TemplateFontRegistryFont[]
+  stylePresets: TemplateStylePreset[]
+  exportFallbacks: Record<string, string[]>
+}
+
+export type TemplateEditorWorkflowStep = {
+  id: string
+  label: string
+  state: 'done' | 'active' | 'pending'
+}
+
+export type TemplateExample = {
+  id: string
+  code: string
+  title: string
+  description: string
+  category: string
+  tags: string[]
+  fieldsCount: number
+  href: string
+  selected: boolean
+}
+
+export type TemplateLexAction = {
+  id: string
+  label: string
+  mode: string
+}
+
+export type TemplateLexProposal = {
+  id: string
+  mode: string
+  title: string
+  original: string
+  proposed: string
+  reason: string
+  risk: AdminTone
+  status: 'pending' | 'accepted' | 'rejected' | 'modified'
+}
+
+export type TemplateLexRevision = {
+  title: string
+  assistantTitle: string
+  privacyPolicy: {
+    localOnly: boolean
+    externalAllowed: boolean
+    message: string
+  }
+  auditPolicy: {
+    proposalVersioning: boolean
+    acceptRejectRequired: boolean
+    automaticApply: boolean
+    tenantIsolated: boolean
+  }
+  modes: string[]
+  actions: TemplateLexAction[]
+  seedProposals: TemplateLexProposal[]
+  analysisSummary: string
 }
 
 export type TemplateGuidePreview = {
@@ -102,6 +213,7 @@ export type TemplateGuidePreview = {
   importEndpoint: string
   previewPdfHref: string
   wordHref: string
+  rtfHref: string
   saveEndpoint: string
   renderEndpoint: string
   importLabel: string
@@ -223,6 +335,11 @@ export type TemplateCompilerData = {
   attachments: string[]
   sections: Array<{ label: string; state: string }>
   guidePreview: TemplateGuidePreview
+  templateExamples: TemplateExample[]
+  fontRegistry: TemplateFontRegistry
+  editorLayout: TemplateEditorLayout
+  editorWorkflow: TemplateEditorWorkflowStep[]
+  lexRevision: TemplateLexRevision
 }
 
 export const emptyTemplateAttiPage: TemplateAttiPageData = {
@@ -299,6 +416,107 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
   checks: { blocking: [], recommended: [] },
   attachments: [],
   sections: [],
+  templateExamples: [],
+  fontRegistry: {
+    schemaVersion: '',
+    policy: {},
+    defaults: {
+      document: 'merriweather',
+      heading: 'merriweather',
+      ui: 'inter',
+      placeholder: 'ibm_plex_mono',
+      fallback: 'times_new_roman',
+      stylePreset: 'giudiziario_civile',
+    },
+    fonts: [
+      {
+        key: 'source_serif',
+        label: 'Source Serif 4',
+        category: 'classico',
+        cssStack: "'Source Serif 4', Georgia, 'Times New Roman', serif",
+        docxFamily: 'Source Serif 4',
+        pdfFamily: 'times',
+        rtfFamily: 'Times New Roman',
+        tone: 'serif',
+        usage: ['documento'],
+      },
+      {
+        key: 'merriweather',
+        label: 'Merriweather',
+        category: 'giudiziario',
+        cssStack: "Merriweather, Georgia, 'Times New Roman', serif",
+        docxFamily: 'Merriweather',
+        pdfFamily: 'times',
+        rtfFamily: 'Times New Roman',
+        tone: 'serif',
+        usage: ['titoli'],
+      },
+      {
+        key: 'inter',
+        label: 'Inter',
+        category: 'moderno',
+        cssStack: 'Inter, Arial, Helvetica, sans-serif',
+        docxFamily: 'Inter',
+        pdfFamily: 'helvetica',
+        rtfFamily: 'Arial',
+        tone: 'sans',
+        usage: ['interfaccia'],
+      },
+      {
+        key: 'ibm_plex_mono',
+        label: 'IBM Plex Mono',
+        category: 'placeholder',
+        cssStack: "'IBM Plex Mono', 'Courier New', monospace",
+        docxFamily: 'IBM Plex Mono',
+        pdfFamily: 'courier',
+        rtfFamily: 'Courier New',
+        tone: 'mono',
+        usage: ['placeholder'],
+      },
+    ],
+    stylePresets: [],
+    exportFallbacks: { docx: ['Times New Roman'], pdf: ['Times-Roman'], rtf: ['Times New Roman'] },
+  },
+  editorLayout: {
+    fontSize: 12,
+    lineHeight: 1.9,
+    pageScale: 100,
+    fontFamily: 'merriweather',
+    headingFontFamily: 'merriweather',
+    uiFontFamily: 'inter',
+    placeholderFontFamily: 'ibm_plex_mono',
+    fallbackFontFamily: 'times_new_roman',
+    stylePreset: 'giudiziario_civile',
+    headingSize: 16,
+    textAlign: 'justify',
+    marginTop: 25,
+    marginRight: 22,
+    marginBottom: 25,
+    marginLeft: 32,
+    paragraphSpacing: 8,
+    signatureSpacing: 42,
+    printCleanPlaceholders: false,
+  },
+  editorWorkflow: [],
+  lexRevision: {
+    title: 'Revisione testo',
+    assistantTitle: 'Assistente redazionale Lex',
+    privacyPolicy: {
+      localOnly: true,
+      externalAllowed: false,
+      message: 'Analisi locale nello studio; nessun invio a servizi esterni senza policy privacy esplicita.',
+    },
+    auditPolicy: {
+      proposalVersioning: true,
+      acceptRejectRequired: true,
+      automaticApply: false,
+      tenantIsolated: true,
+    },
+    modes: ['Correttore', 'Redattore', 'Revisore Normativo', 'Revisore Privacy', 'Revisore Placeholder', 'Template Builder', 'Final Check'],
+    actions: [],
+    seedProposals: [],
+    analysisSummary: '',
+  },
   guidePreview: {
     enabled: false,
     eyebrow: 'Anteprima modifica',
@@ -312,18 +530,38 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     importEndpoint: '',
     previewPdfHref: '',
     wordHref: '',
+    rtfHref: '',
     saveEndpoint: '',
     renderEndpoint: '',
-    importLabel: 'Importa PDF/Word',
+    importLabel: 'Importa documento',
     previewLabel: 'Anteprima PDF',
     saveLabel: 'Salva nel fascicolo',
     initialText: '',
     reason: '',
     steps: [],
     template: { code: '', name: '', reason: '', autoLoad: false },
-    import: { enabled: false, formats: 'PDF/DOCX', note: '' },
+    import: { enabled: false, formats: 'PDF/DOCX/RTF/TXT', note: '' },
     layoutChecks: [],
-    editorLayout: { fontSize: 15, lineHeight: 1.72, pageScale: 100 },
+    editorLayout: {
+      fontSize: 12,
+      lineHeight: 1.9,
+      pageScale: 100,
+      fontFamily: 'merriweather',
+      headingFontFamily: 'merriweather',
+      uiFontFamily: 'inter',
+      placeholderFontFamily: 'ibm_plex_mono',
+      fallbackFontFamily: 'times_new_roman',
+      stylePreset: 'giudiziario_civile',
+      headingSize: 16,
+      textAlign: 'justify',
+      marginTop: 25,
+      marginRight: 22,
+      marginBottom: 25,
+      marginLeft: 32,
+      paragraphSpacing: 8,
+      signatureSpacing: 42,
+      printCleanPlaceholders: false,
+    },
   },
 }
 
@@ -337,6 +575,45 @@ function list(value: unknown): unknown[] {
 
 function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
+}
+
+function matchVisibleCase(match: string, replacement: string) {
+  if (match.toUpperCase() === match) return replacement.toUpperCase()
+  if (match[0]?.toUpperCase() === match[0]) return replacement.charAt(0).toUpperCase() + replacement.slice(1)
+  return replacement
+}
+
+function replaceVisibleWord(value: string, source: string, replacement: string) {
+  return value.replace(new RegExp(`\\b${source}\\b`, 'gi'), (match) => matchVisibleCase(match, replacement))
+}
+
+function visibleText(value: unknown, fallback = ''): string {
+  let result = text(value, fallback)
+  result = result
+    .replace(/\binformazioni\s+operativi\b/gi, (match) => matchVisibleCase(match, 'informazioni operative'))
+    .replace(/\bindicazioni\s+operativi\b/gi, (match) => matchVisibleCase(match, 'indicazioni operative'))
+    .replace(/\bmetadati\s+operativi\b/gi, (match) => matchVisibleCase(match, 'informazioni operative'))
+    .replace(/\btemplate\s+del\s+catalogo\s+master\s+1\.1\.0\b/gi, (match) => matchVisibleCase(match, 'modello del catalogo professionale'))
+    .replace(/\bcatalogo\s+master\b/gi, (match) => matchVisibleCase(match, 'catalogo professionale'))
+    .replace(/\bcanale\s+NESSUNO\b/g, 'senza deposito telematico')
+    .replace(/\bcanale\s+nessuno\b/gi, 'senza deposito telematico')
+    .replace(/\bAccordo saldo e stralcio:\s+o crediti\b/g, 'Accordo saldo e stralcio: Recupero crediti')
+  for (const [source, replacement] of [
+    ['conformita', 'conformità'],
+    ['qualita', 'qualità'],
+    ['attivita', 'attività'],
+    ['autorita', 'autorità'],
+    ['facolta', 'facoltà'],
+    ['eredita', 'eredità'],
+    ['modalita', 'modalità'],
+    ['gia', 'già'],
+    ['puo', 'può'],
+    ['piu', 'più'],
+    ['perche', 'perché'],
+  ] as const) {
+    result = replaceVisibleWord(result, source, replacement)
+  }
+  return result
 }
 
 function scalar(value: unknown): string | number {
@@ -410,9 +687,9 @@ function normaliseVariable(input: unknown): TemplateVariableMeta {
   const item = asRecord(input)
   return {
     name: text(item.name) || text(item.label) || 'variabile',
-    label: text(item.label) || text(item.name) || 'Variabile',
-    kind: text(item.kind) || 'metadato',
-    source: text(item.source) || 'metadata',
+    label: visibleText(item.label) || visibleText(item.name) || 'Variabile',
+    kind: visibleText(item.kind) || 'metadato',
+    source: visibleText(item.source) || 'metadata',
   }
 }
 
@@ -421,33 +698,33 @@ function normaliseRecord(input: unknown): TemplateAttiRecord {
   return {
     id: text(item.id) || text(item.title) || 'template',
     kind: text(item.kind) || 'catalogo',
-    title: text(item.title) || 'Template',
-    subtitle: text(item.subtitle),
-    description: text(item.description),
-    category: text(item.category),
-    matter: text(item.matter),
-    area: text(item.area),
-    branch: text(item.branch),
-    channel: text(item.channel),
-    portal: text(item.portal),
-    stateLabel: text(item.stateLabel),
+    title: visibleText(item.title) || 'Template',
+    subtitle: visibleText(item.subtitle),
+    description: visibleText(item.description),
+    category: visibleText(item.category),
+    matter: visibleText(item.matter),
+    area: visibleText(item.area),
+    branch: visibleText(item.branch),
+    channel: visibleText(item.channel),
+    portal: visibleText(item.portal),
+    stateLabel: visibleText(item.stateLabel),
     stateTone: tone(item.stateTone),
-    complianceLabel: text(item.complianceLabel),
+    complianceLabel: visibleText(item.complianceLabel),
     cartabiaState: text(item.cartabiaState),
-    cartabiaLabel: text(item.cartabiaLabel),
-    processArea: text(item.processArea),
+    cartabiaLabel: visibleText(item.cartabiaLabel),
+    processArea: visibleText(item.processArea),
     requiresLawyerReview: item.requiresLawyerReview === true,
-    prefillStatus: text(item.prefillStatus),
+    prefillStatus: visibleText(item.prefillStatus),
     prefillAvailable: Number(item.prefillAvailable || 0),
     prefillMissing: Number(item.prefillMissing || 0),
-    blockingChecks: list(item.blockingChecks).map((value) => text(value)).filter(Boolean),
-    recommendedChecks: list(item.recommendedChecks).map((value) => text(value)).filter(Boolean),
-    dataSources: list(item.dataSources).map((value) => text(value)).filter(Boolean),
+    blockingChecks: list(item.blockingChecks).map((value) => visibleText(value)).filter(Boolean),
+    recommendedChecks: list(item.recommendedChecks).map((value) => visibleText(value)).filter(Boolean),
+    dataSources: list(item.dataSources).map((value) => visibleText(value)).filter(Boolean),
     updatedAt: text(item.updatedAt),
-    tags: list(item.tags).map((tag) => text(tag)).filter(Boolean),
+    tags: list(item.tags).map((tag) => visibleText(tag)).filter(Boolean),
     requiredVariables: list(item.requiredVariables).map(normaliseVariable).filter((variable) => variable.name),
     href: safeHref(item.href, '/template-atti/catalogo'),
-    primaryActionLabel: text(item.primaryActionLabel) || 'Compila con dati IUSENTRA',
+    primaryActionLabel: visibleText(item.primaryActionLabel) || 'Compila con dati IUSENTRA',
     detailHref: safeHref(item.detailHref, ''),
   }
 }
@@ -472,14 +749,14 @@ function normaliseCompilerOption(input: unknown): TemplateCompilerOption {
   const item = asRecord(input)
   return {
     value: text(item.value),
-    label: text(item.label) || text(item.value),
+    label: visibleText(item.label) || visibleText(item.value),
     clienteId: text(item.clienteId),
   }
 }
 
 function normaliseCompilerNote(input: unknown): TemplateCompilerNote | undefined {
   const item = asRecord(input)
-  const noteText = text(item.text)
+  const noteText = visibleText(item.text)
   if (!noteText) return undefined
   const noteTone = ['found', 'missing', 'error'].includes(String(item.tone)) ? String(item.tone) as TemplateCompilerNote['tone'] : 'missing'
   return { tone: noteTone, text: noteText }
@@ -489,15 +766,15 @@ function normaliseCompilerField(input: unknown): TemplateCompilerField {
   const item = asRecord(input)
   return {
     name: text(item.name),
-    label: text(item.label) || text(item.name) || 'Campo',
+    label: visibleText(item.label) || visibleText(item.name) || 'Campo',
     type: text(item.type) || 'text',
-    placeholder: text(item.placeholder),
+    placeholder: visibleText(item.placeholder),
     required: item.required === true,
     value: text(item.value),
     options: list(item.options).map(normaliseCompilerOption).filter((option) => option.value || option.label),
-    error: text(item.error),
+    error: visibleText(item.error),
     note: normaliseCompilerNote(item.note),
-    warnings: list(item.warnings).map((value) => text(value)).filter(Boolean),
+    warnings: list(item.warnings).map((value) => visibleText(value)).filter(Boolean),
   }
 }
 
@@ -507,7 +784,7 @@ function normaliseGuidePreviewStep(input: unknown): TemplateGuidePreviewStep {
   const state: TemplateGuidePreviewStep['state'] = rawState === 'done' || rawState === 'active' || rawState === 'pending' ? rawState : 'pending'
   return {
     id: text(item.id) || text(item.label) || 'step',
-    label: text(item.label) || 'Passaggio',
+    label: visibleText(item.label) || 'Passaggio',
     state,
   }
 }
@@ -515,9 +792,167 @@ function normaliseGuidePreviewStep(input: unknown): TemplateGuidePreviewStep {
 function normaliseGuidePreviewCheck(input: unknown): TemplateGuidePreviewCheck {
   const item = asRecord(input)
   return {
-    label: text(item.label) || 'Controllo',
-    value: text(item.value) || 'ok',
+    label: visibleText(item.label) || 'Controllo',
+    value: visibleText(item.value) || 'ok',
     tone: tone(item.tone || 'success'),
+  }
+}
+
+function normaliseEditorLayout(input: unknown): TemplateEditorLayout {
+  const item = asRecord(input)
+  const fallback = emptyTemplateCompilerPage.editorLayout
+  return {
+    fontSize: Number(item.fontSize || item.font_size || item.font_size_pt || fallback.fontSize),
+    lineHeight: Number(item.lineHeight || item.line_height || fallback.lineHeight),
+    pageScale: Number(item.pageScale || item.page_scale || fallback.pageScale),
+    fontFamily: text(item.fontFamily) || text(item.font_family) || fallback.fontFamily,
+    headingFontFamily: text(item.headingFontFamily) || text(item.heading_font_family) || fallback.headingFontFamily,
+    uiFontFamily: text(item.uiFontFamily) || text(item.ui_font_family) || fallback.uiFontFamily,
+    placeholderFontFamily: text(item.placeholderFontFamily) || text(item.placeholder_font_family) || fallback.placeholderFontFamily,
+    fallbackFontFamily: text(item.fallbackFontFamily) || text(item.fallback_font_family) || fallback.fallbackFontFamily,
+    stylePreset: text(item.stylePreset) || text(item.document_style_preset) || fallback.stylePreset,
+    headingSize: Number(item.headingSize || item.heading_size || item.heading_size_pt || fallback.headingSize),
+    textAlign: text(item.textAlign) || text(item.text_align) || fallback.textAlign,
+    marginTop: Number(item.marginTop || item.margin_top_mm || fallback.marginTop),
+    marginRight: Number(item.marginRight || item.margin_right_mm || fallback.marginRight),
+    marginBottom: Number(item.marginBottom || item.margin_bottom_mm || fallback.marginBottom),
+    marginLeft: Number(item.marginLeft || item.margin_left_mm || fallback.marginLeft),
+    paragraphSpacing: Number(item.paragraphSpacing || item.paragraph_spacing_pt || fallback.paragraphSpacing),
+    signatureSpacing: Number(item.signatureSpacing || item.signature_spacing_pt || fallback.signatureSpacing),
+    printCleanPlaceholders: item.printCleanPlaceholders === true || item.print_clean_placeholders === true,
+  }
+}
+
+function normaliseFont(input: unknown): TemplateFontRegistryFont {
+  const item = asRecord(input)
+  return {
+    key: text(item.key),
+    label: text(item.label) || text(item.key) || 'Font',
+    category: text(item.category) || 'documento',
+    cssStack: text(item.css_stack) || text(item.cssStack) || 'Georgia, serif',
+    docxFamily: text(item.docx_family) || text(item.docxFamily) || text(item.label) || 'Times New Roman',
+    pdfFamily: text(item.pdf_family) || text(item.pdfFamily) || 'times',
+    rtfFamily: text(item.rtf_family) || text(item.rtfFamily) || 'Times New Roman',
+    tone: text(item.tone) || 'serif',
+    usage: list(item.usage).map((value) => text(value)).filter(Boolean),
+  }
+}
+
+function normaliseStylePreset(input: unknown): TemplateStylePreset {
+  const item = asRecord(input)
+  return {
+    key: text(item.key),
+    label: text(item.label) || text(item.key) || 'Preset',
+    documentFont: text(item.document_font) || text(item.documentFont),
+    headingFont: text(item.heading_font) || text(item.headingFont),
+    fontSize: Number(item.font_size_pt || item.fontSize || 12),
+    headingSize: Number(item.heading_size_pt || item.headingSize || 16),
+    lineHeight: Number(item.line_height || item.lineHeight || 1.8),
+    textAlign: text(item.text_align) || text(item.textAlign) || 'justify',
+    margins: list(item.margins_mm || item.margins).map((value) => Number(value)).filter((value) => Number.isFinite(value)),
+    paragraphSpacing: Number(item.paragraph_spacing_pt || item.paragraphSpacing || 8),
+  }
+}
+
+function normaliseFontRegistry(input: unknown): TemplateFontRegistry {
+  const item = asRecord(input)
+  const defaults = asRecord(item.defaults)
+  const fallback = emptyTemplateCompilerPage.fontRegistry
+  const fonts = list(item.fonts).map(normaliseFont).filter((font) => font.key)
+  const stylePresets = list(item.style_presets || item.stylePresets).map(normaliseStylePreset).filter((preset) => preset.key)
+  return {
+    schemaVersion: text(item.schema_version) || text(item.schemaVersion) || fallback.schemaVersion,
+    policy: asRecord(item.policy),
+    defaults: {
+      document: text(defaults.document) || fallback.defaults.document,
+      heading: text(defaults.heading) || fallback.defaults.heading,
+      ui: text(defaults.ui) || fallback.defaults.ui,
+      placeholder: text(defaults.placeholder) || fallback.defaults.placeholder,
+      fallback: text(defaults.fallback) || fallback.defaults.fallback,
+      stylePreset: text(defaults.style_preset) || text(defaults.stylePreset) || fallback.defaults.stylePreset,
+    },
+    fonts: fonts.length ? fonts : fallback.fonts,
+    stylePresets,
+    exportFallbacks: asRecord(item.export_fallbacks || item.exportFallbacks) as Record<string, string[]>,
+  }
+}
+
+function normaliseWorkflowStep(input: unknown): TemplateEditorWorkflowStep {
+  const item = asRecord(input)
+  const rawState = text(item.state)
+  const state: TemplateEditorWorkflowStep['state'] = rawState === 'done' || rawState === 'active' || rawState === 'pending' ? rawState : 'pending'
+  return {
+    id: text(item.id) || text(item.label) || 'passaggio',
+    label: visibleText(item.label) || 'Passaggio',
+    state,
+  }
+}
+
+function normaliseTemplateExample(input: unknown): TemplateExample {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.code) || 'template',
+    code: text(item.code),
+    title: visibleText(item.title) || visibleText(item.code) || 'Template',
+    description: visibleText(item.description),
+    category: visibleText(item.category) || 'Atti',
+    tags: list(item.tags).map((value) => visibleText(value)).filter(Boolean),
+    fieldsCount: Number(item.fieldsCount || item.fields_count || 0),
+    href: safeHref(item.href, ''),
+    selected: item.selected === true,
+  }
+}
+
+function normaliseLexAction(input: unknown): TemplateLexAction {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.label) || 'azione_lex',
+    label: visibleText(item.label) || 'Azione Lex',
+    mode: visibleText(item.mode) || 'Correttore',
+  }
+}
+
+function normaliseLexProposal(input: unknown): TemplateLexProposal {
+  const item = asRecord(input)
+  const rawStatus = text(item.status)
+  const status: TemplateLexProposal['status'] = rawStatus === 'accepted' || rawStatus === 'rejected' || rawStatus === 'modified' ? rawStatus : 'pending'
+  return {
+    id: text(item.id) || text(item.title) || 'proposta_lex',
+    mode: visibleText(item.mode) || 'Correttore',
+    title: visibleText(item.title) || 'Proposta Lex',
+    original: visibleText(item.original),
+    proposed: visibleText(item.proposed),
+    reason: visibleText(item.reason),
+    risk: tone(item.risk || 'warning'),
+    status,
+  }
+}
+
+function normaliseLexRevision(input: unknown): TemplateLexRevision {
+  const item = asRecord(input)
+  const privacyPolicy = asRecord(item.privacyPolicy || item.privacy_policy)
+  const auditPolicy = asRecord(item.auditPolicy || item.audit_policy)
+  const fallback = emptyTemplateCompilerPage.lexRevision
+  return {
+    title: text(item.title) || fallback.title,
+    assistantTitle: text(item.assistantTitle) || text(item.assistant_title) || fallback.assistantTitle,
+    privacyPolicy: {
+      localOnly: privacyPolicy.localOnly !== false && privacyPolicy.local_only !== false,
+      externalAllowed: privacyPolicy.externalAllowed === true || privacyPolicy.external_allowed === true,
+      message: text(privacyPolicy.message) || fallback.privacyPolicy.message,
+    },
+    auditPolicy: {
+      proposalVersioning: auditPolicy.proposalVersioning !== false && auditPolicy.proposal_versioning !== false,
+      acceptRejectRequired: auditPolicy.acceptRejectRequired !== false && auditPolicy.accept_reject_required !== false,
+      automaticApply: auditPolicy.automaticApply === true || auditPolicy.automatic_apply === true,
+      tenantIsolated: auditPolicy.tenantIsolated !== false && auditPolicy.tenant_isolated !== false,
+    },
+    modes: list(item.modes).map((value) => text(value)).filter(Boolean).length
+      ? list(item.modes).map((value) => text(value)).filter(Boolean)
+      : fallback.modes,
+    actions: list(item.actions).map(normaliseLexAction).filter((action) => action.id),
+    seedProposals: list(item.seedProposals || item.seed_proposals).map(normaliseLexProposal).filter((proposal) => proposal.id),
+    analysisSummary: text(item.analysisSummary) || text(item.analysis_summary),
   }
 }
 
@@ -540,6 +975,7 @@ function normaliseGuidePreview(input: unknown, modelCode: string, modelName: str
     importEndpoint: safeHref(item.importEndpoint, ''),
     previewPdfHref: safeHref(item.previewPdfHref, ''),
     wordHref: safeHref(item.wordHref, ''),
+    rtfHref: safeHref(item.rtfHref, ''),
     saveEndpoint: safeHref(item.saveEndpoint, ''),
     renderEndpoint: safeHref(item.renderEndpoint, ''),
     importLabel: text(item.importLabel) || fallback.importLabel,
@@ -560,11 +996,7 @@ function normaliseGuidePreview(input: unknown, modelCode: string, modelName: str
       note: text(importInfo.note),
     },
     layoutChecks: list(item.layoutChecks).map(normaliseGuidePreviewCheck).filter((check) => check.label),
-    editorLayout: {
-      fontSize: Number(editorLayout.fontSize || editorLayout.font_size || fallback.editorLayout.fontSize),
-      lineHeight: Number(editorLayout.lineHeight || editorLayout.line_height || fallback.editorLayout.lineHeight),
-      pageScale: Number(editorLayout.pageScale || editorLayout.page_scale || fallback.editorLayout.pageScale),
-    },
+    editorLayout: normaliseEditorLayout(editorLayout),
   }
 }
 
@@ -678,6 +1110,11 @@ function normaliseCompilerPage(input: unknown): TemplateCompilerData {
       const item = asRecord(value)
       return { label: text(item.label), state: text(item.state) }
     }).filter((section) => section.label),
+    templateExamples: list(page.templateExamples || page.template_examples).map(normaliseTemplateExample).filter((example) => example.id),
+    fontRegistry: normaliseFontRegistry(page.fontRegistry || page.font_registry),
+    editorLayout: normaliseEditorLayout(page.editorLayout || page.editor_layout),
+    editorWorkflow: list(page.editorWorkflow || page.editor_workflow).map(normaliseWorkflowStep).filter((step) => step.id),
+    lexRevision: normaliseLexRevision(page.lexRevision || page.lex_revision),
     guidePreview: normaliseGuidePreview(page.guidePreview, text(model.code), text(model.name)),
   }
 }

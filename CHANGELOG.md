@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.249.13 - 2026-06-04
+
+- Trasformato l'editor template atti/Guida Pratica in workspace professionale React: catalogo laterale, toolbar documento, pagina A4 centrale, pannello `Campi/Stile/Lex/Fonti/Controlli/Export`, import DOCX/PDF/RTF/TXT ed export RTF locale oltre ai flussi PDF/Word esistenti.
+- Aggiunto `template_atti/font_registry.json` con registry font professionale, preset stile documento, fallback DOCX/PDF/RTF e layout editor esteso per font documento, titoli, interfaccia e placeholder.
+- Integrato Lex Revisione testo nell'editor con modalità Correttore, Redattore, Revisore Normativo, Revisore Privacy, Template Builder e Final Check; le proposte restano in diff accettabile/rifiutabile/modificabile, senza applicazione automatica e senza invio a servizi esterni senza policy privacy esplicita.
+- Esteso il payload React `/api/v1/ui/template-atti/compila/<codice>` con workflow professionale, registry font, preset, template laterali, policy Lex, audit/versioning proposte e seed di controllo placeholder/normativa/privacy.
+- Coperti registry, layout esteso e contratto API con test mirati; confermati typecheck, test frontend, build Vite, contratti OpenAPI, Docker locale reale `127.0.0.1:8080`, browser desktop/tablet/mobile con scroll completo e click delle funzioni, date italiane visibili, export RTF/DOCX/PDF e baseline prestazionale dedicata.
+
 ## 2.249.12 - 2026-06-03
 
 - Rafforzato il presidio PEC reale: l'acquisizione dei MIME locali genera scadenze operative non scadute e le collega all'agenda, con risposta idempotente e messaggio riepilogativo su create, già presenti, scadute ignorate e collegate all'agenda.

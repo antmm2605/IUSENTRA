@@ -51,3 +51,15 @@ Gli endpoint rispettano l'autenticazione esistente e non modificano i template m
 ## Limite professionale
 
 IUSENTRA non dichiara un atto "100% conforme" con un badge statico. La UI mostra stato, dati disponibili, dati mancanti, controlli bloccanti e controlli consigliati. Quando il catalogo o i dati del fascicolo non permettono una verifica automatica certa, lo stato resta `cartabia_review_required` o `needs_review` e la revisione dell'avvocato rimane necessaria.
+
+## Editor professionale 2.249.13
+
+Dal 4 giugno 2026 la compilazione `/template-atti/compila/<codice>` espone un workspace React professionale integrato con la Guida Pratica: catalogo laterale dei template, toolbar documento, pagina A4 centrale, pannello `Campi`, `Stile`, `Lex`, `Fonti`, `Controlli` ed `Export`.
+
+Il registry font è versionato in `template_atti/font_registry.json` e copre famiglie classiche, moderne, giudiziarie, contrattuali, privacy e placeholder. Il layout salvato in `template_atti/template_atti/editor_layout.json` include font documento, titoli, interfaccia, placeholder, fallback export, preset stile, dimensioni, margini, spaziatura firma e opzione per pulire i placeholder in export.
+
+Lex è integrato come assistente redazionale locale con modalità `Correttore`, `Redattore`, `Revisore Normativo`, `Revisore Privacy`, `Template Builder` e `Final Check`. Ogni proposta resta in diff accettabile, rifiutabile o modificabile; l'editor mantiene un registro visibile delle decisioni e non applica modifiche senza conferma dell'avvocato. L'invio a servizi esterni resta vietato finché non è presente una policy privacy esplicita.
+
+I formati presidiati sono DOCX/PDF/RTF/TXT in importazione e DOCX/PDF/RTF in export. L'RTF viene generato localmente dal browser usando il fallback font previsto dal registry; PDF e documento compatibile Word continuano a passare dai percorsi server esistenti con layout normalizzato.
+
+La verifica reale del 4 giugno 2026 su Docker locale `http://127.0.0.1:8080/template-atti/compila/CIV_COM_001` ha confermato desktop, tablet e mobile con scroll completo, nessun overflow, nessun errore console, data italiana `4 giugno 2026`, import TXT, salvataggio, rigenerazione, export RTF/DOCX/PDF, copia documento, topbar, campi, stile, Guida Pratica, controlli e Lex. Lex non applica modifiche prima dell'accettazione: il browser ha creato proposte in diff, accettato, rifiutato, modificato e applicato solo su comando esplicito. Report: `artifacts/react-migration/template-editor-browser-2.249.13.json`.

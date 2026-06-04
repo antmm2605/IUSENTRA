@@ -1524,7 +1524,7 @@ def compila(model_code: str):
                     return redirect(editor_import["editor_url"])
             except Exception as exc:
                 current_app.logger.exception("Import editor professionale non riuscito per %s: %s", model_code, exc)
-                flash("Bozza creata, ma l'importazione nell'editor professionale non e' riuscita. Resta disponibile l'anteprima.", "warning")
+                flash("Bozza creata, ma l'importazione nell'editor professionale non è riuscita. Resta disponibile l'anteprima.", "warning")
         ctx = _contesto_compilatore(
             model_code,
             payload=payload,
@@ -1705,7 +1705,7 @@ def scanner_windows_scan():
 @template_atti.route("/api/importa-documento", methods=["POST"])
 @_richiedi_login
 def api_importa_documento():
-    """Converte un documento DOCX o PDF in testo/HTML per l'editor template."""
+    """Converte un documento DOCX, PDF, RTF o TXT in testo/HTML per l'editor template."""
     try:
         file = request.files.get("file")
         if not file or not file.filename:
@@ -1735,7 +1735,21 @@ def api_importa_documento():
             testo = "\n\n".join(testo_pagine)
             return jsonify({"ok": True, "tipo": "testo", "contenuto": testo})
 
-        return jsonify({"errore": f"Formato '.{ext}' non supportato via server. Usa DOCX o PDF (TXT e HTML vengono gestiti direttamente nel browser)."}), 200
+        if ext in {"txt", "text"}:
+            data = file.read()
+            testo = data.decode("utf-8-sig", errors="replace")
+            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo})
+
+        if ext == "rtf":
+            data = file.read().decode("utf-8", errors="replace")
+            data = re.sub(r"\\'[0-9a-fA-F]{2}", " ", data)
+            data = re.sub(r"\\par[d]?", "\n", data)
+            data = re.sub(r"\\[a-zA-Z]+-?\d* ?", "", data)
+            data = data.replace("{", "").replace("}", "")
+            testo = re.sub(r"\n{3,}", "\n\n", data).strip()
+            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo})
+
+        return jsonify({"errore": f"Formato '.{ext}' non supportato. Usa DOCX, PDF, RTF o TXT."}), 200
 
     except Exception as e:
         current_app.logger.exception("Errore api_importa_documento: %s", e)
@@ -1794,6 +1808,12 @@ def compila_word(model_code: str):
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
     try:
+        from pct.template_atti import font_editor
+
+        font_meta = font_editor(str(layout.get("font_family") or ""))
+    except Exception:
+        font_meta = {"css_stack": "Georgia, 'Times New Roman', serif", "docx_family": "Times New Roman"}
+    try:
         font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or 12)))
     except (TypeError, ValueError):
         font_size = 12.0
@@ -1806,14 +1826,15 @@ def compila_word(model_code: str):
         timbro_html = timbro.to_html()
     except Exception:
         timbro_html = ""
+    css_stack = str(font_meta.get("css_stack") or "Georgia, 'Times New Roman', serif")
     html = (
         "<!doctype html><html><head><meta charset=\"utf-8\">"
         f"<title>{escape(str(titolo), quote=True)}</title>"
         "</head><body>"
-        "<section style=\"font-family: Georgia, 'Times New Roman', serif; "
+        f"<section style=\"font-family: {escape(css_stack, quote=True)}; "
         "width: 15rem; text-align: center; line-height: 1.1; font-size: 11pt;\">"
         f"{timbro_html}</section>"
-        "<pre style=\"font-family: Georgia, 'Times New Roman', serif; white-space: pre-wrap; "
+        f"<pre style=\"font-family: {escape(css_stack, quote=True)}; white-space: pre-wrap; "
         f"font-size: {font_size:.1f}pt; line-height: {line_height:.2f}; "
         f"margin-top: 28pt;\">{escape(testo)}</pre>"
         "</body></html>"
@@ -1823,6 +1844,63 @@ def compila_word(model_code: str):
         html.encode("utf-8"),
         mimetype="application/msword; charset=utf-8",
     )
+    response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
+    return response
+
+
+@template_atti.route("/compila/<model_code>/rtf", methods=["POST"])
+@_richiedi_login
+def compila_rtf(model_code: str):
+    from pct.compilatore_atti import get_modello, render_compiled_act
+
+    model = get_modello(model_code)
+    if not model:
+        abort(404)
+    testo = request.form.get("testo_generato", "").strip()
+    if not testo:
+        resolved = _resolve_compiler_context(model_code)
+        testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
+    titolo = request.form.get("title", "") or model["name"]
+    layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
+    try:
+        from pct.template_atti import font_editor
+
+        font_meta = font_editor(str(layout.get("font_family") or ""))
+    except Exception:
+        font_meta = {"rtf_family": "Times New Roman"}
+    try:
+        font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or layout.get("font_size_pt") or 12)))
+    except (TypeError, ValueError):
+        font_size = 12.0
+    rtf_font = str(font_meta.get("rtf_family") or "Times New Roman").replace(";", "")
+
+    def _rtf_escape(value: str) -> str:
+        parts = []
+        for char in value:
+            code = ord(char)
+            if char == "\\":
+                parts.append("\\\\")
+            elif char == "{":
+                parts.append("\\{")
+            elif char == "}":
+                parts.append("\\}")
+            elif char == "\n":
+                parts.append("\\par\n")
+            elif code > 127:
+                parts.append(f"\\u{code}?")
+            else:
+                parts.append(char)
+        return "".join(parts)
+
+    content = (
+        "{\\rtf1\\ansi\\deff0"
+        f"{{\\fonttbl{{\\f0 {rtf_font};}}}}"
+        f"\\fs{int(round(font_size * 2))}\n"
+        f"{_rtf_escape(testo)}"
+        "}"
+    )
+    download_name = _safe_word_download_name(titolo).rsplit(".", 1)[0] + ".rtf"
+    response = current_app.response_class(content.encode("utf-8"), mimetype="application/rtf; charset=utf-8")
     response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
     return response
 

@@ -10,8 +10,10 @@ from pct.template_atti import (
     DEFAULT_EDITOR_LAYOUT,
     GestionePreferenzeTemplateAtti,
     GestioneTemplateAtti,
+    font_editor,
     normalizza_editor_layout,
     percorso_preferenze_editor,
+    template_font_registry_payload,
 )
 from web.app import create_app
 
@@ -63,6 +65,45 @@ def test_preferenze_editor_salvano_e_resettano_layout():
         ripristinato = gestore.reset()
         assert ripristinato == normalizza_editor_layout(DEFAULT_EDITOR_LAYOUT)
         assert gestore.carica()["font_family"] == DEFAULT_EDITOR_LAYOUT["font_family"]
+
+
+def test_font_registry_professionale_e_layout_esteso():
+    registry = template_font_registry_payload()
+
+    assert registry["policy"]["external_font_downloads"] is False
+    assert registry["policy"]["export_fallback_required"] is True
+    assert any(font["key"] == "merriweather" for font in registry["fonts"])
+    assert any(font["category"] == "privacy" or "privacy" in font.get("usage", []) for font in registry["fonts"])
+    assert {preset["key"] for preset in registry["style_presets"]} >= {
+        "giudiziario_civile",
+        "contratto_professionale",
+        "privacy_gdpr",
+    }
+
+    layout = normalizza_editor_layout(
+        {
+            "font_family": "Merriweather",
+            "heading_font_family": "Libre Baskerville",
+            "ui_font_family": "Inter",
+            "placeholder_font_family": "IBM Plex Mono",
+            "fallback_font_family": "Times New Roman",
+            "document_style_preset": "privacy_gdpr",
+            "heading_size_pt": 20,
+            "signature_spacing_pt": 60,
+            "print_clean_placeholders": True,
+        }
+    )
+
+    assert layout["font_family"] == "merriweather"
+    assert layout["heading_font_family"] == "libre_baskerville"
+    assert layout["ui_font_family"] == "inter"
+    assert layout["placeholder_font_family"] == "ibm_plex_mono"
+    assert layout["fallback_font_family"] == "times_new_roman"
+    assert layout["document_style_preset"] == "privacy_gdpr"
+    assert layout["heading_size_pt"] == 20
+    assert layout["signature_spacing_pt"] == 60
+    assert layout["print_clean_placeholders"] is True
+    assert font_editor("Merriweather")["pdf_family"] == "times"
 
 
 def test_percorso_preferenze_editor_riusa_cartella_template():

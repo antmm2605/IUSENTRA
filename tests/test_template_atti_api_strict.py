@@ -90,6 +90,50 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
     assert not any("{" in item or "}" in item for item in compiler_payload["compliance"]["normativeReferences"])
     assert compiler_payload["baseFields"]
     assert compiler_payload["extraFields"]
+    assert compiler_payload["fontRegistry"]["policy"]["external_font_downloads"] is False
+    assert any(font["key"] == "merriweather" for font in compiler_payload["fontRegistry"]["fonts"])
+    assert any(preset["key"] == "giudiziario_civile" for preset in compiler_payload["fontRegistry"]["style_presets"])
+    assert compiler_payload["editorLayout"]["font_family"]
+    assert compiler_payload["guidePreview"]["rtfHref"].endswith("/template-atti/compila/AMM_RIC_001/rtf")
+    assert compiler_payload["guidePreview"]["wordHref"].endswith("/template-atti/compila/AMM_RIC_001/word")
+    assert compiler_payload["guidePreview"]["previewPdfHref"].endswith("/template-atti/compila/AMM_RIC_001/pdf")
+    assert compiler_payload["guidePreview"]["importEndpoint"].endswith("/template-atti/api/importa-documento")
+    assert [
+        step["label"]
+        for step in compiler_payload["editorWorkflow"]
+    ] == [
+        "Template selezionato",
+        "Autocompilazione dati studio/cliente/fascicolo",
+        "Editor documento",
+        "Lex Correttore",
+        "Lex Revisore stile legale",
+        "Lex Revisore placeholder",
+        "Lex Revisore normativa/privacy",
+        "Final check",
+        "Versione finale",
+        "Export DOCX / PDF / RTF",
+    ]
+    lex_revision = compiler_payload["lexRevision"]
+    assert lex_revision["privacyPolicy"]["localOnly"] is True
+    assert lex_revision["privacyPolicy"]["externalAllowed"] is False
+    assert lex_revision["auditPolicy"]["automaticApply"] is False
+    assert set(lex_revision["modes"]) >= {
+        "Correttore",
+        "Redattore",
+        "Revisore Normativo",
+        "Revisore Privacy",
+        "Revisore Placeholder",
+        "Template Builder",
+        "Final Check",
+    }
+    assert {action["label"] for action in lex_revision["actions"]} >= {
+        "Correggi refusi",
+        "Controlla placeholder",
+        "Controlla normativa",
+        "Controlla privacy",
+        "Prepara versione finale",
+    }
+    assert compiler_payload["templateExamples"]
     assert any(
         field.get("note", {}).get("tone") == "missing"
         and "Da completare:" in field.get("note", {}).get("text", "")
@@ -136,3 +180,25 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
     assert timbro_preview.status_code == 200
     assert timbro_post.status_code == 200
     assert timbro_post.get_json()["preview"]["lines"][0]["align"] == "left"
+
+
+def test_template_atti_export_rtf_locale_usa_testo_e_fallback_font(tmp_path: Path):
+    client = _client(tmp_path)
+
+    response = client.post(
+        "/template-atti/compila/AMM_RIC_001/rtf",
+        data={
+            "title": "Comparsa RTF",
+            "testo_generato": "TRIBUNALE DI [TRIBUNALE]\nL'avvocato conferma la revisione finale.",
+            "testo_generato__editor_layout": '{"font_family":"merriweather"}',
+        },
+    )
+
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert response.mimetype == "application/rtf"
+    assert 'attachment; filename="comparsa_rtf.rtf"' in response.headers.get("Content-Disposition", "")
+    assert "{\\rtf1" in body
+    assert "Times New Roman" in body
+    assert "TRIBUNALE DI [TRIBUNALE]" in body
+    assert "revisione finale" in body

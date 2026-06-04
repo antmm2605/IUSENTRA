@@ -62,6 +62,89 @@ def _get_gestore():
     return GestioneConfigStudio(config_path=_studio_config_path())
 
 
+def _safe_mapping(value):
+    return value if isinstance(value, dict) else {}
+
+
+def _safe_local_ai_status_payload(snapshot):
+    data = _safe_mapping(snapshot)
+    runtime = _safe_mapping(data.get("runtime"))
+    settings = _safe_mapping(data.get("settings"))
+    resolved_models = _safe_mapping(data.get("resolved_models"))
+    counts = _safe_mapping(data.get("counts"))
+    runtime_view = {
+        key: runtime.get(key)
+        for key in (
+            "status",
+            "api_base_url",
+            "hardware_profile",
+            "os_version",
+            "ram_gb",
+            "disk_free_gb",
+            "cpu_name",
+            "gpu_vendor",
+            "gpu_name",
+            "chat_model",
+            "embed_model",
+            "last_health_check_at",
+        )
+        if runtime.get(key) not in (None, "")
+    }
+    settings_view = {
+        key: settings.get(key)
+        for key in (
+            "enabled",
+            "base_url",
+            "auto_bootstrap",
+            "chat_model",
+            "embed_model",
+            "keep_alive",
+            "auto_index_documents",
+        )
+        if key in settings
+    }
+    model_rows = []
+    for row in data.get("models") if isinstance(data.get("models"), list) else []:
+        item = _safe_mapping(row)
+        model_rows.append({
+            key: item.get(key)
+            for key in ("role", "kind", "name", "model_name", "install_state", "size_bytes", "context_window")
+            if item.get(key) not in (None, "")
+        })
+    return {
+        "settings": settings_view,
+        "runtime": runtime_view,
+        "runtime_online": bool(data.get("runtime_online")),
+        "runtime_version_live": data.get("runtime_version_live") or "",
+        "runtime_base_url_live": data.get("runtime_base_url_live") or "",
+        "models": model_rows,
+        "running_models": [],
+        "resolved_models": {
+            "chat": resolved_models.get("chat") or "",
+            "embed": resolved_models.get("embed") or "",
+        },
+        "counts": {
+            key: counts.get(key)
+            for key in ("documents_total", "chunks_total", "chunks_embedded", "chunks_pending")
+            if counts.get(key) is not None
+        },
+    }
+
+
+def _safe_local_ai_bootstrap_result(result):
+    data = _safe_mapping(result)
+    status = str(data.get("status") or "warning")
+    safe = {
+        "status": status,
+        "hardware_profile": data.get("hardware_profile") or "",
+        "chat_model": data.get("chat_model") or "",
+        "embed_model": data.get("embed_model") or "",
+    }
+    if status in {"error", "missing", "unavailable"}:
+        safe["message"] = "Preparazione AI locale non completata. Verifica il servizio locale e riprova."
+    return safe
+
+
 def _salva_snapshot_sql_impostazioni(cfg, extra_sections: dict | None = None) -> int:
     """Aggiorna il mirror strutturato delle impostazioni quando il backend SQL è attivo."""
     try:
@@ -543,7 +626,7 @@ def test_whatsapp():
 @_richiedi_login
 def api_local_ai_status():
     try:
-        return jsonify(get_local_ai_service().health_snapshot())
+        return jsonify(_safe_local_ai_status_payload(get_local_ai_service().health_snapshot()))
     except Exception as e:
         current_app.logger.exception("Errore api_local_ai_status: %s", e)
         return jsonify({"errore": "Assistente locale non disponibile.", "runtime": {"status": "error"}, "models": [], "counts": {}}), 200
@@ -557,7 +640,10 @@ def api_local_ai_bootstrap():
         service = get_local_ai_service()
         result = service.bootstrap_runtime(force=bool(data.get("force")))
         refresh_live_ollama_runtime()
-        return jsonify({"result": result, "status_payload": service.health_snapshot()})
+        return jsonify({
+            "result": _safe_local_ai_bootstrap_result(result),
+            "status_payload": _safe_local_ai_status_payload(service.health_snapshot()),
+        })
     except Exception as e:
         current_app.logger.exception("Errore api_local_ai_bootstrap: %s", e)
         return jsonify({"errore": "Preparazione assistente locale non completata.", "runtime": {"status": "error"}}), 200

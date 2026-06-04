@@ -913,7 +913,15 @@ def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:
                 callmebot_key="",
             )
             risultato = invia_messaggio(cfg.twilio_numero, "Test IUSENTRA — connessione OK.", wa_cfg)
-            return {"ok": True, "messaggio": f"Twilio OK: {risultato.get('status', risultato)}"}
+            if risultato.get("ok") is False:
+                return {
+                    "ok": False,
+                    "messaggio": (
+                        "Errore Twilio: connessione non completata. "
+                        "Controlla credenziali, numero mittente e autorizzazioni nel pannello Twilio."
+                    ),
+                }
+            return {"ok": True, "messaggio": "Twilio raggiungibile: test WhatsApp accettato dal provider."}
         except Exception:
             return {
                 "ok": False,
@@ -930,7 +938,15 @@ def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:
                 callmebot_key=cfg.callmebot_key,
             )
             risultato = invia_messaggio("", "Test IUSENTRA — connessione OK.", wa_cfg)
-            return {"ok": True, "messaggio": f"CallMeBot OK: {risultato}"}
+            if risultato.get("ok") is False:
+                return {
+                    "ok": False,
+                    "messaggio": (
+                        "Errore CallMeBot: connessione non completata. "
+                        "Controlla la chiave configurata e riprova."
+                    ),
+                }
+            return {"ok": True, "messaggio": "CallMeBot raggiungibile: test WhatsApp accettato dal provider."}
         except Exception:
             return {
                 "ok": False,

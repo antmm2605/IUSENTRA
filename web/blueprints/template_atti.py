@@ -517,9 +517,34 @@ def _build_assistant_analysis(model_code: str, *, payload: dict, selected_client
     return result
 
 
+def _extract_editor_placeholders(text: str) -> list[str]:
+    source = str(text or "")[:100_000]
+    matches: set[str] = set()
+    index = 0
+    while index < len(source):
+        if source.startswith("{{", index):
+            end = source.find("}}", index + 2, index + 160)
+            if end != -1:
+                token = source[index:end + 2]
+                if token[2:-2].strip():
+                    matches.add(token)
+                index = end + 2
+                continue
+        if source[index] == "[":
+            end = source.find("]", index + 1, index + 90)
+            if end != -1:
+                candidate = source[index + 1:end]
+                if candidate and all(ch == "_" or ch.isdigit() or "A" <= ch <= "Z" or "À" <= ch <= "Ù" for ch in candidate):
+                    matches.add(source[index:end + 1])
+                index = end + 1
+                continue
+        index += 1
+    return sorted(matches)
+
+
 def _editor_lex_enrichment(analysis: dict[str, Any], *, action: str, mode: str, text: str, html: str, instructions: str) -> dict[str, Any]:
     clean_text = " ".join(str(text or "").split())
-    placeholder_matches = sorted(set(re.findall(r"\[[A-Z0-9_À-Ù]+\]|\{\{[^}]+\}\}", text or "")))
+    placeholder_matches = _extract_editor_placeholders(text)
     pii_matches = sorted(set(re.findall(r"\b[\w.+-]+@[\w.-]+\.\w+\b|\b\d{3}\s?\d{3}\s?\d{4}\b|\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b", text or "", re.I)))
     has_legal_basis = bool(re.search(r"\bart\.|\barticolo\b|codice|d\.lgs\.|legge|regolamento|giurisprudenza|cassazione|consiglio di stato", clean_text, re.I))
     lowered = f"{action} {mode}".casefold()

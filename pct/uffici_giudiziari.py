@@ -1637,7 +1637,7 @@ class GestoreUfficiGiudiziari:
                         break
             except Exception as exc:
                 log.warning("Verifica: sorgente %s non raggiungibile: %s", nome_fonte, exc)
-                errore = str(exc)
+                errore = "sorgente_non_raggiungibile"
 
         bundle = _build_bundle_completo()
 

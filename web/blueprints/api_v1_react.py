@@ -6939,7 +6939,7 @@ def _react_template_guide_preview_payload(
             "import": {
                 "enabled": True,
                 "formats": "PDF/DOCX/RTF/TXT",
-                "note": "Importa nell'editor professionale; il testo resta modificabile prima dell'export.",
+                "note": "Importa nell'editor professionale; il testo resta modificabile prima dell'esportazione.",
             },
             "layoutChecks": [
                 {"label": "Timbro studio", "value": "spostabile, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},

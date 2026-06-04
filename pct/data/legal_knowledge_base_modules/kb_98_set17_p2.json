@@ -1,0 +1,1069 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET17_PARTE2",
+  "denominazione": "Diciassettesimo set - 9 nuovi codici - PARTE 2 di 2",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_NULLIT_DI_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEL_CONSUMATORE_ARTT_33_38_COD__140040",
+      "denominazione": "Nullità di clausole abusive nei contratti del consumatore (artt. 33-38 Cod. Consumo)",
+      "categoria": "Contratti – tutela consumatore – clausole abusive",
+      "rito": "Rito ordinario di cognizione; GdP per valori bassi",
+      "competenza": "Foro esclusivo del consumatore (residenza/domicilio – Cass. SU 23633/2022)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "33",
+          "descrizione": "LISTA GRIGIA – clausole presumibilmente abusive (vessatorie)"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "36",
+          "descrizione": "NULLITÀ DELLE CLAUSOLE ABUSIVE – nullità di protezione, parziale, rilevabile d'ufficio"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "37",
+          "descrizione": "Azione inibitoria collettiva – associazioni consumatori"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "37-bis",
+          "descrizione": "AGCM – accertamento e inibitoria d'ufficio"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "38",
+          "descrizione": "Forma scritta e interpretazione contra proferentem"
+        },
+        {
+          "fonte": "Direttiva UE 93/13/CEE",
+          "descrizione": "Clausole abusive nei contratti con i consumatori"
+        },
+        {
+          "fonte": "Cass. SU 17351/2022",
+          "descrizione": "Nullità di protezione – rilevabilità d'ufficio"
+        },
+        {
+          "fonte": "Cass. SU 23633/2022",
+          "descrizione": "Foro del consumatore – irrinunciabile e rilevabile d'ufficio"
+        },
+        {
+          "fonte": "CGUE C-26/13 (Kásler 2014)",
+          "descrizione": "Clausola principale sul prezzo – esenzione dal controllo di abusività SE chiara e comprensibile"
+        },
+        {
+          "fonte": "CGUE C-415/11 (Aziz 2013)",
+          "descrizione": "Clausola abusiva in mutuo – opponibilità al giudice dell'esecuzione"
+        }
+      ],
+      "nullita_di_protezione_art36": {
+        "carattere": "NULLITÀ PARZIALE – colpisce solo la clausola abusiva, il contratto rimane valido per il resto",
+        "rilevabilita_d_ufficio": "Il giudice DEVE rilevarla d'ufficio anche senza eccezione di parte (Cass. SU 17351/2022)",
+        "chi_può_farla_valere": "Solo il CONSUMATORE (non il professionista)"
+      },
+      "lista_grigia_33_clausole_tipiche": [
+        "Clausole che escludono o limitano la responsabilità del professionista per morte o lesioni",
+        "Clausole che escludono o limitano le azioni del consumatore verso il professionista",
+        "Clausole che modificano unilateralmente le caratteristiche del prodotto/servizio",
+        "Clausole che consentono aumenti unilaterali del prezzo senza diritto di recesso",
+        "Clausole che riconoscono al professionista il diritto di recedere senza un eguale diritto del consumatore",
+        "Clausole sui fori competenti diversi dal foro del consumatore",
+        "Clausole che rendono eccessivamente difficile al consumatore l'esercizio dei suoi diritti"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto standard e identificare le clausole potenzialmente abusive"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se ricade nella lista grigia (33) o è comunque squilibrata (34)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare il danno derivato dall'applicazione della clausola abusiva"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare se richiedere anche la restituzione di quanto pagato in applicazione della clausola nulla"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_nullita_clausola_abusiva_consumatore",
+        "denominazione": "Atto di citazione per nullità di clausola abusiva ex artt. 33-36 Cod. Consumo",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "type": "select",
+            "required": true,
+            "note": "FORO DEL CONSUMATORE – irrinunciabile"
+          },
+          {
+            "id": "consumatore_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "professionista_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "contratto_con_clausola_abusiva",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto",
+                "type": "select",
+                "options": [
+                  "fornitura_servizi",
+                  "acquisto_beni",
+                  "contratto_bancario",
+                  "assicurativo",
+                  "telefonico_o_utilities",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "clausole_abusive_contestate",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "testo_clausola",
+                "type": "textarea"
+              },
+              {
+                "id": "tipo_vizio",
+                "type": "select",
+                "options": [
+                  "lista_grigia_33",
+                  "significativo_squilibrio_34",
+                  "esenzione_responsabilita_33n1",
+                  "modifica_unilaterale_33n13",
+                  "foro_incompetente_33n19",
+                  "recesso_unilaterale_33n5",
+                  "altro"
+                ]
+              },
+              {
+                "id": "danno_applicazione_clausola",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_nullita_clausola_abusiva_36",
+              "restituzione_somme_pagate_in_applicazione_clausola_nulla",
+              "modifica_contratto_con_eliminazione_clausola",
+              "risarcimento_danni",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "FORO ESCLUSIVO DEL CONSUMATORE – irrinunciabile anche contrattualmente (Cass. SU 23633/2022)",
+          "Nullità PARZIALE – colpisce solo la clausola, il contratto rimane valido",
+          "Il giudice DEVE rilevarla d'ufficio (Cass. SU 17351/2022)",
+          "Solo il CONSUMATORE può farla valere (non il professionista)",
+          "Clausola principale sul prezzo: esente se chiara e comprensibile (CGUE Kásler)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_con_clausole_contestate",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_danno_applicazione_clausola",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nullità di protezione: imprescrittibile (art. 1422 c.c. per analogia)"
+        },
+        {
+          "termine": "Restituzione somme: prescrizione 10 anni dall'indebito pagamento"
+        }
+      ],
+      "codice_originale_ricevuto": "140040",
+      "codice_logico": "GUIDA_NULLIT_DI_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEL_CONSUMATORE_ARTT_33_38_COD__140040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PROVVEDIMENTO_D_URGENZA_ATIPICO_INIBITORIA_CAUTELARE_ART_700_C_P_C_190015",
+      "denominazione": "Provvedimento d'urgenza atipico – inibitoria cautelare (art. 700 c.p.c.)",
+      "categoria": "Misure cautelari – cautelare atipica d'urgenza",
+      "rito": "Procedimento cautelare atipico ex art. 700 c.p.c. + artt. 669-bis e ss.",
+      "competenza": "Giudice della causa principale (in corso di causa) o Tribunale competente (ante causam)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "700",
+          "descrizione": "Provvedimenti d'urgenza – fuori dai casi previsti da specifiche cautele, chi ha fondato motivo di temere che durante il tempo necessario per far valere il suo diritto in via ordinaria questo venga menomato da un pregiudizio imminente e irreparabile"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis e ss.",
+          "descrizione": "Procedura cautelare uniforme – applicabile al 700"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Obbligo giudizio di merito entro 60 gg (ante causam)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-terdecies",
+          "descrizione": "Reclamo avverso il provvedimento cautelare"
+        },
+        {
+          "fonte": "Cass. SU 14482/2019",
+          "descrizione": "Art. 700 – sussidiarietà rispetto a cautele tipiche"
+        },
+        {
+          "fonte": "Cass. SU 9386/2021",
+          "descrizione": "Fumus + periculum – criteri applicativi nell'art. 700"
+        },
+        {
+          "fonte": "Cass. SU 2699/2024",
+          "descrizione": "Inibitoria urgente online – violazione diritto d'autore e marchi"
+        }
+      ],
+      "sussidiarieta_700": {
+        "regola": "L'art. 700 si applica SOLO quando non esiste una specifica cautela tipica adeguata (fumus + periculum)",
+        "esempi_di_cautele_tipiche_prevalenti": [
+          "Sequestro conservativo 671",
+          "Sequestro giudiziario 670",
+          "Inibitoria ex Cod. PI 129",
+          "Inibitoria ex Cod. Consumo 37"
+        ],
+        "quando_si_usa_700": "Quando la cautela tipica non copre esattamente la fattispecie o è meno efficace"
+      },
+      "presupposti": {
+        "fumus_boni_iuris": "Apparente fondatezza del diritto da tutelare",
+        "periculum_in_mora": "PREGIUDIZIO IMMINENTE E IRREPARABILE se si attende il giudizio di merito",
+        "irreparabilita": "Il danno non è compensabile per equivalente monetario (o solo parzialmente)"
+      },
+      "casi_tipici_di_applicazione_700": [
+        "Inibitoria alla pubblicazione di notizie diffamatorie (danni all'immagine irreparabili)",
+        "Inibitoria a licenziamento illegittimo imminente (tutela dell'occupazione)",
+        "Sospensione di delibere societarie gravemente lesive",
+        "Inibitoria a violazione di patti parasociali",
+        "Inibitoria a violazione di accordi di non concorrenza",
+        "Tutela urgente del possesso (complementare alle possessorie)",
+        "Accesso urgente a documenti aziendali"
+      ],
+      "inaudita_altera_parte": {
+        "quando": "Periculum così grave e urgente che il contraddittorio preventivo vanificherebbe la misura",
+        "procedura": "Decreto inaudita → notifica → udienza di convalida/revoca"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare che non esista una cautela tipica più adeguata (700 è sussidiario)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare il fumus del diritto da tutelare"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentare il periculum: imminenza + irreparabilità del danno"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare se richiedere inaudita altera parte per massima urgenza"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_provvedimento_urgenza_700",
+        "denominazione": "Ricorso per provvedimento d'urgenza ex art. 700 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "diritto_da_tutelare",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "diritto_d_immagine_e_reputazione",
+                  "diritto_al_lavoro_licenziamento_imminente",
+                  "diritti_societari",
+                  "diritti_IP_marchi_e_autore",
+                  "patti_non_concorrenza",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_fumus",
+                "type": "textarea",
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "periculum_imminente_irreparabile",
+            "type": "textarea",
+            "required": true,
+            "critico": true,
+            "min_length": 300
+          },
+          {
+            "id": "assenza_cautela_tipica_adeguata",
+            "type": "textarea",
+            "required": true,
+            "note": "Motivare perché 700 e non cautela tipica"
+          },
+          {
+            "id": "richiesta_inaudita_altera_parte",
+            "type": "boolean"
+          },
+          {
+            "id": "provvedimento_richiesto",
+            "type": "textarea",
+            "required": true,
+            "note": "Descrivere esattamente il provvedimento inibitorio/ordinatorio richiesto"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "provvedimento_urgente_inibitorio",
+              "provvedimento_urgente_ordinatorio",
+              "inaudita_altera_parte_se_urgente"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Art. 700 è SUSSIDIARIO: non si applica se esiste cautela tipica adeguata",
+          "Periculum: deve essere IMMINENTE e IRREPARABILE (danno non compensabile per equivalente)",
+          "Ante causam: instaurare giudizio di merito entro 60 GG (669-octies)",
+          "Reclamo: 15 giorni dalla pronuncia o esecuzione (669-terdecies)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fumus_diritto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_periculum_imminente_irreparabile",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "GIUDIZIO DI MERITO post 700 ante causam",
+          "giorni": 60,
+          "natura": "DECADENZIALE – pena inefficacia",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Reclamo",
+          "giorni": 15
+        }
+      ],
+      "codice_originale_ricevuto": "190015",
+      "codice_logico": "GUIDA_PROVVEDIMENTO_D_URGENZA_ATIPICO_INIBITORIA_CAUTELARE_ART_700_C_P_C_190015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190015"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_INDENNIZZO_PER_DANNI_DA_VACCINAZIONE_OBBLIGATORIA_O_RACCOMANDATA_L_210_1_160110",
+      "denominazione": "Indennizzo per danni da vaccinazione obbligatoria o raccomandata (L. 210/1992)",
+      "categoria": "Responsabilità – indennizzo pubblico da vaccinazione",
+      "rito": "Rito ordinario; per l'indennizzo amministrativo: procedimento innanzi al Ministero della Salute; per il risarcimento: Tribunale civile",
+      "competenza": "Tribunale civile del luogo di residenza del danneggiato; TAR per controversie sull'indennizzo amministrativo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 210/1992",
+          "articolo": "1",
+          "descrizione": "Indennizzo a favore di soggetti danneggiati da vaccinazioni obbligatorie, trasfusioni, somministrazione di emoderivati"
+        },
+        {
+          "fonte": "L. 210/1992",
+          "articolo": "2",
+          "descrizione": "Domanda al Ministero della Salute – entro 3 ANNI dalla manifestazione del danno"
+        },
+        {
+          "fonte": "L. 210/1992",
+          "articolo": "4",
+          "descrizione": "Commissione medico-ospedaliera – valutazione del danno"
+        },
+        {
+          "fonte": "Corte Cost. 107/2012",
+          "descrizione": "Vaccinazioni raccomandate (non obbligatorie) – indennizzo dovuto"
+        },
+        {
+          "fonte": "Corte Cost. 268/2017",
+          "descrizione": "Indennizzo esteso a vaccini raccomandati anche prima del 1999"
+        },
+        {
+          "fonte": "D.Lgs. 52/2019",
+          "descrizione": "Recepimento Direttiva UE – ampliamento delle vaccinazioni obbligatorie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043-2059",
+          "descrizione": "Responsabilità aquiliana – azione risarcitoria complementare"
+        },
+        {
+          "fonte": "Cass. SU 9341/2022",
+          "descrizione": "Indennizzo L. 210/1992 vs risarcimento ordinario – cumulabilità"
+        },
+        {
+          "fonte": "Cass. SU 4524/2023",
+          "descrizione": "Danno da vaccino – prova del nesso causale"
+        }
+      ],
+      "sistema_doppio_binario": {
+        "indennizzo_L210_1992": {
+          "natura": "Indennizzo PUBBLICO – non richiede colpa dello Stato o del medico",
+          "presupposto": "Danno causalmente ricollegabile alla vaccinazione (obbligatoria o raccomandata)",
+          "a_chi_si_chiede": "Ministero della Salute (procedimento amministrativo)",
+          "termine": "3 ANNI dalla manifestazione del danno (o dalla diagnosi)",
+          "importo": "Rendita vitalizia o assegno reversibile in base al grado di invalidità"
+        },
+        "risarcimento_civile_ordinario": {
+          "natura": "Responsabilità da fatto illecito o da custodia",
+          "cumulabilita_Cass_SU_9341_2022": "Cumulabile con l'indennizzo L. 210 – si detrae l'indennizzo già percepito"
+        }
+      },
+      "vaccini_coperti_post_Corte_Cost_107_268": [
+        "Tutte le vaccinazioni OBBLIGATORIE per legge",
+        "Vaccinazioni RACCOMANDATE dalle autorità sanitarie anche se non obbligatorie",
+        "Vaccinazioni effettuate su invito delle autorità sanitarie (campagne vaccinali)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "PRESENTARE DOMANDA al Ministero della Salute entro 3 anni dalla diagnosi del danno"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere documentazione sanitaria (diagnosi, certificati, cartelle cliniche)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Perizia medico-legale per il nesso causale vaccino → danno"
+        },
+        {
+          "step": 4,
+          "descrizione": "In caso di diniego: ricorso al TAR (per indennizzo) o azione civile (per risarcimento pieno)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_indennizzo_o_risarcimento_vaccinazione_L210",
+        "denominazione": "Ricorso per indennizzo L. 210/1992 e/o risarcimento civile da danno da vaccinazione",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_TAR",
+            "type": "select",
+            "required": true,
+            "options": [
+              "tribunale_civile_risarcimento",
+              "TAR_impugnazione_diniego_indennizzo"
+            ]
+          },
+          {
+            "id": "danneggiato_o_eredi",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "ministero_salute_o_azienda_sanitaria_convenuta",
+            "type": "object"
+          },
+          {
+            "id": "vaccinazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_vaccino",
+                "type": "string"
+              },
+              {
+                "id": "data_somministrazione",
+                "type": "date"
+              },
+              {
+                "id": "obbligatoria_o_raccomandata",
+                "type": "select",
+                "options": [
+                  "obbligatoria",
+                  "raccomandata_corte_cost_107_2012"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "diagnosi",
+                "type": "textarea"
+              },
+              {
+                "id": "data_diagnosi_o_manifestazione",
+                "type": "date",
+                "critico_per_3_anni": true
+              },
+              {
+                "id": "grado_invalidita_stimato",
+                "type": "percentage"
+              },
+              {
+                "id": "nesso_causale_documentato",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domanda_ministero_salute_presentata",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "presentata",
+                "type": "boolean"
+              },
+              {
+                "id": "data_presentazione",
+                "type": "date"
+              },
+              {
+                "id": "esito",
+                "type": "select",
+                "options": [
+                  "pendente",
+                  "accolto",
+                  "rigettato",
+                  "non_presentata"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "indennizzo_L210_1992",
+              "risarcimento_danno_biologico_ulteriore",
+              "impugnazione_diniego_ministero_salute",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 3 ANNI dalla manifestazione del danno per la domanda al Ministero della Salute",
+          "Vaccinazioni raccomandate: coperte dall'indennizzo (Corte Cost. 107/2012 + 268/2017)",
+          "L'indennizzo è cumulabile con il risarcimento civile (Cass. SU 9341/2022)",
+          "Prova del nesso causale: fondamentale (Cass. SU 4524/2023)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_vaccinazione_libretto_sanitario",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_diagnosi_danno",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_medico_legale_nesso_causale",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "eventuale_rigetto_ministero_salute",
+          "required_if": "impugnazione_diniego"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "DOMANDA AL MINISTERO SALUTE",
+          "anni": 3,
+          "decorrenza": "manifestazione danno o diagnosi",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Ricorso al TAR per diniego",
+          "giorni": 60,
+          "decorrenza": "notifica diniego"
+        }
+      ],
+      "codice_originale_ricevuto": "160110",
+      "codice_logico": "GUIDA_INDENNIZZO_PER_DANNI_DA_VACCINAZIONE_OBBLIGATORIA_O_RACCOMANDATA_L_210_1_160110",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160110"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160110"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160110"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DIMISSIONI_PER_GIUSTA_CAUSA_E_DIRITTI_DEL_LAVORATORE_ART_2119_C_C_MOBBIN_220095",
+      "denominazione": "Dimissioni per giusta causa e diritti del lavoratore (art. 2119 c.c.) + mobbing come causa delle dimissioni",
+      "categoria": "Lavoro – cessazione del rapporto per dimissioni",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2119",
+          "descrizione": "Recesso per giusta causa – anche il lavoratore può recedere senza preavviso per giusta causa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2118",
+          "descrizione": "Recesso con preavviso – dimissioni ordinarie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Violazione obbligo di sicurezza come giusta causa di dimissioni"
+        },
+        {
+          "fonte": "D.Lgs. 22/2015 (NASpI)",
+          "articolo": "1 c. 2",
+          "descrizione": "NASpI per dimissioni per giusta causa + dimissioni forzate"
+        },
+        {
+          "fonte": "D.Lgs. 151/2015",
+          "articolo": "26",
+          "descrizione": "Convalida telematica delle dimissioni – procedura obbligatoria"
+        },
+        {
+          "fonte": "L. 92/2012 (Fornero)",
+          "articolo": "4 c. 16-23",
+          "descrizione": "Procedura convalida dimissioni (superata dal D.Lgs. 151/2015)"
+        },
+        {
+          "fonte": "Cass. SU 27333/2020",
+          "descrizione": "Dimissioni per giusta causa – mobbing come causa delle dimissioni forzate"
+        },
+        {
+          "fonte": "Cass. SU 19023/2023",
+          "descrizione": "TFR dopo dimissioni per giusta causa – diritto integrale"
+        },
+        {
+          "fonte": "Cass. SU 4674/2024",
+          "descrizione": "Dimissioni in bianco – nullità e conseguenze"
+        }
+      ],
+      "dimissioni_per_giusta_causa_2119": {
+        "presupposti": "Causa che non consente la prosecuzione neanche provvisoria del rapporto – a carico del DATORE",
+        "esempi": [
+          "Mobbing sistematico documentato",
+          "Mancato pagamento delle retribuzioni per più mesi",
+          "Demansionamento grave e prolungato",
+          "Comportamenti lesivi della dignità del lavoratore",
+          "Violazioni gravi dell'art. 2087 c.c. (sicurezza)"
+        ],
+        "effetti": [
+          "Lavoratore recede SENZA PREAVVISO",
+          "Diritto al TFR integrale",
+          "Diritto alla NASpI (D.Lgs. 22/2015)",
+          "Diritto al risarcimento del danno causato dalla giusta causa"
+        ]
+      },
+      "convalida_telematica_D_Lgs_151_2015": {
+        "obbligatorietà": "Le dimissioni devono essere CONVALIDATE TELEMATICAMENTE attraverso il portale del Ministero del Lavoro",
+        "eccezioni": "Dimissioni in periodo di tutela (gravidanza, 1 anno nascita) → convalida diversa",
+        "dimissioni_in_bianco": "NULLE – Cass. SU 4674/2024"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la giusta causa che ha determinato le dimissioni (mobbing, mancati pagamenti, ecc.)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Convalida telematica delle dimissioni sul portale ministeriale (obbligatoria)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare i danni: TFR, retribuzioni arretrate, risarcimento"
+        },
+        {
+          "step": 4,
+          "descrizione": "Presentare domanda NASpI entro 68 gg dalle dimissioni"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_dimissioni_giusta_causa_2119",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per accertamento giusta causa dimissioni + risarcimento danni e TFR",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_lavoro",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "data_dimissioni",
+                "type": "date"
+              },
+              {
+                "id": "qualifica",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "giusta_causa_delle_dimissioni",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select_multi",
+                "options": [
+                  "mobbing_sistematico",
+                  "mancato_pagamento_retribuzioni",
+                  "demansionamento_grave",
+                  "violazione_2087_sicurezza",
+                  "comportamenti_lesivi_dignita",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "min_length": 400
+              }
+            ]
+          },
+          {
+            "id": "convalida_telematica_effettuata",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "id": "crediti_richiesti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "TFR",
+                "type": "currency"
+              },
+              {
+                "id": "retribuzioni_arretrate",
+                "type": "currency"
+              },
+              {
+                "id": "indennita_sostitutiva_preavviso",
+                "type": "currency"
+              },
+              {
+                "id": "risarcimento_danno_da_giusta_causa",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_giusta_causa_dimissioni_2119",
+              "condanna_TFR_integrale",
+              "condanna_retribuzioni_arretrate",
+              "condanna_risarcimento_danno_da_comportamento_datoriale",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Convalida telematica OBBLIGATORIA (D.Lgs. 151/2015) – senza convalida le dimissioni sono invalide",
+          "Dimissioni per giusta causa: TFR integrale + NASpI + no preavviso",
+          "Onere prova della giusta causa SUL LAVORATORE",
+          "Mobbing come causa: documentazione sistematica essenziale (Cass. SU 27333/2020)",
+          "NASpI: presentare domanda INPS entro 68 gg dalle dimissioni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "convalida_telematica_dimissioni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_giusta_causa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_e_calcolo_TFR",
+          "required": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione crediti in costanza rapporto",
+          "anni": 5
+        },
+        {
+          "termine": "Prescrizione post cessazione",
+          "anni": 5,
+          "norma": "art. 2948 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "220095",
+      "codice_logico": "GUIDA_DIMISSIONI_PER_GIUSTA_CAUSA_E_DIRITTI_DEL_LAVORATORE_ART_2119_C_C_MOBBIN_220095",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220095"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220095"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220095"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (14).zip::kb_set18_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set18_p2.json",
+  "sha256": "A5C39111694C66F2AEFA493751406F0D75EE9D8ED51DF49F6F1893C9BC66FE3D",
+  "changed": true,
+  "macro_area_id": "SET18_PARTE2",
+  "denominazione": "Diciottesimo set - 11 nuovi codici - PARTE 2 di 3",
+  "codici_materia_originali": [
+    "130095",
+    "152010",
+    "413095",
+    "143030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_USUCAPIONE_ABBREVIATA_DECENNALE_ART_1159_C_C_E_USUCAPIONE_DI_BENI_MOBILI_130095",
+    "GUIDA_CONCORDATO_PREVENTIVO_OPPOSIZIONE_DEL_CREDITORE_E_CONTESTAZIONI_ARTT_90__152010",
+    "GUIDA_AUTORIZZAZIONE_GIUDIZIALE_ALLA_VENDITA_O_AD_ATTI_STRAORDINARI_SU_BENI_DI_413095",
+    "GUIDA_APPALTO_PUBBLICO_CONTESTAZIONI_DELL_APPALTATORE_RECESSO_REVISIONE_PREZZI_143030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130095",
+      "codice_integrato": "GUIDA_USUCAPIONE_ABBREVIATA_DECENNALE_ART_1159_C_C_E_USUCAPIONE_DI_BENI_MOBILI_130095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "152010",
+      "codice_integrato": "GUIDA_CONCORDATO_PREVENTIVO_OPPOSIZIONE_DEL_CREDITORE_E_CONTESTAZIONI_ARTT_90__152010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413095",
+      "codice_integrato": "GUIDA_AUTORIZZAZIONE_GIUDIZIALE_ALLA_VENDITA_O_AD_ATTI_STRAORDINARI_SU_BENI_DI_413095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143030",
+      "codice_integrato": "GUIDA_APPALTO_PUBBLICO_CONTESTAZIONI_DELL_APPALTATORE_RECESSO_REVISIONE_PREZZI_143030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 7
+}

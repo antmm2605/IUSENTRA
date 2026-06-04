@@ -1,0 +1,802 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET18_PARTE3",
+  "denominazione": "Diciottesimo set - 11 nuovi codici - PARTE 3 di 3",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_PERDITA_DI_CHANCE_AZIONE_RISARCITORIA_PER_MANCATA_OPPORTUNIT_TEORIA_GENE_160035",
+      "denominazione": "Perdita di chance – azione risarcitoria per mancata opportunità (teoria generale)",
+      "categoria": "Responsabilità civile – danni – perdita di chance",
+      "rito": "Rito ordinario di cognizione (o rito del lavoro se chance lavorativa)",
+      "competenza": "Tribunale competente in base al tipo di rapporto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1223",
+          "descrizione": "Risarcimento del danno contrattuale – danno emergente + lucro cessante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2056",
+          "descrizione": "Valutazione dei danni in sede aquiliana"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1226",
+          "descrizione": "Valutazione equitativa del danno se impossibile la prova precisa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "RC generale – base aquiliana"
+        },
+        {
+          "fonte": "Cass. SU 15781/2005 (avvocato)",
+          "descrizione": "Perdita di chance processuale – danno autonomo risarcibile"
+        },
+        {
+          "fonte": "Cass. SU 19565/2018",
+          "descrizione": "Perdita di chance – distinzione da lucro cessante + prova probabilistica"
+        },
+        {
+          "fonte": "Cass. SU 4523/2021",
+          "descrizione": "Perdita di chance lavorativa – criteri di quantificazione"
+        },
+        {
+          "fonte": "Cass. SU 6688/2024",
+          "descrizione": "Perdita di chance – onere della prova aggiornato"
+        }
+      ],
+      "natura_della_perdita_di_chance": {
+        "non_e_lucro_cessante": "Il lucro cessante richiede la certezza del guadagno mancato; la perdita di chance riguarda la mancata OPPORTUNITÀ",
+        "danno_autonomo_Cass_SU_15781_2005": "La perdita di chance è un danno autonomo e risarcibile, distinto dal risultato non conseguito",
+        "Cass_SU_19565_2018": "La chance è risarcibile se: (1) effettivamente esisteva, (2) la condotta illecita ne ha impedito la realizzazione, (3) è ragionevolmente seria (percentuale di successo non irrisoria)"
+      },
+      "prova_e_quantificazione_Cass_SU_6688_2024": {
+        "prova": "Il danneggiato deve provare l'esistenza della chance e la sua serietà (non è sufficiente una possibilità vaga)",
+        "quantificazione": "Il risarcimento = valore del risultato finale × probabilità di conseguirlo (es. 40% × €100.000 = €40.000)",
+        "valutazione_equitativa": "Se la prova precisa è impossibile: valutazione equitativa ex art. 1226 c.c."
+      },
+      "casistiche_tipiche": [
+        "Perdita di chance PROCESSUALE: avvocato che fa prescrivere l'azione (valore x probabilità di vincita)",
+        "Perdita di chance LAVORATIVA: concorso pubblico falsato, promozione mancata per mobbing",
+        "Perdita di chance MEDICA: diagnosi tardiva che riduce le probabilità di guarigione",
+        "Perdita di chance CONTRATTUALE: trattativa interrotta illecitamente",
+        "Perdita di chance PROFESSIONALE: mancato avanzamento per colpa del datore"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "dipende_dal_rapporto": true
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Dimostrare l'esistenza concreta e seria della chance (non meramente ipotetica)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Provare il nesso causale tra la condotta illecita e la perdita della chance"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare probabilisticamente: valore del risultato × probabilità di conseguirlo"
+        },
+        {
+          "step": 4,
+          "descrizione": "Ricorrere alla valutazione equitativa se la prova precisa è impossibile"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_perdita_di_chance",
+        "denominazione": "Atto di citazione per risarcimento danni da perdita di chance",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_responsabile",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_chance_perduta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "chance_processuale_avvocato_15781_2005",
+              "chance_lavorativa_concorso_o_promozione",
+              "chance_medica_diagnosi_tardiva",
+              "chance_contrattuale_trattativa_interrotta",
+              "chance_professionale_datore",
+              "altra"
+            ]
+          },
+          {
+            "id": "chance_esistente_e_seria",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_della_chance",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "prove_seriet_della_chance",
+                "type": "textarea"
+              },
+              {
+                "id": "probabilita_stimata_di_successo",
+                "type": "percentage"
+              }
+            ]
+          },
+          {
+            "id": "condotta_illecita_che_ha_causato_la_perdita",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "quantificazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "valore_risultato_finale",
+                "type": "currency"
+              },
+              {
+                "id": "probabilita_di_successo",
+                "type": "percentage"
+              },
+              {
+                "id": "risarcimento_calcolato",
+                "type": "currency"
+              },
+              {
+                "id": "richiesta_valutazione_equitativa_se_prova_impossibile",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risarcimento_danno_da_perdita_di_chance",
+              "valutazione_equitativa_1226",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "La chance deve essere SERIA – non irrisoria (Cass. SU 19565/2018)",
+          "Quantificazione probabilistica: valore risultato × probabilità percentuale",
+          "Valutazione equitativa ammessa se prova precisa impossibile (art. 1226 c.c.)",
+          "Onere della prova sull'esistenza e serietà della chance: a carico dell'attore"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_esistenza_e_serietà_chance",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_condotta_illecita_nesso_causale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "calcolo_probabilistico_danno",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 5,
+          "norma": "art. 2947 c.c. per illecito aquiliano"
+        },
+        {
+          "termine": "Prescrizione contrattuale",
+          "anni": 10,
+          "norma": "art. 2946 c.c. se rapporto contrattuale"
+        }
+      ],
+      "codice_originale_ricevuto": "160035",
+      "codice_logico": "GUIDA_PERDITA_DI_CHANCE_AZIONE_RISARCITORIA_PER_MANCATA_OPPORTUNIT_TEORIA_GENE_160035",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160035"
+        }
+      ]
+    },
+    {
+      "codice": "220110",
+      "denominazione": "Trasferimento del lavoratore per comprovate ragioni tecnico-organizzative (art. 2103 c.c.)",
+      "categoria": "Lavoro – modifica del luogo di lavoro",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro della sede di lavoro originaria",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Mansioni del lavoratore – trasferimento in altra unità produttiva solo per comprovate ragioni tecnico-organizzative"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2103 c. 8",
+          "descrizione": "Trasferimento – richiede comprovate ragioni tecnico-organizzative o produttive"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2104",
+          "descrizione": "Obblighi del lavoratore"
+        },
+        {
+          "fonte": "St. Lav. L. 300/1970",
+          "articolo": "13",
+          "descrizione": "Vecchia norma sulle mansioni – sostituita da riforma Jobs Act"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015 (Jobs Act)",
+          "articolo": "3",
+          "descrizione": "Riforma art. 2103 c.c. – mansioni + trasferimento"
+        },
+        {
+          "fonte": "Cass. SU 15489/2020",
+          "descrizione": "Trasferimento – ragioni tecnico-organizzative devono essere REALI e DIMOSTRABILI"
+        },
+        {
+          "fonte": "Cass. SU 9803/2022",
+          "descrizione": "Trasferimento punitivo – illecito + onere prova datore"
+        },
+        {
+          "fonte": "Cass. SU 14596/2024",
+          "descrizione": "Trasferimento – prova della ragione organizzativa + bilanciamento con esigenze familiari"
+        }
+      ],
+      "presupposti_del_trasferimento_legittimo_2103_c8": {
+        "comprovate_ragioni": "Le ragioni tecnico-organizzative devono essere REALI, CONCRETE e DIMOSTRABILI dal datore",
+        "non_serve_accordo_lavoratore": "Il trasferimento è atto unilaterale del datore – non richiede il consenso",
+        "onere_prova_datore": "Il DATORE deve provare l'esistenza delle ragioni (Cass. SU 15489/2020)"
+      },
+      "trasferimento_punitivo_Cass_SU_9803_2022": {
+        "quando": "Il trasferimento è disposto in realtà per punire il lavoratore, non per ragioni organizzative",
+        "effetti": "ILLEGITTIMO – condanna alla riassegnazione alla sede originaria + risarcimento danni",
+        "indici": [
+          "Contestualità con procedimento disciplinare o denuncia sindacale",
+          "Assenza di reali esigenze organizzative",
+          "Coincidenza con attività di rappresentanza sindacale"
+        ]
+      },
+      "bilanciamento_con_esigenze_familiari_2103_Cass_SU_14596_2024": {
+        "lavoratori_con_figli_disabili": "Art. 33 L. 104/1992 – diritto a rimanere nella sede di lavoro",
+        "genitore_unico_con_figlio_minore": "Bilanciamento con l'interesse del minore",
+        "coniuge_o_convivente_disabile": "Tutele specifiche L. 104/1992"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Ricevere la comunicazione scritta del trasferimento + richiesta delle ragioni"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare l'esistenza di reali ragioni organizzative (organigrammi, comunicazioni interne)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se il lavoratore ha tutele speciali (L. 104/1992, figli minori)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare ricorso urgente ex art. 700 c.p.c. per sospensione del trasferimento"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_trasferimento_2103",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione trasferimento illegittimo ex art. 2103 c.8 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "trasferimento",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "sede_originaria",
+                "type": "address"
+              },
+              {
+                "id": "sede_di_destinazione",
+                "type": "address"
+              },
+              {
+                "id": "data_comunicazione",
+                "type": "date"
+              },
+              {
+                "id": "data_decorrenza",
+                "type": "date"
+              },
+              {
+                "id": "ragioni_addotte_dal_datore",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "motivi_contestazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "assenza_comprovate_ragioni_tecnico_organizzative",
+              "trasferimento_punitivo_o_ritorsivo",
+              "violazione_tutele_L104_1992",
+              "violazione_accordi_collettivi",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_contestazione",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "tutele_speciali_del_lavoratore",
+            "type": "select_multi",
+            "options": [
+              "familiare_disabile_L104",
+              "figlio_minore_unico_genitore",
+              "rappresentante_sindacale",
+              "altro"
+            ]
+          },
+          {
+            "id": "richiesta_cautelare_urgente_700",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_illegittimita_trasferimento",
+              "condanna_riassegnazione_sede_originaria",
+              "risarcimento_danni_periodo_trasferimento",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Onere della prova sulle ragioni organizzative: a carico del DATORE (Cass. SU 15489/2020)",
+          "Trasferimento punitivo: ILLEGITTIMO (Cass. SU 9803/2022)",
+          "Tutele L. 104/1992: diritto a rimanere nella sede (art. 33 c. 5)",
+          "Cautelare urgente: valutare se il trasferimento è imminente"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "comunicazione_trasferimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "richiesta_ragioni_al_datore_e_risposta",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_tutele_speciali_se_applicabili",
+          "required_if": "tutele_speciali"
+        },
+        {
+          "id": "prove_assenza_ragioni_organizzative",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        },
+        {
+          "termine": "Impugnare appena comunicato il trasferimento (evitare decadenze di fatto)"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220110"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220110"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220110"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DISCONOSCIMENTO_DI_PATERNIT_ARTT_235_244_C_C_E_RETTIFICAZIONE_DELLO_STAT_412005",
+      "denominazione": "Disconoscimento di paternità (artt. 235-244 c.c.) e rettificazione dello stato civile",
+      "categoria": "Persone e famiglia – filiazione – azioni di stato",
+      "rito": "Rito unificato persone e famiglia ex 473-bis c.p.c. (Cartabia)",
+      "competenza": "Tribunale sezione famiglia – residenza abituale del figlio",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "231",
+          "descrizione": "Presunzione di paternità – il marito è padre del figlio concepito durante il matrimonio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "235 (ora art. 243-bis)",
+          "descrizione": "AZIONE DI DISCONOSCIMENTO DI PATERNITÀ – marito, madre, figlio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "243-ter",
+          "descrizione": "Legittimazione attiva – marito, madre, figlio, rappresentante legale del figlio minore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "244",
+          "descrizione": "TERMINI per l'azione – 1 anno (per il marito dalla scoperta)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "245",
+          "descrizione": "Criteri e prove ammissibili – qualsiasi mezzo incluso DNA"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "263",
+          "descrizione": "Impugnazione del riconoscimento per difetto di veridicità"
+        },
+        {
+          "fonte": "L. 219/2012 e D.Lgs. 154/2013",
+          "descrizione": "Riforma filiazione – unicità dello stato di figlio"
+        },
+        {
+          "fonte": "CEDU art. 8",
+          "descrizione": "Vita privata e familiare – bilanciamento con identità biologica"
+        },
+        {
+          "fonte": "Cass. SU 21963/2019",
+          "descrizione": "Disconoscimento – termine 1 anno + dies a quo dalla scoperta"
+        },
+        {
+          "fonte": "Cass. SU 9006/2024",
+          "descrizione": "DNA e presunzione di paternità – aggiornamento"
+        }
+      ],
+      "presunzione_di_paternita_231": {
+        "ambito": "Si applica ai figli concepiti durante il MATRIMONIO (o nell'anno precedente lo scioglimento)",
+        "superamento": "Con l'azione di disconoscimento (art. 243-bis)"
+      },
+      "legittimati_243ter": {
+        "marito_presumpto_padre": "Termine: 1 anno dalla scoperta della non paternità o dalla nascita (se presente)",
+        "madre": "Termine: 6 mesi dalla nascita o dalla scoperta",
+        "figlio": "Imprescrittibile – proponibile in qualunque momento"
+      },
+      "prove_245": {
+        "DNA": "Test genetico – prova principe + dirimente",
+        "rifiuto_DNA": "Argomento di prova a favore del disconoscimento (per analogia con 269)",
+        "altre_prove": "Testimonianze, documenti, perizie mediche sull'impossibilità di paternità"
+      },
+      "effetti_del_disconoscimento": [
+        "Il figlio perde la paternità del marito",
+        "Il padre biologico può successivamente riconoscere il figlio",
+        "Il figlio mantiene i diritti acquisiti fino alla sentenza",
+        "Conseguenze successorie: cessano i diritti verso il marito"
+      ],
+      "impugnazione_riconoscimento_263": {
+        "quando": "Il riconoscimento di paternità naturale è falso (il riconoscente non è il padre biologico)",
+        "legittimati": "Chi ha riconosciuto, il figlio, chiunque vi abbia interesse",
+        "imprescrittibile": "L'azione è imprescrittibile"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare il legittimato attivo e il termine applicabile"
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICARE il termine (1 anno per il marito dalla scoperta) – CRITICO"
+        },
+        {
+          "step": 3,
+          "descrizione": "Predisporre la prova del DNA (se disponibile) o richiedere CTU genetica"
+        },
+        {
+          "step": 4,
+          "descrizione": "Curatore speciale per il figlio minore (conflitto di interessi con i genitori)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_disconoscimento_paternita_243bis",
+        "denominazione": "Ricorso per azione di disconoscimento di paternità ex art. 243-bis c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "marito_presunto_padre",
+                  "madre",
+                  "figlio_maggiorenne",
+                  "rappresentante_figlio_minore"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "figlio_di_cui_si_disconosce_la_paternita",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "nato_durante_il_matrimonio",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "marito_o_padre_presunto_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "data_scoperta_non_paternita",
+            "type": "date",
+            "critico_per_termine_1_anno": true
+          },
+          {
+            "id": "prove_disponibili",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "test_DNA_disponibile",
+                "type": "boolean"
+              },
+              {
+                "id": "test_DNA_da_richiedere_in_causa",
+                "type": "boolean"
+              },
+              {
+                "id": "altre_prove",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "disconoscimento_paternita",
+              "rettificazione_atto_nascita",
+              "nomina_curatore_speciale_figlio_minore",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE per il marito: 1 ANNO dalla scoperta della non paternità – DECADENZIALE",
+          "TERMINE per la madre: 6 MESI dalla nascita o scoperta",
+          "FIGLIO: azione imprescrittibile",
+          "DNA: prova dirimente; rifiuto = argomento di prova",
+          "Curatore speciale OBBLIGATORIO per il figlio minore",
+          "Parere PM obbligatorio"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_nascita_figlio",
+          "required": true
+        },
+        {
+          "id": "atto_matrimonio_genitori",
+          "required": true
+        },
+        {
+          "id": "test_DNA_se_disponibile",
+          "required": false,
+          "critico_se_presente": true
+        },
+        {
+          "id": "documentazione_scoperta_non_paternita",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente (azione di stato)",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "DISCONOSCIMENTO per il MARITO",
+          "anni": 1,
+          "decorrenza": "scoperta",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DISCONOSCIMENTO per la MADRE",
+          "mesi": 6,
+          "decorrenza": "nascita o scoperta",
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "FIGLIO: IMPRESCRITTIBILE",
+          "natura": "imprescrittibile"
+        }
+      ],
+      "codice_originale_ricevuto": "412005",
+      "codice_logico": "GUIDA_DISCONOSCIMENTO_DI_PATERNIT_ARTT_235_244_C_C_E_RETTIFICAZIONE_DELLO_STAT_412005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "412005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "412005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "412005"
+        }
+      ]
+    }
+  ]
+}

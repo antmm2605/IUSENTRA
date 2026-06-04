@@ -2,6 +2,18 @@
 
 Generato: 2026-06-02T14:15:11.421Z
 
+## Aggiornamento Template Atti 2.249.15 - 2026-06-04
+
+La superficie `/template-atti/compila/<codice>` resta governata come React
+operational effettiva: il giro finale ha verificato che le azioni richieste non
+siano solo pulsanti visibili. Toolbar selezione, collegamento cliente/fascicolo,
+timbro, import, export, copia, salvataggio, compilazione multipla, firma e Lex
+diff producono effetti osservabili nel browser reale.
+
+Prova registrata: `template-editor-browser-2.249.15.json`, 74/74 controlli OK su
+Docker reale `127.0.0.1:8080`, più Browser integrato Codex con nessun overflow
+pagina/pannello/card e toolbar sticky.
+
 ## Aggiornamento Template Atti 2.249.14 - 2026-06-04
 
 La superficie `/template-atti/compila/<codice>` resta censita come React

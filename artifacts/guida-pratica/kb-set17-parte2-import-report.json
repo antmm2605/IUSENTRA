@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (13).zip::kb_set17_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set17_p2.json",
+  "sha256": "07E83B088244E21CA114BC8EFA19AF3929276445AA2044B2CAC63614C4E8BAB0",
+  "changed": false,
+  "macro_area_id": "SET17_PARTE2",
+  "denominazione": "Diciassettesimo set - 9 nuovi codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "140040",
+    "190015",
+    "160110",
+    "220095"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_NULLIT_DI_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEL_CONSUMATORE_ARTT_33_38_COD__140040",
+    "GUIDA_PROVVEDIMENTO_D_URGENZA_ATIPICO_INIBITORIA_CAUTELARE_ART_700_C_P_C_190015",
+    "GUIDA_INDENNIZZO_PER_DANNI_DA_VACCINAZIONE_OBBLIGATORIA_O_RACCOMANDATA_L_210_1_160110",
+    "GUIDA_DIMISSIONI_PER_GIUSTA_CAUSA_E_DIRITTI_DEL_LAVORATORE_ART_2119_C_C_MOBBIN_220095"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "140040",
+      "codice_integrato": "GUIDA_NULLIT_DI_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEL_CONSUMATORE_ARTT_33_38_COD__140040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190015",
+      "codice_integrato": "GUIDA_PROVVEDIMENTO_D_URGENZA_ATIPICO_INIBITORIA_CAUTELARE_ART_700_C_P_C_190015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160110",
+      "codice_integrato": "GUIDA_INDENNIZZO_PER_DANNI_DA_VACCINAZIONE_OBBLIGATORIA_O_RACCOMANDATA_L_210_1_160110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220095",
+      "codice_integrato": "GUIDA_DIMISSIONI_PER_GIUSTA_CAUSA_E_DIRITTI_DEL_LAVORATORE_ART_2119_C_C_MOBBIN_220095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 8
+}

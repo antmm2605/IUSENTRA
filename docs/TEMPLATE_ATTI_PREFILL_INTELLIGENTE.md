@@ -1,6 +1,6 @@
 # Template Atti - Prefill intelligente
 
-Aggiornato: 2026-05-12.
+Aggiornato: 2026-06-04.
 
 ## Principio
 
@@ -28,3 +28,16 @@ Ogni campo risolto include valore, fonte, confidence, alternative, conflitto, pr
 ## Conflitti
 
 Se due fonti interne affidabili divergono, il resolver segnala `conflict=true`, mostra alternative e non nasconde la discordanza.
+
+## Applicazione nell'editor template atti 2.249.15
+
+Nel workspace `/template-atti/compila/<codice>` il prefill non resta implicito:
+la colonna destra mostra `Collegamento IUSENTRA`, consente di selezionare
+cliente e fascicolo e ricarica il modello con i dati risolti. Il test reale ha
+confermato fascicolo `2DE106E6`, cliente `Moscato Marco`, R.G. `12/2026`,
+ufficio giudiziario e materia disponibili nel documento.
+
+I campi manuali dell'avvocato restano editabili senza troncamento: il valore
+digitato aggiorna il placeholder corrispondente nell'editor e viene usato da
+RTF/DOCX/PDF, copia, salvataggio nel fascicolo e firma. Se un dato automatico
+non è certo, il campo resta visibile con fonte/motivo invece di essere inventato.

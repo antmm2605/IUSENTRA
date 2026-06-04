@@ -148,6 +148,51 @@ EDITOR_FONT_CATALOG: Dict[str, Dict[str, str]] = {
         "category": "moderno",
         "tone": "sans",
     },
+    "arial": {
+        "label": "Arial",
+        "css_stack": "Arial, Helvetica, sans-serif",
+        "docx_family": "Arial",
+        "pdf_family": "helvetica",
+        "rtf_family": "Arial",
+        "category": "moderno",
+        "tone": "sans",
+    },
+    "calibri": {
+        "label": "Calibri",
+        "css_stack": "Calibri, Aptos, Arial, Helvetica, sans-serif",
+        "docx_family": "Calibri",
+        "pdf_family": "helvetica",
+        "rtf_family": "Arial",
+        "category": "moderno",
+        "tone": "sans",
+    },
+    "cambria": {
+        "label": "Cambria",
+        "css_stack": "Cambria, Georgia, 'Times New Roman', serif",
+        "docx_family": "Cambria",
+        "pdf_family": "times",
+        "rtf_family": "Times New Roman",
+        "category": "giudiziario",
+        "tone": "serif",
+    },
+    "verdana": {
+        "label": "Verdana",
+        "css_stack": "Verdana, Geneva, Arial, Helvetica, sans-serif",
+        "docx_family": "Verdana",
+        "pdf_family": "helvetica",
+        "rtf_family": "Arial",
+        "category": "moderno",
+        "tone": "sans",
+    },
+    "courier_new": {
+        "label": "Courier New",
+        "css_stack": "'Courier New', Courier, monospace",
+        "docx_family": "Courier New",
+        "pdf_family": "courier",
+        "rtf_family": "Courier New",
+        "category": "placeholder",
+        "tone": "mono",
+    },
     "ibm_plex_mono": {
         "label": "IBM Plex Mono",
         "css_stack": "'IBM Plex Mono', 'Courier New', monospace",
@@ -177,6 +222,8 @@ DEFAULT_EDITOR_LAYOUT: Dict[str, Any] = {
     "paragraph_spacing_pt": 8,
     "signature_spacing_pt": 42,
     "print_clean_placeholders": False,
+    "stamp_position": "top-center",
+    "stamp_offset_y_mm": 0,
 }
 
 
@@ -244,6 +291,23 @@ def _registry_style_presets() -> list[dict[str, Any]]:
     ]
 
 
+def _stamp_position_key(value: Any, default: str = "top-center") -> str:
+    raw = str(value or default or "").strip().lower().replace("_", "-")
+    if raw in {"top-left", "top-center", "top-right", "middle-left", "middle-right"}:
+        return raw
+    if raw in {"alto-sinistra", "sinistra-alto"}:
+        return "top-left"
+    if raw in {"alto-centro", "centro-alto"}:
+        return "top-center"
+    if raw in {"alto-destra", "destra-alto"}:
+        return "top-right"
+    if raw in {"centro-sinistra", "sinistra-centro"}:
+        return "middle-left"
+    if raw in {"centro-destra", "destra-centro"}:
+        return "middle-right"
+    return default
+
+
 def template_font_registry_payload() -> dict[str, Any]:
     fallback = {
         "schema_version": "2026-06-04",
@@ -278,6 +342,11 @@ def template_font_registry_payload() -> dict[str, Any]:
     fonts = raw.get("fonts")
     if not isinstance(fonts, list) or not fonts:
         raw["fonts"] = fallback["fonts"]
+    else:
+        existing = {str(item.get("key") or "") for item in fonts if isinstance(item, dict)}
+        for item in fallback["fonts"]:
+            if str(item.get("key") or "") not in existing:
+                fonts.append(item)
     raw.setdefault("schema_version", fallback["schema_version"])
     raw.setdefault("policy", fallback["policy"])
     raw.setdefault("defaults", fallback["defaults"])
@@ -353,6 +422,13 @@ def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[st
             2,
         ),
         "text_align": text_align,
+        "stamp_position": _stamp_position_key(raw.get("stamp_position"), DEFAULT_EDITOR_LAYOUT["stamp_position"]),
+        "stamp_offset_y_mm": _clamp_int(
+            raw.get("stamp_offset_y_mm", raw.get("stampOffsetY")),
+            DEFAULT_EDITOR_LAYOUT["stamp_offset_y_mm"],
+            -40,
+            80,
+        ),
         "margin_top_mm": _clamp_int(raw.get("margin_top_mm"), DEFAULT_EDITOR_LAYOUT["margin_top_mm"], 10, 45),
         "margin_right_mm": _clamp_int(raw.get("margin_right_mm"), DEFAULT_EDITOR_LAYOUT["margin_right_mm"], 10, 40),
         "margin_bottom_mm": _clamp_int(raw.get("margin_bottom_mm"), DEFAULT_EDITOR_LAYOUT["margin_bottom_mm"], 10, 45),

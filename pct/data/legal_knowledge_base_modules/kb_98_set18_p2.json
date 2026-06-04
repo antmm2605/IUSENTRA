@@ -1,0 +1,1097 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET18_PARTE2",
+  "denominazione": "Diciottesimo set - 11 nuovi codici - PARTE 2 di 3",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_USUCAPIONE_ABBREVIATA_DECENNALE_ART_1159_C_C_E_USUCAPIONE_DI_BENI_MOBILI_130095",
+      "denominazione": "Usucapione abbreviata decennale (art. 1159 c.c.) e usucapione di beni mobili (art. 1161 c.c.)",
+      "categoria": "Diritti reali – acquisto a titolo originario – usucapione",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1158",
+          "descrizione": "Usucapione ordinaria immobiliare – 20 anni di possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1159",
+          "descrizione": "Usucapione DECENNALE – buona fede + giusto titolo + 10 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1160",
+          "descrizione": "Usucapione ventennale su fondi con dati catastali errati"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1161",
+          "descrizione": "Usucapione di BENI MOBILI – 10 anni (buona fede + titolo) o 20 anni senza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1140-1141",
+          "descrizione": "Possesso – animus + corpus; presunzione in favore del possessore attuale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1144-1146",
+          "descrizione": "Accessione e unione del possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1153",
+          "descrizione": "Buona fede nell'acquisto del possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2643 n. 6",
+          "descrizione": "Trascrizione della domanda e della sentenza di usucapione"
+        },
+        {
+          "fonte": "Cass. SU 7294/2020",
+          "descrizione": "Usucapione – accertamento nel giudizio + trascrizione sentenza"
+        },
+        {
+          "fonte": "Cass. SU 13231/2022",
+          "descrizione": "Buona fede e giusto titolo – requisiti per usucapione abbreviata"
+        }
+      ],
+      "distinzione_1158_vs_1159": {
+        "usucapione_ordinaria_1158": {
+          "presupposti": "Solo possesso per 20 ANNI – non richiede buona fede né titolo",
+          "termine": "20 anni",
+          "già_coperta": "Codice 130032 già presente in KB"
+        },
+        "usucapione_abbreviata_1159": {
+          "presupposti": [
+            "BUONA FEDE al momento dell'acquisto del possesso",
+            "GIUSTO TITOLO (atto formalmente valido ma proveniente da non proprietario)",
+            "Possesso per 10 ANNI dalla trascrizione del titolo"
+          ],
+          "termine": "10 anni dalla trascrizione del titolo",
+          "caso_tipico": "Acquisto da chi non era proprietario, ma acquirente in buona fede"
+        }
+      },
+      "buona_fede_e_giusto_titolo_Cass_SU_13231_2022": {
+        "buona_fede": "Ignoranza incolpevole di ledere il diritto altrui al momento dell'acquisto",
+        "giusto_titolo": "Atto idoneo a trasferire la proprietà (es. contratto di compravendita) ma proveniente da non avente diritto",
+        "trascrizione_del_titolo": "Il termine decennale decorre dalla TRASCRIZIONE del titolo"
+      },
+      "usucapione_beni_mobili_1161": {
+        "con_buona_fede_e_titolo": "10 anni",
+        "senza_buona_fede_o_titolo": "20 anni",
+        "mobili_registrati": "Autoveicoli, navi, aeromobili – stesse regole ma trascrizione al PRA"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare il tipo: usucapione decennale (1159) o ventennale (1158)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere prove del possesso continuato (testimonianze, bollette, lavori effettuati)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare la buona fede al momento dell'acquisto + il giusto titolo (per 1159)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria, poi azione giudiziale con domanda di trascrizione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_usucapione_abbreviata_1159",
+        "denominazione": "Atto di citazione per accertamento usucapione abbreviata decennale ex art. 1159 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "usucapiente_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "proprietario_formale_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "bene_usucapito",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "tipo_usucapione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "abbreviata_decennale_1159_buona_fede_titolo",
+              "ordinaria_ventennale_1158",
+              "mobili_1161"
+            ]
+          },
+          {
+            "id": "giusto_titolo_per_1159",
+            "type": "object",
+            "required_if": "abbreviata_1159",
+            "sub_fields": [
+              {
+                "id": "tipo_titolo",
+                "type": "select",
+                "options": [
+                  "compravendita_da_non_proprietario",
+                  "donazione_da_non_proprietario",
+                  "altro_atto_traslativo"
+                ]
+              },
+              {
+                "id": "data_titolo",
+                "type": "date"
+              },
+              {
+                "id": "data_trascrizione_titolo",
+                "type": "date",
+                "critico_per_decorrenza_10_anni": true
+              }
+            ]
+          },
+          {
+            "id": "buona_fede_al_momento_acquisto",
+            "type": "textarea",
+            "required_if": "abbreviata_1159"
+          },
+          {
+            "id": "possesso_continuato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_inizio_possesso",
+                "type": "date"
+              },
+              {
+                "id": "anni_di_possesso",
+                "type": "integer"
+              },
+              {
+                "id": "prove_del_possesso",
+                "type": "select_multi",
+                "options": [
+                  "testimonianze",
+                  "bollette_intestate",
+                  "lavori_effettuati",
+                  "dichiarazioni_fiscali_imu",
+                  "atti_gestionali"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_acquisto_proprieta_per_usucapione_1159",
+              "ordine_trascrizione_sentenza_2643",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Per usucapione 1159: decorrenza 10 anni dalla TRASCRIZIONE del titolo (non dalla stipula)",
+          "Buona fede: incolpevole ignoranza al momento dell'acquisto",
+          "Trascrizione sentenza obbligatoria per l'opponibilità ai terzi (2643 n. 6)",
+          "Se buona fede mancante: usucapione ordinaria ventennale 1158"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "giusto_titolo_con_trascrizione_per_1159",
+          "required_if": "abbreviata_1159",
+          "critico": true
+        },
+        {
+          "id": "prove_del_possesso_continuato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_del_bene",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore del bene",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Usucapione 1159: 10 anni dalla trascrizione del titolo"
+        },
+        {
+          "termine": "Usucapione 1158: 20 anni dal possesso"
+        }
+      ],
+      "codice_originale_ricevuto": "130095",
+      "codice_logico": "GUIDA_USUCAPIONE_ABBREVIATA_DECENNALE_ART_1159_C_C_E_USUCAPIONE_DI_BENI_MOBILI_130095",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130095"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130095"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130095"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONCORDATO_PREVENTIVO_OPPOSIZIONE_DEL_CREDITORE_E_CONTESTAZIONI_ARTT_90__152010",
+      "denominazione": "Concordato preventivo – opposizione del creditore e contestazioni (artt. 90-116 D.Lgs. 14/2019 CCII)",
+      "categoria": "Procedure concorsuali – concordato preventivo",
+      "rito": "Procedimento speciale ex artt. 40-49 + 84-120 D.Lgs. 14/2019 (CCII) – sezione fallimentare del Tribunale",
+      "competenza": "Tribunale – sezione fallimentare – sede dell'impresa",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "84-87",
+          "descrizione": "Concordato preventivo – presupposti e contenuto della proposta"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "88",
+          "descrizione": "Proposta di concordato – contenuto obbligatorio"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "90-96",
+          "descrizione": "Ammissione alla procedura – decreto del Tribunale"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "107-112",
+          "descrizione": "Votazione dei creditori – maggioranze richieste"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "112-116",
+          "descrizione": "OMOLOGAZIONE – opposizione dei creditori dissenzienti"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "112 c. 4",
+          "descrizione": "Cram-down – omologazione anche contro classi dissenzienti in presenza di condizioni"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "120-bis",
+          "descrizione": "Concordato in continuità aziendale"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "166-176",
+          "descrizione": "Azioni revocatorie nel contesto concordatario"
+        },
+        {
+          "fonte": "Cass. SU 8504/2021",
+          "descrizione": "Opposizione all'omologazione – legittimazione e motivi ammissibili"
+        },
+        {
+          "fonte": "Cass. SU 9476/2023",
+          "descrizione": "Cram-down – condizioni per l'omologazione contro classi dissenzienti"
+        }
+      ],
+      "fasi_del_concordato_preventivo": [
+        "1. DEPOSITO del ricorso con proposta + piano + relazione attestatore",
+        "2. DECRETO DI AMMISSIONE del Tribunale",
+        "3. PROTEZIONE: sospensione delle azioni esecutive dei creditori",
+        "4. VOTAZIONE dei creditori per classi (maggioranza per valore)",
+        "5. UDIENZA DI OMOLOGAZIONE – opposizioni ammissibili",
+        "6. DECRETO DI OMOLOGAZIONE (anche con cram-down se condizioni)",
+        "7. ESECUZIONE del concordato"
+      ],
+      "opposizione_del_creditore_112": {
+        "chi_può_opporsi": "Creditori dissenzienti + PM + commissario giudiziale",
+        "motivi_ammissibili": [
+          "Violazione delle norme procedurali",
+          "La proposta non è conveniente rispetto alla liquidazione giudiziale",
+          "Il piano non è fattibile o l'attestazione è falsa",
+          "Violazione del principio di priorità assoluta tra classi"
+        ],
+        "termine": "Entro l'udienza di omologazione (indicata nel decreto di ammissione)"
+      },
+      "cram_down_112_c4": {
+        "quando": "Almeno una classe ha votato favorevolmente + le classi dissenzienti ricevono non meno di quanto riceverebbero nella liquidazione giudiziale",
+        "effetto": "Il Tribunale omologa il concordato ANCHE CONTRO le classi dissenzienti"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire la proposta di concordato + piano + relazione attestatore"
+        },
+        {
+          "step": 2,
+          "descrizione": "Analizzare la convenienza rispetto alla liquidazione giudiziale"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare la fattibilità del piano e l'attendibilità dell'attestazione"
+        },
+        {
+          "step": 4,
+          "descrizione": "Depositare l'opposizione entro l'udienza di omologazione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "opposizione_omologazione_concordato_preventivo_CCII",
+        "denominazione": "Opposizione all'omologazione del concordato preventivo ex art. 112 D.Lgs. 14/2019 CCII",
+        "campi_chiave": [
+          {
+            "id": "tribunale_sezione_fallimentare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_opponente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_in_concordato",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "credito_vantato",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "importo",
+                "type": "currency"
+              },
+              {
+                "id": "classe_di_appartenenza",
+                "type": "string"
+              },
+              {
+                "id": "voto_espresso",
+                "type": "select",
+                "options": [
+                  "contrario",
+                  "favorevole",
+                  "astenuto",
+                  "non_ha_votato"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "motivi_opposizione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "violazione_norme_procedurali",
+              "convenienza_inferiore_a_liquidazione_giudiziale",
+              "piano_non_fattibile",
+              "attestazione_non_veritiera",
+              "violazione_priorita_assoluta_tra_classi",
+              "cram_down_illegittimo"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "rigetto_omologazione_concordato",
+              "apertura_liquidazione_giudiziale_in_subordine",
+              "modifica_piano_concordatario"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine: depositare l'opposizione entro l'udienza di omologazione (indicata nel decreto)",
+          "Motivi tassativi: non si può opporre per qualsiasi ragione",
+          "Cram-down (art. 112 c.4): possibile omologazione anche contro classi dissenzienti",
+          "Convenienza: confronto con liquidazione giudiziale – necessita perizia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "proposta_e_piano_concordato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "relazione_attestatore",
+          "required": true
+        },
+        {
+          "id": "documentazione_credito_opponente",
+          "required": true
+        },
+        {
+          "id": "perizia_di_parte_su_convenienza_o_fattibilita",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Opposizione omologazione",
+          "natura": "entro l'udienza di omologazione – DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Reclamo al Tribunale in composizione collegiale",
+          "giorni": 30,
+          "decorrenza": "decreto omologazione"
+        }
+      ],
+      "codice_originale_ricevuto": "152010",
+      "codice_logico": "GUIDA_CONCORDATO_PREVENTIVO_OPPOSIZIONE_DEL_CREDITORE_E_CONTESTAZIONI_ARTT_90__152010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AUTORIZZAZIONE_GIUDIZIALE_ALLA_VENDITA_O_AD_ATTI_STRAORDINARI_SU_BENI_DI_413095",
+      "denominazione": "Autorizzazione giudiziale alla vendita o ad atti straordinari su beni di minori o incapaci (art. 374 c.c.)",
+      "categoria": "Persone e famiglia – volontaria giurisdizione – autorizzazioni tutele",
+      "rito": "Procedimento camerale davanti al GIUDICE TUTELARE (o Tribunale per i Minorenni per determinati atti)",
+      "competenza": "Giudice Tutelare del luogo di residenza del minore/incapace",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "374",
+          "descrizione": "Atti per cui il tutore ha bisogno di autorizzazione del GT – elenco tassativo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "375",
+          "descrizione": "Atti per cui si richiede l'autorizzazione del Tribunale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "320",
+          "descrizione": "Atti eccedenti l'ordinaria amministrazione dei genitori – necessitano autorizzazione del GT"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "321",
+          "descrizione": "Nomina curatore speciale in caso di conflitto di interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "392",
+          "descrizione": "Autorizzazione per la continuazione dell'impresa del minore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "409-410",
+          "descrizione": "AdS – obblighi dell'amministratore + autorizzazioni GT"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "747-748",
+          "descrizione": "Procedimento per autorizzazioni patrimoniali"
+        },
+        {
+          "fonte": "Cass. SU 14234/2021",
+          "descrizione": "Vendita immobile del minore – criterio dell'interesse del minore"
+        },
+        {
+          "fonte": "Cass. SU 9988/2023",
+          "descrizione": "Autorizzazione GT – valutazione discrezionale nell'interesse dell'incapace"
+        }
+      ],
+      "atti_che_richiedono_autorizzazione_GT_374": [
+        "VENDITA o acquisto di immobili (art. 374 n. 1)",
+        "ACCETTAZIONE O RINUNCIA di eredità o legato",
+        "Contratti di locazione ultranovennali",
+        "Mutui e acquisti a credito",
+        "Accettazione di donazioni",
+        "Promozione di giudizi (azioni legali non urgenti)",
+        "Compimento di atti eccedenti l'ordinaria amministrazione"
+      ],
+      "atti_che_richiedono_autorizzazione_TRIBUNALE_375": [
+        "Vendita di beni soggetti a ipoteca o pegno",
+        "Divisioni ereditarie complesse",
+        "Atti che implicano cessione di aziende del minore"
+      ],
+      "applicabilita_anche_ai_genitori_320": {
+        "regola": "I genitori esercitano congiuntamente la responsabilità genitoriale; per gli atti eccedenti l'ordinaria amministrazione devono chiedere l'autorizzazione al GT",
+        "atti_tipici_genitori": [
+          "Vendita dell'immobile del figlio minore",
+          "Accettare un'eredità per conto del figlio",
+          "Stipulare un mutuo nell'interesse del figlio"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare l'atto da compiere e verificare se rientra nell'art. 374 o 375"
+        },
+        {
+          "step": 2,
+          "descrizione": "Predisporre la documentazione sull'utilità e convenienza dell'atto per il minore/incapace"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per vendita immobile: perizia estimativa del valore di mercato"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per accettazione eredità: inventario del patrimonio ereditario"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_autorizzazione_GT_374_atti_straordinari_minore_incapace",
+        "denominazione": "Ricorso al GT per autorizzazione ad atti straordinari su beni di minori/incapaci ex art. 374 c.c.",
+        "campi_chiave": [
+          {
+            "id": "giudice_tutelare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "richiedente",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "genitore_esercente_responsabilita",
+                  "tutore",
+                  "amministratore_di_sostegno",
+                  "curatore_del_minore"
+                ]
+              },
+              {
+                "id": "nome",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "minore_o_incapace",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "atto_da_autorizzare",
+            "type": "select",
+            "required": true,
+            "options": [
+              "vendita_immobile",
+              "acquisto_immobile",
+              "accettazione_eredita_o_legato",
+              "rinuncia_eredita",
+              "locazione_ultranovennale",
+              "mutuo",
+              "promozione_giudizio",
+              "altro_374"
+            ]
+          },
+          {
+            "id": "descrizione_atto_e_utilita_per_incapace",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "valore_stimato_operazione",
+            "type": "currency"
+          },
+          {
+            "id": "perizia_estimativa_se_vendita_immobile",
+            "type": "boolean",
+            "consigliato": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "autorizzazione_gt_374",
+              "autorizzazione_tribunale_375_se_competente",
+              "nomina_curatore_speciale_321_se_conflitto"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Elenco TASSATIVO degli atti che richiedono autorizzazione (artt. 374-375)",
+          "Criterio guida: INTERESSE del minore o dell'incapace",
+          "Per vendita immobile: perizia estimativa fondamentale per dimostrare la convenienza",
+          "Conflitto di interessi tra genitore/tutore e minore → curatore speciale art. 321"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_atto_da_autorizzare",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_estimativa_se_vendita_immobile",
+          "required_if": "vendita_immobile",
+          "critico": true
+        },
+        {
+          "id": "inventario_eredita_se_accettazione",
+          "required_if": "accettazione_eredita"
+        },
+        {
+          "id": "documentazione_utilita_per_incapace",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine specifico – proponibile prima del compimento dell'atto"
+        }
+      ],
+      "codice_originale_ricevuto": "413095",
+      "codice_logico": "GUIDA_AUTORIZZAZIONE_GIUDIZIALE_ALLA_VENDITA_O_AD_ATTI_STRAORDINARI_SU_BENI_DI_413095",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413095"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413095"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413095"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_APPALTO_PUBBLICO_CONTESTAZIONI_DELL_APPALTATORE_RECESSO_REVISIONE_PREZZI_143030",
+      "denominazione": "Appalto pubblico – contestazioni dell'appaltatore: recesso, revisione prezzi, riserve (D.Lgs. 36/2023)",
+      "categoria": "Contratti – appalto con la Pubblica Amministrazione",
+      "rito": "GIURISDIZIONE ESCLUSIVA del G.A. (TAR) per le controversie sull'esecuzione del contratto di appalto pubblico",
+      "competenza": "TAR del luogo di esecuzione del contratto; Consiglio di Stato in appello",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 36/2023 (Codice Appalti)",
+          "articolo": "1-220",
+          "descrizione": "Nuovo Codice dei contratti pubblici – disciplina appalti lavori, servizi e forniture"
+        },
+        {
+          "fonte": "D.Lgs. 36/2023",
+          "articolo": "120",
+          "descrizione": "Recesso unilaterale della stazione appaltante – indennizzo all'appaltatore"
+        },
+        {
+          "fonte": "D.Lgs. 36/2023",
+          "articolo": "60",
+          "descrizione": "Revisione dei prezzi nei contratti pubblici – adeguamento obbligatorio"
+        },
+        {
+          "fonte": "D.Lgs. 36/2023",
+          "articolo": "114",
+          "descrizione": "Varianti in corso d'opera"
+        },
+        {
+          "fonte": "D.Lgs. 36/2023",
+          "articolo": "115",
+          "descrizione": "Sospensioni dei lavori – indennizzo"
+        },
+        {
+          "fonte": "D.Lgs. 36/2023",
+          "articolo": "116",
+          "descrizione": "RISERVE – iscrizione nel registro di contabilità"
+        },
+        {
+          "fonte": "D.Lgs. 36/2023",
+          "articolo": "217",
+          "descrizione": "Accordo bonario per controversie fino a €50.000"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (CPA)",
+          "articolo": "133 c. 1 lett. e n. 1",
+          "descrizione": "Giurisdizione esclusiva del G.A. sull'esecuzione del contratto pubblico"
+        },
+        {
+          "fonte": "Cass. SU 13246/2022",
+          "descrizione": "Riparto giurisdizione appalto pubblico – G.A. per diritti soggettivi nell'esecuzione"
+        },
+        {
+          "fonte": "Cons. Stato Ad. Pl. 4/2022",
+          "descrizione": "Riserve e accordo bonario – procedure obbligatorie"
+        }
+      ],
+      "giurisdizione_critica": {
+        "GA_TAR": "Per le controversie sull'ESECUZIONE del contratto di appalto pubblico – giurisdizione esclusiva del G.A.",
+        "GO_Tribunale": "Solo per le controversie di natura privatistica non rientranti nella giurisdizione esclusiva",
+        "Cass_SU_13246_2022": "Anche i diritti soggettivi nell'esecuzione dell'appalto rientrano nella giurisdizione esclusiva del G.A."
+      },
+      "controversie_tipiche_appaltatore": [
+        "Recesso unilaterale della stazione appaltante (art. 120) – indennizzo lavori eseguiti + mancato utile 10%",
+        "Revisione prezzi non riconosciuta (art. 60) – adeguamento obbligatorio",
+        "Sospensioni illegittime dei lavori (art. 115) – indennizzo + danni",
+        "Riserve iscritte nel registro di contabilità non riconosciute (art. 116)",
+        "Varianti non riconosciute o compensate",
+        "Risoluzione illegittima del contratto da parte della SA"
+      ],
+      "procedura_riserve_art116": {
+        "iscrizione": "L'appaltatore deve iscrivere le riserve nel REGISTRO DI CONTABILITÀ entro 15 gg dall'evento",
+        "quantificazione": "Le riserve devono essere quantificate nel SAL successivo",
+        "accordo_bonario_217": "Per importi fino a €50.000: procedura di accordo bonario obbligatoria prima del TAR"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Accordo bonario obbligatorio per importi fino a €50.000 (art. 217 D.Lgs. 36/2023)"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare che le riserve siano state iscritte nei termini nel registro di contabilità"
+        },
+        {
+          "step": 2,
+          "descrizione": "Procedura di accordo bonario obbligatoria per importi ≤ €50.000"
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificare il TAR competente (luogo di esecuzione)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Raccogliere tutta la documentazione contrattuale (contratto, SAL, registro contabilità, riserve)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_TAR_appalto_pubblico_contestazioni_appaltatore",
+        "denominazione": "Ricorso al TAR per contestazioni dell'appaltatore sull'esecuzione del contratto pubblico ex D.Lgs. 36/2023",
+        "campi_chiave": [
+          {
+            "id": "TAR_competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "appaltatore_ricorrente",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "stazione_appaltante_resistente",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "comune",
+                  "provincia",
+                  "regione",
+                  "ministero",
+                  "ente_pubblico_economico",
+                  "altro"
+                ]
+              },
+              {
+                "id": "denominazione",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "contratto_appalto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "oggetto",
+                "type": "textarea"
+              },
+              {
+                "id": "importo_contrattuale",
+                "type": "currency"
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "recesso_SA_e_indennizzo_120",
+              "revisione_prezzi_non_riconosciuta_60",
+              "sospensioni_illegittime_115",
+              "riserve_non_riconosciute_116",
+              "varianti_non_compensate",
+              "risoluzione_illegittima"
+            ]
+          },
+          {
+            "id": "riserve_iscritte",
+            "type": "object",
+            "required_if": "riserve",
+            "sub_fields": [
+              {
+                "id": "iscritte_entro_15_gg",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "importo_riserve",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "accordo_bonario_effettuato",
+            "type": "boolean",
+            "required_if": "importo_minore_50000"
+          },
+          {
+            "id": "importo_totale_richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_atto_contestato",
+              "condanna_pagamento_riserve_e_indennizzi",
+              "revisione_prezzi_adeguamento",
+              "indennizzo_sospensioni_illegittime",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "GIURISDIZIONE ESCLUSIVA del G.A. (TAR) – non Tribunale ordinario",
+          "Riserve: iscrizione nel registro di contabilità entro 15 GG dall'evento – DECADENZIALE",
+          "Accordo bonario obbligatorio per importi ≤ €50.000 (art. 217 D.Lgs. 36/2023)",
+          "Recesso SA: indennizzo lavori eseguiti + 10% mancato utile sulla parte residua"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_appalto_e_SAL",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "riserve_iscritte_nel_registro_contabilita",
+          "required_if": "riserve",
+          "critico": true
+        },
+        {
+          "id": "atti_contestati_SA",
+          "required": true
+        },
+        {
+          "id": "verbale_accordo_bonario_se_effettuato",
+          "required_if": "accordo_bonario"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffe TAR in base al valore",
+        "marca_bollo": "€ 27,00"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Riserve nel registro contabilità",
+          "giorni": 15,
+          "decorrenza": "evento",
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "Ricorso TAR contro atti lesivi",
+          "giorni": 60,
+          "decorrenza": "notifica o conoscenza"
+        }
+      ],
+      "codice_originale_ricevuto": "143030",
+      "codice_logico": "GUIDA_APPALTO_PUBBLICO_CONTESTAZIONI_DELL_APPALTATORE_RECESSO_REVISIONE_PREZZI_143030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143030"
+        }
+      ]
+    }
+  ]
+}

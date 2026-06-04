@@ -153,10 +153,29 @@ def css_for_stamp_repeated(stamp: Any, layout_profile: ActLayoutProfile | None =
     )
 
 
-def make_pdf_stamp_callback(stamp: Any, layout_profile: ActLayoutProfile | None = None) -> Callable[[Any, Any], None] | None:
+def _stamp_position_key(value: Any) -> str:
+    raw = _clean(value).lower().replace("_", "-")
+    if raw in {"top-left", "top-center", "top-right", "middle-left", "middle-right"}:
+        return raw
+    if raw == "top_left":
+        return "top-left"
+    return "top-left"
+
+
+def make_pdf_stamp_callback(
+    stamp: Any,
+    layout_profile: ActLayoutProfile | None = None,
+    layout: dict[str, Any] | None = None,
+) -> Callable[[Any, Any], None] | None:
     if not stamp or not getattr(stamp, "enabled", False):
         return None
     placement = getattr(stamp, "to_stamp_placement", lambda: StudioStampPlacement().to_dict())()
+    layout_cfg = layout or {}
+    position = _stamp_position_key(layout_cfg.get("stamp_position") or (layout_profile.stamp_position if layout_profile else None))
+    try:
+        vertical_offset_mm = float(layout_cfg.get("stamp_offset_y_mm") or 0)
+    except (TypeError, ValueError):
+        vertical_offset_mm = 0.0
 
     def _draw(canvas: Any, _doc: Any) -> None:
         try:
@@ -168,17 +187,26 @@ def make_pdf_stamp_callback(stamp: Any, layout_profile: ActLayoutProfile | None 
         if not lines:
             return
         page_width, page_height = A4
-        left = float(placement.get("margin_left_mm") or 18) * mm
-        top = float(placement.get("margin_top_mm") or 18) * mm
         width = float(placement.get("box_width_mm") or 82) * mm
-        y = page_height - top
+        margin_left = float(placement.get("margin_left_mm") or 18) * mm
+        margin_top = float(placement.get("margin_top_mm") or 18)
+        top_mm = margin_top + vertical_offset_mm
+        if position.startswith("middle-"):
+            top_mm = 128 + vertical_offset_mm
+        if position.endswith("center"):
+            left = max(0, (page_width - width) / 2)
+        elif position.endswith("right"):
+            left = page_width - margin_left - width
+        else:
+            left = margin_left
+        y = page_height - (top_mm * mm)
         canvas.saveState()
         for line in lines:
             size = int(line.get("size") or 9)
             font = "Helvetica-Bold" if line.get("bold") else "Helvetica"
             canvas.setFont(font, size)
             text = _clean(line.get("text"))
-            if placement.get("align_within_box") == "center":
+            if placement.get("align_within_box", "center") == "center":
                 text_width = canvas.stringWidth(text, font, size)
                 x = left + max(0, (width - text_width) / 2)
             else:

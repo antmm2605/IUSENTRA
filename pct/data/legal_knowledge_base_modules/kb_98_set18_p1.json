@@ -1,0 +1,1183 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET18_PARTE1",
+  "denominazione": "Diciottesimo set - 11 nuovi codici - PARTE 1 di 3",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_D_P_R_22_160003",
+      "denominazione": "Responsabilità da prodotto difettoso (D.Lgs. 206/2005 artt. 114-127 + D.P.R. 224/1988)",
+      "categoria": "Responsabilità civile – prodotto difettoso",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro residenza del consumatore danneggiato",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "114-127",
+          "descrizione": "Responsabilità del produttore per danni da prodotti difettosi"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "116",
+          "descrizione": "Responsabilità del produttore – oggettiva, senza necessità di colpa"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "117",
+          "descrizione": "Definizione di prodotto difettoso – sicurezza inferiore a quella attesa"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "118",
+          "descrizione": "Esimenti del produttore – 6 cause di esonero tassative"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "119",
+          "descrizione": "Responsabilità solidale – produttore + importatore + fornitore"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "120",
+          "descrizione": "Onere della prova – attore prova difetto + danno + nesso causale"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "123",
+          "descrizione": "Danni risarcibili – morte, lesioni personali, cose diverse dal prodotto"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "124",
+          "descrizione": "Franchigia – €500 per danni a cose"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "126",
+          "descrizione": "PRESCRIZIONE: 3 anni dalla conoscenza del danno, del difetto e del produttore"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "127",
+          "descrizione": "DECADENZA: 10 anni dalla messa in commercio del prodotto"
+        },
+        {
+          "fonte": "Direttiva UE 85/374/CEE",
+          "descrizione": "Direttiva di base sulla responsabilità da prodotti difettosi"
+        },
+        {
+          "fonte": "Cass. SU 21254/2021",
+          "descrizione": "Difetto del prodotto – valutazione in base alle aspettative del consumatore medio"
+        },
+        {
+          "fonte": "Cass. SU 9615/2023",
+          "descrizione": "Rischio da sviluppo – esimente applicazione e prova"
+        }
+      ],
+      "responsabilita_oggettiva_116": {
+        "principio": "Il produttore è responsabile SENZA COLPA – basta provare difetto + danno + nesso causale",
+        "onere_attore_120": [
+          "Difetto del prodotto",
+          "Danno subito",
+          "Nesso causale tra difetto e danno"
+        ],
+        "onere_produttore_118": "Deve provare una delle 6 esimenti tassative (art. 118)"
+      },
+      "esimenti_tassative_118": [
+        "Non ha messo in circolazione il prodotto",
+        "Il difetto non esisteva al momento della messa in circolazione",
+        "Il prodotto non è stato fabbricato per attività economica",
+        "Il difetto è dovuto a conformità a norme imperative",
+        "RISCHIO DA SVILUPPO: lo stato della tecnica non permetteva di scoprire il difetto",
+        "Il difetto è imputabile al produttore a valle"
+      ],
+      "danni_risarcibili_123": {
+        "morte_e_lesioni_personali": "Danno biologico + morale + esistenziale – senza franchigia",
+        "danni_a_cose": "Solo cose diverse dal prodotto difettoso + uso privato + FRANCHIGIA €500",
+        "NO_danni_al_prodotto_stesso": "Il danno al prodotto difettoso → rimedi contrattuali (garanzia)"
+      },
+      "franchigia_124": "Per danni a cose: il risarcimento è dovuto solo per l'eccedenza di €500",
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Conservare il prodotto difettoso come prova (non smaltire/riparare prima della perizia)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Perizia tecnica del difetto + nesso causale con il danno"
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificare il produttore / importatore / fornitore (responsabilità solidale 119)"
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICARE i termini: prescrizione 3 anni + decadenza 10 anni dalla messa in commercio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_prodotto_difettoso_114_127_CodCons",
+        "denominazione": "Atto di citazione per responsabilità da prodotto difettoso ex artt. 114-127 Cod. Consumo",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "produttore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "importatore_o_fornitore_convenuto",
+            "type": "object_persona_giuridica",
+            "note": "Responsabilità solidale 119"
+          },
+          {
+            "id": "prodotto_difettoso",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "denominazione_e_descrizione",
+                "type": "string"
+              },
+              {
+                "id": "data_acquisto",
+                "type": "date"
+              },
+              {
+                "id": "data_messa_in_commercio_stimata",
+                "type": "date",
+                "critico_per_decadenza_10_anni": true
+              },
+              {
+                "id": "tipo_difetto",
+                "type": "select",
+                "options": [
+                  "difetto_di_fabbricazione",
+                  "difetto_di_progettazione",
+                  "difetto_di_informazione_o_istruzioni"
+                ]
+              },
+              {
+                "id": "descrizione_del_difetto",
+                "type": "textarea",
+                "min_length": 200
+              },
+              {
+                "id": "perizia_tecnica_di_parte",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select_multi",
+                "options": [
+                  "morte",
+                  "lesioni_personali",
+                  "danni_a_cose_uso_privato"
+                ]
+              },
+              {
+                "id": "data_evento",
+                "type": "date"
+              },
+              {
+                "id": "danno_biologico",
+                "type": "currency"
+              },
+              {
+                "id": "danni_a_cose_al_netto_franchigia_500",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "nesso_causale_difetto_danno",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_solidale_produttore_importatore_fornitore",
+              "risarcimento_danni_da_lesioni_personali",
+              "risarcimento_danni_a_cose_netto_franchigia",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Responsabilità OGGETTIVA – non occorre provare la colpa del produttore",
+          "Attore prova: difetto + danno + nesso causale (art. 120)",
+          "PRESCRIZIONE 3 anni dalla conoscenza di danno + difetto + produttore (art. 126)",
+          "DECADENZA 10 anni dalla messa in commercio (art. 127) – verificare sempre",
+          "Franchigia €500 per i soli danni a cose (non per lesioni personali)",
+          "Conservare il prodotto intatto come corpo del reato civile"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "prodotto_difettoso_o_fotografie_e_perizia",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_acquisto_prodotto",
+          "required": true
+        },
+        {
+          "id": "perizia_tecnica_del_difetto",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_sanitaria_se_lesioni",
+          "required_if": "lesioni"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 3,
+          "decorrenza": "conoscenza danno+difetto+produttore",
+          "criticita": "ALTA",
+          "norma": "art. 126 Cod. Consumo"
+        },
+        {
+          "termine": "DECADENZA",
+          "anni": 10,
+          "decorrenza": "messa in commercio del prodotto",
+          "criticita": "MASSIMA",
+          "norma": "art. 127 Cod. Consumo"
+        }
+      ],
+      "codice_originale_ricevuto": "160003",
+      "codice_logico": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_D_P_R_22_160003",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160003"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160003"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160003"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_VIZI_E_DIFETTI_NELL_APPALTO_PRIVATO_RESPONSABILIT_DELL_APPALTATORE_ARTT__140045",
+      "denominazione": "Vizi e difetti nell'appalto privato – responsabilità dell'appaltatore (artt. 1655-1670 c.c.)",
+      "categoria": "Contratti – appalto privato – garanzia e responsabilità",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro residenza convenuto o luogo di esecuzione dell'appalto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1655",
+          "descrizione": "Nozione di appalto – obbligazione di risultato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1661",
+          "descrizione": "Variazioni apportate dal committente – limiti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1662",
+          "descrizione": "Controllo del committente durante l'esecuzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1665",
+          "descrizione": "VERIFICA E ACCETTAZIONE dell'opera – effetti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1667",
+          "descrizione": "GARANZIA PER DIFETTI – denuncia entro 60 giorni dalla scoperta; prescrizione 2 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1668",
+          "descrizione": "Rimedi per i difetti: riduzione del corrispettivo, eliminazione dei vizi, risoluzione, risarcimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1669",
+          "descrizione": "ROVINA E DIFETTI GRAVI DI IMMOBILI – responsabilità decennale anche verso terzi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1670",
+          "descrizione": "Rivalsa dell'appaltatore verso il subappaltatore"
+        },
+        {
+          "fonte": "Cass. SU 14636/2019",
+          "descrizione": "Difetti dell'appalto – distinzione vizi 1667 vs rovina 1669"
+        },
+        {
+          "fonte": "Cass. SU 11695/2022",
+          "descrizione": "Accettazione dell'opera – effetti preclusivi sulla garanzia"
+        },
+        {
+          "fonte": "Cass. SU 8143/2024",
+          "descrizione": "Denuncia dei vizi – termine 60 giorni dalla scoperta + prescrizione 2 anni"
+        }
+      ],
+      "distinzione_1667_vs_1669": {
+        "vizi_e_difetti_1667": {
+          "cosa": "Imperfezioni dell'opera che non compromettono la struttura – irregolarità estetiche, funzionali, difetti parziali",
+          "termine_denuncia": "60 GIORNI dalla scoperta – DECADENZIALE",
+          "prescrizione": "2 ANNI dall'accettazione dell'opera",
+          "rimedi": "Eliminazione vizi, riduzione prezzo, risoluzione, risarcimento"
+        },
+        "rovina_e_difetti_gravi_1669": {
+          "cosa": "ROVINA TOTALE O PARZIALE o PERICOLO DI ROVINA o difetti che mettono a rischio la stabilità strutturale",
+          "termine_denuncia": "1 ANNO dalla scoperta – DECADENZIALE",
+          "prescrizione": "1 ANNO dalla denuncia",
+          "responsabilita": "DECENNALE dalla consegna – anche verso terzi acquirenti"
+        }
+      },
+      "accettazione_opera_1665_effetti": {
+        "accettazione_espressa": "Libera l'appaltatore dai vizi CONOSCIUTI o CONOSCIBILI con la normale diligenza",
+        "riserva_espressa": "Se il committente formula riserve sui vizi, li conserva",
+        "vizi_occulti": "L'accettazione non libera per vizi non riconoscibili"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Qualificare il difetto: vizio ordinario (1667) o rovina/difetto grave (1669)"
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICARE i termini: denuncia 60 gg (1667) o 1 anno (1669) dalla scoperta – CRITICO"
+        },
+        {
+          "step": 3,
+          "descrizione": "Perizia tecnica sui difetti e sui costi di ripristino"
+        },
+        {
+          "step": 4,
+          "descrizione": "Inviare denuncia scritta all'appaltatore entro i termini"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_vizi_appalto_privato_1667_1669",
+        "denominazione": "Atto di citazione per vizi e difetti nell'appalto ex artt. 1667-1669 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "committente_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "appaltatore_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto_appalto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "oggetto",
+                "type": "textarea"
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "data_consegna_opera",
+                "type": "date",
+                "critico_per_1669_decennio": true
+              },
+              {
+                "id": "corrispettivo",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "tipo_difetto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "vizi_difetti_ordinari_1667",
+              "rovina_o_difetti_gravi_strutturali_1669",
+              "entrambi"
+            ]
+          },
+          {
+            "id": "descrizione_difetti",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "data_scoperta_difetti",
+            "type": "date",
+            "critico_per_termini": true
+          },
+          {
+            "id": "denuncia_inviata_all_appaltatore",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_denuncia",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "rispetto_60_gg_1667_o_1_anno_1669",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "perizia_tecnica_di_parte",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "costo_ripristino_stimato",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "eliminazione_vizi_a_spese_appaltatore",
+              "riduzione_del_corrispettivo",
+              "risoluzione_del_contratto",
+              "risarcimento_danni",
+              "garanzia_decennale_1669_verso_terzi_acquirenti",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "DENUNCIA vizi ordinari: 60 GG dalla scoperta (art. 1667) – DECADENZIALE",
+          "DENUNCIA rovina/difetti gravi: 1 ANNO dalla scoperta (art. 1669) – DECADENZIALE",
+          "Prescrizione 1667: 2 anni dall'accettazione; 1669: 1 anno dalla denuncia",
+          "Responsabilità 1669: DECENNALE dalla consegna – anche verso terzi acquirenti dell'immobile",
+          "Accettazione con riserva: conserva il diritto ai rimedi"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_appalto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "denuncia_vizi_inviata_appaltatore_con_prova_data",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_tecnica_difetti_e_costo_ripristino",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_fotografica_difetti",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Denuncia vizi 1667",
+          "giorni": 60,
+          "decorrenza": "scoperta",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Prescrizione 1667",
+          "anni": 2,
+          "decorrenza": "accettazione dell'opera"
+        },
+        {
+          "termine": "Denuncia rovina 1669",
+          "anni": 1,
+          "decorrenza": "scoperta",
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "Responsabilità decennale 1669",
+          "anni": 10,
+          "decorrenza": "consegna dell'opera"
+        }
+      ],
+      "codice_originale_ricevuto": "140045",
+      "codice_logico": "GUIDA_VIZI_E_DIFETTI_NELL_APPALTO_PRIVATO_RESPONSABILIT_DELL_APPALTATORE_ARTT__140045",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140045"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140045"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140045"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONCORRENZA_SLEALE_NON_CONFUSORIA_DENIGRAZIONE_APPROPRIAZIONE_PREGI_E_AT_170030",
+      "denominazione": "Concorrenza sleale non confusoria – denigrazione, appropriazione pregi e atti contrari a correttezza (art. 2598 c.c.)",
+      "categoria": "Diritto della concorrenza – concorrenza sleale",
+      "rito": "Rito ordinario – Tribunale delle Imprese (sezione specializzata)",
+      "competenza": "Tribunale delle Imprese – sede convenuto o luogo atti sleali",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2598 n. 1",
+          "descrizione": "Atti confusori – uso di segni distintivi altrui (codice 170020 copre questo)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2598 n. 2",
+          "descrizione": "DENIGRAZIONE – diffusione di notizie e apprezzamenti idonei a screditare i prodotti o l'attività di un concorrente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2598 n. 2 (seconda parte)",
+          "descrizione": "APPROPRIAZIONE DI PREGI – s'appropria indebitamente pregi dei prodotti o dell'impresa di un concorrente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2598 n. 3",
+          "descrizione": "ATTI CONTRARI AI PRINCIPI DI CORRETTEZZA – clausola generale residuale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2599",
+          "descrizione": "Inibitoria + rimedi accessori (pubblicazione sentenza, distruzione materiali)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2600",
+          "descrizione": "Risarcimento danni – condanna + presunzione di colpa"
+        },
+        {
+          "fonte": "Cass. SU 10325/2020",
+          "descrizione": "Denigrazione – notizie false + atta a screditare l'impresa"
+        },
+        {
+          "fonte": "Cass. SU 4978/2022",
+          "descrizione": "Storno di dipendenti come atto di concorrenza sleale"
+        },
+        {
+          "fonte": "Cass. SU 15697/2023",
+          "descrizione": "Appropriazione dei pregi – distinzione da liceità comparativa"
+        }
+      ],
+      "tipologie_atti_sleali_2598_n2_n3": {
+        "denigrazione_2598n2": {
+          "elementi": [
+            "Diffusione di notizie o apprezzamenti sul concorrente",
+            "Idoneità a screditare i prodotti o l'azienda",
+            "Non richiede la falsità: anche notizie vere possono essere denigratorie se diffuse con mala fede"
+          ],
+          "esempi": [
+            "Campagna comparativa aggressiva falsa",
+            "Comunicazioni ai clienti del concorrente con informazioni negative",
+            "Post social media denigratori"
+          ]
+        },
+        "appropriazione_pregi_2598n2": {
+          "elementi": [
+            "Attribuzione alla propria impresa di qualità che appartengono al concorrente",
+            "Es: uso di premi, certificazioni, denominazioni del concorrente"
+          ],
+          "vs_pubblicita_comparativa_lecita": "La comparazione veritiera e non ingannevole è lecita (Direttiva 2006/114/CE)"
+        },
+        "atti_contrari_correttezza_2598n3": {
+          "clausola_generale": "Raccoglie tutti gli atti sleali non rientranti nei nn. 1 e 2",
+          "esempi": [
+            "Storno sistematico di dipendenti",
+            "Boicottaggio organizzato",
+            "Dumping predatorio",
+            "Violazione di segreti commerciali",
+            "Sottrazione di clientela tramite mezzi illeciti"
+          ]
+        }
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare gli atti sleali (raccogliere materiale pubblicitario, post social, comunicazioni)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Dimostrare il rapporto di concorrenza tra le imprese"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare il danno (perdita di clienti, fatturato, reputazione)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare misura cautelare urgente (inibitoria 700 o ex art. 2599)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_concorrenza_sleale_2598_n2_n3",
+        "denominazione": "Atto di citazione per atti di concorrenza sleale ex artt. 2598 nn. 2-3 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_imprenditore_leso",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_concorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "rapporto_di_concorrenza",
+            "type": "textarea",
+            "required": true,
+            "note": "Stesso mercato rilevante"
+          },
+          {
+            "id": "atti_sleali_contestati",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "denigrazione_2598n2",
+              "appropriazione_pregi_2598n2",
+              "storno_dipendenti_2598n3",
+              "boicottaggio_2598n3",
+              "violazione_segreti_commerciali_2598n3",
+              "dumping_predatorio_2598n3",
+              "altro_2598n3"
+            ]
+          },
+          {
+            "id": "descrizione_atti_sleali",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "danno_subito",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "perdita_clienti_stimata",
+                "type": "currency"
+              },
+              {
+                "id": "danno_reputazionale",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_cautelare_urgente",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_atti_concorrenza_sleale",
+              "inibitoria_atti_sleali",
+              "risarcimento_danni_2600",
+              "pubblicazione_sentenza_2599",
+              "distruzione_materiali_denigratori",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza esclusiva TRIBUNALE DELLE IMPRESE",
+          "Presunzione di COLPA ex art. 2600 per il risarcimento",
+          "Cautelare urgente: valutare sempre se gli atti sleali sono in corso",
+          "Storno dipendenti: illecito solo se sistematico e finalizzato a danneggiare (Cass. SU 4978/2022)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_atti_sleali",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "dimostrazione_rapporto_concorrenza",
+          "required": true
+        },
+        {
+          "id": "perizia_quantificazione_danni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 5,
+          "norma": "art. 2947 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "170030",
+      "codice_logico": "GUIDA_CONCORRENZA_SLEALE_NON_CONFUSORIA_DENIGRAZIONE_APPROPRIAZIONE_PREGI_E_AT_170030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DIVORZIO_CONGIUNTO_E_CESSAZIONE_DEGLI_EFFETTI_CIVILI_DEL_MATRIMONIO_ART__111050",
+      "denominazione": "Divorzio congiunto e cessazione degli effetti civili del matrimonio (art. 473-bis.49 c.p.c. + L. 898/1970)",
+      "categoria": "Persone e famiglia – divorzio",
+      "rito": "Procedimento congiunto ex art. 473-bis.49 c.p.c. (Cartabia) o negoziazione assistita D.L. 132/2014",
+      "competenza": "Tribunale sezione famiglia – residenza abituale dei figli minori o domicilio di uno dei coniugi",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 898/1970 (Legge divorzio)",
+          "articolo": "1",
+          "descrizione": "Scioglimento del matrimonio o cessazione degli effetti civili – presupposti"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "3",
+          "descrizione": "Cause di divorzio – separazione legale ininterrotta + altre cause"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "4",
+          "descrizione": "Procedimento – ricorso congiunto o ricorso di uno solo"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "5",
+          "descrizione": "Assegno divorzile – criteri (contributo + perequativo + compensativo + assistenziale)"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "6-7",
+          "descrizione": "Figli – affidamento e mantenimento post-divorzio"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.49",
+          "descrizione": "Procedimento congiunto per divorzio (Cartabia)"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "6",
+          "descrizione": "Negoziazione assistita per divorzio (alternativa al Tribunale)"
+        },
+        {
+          "fonte": "L. 55/2015",
+          "descrizione": "Riduzione tempi separazione prima del divorzio: 6 mesi (consensuale) / 12 mesi (giudiziale)"
+        },
+        {
+          "fonte": "Cass. SU 18287/2018",
+          "descrizione": "Assegno divorzile – funzione non solo assistenziale ma anche compensativa"
+        },
+        {
+          "fonte": "Cass. SU 32198/2021",
+          "descrizione": "Assegno divorzile – criteri aggiornati post Cass. SU 18287"
+        }
+      ],
+      "presupposti_per_il_divorzio": {
+        "separazione_legale_ininterrotta": {
+          "consensuale": "6 MESI dalla data dell'udienza presidenziale (L. 55/2015)",
+          "giudiziale": "12 MESI dalla data dell'udienza presidenziale"
+        },
+        "altre_cause_L898_art3": [
+          "Condanna dell'altro coniuge per determinati reati",
+          "Scioglimento o annullamento del matrimonio estero",
+          "Irreversibile disinteresse verso l'altro coniuge"
+        ]
+      },
+      "assegno_divorzile_art5_criteri_Cass_SU_18287_2018": {
+        "funzione_assistenziale": "Sostentamento del coniuge economicamente più debole",
+        "funzione_compensativa": "Compensa il sacrificio professionale del coniuge che ha dedicato alla famiglia",
+        "funzione_perequativa": "Redistribuisce le risorse accumulate durante il matrimonio",
+        "criteri": [
+          "Condizioni dei coniugi",
+          "Ragioni della decisione",
+          "Contributo alla famiglia e al matrimonio",
+          "Reddito di entrambi",
+          "Durata del matrimonio"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare che il termine minimo di separazione sia decorso (6 o 12 mesi)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raggiungere accordo su affidamento figli, assegno, casa familiare"
+        },
+        {
+          "step": 3,
+          "descrizione": "Piano genitoriale obbligatorio se figli minori"
+        },
+        {
+          "step": 4,
+          "descrizione": "Scegliere percorso: Tribunale, negoziazione assistita o USC (senza figli e condizioni semplici)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_congiunto_divorzio_473bis49",
+        "denominazione": "Ricorso congiunto per divorzio ex art. 473-bis.49 c.p.c. + L. 898/1970",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coniuge_1",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "coniuge_2",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "figli_minori",
+            "type": "array_persone"
+          },
+          {
+            "id": "presupposto_divorzio",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "sentenza_o_decreto_separazione",
+                "type": "string"
+              },
+              {
+                "id": "data_udienza_presidenziale_separazione",
+                "type": "date",
+                "critico_per_6_12_mesi": true
+              },
+              {
+                "id": "tipo_separazione",
+                "type": "select",
+                "options": [
+                  "consensuale_6_mesi",
+                  "giudiziale_12_mesi"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "accordo_affidamento_figli",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo_affidamento",
+                "type": "select",
+                "options": [
+                  "condiviso",
+                  "esclusivo"
+                ]
+              },
+              {
+                "id": "collocamento",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "piano_genitoriale",
+            "type": "boolean",
+            "required_if": "figli_minori",
+            "critico": true
+          },
+          {
+            "id": "assegno_mantenimento_figli",
+            "type": "currency"
+          },
+          {
+            "id": "assegno_divorzile_se_dovuto",
+            "type": "currency"
+          },
+          {
+            "id": "casa_familiare",
+            "type": "select",
+            "options": [
+              "assegnata_coniuge_1",
+              "assegnata_coniuge_2",
+              "vendita"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "scioglimento_matrimonio_o_cessazione_effetti_civili",
+              "affidamento_condiviso_figli",
+              "assegno_mantenimento_figli",
+              "assegno_divorzile",
+              "assegnazione_casa_familiare"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "PRESUPPOSTO: separazione da almeno 6 mesi (consensuale) o 12 mesi (giudiziale)",
+          "Piano genitoriale OBBLIGATORIO se figli minori (473-bis.12 c.p.c.)",
+          "Assegno divorzile: funzione COMPENSATIVA e PEREQUATIVA (Cass. SU 18287/2018) non solo assistenziale",
+          "Valutare percorso negoziazione assistita (D.L. 132/2014) come alternativa"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_o_decreto_separazione_definitivo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_matrimonio",
+          "required": true
+        },
+        {
+          "id": "atti_nascita_figli",
+          "required_if": "figli_minori"
+        },
+        {
+          "id": "piano_genitoriale",
+          "required_if": "figli_minori",
+          "critico": true
+        },
+        {
+          "id": "documentazione_economica_entrambi_i_coniugi",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Termine minimo separazione consensuale",
+          "mesi": 6,
+          "decorrenza": "udienza presidenziale"
+        },
+        {
+          "termine": "Termine minimo separazione giudiziale",
+          "mesi": 12,
+          "decorrenza": "udienza presidenziale"
+        }
+      ],
+      "codice_originale_ricevuto": "111050",
+      "codice_logico": "GUIDA_DIVORZIO_CONGIUNTO_E_CESSAZIONE_DEGLI_EFFETTI_CIVILI_DEL_MATRIMONIO_ART__111050",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111050"
+        }
+      ]
+    }
+  ]
+}

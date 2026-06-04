@@ -97,13 +97,13 @@
             </button>
           </div>
           <div class="support-room__screen support-room__screen--customer mt-3">
-            <video id="localPreview" autoplay playsinline muted></video>
-            <img id="localAgentPreview" class="support-room__agent-frame d-none" alt="Anteprima schermo condiviso tramite agente locale">
+            <video id="localPreview" class="d-none" autoplay playsinline muted aria-hidden="true"></video>
+            <img id="localAgentPreview" class="support-room__agent-frame d-none" alt="">
             <div class="support-room__screen-empty" id="localPreviewFallback">
               {% if session_closed %}
               Sessione conclusa: la condivisione schermo non è più disponibile.
               {% else %}
-              Dopo il consenso il browser mostrerà l'anteprima del tuo schermo condiviso.
+              Dopo il consenso lo schermo sarà visibile solo al SUPERADMIN collegato, non in questa pagina.
               {% endif %}
             </div>
             <audio id="remoteAudio" autoplay></audio>

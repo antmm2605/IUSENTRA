@@ -1,0 +1,36 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (14).zip::kb_set18_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set18_p3.json",
+  "sha256": "D152DBDC3B11CE25ED94E6DDFB99EE62AA6E4253F704CB0B5165245F0DCB4099",
+  "changed": true,
+  "macro_area_id": "SET18_PARTE3",
+  "denominazione": "Diciottesimo set - 11 nuovi codici - PARTE 3 di 3",
+  "codici_materia_originali": [
+    "160035",
+    "220110",
+    "412005"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PERDITA_DI_CHANCE_AZIONE_RISARCITORIA_PER_MANCATA_OPPORTUNIT_TEORIA_GENE_160035",
+    "220110",
+    "GUIDA_DISCONOSCIMENTO_DI_PATERNIT_ARTT_235_244_C_C_E_RETTIFICAZIONE_DELLO_STAT_412005"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160035",
+      "codice_integrato": "GUIDA_PERDITA_DI_CHANCE_AZIONE_RISARCITORIA_PER_MANCATA_OPPORTUNIT_TEORIA_GENE_160035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "412005",
+      "codice_integrato": "GUIDA_DISCONOSCIMENTO_DI_PATERNIT_ARTT_235_244_C_C_E_RETTIFICAZIONE_DELLO_STAT_412005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "220110"
+  ],
+  "termini_processuali_raw": 7
+}

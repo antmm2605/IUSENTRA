@@ -1,0 +1,1387 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET17_PARTE1",
+  "denominazione": "Diciassettesimo set - 9 nuovi codici - PARTE 1 di 2",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_AZIONE_DI_RIDUZIONE_PER_LESIONE_DELLA_QUOTA_DI_LEGITTIMA_ARTT_553_564_C__120050",
+      "denominazione": "Azione di riduzione per lesione della quota di legittima (artt. 553-564 c.c.)",
+      "categoria": "Successioni – tutela dei legittimari",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (successioni)",
+      "competenza": "Tribunale del luogo di apertura della successione (residenza del de cuius)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "536",
+          "descrizione": "Legittimari – coniuge, figli, ascendenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "537-543",
+          "descrizione": "Quote di riserva per ogni categoria di legittimari"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "553",
+          "descrizione": "Azione di riduzione – riduzione delle disposizioni testamentarie + donazioni lesive"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "554",
+          "descrizione": "Riduzione delle disposizioni testamentarie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "555-558",
+          "descrizione": "Riduzione delle donazioni – ordine: prima ultime poi più remote"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "559",
+          "descrizione": "Restituzione dell'immobile donato – in natura o per equivalente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "563",
+          "descrizione": "Azione di restituzione verso i terzi acquirenti dal donatario – DECENNIO"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "564",
+          "descrizione": "Condizioni per esercitare la riduzione – accettazione con beneficio di inventario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2652 n. 8",
+          "descrizione": "Trascrizione dell'azione di riduzione per opponibilità ai terzi"
+        },
+        {
+          "fonte": "Cass. SU 25021/2019",
+          "descrizione": "Azione di riduzione – natura e decorrenza della prescrizione"
+        },
+        {
+          "fonte": "Cass. SU 13940/2023",
+          "descrizione": "Donazione lesiva – calcolo della quota disponibile"
+        }
+      ],
+      "quote_di_riserva": {
+        "coniuge_solo": "1/2",
+        "coniuge_e_un_figlio": "1/4 a ciascuno",
+        "coniuge_e_più_figli": "1/4 al coniuge + 1/2 diviso tra i figli",
+        "un_figlio_solo": "1/2",
+        "più_figli": "2/3 divisi tra loro",
+        "ascendenti_soli": "1/3"
+      },
+      "calcolo_della_quota_disponibile": {
+        "formula": "Relictum (patrimonio al momento della morte) + Donatum (donazioni ridotte al valore attuale) - Debiti = Asse ereditario fittizio → Quota disponibile = Asse × (1 - quota di riserva)",
+        "Cass_SU_13940_2023": "Le donazioni vanno rivalutate al valore al momento dell'apertura della successione"
+      },
+      "ordine_di_riduzione": {
+        "prima": "Disposizioni testamentarie (pro rata)",
+        "poi": "Donazioni in ordine inverso (prima la più recente – art. 559)"
+      },
+      "azione_verso_terzi_acquirenti_563": {
+        "termine": "10 ANNI dalla trascrizione dell'azione di riduzione (o dalla morte se donazione risalente)",
+        "condizione": "Azione di riduzione trascritta prima dell'acquisto del terzo OR acquisto del terzo dopo la trascrizione",
+        "protezione_dopo_20_anni_563_c2": "Il terzo acquirente è tutelato se sono trascorsi 20 anni dalla trascrizione della donazione (L. 80/2005)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire testamento + atti di donazione del de cuius"
+        },
+        {
+          "step": 2,
+          "descrizione": "Calcolare l'asse ereditario fittizio (relictum + donatum rivalutato - debiti)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Determinare la quota di riserva spettante all'attore"
+        },
+        {
+          "step": 4,
+          "descrizione": "Calcolare la lesione (quota riserva - quota effettivamente ricevuta)"
+        },
+        {
+          "step": 5,
+          "descrizione": "TRASCRIVERE l'azione di riduzione per opponibilità ai terzi (art. 2652 n. 8)"
+        },
+        {
+          "step": 6,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_riduzione_legittima",
+        "denominazione": "Atto di citazione per riduzione delle disposizioni lesive della legittima ex artt. 553-564 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "legittimario_attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "coniuge",
+                  "figlio",
+                  "ascendente"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuti",
+            "type": "array_persone",
+            "required": true,
+            "note": "Beneficiario testamentario e/o donatari"
+          },
+          {
+            "id": "de_cuius",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_decesso",
+                "type": "date"
+              },
+              {
+                "id": "ultima_residenza",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "calcolo_asse_fittizio",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "relictum",
+                "type": "currency"
+              },
+              {
+                "id": "donatum_rivalutato",
+                "type": "currency"
+              },
+              {
+                "id": "debiti_ereditari",
+                "type": "currency"
+              },
+              {
+                "id": "asse_fittizio",
+                "type": "currency"
+              },
+              {
+                "id": "quota_riserva_spettante",
+                "type": "currency"
+              },
+              {
+                "id": "quota_ricevuta_effettivamente",
+                "type": "currency"
+              },
+              {
+                "id": "lesione",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "disposizioni_lesive",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "disposizioni_testamentarie",
+              "donazioni_dirette",
+              "donazioni_indirette"
+            ]
+          },
+          {
+            "id": "trascrizione_azione_riduzione_2652n8",
+            "type": "boolean",
+            "critico": true,
+            "note": "Fondamentale per opponibilità ai terzi"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "riduzione_disposizioni_testamentarie_lesive",
+              "riduzione_donazioni_lesive",
+              "restituzione_beni_in_natura_o_equivalente",
+              "azione_verso_terzi_563_se_beni_alienati",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Calcolare l'asse ereditario FITTIZIO (relictum + donatum rivalutato – debiti)",
+          "Ordine: prima riduzione disposizioni testamentarie, poi donazioni a partire dall'ultima",
+          "TRASCRIVERE l'azione di riduzione (art. 2652 n. 8) per opponibilità ai terzi",
+          "Azione verso terzi acquirenti (563): proteggono dopo 20 anni dalla trascrizione della donazione",
+          "Mediazione obbligatoria preventiva (successioni)",
+          "Prescrizione: 10 anni dall'apertura della successione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "testamento_e_atti_donazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "certificato_morte_de_cuius",
+          "required": true
+        },
+        {
+          "id": "calcolo_asse_fittizio_dettagliato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_estimativa_beni_donati",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore della lesione",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE azione di riduzione",
+          "anni": 10,
+          "decorrenza": "apertura successione"
+        },
+        {
+          "termine": "Azione verso terzi 563",
+          "anni": 10,
+          "decorrenza": "trascrizione azione di riduzione"
+        },
+        {
+          "termine": "Tutela terzo acquirente",
+          "anni": 20,
+          "decorrenza": "trascrizione donazione (L. 80/2005)"
+        }
+      ],
+      "codice_originale_ricevuto": "120050",
+      "codice_logico": "GUIDA_AZIONE_DI_RIDUZIONE_PER_LESIONE_DELLA_QUOTA_DI_LEGITTIMA_ARTT_553_564_C__120050",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120050"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LOCAZIONE_COMMERCIALE_SFRATTO_PER_MOROSIT_DINIEGO_DI_RINNOVO_E_INDENNIT__145010",
+      "denominazione": "Locazione commerciale – sfratto per morosità, diniego di rinnovo e indennità di avviamento (L. 392/1978)",
+      "categoria": "Contratti – locazione commerciale",
+      "rito": "Rito speciale locatizio ex artt. 658-669 c.p.c.; convalida di sfratto",
+      "competenza": "Tribunale del luogo dell'immobile",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 392/1978 (Equo Canone)",
+          "articolo": "27-42",
+          "descrizione": "Locazione di immobili urbani ad uso diverso da abitazione – disciplina speciale"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "27",
+          "descrizione": "Durata minima – 6 anni (rinnovo automatico) + 6 anni"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "28",
+          "descrizione": "Diniego di rinnovo alla prima scadenza – cause tassative"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "29",
+          "descrizione": "Diniego di rinnovo alla seconda scadenza – libero"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "34",
+          "descrizione": "INDENNITÀ DI AVVIAMENTO – 18 mensilità (attività con accesso pubblico)"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "36",
+          "descrizione": "Cessione del contratto di locazione"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "79",
+          "descrizione": "Nullità delle clausole derogatorie in peius per il conduttore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1591",
+          "descrizione": "Occupazione senza titolo – indennità di occupazione"
+        },
+        {
+          "fonte": "Cass. SU 12395/2020",
+          "descrizione": "Indennità di avviamento – presupposti e calcolo"
+        },
+        {
+          "fonte": "Cass. SU 7963/2023",
+          "descrizione": "Diniego di rinnovo – comunicazione e termini"
+        }
+      ],
+      "durata_e_rinnovi_art27": {
+        "durata_minima": "6 anni (attività commerciali) o 9 anni (attività alberghiere)",
+        "rinnovo_automatico": "Alla prima scadenza: rinnovo per altri 6 anni, salvo diniego motivato (art. 28)",
+        "seconda_scadenza": "Libero diniego senza motivazione (art. 29)"
+      },
+      "diniego_rinnovo_prima_scadenza_art28": {
+        "cause_tassative": [
+          "Inadempimento del conduttore",
+          "Intenzione del locatore di adibire l'immobile ad uso proprio o familiare",
+          "Demolizione/ristrutturazione radicale",
+          "Vantaggio per il conduttore da trasferimento in altro immobile del locatore"
+        ],
+        "termine_comunicazione": "Almeno 12 MESI prima della scadenza"
+      },
+      "indennita_di_avviamento_art34": {
+        "quando_spetta": "Al conduttore che perde il locale per diniego di rinnovo (non per morosità o inadempimento)",
+        "importo": "18 MENSILITÀ del canone corrente",
+        "attivita_con_accesso_pubblico": "21 mensilità se attività con accesso al pubblico al dettaglio"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "LOCAZIONE"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Per morosità: diffida scritta + intimazione di sfratto"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per diniego rinnovo: comunicazione almeno 12 mesi prima + causa tassativa art. 28"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare l'indennità di avviamento (se dovuta)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "intimazione_sfratto_locazione_commerciale",
+        "denominazione": "Intimazione di sfratto per morosità o per finita locazione commerciale + ingiunzione canoni (L. 392/1978)",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "locatore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "conduttore_intimato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "immobile",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "contratto_locazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "canone_mensile",
+                "type": "currency"
+              },
+              {
+                "id": "scadenza",
+                "type": "date"
+              },
+              {
+                "id": "tipo_attivita_conduttore",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "tipo_sfratto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "sfratto_morosita_canoni_non_pagati",
+              "finita_locazione_prima_scadenza_art28",
+              "finita_locazione_seconda_scadenza_art29"
+            ]
+          },
+          {
+            "id": "canoni_insoluti",
+            "type": "object",
+            "required_if": "morosita",
+            "sub_fields": [
+              {
+                "id": "numero_mensilita",
+                "type": "integer"
+              },
+              {
+                "id": "importo_totale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "indennita_avviamento_dovuta",
+            "type": "boolean"
+          },
+          {
+            "id": "importo_indennita_avviamento_18_mensilita",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "convalida_sfratto_e_ordine_rilascio",
+              "ingiunzione_canoni_insoluti",
+              "indennita_occupazione_sino_al_rilascio",
+              "condanna_indennita_avviamento_se_dovuta",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Durata minima 6 anni (commerciale) – clausole inferiori sono nulle (art. 27)",
+          "Diniego prima scadenza: causa tassativa art. 28 + preavviso 12 MESI",
+          "Indennità avviamento 18 mensilità (21 se pubblico accesso): dovuta se diniego di rinnovo NON per inadempimento",
+          "Clausole derogatorie in peius per conduttore: NULLE (art. 79)",
+          "Mediazione obbligatoria preventiva"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_locazione_commerciale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "diffida_pregressa_se_morosita",
+          "required_if": "morosita"
+        },
+        {
+          "id": "comunicazione_diniego_rinnovo_con_prova_12_mesi",
+          "required_if": "finita_locazione"
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Diniego prima scadenza: comunicazione",
+          "mesi": 12,
+          "decorrenza": "prima della scadenza",
+          "natura": "decadenziale"
+        },
+        {
+          "termine": "Prescrizione canoni insoluti",
+          "anni": 5,
+          "norma": "art. 2948 n. 3 c.c."
+        },
+        {
+          "termine": "Prescrizione indennità avviamento",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "145010",
+      "codice_logico": "GUIDA_LOCAZIONE_COMMERCIALE_SFRATTO_PER_MOROSIT_DINIEGO_DI_RINNOVO_E_INDENNIT__145010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SEQUESTRO_GIUDIZIARIO_DI_BENI_CONTROVERSI_ART_670_C_P_C_190020",
+      "denominazione": "Sequestro giudiziario di beni controversi (art. 670 c.p.c.)",
+      "categoria": "Misure cautelari – cautelari conservative",
+      "rito": "Procedimento cautelare ex artt. 669-bis e ss. c.p.c.",
+      "competenza": "Giudice istruttore della causa principale (in corso di causa) o Tribunale del luogo dove si trovano i beni (ante causam)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "670",
+          "descrizione": "Sequestro giudiziario – beni di cui è controversa la proprietà o il possesso + beni soggetti a obbligo di consegna"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "670 n. 1",
+          "descrizione": "Proprietà o possesso controverso – conservazione in attesa della decisione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "670 n. 2",
+          "descrizione": "Beni soggetti a obbligo di consegna o restituzione – rischio di deterioramento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "676",
+          "descrizione": "Nomina del custode"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "677",
+          "descrizione": "Autorizzazione alla vendita se beni deteriorabili"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis e ss.",
+          "descrizione": "Procedura cautelare uniforme"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Obbligo giudizio di merito entro 60 gg (ante causam)"
+        },
+        {
+          "fonte": "Cass. SU 23418/2021",
+          "descrizione": "Sequestro giudiziario – fumus + periculum specifico per la custodia"
+        }
+      ],
+      "differenza_da_sequestro_conservativo_671": {
+        "sequestro_giudiziario_670": "Tutela beni CONTROVERSI (di cui si discute la proprietà o il possesso) – CONSERVAZIONE fino alla decisione",
+        "sequestro_conservativo_671": "Tutela la GARANZIA PATRIMONIALE del creditore – vincola i beni del debitore"
+      },
+      "presupposti_670": {
+        "fumus": "Apparente fondatezza della domanda principale (proprietà, possesso, o obbligo di consegna)",
+        "periculum_specifico": "Rischio di deterioramento, dispersione o trasformazione del bene in attesa del giudizio",
+        "NON_basta_il_periculum_generico": "Deve essere specifico al bene (non basta il rischio di insolvenza del convenuto)"
+      },
+      "casi_tipici_670": [
+        "Bene immobile o mobile di cui si controverte la proprietà in una causa petitoria",
+        "Merce oggetto di controversia su un contratto di compravendita non ancora eseguito",
+        "Azienda oggetto di controversia societaria",
+        "Opere d'arte contestate",
+        "Bene soggetto a obbligo di restituzione (comodato, deposito, locazione) a rischio di deterioramento"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare il fumus (titolo sulla cosa)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare il periculum specifico (rischio deterioramento o dispersione)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Proporre un custode idoneo (spesso un professionista o il ricorrente stesso)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Ricordarsi di instaurare il giudizio di merito entro 60 gg se ante causam"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_sequestro_giudiziario_670",
+        "denominazione": "Ricorso per sequestro giudiziario ex art. 670 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "bene_da_sequestrare",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "immobile",
+                  "bene_mobile_di_valore",
+                  "merce_commerciale",
+                  "azienda",
+                  "opera_d_arte",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "causa_principale_pendente_o_da_instaurare",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "in_corso",
+                "type": "boolean"
+              },
+              {
+                "id": "tipo_causa",
+                "type": "select",
+                "options": [
+                  "petitoria_proprieta",
+                  "possessoria",
+                  "obbligo_di_consegna_restituzione",
+                  "societaria"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "fumus_boni_iuris",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "periculum_specifico",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "custode_proposto",
+            "type": "object_persona"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "sequestro_giudiziario_670",
+              "nomina_custode",
+              "autorizzazione_vendita_se_deteriorabile_677"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Diverso dal sequestro conservativo (671): qui si tutelano beni CONTROVERSI",
+          "Periculum: deve essere specifico al bene (non generico insolvenza)",
+          "Ante causam: instaurare giudizio di merito entro 60 GG (art. 669-octies)",
+          "Cauzione: il giudice può richiederla"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fumus_proprieta_o_obbligo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_periculum_specifico",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "GIUDIZIO DI MERITO post sequestro ante causam",
+          "giorni": 60,
+          "natura": "DECADENZIALE – pena inefficacia",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "190020",
+      "codice_logico": "GUIDA_SEQUESTRO_GIUDIZIARIO_DI_BENI_CONTROVERSI_ART_670_C_P_C_190020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LUCI_E_VEDUTE_TRA_FONDI_CONTIGUI_APERTURA_DISTANZE_E_TUTELA_ARTT_900_907_130055",
+      "denominazione": "Luci e vedute tra fondi contigui – apertura, distanze e tutela (artt. 900-907 c.c.)",
+      "categoria": "Diritti reali – rapporti di vicinato – aperture",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "900",
+          "descrizione": "VEDUTA – prospicienza o affaccio sul fondo altrui – distanza 1,50 mt dal confine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "901",
+          "descrizione": "LUCE – apertura che dà aria e luce senza consentire di vedere sul fondo altrui"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "902",
+          "descrizione": "Caratteri delle luci – inferriate, grate fisse, vetri fissi, apertura a 2,50 mt da terra"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "903",
+          "descrizione": "Distanze per le vedute dirette – 1,50 mt dal confine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "904",
+          "descrizione": "Distanze per le vedute oblique – 75 cm"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "905",
+          "descrizione": "Aperture su fondo altrui – distanze da osservare"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "906",
+          "descrizione": "Costruzione vicino alle vedute – distanza 3 mt"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "907",
+          "descrizione": "Divieto di costruire in modo da impedire le vedute preesistenti"
+        },
+        {
+          "fonte": "Cass. SU 8938/2020",
+          "descrizione": "Veduta vs luce – distinzione e tutela diversificata"
+        },
+        {
+          "fonte": "Cass. SU 16598/2023",
+          "descrizione": "Regolamento edilizio e distanze da vedute – prevalenza"
+        }
+      ],
+      "distinzione_luce_vs_veduta": {
+        "veduta_900": "Apertura che consente di VEDERE e AFFACCIARSI sul fondo del vicino – distanza 1,50 mt da rispettare",
+        "luce_901": "Apertura che dà solo aria e luce – NON consente di vedere il fondo altrui – può essere più vicina al confine ma con requisiti di sicurezza (grate, vetri, altezza)"
+      },
+      "tutele_per_violazione_distanze": [
+        "Chiusura o modifica dell'apertura non conforme (luce trasformata in veduta irregolare)",
+        "Arretramento della costruzione che viola le distanze da vedute preesistenti (art. 906-907)",
+        "Risarcimento del danno"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Qualificazione dell'apertura: luce o veduta (distinzione fondamentale)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Rilievo tecnico delle distanze (perizia geometrica)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare il Regolamento Edilizio comunale (può aumentare le distanze)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_luci_vedute_900_907",
+        "denominazione": "Atto di citazione per violazione norme su luci e vedute ex artt. 900-907 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_proprietario_leso",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_proprietario_con_apertura_illegittima",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondi",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "fondo_attore",
+                "type": "object_immobile"
+              },
+              {
+                "id": "fondo_convenuto",
+                "type": "object_immobile"
+              }
+            ]
+          },
+          {
+            "id": "tipo_apertura_contestata",
+            "type": "select",
+            "required": true,
+            "options": [
+              "veduta_diretta_senza_distanza_1_50mt",
+              "veduta_obliqua_senza_distanza_75cm",
+              "luce_non_conforme_a_requisiti_902",
+              "costruzione_a_meno_di_3mt_da_veduta_preesistente_906_907"
+            ]
+          },
+          {
+            "id": "rilievo_tecnico_di_parte",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "chiusura_o_modifica_apertura_illegittima",
+              "arretramento_costruzione_da_veduta_preesistente",
+              "ripristino_distanze_legali",
+              "risarcimento_danni",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Distinguere LUCE (900-902) da VEDUTA (903-905): tutele diverse",
+          "Veduta diretta: 1,50 mt dal confine; obliqua: 75 cm",
+          "Costruzione vicino a vedute preesistenti: 3 mt (art. 906)",
+          "Mediazione obbligatoria preventiva",
+          "Rilievo tecnico fondamentale per la prova"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "rilievo_tecnico_aperture_e_distanze",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "fotografie_aperture_contestate",
+          "required": true
+        },
+        {
+          "id": "regolamento_edilizio_comunale_estratto",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Azione di arretramento: IMPRESCRITTIBILE finché la violazione persiste"
+        },
+        {
+          "termine": "Risarcimento danni: prescrizione 5 anni"
+        }
+      ],
+      "codice_originale_ricevuto": "130055",
+      "codice_logico": "GUIDA_LUCI_E_VEDUTE_TRA_FONDI_CONTIGUI_APERTURA_DISTANZE_E_TUTELA_ARTT_900_907_130055",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130055"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130055"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130055"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DIVISIONE_GIUDIZIALE_DELL_EREDIT_ARTT_713_768_C_C_E_SCIOGLIMENTO_COMUNIO_413005",
+      "denominazione": "Divisione giudiziale dell'eredità (artt. 713-768 c.c.) e scioglimento comunione ereditaria",
+      "categoria": "Successioni – divisione ereditaria",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (successioni)",
+      "competenza": "Tribunale del luogo di apertura della successione",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "713",
+          "descrizione": "Diritto di chiedere la divisione – ciascun coerede può sempre chiederla"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "714",
+          "descrizione": "Patto di indivisione – max 5 anni rinnovabili"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "718-721",
+          "descrizione": "Modalità di divisione – in natura o per valori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "722-727",
+          "descrizione": "Formazione delle quote e attribuzioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "728-730",
+          "descrizione": "Conguagli in denaro"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "734-736",
+          "descrizione": "Divisione fatta dal testatore – divisione testamentaria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "757-765",
+          "descrizione": "Effetti della divisione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "764",
+          "descrizione": "Garanzia per i vizi – i coeredi si garantiscono reciprocamente"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "784-791-bis",
+          "descrizione": "Procedimento di divisione giudiziale"
+        },
+        {
+          "fonte": "Cass. SU 6538/2019",
+          "descrizione": "Divisione giudiziale – modalità e nomina del notaio"
+        },
+        {
+          "fonte": "Cass. SU 4847/2024",
+          "descrizione": "Conguaglio – calcolo e interessi"
+        }
+      ],
+      "fasi_procedimento_divisione_giudiziale": [
+        "1. DOMANDA DI DIVISIONE al Tribunale",
+        "2. INVENTARIO dei beni ereditari + stima (CTU estimativa)",
+        "3. PROGETTO DI DIVISIONE predisposto dal notaio delegato o dal giudice",
+        "4. UDIENZA per approvazione o contestazione del progetto",
+        "5. SENTENZA di divisione (o decreto se non contestato)",
+        "6. ATTI NOTARILI di trasferimento delle quote"
+      ],
+      "imputazioni_collazione_nella_divisione": {
+        "collazione": "Prima della divisione: imputare le donazioni ricevute dai coeredi (artt. 737-751)",
+        "riduzione": "Se disposizioni lesive della legittima: ridurle prima di dividere"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire atti di successione + inventario provvisorio dei beni"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se esistono donazioni da collazionare (737)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se esistono legittimari lesi (riduzione prima della divisione)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria – spesso si arriva a divisione consensuale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_divisione_ereditaria_713",
+        "denominazione": "Atto di citazione per divisione giudiziale dell'eredità ex art. 713 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coerede_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "coeredi_convenuti",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "de_cuius",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_decesso",
+                "type": "date"
+              },
+              {
+                "id": "ultima_residenza",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "beni_ereditari_da_dividere",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "immobile",
+                  "conto_corrente",
+                  "titoli",
+                  "azienda",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "string"
+              },
+              {
+                "id": "valore_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "quote_ereditarie",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo_successione",
+                "type": "select",
+                "options": [
+                  "legittima",
+                  "testamentaria",
+                  "mista"
+                ]
+              },
+              {
+                "id": "quota_attore",
+                "type": "fraction"
+              }
+            ]
+          },
+          {
+            "id": "domande_collazione_o_riduzione",
+            "type": "boolean"
+          },
+          {
+            "id": "nomina_notaio_delegato",
+            "type": "boolean",
+            "note": "Richiesta standard ex art. 791-bis c.p.c."
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "scioglimento_comunione_ereditaria",
+              "divisione_in_natura_o_per_licitazione",
+              "nomina_notaio_delegato_791bis",
+              "conguagli_in_denaro_728",
+              "collazione_preventiva_737",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il diritto di chiedere la divisione è IMPRESCRITTIBILE (art. 713)",
+          "Mediazione obbligatoria preventiva (successioni)",
+          "Collazione e riduzione: da affrontare PRIMA della divisione",
+          "Nomina notaio delegato ex art. 791-bis: prassi diffusa per le operazioni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_successori_testamento_e_denuncia_successione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "inventario_beni_ereditari",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_e_camerali_beni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore dell'eredità",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "DIRITTO DI CHIEDERE LA DIVISIONE: IMPRESCRITTIBILE",
+          "natura": "imprescrittibile"
+        },
+        {
+          "termine": "Patto di indivisione: max 5 anni (rinnovabile)"
+        }
+      ],
+      "codice_originale_ricevuto": "413005",
+      "codice_logico": "GUIDA_DIVISIONE_GIUDIZIALE_DELL_EREDIT_ARTT_713_768_C_C_E_SCIOGLIMENTO_COMUNIO_413005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413005"
+        }
+      ]
+    }
+  ]
+}

@@ -895,7 +895,7 @@ def html_to_pdf(
     try:
         from pct.legal_layout_profiles import make_pdf_stamp_callback, top_margin_with_stamp
 
-        stamp_callback = make_pdf_stamp_callback(studio_timbro, layout_profile)
+        stamp_callback = make_pdf_stamp_callback(studio_timbro, layout_profile, layout_cfg)
         layout_cfg["margin_top_mm"] = top_margin_with_stamp(layout_cfg, studio_timbro)
     except Exception:
         stamp_callback = None

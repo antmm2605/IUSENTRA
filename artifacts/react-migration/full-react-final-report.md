@@ -1122,3 +1122,37 @@ Gate locali verdi: 20/20 pytest mirati, compileall, typecheck React, test
 frontend, build Vite, Docker reale `127.0.0.1:8080` con `/api/pronto` su
 `2.249.14`, e browser Playwright desktop/tablet/mobile con 73/73 controlli OK.
 Report: `artifacts/react-migration/template-editor-browser-2.249.14.json`.
+
+## Editor template atti professionale 2.249.15
+
+La superficie `/template-atti/compila/<codice>` ora usa un editor documento
+reale: la pagina centrale è modificabile, la toolbar resta visibile durante lo
+scroll e le azioni di stile agiscono sulla selezione corrente. Il flusso non
+inserisce più marcatori Markdown per il grassetto e non applica allineamenti o
+font all'intero blocco quando l'avvocato seleziona solo una parte del testo.
+
+Il collegamento IUSENTRA è dentro il pannello `Campi`: cliente e fascicolo sono
+selezionabili, il fascicolo filtra e precompila ufficio giudiziario, cliente,
+controparte, R.G., materia e dati pratica. Il cambio template dal catalogo
+laterale naviga davvero al modello scelto e la toolbar espone anche il ritorno
+al catalogo, undo e redo.
+
+Il timbro studio è spostabile su alto sinistra/centro/destra e centro
+sinistra/destra, con offset verticale regolabile e testo formattabile. Gli
+export RTF/DOCX/PDF leggono l'HTML corrente dell'editor, includono il timbro e
+preservano la formattazione base; copia, salvataggio nel fascicolo,
+compilazione multipla e firma usano il documento corrente, non una bozza
+separata.
+
+La Guida Pratica è stata estesa con i materiali utente `files (10).zip` -
+`files (14).zip`, `kb_set19.json` e `kb_set20.json`; la KB completa e lo
+Scadenziario sono stati rigenerati con audit dedicati. Lex nell'editor usa
+proposte locali in diff con controlli placeholder, `legal_basis`, privacy/PII e
+istruzioni personalizzate, senza applicare modifiche automatiche.
+
+Gate locali verdi: `py_compile` mirato, 36/36 pytest template/assistenza/Lex/UTF-8,
+import Guida Pratica e termini, build Vite, Docker reale `127.0.0.1:8080` con
+`/api/pronto` su `2.249.15`, browser Playwright desktop/tablet/mobile con 74/74
+controlli OK e Browser integrato Codex con toolbar sticky, collegamento fascicolo
+visibile e nessun overflow pagina/pannello/card. Report:
+`artifacts/react-migration/template-editor-browser-2.249.15.json`.

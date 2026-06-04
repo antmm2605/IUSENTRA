@@ -1,0 +1,1377 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET19_5CODICI",
+  "denominazione": "Diciannovesimo set - 5 nuovi codici",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_DANNO_DA_TRATTAMENTO_ILLECITO_DI_DATI_PERSONALI_GDPR_D_LGS_196_2003_CODI_180030",
+      "denominazione": "Danno da trattamento illecito di dati personali (GDPR + D.Lgs. 196/2003 Codice Privacy)",
+      "categoria": "Responsabilità civile – privacy e protezione dati",
+      "rito": "Rito ordinario di cognizione davanti al Tribunale civile; reclamo al Garante come alternativa",
+      "competenza": "Tribunale del luogo di residenza dell'interessato (foro privilegiato); Garante Privacy per via amministrativa",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "Reg. UE 2016/679 (GDPR)",
+          "articolo": "82",
+          "descrizione": "Diritto al risarcimento del danno – responsabilità del titolare o del responsabile del trattamento"
+        },
+        {
+          "fonte": "GDPR",
+          "articolo": "83",
+          "descrizione": "Sanzioni amministrative pecuniarie – Garante Privacy"
+        },
+        {
+          "fonte": "GDPR",
+          "articolo": "17",
+          "descrizione": "Diritto alla cancellazione ('diritto all'oblio')"
+        },
+        {
+          "fonte": "GDPR",
+          "articolo": "21",
+          "descrizione": "Diritto di opposizione al trattamento"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003 (Codice Privacy)",
+          "articolo": "152",
+          "descrizione": "Ricorso all'autorità giudiziaria ordinaria"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003",
+          "articolo": "140-bis",
+          "descrizione": "Reclamo al Garante – alternativa al ricorso giudiziale"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003",
+          "articolo": "82 (rinvio a GDPR art. 82)",
+          "descrizione": "Responsabilità e risarcimento del danno"
+        },
+        {
+          "fonte": "Cass. SU 9385/2021",
+          "descrizione": "Danno da trattamento illecito – danno non patrimoniale anche senza prova di perdite economiche"
+        },
+        {
+          "fonte": "CGUE C-300/21 (UI/Österreichische Post 2023)",
+          "descrizione": "Art. 82 GDPR – danno risarcibile anche solo non patrimoniale, ma non meramente ipotetico"
+        },
+        {
+          "fonte": "Cass. SU 11677/2024",
+          "descrizione": "Data breach – responsabilità del titolare e prova del danno"
+        }
+      ],
+      "sistema_tutele_gdpr": {
+        "via_amministrativa_garante": {
+          "reclamo_garante": "Il danneggiato può presentare reclamo al Garante Privacy (art. 77 GDPR)",
+          "sanzione": "Il Garante può comminare sanzioni fino a €20 milioni o 4% del fatturato globale",
+          "non_esclude_il_risarcimento": "Il reclamo al Garante NON esclude l'azione risarcitoria civile"
+        },
+        "via_giudiziaria_82_GDPR": {
+          "risarcimento_danno_materiale": "Perdite economiche, costi sostenuti",
+          "risarcimento_danno_immateriale": "Stress, ansia, perdita controllo sui propri dati, danni alla reputazione – CGUE C-300/21"
+        }
+      },
+      "violazioni_tipiche_del_trattamento": [
+        "DATA BREACH – violazione dei dati (divulgazione, perdita, furto)",
+        "Trattamento senza base giuridica o senza consenso valido",
+        "Violazione del diritto all'oblio (17 GDPR)",
+        "Profilazione non autorizzata",
+        "Trasferimento illecito di dati a terzi",
+        "Mancata risposta a richieste dell'interessato (accesso, rettifica, cancellazione)",
+        "Conservazione dei dati oltre il periodo necessario"
+      ],
+      "onere_della_prova_82_GDPR": {
+        "interessato": "Prova: (1) violazione del GDPR, (2) danno subito, (3) nesso causale",
+        "titolare": "Si libera provando che l'evento non gli è in alcun modo imputabile (responsabilità con inversione onere prova)",
+        "danno_non_meramente_ipotetico_CGUE_C300_21": "Il danno deve essere reale – non basta la mera violazione del GDPR"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la violazione del trattamento (notifica del data breach, comunicazione illecita, mancata risposta)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Inviare richiesta all'interessato/titolare (accesso, cancellazione, opposizione) e documentarne la risposta"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare se presentare reclamo al Garante (sanzione) + azione civile (risarcimento)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificare il danno: materiale + immateriale (stress, perdita controllo dati, danni reputazionali)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_danno_trattamento_illecito_dati_GDPR",
+        "denominazione": "Atto di citazione per risarcimento danni da trattamento illecito di dati personali ex art. 82 GDPR",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "interessato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "titolare_del_trattamento_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "eventuale_responsabile_del_trattamento_convenuto",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "tipo_violazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "data_breach_violazione_dati_personali",
+              "trattamento_senza_base_giuridica_o_consenso",
+              "violazione_diritto_oblio_17_GDPR",
+              "profilazione_non_autorizzata",
+              "trasferimento_illecito_terzi",
+              "mancata_risposta_richieste_interessato",
+              "conservazione_eccessiva"
+            ]
+          },
+          {
+            "id": "descrizione_violazione",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "danno_subito",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_materiale",
+                "type": "currency"
+              },
+              {
+                "id": "danno_immateriale_stress_reputazione",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "reclamo_garante_presentato",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risarcimento_danni_materiali_82_GDPR",
+              "risarcimento_danni_immateriali",
+              "ordine_cancellazione_o_rettifica_dati",
+              "inibitoria_trattamento_illecito",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Responsabilità del titolare con INVERSIONE ONERE PROVA (art. 82 c. 3 GDPR)",
+          "Danno immateriale risarcibile ma NON meramente ipotetico (CGUE C-300/21)",
+          "Reclamo al Garante e azione civile: cumulabili",
+          "Foro privilegiato: residenza dell'interessato",
+          "Prescrizione: 5 anni (illecito aquiliano)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_violazione_trattamento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "richieste_all_interessato_e_risposte",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "eventuale_notifica_data_breach_al_garante",
+          "required_if": "data_breach"
+        },
+        {
+          "id": "prove_del_danno",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 5,
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "Reclamo al Garante",
+          "mesi": 3,
+          "decorrenza": "conoscenza della violazione"
+        }
+      ],
+      "codice_originale_ricevuto": "180030",
+      "codice_logico": "GUIDA_DANNO_DA_TRATTAMENTO_ILLECITO_DI_DATI_PERSONALI_GDPR_D_LGS_196_2003_CODI_180030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_COMODATO_RISOLUZIONE_RILASCIO_ANTICIPATO_E_INDENNIT_ARTT_1803_1812_C_C_140050",
+      "denominazione": "Comodato: risoluzione, rilascio anticipato e indennità (artt. 1803-1812 c.c.)",
+      "categoria": "Contratti – comodato",
+      "rito": "Rito ordinario di cognizione (o procedimento per rilascio se urgente)",
+      "competenza": "Tribunale del luogo dell'immobile; GdP per valori bassi",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1803",
+          "descrizione": "Nozione di comodato – consegna gratuita di una cosa per un uso determinato con obbligo di restituzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1804",
+          "descrizione": "Obblighi del comodatario – custodia + uso determinato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1805",
+          "descrizione": "Scadenza del termine – obbligo di restituzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1806",
+          "descrizione": "Comodato senza termine – restituzione a richiesta del comodante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1809",
+          "descrizione": "RESTITUZIONE ANTICIPATA – il comodante può chiedere la restituzione per sopravvenuto urgente bisogno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1810",
+          "descrizione": "Morte del comodatario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1811",
+          "descrizione": "Responsabilità del comodatario per la perdita della cosa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1812",
+          "descrizione": "Spese straordinarie – diritto del comodatario"
+        },
+        {
+          "fonte": "Cass. SU 20448/2020",
+          "descrizione": "Comodato precario – restituzione a richiesta senza termine"
+        },
+        {
+          "fonte": "Cass. SU 9631/2022",
+          "descrizione": "Urgente bisogno 1809 – prova e valutazione"
+        }
+      ],
+      "tipologie_di_comodato": {
+        "comodato_a_termine": {
+          "norma": "art. 1805",
+          "restituzione": "Alla scadenza del termine – obbligo automatico",
+          "anticipata_1809": "Il comodante può chiedere restituzione anticipata per urgente bisogno"
+        },
+        "comodato_precario_1806": {
+          "norma": "art. 1806",
+          "quando": "Nessun termine stabilito",
+          "restituzione": "A RICHIESTA del comodante – senza necessità di motivazione né preavviso",
+          "caso_tipico": "Casa del genitore al figlio – comodato precario"
+        }
+      },
+      "comodato_familiare_e_scioglimento": {
+        "caso_frequente": "Genitore concede casa in comodato al figlio/nuora – separazione o divorzio → conflitto",
+        "Cass_SU_20448_2020": "Il comodato precario (senza termine) cessa a richiesta del comodante – il coniuge non comodatario non può opporre il comodato all'assegnazione della casa familiare"
+      },
+      "restituzione_anticipata_1809": {
+        "presupposto": "Urgente bisogno del comodante sopravvenuto",
+        "prova": "Il comodante deve provare l'urgente bisogno (Cass. SU 9631/2022)",
+        "procedura": "Comunicazione scritta + termine ragionevole per il rilascio"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONTRATTI – il comodato di immobili rientra nella mediazione obbligatoria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Qualificare il comodato: a termine (1805) o precario (1806)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per comodato precario: inviare diffida scritta con termine per il rilascio"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per restituzione anticipata (1809): documentare l'urgente bisogno"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria, poi azione giudiziale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_rilascio_comodato",
+        "denominazione": "Atto di citazione per rilascio del bene in comodato ex artt. 1803-1809 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "comodante_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "comodatario_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "bene_in_comodato",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "tipo_comodato",
+            "type": "select",
+            "required": true,
+            "options": [
+              "comodato_a_termine_1805",
+              "comodato_precario_senza_termine_1806",
+              "comodato_familiare_genitore_figlio"
+            ]
+          },
+          {
+            "id": "data_stipula_o_inizio",
+            "type": "date"
+          },
+          {
+            "id": "termine_se_previsto",
+            "type": "date"
+          },
+          {
+            "id": "causa_richiesta_rilascio",
+            "type": "select",
+            "required": true,
+            "options": [
+              "scadenza_termine_1805",
+              "richiesta_comodante_precario_1806",
+              "urgente_bisogno_sopravvenuto_1809",
+              "inadempimento_comodatario_uso_diverso"
+            ]
+          },
+          {
+            "id": "urgente_bisogno_1809",
+            "type": "textarea",
+            "required_if": "1809"
+          },
+          {
+            "id": "diffida_inviata",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_diffida",
+                "type": "date"
+              },
+              {
+                "id": "termine_concesso_per_rilascio",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_rilascio_bene",
+              "indennita_occupazione_sino_al_rilascio",
+              "risarcimento_danni_per_uso_improprio",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Comodato PRECARIO (1806): restituzione a richiesta – senza necessità di motivazione",
+          "Comodato A TERMINE (1805): anticipata solo per urgente bisogno (1809)",
+          "Urgente bisogno 1809: PROVA a carico del comodante (Cass. SU 9631/2022)",
+          "Mediazione obbligatoria preventiva",
+          "Comodato familiare: Cass. SU 20448/2020 – cessa a richiesta del comodante"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_comodato_o_prova_della_consegna",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "diffida_scritta_e_prova_invio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_urgente_bisogno_se_1809",
+          "required_if": "1809"
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione di rilascio",
+          "anni": 10,
+          "norma": "art. 2946 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "140050",
+      "codice_logico": "GUIDA_COMODATO_RISOLUZIONE_RILASCIO_ANTICIPATO_E_INDENNIT_ARTT_1803_1812_C_C_140050",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140050"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LEGATO_TESTAMENTARIO_AZIONE_PER_L_ADEMPIMENTO_CONTESTAZIONE_E_RINUNCIA_A_121015",
+      "denominazione": "Legato testamentario: azione per l'adempimento, contestazione e rinuncia (artt. 649-673 c.c.)",
+      "categoria": "Successioni – legati",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (successioni)",
+      "competenza": "Tribunale del luogo di apertura della successione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "649",
+          "descrizione": "Legato – acquisto automatico senza accettazione; rinuncia possibile"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "650",
+          "descrizione": "Rinuncia al legato – termini e forme"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "651",
+          "descrizione": "Legato di cosa specifica – il legatario acquista la proprietà al momento della morte"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "652",
+          "descrizione": "Legato di cosa del testatore – distinzione da legato di credito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "656",
+          "descrizione": "Legato di credito – effetti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "660",
+          "descrizione": "Obbligato all'adempimento del legato – erede o legatario gravato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "661",
+          "descrizione": "Termine per l'adempimento del legato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "664-673",
+          "descrizione": "Legato di alimenti, rendite, usufrutto, abitazione, uso, liberazione da debito"
+        },
+        {
+          "fonte": "Cass. SU 19613/2019",
+          "descrizione": "Legato di immobile – acquisto automatico e trascrizione"
+        },
+        {
+          "fonte": "Cass. SU 7498/2022",
+          "descrizione": "Legato di cosa altrui – legato nullo o inefficace"
+        }
+      ],
+      "acquisto_automatico_del_legato_649": {
+        "principio": "Il legatario ACQUISTA il legato automaticamente alla morte del testatore – senza bisogno di accettazione",
+        "facoltà_di_rinuncia": "Può però rinunciare (art. 650) – la rinuncia ha effetto retroattivo",
+        "conseguenza_pratica": "Il legatario non deve accettare, ma può essere convenuto in giudizio dall'erede per le obbligazioni del legato"
+      },
+      "chi_e_obbligato_660": {
+        "regola": "L'erede (o il legatario gravato se il testatore ha disposto così) è obbligato all'adempimento",
+        "termine": "Di norma 1 anno dalla morte del testatore salvo indicazione del testamento"
+      },
+      "legato_di_cosa_altrui_Cass_SU_7498_2022": {
+        "regola": "Il legato di cosa altrui è NULLO salvo che risulti che il testatore sapeva che la cosa era altrui",
+        "eccezione": "Se il testatore sapeva: il legatario ha diritto al valore della cosa"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il testamento e verificare il contenuto del legato"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare l'obbligato all'adempimento (erede o legatario gravato)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per legato di immobile: trascrivere il testamento per l'opponibilità ai terzi"
+        },
+        {
+          "step": 4,
+          "descrizione": "Diffida all'obbligato per l'adempimento + mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_adempimento_legato_testamentario",
+        "denominazione": "Atto di citazione per adempimento del legato testamentario ex artt. 649-661 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "legatario_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "erede_o_legatario_gravato_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "de_cuius",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_decesso",
+                "type": "date"
+              },
+              {
+                "id": "ultima_residenza",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "testamento",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_testamento",
+                "type": "select",
+                "options": [
+                  "olografo",
+                  "pubblico",
+                  "segreto"
+                ]
+              },
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "contenuto_del_legato",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "oggetto_del_legato",
+            "type": "select",
+            "required": true,
+            "options": [
+              "legato_di_cosa_specifica_651",
+              "legato_di_somma_di_denaro",
+              "legato_di_credito_656",
+              "legato_di_usufrutto_uso_abitazione",
+              "legato_di_alimenti_664",
+              "legato_di_rendita",
+              "legato_di_liberazione_da_debito"
+            ]
+          },
+          {
+            "id": "valore_del_legato",
+            "type": "currency"
+          },
+          {
+            "id": "inadempimento_dell_obbligato",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_adempimento_del_legato",
+              "consegna_bene_legato",
+              "pagamento_somma_legata",
+              "risarcimento_danni_da_inadempimento",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il legatario acquista AUTOMATICAMENTE senza accettazione (art. 649)",
+          "L'obbligato è l'erede salvo diversa disposizione testamentaria (art. 660)",
+          "Legato di immobile: TRASCRIVERE il testamento per opponibilità ai terzi",
+          "Legato di cosa altrui: NULLO salvo testatore sapeva (Cass. SU 7498/2022)",
+          "Mediazione obbligatoria preventiva (successioni)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "testamento_con_pubblicazione_o_registrazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "certificato_morte_de_cuius",
+          "required": true
+        },
+        {
+          "id": "documentazione_inadempimento_obbligato",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore del legato",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione",
+          "anni": 10,
+          "norma": "art. 2946 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "121015",
+      "codice_logico": "GUIDA_LEGATO_TESTAMENTARIO_AZIONE_PER_L_ADEMPIMENTO_CONTESTAZIONE_E_RINUNCIA_A_121015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121015"
+        }
+      ]
+    },
+    {
+      "codice": "220120",
+      "denominazione": "Contratto di apprendistato: risoluzione illegittima e conversione a tempo indeterminato (D.Lgs. 81/2015 artt. 41-47)",
+      "categoria": "Lavoro – apprendistato – tipologie contrattuali",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 81/2015 (Jobs Act)",
+          "articolo": "41",
+          "descrizione": "Nozione e tipologie di apprendistato – professionalizzante, primo/terzo livello"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "42",
+          "descrizione": "Disciplina dell'apprendistato – formazione + rapporto di lavoro"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "42 c. 4",
+          "descrizione": "RECESSO al termine del periodo di apprendistato – libero (con preavviso)"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "47 c. 3",
+          "descrizione": "APPRENDISTATO DI PRIMO LIVELLO – per studenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2118",
+          "descrizione": "Recesso con preavviso – applicabile al termine del periodo"
+        },
+        {
+          "fonte": "Cass. SU 23408/2019",
+          "descrizione": "Apprendistato – obbligo formativo; mancata formazione → conversione a TI"
+        },
+        {
+          "fonte": "Cass. SU 17786/2021",
+          "descrizione": "Recesso durante l'apprendistato – tutele applicabili"
+        },
+        {
+          "fonte": "Cass. SU 12354/2023",
+          "descrizione": "Mancata formazione nell'apprendistato – conseguenze sul contratto"
+        }
+      ],
+      "struttura_del_contratto_apprendistato": {
+        "durante_il_periodo": "Rapporto di lavoro subordinato con finalità formative – retribuzione ridotta + formazione obbligatoria",
+        "al_termine": "Recesso LIBERO di entrambe le parti con preavviso (art. 42 c. 4) – non è licenziamento",
+        "in_assenza_di_recesso": "Il rapporto si CONVERTE automaticamente a tempo indeterminato"
+      },
+      "cause_di_illegittimita": {
+        "mancata_o_insufficiente_formazione_Cass_SU_23408_2019": {
+          "effetto": "Il contratto di apprendistato si CONVERTE in rapporto a tempo indeterminato",
+          "ratio": "La formazione è elemento essenziale – senza di essa il contratto non è apprendistato"
+        },
+        "recesso_durante_il_periodo": {
+          "tutele_Cass_SU_17786_2021": "Si applicano le tutele contro il licenziamento (art. 18 o tutele crescenti a seconda della data assunzione)",
+          "non_e_recesso_libero": "Il recesso libero ex art. 42 c. 4 vale solo AL TERMINE del periodo, non durante"
+        },
+        "violazione_limiti_eta": "L'apprendistato ha limiti di età – violazione → nullità della clausola + TI"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto di apprendistato + piano formativo individuale (PFI)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se la formazione obbligatoria è stata effettivamente erogata"
+        },
+        {
+          "step": 3,
+          "descrizione": "Qualificare il tipo di risoluzione: durante il periodo (→ tutele licenziamento) o al termine (→ recesso libero)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Impugnare stragiudizialmente entro 60 giorni dalla cessazione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_apprendistato_illegittimo_conversione_TI",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per illegittimità del contratto di apprendistato e conversione a TI",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_apprendista",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "contratto_apprendistato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "professionalizzante_42",
+                  "primo_livello_43",
+                  "terzo_livello_45"
+                ]
+              },
+              {
+                "id": "data_inizio",
+                "type": "date"
+              },
+              {
+                "id": "data_fine_o_cessazione",
+                "type": "date"
+              },
+              {
+                "id": "piano_formativo_individuale_allegato",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "vizio_contestato",
+            "type": "select",
+            "required": true,
+            "options": [
+              "mancata_o_insufficiente_formazione_23408_2019",
+              "recesso_illegittimo_durante_periodo_17786_2021",
+              "violazione_limiti_eta",
+              "elusione_norma_tramite_apprendistato_ripetuto"
+            ]
+          },
+          {
+            "id": "formazione_effettivamente_erogata",
+            "type": "object",
+            "required_if": "mancata_formazione",
+            "sub_fields": [
+              {
+                "id": "ore_previste_dal_PFI",
+                "type": "integer"
+              },
+              {
+                "id": "ore_effettivamente_erogate",
+                "type": "integer"
+              },
+              {
+                "id": "prove_mancata_formazione",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "impugnazione_stragiudiziale",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_invio",
+                "type": "date"
+              },
+              {
+                "id": "rispetto_60_gg",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "conversione_contratto_a_tempo_indeterminato",
+              "tutele_licenziamento_se_recesso_durante_periodo",
+              "differenze_retributive_TI_vs_apprendistato",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mancata formazione → CONVERSIONE automatica a TI (Cass. SU 23408/2019)",
+          "Recesso DURANTE il periodo: si applica tutela licenziamento (Cass. SU 17786/2021)",
+          "Recesso AL TERMINE del periodo: LIBERO con preavviso (art. 42 c. 4)",
+          "Impugnazione stragiudiziale entro 60 GG dalla cessazione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_apprendistato_e_PFI",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_formazione_erogata_o_assente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_periodo",
+          "required": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE STRAGIUDIZIALE",
+          "giorni": 60,
+          "decorrenza": "cessazione contratto",
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "DEPOSITO RICORSO",
+          "giorni": 180,
+          "decorrenza": "impugnazione stragiudiziale",
+          "natura": "DECADENZIALE"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220120"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220120"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220120"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_SANITARIA_PER_ERRATA_PRESCRIZIONE_O_SOMMINISTRAZIONE_DI_FA_160120",
+      "denominazione": "Responsabilità sanitaria per errata prescrizione o somministrazione di farmaci (L. 24/2017 Gelli-Bianco)",
+      "categoria": "Responsabilità civile – responsabilità sanitaria farmacologica",
+      "rito": "Rito ordinario preceduto da CONSULENZA TECNICA PREVENTIVA (696-bis c.p.c.) come alternativa alla mediazione (L. 24/2017)",
+      "competenza": "Tribunale del luogo della struttura sanitaria o della residenza del paziente",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 24/2017 (Gelli-Bianco)",
+          "articolo": "7",
+          "descrizione": "Responsabilità civile – struttura sanitaria contrattuale (10 anni); medico extracontrattuale (5 anni)"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "7 c. 3",
+          "descrizione": "Il medico risponde ex 2043 c.c. (extracontrattuale) salvo contratto diretto col paziente"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "5",
+          "descrizione": "Buone pratiche cliniche – le linee guida riconosciute limitano la responsabilità"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "8",
+          "descrizione": "TENTATIVO OBBLIGATORIO DI CONCILIAZIONE – CTP 696-bis o mediazione prima del giudizio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale della struttura sanitaria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità extracontrattuale del medico"
+        },
+        {
+          "fonte": "D.Lgs. 219/2006 (Codice Farmaci)",
+          "descrizione": "Disciplina dei medicinali – AIC, prescrizione, foglietto illustrativo"
+        },
+        {
+          "fonte": "Cass. SU 28994/2019",
+          "descrizione": "Doppio binario L. 24/2017 – struttura contrattuale / medico extracontrattuale"
+        },
+        {
+          "fonte": "Cass. SU 11469/2023",
+          "descrizione": "Errore farmacologico – nesso causale probabilistico"
+        }
+      ],
+      "doppio_binario_L24_2017": {
+        "struttura_sanitaria": {
+          "responsabilità": "CONTRATTUALE (art. 1218 c.c.)",
+          "prescrizione": "10 anni",
+          "onere_prova": "Struttura deve provare di aver adempiuto diligentemente"
+        },
+        "medico": {
+          "responsabilità": "EXTRACONTRATTUALE (art. 2043 c.c.) salvo contratto diretto col paziente",
+          "prescrizione": "5 anni dalla conoscenza del danno e del responsabile",
+          "onere_prova": "Paziente prova colpa + danno + nesso causale"
+        }
+      },
+      "errori_farmacologici_tipici": [
+        "Prescrizione del farmaco sbagliato (dosaggio errato, principio attivo controindicato)",
+        "Mancata verifica delle interazioni farmacologiche",
+        "Mancata verifica delle allergie del paziente",
+        "Somministrazione di farmaco scaduto o mal conservato",
+        "Overdose per errore nel calcolo del dosaggio",
+        "Omessa indicazione delle controindicazioni al paziente"
+      ],
+      "linee_guida_L24_art5": {
+        "protezione_del_medico": "Se il medico ha rispettato le linee guida approvate risponde solo per imperizia su questioni di speciale difficoltà",
+        "no_linee_guida": "In assenza di linee guida: standard del professionista competente"
+      },
+      "ctp_696bis_obbligatoria": {
+        "norma": "L. 24/2017 art. 8 – condizione di procedibilità",
+        "alternativa": "Mediazione obbligatoria come alternativa alla CTP",
+        "vantaggio_CTP": "Acquisisce una CTU medico-legale preliminare utile per la valutazione del caso"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria_CTP_o_mediazione": true,
+        "norma": "L. 24/2017 art. 8"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire la documentazione sanitaria completa (prescrizioni, somministrazioni, cartella clinica)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Perizia medico-legale e farmacologica di parte (causa + danno)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Instaurare CTP ex art. 696-bis c.p.c. o mediazione obbligatoria (condizione procedibilità)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Identificare i convenuti: struttura sanitaria + medico prescrittore/somministratore"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_errore_farmacologico_L24_2017",
+        "denominazione": "Atto di citazione per responsabilità sanitaria da errore farmacologico ex L. 24/2017 Gelli-Bianco",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "paziente_o_eredi",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "struttura_sanitaria_convenuta",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "medici_convenuti",
+            "type": "array_persone"
+          },
+          {
+            "id": "errore_farmacologico",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_errore",
+                "type": "select_multi",
+                "options": [
+                  "farmaco_sbagliato",
+                  "dosaggio_errato",
+                  "interazioni_farmacologiche_non_verificate",
+                  "allergie_non_verificate",
+                  "overdose_per_errore_calcolo",
+                  "controindicazioni_non_comunicate"
+                ]
+              },
+              {
+                "id": "farmaco_coinvolto",
+                "type": "string"
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "linee_guida_violate",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "danno_alla_salute",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "textarea"
+              },
+              {
+                "id": "perizia_medico_legale_di_parte",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "danno_biologico_permanente",
+                "type": "percentage"
+              },
+              {
+                "id": "totale_danno",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "CTP_o_mediazione_effettuata",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_struttura_contrattuale_1218",
+              "condanna_medico_extracontrattuale_2043",
+              "risarcimento_danno_biologico",
+              "risarcimento_danno_morale_ed_esistenziale",
+              "rimborso_spese_mediche",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Doppio binario L. 24/2017: struttura CONTRATTUALE (10 anni) + medico EXTRACONTRATTUALE (5 anni)",
+          "CTP ex 696-bis o mediazione: CONDIZIONE DI PROCEDIBILITÀ (L. 24/2017 art. 8)",
+          "Linee guida rispettate: limitano responsabilità del medico per imperizia",
+          "Convenire SEMPRE ENTRAMBI: struttura + medico",
+          "Nesso causale: prova probabilistica (Cass. SU 11469/2023)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_sanitaria_prescrizioni_somministrazioni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_farmacologica_e_medico_legale_di_parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "relazione_CTP_696bis_o_verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "scheda_tecnica_farmaco_e_controindicazioni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE struttura sanitaria",
+          "anni": 10,
+          "norma": "art. 1218 c.c."
+        },
+        {
+          "termine": "PRESCRIZIONE medico",
+          "anni": 5,
+          "decorrenza": "conoscenza danno + responsabile",
+          "norma": "art. 2947 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "160120",
+      "codice_logico": "GUIDA_RESPONSABILIT_SANITARIA_PER_ERRATA_PRESCRIZIONE_O_SOMMINISTRAZIONE_DI_FA_160120",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160120"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160120"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160120"
+        }
+      ]
+    }
+  ]
+}

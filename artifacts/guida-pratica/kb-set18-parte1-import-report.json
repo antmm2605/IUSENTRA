@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (14).zip::kb_set18_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set18_p1.json",
+  "sha256": "40B39B462DF2B34B1E968845BA1E9A879D823466768DC87D50B8FD6B54FCDA57",
+  "changed": true,
+  "macro_area_id": "SET18_PARTE1",
+  "denominazione": "Diciottesimo set - 11 nuovi codici - PARTE 1 di 3",
+  "codici_materia_originali": [
+    "160003",
+    "140045",
+    "170030",
+    "111050"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_D_P_R_22_160003",
+    "GUIDA_VIZI_E_DIFETTI_NELL_APPALTO_PRIVATO_RESPONSABILIT_DELL_APPALTATORE_ARTT__140045",
+    "GUIDA_CONCORRENZA_SLEALE_NON_CONFUSORIA_DENIGRAZIONE_APPROPRIAZIONE_PREGI_E_AT_170030",
+    "GUIDA_DIVORZIO_CONGIUNTO_E_CESSAZIONE_DEGLI_EFFETTI_CIVILI_DEL_MATRIMONIO_ART__111050"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160003",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_D_P_R_22_160003",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140045",
+      "codice_integrato": "GUIDA_VIZI_E_DIFETTI_NELL_APPALTO_PRIVATO_RESPONSABILIT_DELL_APPALTATORE_ARTT__140045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170030",
+      "codice_integrato": "GUIDA_CONCORRENZA_SLEALE_NON_CONFUSORIA_DENIGRAZIONE_APPROPRIAZIONE_PREGI_E_AT_170030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "111050",
+      "codice_integrato": "GUIDA_DIVORZIO_CONGIUNTO_E_CESSAZIONE_DEGLI_EFFETTI_CIVILI_DEL_MATRIMONIO_ART__111050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 9
+}

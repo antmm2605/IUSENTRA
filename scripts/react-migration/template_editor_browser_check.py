@@ -11,17 +11,17 @@ from playwright.sync_api import sync_playwright
 
 
 BASE = "http://127.0.0.1:8080"
-VERSION = "2.249.14"
+VERSION = "2.249.15"
 FASCICOLO_ID = "2DE106E6"
 ROUTE = f"/template-atti/compila/CIV_COM_001?id_fascicolo={FASCICOLO_ID}"
 URL = f"{BASE}{ROUTE}"
 ARTIFACT_DIR = Path("artifacts/react-migration")
-REPORT_PATH = ARTIFACT_DIR / "template-editor-browser-2.249.14.json"
-DOWNLOAD_DIR = ARTIFACT_DIR / "template-editor-downloads-2.249.14"
+REPORT_PATH = ARTIFACT_DIR / "template-editor-browser-2.249.15.json"
+DOWNLOAD_DIR = ARTIFACT_DIR / "template-editor-downloads-2.249.15"
 SCREENSHOTS = {
-    "desktop": ARTIFACT_DIR / "template-editor-2.249.14-desktop.png",
-    "tablet": ARTIFACT_DIR / "template-editor-2.249.14-tablet.png",
-    "mobile": ARTIFACT_DIR / "template-editor-2.249.14-mobile.png",
+    "desktop": ARTIFACT_DIR / "template-editor-2.249.15-desktop.png",
+    "tablet": ARTIFACT_DIR / "template-editor-2.249.15-tablet.png",
+    "mobile": ARTIFACT_DIR / "template-editor-2.249.15-mobile.png",
 }
 
 
@@ -43,11 +43,21 @@ class BrowserCheck:
 
     @staticmethod
     def editor_raw(page) -> str:
-        return page.locator('[data-testid="professional-template-editor"]').input_value(timeout=15000)
+        return page.locator('[data-testid="professional-template-editor"]').evaluate(
+            "el => el.innerText || el.textContent || ''",
+            timeout=15000,
+        )
 
     @staticmethod
     def editor_preview(page) -> str:
-        return page.locator(".iu-template-pro-paper__body-preview").inner_text(timeout=15000)
+        return page.locator('[data-testid="professional-template-editor"]').inner_text(timeout=15000)
+
+    @staticmethod
+    def editor_html(page) -> str:
+        return page.locator('[data-testid="professional-template-editor"]').evaluate(
+            "el => el.innerHTML || ''",
+            timeout=15000,
+        )
 
     @staticmethod
     def visible_text(page) -> str:
@@ -254,10 +264,47 @@ class BrowserCheck:
             page.wait_for_timeout(300)
             font_family = page.locator(".iu-template-pro-paper").evaluate("el => getComputedStyle(el).fontFamily")
             self.record("cambio font documento", "Times New Roman" in font_family, font_family)
+            page.evaluate(
+                """() => {
+                    const editor = document.querySelector('[data-testid="professional-template-editor"]');
+                    const target = editor && (editor.querySelector('h1,h2,p,div,li,blockquote') || editor);
+                    const range = document.createRange();
+                    range.selectNodeContents(target);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }"""
+            )
             page.get_by_role("button", name="Centra", exact=True).click()
             page.wait_for_timeout(250)
-            paper_class = page.locator(".iu-template-pro-paper").get_attribute("class") or ""
-            self.record("comando allineamento centra", "iu-template-align--center" in paper_class, paper_class)
+            alignment_state = page.locator('[data-testid="professional-template-editor"]').evaluate(
+                """(editor) => {
+                    const target = editor.querySelector('h1,h2,p,div,li,blockquote') || editor;
+                    const paper = document.querySelector('.iu-template-pro-paper');
+                    return {
+                        blockAlign: getComputedStyle(target).textAlign,
+                        inlineStyle: target.getAttribute('style') || '',
+                        paperClass: paper ? paper.getAttribute('class') : '',
+                    };
+                }"""
+            )
+            self.record(
+                "comando allineamento centra",
+                str(alignment_state.get("blockAlign", "")).lower() in {"center", "-webkit-center"}
+                and "iu-template-align--center" not in str(alignment_state.get("paperClass", "")),
+                alignment_state,
+            )
+            page.locator('[data-testid="professional-template-editor"]').click()
+            page.keyboard.press("Control+A")
+            page.get_by_role("button", name="Grassetto", exact=True).click()
+            page.wait_for_timeout(250)
+            bold_text = self.editor_raw(page)
+            bold_html = self.editor_html(page).lower()
+            self.record(
+                "grassetto non inserisce markdown",
+                "**" not in bold_text and ("<b" in bold_html or "<strong" in bold_html),
+                {"text": bold_text[:200], "html": bold_html[:300]},
+            )
 
             page.get_by_role("button", name="Stile", exact=True).click()
             before = page.locator(".iu-template-pro-paper__stamp").bounding_box()
@@ -293,8 +340,13 @@ class BrowserCheck:
             page.get_by_text("Istruzioni personalizzate per Lex").locator("xpath=ancestor::label").locator("textarea").fill(
                 "Mantieni tono professionale, chiaro e adatto al cliente."
             )
+            proposal_count_before = page.locator(".iu-template-pro-diff-card").count()
             page.get_by_role("button", name="Genera clausola", exact=True).click()
-            page.wait_for_selector(".iu-template-pro-diff-card", timeout=10000)
+            page.wait_for_function(
+                """(count) => document.querySelectorAll('.iu-template-pro-diff-card').length > count""",
+                arg=proposal_count_before,
+                timeout=15000,
+            )
             first_card = page.locator(".iu-template-pro-diff-card").first
             first_proposal_text = first_card.locator("textarea").input_value(timeout=10000)
             self.record("Lex genera proposta in diff", "Clausola proposta:" in first_proposal_text, first_proposal_text[:600])

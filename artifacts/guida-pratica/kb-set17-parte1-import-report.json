@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (13).zip::kb_set17_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set17_p1.json",
+  "sha256": "A5CCD8939A34577AC90179102615D9DE9939331082F367E88322CF8F45B7EB2B",
+  "changed": false,
+  "macro_area_id": "SET17_PARTE1",
+  "denominazione": "Diciassettesimo set - 9 nuovi codici - PARTE 1 di 2",
+  "codici_materia_originali": [
+    "120050",
+    "145010",
+    "190020",
+    "130055",
+    "413005"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_RIDUZIONE_PER_LESIONE_DELLA_QUOTA_DI_LEGITTIMA_ARTT_553_564_C__120050",
+    "GUIDA_LOCAZIONE_COMMERCIALE_SFRATTO_PER_MOROSIT_DINIEGO_DI_RINNOVO_E_INDENNIT__145010",
+    "GUIDA_SEQUESTRO_GIUDIZIARIO_DI_BENI_CONTROVERSI_ART_670_C_P_C_190020",
+    "GUIDA_LUCI_E_VEDUTE_TRA_FONDI_CONTIGUI_APERTURA_DISTANZE_E_TUTELA_ARTT_900_907_130055",
+    "GUIDA_DIVISIONE_GIUDIZIALE_DELL_EREDIT_ARTT_713_768_C_C_E_SCIOGLIMENTO_COMUNIO_413005"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "120050",
+      "codice_integrato": "GUIDA_AZIONE_DI_RIDUZIONE_PER_LESIONE_DELLA_QUOTA_DI_LEGITTIMA_ARTT_553_564_C__120050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "145010",
+      "codice_integrato": "GUIDA_LOCAZIONE_COMMERCIALE_SFRATTO_PER_MOROSIT_DINIEGO_DI_RINNOVO_E_INDENNIT__145010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190020",
+      "codice_integrato": "GUIDA_SEQUESTRO_GIUDIZIARIO_DI_BENI_CONTROVERSI_ART_670_C_P_C_190020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130055",
+      "codice_integrato": "GUIDA_LUCI_E_VEDUTE_TRA_FONDI_CONTIGUI_APERTURA_DISTANZE_E_TUTELA_ARTT_900_907_130055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413005",
+      "codice_integrato": "GUIDA_DIVISIONE_GIUDIZIALE_DELL_EREDIT_ARTT_713_768_C_C_E_SCIOGLIMENTO_COMUNIO_413005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 11
+}

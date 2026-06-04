@@ -102,6 +102,7 @@ export type TemplateEditorLayout = {
   paragraphSpacing?: number
   signatureSpacing?: number
   stampPosition?: string
+  stampOffsetY?: number
   printCleanPlaceholders?: boolean
 }
 
@@ -499,6 +500,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     paragraphSpacing: 8,
     signatureSpacing: 42,
     stampPosition: 'top-center',
+    stampOffsetY: 0,
     printCleanPlaceholders: false,
   },
   editorWorkflow: [],
@@ -824,6 +826,7 @@ function normaliseEditorLayout(input: unknown): TemplateEditorLayout {
     paragraphSpacing: Number(item.paragraphSpacing || item.paragraph_spacing_pt || fallback.paragraphSpacing),
     signatureSpacing: Number(item.signatureSpacing || item.signature_spacing_pt || fallback.signatureSpacing),
     stampPosition: text(item.stampPosition) || text(item.stamp_position) || fallback.stampPosition,
+    stampOffsetY: Number(item.stampOffsetY ?? item.stamp_offset_y_mm ?? fallback.stampOffsetY ?? 0),
     printCleanPlaceholders: item.printCleanPlaceholders === true || item.print_clean_placeholders === true,
   }
 }

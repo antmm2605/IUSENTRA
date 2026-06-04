@@ -274,17 +274,16 @@
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  function showAgentScreenFrame(frame) {
-    if (!localAgentPreview || !frame?.image) return;
-    localAgentPreview.src = frame.image;
-    localAgentPreview.classList.remove("d-none");
+  function markScreenSharedForOperator() {
     if (localPreview) {
       localPreview.classList.add("d-none");
       localPreview.srcObject = null;
     }
+    localAgentPreview?.classList.add("d-none");
+    if (localAgentPreview) localAgentPreview.src = "";
     if (localPreviewFallback) {
-      localPreviewFallback.classList.add("d-none");
-      localPreviewFallback.textContent = "Schermo condiviso tramite agente locale IUSENTRA Assistenza.";
+      localPreviewFallback.classList.remove("d-none");
+      localPreviewFallback.textContent = "Schermo condiviso: la visualizzazione è disponibile nella console del SUPERADMIN.";
     }
   }
 
@@ -297,7 +296,7 @@
         max_width: 1600,
         quality: 58,
       });
-      showAgentScreenFrame(frame);
+      markScreenSharedForOperator();
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: "screen_frame",
@@ -311,7 +310,7 @@
       }
     } catch (error) {
       console.error(error);
-      setStatus(`Errore visualizzazione schermo: ${error.message}`);
+      setStatus(`Errore condivisione schermo: ${error.message}`);
     }
   }
 
@@ -559,10 +558,15 @@
       track.enabled = !customerMicMuted;
     });
     syncCustomerMicUi();
-    localPreview?.classList.remove("d-none");
-    if (localPreview) localPreview.srcObject = localStream;
+    if (localPreview) {
+      localPreview.classList.add("d-none");
+      localPreview.srcObject = null;
+    }
     localAgentPreview?.classList.add("d-none");
-    localPreviewFallback?.classList.add("d-none");
+    if (localPreviewFallback) {
+      localPreviewFallback.classList.remove("d-none");
+      localPreviewFallback.textContent = "Schermo condiviso: la visualizzazione è disponibile nella console del SUPERADMIN.";
+    }
 
     const videoTrack = screenStream.getVideoTracks()[0];
     if (videoTrack) {
@@ -665,11 +669,14 @@
     syncStartButtonUi();
     if (localPreview) {
       localPreview.srcObject = null;
-      localPreview.classList.remove("d-none");
+      localPreview.classList.add("d-none");
     }
     localAgentPreview?.classList.add("d-none");
     if (localAgentPreview) localAgentPreview.src = "";
     localPreviewFallback?.classList.remove("d-none");
+    if (localPreviewFallback && enableRestart) {
+      localPreviewFallback.textContent = "Dopo il consenso lo schermo sarà visibile solo al SUPERADMIN collegato, non in questa pagina.";
+    }
     if (enableRestart) {
       syncStartButtonUi();
     }

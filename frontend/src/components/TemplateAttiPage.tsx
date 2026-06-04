@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, HelpCircle, Italic, Layers, List, ListOrdered, Move, Palette, Plus, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound, XCircle } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, Heading1, Heading2, HelpCircle, Highlighter, IndentDecrease, IndentIncrease, Italic, Layers, List, ListOrdered, Move, Palette, Pilcrow, Plus, Quote, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound, XCircle } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -160,6 +160,95 @@ function htmlToPlainText(html: string) {
   const node = document.createElement('div')
   node.innerHTML = html
   return node.innerText || node.textContent || ''
+}
+
+function escapeHtml(value: string) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function inlineEditorHtml(value: string) {
+  return escapeHtml(value).replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '<br>')
+}
+
+function looksLikeEditorHtml(value: string) {
+  return /<(p|div|h[1-6]|ul|ol|li|blockquote|br|strong|b|em|i|u|s|span|font)\b/i.test(String(value || ''))
+}
+
+function plainTextToEditorHtml(value: string) {
+  const clean = String(value || '').replace(/\r/g, '').trim()
+  if (!clean) return '<p><br></p>'
+  return clean
+    .split(/\n\s*\n/g)
+    .map((block, index) => {
+      const lines = block.split('\n').map((line) => line.trim()).filter(Boolean)
+      if (!lines.length) return ''
+      const joined = lines.map(escapeHtml).join('<br>')
+      const first = lines[0] || ''
+      if (index <= 1 && first.length <= 96 && first === first.toUpperCase() && /[A-ZÀ-Ù]/.test(first)) {
+        return `<h2>${joined}</h2>`
+      }
+      if (/^\d+\.\s+/.test(first) && lines.every((line) => /^\d+\.\s+/.test(line))) {
+        return `<ol>${lines.map((line) => `<li>${escapeHtml(line.replace(/^\d+\.\s+/, ''))}</li>`).join('')}</ol>`
+      }
+      if (/^-\s+/.test(first) && lines.every((line) => /^-\s+/.test(line))) {
+        return `<ul>${lines.map((line) => `<li>${escapeHtml(line.replace(/^-\s+/, ''))}</li>`).join('')}</ul>`
+      }
+      return `<p>${joined}</p>`
+    })
+    .filter(Boolean)
+    .join('\n') || '<p><br></p>'
+}
+
+function draftToEditorHtml(value: string) {
+  const clean = String(value || '').trim()
+  return looksLikeEditorHtml(clean) ? clean : plainTextToEditorHtml(clean)
+}
+
+function editorHtmlToPlainText(html: string) {
+  return htmlToPlainText(html)
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function resolveDraftHtmlPlaceholders(html: string, fields: TemplateCompilerField[], values: Record<string, string>) {
+  let resolved = String(html || '')
+  fields.forEach((field) => {
+    const value = fieldValueForDraft(field, values)
+    if (!value) return
+    resolved = resolved.replaceAll(placeholderName(field), escapeHtml(value))
+  })
+  return resolved
+}
+
+function replaceFieldPlaceholderInHtml(html: string, field: TemplateCompilerField, value: string, previousValue: string) {
+  const token = placeholderName(field)
+  const formattedValue = field.type === 'date' ? legalDateValue(value) : value
+  const replacement = formattedValue.trim() ? inlineEditorHtml(formattedValue) : token
+  if (html.includes(token)) return html.replaceAll(token, replacement)
+  const previous = String(previousValue || '').trim()
+  if (!previous || previous === token || previous === value) return html
+  const escapedPrevious = inlineEditorHtml(field.type === 'date' ? legalDateValue(previous) : previous)
+  return html.includes(escapedPrevious) ? html.replaceAll(escapedPrevious, replacement) : html
+}
+
+function stripHtmlStampFromDraft(html: string, data: TemplateCompilerData) {
+  const text = stripFixedStampFromDraft(editorHtmlToPlainText(html), data)
+  return plainTextToEditorHtml(text)
+}
+
+function fontLabelByKey(data: TemplateCompilerData, key: string) {
+  return data.fontRegistry.fonts.find((font) => font.key === key)?.label || key || 'Times New Roman'
+}
+
+function normaliseClipboardHtml(html: string, data: TemplateCompilerData) {
+  return stripHtmlStampFromDraft(html, data)
 }
 
 function fieldForPlaceholder(fields: TemplateCompilerField[], token: string) {
@@ -789,6 +878,7 @@ type TemplateEditorTab = 'Campi' | 'Stile' | 'Lex' | 'Fonti' | 'Controlli' | 'Ex
 type ImportedDocumentInfo = {
   fileName: string
   text: string
+  html?: string
   fonts: string[]
   encoding: string
   note: string
@@ -811,13 +901,13 @@ type TemplateEditorProps = {
   onBodyLineHeightChange: (value: number) => void
   onEditorLayoutChange: (value: Partial<TemplateEditorLayout>) => void
   onImport: () => void
-  onPreviewPdf: (draftOverride?: string) => void
-  onDownloadWord: (draftOverride?: string) => void
-  onDownloadRtf: (draftOverride?: string, targetModelCode?: string) => void
-  onDownloadMultipleRtf: (targetModelCodes: string[], draftOverride?: string) => void
+  onPreviewPdf: (draftOverride?: string, htmlOverride?: string) => void
+  onDownloadWord: (draftOverride?: string, htmlOverride?: string) => void
+  onDownloadRtf: (draftOverride?: string, targetModelCode?: string, htmlOverride?: string) => void
+  onDownloadMultipleRtf: (targetModelCodes: string[], draftOverride?: string, htmlOverride?: string) => void
   onRefreshPreview: (draftOverride?: string) => void
-  onSave: (draftOverride?: string) => void | Promise<string>
-  onPrepareSignature: (draftOverride?: string) => void
+  onSave: (draftOverride?: string, htmlOverride?: string) => void | Promise<string>
+  onPrepareSignature: (draftOverride?: string, htmlOverride?: string) => void
 }
 
 function placeholderName(field: TemplateCompilerField) {
@@ -956,7 +1046,7 @@ function buildLocalLexProposal(action: TemplateLexAction, data: TemplateCompiler
       mode: action.mode,
       title: action.label,
       original: missingPlaceholder || '[CAMPO_VARIABILE]',
-      proposed: missingPlaceholder ? `Completa ${missingPlaceholder} prima dell'export finale.` : 'Nessun placeholder non compilato rilevato nel testo visibile.',
+      proposed: missingPlaceholder ? `Completa ${missingPlaceholder} prima dell'esportazione finale.` : 'Nessun placeholder non compilato rilevato nel testo visibile.',
       reason: 'Controllo campi variabili con applicazione solo su conferma.',
       risk: missingPlaceholder ? 'warning' : 'success',
       status: 'pending',
@@ -1091,6 +1181,8 @@ function ProfessionalTemplateEditorWorkspace({
   const [multipleOpen, setMultipleOpen] = useState(false)
   const [multipleSelection, setMultipleSelection] = useState<Record<string, boolean>>({})
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+  const [contextClienteId, setContextClienteId] = useState(data.selectors.selectedClienteId || '')
+  const [contextFascicoloId, setContextFascicoloId] = useState(data.selectors.selectedFascicoloId || '')
   const [documentFont, setDocumentFont] = useState(data.editorLayout.fontFamily || data.fontRegistry.defaults.document)
   const [headingFont, setHeadingFont] = useState(data.editorLayout.headingFontFamily || data.fontRegistry.defaults.heading)
   const [uiFont, setUiFont] = useState(data.editorLayout.uiFontFamily || data.fontRegistry.defaults.ui)
@@ -1098,13 +1190,16 @@ function ProfessionalTemplateEditorWorkspace({
   const [fallbackFont, setFallbackFont] = useState(data.editorLayout.fallbackFontFamily || data.fontRegistry.defaults.fallback)
   const [stylePreset, setStylePreset] = useState(data.editorLayout.stylePreset || data.fontRegistry.defaults.stylePreset)
   const [textAlign, setTextAlign] = useState(data.editorLayout.textAlign || 'justify')
-  const [stampPosition, setStampPosition] = useState('top-center')
+  const [stampPosition, setStampPosition] = useState(data.editorLayout.stampPosition || 'top-center')
+  const [stampOffsetY, setStampOffsetY] = useState(Number(data.editorLayout.stampOffsetY || 0))
   const [activeLexMode, setActiveLexMode] = useState(data.lexRevision.modes[0] || 'Correttore')
   const [customInstructions, setCustomInstructions] = useState('')
   const [proposals, setProposals] = useState<TemplateLexProposal[]>(data.lexRevision.seedProposals)
   const [auditRows, setAuditRows] = useState<string[]>([])
   const [workspaceStatus, setWorkspaceStatus] = useState('')
-  const editorRef = useRef<HTMLTextAreaElement>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const savedSelectionRef = useRef<Range | null>(null)
+  const lastPlainDraftFromEditorRef = useRef('')
   const panelRef = useRef<HTMLDivElement>(null)
   const selectedTemplate = data.templateExamples.find((item) => item.id === selectedTemplateId) || data.templateExamples.find((item) => item.selected) || data.templateExamples[0]
   const categories = useMemo(() => TEMPLATE_CATEGORY_TABS, [])
@@ -1121,10 +1216,6 @@ function ProfessionalTemplateEditorWorkspace({
   const lexActions = data.lexRevision.actions
   const statusText = [workspaceStatus, importStatus, pdfStatus].filter(Boolean).join(' ')
   const baseDraftText = draftText
-  const resolvedDraftText = useMemo(
-    () => resolveDraftPlaceholders(baseDraftText, fields, fieldValues),
-    [baseDraftText, fields, fieldValues],
-  )
   const editorClassName = [
     'iu-template-pro-editor',
     fontVariantClass('iu-template-ui-font', uiFont, 'inter'),
@@ -1140,6 +1231,8 @@ function ProfessionalTemplateEditorWorkspace({
     `iu-template-stamp-position--${classToken(stampPosition, 'top_center')}`,
   ].join(' ')
 
+  const stampRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const values: Record<string, string> = {}
     fields.forEach((field) => {
@@ -1148,7 +1241,19 @@ function ProfessionalTemplateEditorWorkspace({
     setFieldValues(values)
     setSelectedTemplateId((current) => current || data.templateExamples.find((item) => item.selected)?.id || data.templateExamples[0]?.id || '')
     setProposals(data.lexRevision.seedProposals)
+    setStampPosition(data.editorLayout.stampPosition || 'top-center')
+    setStampOffsetY(Number(data.editorLayout.stampOffsetY || 0))
+    setContextClienteId(data.selectors.selectedClienteId || '')
+    setContextFascicoloId(data.selectors.selectedFascicoloId || '')
   }, [data.model.code])
+
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    if (baseDraftText === lastPlainDraftFromEditorRef.current && editor.innerHTML.trim()) return
+    editor.innerHTML = draftToEditorHtml(baseDraftText)
+    lastPlainDraftFromEditorRef.current = editorHtmlToPlainText(editor.innerHTML)
+  }, [baseDraftText, data.model.code])
 
   useEffect(() => {
     onEditorLayoutChange({
@@ -1162,8 +1267,9 @@ function ProfessionalTemplateEditorWorkspace({
       lineHeight: bodyLineHeight,
       textAlign,
       stampPosition,
+      stampOffsetY,
     })
-  }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign, stampPosition, data.model.code])
+  }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign, stampPosition, stampOffsetY, data.model.code])
 
   const setTab = (tab: TemplateEditorTab) => {
     setActiveTab(tab)
@@ -1174,46 +1280,124 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const updateField = (field: TemplateCompilerField, value: string) => {
+    const previousValue = fieldValues[field.name] || fieldDisplayValue(field)
+    const editor = editorRef.current
+    if (editor) {
+      const nextHtml = replaceFieldPlaceholderInHtml(editor.innerHTML, field, value, previousValue)
+      if (nextHtml !== editor.innerHTML) {
+        editor.innerHTML = nextHtml
+        lastPlainDraftFromEditorRef.current = editorHtmlToPlainText(nextHtml)
+        onDraftTextChange(lastPlainDraftFromEditorRef.current)
+      }
+    }
     setFieldValues((current) => ({ ...current, [field.name]: value }))
     setWorkspaceStatus(`${field.label} aggiornato nell'anteprima; il segnaposto resta modificabile nel template.`)
   }
 
-  const editorSegments = useMemo(
-    () => String(baseDraftText).split(/(\[[A-Z0-9_]+\])/g),
-    [data.model.code, draftText, fieldValues],
-  )
-
-  const replaceEditorSelection = (replacement: string) => {
+  const saveSelection = () => {
     const editor = editorRef.current
-    const currentText = baseDraftText
-    const start = editor?.selectionStart ?? currentText.length
-    const end = editor?.selectionEnd ?? currentText.length
-    const nextText = `${currentText.slice(0, start)}${replacement}${currentText.slice(end)}`
-    onDraftTextChange(nextText)
-    window.setTimeout(() => {
-      editorRef.current?.focus()
-      const cursor = start + replacement.length
-      editorRef.current?.setSelectionRange(cursor, cursor)
-    }, 0)
+    const stamp = stampRef.current
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return
+    const range = selection.getRangeAt(0)
+    if ((editor && editor.contains(range.commonAncestorContainer)) || (stamp && stamp.contains(range.commonAncestorContainer))) {
+      savedSelectionRef.current = range.cloneRange()
+    }
+  }
+
+  const restoreSelection = () => {
+    const editor = editorRef.current
+    const stamp = stampRef.current
+    if (!editor) return false
+    editor.focus()
+    const selection = window.getSelection()
+    if (!selection) return false
+    selection.removeAllRanges()
+    if (
+      savedSelectionRef.current
+      && ((editor && editor.contains(savedSelectionRef.current.commonAncestorContainer)) || (stamp && stamp.contains(savedSelectionRef.current.commonAncestorContainer)))
+    ) {
+      selection.addRange(savedSelectionRef.current)
+      return true
+    }
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    range.collapse(false)
+    selection.addRange(range)
+    savedSelectionRef.current = range.cloneRange()
+    return true
+  }
+
+  const editorHtml = () => editorRef.current?.innerHTML || draftToEditorHtml(baseDraftText)
+  const editorPlainText = () => editorHtmlToPlainText(editorHtml())
+  const exportPlainText = () => resolveDraftPlaceholders(stripFixedStampFromDraft(editorPlainText(), data), fields, fieldValues)
+  const exportHtml = () => resolveDraftHtmlPlaceholders(normaliseClipboardHtml(editorHtml(), data), fields, fieldValues)
+
+  const syncEditorToDraft = (status?: string) => {
+    const plain = editorPlainText()
+    lastPlainDraftFromEditorRef.current = plain
+    onDraftTextChange(plain)
+    saveSelection()
+    if (status) setWorkspaceStatus(status)
+  }
+
+  const setEditorContentFromText = (text: string, status?: string) => {
+    const editor = editorRef.current
+    const html = draftToEditorHtml(text)
+    if (editor) {
+      editor.innerHTML = html
+      editor.focus()
+    }
+    lastPlainDraftFromEditorRef.current = editorHtmlToPlainText(html)
+    onDraftTextChange(lastPlainDraftFromEditorRef.current)
+    if (status) setWorkspaceStatus(status)
+  }
+
+  const hasEditorSelection = () => {
+    const editor = editorRef.current
+    const stamp = stampRef.current
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false
+    const container = selection.getRangeAt(0).commonAncestorContainer
+    return Boolean((editor && editor.contains(container)) || (stamp && stamp.contains(container)))
+  }
+
+  const insertEditorHtml = (html: string, status?: string) => {
+    restoreSelection()
+    document.execCommand('insertHTML', false, html)
+    syncEditorToDraft(status)
+  }
+
+  const insertEditorText = (text: string, status?: string) => {
+    restoreSelection()
+    document.execCommand('insertText', false, text)
+    syncEditorToDraft(status)
   }
 
   const insertDocumentBlock = (text: string) => {
-    const block = text.trim()
+    const block = String(text || '').trim()
     if (!block) return
-    const editor = editorRef.current
-    const currentText = baseDraftText
-    const start = editor?.selectionStart ?? currentText.length
-    const end = editor?.selectionEnd ?? currentText.length
-    const before = currentText.slice(0, start)
-    const after = currentText.slice(end)
-    const prefix = before.trimEnd() ? '\n\n' : ''
-    const suffix = after.trimStart() ? '\n\n' : ''
-    replaceEditorSelection(`${prefix}${block}${suffix}`)
+    insertEditorHtml(plainTextToEditorHtml(block), 'Testo inserito nel documento.')
   }
 
   const insertFieldToken = (field: TemplateCompilerField) => {
-    replaceEditorSelection(placeholderName(field))
-    setWorkspaceStatus(`Campo ${field.label} associato al documento.`)
+    insertEditorText(placeholderName(field), `Campo ${field.label} associato al documento.`)
+  }
+
+  const applyContextSelection = () => {
+    const params = new URLSearchParams(window.location.search)
+    if (contextClienteId) params.set('id_cliente', contextClienteId)
+    else params.delete('id_cliente')
+    if (contextFascicoloId) {
+      params.set('id_fascicolo', contextFascicoloId)
+      params.set('case_id', contextFascicoloId)
+    } else {
+      params.delete('id_fascicolo')
+      params.delete('case_id')
+    }
+    const suffix = params.toString()
+    setWorkspaceStatus('Ricarico il template con cliente e fascicolo selezionati.')
+    window.location.assign(`${window.location.pathname}${suffix ? `?${suffix}` : ''}`)
   }
 
   const openTemplateFromSidebar = (item: TemplateExample) => {
@@ -1259,57 +1443,12 @@ function ProfessionalTemplateEditorWorkspace({
       setWorkspaceStatus('Seleziona almeno un modello per la compilazione multipla.')
       return
     }
-    onDownloadMultipleRtf(selectedCodes, resolvedDraftText)
+    onDownloadMultipleRtf(selectedCodes, exportPlainText(), exportHtml())
     setWorkspaceStatus(`Archivio RTF in preparazione per ${selectedCodes.length} modelli selezionati.`)
   }
 
   const applyFormat = (command: string) => {
-    const editor = editorRef.current
-    const currentText = baseDraftText
-    const start = editor?.selectionStart ?? currentText.length
-    const end = editor?.selectionEnd ?? currentText.length
-    const selected = currentText.slice(start, end)
-    const replaceSelection = (replacement: string, cursorPosition = start + replacement.length) => {
-      const nextText = `${currentText.slice(0, start)}${replacement}${currentText.slice(end)}`
-      onDraftTextChange(nextText)
-      window.setTimeout(() => {
-        editorRef.current?.focus()
-        editorRef.current?.setSelectionRange(cursorPosition, cursorPosition)
-      }, 0)
-    }
-    const wrapSelection = (before: string, after = before, fallback = 'testo') => {
-      const text = selected || fallback
-      replaceSelection(`${before}${text}${after}`, start + before.length + text.length)
-    }
-    if (command === 'bold') {
-      wrapSelection('**')
-      setWorkspaceStatus('Grassetto applicato al testo selezionato.')
-      return
-    }
-    if (command === 'italic') {
-      wrapSelection('*')
-      setWorkspaceStatus('Corsivo applicato al testo selezionato.')
-      return
-    }
-    if (command === 'underline') {
-      wrapSelection('<u>', '</u>')
-      setWorkspaceStatus('Sottolineato applicato al testo selezionato.')
-      return
-    }
-    if (command === 'strikeThrough') {
-      wrapSelection('<s>', '</s>')
-      setWorkspaceStatus('Barrato applicato al testo selezionato.')
-      return
-    }
-    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
-      const lines = (selected || 'Voce elenco').split(/\r?\n/)
-      const replacement = lines.map((line, index) => (
-        command === 'insertOrderedList' ? `${index + 1}. ${line.replace(/^\s*[-\d.]+\s*/, '')}` : `- ${line.replace(/^\s*[-\d.]+\s*/, '')}`
-      )).join('\n')
-      replaceSelection(replacement)
-      setWorkspaceStatus(command === 'insertOrderedList' ? 'Elenco numerato applicato.' : 'Elenco puntato applicato.')
-      return
-    }
+    restoreSelection()
     if (command === 'justifyLeft' || command === 'justifyCenter' || command === 'justifyRight' || command === 'justifyFull') {
       const nextAlign = command === 'justifyLeft'
         ? 'left'
@@ -1318,20 +1457,74 @@ function ProfessionalTemplateEditorWorkspace({
           : command === 'justifyRight'
             ? 'right'
             : 'justify'
-      setTextAlign(nextAlign)
-      setWorkspaceStatus(
+      document.execCommand(command, false)
+      syncEditorToDraft(
         nextAlign === 'left'
-          ? 'Allineamento a sinistra applicato.'
+          ? 'Allineamento a sinistra applicato alla selezione.'
           : nextAlign === 'center'
-            ? 'Allineamento centrato applicato.'
+            ? 'Allineamento centrato applicato alla selezione.'
             : nextAlign === 'right'
-              ? 'Allineamento a destra applicato.'
-              : 'Testo giustificato applicato.',
+              ? 'Allineamento a destra applicato alla selezione.'
+              : 'Testo selezionato giustificato.',
       )
-      editor?.focus()
       return
     }
-    setWorkspaceStatus('Comando non disponibile in questa modalità dell\'editor.')
+    if (command === 'formatBlock:h1' || command === 'formatBlock:h2' || command === 'formatBlock:p' || command === 'formatBlock:blockquote') {
+      const block = command.split(':')[1]
+      document.execCommand('formatBlock', false, block)
+      syncEditorToDraft(block === 'p' ? 'Paragrafo applicato alla selezione.' : 'Stile blocco applicato alla selezione.')
+      return
+    }
+    if (command === 'hiliteColor') {
+      document.execCommand('hiliteColor', false, '#fff2c2')
+      syncEditorToDraft('Evidenziazione applicata alla selezione.')
+      return
+    }
+    if (command === 'insertHorizontalRule') {
+      insertEditorHtml('<p><br></p>', 'Spazio paragrafo inserito.')
+      return
+    }
+    document.execCommand(command, false)
+    const labels: Record<string, string> = {
+      bold: 'Grassetto applicato alla selezione.',
+      italic: 'Corsivo applicato alla selezione.',
+      underline: 'Sottolineato applicato alla selezione.',
+      strikeThrough: 'Barrato applicato alla selezione.',
+      insertUnorderedList: 'Elenco puntato applicato alla selezione.',
+      insertOrderedList: 'Elenco numerato applicato alla selezione.',
+      indent: 'Rientro aumentato.',
+      outdent: 'Rientro ridotto.',
+      undo: 'Ultima modifica annullata.',
+      redo: 'Modifica ripristinata.',
+    }
+    syncEditorToDraft(labels[command] || 'Comando applicato alla selezione.')
+  }
+
+  const applyFontSelection = (fontKey: string) => {
+    setDocumentFont(fontKey)
+    if (hasEditorSelection()) {
+      restoreSelection()
+      document.execCommand('fontName', false, fontLabelByKey(data, fontKey))
+      syncEditorToDraft('Font applicato alla selezione.')
+      return
+    }
+    setWorkspaceStatus('Font documento applicato.')
+  }
+
+  const applySizeSelection = (size: number) => {
+    onBodyFontSizeChange(size)
+    if (hasEditorSelection()) {
+      restoreSelection()
+      document.execCommand('fontSize', false, '4')
+      editorRef.current?.querySelectorAll('font[size="4"]').forEach((node) => {
+        const element = node as HTMLElement
+        element.style.fontSize = `${size}pt`
+        element.removeAttribute('size')
+      })
+      syncEditorToDraft('Dimensione applicata alla selezione.')
+      return
+    }
+    setWorkspaceStatus('Dimensione corpo documento applicata.')
   }
 
   const applyPreset = (presetKey: string) => {
@@ -1350,10 +1543,69 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const runLexAction = (action: TemplateLexAction) => {
-    const proposal = buildLocalLexProposal(action, data, resolvedDraftText, fields, customInstructions)
-    setProposals((current) => [proposal, ...current])
-    addAudit(`Lex ha creato una proposta "${action.label}".`)
-    setWorkspaceStatus('Proposta Lex pronta: accetta, modifica o rifiuta prima di applicarla.')
+    const fallbackProposal = buildLocalLexProposal(action, data, exportPlainText(), fields, customInstructions)
+    const formData = new FormData()
+    formData.set('model_code', data.model.code)
+    formData.set('title', data.model.name)
+    formData.set('testo_generato', exportPlainText())
+    formData.set('testo_generato_html', exportHtml())
+    formData.set('lex_mode', action.mode)
+    formData.set('lex_action', action.id)
+    if (customInstructions.trim()) formData.set('istruzioni_lex', customInstructions.trim())
+    fields.forEach((field) => formData.set(field.name, fieldValues[field.name] || field.value || ''))
+    formData.set('id_fascicolo', data.selectors.selectedFascicoloId)
+    formData.set('case_id', data.selectors.selectedFascicoloId)
+    formData.set('id_cliente', data.selectors.selectedClienteId)
+    setWorkspaceStatus('Lex sta leggendo template, fascicolo, fonti e testo selezionato...')
+    fetch(`/template-atti/api/assistente-redazionale/${encodeURIComponent(data.model.code)}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(csrfToken() ? { 'X-CSRFToken': csrfToken() } : {}),
+      },
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((payload) => {
+        const analysis = (payload?.analysis || {}) as Record<string, unknown>
+        const issues = Array.isArray(analysis.issues) ? analysis.issues as Array<Record<string, unknown>> : []
+        const nextSteps = Array.isArray(analysis.next_steps) ? analysis.next_steps.map((item) => String(item || '').trim()).filter(Boolean) : []
+        const profile = (analysis.profile || {}) as Record<string, unknown>
+        const schema = (analysis.schema_channel || {}) as Record<string, unknown>
+        const firstIssue = issues.find((issue) => String(issue.title || issue.message || issue.detail || '').trim()) || {}
+        const sourceSummary = [
+          String(schema.label || '').trim(),
+          String(profile.label || '').trim(),
+          String((analysis.contextual_compliance as Record<string, unknown> | undefined)?.sourceLabel || '').trim(),
+        ].filter(Boolean).join(' - ')
+        const remoteProposed = [
+          String(analysis.summary || '').trim(),
+          String(firstIssue.suggested_action || firstIssue.detail || firstIssue.title || '').trim(),
+          nextSteps.slice(0, 3).join('\n'),
+          customInstructions.trim() ? `Istruzioni dell'avvocato: ${customInstructions.trim()}` : '',
+        ].filter(Boolean).join('\n\n') || fallbackProposal.proposed
+        const proposed = action.id === 'genera_clausola' ? fallbackProposal.proposed : remoteProposed
+        const proposal: TemplateLexProposal = {
+          ...fallbackProposal,
+          id: `${action.id}_${Date.now()}`,
+          proposed,
+          reason: sourceSummary
+            ? `Lex ha usato il profilo ${sourceSummary}, i campi del fascicolo e i controlli redazionali disponibili.`
+            : fallbackProposal.reason,
+          risk: issues.some((issue) => String(issue.level || '').toUpperCase() === 'BLOCK') ? 'warning' : fallbackProposal.risk,
+          status: 'pending',
+        }
+        setProposals((current) => [proposal, ...current])
+        addAudit(`Lex ha creato una proposta "${action.label}" con contesto fascicolo e fonti.`)
+        setWorkspaceStatus('Proposta Lex pronta: accetta, modifica o rifiuta prima di applicarla.')
+      })
+      .catch(() => {
+        setProposals((current) => [fallbackProposal, ...current])
+        addAudit(`Lex ha creato una proposta locale "${action.label}".`)
+        setWorkspaceStatus('Proposta Lex locale pronta: accetta, modifica o rifiuta prima di applicarla.')
+      })
   }
 
   const updateProposal = (id: string, proposed: string) => {
@@ -1362,14 +1614,14 @@ function ProfessionalTemplateEditorWorkspace({
 
   const acceptProposal = (proposal: TemplateLexProposal) => {
     if (proposal.status === 'accepted') return
-    const currentText = baseDraftText
+    const currentText = editorPlainText()
     let nextText = currentText
     if (proposal.original && proposal.proposed && currentText.includes(proposal.original)) {
       nextText = currentText.replace(proposal.original, proposal.proposed)
     } else if (proposal.proposed && !proposal.proposed.startsWith('Nessun')) {
       nextText = `${currentText.trim()}\n\n${proposal.proposed}`.trim()
     }
-    onDraftTextChange(nextText)
+    setEditorContentFromText(nextText)
     setProposals((current) => current.map((item) => item.id === proposal.id ? { ...item, status: 'accepted' } : item))
     addAudit(`Proposta accettata: ${proposal.title}.`)
   }
@@ -1384,14 +1636,28 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const copyDocument = () => {
-    navigator.clipboard?.writeText(stripFixedStampFromDraft(resolvedDraftText, data))
+    const plain = exportPlainText()
+    const html = exportHtml()
+    const clipboard = navigator.clipboard
+    if (clipboard && 'write' in clipboard && typeof ClipboardItem !== 'undefined') {
+      clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plain], { type: 'text/plain' }),
+        }),
+      ])
+        .then(() => setWorkspaceStatus('Documento copiato negli appunti con formattazione.'))
+        .catch(() => clipboard.writeText(plain).then(() => setWorkspaceStatus('Documento copiato negli appunti.')).catch(() => setWorkspaceStatus('Copia non disponibile dal browser corrente.')))
+      return
+    }
+    clipboard?.writeText(plain)
       .then(() => setWorkspaceStatus('Documento copiato negli appunti.'))
       .catch(() => setWorkspaceStatus('Copia non disponibile dal browser corrente.'))
   }
 
   const saveCurrentDraft = () => {
     setWorkspaceStatus('Salvo il documento nel fascicolo...')
-    Promise.resolve(onSave(resolvedDraftText))
+    Promise.resolve(onSave(exportPlainText(), exportHtml()))
       .then((link) => {
         if (link) {
           setWorkspaceStatus('Documento salvato nel fascicolo come bozza modificabile.')
@@ -1402,16 +1668,24 @@ function ProfessionalTemplateEditorWorkspace({
 
   const panelTabs: TemplateEditorTab[] = ['Campi', 'Stile', 'Lex', 'Fonti', 'Controlli', 'Export']
   const inlineTools = [
+    { label: 'Catalogo template atti', icon: ArrowLeft, action: () => window.location.assign(data.catalogHref || '/template-atti/catalogo') },
+    { label: 'Titolo principale', icon: Heading1, action: () => applyFormat('formatBlock:h1') },
+    { label: 'Titolo sezione', icon: Heading2, action: () => applyFormat('formatBlock:h2') },
+    { label: 'Paragrafo', icon: Pilcrow, action: () => applyFormat('formatBlock:p') },
     { label: 'Grassetto', icon: Bold, action: () => applyFormat('bold') },
     { label: 'Corsivo', icon: Italic, action: () => applyFormat('italic') },
     { label: 'Sottolineato', icon: Underline, action: () => applyFormat('underline') },
     { label: 'Barrato', icon: Strikethrough, action: () => applyFormat('strikeThrough') },
+    { label: 'Evidenzia', icon: Highlighter, action: () => applyFormat('hiliteColor') },
     { label: 'Allinea a sinistra', icon: AlignLeft, action: () => applyFormat('justifyLeft') },
     { label: 'Centra', icon: AlignCenter, action: () => applyFormat('justifyCenter') },
     { label: 'Allinea a destra', icon: AlignRight, action: () => applyFormat('justifyRight') },
     { label: 'Giustifica', icon: AlignJustify, action: () => applyFormat('justifyFull') },
     { label: 'Elenco puntato', icon: List, action: () => applyFormat('insertUnorderedList') },
     { label: 'Elenco numerato', icon: ListOrdered, action: () => applyFormat('insertOrderedList') },
+    { label: 'Riduci rientro', icon: IndentDecrease, action: () => applyFormat('outdent') },
+    { label: 'Aumenta rientro', icon: IndentIncrease, action: () => applyFormat('indent') },
+    { label: 'Citazione', icon: Quote, action: () => applyFormat('formatBlock:blockquote') },
     { label: 'Annulla', icon: Undo2, action: () => applyFormat('undo') },
     { label: 'Ripristina', icon: Redo2, action: () => applyFormat('redo') },
     { label: 'Segnaposto', icon: Code2, action: () => setTab('Campi') },
@@ -1430,6 +1704,10 @@ function ProfessionalTemplateEditorWorkspace({
           </div>
         </div>
         <div className="iu-template-pro-actions">
+          <button type="button" onClick={() => window.location.assign(data.catalogHref || '/template-atti/catalogo')}>
+            <ArrowLeft size={15} aria-hidden="true" />
+            Catalogo
+          </button>
           <button type="button" className="is-success" disabled={importing} onClick={onImport}>
             <UploadCloud size={15} aria-hidden="true" />
             {importing ? 'Importazione...' : 'Importa documento'}
@@ -1446,24 +1724,24 @@ function ProfessionalTemplateEditorWorkspace({
             <HelpCircle size={15} aria-hidden="true" />
             Guida
           </button>
-          <button type="button" className="is-danger" onClick={() => onDownloadRtf(resolvedDraftText)}>
+          <button type="button" className="is-danger" onClick={() => onDownloadRtf(exportPlainText(), undefined, exportHtml())}>
             <FileDown size={15} aria-hidden="true" />
             Esporta RTF
           </button>
         </div>
       </header>
       <div className="iu-template-pro-toolbar" aria-label="Barra strumenti documento">
-        <select aria-label="Font documento" value={documentFont} onChange={(event) => setDocumentFont(event.currentTarget.value)}>
+        <select aria-label="Font documento" value={documentFont} onChange={(event) => applyFontSelection(event.currentTarget.value)}>
           {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
         </select>
-        <select aria-label="Dimensione testo" value={bodyFontSize} onChange={(event) => onBodyFontSizeChange(Number(event.currentTarget.value))}>
-          {[10, 11, 12, 13, 14, 15, 16, 18, 20].map((size) => <option value={size} key={size}>{size}pt</option>)}
+        <select aria-label="Dimensione testo" value={bodyFontSize} onChange={(event) => applySizeSelection(Number(event.currentTarget.value))}>
+          {[9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22].map((size) => <option value={size} key={size}>{size}pt</option>)}
         </select>
         <div className="iu-template-pro-toolbar__icons">
           {inlineTools.map((tool) => {
             const Icon = tool.icon
             return (
-              <button type="button" title={tool.label} aria-label={tool.label} key={tool.label} onClick={tool.action}>
+              <button type="button" title={tool.label} aria-label={tool.label} key={tool.label} onMouseDown={(event) => event.preventDefault()} onClick={tool.action}>
                 <Icon size={15} aria-hidden="true" />
               </button>
             )
@@ -1508,7 +1786,18 @@ function ProfessionalTemplateEditorWorkspace({
             ))}
           </nav>
           <article className={paperClassName}>
-            <div className="iu-template-pro-paper__stamp">
+            <div
+              ref={stampRef}
+              className="iu-template-pro-paper__stamp"
+              contentEditable
+              suppressContentEditableWarning
+              spellCheck={false}
+              tabIndex={0}
+              onBlur={saveSelection}
+              onKeyUp={saveSelection}
+              onMouseUp={saveSelection}
+              style={{ '--iu-template-stamp-offset-y': `${stampOffsetY}mm` } as CSSProperties}
+            >
               {data.stamp.lines.length ? data.stamp.lines.map((line, index) => (
                 <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
               )) : (
@@ -1519,29 +1808,32 @@ function ProfessionalTemplateEditorWorkspace({
               )}
             </div>
               <div className="iu-template-pro-paper__body-shell">
-                <div className="iu-template-pro-paper__body-preview" aria-hidden="true">
-                  {editorSegments.map((segment, index) => {
-                    if (!/^\[[A-Z0-9_]+\]$/.test(segment)) return <span key={`${index}-text`}>{segment}</span>
-                    const field = fieldForPlaceholder(fields, segment)
-                    const value = field ? fieldValueForDraft(field, fieldValues) : ''
-                    return (
-                      <mark className={`iu-template-pro-placeholder-token${value ? ' is-filled' : ''}`} data-token={segment} key={`${segment}-${index}`}>
-                        {value || segment}
-                      </mark>
-                    )
-                  })}
-                </div>
-                <textarea
+                <div
                   ref={editorRef}
                   className="iu-template-pro-paper__body"
+                  contentEditable
+                  suppressContentEditableWarning
                   spellCheck
                   data-testid="professional-template-editor"
-                  value={baseDraftText}
-                  onChange={(event) => onDraftTextChange(event.currentTarget.value)}
+                  role="textbox"
+                  aria-multiline="true"
+                  onInput={() => syncEditorToDraft()}
+                  onKeyUp={saveSelection}
+                  onMouseUp={saveSelection}
+                  onBlur={saveSelection}
+                  onFocus={saveSelection}
                   aria-label="Corpo documento modificabile"
                 />
               </div>
+              <footer className="iu-template-pro-paper__page-footer">
+                <span>Pagina 1</span>
+                <span>Il timbro viene ripetuto nelle esportazioni su ogni pagina.</span>
+              </footer>
           </article>
+          <div className="iu-template-pro-page-boundary" aria-label="Fine pagina e inizio pagina successiva">
+            <span>Fine pagina 1</span>
+            <strong>Inizio pagina 2</strong>
+          </div>
         </main>
         <aside className="iu-template-pro-fields" aria-label="Pannello editor template">
           <header>
@@ -1563,6 +1855,44 @@ function ProfessionalTemplateEditorWorkspace({
           <div className="iu-template-pro-panel" ref={panelRef}>
             {activeTab === 'Campi' ? (
               <>
+                <section className="iu-template-pro-context-card" aria-label="Cliente e fascicolo collegati">
+                  <header>
+                    <strong>Collegamento IUSENTRA</strong>
+                    <span>{data.selectors.selectedFascicoloLabel || data.selectors.selectedClienteLabel || 'Seleziona cliente e fascicolo'}</span>
+                  </header>
+                  <label>
+                    <span><UserRound size={14} aria-hidden="true" /> Cliente</span>
+                    <select value={contextClienteId} onChange={(event) => {
+                      const nextCliente = event.currentTarget.value
+                      setContextClienteId(nextCliente)
+                      const firstCase = data.selectors.fascicoli.find((item) => !nextCliente || item.clienteId === nextCliente)
+                      if (firstCase && (!contextFascicoloId || data.selectors.fascicoli.find((item) => item.value === contextFascicoloId)?.clienteId !== nextCliente)) {
+                        setContextFascicoloId(firstCase.value)
+                      }
+                    }}>
+                      <option value="">Seleziona cliente</option>
+                      {data.selectors.clienti.map((cliente) => <option value={cliente.value} key={cliente.value}>{cliente.label}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span><BriefcaseBusiness size={14} aria-hidden="true" /> Fascicolo</span>
+                    <select value={contextFascicoloId} onChange={(event) => {
+                      const value = event.currentTarget.value
+                      setContextFascicoloId(value)
+                      const selectedCase = data.selectors.fascicoli.find((item) => item.value === value)
+                      if (selectedCase?.clienteId) setContextClienteId(selectedCase.clienteId)
+                    }}>
+                      <option value="">Seleziona fascicolo</option>
+                      {data.selectors.fascicoli
+                        .filter((fascicolo) => !contextClienteId || !fascicolo.clienteId || fascicolo.clienteId === contextClienteId)
+                        .map((fascicolo) => <option value={fascicolo.value} key={fascicolo.value}>{fascicolo.label}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" onClick={applyContextSelection}>
+                    <RefreshCw size={14} aria-hidden="true" />
+                    Compila con dati fascicolo
+                  </button>
+                </section>
                 {fieldGroups.map((group) => (
                   <section className="iu-template-pro-field-group" key={group.id}>
                     <h3>{group.title}</h3>
@@ -1602,7 +1932,7 @@ function ProfessionalTemplateEditorWorkspace({
                     </dl>
                     <div>
                       <button type="button" onClick={() => { onDraftTextChange(''); setWorkspaceStatus('Pagina vuota pronta per associare i campi del fascicolo.') }}>Pagina vuota</button>
-                      <button type="button" disabled={!importedDocument.text.trim()} onClick={() => { onDraftTextChange(importedDocument.text); setWorkspaceStatus('Testo importato inserito nel template personalizzato.') }}>Inserisci testo importato</button>
+                      <button type="button" disabled={!importedDocument.text.trim() && !String(importedDocument.html || '').trim()} onClick={() => { onDraftTextChange(importedDocument.html || importedDocument.text); setWorkspaceStatus('Documento importato inserito nel template personalizzato.') }}>Inserisci testo importato</button>
                     </div>
                   </section>
                 ) : null}
@@ -1646,7 +1976,7 @@ function ProfessionalTemplateEditorWorkspace({
                   </select>
                 </label>
                 <label>
-                  <span>Fallback export</span>
+                  <span>Fallback esportazione</span>
                   <select value={fallbackFont} onChange={(event) => setFallbackFont(event.currentTarget.value)}>
                     {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
                   </select>
@@ -1668,7 +1998,10 @@ function ProfessionalTemplateEditorWorkspace({
                     ['right', 'Destra'],
                     ['justify', 'Giustifica'],
                   ].map(([value, label]) => (
-                    <button type="button" className={textAlign === value ? 'is-active' : ''} key={value} onClick={() => { setTextAlign(value); setWorkspaceStatus(`Allineamento ${label.toLowerCase()} applicato.`) }}>
+                    <button type="button" className={textAlign === value ? 'is-active' : ''} key={value} onMouseDown={(event) => event.preventDefault()} onClick={() => {
+                      setTextAlign(value)
+                      applyFormat(value === 'left' ? 'justifyLeft' : value === 'center' ? 'justifyCenter' : value === 'right' ? 'justifyRight' : 'justifyFull')
+                    }}>
                       {label}
                     </button>
                   ))}
@@ -1688,6 +2021,16 @@ function ProfessionalTemplateEditorWorkspace({
                       </button>
                     ))}
                   </div>
+                  <label className="iu-template-pro-stamp-offset">
+                    <span>Sposta timbro in alto/basso</span>
+                    <input type="range" min="-40" max="80" value={stampOffsetY} onChange={(event) => {
+                      const value = Number(event.currentTarget.value)
+                      setStampOffsetY(value)
+                      setWorkspaceStatus(value === 0 ? 'Timbro riportato alla posizione base.' : value > 0 ? `Timbro spostato verso il basso di ${value} mm.` : `Timbro spostato verso l'alto di ${Math.abs(value)} mm.`)
+                    }} />
+                    <strong>{stampOffsetY > 0 ? `+${stampOffsetY}` : stampOffsetY} mm</strong>
+                  </label>
+                  <p>Seleziona una riga del timbro o del testo e usa font, dimensione, grassetto o corsivo dalla barra strumenti.</p>
                 </div>
               </section>
             ) : null}
@@ -1697,7 +2040,7 @@ function ProfessionalTemplateEditorWorkspace({
                   <ShieldCheck size={16} aria-hidden="true" />
                   <span>{data.lexRevision.privacyPolicy.message}</span>
                 </div>
-                <div className="iu-template-pro-modes" data-allow-technical-text="true">
+                <div className="iu-template-pro-modes">
                   {data.lexRevision.modes.map((mode) => (
                     <button type="button" className={activeLexMode === mode ? 'is-active' : ''} key={mode} onClick={() => setActiveLexMode(mode)}>
                       {lexModeLabel(mode)}
@@ -1780,13 +2123,13 @@ function ProfessionalTemplateEditorWorkspace({
             ) : null}
             {activeTab === 'Export' ? (
               <section className="iu-template-pro-export">
-                <button type="button" onClick={() => onDownloadRtf(resolvedDraftText)}><Download size={15} aria-hidden="true" />RTF</button>
-                <button type="button" onClick={() => onDownloadWord(resolvedDraftText)}><FileDown size={15} aria-hidden="true" />DOCX</button>
-                <button type="button" onClick={() => onPreviewPdf(resolvedDraftText)}><Eye size={15} aria-hidden="true" />PDF</button>
+                <button type="button" onClick={() => onDownloadRtf(exportPlainText(), undefined, exportHtml())}><Download size={15} aria-hidden="true" />RTF</button>
+                <button type="button" onClick={() => onDownloadWord(exportPlainText(), exportHtml())}><FileDown size={15} aria-hidden="true" />DOCX</button>
+                <button type="button" onClick={() => onPreviewPdf(exportPlainText(), exportHtml())}><Eye size={15} aria-hidden="true" />PDF</button>
                 <button type="button" onClick={copyDocument}><Copy size={15} aria-hidden="true" />Copia</button>
                 <button type="button" disabled={saving} onClick={saveCurrentDraft}><Save size={15} aria-hidden="true" />{saving ? 'Salvataggio...' : 'Salva nel fascicolo'}</button>
-                <button type="button" onClick={() => onPrepareSignature(resolvedDraftText)}><FileSignature size={15} aria-hidden="true" />Firma documento</button>
-                <button type="button" onClick={() => onRefreshPreview(resolvedDraftText)}><RefreshCw size={15} aria-hidden="true" />Rigenera dal template</button>
+                <button type="button" onClick={() => onPrepareSignature(exportPlainText(), exportHtml())}><FileSignature size={15} aria-hidden="true" />Firma documento</button>
+                <button type="button" onClick={() => onRefreshPreview(exportPlainText())}><RefreshCw size={15} aria-hidden="true" />Rigenera dal template</button>
                 {multipleOpen ? (
                   <div className="iu-template-pro-multiple" aria-label="Compilazione multipla">
                     <strong>Compilazione multipla</strong>
@@ -1859,13 +2202,13 @@ function GuidePreviewWorkspace({
   onBodyLineHeightChange: (value: number) => void
   onEditorLayoutChange: (value: Partial<TemplateEditorLayout>) => void
   onImport: () => void
-  onPreviewPdf: (draftOverride?: string) => void
-  onDownloadWord: (draftOverride?: string) => void
-  onDownloadRtf: (draftOverride?: string, targetModelCode?: string) => void
-  onDownloadMultipleRtf: (targetModelCodes: string[], draftOverride?: string) => void
+  onPreviewPdf: (draftOverride?: string, htmlOverride?: string) => void
+  onDownloadWord: (draftOverride?: string, htmlOverride?: string) => void
+  onDownloadRtf: (draftOverride?: string, targetModelCode?: string, htmlOverride?: string) => void
+  onDownloadMultipleRtf: (targetModelCodes: string[], draftOverride?: string, htmlOverride?: string) => void
   onRefreshPreview: (draftOverride?: string) => void
-  onSave: (draftOverride?: string) => void
-  onPrepareSignature: (draftOverride?: string) => void
+  onSave: (draftOverride?: string, htmlOverride?: string) => void
+  onPrepareSignature: (draftOverride?: string, htmlOverride?: string) => void
 }) {
   return (
     <ProfessionalTemplateEditorWorkspace
@@ -2229,14 +2572,17 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       .finally(() => setSubmitting(false))
   }
 
-  const buildGuideFormData = (draftOverride?: string) => {
+  const buildGuideFormData = (draftOverride?: string, htmlOverride?: string) => {
+    const rawDraft = draftOverride ?? guideDraftText ?? guideDraftFromData(data)
+    const richHtml = htmlOverride || draftToEditorHtml(rawDraft)
     const formData = new FormData()
     hiddenQuery.forEach((item) => formData.set(item.name, item.value))
     collectControlData(compilerRef.current).forEach((value, name) => formData.set(name, value))
     formData.set('_react_return', '1')
     formData.set('model_code', data.model.code || modelCode)
     formData.set('title', data.model.name || data.guidePreview.template.name || 'Atto')
-    formData.set('testo_generato', stripFixedStampFromDraft(draftOverride ?? guideDraftText ?? guideDraftFromData(data), data))
+    formData.set('testo_generato', stripFixedStampFromDraft(editorHtmlToPlainText(richHtml), data))
+    formData.set('testo_generato_html', stripHtmlStampFromDraft(richHtml, data))
     formData.set('testo_generato__editor_layout', JSON.stringify({
       font_family: guideEditorLayoutRef.current.fontFamily || data.editorLayout.fontFamily || data.fontRegistry.defaults.document,
       heading_font_family: guideEditorLayoutRef.current.headingFontFamily || data.editorLayout.headingFontFamily || data.fontRegistry.defaults.heading,
@@ -2248,6 +2594,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       line_height: guideLineHeight,
       text_align: guideEditorLayoutRef.current.textAlign || data.editorLayout.textAlign || 'justify',
       stamp_position: guideEditorLayoutRef.current.stampPosition || data.editorLayout.stampPosition || 'top-center',
+      stamp_offset_y_mm: Number(guideEditorLayoutRef.current.stampOffsetY ?? data.editorLayout.stampOffsetY ?? 0),
       page_scale: data.guidePreview.editorLayout.pageScale || 100,
     }))
     formData.set('id_fascicolo', data.selectors.selectedFascicoloId)
@@ -2278,7 +2625,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     previewRenderTimerRef.current = window.setTimeout(refreshGuidePreviewFromCompiler, 700)
   }
 
-  const saveGuidePreview = (draftOverride?: string) => {
+  const saveGuidePreview = (draftOverride?: string, htmlOverride?: string) => {
     if (!data.guidePreview.saveEndpoint) {
       submitCompiler()
       return Promise.resolve('')
@@ -2288,7 +2635,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     setSubmitError('')
     setSubmitMessage('')
     setPdfStatus('')
-    return submitFormJson(data.guidePreview.saveEndpoint, buildGuideFormData(draftOverride))
+    return submitFormJson(data.guidePreview.saveEndpoint, buildGuideFormData(draftOverride, htmlOverride))
       .then((result) => {
         const link = result.editor_url || result.redirect_url || result.redirect || ''
         if (link) setLastSavedEditorUrl(link)
@@ -2307,10 +2654,11 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     status: string,
     success: string,
     draftOverride?: string,
+    htmlOverride?: string,
     configureFormData?: (formData: FormData) => void,
   ) => {
     if (!endpoint) return
-    const formData = buildGuideFormData(draftOverride)
+    const formData = buildGuideFormData(draftOverride, htmlOverride)
     const title = data.model.name || data.guidePreview.template.name || 'Atto'
     if (!String(formData.get('title') || '').trim()) formData.set('title', title)
     if (!String(formData.get('testo_generato') || '').trim()) {
@@ -2338,18 +2686,18 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     setPdfStatus(success)
   }
 
-  const downloadGuideWord = (draftOverride?: string) => {
-    submitGuideDocument(data.guidePreview.wordHref, 'Preparo documento DOCX...', 'Documento DOCX aperto.', draftOverride)
+  const downloadGuideWord = (draftOverride?: string, htmlOverride?: string) => {
+    submitGuideDocument(data.guidePreview.wordHref, 'Preparo documento DOCX...', 'Documento DOCX aperto.', draftOverride, htmlOverride)
   }
 
-  const downloadGuideRtf = (draftOverride?: string, targetModelCode?: string) => {
+  const downloadGuideRtf = (draftOverride?: string, targetModelCode?: string, htmlOverride?: string) => {
     const endpoint = targetModelCode
       ? `/template-atti/compila/${encodeURIComponent(targetModelCode)}/rtf`
       : data.guidePreview.rtfHref
-    submitGuideDocument(endpoint, 'Preparo documento RTF...', 'Documento RTF aperto.', draftOverride)
+    submitGuideDocument(endpoint, 'Preparo documento RTF...', 'Documento RTF aperto.', draftOverride, htmlOverride)
   }
 
-  const downloadGuideMultipleRtf = (targetModelCodes: string[], draftOverride?: string) => {
+  const downloadGuideMultipleRtf = (targetModelCodes: string[], draftOverride?: string, htmlOverride?: string) => {
     const codes = targetModelCodes.map((code) => String(code || '').trim()).filter(Boolean)
     if (!codes.length) {
       setPdfStatus('Seleziona almeno un modello per la compilazione multipla.')
@@ -2360,6 +2708,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       'Preparo archivio RTF...',
       'Archivio RTF aperto.',
       draftOverride,
+      htmlOverride,
       (formData) => {
         formData.delete('model_codes')
         codes.forEach((code) => formData.append('model_codes', code))
@@ -2368,11 +2717,11 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     )
   }
 
-  const previewPdf = (draftOverride?: string) => {
-    submitGuideDocument(data.guidePreview.previewPdfHref, 'Apro anteprima PDF...', 'Anteprima PDF aperta.', draftOverride)
+  const previewPdf = (draftOverride?: string, htmlOverride?: string) => {
+    submitGuideDocument(data.guidePreview.previewPdfHref, 'Apro anteprima PDF...', 'Anteprima PDF aperta.', draftOverride, htmlOverride)
   }
 
-  const prepareSignature = (draftOverride?: string) => {
+  const prepareSignature = (draftOverride?: string, htmlOverride?: string) => {
     const openSignatureFromEditor = (editorUrl: string) => {
       if (/\/fascicoli\/[^/]+\/documenti\/[^/]+\/firma/i.test(String(editorUrl || ''))) {
         window.location.assign(editorUrl)
@@ -2386,7 +2735,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       window.location.assign(`/fascicoli/${encodeURIComponent(match[1])}/documenti/${encodeURIComponent(match[2])}/firma`)
     }
     setPdfStatus('Salvo il documento nel fascicolo prima della firma...')
-    saveGuidePreview(draftOverride).then((link) => {
+    saveGuidePreview(draftOverride, htmlOverride).then((link) => {
       if (link) openSignatureFromEditor(link)
     })
   }
@@ -2409,15 +2758,18 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
         const fonts = Array.isArray(fontPayload)
           ? fontPayload.map((item: unknown) => String(item || '').trim()).filter(Boolean)
           : []
+        const importedHtml = result.tipo === 'html' || result.tipo === 'pdf_layout' ? content : ''
+        const importedText = importedHtml ? htmlToPlainText(content) : content
         setImportedDocument({
           fileName: String(importPayload.filename || file.name || ''),
-          text: result.tipo === 'html' ? htmlToPlainText(content) : content,
+          text: importedText,
+          html: importedHtml,
           fonts,
           encoding: String(importPayload.encoding || importPayload.codifica || ''),
           note: String(importPayload.note || 'Documento importato: puoi associarlo ai campi del fascicolo dal pannello Campi.'),
         })
         if (content.trim()) {
-          setGuideDraftText(result.tipo === 'html' ? htmlToPlainText(content) : content)
+          setGuideDraftText(importedHtml || importedText)
           setImportStatus('Documento importato correttamente. Accenti, font rilevati e campi del fascicolo sono disponibili per il template personalizzato.')
         } else {
           setImportStatus(result.errore || result.message || 'Documento importato, ma senza testo estraibile. Puoi salvarlo come originale dal fascicolo.')

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-03T10:58:26Z",
+  "generated_at": "2026-06-04T19:12:13Z",
   "dry_run": false,
   "sources": [
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base.full.json",
@@ -30,6 +30,13 @@
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set16_p2.json",
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set16_p3.json",
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set16_p4.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set17_p1.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set17_p2.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set18_p1.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set18_p2.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set18_p3.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set19.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_set20.json",
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_codici_frequenti_dettaglio_massimo.json",
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set10_parte1.json",
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set10_parte2.json",
@@ -58,53 +65,53 @@
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_99_completamento_codici_ufficiali.json",
     "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_index.json"
   ],
-  "records": 3266,
+  "records": 3321,
   "by_phase": {
-    "notifica": 2161,
-    "impugnazione": 655,
-    "prescrizione_decadenza": 161,
+    "notifica": 2166,
+    "impugnazione": 662,
+    "prescrizione_decadenza": 195,
     "costituzione": 140,
-    "generico_da_classificare": 74,
+    "generico_da_classificare": 81,
     "deposito": 41,
     "procedimentale": 26,
-    "udienza": 4,
+    "udienza": 6,
     "adempimento_amministrativo": 2,
     "presupposto_temporale": 2
   },
   "by_classification": {
     "manual_review": 2017,
-    "calcolabile_giorni": 975,
-    "termine_lungo_o_prescrizione": 86,
-    "calcolabile_mesi": 85,
-    "informativo_non_calcolabile": 65,
-    "calcolabile_anni_da_verificare": 38
+    "calcolabile_giorni": 985,
+    "termine_lungo_o_prescrizione": 106,
+    "calcolabile_mesi": 90,
+    "informativo_non_calcolabile": 79,
+    "calcolabile_anni_da_verificare": 44
   },
-  "calculable_templates": 1060,
+  "calculable_templates": 1075,
   "csv": "artifacts\\guida-pratica\\termini-processuali-kb-audit.csv",
   "db": "D:\\legale\\IUSENTRA\\data\\scadenziario\\termini_processuali.json",
   "import": {
-    "imported_at": "2026-06-03T10:58:26Z",
-    "records": 3266,
-    "templates_upserted": 1060,
+    "imported_at": "2026-06-04T19:12:13Z",
+    "records": 3321,
+    "templates_upserted": 1075,
     "by_phase": {
-      "notifica": 2161,
-      "impugnazione": 655,
-      "prescrizione_decadenza": 161,
+      "notifica": 2166,
+      "impugnazione": 662,
+      "prescrizione_decadenza": 195,
       "costituzione": 140,
-      "generico_da_classificare": 74,
+      "generico_da_classificare": 81,
       "deposito": 41,
       "procedimentale": 26,
-      "udienza": 4,
+      "udienza": 6,
       "adempimento_amministrativo": 2,
       "presupposto_temporale": 2
     },
     "by_classification": {
       "manual_review": 2017,
-      "calcolabile_giorni": 975,
-      "termine_lungo_o_prescrizione": 86,
-      "calcolabile_mesi": 85,
-      "informativo_non_calcolabile": 65,
-      "calcolabile_anni_da_verificare": 38
+      "calcolabile_giorni": 985,
+      "termine_lungo_o_prescrizione": 106,
+      "calcolabile_mesi": 90,
+      "informativo_non_calcolabile": 79,
+      "calcolabile_anni_da_verificare": 44
     }
   }
 }

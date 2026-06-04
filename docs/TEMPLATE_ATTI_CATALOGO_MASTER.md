@@ -70,3 +70,22 @@ Usare gli script dedicati invece di modificare a mano 420 voci:
 - `python scripts/template_atti/sync_split_catalogs.py`
 
 Il report viene scritto in `artifacts/template-atti/cartabia-catalog-coverage.md` e mantiene conteggi master, split, prefill, timbro automatico e stati Cartabia.
+
+## Aggiornamento editor 2026-06-04
+
+La compilazione dei template master e dei modelli operativi passa dallo stesso
+editor professionale `/template-atti/compila/<codice>`:
+
+- cliente e fascicolo sono associabili prima della compilazione o dal pannello
+  `Collegamento IUSENTRA`;
+- i dati automatici leggibili dal fascicolo alimentano destinatario/ufficio
+  giudiziario, cliente/mittente, controparte/destinatario, R.G., materia e dati
+  pratica;
+- toolbar, font, allineamenti, timbro, import/export, copia, salvataggio,
+  compilazione multipla e firma operano sul documento corrente;
+- Lex produce solo proposte in diff accettabili o rifiutabili, senza modifiche
+  automatiche.
+
+Il giro browser reale `2.249.15` su Docker locale `127.0.0.1:8080` ha confermato
+74/74 controlli per editor, collegamento fascicolo, Guida Pratica, Lex, import,
+export e responsive.

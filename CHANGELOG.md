@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.249.15 - 2026-06-04
+
+- Reso l'editor template atti un vero editor documento: `contenteditable` con selezione reale, grassetto/corsivo/sottolineato/evidenziatore/allineamenti/liste/rientri/citazione/undo/redo applicati alla selezione e non all'intero blocco, toolbar sticky durante lo scroll e ritorno diretto al catalogo.
+- Aggiunto il collegamento operativo cliente/fascicolo dentro la compilazione: il pannello `Collegamento IUSENTRA` filtra i fascicoli per cliente e ricompila il template con dati studio, cliente, controparte, ufficio giudiziario, R.G., materia e dati pratica leggibili dal fascicolo.
+- Esteso il timbro studio: posizione alto sinistra/centro/destra e centro sinistra/destra, offset verticale regolabile, testo modificabile e formattabile, rimozione della linea superiore della pagina e ripetizione del timbro negli export RTF/DOCX/PDF.
+- Rafforzati import/export: DOCX con HTML, PDF con estrazione layout/font/dimensioni quando disponibili, RTF/TXT con accenti italiani corretti; export RTF/DOCX/PDF usa il contenuto HTML dell'editor, include il timbro e mantiene formattazione di base, copia HTML/testo funzionante, salvataggio fascicolo e flusso firma collegati al documento corrente.
+- Lex nell'editor usa azioni redazionali locali con controlli placeholder, `legal_basis`, privacy/PII e istruzioni personalizzate; le proposte restano sempre in diff accettabile/rifiutabile e non applicano modifiche senza conferma.
+- Integrati i materiali utente `files (10).zip` - `files (14).zip`, `kb_set19.json` e `kb_set20.json` nella Guida Pratica e nello Scadenziario: 73 record ricevuti/integrati, 7 nuovi moduli KB, 3.321 termini processuali importati e 1.075 template calcolabili aggiornati.
+- Corretto il flusso assistenza remota: la pagina cliente non mostra più l'anteprima del proprio schermo; la condivisione resta visibile dal lato operatore/SUPERADMIN per prestare assistenza.
+- Verifiche reali su Docker locale `127.0.0.1:8080` versione `2.249.15`: `python scripts\react-migration\template_editor_browser_check.py` verde 74/74 dopo build e ricreazione container; browser integrato confermato con toolbar sticky, collegamento fascicolo visibile, nessun overflow di pagina/pannello/card e screenshot desktop/tablet/mobile in `artifacts/react-migration/template-editor-2.249.15-*.png`.
+
 ## 2.249.14 - 2026-06-04
 
 - Corretto l'editor template atti sui difetti emersi dalla prova reale: collegamento fisico al fascicolo, compilazione automatica di cliente/mittente, controparte/destinatario, ufficio giudiziario, R.G., materia e dati pratica, senza limitarsi ai campi statici del modello.

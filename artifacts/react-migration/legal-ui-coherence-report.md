@@ -2,6 +2,12 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+## Aggiornamento 2.249.15 - 2026-06-04
+
+- L'editor Template Atti è stato verificato come superficie di lavoro per avvocato, non come pagina dimostrativa: collegamento cliente/fascicolo, toolbar documento, timbro, Lex, import/export, copia, salvataggio e firma producono effetti osservabili.
+- Il browser reale ha confermato comandi su selezione, toolbar sticky, card `Collegamento IUSENTRA` leggibile e nessun overflow pagina/pannello/card su desktop, tablet e mobile.
+- La microcopy visibile resta italiana e operativa; le modalità Lex tecniche sono rese come `Costruttore template` e `Controllo finale`, e le azioni non espongono inglese come `export` nella UI.
+
 ## Aggiornamento 2.249.14
 
 - Template Atti usa linguaggio operativo italiano per studio legale: `Controllo finale`, `Esporta DOCX / PDF / RTF`, `Firma documento`, `Compilazione multipla`, `Inserisci campo` e `Documento salvato nel fascicolo come bozza modificabile`.

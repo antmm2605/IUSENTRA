@@ -1,0 +1,868 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET20_3CODICI",
+  "denominazione": "Ventesimo set - 3 nuovi codici",
+  "data_generazione": "2026-06-03",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RESPONSABILIT_DEL_PROPRIETARIO_O_DETENTORE_DI_ANIMALI_ART_2052_C_C_160130",
+      "denominazione": "Responsabilità del proprietario o detentore di animali (art. 2052 c.c.)",
+      "categoria": "Responsabilità civile – animali",
+      "rito": "Rito ordinario di cognizione; GdP per valori bassi",
+      "competenza": "Tribunale del luogo del fatto; GdP fino ai limiti di competenza per valore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2052",
+          "descrizione": "Il proprietario di un animale, o chi se ne serve nel proprio interesse, è responsabile dei danni cagionati dall'animale – salvo caso fortuito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "In subordine – responsabilità aquiliana per condotta colposa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione 5 anni"
+        },
+        {
+          "fonte": "L. 281/1991",
+          "descrizione": "Tutela degli animali d'affezione – responsabilità del detentore del cane"
+        },
+        {
+          "fonte": "Ord. Min. Salute 26/8/2013",
+          "descrizione": "Cani aggressivi – obblighi del proprietario"
+        },
+        {
+          "fonte": "Cass. SU 20943/2022",
+          "descrizione": "Responsabilità oggettiva da cose – principi applicabili per analogia"
+        },
+        {
+          "fonte": "Cass. SU 8348/2020",
+          "descrizione": "Art. 2052 – responsabilità oggettiva + caso fortuito come unica esimente"
+        },
+        {
+          "fonte": "Cass. SU 11691/2023",
+          "descrizione": "Animale selvatico di proprietà pubblica – Regione o Comune custodi"
+        }
+      ],
+      "responsabilita_oggettiva_2052": {
+        "principio": "Il proprietario o detentore è responsabile SENZA COLPA – basta provare: (1) animale di proprietà o detenuto dal convenuto, (2) danno, (3) nesso causale",
+        "esimente_unica": "Solo il CASO FORTUITO libera il proprietario/detentore",
+        "sia_in_custodia_che_smarrito": "La responsabilità sussiste sia quando l'animale è sotto controllo sia quando si è smarrito o fuggito"
+      },
+      "legittimato_passivo": {
+        "proprietario": "Responsabile anche se non lo aveva in custodia al momento del fatto",
+        "detentore_che_se_ne_serve": "Chi utilizza l'animale nel proprio interesse (es. affittuario del cane da caccia)",
+        "solidarieta": "Se il danno è causato mentre un terzo aveva in custodia l'animale per conto del proprietario: entrambi possono essere convenuti"
+      },
+      "animali_selvatici_Cass_SU_11691_2023": {
+        "fauna_selvatica": "Non ha un proprietario privato – custode è la REGIONE (L. 157/1992)",
+        "incidente_con_fauna_selvatica": "L'azione va proposta contro la Regione come custode del territorio"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare il proprietario o detentore dell'animale (certificato iscrizione anagrafe canina, microchip)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare il fatto: verbale FFOO, testimonianze, fotografie delle lesioni"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentazione sanitaria delle lesioni (PS, perizia medico-legale)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per fauna selvatica: identificare la Regione competente come custode"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_animale_2052",
+        "denominazione": "Atto di citazione per responsabilità da fatto di animale ex art. 2052 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "proprietario_o_detentore_convenuto",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "proprietario",
+                  "detentore_per_conto_proprio",
+                  "custode_per_conto_del_proprietario",
+                  "regione_per_fauna_selvatica"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "animale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "cane",
+                  "gatto",
+                  "cavallo",
+                  "bovino",
+                  "fauna_selvatica",
+                  "altro"
+                ]
+              },
+              {
+                "id": "razza_o_specie",
+                "type": "string"
+              },
+              {
+                "id": "microchip_o_iscrizione_anagrafe",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "fatto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo",
+                "type": "address"
+              },
+              {
+                "id": "modalita_del_danno",
+                "type": "select",
+                "options": [
+                  "morsicatura_cane",
+                  "calcio_o_caduta_da_cavallo",
+                  "investimento_animale_sulla_strada",
+                  "fauna_selvatica_investita_con_veicolo",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 200
+              },
+              {
+                "id": "testimoni",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "lesioni_e_danni",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "tipo_lesioni",
+                "type": "textarea"
+              },
+              {
+                "id": "danno_biologico",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale",
+                "type": "currency"
+              },
+              {
+                "id": "danni_materiali",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_proprietario_detentore_2052",
+              "risarcimento_danno_biologico",
+              "risarcimento_danno_morale",
+              "rimborso_spese_mediche",
+              "danni_materiali",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Responsabilità OGGETTIVA senza colpa – solo il caso fortuito libera (Cass. SU 8348/2020)",
+          "Identificare proprietario con microchip + anagrafe canina",
+          "Fauna selvatica: convenire la REGIONE come custode (Cass. SU 11691/2023)",
+          "Prescrizione 5 anni dal fatto (art. 2947 c.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_proprieta_animale_microchip_anagrafe",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_lesioni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_ffoo_o_testimonianze",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 5,
+          "norma": "art. 2947 c.c.",
+          "criticita": "ALTA"
+        }
+      ],
+      "codice_originale_ricevuto": "160130",
+      "codice_logico": "GUIDA_RESPONSABILIT_DEL_PROPRIETARIO_O_DETENTORE_DI_ANIMALI_ART_2052_C_C_160130",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160130"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160130"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160130"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_MEDIAZIONE_IMMOBILIARE_DIRITTO_ALLA_PROVVIGIONE_DEL_MEDIATORE_ARTT_1754__141025",
+      "denominazione": "Mediazione immobiliare: diritto alla provvigione del mediatore (artt. 1754-1765 c.c.)",
+      "categoria": "Contratti – mediazione immobiliare",
+      "rito": "Rito ordinario di cognizione; decreto ingiuntivo se prova scritta della provvigione",
+      "competenza": "Tribunale del luogo dell'immobile o residenza del convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1754",
+          "descrizione": "Nozione di mediatore – colui che mette in relazione due o più parti senza essere legato ad alcuna di esse da rapporti di collaborazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1755",
+          "descrizione": "PROVVIGIONE – il mediatore ha diritto alla provvigione se l'affare è concluso per effetto del suo intervento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1756",
+          "descrizione": "Rimborso delle spese del mediatore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1757",
+          "descrizione": "Pluralità di mediatori – provvigione divisa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1758",
+          "descrizione": "Mediatore tra più mandanti – obbligo di comunicare le circostanze a ciascuno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1760",
+          "descrizione": "Obbligo di comunicare le circostanze a entrambe le parti"
+        },
+        {
+          "fonte": "L. 39/1989",
+          "descrizione": "Agenti immobiliari – iscrizione al Ruolo (ora MURO) + requisiti professionali"
+        },
+        {
+          "fonte": "Cass. SU 19161/2017",
+          "descrizione": "Mediazione atipica – accordo scritto sulla provvigione"
+        },
+        {
+          "fonte": "Cass. SU 8222/2021",
+          "descrizione": "Efficienza causale dell'intervento del mediatore sulla conclusione dell'affare"
+        },
+        {
+          "fonte": "Cass. SU 9065/2024",
+          "descrizione": "Mancata iscrizione MURO/albo agenti – nullità del contratto di mediazione"
+        }
+      ],
+      "presupposti_per_la_provvigione_1755": {
+        "intervento_del_mediatore": "Il mediatore deve aver messo in relazione le parti",
+        "efficienza_causale_Cass_SU_8222_2021": "L'intervento deve essere stato CAUSALMENTE efficiente per la conclusione dell'affare",
+        "affare_concluso": "La provvigione è dovuta solo se l'affare è concluso (anche preliminare)",
+        "NO_condizione_che_si_perfezioni": "Se l'affare poi non si perfeziona per colpa di una delle parti: la provvigione rimane dovuta"
+      },
+      "iscrizione_albo_L39_1989": {
+        "obbligo": "L'agente immobiliare deve essere iscritto al MURO (ex Ruolo mediatori)",
+        "conseguenza_mancata_iscrizione_Cass_SU_9065_2024": "Contratto di mediazione NULLO – nessun diritto alla provvigione"
+      },
+      "mediazione_atipica": {
+        "quando": "Una delle parti si è affidata al mediatore con un mandato specifico",
+        "esempio": "Agente incaricato solo dalla parte venditrice",
+        "differenza_da_mediazione_tipica": "Il mediatore atipico può avere solo rapporto con una parte"
+      },
+      "obbligo_mediazione_cautelare": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare l'iscrizione al MURO (albo agenti immobiliari) – sine qua non per la provvigione"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare l'intervento del mediatore (proposta, visita, scheda immobile, trattative)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentare la conclusione dell'affare (preliminare o rogito)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Calcolare la provvigione: di norma pattuita o, in assenza, uso locale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_provvigione_mediatore_immobiliare",
+        "denominazione": "Atto di citazione per pagamento provvigione di mediazione immobiliare ex art. 1755 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "mediatore_attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "numero_iscrizione_MURO",
+                "type": "string",
+                "critico": true
+              },
+              {
+                "id": "denominazione_agenzia",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "parte_convenuta_che_non_paga",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "venditore",
+                  "acquirente",
+                  "entrambi"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "affare_concluso",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_affare",
+                "type": "select",
+                "options": [
+                  "compravendita_immobiliare",
+                  "locazione",
+                  "altro"
+                ]
+              },
+              {
+                "id": "immobile",
+                "type": "object_immobile"
+              },
+              {
+                "id": "prezzo_o_canone",
+                "type": "currency"
+              },
+              {
+                "id": "data_conclusione",
+                "type": "date"
+              },
+              {
+                "id": "tipo_atto_conclusivo",
+                "type": "select",
+                "options": [
+                  "preliminare_di_compravendita",
+                  "rogito_definitivo",
+                  "contratto_di_locazione"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "intervento_causalmente_efficiente",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "provvigione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "percentuale_pattuita",
+                "type": "percentage"
+              },
+              {
+                "id": "importo_dovuto",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "accordo_scritto_sulla_provvigione",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_pagamento_provvigione_1755",
+              "rimborso_spese_sostenute_1756",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Iscrizione MURO OBBLIGATORIA – mancanza → nullità contratto + no provvigione (Cass. SU 9065/2024)",
+          "Provvigione dovuta solo se affare CONCLUSO (anche solo il preliminare)",
+          "Intervento causalmente efficiente: il mediatore deve aver determinato l'incontro delle parti",
+          "Entrambe le parti devono la provvigione salvo diverso accordo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "iscrizione_MURO_o_albo_mediatori",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_intervento_mediatore_visite_proposte",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_conclusivo_affare_preliminare_o_rogito",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "accordo_scritto_sulla_provvigione_se_esistente",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore della provvigione",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10,
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Prescrizione breve per alcune fattispecie",
+          "anni": 3,
+          "norma": "art. 2956 n. 2 c.c. per autonomi professionisti"
+        }
+      ],
+      "codice_originale_ricevuto": "141025",
+      "codice_logico": "GUIDA_MEDIAZIONE_IMMOBILIARE_DIRITTO_ALLA_PROVVIGIONE_DEL_MEDIATORE_ARTT_1754__141025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AZIONE_CONFESSORIA_DI_SERVIT_ART_1079_C_C_TUTELA_DEL_TITOLARE_DI_SERVIT__130100",
+      "denominazione": "Azione confessoria di servitù (art. 1079 c.c.) – tutela del titolare di servitù osteggiata",
+      "categoria": "Diritti reali – servitù – tutela petitoria",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo (art. 21 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1079",
+          "descrizione": "Azione confessoria – chi pretende di avere una servitù può chiedere in giudizio che ne sia riconosciuta l'esistenza e siano cessate le molestie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1058",
+          "descrizione": "Modi di acquisto delle servitù – titolo, usucapione, destinazione padre di famiglia"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1061",
+          "descrizione": "Usucapione di servitù apparenti – 20 anni o 10 anni con titolo e buona fede"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1062",
+          "descrizione": "Destinazione del padre di famiglia – servitù da atto istitutivo di fabbricati"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1063",
+          "descrizione": "Concessione di servitù per usucapione – solo servitù apparenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1078",
+          "descrizione": "Tutela del titolare di servitù"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2643 n. 4",
+          "descrizione": "Trascrizione delle sentenze che accertano servitù"
+        },
+        {
+          "fonte": "Cass. SU 14594/2021",
+          "descrizione": "Distinzione confessoria (1079) vs negatoria (949) – oneri probatori"
+        },
+        {
+          "fonte": "Cass. SU 10523/2023",
+          "descrizione": "Azione confessoria – imprescrittibile mentre persiste l'ostacolo"
+        }
+      ],
+      "distinzione_confessoria_vs_negatoria": {
+        "confessoria_1079": "Il TITOLARE DELLA SERVITÙ agisce per far RICONOSCERE l'esistenza del suo diritto contro chi lo contesta o lo ostacola",
+        "negatoria_949": "Il PROPRIETARIO DEL FONDO agisce per NEGARE l'esistenza di diritti vantati da terzi sul suo fondo",
+        "inversione_dell_onere_probatorio": {
+          "confessoria": "L'attore deve PROVARE il titolo della servitù (titolo + trascrizione, o usucapione, o destinazione padre di famiglia)",
+          "negatoria": "L'attore prova la proprietà; il convenuto deve provare il diritto che vanta"
+        }
+      },
+      "contenuto_dell_azione_1079": [
+        "ACCERTAMENTO dell'esistenza della servitù",
+        "CESSAZIONE delle molestie e turbative all'esercizio della servitù",
+        "RIPRISTINO dello stato dei luoghi per il libero esercizio",
+        "RISARCIMENTO dei danni"
+      ],
+      "prove_del_titolo_della_servitu": {
+        "titolo_1058": "Atto costitutivo trascritto + catena di titoli",
+        "usucapione_1061": "Possesso pacifico e continuato + apparenza (solo servitù apparenti) – 20 anni o 10 con buona fede e titolo",
+        "destinazione_padre_famiglia_1062": "Due fondi appartenenevano allo stesso proprietario + atto di divisione senza sopprimere il servizio"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare e documentare il titolo della servitù (atto + trascrizione, o possesso per usucapione)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare le molestie o turbative all'esercizio (fotografie, verbali, comunicazioni)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Mediazione obbligatoria preventiva"
+        },
+        {
+          "step": 4,
+          "descrizione": "Trascrivere la sentenza per opponibilità ai terzi (art. 2643 n. 4)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_confessoria_servitu_1079",
+        "denominazione": "Atto di citazione per azione confessoria di servitù ex art. 1079 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "titolare_servitu_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "proprietario_fondo_servente_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_dominante_dell_attore",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "fondo_servente_del_convenuto",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "tipo_servitu",
+            "type": "select",
+            "required": true,
+            "options": [
+              "servitu_di_passaggio",
+              "servitu_di_acquedotto",
+              "servitu_di_veduta",
+              "servitu_di_non_edificare",
+              "altra_servitu"
+            ]
+          },
+          {
+            "id": "titolo_della_servitu",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "modo_di_acquisto",
+                "type": "select",
+                "options": [
+                  "titolo_contrattuale_trascritto",
+                  "usucapione_ventennale_1061",
+                  "usucapione_decennale_1061_buona_fede_titolo",
+                  "destinazione_padre_famiglia_1062"
+                ]
+              },
+              {
+                "id": "documentazione_titolo",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "molestie_o_turbative",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_esistenza_servitu",
+              "cessazione_molestie_e_turbative",
+              "ripristino_stato_luoghi_per_esercizio_servitu",
+              "risarcimento_danni",
+              "trascrizione_sentenza_2643",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Onere della prova sul TITOLARE DELLA SERVITÙ (opposto alla negatoria)",
+          "Servitù per usucapione: solo servitù APPARENTI (segni visibili, art. 1061)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Trascrizione della sentenza (art. 2643 n. 4) per opponibilità ai terzi",
+          "Azione IMPRESCRITTIBILE finché persiste la molestia (Cass. SU 10523/2023)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_della_servitu_atto_e_trascrizione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_possesso_se_usucapione",
+          "required_if": "usucapione"
+        },
+        {
+          "id": "documentazione_molestie_e_turbative",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_fondi",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "IMPRESCRITTIBILE finché persiste la turbativa",
+          "natura": "imprescrittibile",
+          "norma": "Cass. SU 10523/2023"
+        },
+        {
+          "termine": "Usucapione della servitù: 20 anni o 10 anni con buona fede + titolo (art. 1061)"
+        }
+      ],
+      "codice_originale_ricevuto": "130100",
+      "codice_logico": "GUIDA_AZIONE_CONFESSORIA_DI_SERVIT_ART_1079_C_C_TUTELA_DEL_TITOLARE_DI_SERVIT__130100",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130100"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130100"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130100"
+        }
+      ]
+    }
+  ]
+}

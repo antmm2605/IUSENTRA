@@ -517,6 +517,88 @@ def _build_assistant_analysis(model_code: str, *, payload: dict, selected_client
     return result
 
 
+def _editor_lex_enrichment(analysis: dict[str, Any], *, action: str, mode: str, text: str, html: str, instructions: str) -> dict[str, Any]:
+    clean_text = " ".join(str(text or "").split())
+    placeholder_matches = sorted(set(re.findall(r"\[[A-Z0-9_À-Ù]+\]|\{\{[^}]+\}\}", text or "")))
+    pii_matches = sorted(set(re.findall(r"\b[\w.+-]+@[\w.-]+\.\w+\b|\b\d{3}\s?\d{3}\s?\d{4}\b|\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b", text or "", re.I)))
+    has_legal_basis = bool(re.search(r"\bart\.|\barticolo\b|codice|d\.lgs\.|legge|regolamento|giurisprudenza|cassazione|consiglio di stato", clean_text, re.I))
+    lowered = f"{action} {mode}".casefold()
+    issues = list(analysis.get("issues") or [])
+    next_steps = list(analysis.get("next_steps") or [])
+    focus = "revisione redazionale"
+    suggestion = "Rileggere il periodo selezionato, mantenendo fatti, domande e riferimenti del fascicolo separati."
+    if "placeholder" in lowered:
+        focus = "controllo placeholder"
+        suggestion = "Sostituire o confermare ogni segnaposto residuo prima della versione finale."
+        if placeholder_matches:
+            issues.insert(0, {
+                "level": "WARN",
+                "title": "Segnaposto ancora presenti",
+                "detail": ", ".join(placeholder_matches[:8]),
+                "suggested_action": suggestion,
+            })
+    elif "privacy" in lowered:
+        focus = "controllo privacy e dati personali"
+        suggestion = "Verificare pertinenza, minimizzazione e base giuridica dei dati personali citati nell'atto."
+        if pii_matches:
+            issues.insert(0, {
+                "level": "WARN",
+                "title": "Dati personali individuati nel testo",
+                "detail": ", ".join(pii_matches[:6]),
+                "suggested_action": suggestion,
+            })
+    elif "normativ" in lowered or "legal_basis" in lowered:
+        focus = "controllo fondamento normativo"
+        suggestion = "Esplicitare norme, fonte, collegamento al fatto e conseguenza processuale senza automatismi non verificati."
+        if not has_legal_basis:
+            issues.insert(0, {
+                "level": "WARN",
+                "title": "Base normativa non evidente",
+                "detail": "Nel testo corrente non risultano riferimenti normativi o giurisprudenziali riconoscibili.",
+                "suggested_action": suggestion,
+            })
+    elif "formale" in lowered:
+        focus = "formalizzazione del tono"
+        suggestion = "Rendere la formulazione più istituzionale, evitando espressioni colloquiali e conclusioni non dimostrate."
+    elif "chiaro" in lowered or "cliente" in lowered:
+        focus = "chiarezza per il cliente"
+        suggestion = "Separare fatto, diritto e prossima azione con periodi brevi e senza abbreviazioni non spiegate."
+    elif "incisivo" in lowered:
+        focus = "maggiore incisività"
+        suggestion = "Portare in apertura il punto decisivo, poi documenti, norma e richiesta conclusiva."
+    elif "clausola" in lowered:
+        focus = "generazione clausola"
+        suggestion = "Generare una clausola coerente con materia, parti, oggetto e limiti del fascicolo."
+    elif "final" in lowered:
+        focus = "controllo finale"
+        suggestion = "Bloccare la versione finale finché restano segnaposti, dati mancanti o riferimenti privacy/normativi non verificati."
+    if suggestion not in next_steps:
+        next_steps.insert(0, suggestion)
+    summary_parts = [
+        f"Lex ha eseguito {focus} sul documento corrente.",
+        f"Testo analizzato: {len(clean_text)} caratteri.",
+    ]
+    if placeholder_matches:
+        summary_parts.append(f"Segnaposti residui: {len(placeholder_matches)}.")
+    if pii_matches:
+        summary_parts.append(f"Dati personali individuati: {len(pii_matches)}.")
+    if instructions:
+        summary_parts.append(f"Istruzioni dell'avvocato considerate: {instructions}.")
+    analysis["summary"] = " ".join(summary_parts)
+    analysis["issues"] = issues
+    analysis["next_steps"] = next_steps[:8]
+    analysis["editor_context"] = {
+        "action": action,
+        "mode": mode,
+        "has_html": bool(html),
+        "characters": len(clean_text),
+        "placeholders": placeholder_matches[:20],
+        "pii_candidates": pii_matches[:20],
+        "legal_basis_detected": has_legal_basis,
+    }
+    return analysis
+
+
 def _build_contextual_compliance(model_code: str, *, payload: dict, selected_cliente=None, selected_fascicolo=None):
     from pct.template_normative_compliance import analyze_template_compliance
 
@@ -557,6 +639,15 @@ def _safe_editor_filename(title: str, model_code: str) -> str:
     return f"{stem[:70]}_{date.today().strftime('%Y%m%d')}.html"
 
 
+def _sanitize_editor_html(value: str) -> str:
+    try:
+        from pct.editor_ai.editor_renderer import sanitize_editor_html
+
+        return sanitize_editor_html(value)
+    except Exception:
+        return value or "<p></p>"
+
+
 def _importa_compilazione_editor_professionale(
     *,
     model_code: str,
@@ -575,11 +666,6 @@ def _importa_compilazione_editor_professionale(
     from pct.template_atti_lex_service import create_editor_draft
     from web.services.document_crypto import encrypt_doc
 
-    try:
-        from pct.editor_ai.editor_renderer import sanitize_editor_html
-    except Exception:
-        sanitize_editor_html = lambda value: value or "<p></p>"  # noqa: E731
-
     utente = g.get("utente_corrente")
     created = create_editor_draft(
         model_code,
@@ -590,7 +676,7 @@ def _importa_compilazione_editor_professionale(
         model=model,
         fascicoli_repo=get_fascicoli(),
         encrypt_func=encrypt_doc,
-        editor_html_builder=lambda text: sanitize_editor_html(_to_editor_html(text)),
+        editor_html_builder=lambda text: _sanitize_editor_html(_to_editor_html(text)),
         audit_callback=_audit_template_event,
         compliance_result=compliance_result,
         requested_draft=requested_draft,
@@ -1929,17 +2015,19 @@ def api_importa_documento():
             })
 
         if ext == "pdf":
-            import io as _io
-            import pdfplumber
             data = file.read()
-            testo_pagine = []
-            with pdfplumber.open(_io.BytesIO(data)) as pdf:
-                for page in pdf.pages:
-                    testo = page.extract_text() or ""
-                    if testo.strip():
-                        testo_pagine.append(testo.strip())
-            testo = "\n\n".join(testo_pagine)
-            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo, "filename": filename, "fonts": [], "encoding": "PDF testo estratto"})
+            html, fonts, layout_preserved = _pdf_layout_html_from_bytes(data)
+            return jsonify({
+                "ok": True,
+                "tipo": "pdf_layout" if layout_preserved else "html",
+                "contenuto": html,
+                "filename": filename,
+                "fonts": fonts,
+                "detectedFonts": fonts,
+                "encoding": "PDF testo vettoriale",
+                "layoutPreserved": layout_preserved,
+                "note": "PDF importato in pagine e righe modificabili: font e struttura disponibili quando dichiarati dal file.",
+            })
 
         if ext in {"txt", "text"}:
             data = file.read()
@@ -1968,10 +2056,10 @@ def pdf(id_template: str):
     t = gt.get(id_template)
     if not t:
         abort(404)
-    testo = request.form.get("testo_generato", "")
+    testo, html = _request_editor_content(request.form.get("testo_generato", ""))
     titolo = t.titolo
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
-    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())
+    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro(), html_content=html)
     nome_file = _safe_pdf_download_name(titolo)
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
@@ -1984,13 +2072,13 @@ def compila_pdf(model_code: str):
     model = get_modello(model_code)
     if not model:
         abort(404)
-    testo = request.form.get("testo_generato", "").strip()
+    testo, html = _request_editor_content()
     if not testo:
         resolved = _resolve_compiler_context(model_code)
         testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
-    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())
+    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro(), html_content=html)
     nome_file = _safe_pdf_download_name(titolo)
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
@@ -2004,7 +2092,7 @@ def compila_word(model_code: str):
     model = get_modello(model_code)
     if not model:
         abort(404)
-    testo = request.form.get("testo_generato", "").strip()
+    testo, html = _request_editor_content()
     if not testo:
         resolved = _resolve_compiler_context(model_code)
         testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
@@ -2017,7 +2105,7 @@ def compila_word(model_code: str):
     except Exception:
         font_meta = {"docx_family": "Times New Roman"}
     try:
-        font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or 12)))
+        font_size = max(9.0, min(22.0, float(layout.get("font_size_pt") or layout.get("font_size") or layout.get("fontSize") or 12)))
     except (TypeError, ValueError):
         font_size = 12.0
     try:
@@ -2046,6 +2134,16 @@ def compila_word(model_code: str):
             stamp_lines = []
         if not stamp_lines and getattr(timbro, "text", ""):
             stamp_lines = [{"text": line} for line in str(timbro.text).splitlines() if line.strip()]
+        try:
+            stamp_offset = int(layout.get("stamp_offset_y_mm") or 0)
+        except (TypeError, ValueError):
+            stamp_offset = 0
+        if stamp_position.startswith("middle"):
+            for _ in range(7):
+                document.add_paragraph("")
+        elif stamp_offset > 8:
+            for _ in range(min(5, max(1, stamp_offset // 12))):
+                document.add_paragraph("")
         for line in stamp_lines:
             text_value = str(line.get("text") if isinstance(line, dict) else getattr(line, "text", "")).strip()
             if not text_value:
@@ -2065,13 +2163,24 @@ def compila_word(model_code: str):
             "justify": WD_ALIGN_PARAGRAPH.JUSTIFY,
         }
         body_alignment = align_map.get(text_align, WD_ALIGN_PARAGRAPH.JUSTIFY)
-        for block in str(testo or "").splitlines():
-            paragraph = document.add_paragraph()
-            paragraph.alignment = body_alignment
-            paragraph.paragraph_format.line_spacing = line_height
-            run = paragraph.add_run(block)
-            run.font.name = docx_font
-            run.font.size = Pt(font_size)
+        if html:
+            _append_html_to_docx(
+                document,
+                html,
+                docx_font=docx_font,
+                font_size=font_size,
+                line_height=line_height,
+                default_alignment=body_alignment,
+                align_map=align_map,
+            )
+        else:
+            for block in str(testo or "").splitlines():
+                paragraph = document.add_paragraph()
+                paragraph.alignment = body_alignment
+                paragraph.paragraph_format.line_spacing = line_height
+                run = paragraph.add_run(block)
+                run.font.name = docx_font
+                run.font.size = Pt(font_size)
         buf = io.BytesIO()
         document.save(buf)
         buf.seek(0)
@@ -2114,7 +2223,13 @@ def _rtf_escape(value: str) -> str:
     return "".join(parts)
 
 
-def _rtf_content_from_text(testo: str, layout: dict[str, Any] | None = None) -> str:
+def _rtf_content_from_text(
+    testo: str,
+    layout: dict[str, Any] | None = None,
+    *,
+    timbro: Any = None,
+    html_content: str | None = None,
+) -> str:
     layout = layout or {}
     try:
         from pct.template_atti import font_editor
@@ -2127,11 +2242,17 @@ def _rtf_content_from_text(testo: str, layout: dict[str, Any] | None = None) -> 
     except (TypeError, ValueError):
         font_size = 12.0
     rtf_font = str(font_meta.get("rtf_family") or "Times New Roman").replace(";", "")
+    stamp_text = _stamp_text(timbro)
+    body_rtf = _rtf_body_from_html(html_content or "") if html_content else _rtf_escape(testo)
+    stamp_rtf = ""
+    if stamp_text:
+        stamp_rtf = f"{_rtf_align_command(layout, stamp=True)}\\fs18\n{_rtf_escape(stamp_text)}\\par\\par\n"
+    body_align = _rtf_align_command(layout)
     return (
         "{\\rtf1\\ansi\\deff0"
         f"{{\\fonttbl{{\\f0 {rtf_font};}}}}"
         f"\\fs{int(round(font_size * 2))}\n"
-        f"{_rtf_escape(testo)}"
+        f"{stamp_rtf}{body_align}\n{body_rtf}"
         "}"
     )
 
@@ -2144,13 +2265,13 @@ def compila_rtf(model_code: str):
     model = get_modello(model_code)
     if not model:
         abort(404)
-    testo = request.form.get("testo_generato", "").strip()
+    testo, html = _request_editor_content()
     if not testo:
         resolved = _resolve_compiler_context(model_code)
         testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
-    content = _rtf_content_from_text(testo, layout)
+    content = _rtf_content_from_text(testo, layout, timbro=_get_studio_timbro(), html_content=html)
     download_name = _safe_word_download_name(titolo).rsplit(".", 1)[0] + ".rtf"
     response = current_app.response_class(content.encode("utf-8"), mimetype="application/rtf; charset=utf-8")
     response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
@@ -2176,6 +2297,7 @@ def api_compilazione_multipla_rtf():
         return jsonify({"ok": False, "message": "Seleziona almeno un modello da compilare."}), 400
 
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
+    timbro = _get_studio_timbro()
     archive = io.BytesIO()
     written = 0
     used_names: dict[str, int] = {}
@@ -2192,7 +2314,7 @@ def api_compilazione_multipla_rtf():
             used_names[file_name] = duplicate_index + 1
             if duplicate_index:
                 file_name = f"{base_name}-{duplicate_index + 1}.rtf"
-            zip_file.writestr(file_name, _rtf_content_from_text(testo, layout).encode("utf-8"))
+            zip_file.writestr(file_name, _rtf_content_from_text(testo, layout, timbro=timbro).encode("utf-8"))
             written += 1
     if not written:
         return jsonify({"ok": False, "message": "Nessun modello selezionato è disponibile per l'esportazione RTF."}), 404
@@ -2221,6 +2343,15 @@ def api_assistente_redazionale(model_code: str):
             payload=resolved["payload"],
             selected_cliente=resolved["selected_cliente"],
             selected_fascicolo=resolved["selected_fascicolo"],
+        )
+        editor_text, editor_html = _request_editor_content()
+        analysis = _editor_lex_enrichment(
+            analysis,
+            action=str(request.form.get("lex_action") or request.form.get("azione") or "").strip(),
+            mode=str(request.form.get("lex_mode") or request.form.get("modalita") or "").strip(),
+            text=editor_text,
+            html=editor_html,
+            instructions=str(request.form.get("istruzioni_lex") or "").strip(),
         )
         return jsonify({"ok": True, "analysis": analysis}), 200
     except Exception as e:
@@ -2367,7 +2498,277 @@ def _editor_html_to_text(value: str) -> str:
     return parser.get_text()
 
 
-def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) -> io.BytesIO:
+def _request_editor_content(default_text: str = "") -> tuple[str, str]:
+    html = (request.form.get("testo_generato_html") or "").strip()
+    text = (request.form.get("testo_generato") or default_text or "").strip()
+    if html and _looks_like_html(html):
+        return text or _editor_html_to_text(html), _sanitize_editor_html(html)
+    return text, ""
+
+
+def _stamp_lines(stamp: Any) -> list[dict[str, Any]]:
+    if not stamp or not getattr(stamp, "enabled", False):
+        return []
+    try:
+        lines = stamp.to_lines()
+    except Exception:
+        lines = []
+    if lines:
+        return [line for line in lines if str(line.get("text") or "").strip()]
+    text = str(getattr(stamp, "text", "") or "")
+    return [{"text": line.strip()} for line in text.splitlines() if line.strip()]
+
+
+def _stamp_text(stamp: Any) -> str:
+    return "\n".join(str(line.get("text") or "").strip() for line in _stamp_lines(stamp)).strip()
+
+
+def _document_text_with_stamp(text: str, stamp: Any) -> str:
+    stamp_text = _stamp_text(stamp)
+    body = str(text or "").strip()
+    if not stamp_text:
+        return body
+    if body.startswith(stamp_text.splitlines()[0]):
+        return body
+    return f"{stamp_text}\n\n{body}".strip()
+
+
+def _append_html_to_docx(
+    document: Any,
+    html: str,
+    *,
+    docx_font: str,
+    font_size: float,
+    line_height: float,
+    default_alignment: Any,
+    align_map: dict[str, Any],
+) -> None:
+    try:
+        from docx.shared import Pt
+        from lxml import etree
+    except Exception:
+        for block in _editor_html_to_text(html).splitlines():
+            paragraph = document.add_paragraph()
+            paragraph.alignment = default_alignment
+            run = paragraph.add_run(block)
+            run.font.name = docx_font
+            run.font.size = Pt(font_size)
+        return
+
+    try:
+        root = etree.fromstring(
+            f"<div>{html}</div>".encode("utf-8"),
+            parser=etree.HTMLParser(encoding="utf-8"),
+        )
+        body = root.find(".//body") or root.find(".//div") or root
+    except Exception:
+        body = None
+
+    def _alignment_from_style(style: str) -> Any:
+        lowered = (style or "").lower()
+        if "text-align:center" in lowered or "text-align: center" in lowered:
+            return align_map.get("center", default_alignment)
+        if "text-align:right" in lowered or "text-align: right" in lowered:
+            return align_map.get("right", default_alignment)
+        if "text-align:left" in lowered or "text-align: left" in lowered:
+            return align_map.get("left", default_alignment)
+        if "text-align:justify" in lowered or "text-align: justify" in lowered:
+            return align_map.get("justify", default_alignment)
+        return default_alignment
+
+    def _add_run(paragraph: Any, text: str, *, bold: bool = False, italic: bool = False, underline: bool = False) -> None:
+        if not text:
+            return
+        run = paragraph.add_run(text)
+        run.bold = bold
+        run.italic = italic
+        run.underline = underline
+        run.font.name = docx_font
+        run.font.size = Pt(font_size)
+
+    def _walk_inline(paragraph: Any, node: Any, *, bold: bool = False, italic: bool = False, underline: bool = False) -> None:
+        tag = str(getattr(node, "tag", "") or "").lower().split("}")[-1]
+        next_bold = bold or tag in {"strong", "b"}
+        next_italic = italic or tag in {"em", "i"}
+        next_underline = underline or tag == "u"
+        if getattr(node, "text", None):
+            _add_run(paragraph, str(node.text), bold=next_bold, italic=next_italic, underline=next_underline)
+        for child in list(node):
+            child_tag = str(getattr(child, "tag", "") or "").lower().split("}")[-1]
+            if child_tag == "br":
+                paragraph.add_run().add_break()
+            else:
+                _walk_inline(paragraph, child, bold=next_bold, italic=next_italic, underline=next_underline)
+            if getattr(child, "tail", None):
+                _add_run(paragraph, str(child.tail), bold=next_bold, italic=next_italic, underline=next_underline)
+
+    def _add_paragraph(node: Any, style: str | None = None, list_style: str | None = None) -> None:
+        paragraph = document.add_paragraph(style=list_style or style)
+        paragraph.alignment = _alignment_from_style(str(node.get("style") or ""))
+        paragraph.paragraph_format.line_spacing = line_height
+        _walk_inline(paragraph, node)
+
+    def _process(node: Any) -> None:
+        tag = str(getattr(node, "tag", "") or "").lower().split("}")[-1]
+        if tag in {"h1", "h2", "h3", "h4"}:
+            _add_paragraph(node, style=f"Heading {tag[1]}")
+            return
+        if tag == "ul":
+            for li in node.findall("li"):
+                _add_paragraph(li, list_style="List Bullet")
+            return
+        if tag == "ol":
+            for li in node.findall("li"):
+                _add_paragraph(li, list_style="List Number")
+            return
+        if tag in {"p", "div", "section", "blockquote"}:
+            if len(node) == 0 and not str(getattr(node, "text", "") or "").strip():
+                document.add_paragraph("")
+            else:
+                _add_paragraph(node)
+            return
+        for child in list(node):
+            _process(child)
+
+    if body is None:
+        return
+    for child in list(body):
+        _process(child)
+
+
+def _rtf_align_command(layout: dict[str, Any] | None, *, stamp: bool = False) -> str:
+    align = str((layout or {}).get("text_align") or "justify").lower()
+    if stamp:
+        position = str((layout or {}).get("stamp_position") or "top-center").lower()
+        if position.endswith("left"):
+            return "\\qc"
+        if position.endswith("right"):
+            return "\\qc"
+        return "\\qc"
+    return {"left": "\\ql", "center": "\\qc", "right": "\\qr", "justify": "\\qj"}.get(align, "\\qj")
+
+
+class _RtfHtmlParser(HTMLParser):
+    _BLOCK_TAGS = {"p", "div", "h1", "h2", "h3", "h4", "blockquote"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self._list_stack: list[str] = []
+
+    def _paragraph(self) -> None:
+        if self.parts and not self.parts[-1].endswith("\\par\n"):
+            self.parts.append("\\par\n")
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag in self._BLOCK_TAGS:
+            self._paragraph()
+            if tag in {"h1", "h2", "h3", "h4"}:
+                self.parts.append("\\b ")
+        elif tag == "br":
+            self.parts.append("\\line ")
+        elif tag in {"strong", "b"}:
+            self.parts.append("\\b ")
+        elif tag in {"em", "i"}:
+            self.parts.append("\\i ")
+        elif tag == "u":
+            self.parts.append("\\ul ")
+        elif tag in {"ul", "ol"}:
+            self._list_stack.append(tag)
+        elif tag == "li":
+            self._paragraph()
+            self.parts.append("- ")
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag in {"strong", "b"}:
+            self.parts.append("\\b0 ")
+        elif tag in {"em", "i"}:
+            self.parts.append("\\i0 ")
+        elif tag == "u":
+            self.parts.append("\\ul0 ")
+        elif tag in {"h1", "h2", "h3", "h4"}:
+            self.parts.append("\\b0 ")
+            self._paragraph()
+        elif tag in self._BLOCK_TAGS or tag == "li":
+            self._paragraph()
+        elif tag in {"ul", "ol"} and self._list_stack:
+            self._list_stack.pop()
+
+    def handle_data(self, data: str) -> None:
+        if data:
+            self.parts.append(_rtf_escape(data))
+
+    def get_rtf(self) -> str:
+        return "".join(self.parts).strip()
+
+
+def _rtf_body_from_html(html: str) -> str:
+    parser = _RtfHtmlParser()
+    parser.feed(html or "")
+    parser.close()
+    return parser.get_rtf()
+
+
+def _pdf_layout_html_from_bytes(data: bytes) -> tuple[str, list[str], bool]:
+    import io as _io
+    import pdfplumber
+
+    pages: list[str] = []
+    fonts: set[str] = set()
+    used_layout = False
+    with pdfplumber.open(_io.BytesIO(data)) as pdf:
+        for page_index, page in enumerate(pdf.pages, start=1):
+            page_lines: list[str] = []
+            try:
+                words = page.extract_words(
+                    keep_blank_chars=False,
+                    use_text_flow=True,
+                    extra_attrs=["fontname", "size"],
+                )
+            except TypeError:
+                words = page.extract_words(keep_blank_chars=False, use_text_flow=True)
+            if words:
+                used_layout = True
+                grouped: dict[int, list[dict[str, Any]]] = {}
+                for word in words:
+                    text = str(word.get("text") or "").strip()
+                    if not text:
+                        continue
+                    font_name = str(word.get("fontname") or "").split("+")[-1].strip()
+                    if font_name:
+                        fonts.add(font_name)
+                    top = int(round(float(word.get("top") or 0) / 3) * 3)
+                    grouped.setdefault(top, []).append(word)
+                for _top, line_words in sorted(grouped.items(), key=lambda item: item[0]):
+                    ordered = sorted(line_words, key=lambda item: float(item.get("x0") or 0))
+                    text = " ".join(str(item.get("text") or "").strip() for item in ordered if str(item.get("text") or "").strip())
+                    if not text:
+                        continue
+                    font_name = str(ordered[0].get("fontname") or "").split("+")[-1].strip()
+                    size = ordered[0].get("size")
+                    style_bits = []
+                    if font_name:
+                        style_bits.append(f"font-family:{escape(font_name, quote=True)}")
+                    try:
+                        style_bits.append(f"font-size:{max(8, min(22, float(size))):.1f}pt")
+                    except (TypeError, ValueError):
+                        pass
+                    style_attr = f' style="{";".join(style_bits)}"' if style_bits else ""
+                    page_lines.append(f"<p{style_attr}>{escape(text)}</p>")
+            else:
+                text = page.extract_text() or ""
+                page_lines.extend(f"<p>{escape(line.strip())}</p>" for line in text.splitlines() if line.strip())
+            pages.append(
+                '<section class="iusentra-imported-pdf-page" data-page="{}">'.format(page_index)
+                + "\n".join(page_lines or ["<p></p>"])
+                + "</section>"
+            )
+    return "\n".join(pages), sorted(fonts), used_layout
+
+
+def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, layout: dict | None = None, timbro=None) -> io.BytesIO:
     safe_text = testo or ""
     if timbro is not None and hasattr(timbro, "to_text"):
         timbro_text = timbro.to_text()
@@ -2388,8 +2789,8 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) 
         try:
             from pct.legal_layout_profiles import make_pdf_stamp_callback, top_margin_with_stamp
 
-            stamp_callback = make_pdf_stamp_callback(timbro)
-            top_margin = top_margin_with_stamp({"margin_top_mm": 25}, timbro)
+            stamp_callback = make_pdf_stamp_callback(timbro, layout=layout or {})
+            top_margin = top_margin_with_stamp({"margin_top_mm": 25, **(layout or {})}, timbro)
         except Exception:
             stamp_callback = None
             top_margin = 25
@@ -2435,8 +2836,15 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) 
         return buf
 
 
-def _genera_pdf(titolo: str, testo: str, config: dict, layout: dict | None = None, timbro=None) -> io.BytesIO:
-    html = _to_editor_html(testo)
+def _genera_pdf(
+    titolo: str,
+    testo: str,
+    config: dict,
+    layout: dict | None = None,
+    timbro=None,
+    html_content: str | None = None,
+) -> io.BytesIO:
+    html = _sanitize_editor_html(html_content) if html_content and _looks_like_html(html_content) else _to_editor_html(testo)
     try:
         from pct.editor import html_to_pdf
 
@@ -2461,4 +2869,4 @@ def _genera_pdf(titolo: str, testo: str, config: dict, layout: dict | None = Non
         return buf
     except Exception as exc:
         current_app.logger.exception("Errore generazione PDF HTML template atti: %s", exc)
-        return _fallback_pdf_from_text(titolo, testo, config, timbro=timbro)
+        return _fallback_pdf_from_text(titolo, html or testo, config, layout=layout, timbro=timbro)

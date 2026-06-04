@@ -63,3 +63,32 @@ Lex è integrato come assistente redazionale locale con modalità `Correttore`, 
 I formati presidiati sono DOCX/PDF/RTF/TXT in importazione e DOCX/PDF/RTF in export. L'RTF viene generato localmente dal browser usando il fallback font previsto dal registry; PDF e documento compatibile Word continuano a passare dai percorsi server esistenti con layout normalizzato.
 
 La verifica reale del 4 giugno 2026 su Docker locale `http://127.0.0.1:8080/template-atti/compila/CIV_COM_001` ha confermato desktop, tablet e mobile con scroll completo, nessun overflow, nessun errore console, data italiana `4 giugno 2026`, import TXT, salvataggio, rigenerazione, export RTF/DOCX/PDF, copia documento, topbar, campi, stile, Guida Pratica, controlli e Lex. Lex non applica modifiche prima dell'accettazione: il browser ha creato proposte in diff, accettato, rifiutato, modificato e applicato solo su comando esplicito. Report: `artifacts/react-migration/template-editor-browser-2.249.13.json`.
+
+## Editor professionale 2.249.15
+
+Dal 4 giugno 2026 l'editor di compilazione usa una pagina modificabile reale:
+le funzioni di toolbar agiscono sulla selezione corrente, mantengono undo/redo
+nativi e non inseriscono sintassi Markdown nel testo. La toolbar resta fissata
+in alto durante lo scroll e contiene anche il ritorno al catalogo template.
+
+La compilazione espone il collegamento cliente/fascicolo nella colonna destra:
+il cliente filtra i fascicoli, il fascicolo precompila ufficio giudiziario,
+cliente, controparte, R.G., materia, dati pratica e dati studio. Il cambio
+modello dal catalogo laterale apre davvero il modello scelto.
+
+Il timbro studio è modificabile, formattabile e posizionabile in alto
+sinistra/centro/destra o centro sinistra/destra, con offset verticale regolabile.
+La linea superiore del foglio non è più mostrata. Gli export RTF/DOCX/PDF usano
+l'HTML corrente dell'editor, includono il timbro e preservano la formattazione
+base; copia, salvataggio nel fascicolo, compilazione multipla e firma lavorano
+sullo stesso contenuto.
+
+Import documento supporta DOCX con HTML, PDF con layout/font/dimensioni quando
+estraibili, RTF/TXT con accenti italiani corretti e pagina vuota per costruire
+un template personalizzato inserendo i campi del fascicolo.
+
+Verifica reale finale: Docker locale `127.0.0.1:8080` versione `2.249.15`,
+`python scripts\react-migration\template_editor_browser_check.py` verde 74/74,
+Browser integrato Codex con toolbar sticky, collegamento fascicolo leggibile e
+nessun overflow pagina/pannello/card. Report:
+`artifacts/react-migration/template-editor-browser-2.249.15.json`.

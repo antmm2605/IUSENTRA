@@ -1281,3 +1281,9 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Prova finale runtime reale | Docker/browser/deploy | Risolto localmente, da verificare sul nuovo SHA remoto | Font registry, layout, payload API, typecheck, build, pytest mirati, contratti API, Docker locale reale `127.0.0.1:8080`, browser desktop/tablet/mobile e baseline prestazionale sono verdi. Il giro finale Playwright ha confermato overflow 0, console applicativa 0, date italiane, import, salvataggio, export RTF/DOCX/PDF e Lex senza modifiche automatiche. | Completare commit, push branch gemelli, check remoti e deploy Hetzner prima del report conclusivo e dello spegnimento PC richiesto dall'utente. |
+
+## Note hotfix CI App V2 inventory 2.249.13 - 2026-06-04
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Lint + syntax` sullo SHA `2b1aaed7929677aee95f7914cb38f2263b2fff86` | `generate_app_v2_test_docs.py --check` | Risolto localmente, da verificare sul nuovo SHA | Il primo push aveva il codice e i test editor verdi, ma `docs/test-inventory.md` non era stato rigenerato dopo il build React; GitHub ha fermato il job e saltato a cascata governance, smoke e shard. | Rigenerato `docs/test-inventory.md` e rilanciato localmente il blocco identico del job: page registry check, test docs check, smoke inventory PASS=3 e 14/14 test App V2 verdi. Dopo il nuovo push attendere tutti i check remoti sullo SHA aggiornato. |

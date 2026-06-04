@@ -269,7 +269,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Documenti | Frontend/UI | tests/test_template_atti_prefill_strict.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Documenti | Frontend/UI | tests/test_template_atti_timbro.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Documenti | Frontend/UI | tests/test_template_atti_unified_catalog.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| Documenti | RBAC | tests/test_template_atti_api_strict.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Documenti | RBAC | tests/test_template_atti_api_strict.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | RBAC | tests/test_template_atti_cartabia_prefill_timbro.py | contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | RBAC | tests/test_template_atti_master_catalog.py | contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | RBAC | tests/test_template_atti_repository.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -278,7 +278,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Documenti | Tenant isolation | tests/test_editor_ai_draft_generation.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_editor_ai_repository.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_lex_editor_ai_tools.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Documenti | Tenant isolation | tests/test_template_atti_editor.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Documenti | Tenant isolation | tests/test_template_atti_editor.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Fascicoli | API contract | tests/test_fascicoli_pagination.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Fascicoli | Tenant isolation | tests/test_fascicoli.py | tenant, feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_document_intelligence_extraction.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |

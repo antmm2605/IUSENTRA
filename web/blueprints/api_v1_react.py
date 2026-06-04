@@ -6285,6 +6285,21 @@ def _react_template_choice(value: Any, label: Any, **extra: Any) -> dict[str, An
     return item
 
 
+def _react_template_matter_value(value: Any, label: Any = "") -> str:
+    visible = str(label or "").strip() or str(value or "").strip()
+    known = {
+        "STRAGIUDIZIALE": "Stragiudiziale",
+        "CIVILE": "Civile",
+        "PENALE": "Penale",
+        "AMMINISTRATIVO": "Amministrativo",
+        "TRIBUTARIO": "Tributario",
+        "LAVORO": "Lavoro",
+        "PRIVACY": "Privacy",
+        "ALTRO": "Altro",
+    }
+    return known.get(visible.upper(), visible)
+
+
 def _react_template_field_note(prefill: dict[str, Any]) -> dict[str, str] | None:
     value = prefill.get("value")
     if value not in (None, "", [], {}):
@@ -6382,11 +6397,25 @@ def _react_template_field_payload(
     options = []
     for option in field_options.get(name, []) or []:
         if isinstance(option, (list, tuple)) and len(option) >= 2:
-            options.append(_react_template_choice(option[0], option[1]))
+            option_value = _react_template_matter_value(option[0], option[1]) if name == "matter" else option[0]
+            options.append(_react_template_choice(option_value, option[1]))
         elif isinstance(option, dict):
-            options.append(_react_template_choice(option.get("value"), option.get("label") or option.get("text")))
+            option_value = (
+                _react_template_matter_value(option.get("value"), option.get("label") or option.get("text"))
+                if name == "matter"
+                else option.get("value")
+            )
+            options.append(_react_template_choice(option_value, option.get("label") or option.get("text")))
     prefill = prefill_fields.get(name) if isinstance(prefill_fields.get(name), dict) else {}
-    value = str(form_values.get(name, "") or "")
+    raw_value = form_values.get(name, "")
+    if not str(raw_value or "").strip() and prefill:
+        raw_value = prefill.get("value", "")
+    if isinstance(raw_value, (list, tuple, set)):
+        value = "\n".join(str(item) for item in raw_value if str(item or "").strip())
+    else:
+        value = str(raw_value or "")
+    if name == "matter":
+        value = _react_template_matter_value(value)
     office_options = _react_template_office_options(field, selected_fascicolo=selected_fascicolo, current_value=value)
     if office_options and not options:
         options = office_options
@@ -6407,7 +6436,76 @@ def _react_template_field_payload(
         "error": str(errors.get(name) or "").strip(),
         "note": _react_template_field_note(prefill),
         "warnings": [str(item) for item in (prefill.get("warnings") or []) if str(item or "").strip()],
+        "source": str(prefill.get("source") or "").strip(),
+        "sourceLabel": str(prefill.get("source_label") or "").strip(),
+        "confidence": str(prefill.get("confidence") or "").strip(),
     }
+
+
+def _react_template_context_fields_payload(
+    *,
+    prefill_fields: dict[str, dict[str, Any]],
+    existing_names: set[str],
+    form_values: dict[str, Any],
+) -> list[dict[str, Any]]:
+    preferred_order = [
+        "recipient_or_court",
+        "destinatario_ufficio_giudiziario",
+        "client_or_sender",
+        "cliente_mittente",
+        "counterparty_or_recipient",
+        "controparte",
+        "case_id",
+        "pratica_collegata",
+        "practice_reference",
+        "practice_number",
+        "practice_subject",
+        "practice_data",
+        "matter",
+        "subject",
+        "oggetto",
+        "court_name",
+        "competent_court",
+        "lawyer",
+        "difensore",
+        "autore",
+        "author_user_id",
+        "pec_studio",
+        "_lawyer_pec",
+        "_studio_address",
+    ]
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for name in preferred_order:
+        if name in existing_names or name in seen:
+            continue
+        prefill = prefill_fields.get(name)
+        if not isinstance(prefill, dict):
+            continue
+        value = prefill.get("value")
+        if isinstance(value, (list, tuple, set)):
+            rendered_value = "\n".join(str(item) for item in value if str(item or "").strip())
+        else:
+            rendered_value = str(value or "").strip()
+        if not rendered_value and name not in {"matter", "practice_reference", "practice_subject", "practice_data"}:
+            continue
+        rows.append(
+            _react_template_field_payload(
+                {
+                    "name": name,
+                    "label": str(prefill.get("label") or name.replace("_", " ").title()),
+                    "type": "textarea" if "\n" in rendered_value or name in {"practice_data"} else "text",
+                    "placeholder": str(prefill.get("missing_reason") or ""),
+                    "required": False,
+                },
+                form_values=form_values,
+                field_options={},
+                errors={},
+                prefill_fields=prefill_fields,
+            )
+        )
+        seen.add(name)
+    return rows
 
 
 def _react_template_compliance_payload(
@@ -6417,6 +6515,27 @@ def _react_template_compliance_payload(
     form_values: dict[str, Any],
     validation_rules: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    try:
+        from pct.template_atti_legal_sources import template_atti_sources_for_model
+
+        official_template_sources = template_atti_sources_for_model(model_code=model_code)
+    except Exception:
+        official_template_sources = []
+
+    def _with_template_sources(references: Any) -> list[Any]:
+        rows = list(references or [])
+        seen = {
+            str((item or {}).get("id") if isinstance(item, dict) else item).casefold()
+            for item in rows
+            if str((item or {}).get("id") if isinstance(item, dict) else item).strip()
+        }
+        for source in official_template_sources:
+            key = str(source.get("id") or "").casefold()
+            if key and key not in seen:
+                rows.append(source)
+                seen.add(key)
+        return rows
+
     def _rule_text(item: Any) -> str:
         if isinstance(item, dict):
             title = str(
@@ -6478,8 +6597,8 @@ def _react_template_compliance_payload(
             "missingDocuments": [item.to_dict() for item in compliance.missing_documents],
             "blocking": [check.message for check in compliance.checks if check.state == "block"],
             "recommended": [check.message for check in compliance.checks if check.state == "warning"],
-            "normativeReferences": [item.to_dict() for item in compliance.normative_references],
-            "sources": [item.to_dict() for item in compliance.source_pack],
+            "normativeReferences": _with_template_sources([item.to_dict() for item in compliance.normative_references]),
+            "sources": [item.to_dict() for item in compliance.source_pack] + official_template_sources,
             "layoutProfile": payload.get("layout_compliance") or {},
             "stampPolicy": payload.get("page_stamp_compliance") or {},
             "reliabilityScore": payload.get("reliability_score") or {},
@@ -6534,7 +6653,7 @@ def _react_template_compliance_payload(
                 for item in (verification.get("controlli_consigliati") or [])
                 if isinstance(item, dict)
             ],
-            "normativeReferences": _rule_list(enriched.get("normativa_riferimento")),
+            "normativeReferences": _with_template_sources(_rule_list(enriched.get("normativa_riferimento"))),
             "procedibility": _rule_list(enriched.get("condizioni_procedibilita")),
             "deadlines": _rule_list(enriched.get("termini_processuali_rilevanti")),
             "cartabiaControls": _rule_list(enriched.get("controlli_cartabia"), replace_underscore=True),
@@ -6566,7 +6685,7 @@ def _react_template_compliance_payload(
             "missingFields": [],
             "blocking": ["Controlli Cartabia non disponibili per il modello."],
             "recommended": [],
-            "normativeReferences": [],
+            "normativeReferences": _with_template_sources([]),
             "procedibility": [],
             "deadlines": [],
             "cartabiaControls": [],
@@ -6586,9 +6705,9 @@ def _react_template_editor_workflow_payload() -> list[dict[str, Any]]:
         "Lex Revisore stile legale",
         "Lex Revisore placeholder",
         "Lex Revisore normativa/privacy",
-        "Final check",
+        "Controllo finale",
         "Versione finale",
-        "Export DOCX / PDF / RTF",
+        "Esporta DOCX / PDF / RTF",
     ]
     return [
         {
@@ -6703,6 +6822,9 @@ def _react_template_lex_revision_payload(
 def _react_template_examples_payload(model_code: str, model_name: str) -> list[dict[str, Any]]:
     def professional_description(raw: str, title: str, row: Any) -> str:
         text = str(raw or "").strip()
+        text = re.sub(r"\bTemplate\s+built-in\b", "Modello integrato", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bbozza\s+built-in\b", "bozza integrata", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bbuilt-in\b", "integrato", text, flags=re.IGNORECASE)
         text = re.sub(
             r"\s*:?\s*template del catalogo master\s*[\w.\- ]*\s*per\s*",
             ": ",
@@ -6729,6 +6851,11 @@ def _react_template_examples_payload(model_code: str, model_name: str) -> list[d
         rows = list(manager.tutti()) if hasattr(manager, "tutti") else []
     except Exception:
         rows = []
+    try:
+        from pct.compilatore_atti import get_modello as get_compiler_model
+    except Exception:
+        get_compiler_model = None
+    seen_example_codes: set[str] = set()
     for row in rows:
         code = (
             _react_template_attr(row, "link_compilatore_code")
@@ -6736,6 +6863,11 @@ def _react_template_examples_payload(model_code: str, model_name: str) -> list[d
             or _react_template_attr(row, "id")
             or model_code
         )
+        if code in seen_example_codes:
+            continue
+        if callable(get_compiler_model) and not get_compiler_model(code):
+            continue
+        seen_example_codes.add(code)
         title = _react_template_attr(row, "titolo", "title") or model_name or code
         description = _react_template_attr(row, "descrizione", "description", "note")
         category = _react_template_attr(row, "categoria", "area", "collezione") or "Atti"
@@ -6767,7 +6899,7 @@ def _react_template_examples_payload(model_code: str, model_name: str) -> list[d
                 "id": model_code,
                 "code": model_code,
                 "title": model_name or model_code,
-                "description": "Template corrente collegato alla pratica.",
+                "description": "Modello corrente collegato alla pratica.",
                 "category": "Atti",
                 "tags": [],
                 "fieldsCount": 0,
@@ -6810,7 +6942,7 @@ def _react_template_guide_preview_payload(
                 "note": "Importa nell'editor professionale; il testo resta modificabile prima dell'export.",
             },
             "layoutChecks": [
-                {"label": "Timbro studio", "value": "alto sinistra, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},
+                {"label": "Timbro studio", "value": "spostabile, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},
                 {"label": "Corpo atto", "value": "impaginazione coerente al template", "tone": "success"},
             ],
             "editorLayout": {
@@ -6892,7 +7024,7 @@ def _react_template_guide_preview_payload(
             "note": "Importa nell'anteprima: modifica se editabile, altrimenti salva l'originale collegato.",
         },
         "layoutChecks": [
-            {"label": "Timbro studio", "value": "alto sinistra, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},
+            {"label": "Timbro studio", "value": "spostabile, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},
             {"label": "Corpo atto", "value": "impaginazione coerente al template", "tone": "success"},
         ],
         "editorLayout": {
@@ -7068,6 +7200,16 @@ def template_atti_compila_page(model_code: str):
             )
             for field in ctx.get("extra_fields", [])
         ]
+        existing_field_names = {
+            str(field.get("name") or "").strip()
+            for field in [*base_fields, *extra_fields]
+            if str(field.get("name") or "").strip()
+        }
+        context_fields = _react_template_context_fields_payload(
+            prefill_fields=prefill_fields,
+            existing_names=existing_field_names,
+            form_values=form_values,
+        )
         hidden_names = ["model_code", "area", "act_type", "case_id", "author_user_id", "version", "status"]
         clienti = [
             _react_template_choice(
@@ -7118,7 +7260,7 @@ def template_atti_compila_page(model_code: str):
             form_values=ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values,
             validation_rules=ctx.get("validation_rules") or [],
         )
-        all_fields = base_fields + extra_fields
+        all_fields = base_fields + extra_fields + context_fields
         try:
             from pct.template_atti import template_font_registry_payload
 
@@ -7158,6 +7300,7 @@ def template_atti_compila_page(model_code: str):
                 "requestedModelCode": requested_model_code,
                 "baseFields": base_fields,
                 "extraFields": extra_fields,
+                "contextFields": context_fields,
                 "templateExamples": _react_template_examples_payload(model_code, model_name),
                 "fontRegistry": font_registry,
                 "editorLayout": editor_layout,

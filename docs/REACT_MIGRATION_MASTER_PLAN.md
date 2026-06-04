@@ -1,5 +1,26 @@
 # Migrazione progressiva Flask + React
 
+## Template Atti professionale - correzione funzionale reale - 2026-06-04 - 2.249.14
+
+La tranche 2.249.14 chiude le regressioni emerse sull'editor template atti dopo
+la prima consegna:
+
+- il compilatore React legge il fascicolo reale e porta nel workspace cliente,
+  mittente, controparte/destinatario, ufficio giudiziario, R.G., materia e dati
+  pratica tramite campi contestuali marcati con fonte e confidenza;
+- i campi compilati dall'avvocato non modificano più il template mentre si
+  digita: il valore resta nel modello dati, l'anteprima risolve il placeholder e
+  l'export usa il testo compilato;
+- la Guida Pratica è un blocco inseribile nel documento, non solo un'anteprima;
+  le fonti ufficiali sono disponibili nel pannello `Fonti` e vengono inserite
+  solo su azione dell'utente;
+- import documento, pagina vuota, inserimento campi fascicolo, cambio modello,
+  font, allineamenti, timbro spostabile, Lex diff, compilazione multipla e firma
+  sono stati verificati con click reali su Docker locale `127.0.0.1:8080`.
+
+Fonti normative consultate e versionate:
+`docs/specs/ministero/TEMPLATE_ATTI_FONTI_UFFICIALI_2026-06-04.md`.
+
 ## PST / PolisWeb - parità schede fascicolo e ricerca annuale - 2026-05-29 - 2.248.87
 
 La tranche 2.248.87 porta l'import PST più vicino alla vista reale del portale:

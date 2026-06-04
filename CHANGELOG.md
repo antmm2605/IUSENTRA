@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.249.14 - 2026-06-04
+
+- Corretto l'editor template atti sui difetti emersi dalla prova reale: collegamento fisico al fascicolo, compilazione automatica di cliente/mittente, controparte/destinatario, ufficio giudiziario, R.G., materia e dati pratica, senza limitarsi ai campi statici del modello.
+- Risolto il bug dei campi manuali che inserivano solo il primo carattere: i valori dell'avvocato restano nei campi, aggiornano l'anteprima risolta e vengono applicati solo nel documento/export, senza distruggere i placeholder.
+- Resi operativi cambio modello dal pannello sinistro, font e allineamenti documento, timbro studio completo e spostabile, Guida Pratica inseribile nel template, import RTF/DOCX/PDF/TXT con conservazione di accenti italiani e font rilevati, pagina vuota per creare template personalizzati e inserimento dei campi fascicolo nel testo importato.
+- Lex Revisione testo ora produce proposte locali in diff accettabile o rifiutabile per correzione, tono, chiarezza cliente, placeholder, normativa, privacy, clausole, premesse e final check; nessuna modifica viene applicata senza accettazione e resta audit visibile.
+- Aggiunta compilazione multipla reale con ZIP RTF dei modelli selezionati e azione di firma documento collegata al flusso di firma digitale. Le fonti normative richiamate dai template sono registrate in `pct/template_atti_legal_sources.py` e documentate in `docs/specs/ministero/TEMPLATE_ATTI_FONTI_UFFICIALI_2026-06-04.md`.
+- Verifiche reali su Docker locale `127.0.0.1:8080` versione `2.249.14`: 73/73 controlli browser passati su desktop, tablet e mobile con fascicolo `2DE106E6`, scroll completo, click delle funzioni, import con `à è é ì ò ù`, export RTF/DOCX/PDF, compilazione multipla ZIP, firma, console pulita, zero overflow e date italiane visibili.
+
 ## 2.249.13 - 2026-06-04
 
 - Trasformato l'editor template atti/Guida Pratica in workspace professionale React: catalogo laterale, toolbar documento, pagina A4 centrale, pannello `Campi/Stile/Lex/Fonti/Controlli/Export`, import DOCX/PDF/RTF/TXT ed export RTF locale oltre ai flussi PDF/Word esistenti.

@@ -8,6 +8,8 @@ Route full/partial principali: amministrazione, studio, backup, sito studio, fat
 
 ## Miglioramenti applicati
 
+- 2026-06-04: correzione editor Template Atti 2.249.14. Playwright su Docker reale `127.0.0.1:8080/template-atti/compila/CIV_COM_001?id_fascicolo=2DE106E6` ha verificato desktop, tablet e mobile con scroll completo: nessun overflow orizzontale, pannello campi raggiungibile, toolbar e tab `Campi/Stile/Lex/Fonti/Controlli/Export` usabili, timbro spostabile e azioni export/firma/compilazione multipla visibili. Screenshot: `template-editor-2.249.14-desktop.png`, `template-editor-2.249.14-tablet.png`, `template-editor-2.249.14-mobile.png`.
+
 - 2026-05-26: uffici competenti inline nel fascicolo 2.248.62. Browser in-app autenticato su server Flask temporaneo `/fascicoli/C51B3762`: sezione `Uffici giudiziari per Comune` visibile, ricerca `Taurianova` completata con output Palmi dentro il fascicolo e nessun overflow orizzontale su desktop 1280x720, tablet 768x1024 e mobile 390x844.
 
 - 2026-05-25: verifica amministrazione e Sito Studio 2.248.56. Browser in-app autenticato su `http://127.0.0.1:8102` per `/amministrazione`, `/utenti`, `/profili`, `/registro-attivita`, `/admin/database`, `/privacy/registro`, `/registro-gdpr`, `/sito-studio/contatti` e `/sito-studio`. Controllati desktop 1440x1000, tablet 900x1100 e mobile 390x844 con scroll alto/meta/fondo: 81 snapshot, zero overflow orizzontale, zero controlli sotto 40 px, zero testo tagliato nei pulsanti, zero errori console nuovi. La tabella Database su mobile passa a vista compatta a schede; il bottom nav mobile non produce overflow di pagina.

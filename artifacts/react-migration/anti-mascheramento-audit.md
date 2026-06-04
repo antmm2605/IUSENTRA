@@ -2,6 +2,20 @@
 
 Generato: 2026-06-02T14:15:11.421Z
 
+## Aggiornamento Template Atti 2.249.14 - 2026-06-04
+
+La superficie `/template-atti/compila/<codice>` resta censita come React
+operational, ma la regressione corretta in 2.249.14 chiarisce il requisito:
+non è sufficiente mostrare campi e toolbar. Il fascicolo deve alimentare davvero
+cliente/mittente, controparte/destinatario, ufficio giudiziario, R.G., materia e
+dati pratica; cambio modello, Guida Pratica, font, allineamenti, Lex, import,
+compilazione multipla, export e firma devono produrre effetti osservabili nel
+browser reale.
+
+Prova registrata: `template-editor-browser-2.249.14.json`, 73/73 controlli OK su
+Docker reale `127.0.0.1:8080`, senza fallback demo, senza CTA legacy primaria e
+senza modifiche Lex automatiche non accettate.
+
 ## Regole operative Parte 12A
 
 - `react_operational_full` richiede pagina React, dati JSON, azioni principali JSON, CSRF/sessione/permessi, stati loading/error/success e nessuna CTA primaria legacy.

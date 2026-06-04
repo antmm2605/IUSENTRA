@@ -4,6 +4,8 @@ export type FormSubmitResult = {
   redirect?: string
   editor_url?: string
   editorUrl?: string
+  signature_url?: string
+  signatureUrl?: string
   requires_confirmation?: boolean
   compliance_state?: string
   created_as?: string
@@ -14,6 +16,12 @@ export type FormSubmitResult = {
   text?: string
   contenuto?: string
   content?: string
+  filename?: string
+  fonts?: string[]
+  detectedFonts?: string[]
+  encoding?: string
+  codifica?: string
+  note?: string
   tipo?: string
   errore?: string
   error?: string
@@ -22,6 +30,13 @@ export type FormSubmitResult = {
 
 export function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
+}
+
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.map((item) => String(item || '').trim()).filter(Boolean)
 }
 
 export async function submitFormJson(endpoint: string, formData: FormData): Promise<FormSubmitResult> {
@@ -65,6 +80,8 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     redirect,
     editor_url: typeof payload.editor_url === 'string' ? payload.editor_url : '',
     editorUrl: typeof payload.editor_url === 'string' ? payload.editor_url : '',
+    signature_url: typeof payload.signature_url === 'string' ? payload.signature_url : '',
+    signatureUrl: typeof payload.signature_url === 'string' ? payload.signature_url : '',
     requires_confirmation: payload.requires_confirmation === true,
     compliance_state: typeof payload.compliance_state === 'string' ? payload.compliance_state : '',
     created_as: typeof payload.created_as === 'string' ? payload.created_as : '',
@@ -75,6 +92,12 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     text: typeof payload.text === 'string' ? payload.text : '',
     contenuto: typeof payload.contenuto === 'string' ? payload.contenuto : '',
     content: typeof payload.content === 'string' ? payload.content : '',
+    filename: typeof payload.filename === 'string' ? payload.filename : '',
+    fonts: stringArray(payload.fonts),
+    detectedFonts: stringArray(payload.detectedFonts),
+    encoding: typeof payload.encoding === 'string' ? payload.encoding : '',
+    codifica: typeof payload.codifica === 'string' ? payload.codifica : '',
+    note: typeof payload.note === 'string' ? payload.note : '',
     tipo: typeof payload.tipo === 'string' ? payload.tipo : '',
     errore: typeof payload.errore === 'string' ? payload.errore : '',
     error: typeof payload.error === 'string' ? payload.error : '',

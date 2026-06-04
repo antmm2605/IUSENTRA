@@ -2,6 +2,21 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento Template Atti e fonti ufficiali - 4 giugno 2026
+
+Il pannello `Fonti` dell'editor template atti usa un registry dedicato,
+`pct/template_atti_legal_sources.py`, con riferimenti ufficiali a Normattiva per
+Codice civile e Codice di procedura civile ed EUR-Lex per il GDPR. Il testo
+normativo non viene copiato automaticamente nel documento: Lex e il pannello
+fonti propongono solo riferimenti inseribili su azione dell'avvocato, mantenendo
+la regola di revisione manuale e accettazione esplicita.
+
+La direttiva è versionata in
+`docs/specs/ministero/TEMPLATE_ATTI_FONTI_UFFICIALI_2026-06-04.md` con data di
+consultazione, ambito e limite: fonti certe come riferimento, nessuna ricerca web
+silenziosa, nessuna modifica automatica del template e nessun invio a provider
+esterni senza policy privacy esplicita.
+
 ## Aggiornamento operativo 2.248.26 - 2026-05-24
 
 I risultati della nuova pipeline `PEC -> analisi -> OCR -> Lex` restano dati interni dello studio, non fonti pubbliche. L'evento `lex.ingest.doc` arriva solo dopo catena di custodia WORM, controllo antivirus, verifica firma, estrazione ZIP governata, dedup SHA-256 e `ocr.result`; il payload deve conservare citazione, checksum, confidenza OCR, `run_id`, tenant e candidato fascicolo.

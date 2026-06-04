@@ -14,6 +14,7 @@ def test_prefill_priorita_cliente_pratica_ufficio_autore_e_conflitto():
         titolo="Impugnazione delibera",
         oggetto="Oggetto da fascicolo",
         controparte="Controparte da fascicolo",
+        materia="Responsabilità contrattuale",
         documenti=[SimpleNamespace(nome="Procura alle liti.pdf")],
     )
     parti = SimpleNamespace(
@@ -34,6 +35,11 @@ def test_prefill_priorita_cliente_pratica_ufficio_autore_e_conflitto():
             "counterparty_or_recipient",
             "recipient_or_court",
             "case_id",
+            "practice_reference",
+            "practice_number",
+            "practice_subject",
+            "practice_data",
+            "matter",
             "author_user_id",
             "attachments_list",
             "pec_studio",
@@ -56,6 +62,11 @@ def test_prefill_priorita_cliente_pratica_ufficio_autore_e_conflitto():
     assert resolved["fields"]["destinatario_ufficio_giudiziario"]["value"] == "Tribunale di Milano"
     assert resolved["fields"]["case_id"]["value"] == "fas_1"
     assert resolved["fields"]["pratica_collegata"]["value"] == "fas_1"
+    assert resolved["fields"]["practice_reference"]["value"] == "Assistito da parti fascicolo c/ Controparte da parti - 1234/2026"
+    assert resolved["fields"]["practice_number"]["value"] == "1234/2026 RG"
+    assert resolved["fields"]["practice_subject"]["value"] == "Assistito da parti fascicolo c/ Controparte da parti"
+    assert resolved["fields"]["practice_data"]["value"] == "Impugnazione delibera"
+    assert resolved["fields"]["matter"]["value"] == "Responsabilità contrattuale"
     assert resolved["fields"]["author_user_id"]["value"] == "Avv. Titolare Studio"
     assert resolved["fields"]["author_user_id"]["source"] == "studio"
     assert resolved["fields"]["autore"]["value"] == "Avv. Titolare Studio"
@@ -73,6 +84,23 @@ def test_prefill_senza_pratica_non_blocca_template_ma_chiede_selezione_contesto(
         assert field_name in resolved["fields"]
         assert field_name in resolved["required_missing"]
         assert resolved["fields"][field_name]["missing_reason"]
+
+
+def test_prefill_riferimento_pratica_usa_cliente_e_controparte_del_fascicolo():
+    fascicolo = SimpleNamespace(
+        id="fas_2",
+        titolo="dep",
+        nome_cliente="Moscato Marco",
+        controparte="nn nn",
+        rg_completo="RG 12/2026",
+        tipo="CIVILE",
+    )
+
+    resolved = resolve_template_prefill(model_code="CIV_COM_001", fascicolo=fascicolo)
+
+    assert resolved["fields"]["practice_reference"]["value"] == "Moscato Marco c/ nn nn - 12/2026"
+    assert resolved["fields"]["practice_subject"]["value"] == "Moscato Marco c/ nn nn"
+    assert resolved["fields"]["matter"]["value"] == "Civile"
 
 
 def test_merge_prefill_non_sovrascrive_input_utente_e_conserva_missing_reason():

@@ -286,9 +286,13 @@ def test_template_guida_anteprima_render_e_salvataggio_non_bloccati_da_pst_manca
             f"?id_fascicolo={fascicolo.id}&guida_pratica=145009&origine=guida_pratica",
             data=form,
         )
+        saved_payload = saved.get_json()
+        editor_payload_response = client.get(
+            f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti/{saved_payload['document_id']}/editor"
+        )
 
     preview_payload = preview.get_json()
-    saved_payload = saved.get_json()
+    editor_payload = editor_payload_response.get_json()
 
     assert preview.status_code == 200
     assert preview_payload["ok"] is True
@@ -296,6 +300,11 @@ def test_template_guida_anteprima_render_e_salvataggio_non_bloccati_da_pst_manca
     assert saved.status_code == 200
     assert saved_payload["ok"] is True
     assert saved_payload["created_as"] == "working_draft"
+    assert saved_payload["signature_url"] == f"/fascicoli/{fascicolo.id}/documenti/{saved_payload['document_id']}/firma"
+    assert saved_payload["editor_url"] == f"/fascicoli/{fascicolo.id}/documenti/{saved_payload['document_id']}/editor"
+    assert editor_payload_response.status_code == 200
+    assert editor_payload["notFound"] is False
+    assert editor_payload["document"]["actions"]["sign"] == saved_payload["signature_url"]
     assert "Codice oggetto PST mancante" not in saved_payload["message"]
 
 

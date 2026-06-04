@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileText, Filter, HelpCircle, Italic, Layers, List, ListOrdered, Palette, Plus, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound, XCircle } from 'lucide-react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, HelpCircle, Italic, Layers, List, ListOrdered, Move, Palette, Plus, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound, XCircle } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -60,7 +60,7 @@ function collectControlData(root: HTMLElement | null) {
 }
 
 function allCompilerFields(data: TemplateCompilerData): TemplateCompilerField[] {
-  return [...data.baseFields, ...data.extraFields]
+  return [...data.baseFields, ...data.extraFields, ...data.contextFields]
 }
 
 function fieldValueByName(data: TemplateCompilerData, names: string[]) {
@@ -786,11 +786,20 @@ function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
 
 type TemplateEditorTab = 'Campi' | 'Stile' | 'Lex' | 'Fonti' | 'Controlli' | 'Export'
 
+type ImportedDocumentInfo = {
+  fileName: string
+  text: string
+  fonts: string[]
+  encoding: string
+  note: string
+}
+
 type TemplateEditorProps = {
   data: TemplateCompilerData
   activeTool: string
   draftText: string
   importing: boolean
+  importedDocument: ImportedDocumentInfo | null
   importStatus: string
   pdfStatus: string
   saving: boolean
@@ -802,11 +811,13 @@ type TemplateEditorProps = {
   onBodyLineHeightChange: (value: number) => void
   onEditorLayoutChange: (value: Partial<TemplateEditorLayout>) => void
   onImport: () => void
-  onPreviewPdf: () => void
-  onDownloadWord: () => void
-  onDownloadRtf: () => void
-  onRefreshPreview: () => void
-  onSave: () => void
+  onPreviewPdf: (draftOverride?: string) => void
+  onDownloadWord: (draftOverride?: string) => void
+  onDownloadRtf: (draftOverride?: string, targetModelCode?: string) => void
+  onDownloadMultipleRtf: (targetModelCodes: string[], draftOverride?: string) => void
+  onRefreshPreview: (draftOverride?: string) => void
+  onSave: (draftOverride?: string) => void | Promise<string>
+  onPrepareSignature: (draftOverride?: string) => void
 }
 
 function placeholderName(field: TemplateCompilerField) {
@@ -814,7 +825,9 @@ function placeholderName(field: TemplateCompilerField) {
 }
 
 function lexModeLabel(mode: string) {
-  return mode === 'Template Editor' ? 'Template Builder' : mode
+  if (mode === 'Template Builder' || mode === 'Template Editor') return 'Costruttore template'
+  if (mode === 'Final Check') return 'Controllo finale'
+  return mode
 }
 
 function escapeRegExp(value: string) {
@@ -848,6 +861,28 @@ function legalDateValue(value: string) {
 
 function fieldDisplayValue(field: TemplateCompilerField) {
   return field.type === 'date' ? legalDateValue(field.value || '') : field.value || ''
+}
+
+function fieldValueForDraft(field: TemplateCompilerField, values: Record<string, string>) {
+  const value = String(values[field.name] ?? fieldDisplayValue(field) ?? '').trim()
+  return field.type === 'date' ? legalDateValue(value) : value
+}
+
+function resolveDraftPlaceholders(text: string, fields: TemplateCompilerField[], values: Record<string, string>) {
+  let resolved = String(text || '')
+  fields.forEach((field) => {
+    const value = fieldValueForDraft(field, values)
+    if (!value) return
+    resolved = resolved.replaceAll(placeholderName(field), value)
+  })
+  return resolved
+}
+
+function appendQueryToHref(href: string) {
+  if (!href) return ''
+  const query = window.location.search
+  if (!query) return href
+  return href.includes('?') ? `${href}&${query.slice(1)}` : `${href}${query}`
 }
 
 function classToken(value: string | undefined, fallback: string) {
@@ -893,9 +928,10 @@ function firstMeaningfulSentence(value: string) {
   return (sentence?.[0] || clean.slice(0, 220)).trim()
 }
 
-function buildLocalLexProposal(action: TemplateLexAction, draftText: string, fields: TemplateCompilerField[], customInstructions: string): TemplateLexProposal {
+function buildLocalLexProposal(action: TemplateLexAction, data: TemplateCompilerData, draftText: string, fields: TemplateCompilerField[], customInstructions: string): TemplateLexProposal {
   const original = firstMeaningfulSentence(draftText) || '[TESTO_DOCUMENTO]'
   const missingPlaceholder = fields.map(placeholderName).find((token) => draftText.includes(token))
+  const firstSource = data.compliance.normativeReferences[0]
   const baseId = `${action.id}_${Date.now()}`
   if (action.id === 'correggi_refusi') {
     const proposed = original
@@ -927,13 +963,16 @@ function buildLocalLexProposal(action: TemplateLexAction, draftText: string, fie
     }
   }
   if (action.id === 'controlla_normativa') {
+    const sourceText = firstSource
+      ? `${firstSource.title || firstSource.article}${firstSource.article ? `, ${firstSource.article}` : ''}${firstSource.officialUrl ? ` (${firstSource.officialUrl})` : ''}`
+      : 'Nessuna fonte normativa specifica è ancora collegata al modello: verificare il fascicolo e la materia prima della versione finale.'
     return {
       id: baseId,
       mode: action.mode,
       title: action.label,
       original,
-      proposed: 'Integra il riferimento normativo solo dopo verifica della fonte già associata alla pratica.',
-      reason: 'Lex segnala il punto, ma non inventa norme né aggiorna il testo senza accettazione.',
+      proposed: `Riferimento da valutare nel testo: ${sourceText}`,
+      reason: 'Lex segnala il punto e usa solo fonti tracciate; nessuna norma viene inserita senza accettazione.',
       risk: 'warning',
       status: 'pending',
     }
@@ -974,6 +1013,20 @@ function buildLocalLexProposal(action: TemplateLexAction, draftText: string, fie
       status: 'pending',
     }
   }
+  if (action.id === 'versione_finale') {
+    return {
+      id: baseId,
+      mode: action.mode,
+      title: action.label,
+      original: missingPlaceholder || original,
+      proposed: missingPlaceholder
+        ? `Prima della firma resta da completare il campo ${missingPlaceholder}.`
+        : 'Versione finale pronta per esportazione o firma: rilettura conclusa, nessun placeholder visibile nel corpo principale.',
+      reason: 'Controllo finale locale su placeholder, tono e uso dei dati fascicolo.',
+      risk: missingPlaceholder ? 'warning' : 'success',
+      status: 'pending',
+    }
+  }
   const formality = action.id === 'rendi_chiaro_cliente'
     ? 'in termini più chiari, mantenendo il rigore giuridico'
     : action.id === 'rendi_incisivo'
@@ -1009,6 +1062,7 @@ function ProfessionalTemplateEditorWorkspace({
   activeTool,
   draftText,
   importing,
+  importedDocument,
   importStatus,
   pdfStatus,
   saving,
@@ -1023,15 +1077,19 @@ function ProfessionalTemplateEditorWorkspace({
   onPreviewPdf,
   onDownloadWord,
   onDownloadRtf,
+  onDownloadMultipleRtf,
   onRefreshPreview,
   onSave,
+  onPrepareSignature,
 }: TemplateEditorProps) {
   const fields = allCompilerFields(data)
-  const fieldGroups = useMemo(() => groupCompilerFields(fields), [data.model.code, data.baseFields, data.extraFields])
+  const fieldGroups = useMemo(() => groupCompilerFields(fields), [data.model.code, data.baseFields, data.extraFields, data.contextFields])
   const [activeTab, setActiveTab] = useState<TemplateEditorTab>('Campi')
   const [templateSearch, setTemplateSearch] = useState('')
   const [templateCategory, setTemplateCategory] = useState('Tutti')
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [multipleOpen, setMultipleOpen] = useState(false)
+  const [multipleSelection, setMultipleSelection] = useState<Record<string, boolean>>({})
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
   const [documentFont, setDocumentFont] = useState(data.editorLayout.fontFamily || data.fontRegistry.defaults.document)
   const [headingFont, setHeadingFont] = useState(data.editorLayout.headingFontFamily || data.fontRegistry.defaults.heading)
@@ -1039,6 +1097,8 @@ function ProfessionalTemplateEditorWorkspace({
   const [placeholderFont, setPlaceholderFont] = useState(data.editorLayout.placeholderFontFamily || data.fontRegistry.defaults.placeholder)
   const [fallbackFont, setFallbackFont] = useState(data.editorLayout.fallbackFontFamily || data.fontRegistry.defaults.fallback)
   const [stylePreset, setStylePreset] = useState(data.editorLayout.stylePreset || data.fontRegistry.defaults.stylePreset)
+  const [textAlign, setTextAlign] = useState(data.editorLayout.textAlign || 'justify')
+  const [stampPosition, setStampPosition] = useState('top-center')
   const [activeLexMode, setActiveLexMode] = useState(data.lexRevision.modes[0] || 'Correttore')
   const [customInstructions, setCustomInstructions] = useState('')
   const [proposals, setProposals] = useState<TemplateLexProposal[]>(data.lexRevision.seedProposals)
@@ -1053,10 +1113,18 @@ function ProfessionalTemplateEditorWorkspace({
     const textValue = `${item.title} ${item.description} ${item.tags.join(' ')}`.toLowerCase()
     return byCategory && (!templateSearch.trim() || textValue.includes(templateSearch.trim().toLowerCase()))
   })
+  const visibleMultipleTemplates = data.templateExamples.slice(0, 10)
+  const visibleMultipleCodes = new Set(visibleMultipleTemplates.map((item) => item.code || item.id).filter(Boolean))
+  const selectedMultipleCount = visibleMultipleTemplates.filter((item) => multipleSelection[item.code || item.id] === true).length
   const completedFields = fields.filter((field) => (fieldValues[field.name] || field.value || '').trim()).length
   const completion = fields.length ? Math.round((completedFields / fields.length) * 100) : 100
   const lexActions = data.lexRevision.actions
   const statusText = [workspaceStatus, importStatus, pdfStatus].filter(Boolean).join(' ')
+  const baseDraftText = draftText
+  const resolvedDraftText = useMemo(
+    () => resolveDraftPlaceholders(baseDraftText, fields, fieldValues),
+    [baseDraftText, fields, fieldValues],
+  )
   const editorClassName = [
     'iu-template-pro-editor',
     fontVariantClass('iu-template-ui-font', uiFont, 'inter'),
@@ -1068,6 +1136,8 @@ function ProfessionalTemplateEditorWorkspace({
     fontVariantClass('iu-template-placeholder-font', placeholderFont, 'ibm_plex_mono'),
     bodySizeClass(bodyFontSize),
     lineHeightClass(bodyLineHeight),
+    `iu-template-align--${classToken(textAlign, 'justify')}`,
+    `iu-template-stamp-position--${classToken(stampPosition, 'top_center')}`,
   ].join(' ')
 
   useEffect(() => {
@@ -1090,8 +1160,10 @@ function ProfessionalTemplateEditorWorkspace({
       stylePreset,
       fontSize: bodyFontSize,
       lineHeight: bodyLineHeight,
+      textAlign,
+      stampPosition,
     })
-  }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, data.model.code])
+  }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign, stampPosition, data.model.code])
 
   const setTab = (tab: TemplateEditorTab) => {
     setActiveTab(tab)
@@ -1102,29 +1174,98 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const updateField = (field: TemplateCompilerField, value: string) => {
-    const previousValue = fieldValues[field.name] || field.value || ''
-    const cleanValue = value.trim()
     setFieldValues((current) => ({ ...current, [field.name]: value }))
-    const token = placeholderName(field)
-    const currentText = draftText || guideDraftFromData(data)
-    if (cleanValue && currentText.includes(token)) {
-      onDraftTextChange(currentText.replaceAll(token, cleanValue))
-      return
-    }
-    const cleanPrevious = previousValue.trim()
-    if (cleanValue && cleanPrevious.length >= 3 && currentText.includes(cleanPrevious)) {
-      onDraftTextChange(currentText.replace(new RegExp(escapeRegExp(cleanPrevious), 'g'), cleanValue))
-    }
+    setWorkspaceStatus(`${field.label} aggiornato nell'anteprima; il segnaposto resta modificabile nel template.`)
   }
 
   const editorSegments = useMemo(
-    () => String(draftText || guideDraftFromData(data)).split(/(\[[A-Z0-9_]+\])/g),
+    () => String(baseDraftText).split(/(\[[A-Z0-9_]+\])/g),
     [data.model.code, draftText, fieldValues],
   )
 
-  const applyFormat = (command: string, value?: string) => {
+  const replaceEditorSelection = (replacement: string) => {
     const editor = editorRef.current
-    const currentText = draftText || guideDraftFromData(data)
+    const currentText = baseDraftText
+    const start = editor?.selectionStart ?? currentText.length
+    const end = editor?.selectionEnd ?? currentText.length
+    const nextText = `${currentText.slice(0, start)}${replacement}${currentText.slice(end)}`
+    onDraftTextChange(nextText)
+    window.setTimeout(() => {
+      editorRef.current?.focus()
+      const cursor = start + replacement.length
+      editorRef.current?.setSelectionRange(cursor, cursor)
+    }, 0)
+  }
+
+  const insertDocumentBlock = (text: string) => {
+    const block = text.trim()
+    if (!block) return
+    const editor = editorRef.current
+    const currentText = baseDraftText
+    const start = editor?.selectionStart ?? currentText.length
+    const end = editor?.selectionEnd ?? currentText.length
+    const before = currentText.slice(0, start)
+    const after = currentText.slice(end)
+    const prefix = before.trimEnd() ? '\n\n' : ''
+    const suffix = after.trimStart() ? '\n\n' : ''
+    replaceEditorSelection(`${prefix}${block}${suffix}`)
+  }
+
+  const insertFieldToken = (field: TemplateCompilerField) => {
+    replaceEditorSelection(placeholderName(field))
+    setWorkspaceStatus(`Campo ${field.label} associato al documento.`)
+  }
+
+  const openTemplateFromSidebar = (item: TemplateExample) => {
+    setSelectedTemplateId(item.id)
+    const href = appendQueryToHref(item.href || `/template-atti/compila/${encodeURIComponent(item.code || data.model.code)}`)
+    if ((item.code || '').trim() && item.code !== data.model.code) {
+      setWorkspaceStatus(`Apro il modello ${item.title}.`)
+      window.location.assign(href)
+      return
+    }
+    setWorkspaceStatus(`Template corrente confermato: ${item.title}.`)
+  }
+
+  const selectVisibleMultipleTemplates = () => {
+    setMultipleSelection((current) => {
+      const next = { ...current }
+      visibleMultipleTemplates.forEach((item) => {
+        const key = item.code || item.id
+        if (key) next[key] = true
+      })
+      return next
+    })
+    setWorkspaceStatus(`${visibleMultipleTemplates.length} modelli visibili selezionati per la compilazione multipla.`)
+  }
+
+  const clearMultipleTemplates = () => {
+    setMultipleSelection((current) => {
+      const next = { ...current }
+      visibleMultipleTemplates.forEach((item) => {
+        const key = item.code || item.id
+        if (key) next[key] = false
+      })
+      return next
+    })
+    setWorkspaceStatus('Selezione multipla svuotata.')
+  }
+
+  const runMultipleCompilation = () => {
+    const selectedCodes = Object.entries(multipleSelection)
+      .filter(([code, selected]) => selected && visibleMultipleCodes.has(code))
+      .map(([code]) => code)
+    if (!selectedCodes.length) {
+      setWorkspaceStatus('Seleziona almeno un modello per la compilazione multipla.')
+      return
+    }
+    onDownloadMultipleRtf(selectedCodes, resolvedDraftText)
+    setWorkspaceStatus(`Archivio RTF in preparazione per ${selectedCodes.length} modelli selezionati.`)
+  }
+
+  const applyFormat = (command: string) => {
+    const editor = editorRef.current
+    const currentText = baseDraftText
     const start = editor?.selectionStart ?? currentText.length
     const end = editor?.selectionEnd ?? currentText.length
     const selected = currentText.slice(start, end)
@@ -1169,13 +1310,28 @@ function ProfessionalTemplateEditorWorkspace({
       setWorkspaceStatus(command === 'insertOrderedList' ? 'Elenco numerato applicato.' : 'Elenco puntato applicato.')
       return
     }
-    editor?.focus()
-    try {
-      document.execCommand(command, false, value)
-      setWorkspaceStatus(`Comando applicato: ${command}.`)
-    } catch {
-      setWorkspaceStatus('Comando non applicato dal browser corrente.')
+    if (command === 'justifyLeft' || command === 'justifyCenter' || command === 'justifyRight' || command === 'justifyFull') {
+      const nextAlign = command === 'justifyLeft'
+        ? 'left'
+        : command === 'justifyCenter'
+          ? 'center'
+          : command === 'justifyRight'
+            ? 'right'
+            : 'justify'
+      setTextAlign(nextAlign)
+      setWorkspaceStatus(
+        nextAlign === 'left'
+          ? 'Allineamento a sinistra applicato.'
+          : nextAlign === 'center'
+            ? 'Allineamento centrato applicato.'
+            : nextAlign === 'right'
+              ? 'Allineamento a destra applicato.'
+              : 'Testo giustificato applicato.',
+      )
+      editor?.focus()
+      return
     }
+    setWorkspaceStatus('Comando non disponibile in questa modalità dell\'editor.')
   }
 
   const applyPreset = (presetKey: string) => {
@@ -1194,7 +1350,7 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const runLexAction = (action: TemplateLexAction) => {
-    const proposal = buildLocalLexProposal(action, draftText || guideDraftFromData(data), fields, customInstructions)
+    const proposal = buildLocalLexProposal(action, data, resolvedDraftText, fields, customInstructions)
     setProposals((current) => [proposal, ...current])
     addAudit(`Lex ha creato una proposta "${action.label}".`)
     setWorkspaceStatus('Proposta Lex pronta: accetta, modifica o rifiuta prima di applicarla.')
@@ -1206,7 +1362,7 @@ function ProfessionalTemplateEditorWorkspace({
 
   const acceptProposal = (proposal: TemplateLexProposal) => {
     if (proposal.status === 'accepted') return
-    const currentText = draftText || guideDraftFromData(data)
+    const currentText = baseDraftText
     let nextText = currentText
     if (proposal.original && proposal.proposed && currentText.includes(proposal.original)) {
       nextText = currentText.replace(proposal.original, proposal.proposed)
@@ -1228,9 +1384,20 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const copyDocument = () => {
-    navigator.clipboard?.writeText(stripFixedStampFromDraft(draftText || guideDraftFromData(data), data))
+    navigator.clipboard?.writeText(stripFixedStampFromDraft(resolvedDraftText, data))
       .then(() => setWorkspaceStatus('Documento copiato negli appunti.'))
       .catch(() => setWorkspaceStatus('Copia non disponibile dal browser corrente.'))
+  }
+
+  const saveCurrentDraft = () => {
+    setWorkspaceStatus('Salvo il documento nel fascicolo...')
+    Promise.resolve(onSave(resolvedDraftText))
+      .then((link) => {
+        if (link) {
+          setWorkspaceStatus('Documento salvato nel fascicolo come bozza modificabile.')
+        }
+      })
+      .catch(() => setWorkspaceStatus('Documento non salvato nel fascicolo: controlla i campi richiesti.'))
   }
 
   const panelTabs: TemplateEditorTab[] = ['Campi', 'Stile', 'Lex', 'Fonti', 'Controlli', 'Export']
@@ -1265,11 +1432,11 @@ function ProfessionalTemplateEditorWorkspace({
         <div className="iu-template-pro-actions">
           <button type="button" className="is-success" disabled={importing} onClick={onImport}>
             <UploadCloud size={15} aria-hidden="true" />
-            {importing ? 'Importazione...' : 'Importa Documento'}
+            {importing ? 'Importazione...' : 'Importa documento'}
           </button>
-          <button type="button" onClick={() => setWorkspaceStatus('Compilazione multipla pronta: seleziona pratica e campi da applicare.')}>
+          <button type="button" onClick={() => { setMultipleOpen((open) => !open); setTab('Export') }}>
             <Columns3 size={15} aria-hidden="true" />
-            Compilazione Multipla
+            Compilazione multipla
           </button>
           <button type="button" onClick={() => window.location.assign('/template-atti/nuovo')}>
             <Plus size={15} aria-hidden="true" />
@@ -1279,7 +1446,7 @@ function ProfessionalTemplateEditorWorkspace({
             <HelpCircle size={15} aria-hidden="true" />
             Guida
           </button>
-          <button type="button" className="is-danger" onClick={onDownloadRtf}>
+          <button type="button" className="is-danger" onClick={() => onDownloadRtf(resolvedDraftText)}>
             <FileDown size={15} aria-hidden="true" />
             Esporta RTF
           </button>
@@ -1324,7 +1491,7 @@ function ProfessionalTemplateEditorWorkspace({
           </div>
           <div className="iu-template-pro-list">
             {visibleTemplates.slice(0, 12).map((item) => (
-              <button type="button" className={`iu-template-pro-card${selectedTemplate?.id === item.id ? ' is-active' : ''}`} key={item.id} onClick={() => { setSelectedTemplateId(item.id); setWorkspaceStatus(`Template selezionato: ${item.title}.`) }}>
+              <button type="button" className={`iu-template-pro-card${selectedTemplate?.id === item.id ? ' is-active' : ''}`} data-testid={`template-switch-${item.code || item.id}`} key={item.id} onClick={() => openTemplateFromSidebar(item)}>
                 <span><FileText size={18} aria-hidden="true" /></span>
                 <strong>{item.title}</strong>
                 <small>{item.description || item.category}</small>
@@ -1342,7 +1509,7 @@ function ProfessionalTemplateEditorWorkspace({
           </nav>
           <article className={paperClassName}>
             <div className="iu-template-pro-paper__stamp">
-              {data.stamp.lines.slice(0, 4).length ? data.stamp.lines.slice(0, 4).map((line, index) => (
+              {data.stamp.lines.length ? data.stamp.lines.map((line, index) => (
                 <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
               )) : (
                 <>
@@ -1356,7 +1523,7 @@ function ProfessionalTemplateEditorWorkspace({
                   {editorSegments.map((segment, index) => {
                     if (!/^\[[A-Z0-9_]+\]$/.test(segment)) return <span key={`${index}-text`}>{segment}</span>
                     const field = fieldForPlaceholder(fields, segment)
-                    const value = field ? String(fieldValues[field.name] || '').trim() : ''
+                    const value = field ? fieldValueForDraft(field, fieldValues) : ''
                     return (
                       <mark className={`iu-template-pro-placeholder-token${value ? ' is-filled' : ''}`} data-token={segment} key={`${segment}-${index}`}>
                         {value || segment}
@@ -1369,7 +1536,7 @@ function ProfessionalTemplateEditorWorkspace({
                   className="iu-template-pro-paper__body"
                   spellCheck
                   data-testid="professional-template-editor"
-                  value={draftText || guideDraftFromData(data)}
+                  value={baseDraftText}
                   onChange={(event) => onDraftTextChange(event.currentTarget.value)}
                   aria-label="Corpo documento modificabile"
                 />
@@ -1379,7 +1546,7 @@ function ProfessionalTemplateEditorWorkspace({
         <aside className="iu-template-pro-fields" aria-label="Pannello editor template">
           <header>
             <div>
-              <strong>{activeTab === 'Campi' ? 'Campi da compilare' : activeTab}</strong>
+              <strong>{activeTab === 'Campi' ? 'Campi da compilare' : activeTab === 'Export' ? 'Esporta e firma' : activeTab}</strong>
               <small>{selectedTemplate?.title || data.model.name}</small>
             </div>
             <button type="button" title="Chiudi pannello" aria-label="Chiudi pannello" onClick={() => setTab('Campi')}>
@@ -1389,7 +1556,7 @@ function ProfessionalTemplateEditorWorkspace({
           <nav className="iu-template-pro-tabs" aria-label="Schede editor">
             {panelTabs.map((tab) => (
               <button type="button" className={activeTab === tab ? 'is-active' : ''} key={tab} onClick={() => setTab(tab)}>
-                {tab}
+                {tab === 'Export' ? 'Esporta' : tab}
               </button>
             ))}
           </nav>
@@ -1403,20 +1570,42 @@ function ProfessionalTemplateEditorWorkspace({
                       <label key={field.name}>
                         <span>{field.label}</span>
                         {field.type === 'textarea' ? (
-                          <textarea value={fieldValues[field.name] || ''} placeholder={field.placeholder || field.label} onChange={(event) => updateField(field, event.currentTarget.value)} />
+                          <textarea data-testid={`template-field-input-${field.name}`} value={fieldValues[field.name] || ''} placeholder={field.placeholder || field.label} onChange={(event) => updateField(field, event.currentTarget.value)} />
                         ) : field.options.length ? (
-                          <select value={fieldValues[field.name] || ''} onChange={(event) => updateField(field, event.currentTarget.value)}>
+                          <select data-testid={`template-field-input-${field.name}`} value={fieldValues[field.name] || ''} onChange={(event) => updateField(field, event.currentTarget.value)}>
                             <option value="">{field.placeholder || 'Seleziona'}</option>
                             {field.options.map((option) => <option value={option.value} key={`${field.name}-${option.value}`}>{option.label}</option>)}
                           </select>
                         ) : (
-                          <input value={fieldValues[field.name] || ''} placeholder={field.placeholder || field.label} onChange={(event) => updateField(field, event.currentTarget.value)} />
+                          <input data-testid={`template-field-input-${field.name}`} value={fieldValues[field.name] || ''} placeholder={field.placeholder || field.label} onChange={(event) => updateField(field, event.currentTarget.value)} />
                         )}
-                        <small>{placeholderName(field)}</small>
+                        <div className="iu-template-pro-field-tools">
+                          <small>{placeholderName(field)}</small>
+                          <button type="button" onClick={() => insertFieldToken(field)}>
+                            <Code2 size={13} aria-hidden="true" />
+                            Inserisci campo
+                          </button>
+                        </div>
+                        {field.note?.text ? <em>{field.note.text}</em> : null}
                       </label>
                     ))}
                   </section>
                 ))}
+                {importedDocument ? (
+                  <section className="iu-template-pro-import-card" aria-label="Documento importato">
+                    <h3>Template personalizzato importato</h3>
+                    <p>{importedDocument.note || 'Documento acquisito: puoi svuotare la pagina, reinserire il testo e associare i campi del fascicolo.'}</p>
+                    <dl>
+                      <div><dt>File</dt><dd>{importedDocument.fileName}</dd></div>
+                      <div><dt>Codifica</dt><dd>{importedDocument.encoding || 'riconosciuta automaticamente'}</dd></div>
+                      <div><dt>Font rilevati</dt><dd>{importedDocument.fonts.length ? importedDocument.fonts.slice(0, 6).join(', ') : 'non dichiarati nel file'}</dd></div>
+                    </dl>
+                    <div>
+                      <button type="button" onClick={() => { onDraftTextChange(''); setWorkspaceStatus('Pagina vuota pronta per associare i campi del fascicolo.') }}>Pagina vuota</button>
+                      <button type="button" disabled={!importedDocument.text.trim()} onClick={() => { onDraftTextChange(importedDocument.text); setWorkspaceStatus('Testo importato inserito nel template personalizzato.') }}>Inserisci testo importato</button>
+                    </div>
+                  </section>
+                ) : null}
                 <div className="iu-template-pro-progress">
                   <span>Compilazione</span>
                   <progress value={completion} max={100} />
@@ -1472,6 +1661,34 @@ function ProfessionalTemplateEditorWorkspace({
                   <strong>{bodyLineHeight.toFixed(2)}</strong>
                   <button type="button" onClick={() => onBodyLineHeightChange(Math.min(2.6, Number((bodyLineHeight + 0.1).toFixed(2))))}>+</button>
                 </div>
+                <div className="iu-template-pro-segmented" aria-label="Allineamento documento">
+                  {[
+                    ['left', 'Sinistra'],
+                    ['center', 'Centro'],
+                    ['right', 'Destra'],
+                    ['justify', 'Giustifica'],
+                  ].map(([value, label]) => (
+                    <button type="button" className={textAlign === value ? 'is-active' : ''} key={value} onClick={() => { setTextAlign(value); setWorkspaceStatus(`Allineamento ${label.toLowerCase()} applicato.`) }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="iu-template-pro-stamp-controls" aria-label="Posizione timbro studio">
+                  <strong><Move size={14} aria-hidden="true" /> Timbro studio spostabile</strong>
+                  <div>
+                    {[
+                      ['top-left', 'Alto sinistra'],
+                      ['top-center', 'Alto centro'],
+                      ['top-right', 'Alto destra'],
+                      ['middle-left', 'Centro sinistra'],
+                      ['middle-right', 'Centro destra'],
+                    ].map(([value, label]) => (
+                      <button type="button" className={stampPosition === value ? 'is-active' : ''} key={value} onClick={() => { setStampPosition(value); setWorkspaceStatus(`Timbro spostato: ${label}.`) }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </section>
             ) : null}
             {activeTab === 'Lex' ? (
@@ -1507,7 +1724,7 @@ function ProfessionalTemplateEditorWorkspace({
                   {proposals.length ? proposals.map((proposal) => (
                     <article className={`iu-template-pro-diff-card is-${proposal.status}`} key={proposal.id}>
                       <div>
-                        <Badge tone={proposal.risk}>{proposal.mode}</Badge>
+                        <Badge tone={proposal.risk}>{lexModeLabel(proposal.mode)}</Badge>
                         <Badge tone={proposal.status === 'accepted' ? 'success' : proposal.status === 'rejected' ? 'danger' : 'warning'}>{proposal.status === 'accepted' ? 'Accettata' : proposal.status === 'rejected' ? 'Rifiutata' : proposal.status === 'modified' ? 'Modificata' : 'Da decidere'}</Badge>
                       </div>
                       <h4>{proposal.title}</h4>
@@ -1533,10 +1750,17 @@ function ProfessionalTemplateEditorWorkspace({
               <section className="iu-template-pro-sources">
                 <h3>Guida pratica integrata</h3>
                 <p>{data.guidePreview.subtitle || data.summary}</p>
+                <button type="button" onClick={() => insertDocumentBlock(data.guidePreview.subtitle || data.summary)}>
+                  <BookOpen size={14} aria-hidden="true" />
+                  Inserisci guida nel template
+                </button>
                 {(data.compliance.normativeReferences.length ? data.compliance.normativeReferences : []).slice(0, 8).map((ref) => (
                   <article key={ref.id || ref.title}>
                     <strong>{ref.title || ref.sourceTitle || ref.article}</strong>
                     <span>{ref.article || ref.reasonForApplication}</span>
+                    <button type="button" onClick={() => insertDocumentBlock(`Riferimento normativo: ${ref.title || ref.sourceTitle || ref.article}${ref.article ? `, ${ref.article}` : ''}.`)}>
+                      Inserisci riferimento
+                    </button>
                   </article>
                 ))}
                 {!data.compliance.normativeReferences.length ? <p>Fonti disponibili nella pratica e nei controlli del modello.</p> : null}
@@ -1544,7 +1768,7 @@ function ProfessionalTemplateEditorWorkspace({
             ) : null}
             {activeTab === 'Controlli' ? (
               <section className="iu-template-pro-checks">
-                <h3>Final check</h3>
+                <h3>Controllo finale</h3>
                 <p><CheckCircle2 size={14} aria-hidden="true" /><strong>Controllo placeholder</strong>: verifica campi variabili, segnaposto residui e valori da confermare prima della versione finale.</p>
                 <p><CheckCircle2 size={14} aria-hidden="true" /><strong>Controllo legal_basis</strong>: verifica la base giuridica dichiarata e i riferimenti normativi collegati al modello.</p>
                 <p><CheckCircle2 size={14} aria-hidden="true" /><strong>Controllo privacy/PII</strong>: evidenzia dati personali, dati sensibili e contenuti da trattare con policy privacy esplicita.</p>
@@ -1556,12 +1780,35 @@ function ProfessionalTemplateEditorWorkspace({
             ) : null}
             {activeTab === 'Export' ? (
               <section className="iu-template-pro-export">
-                <button type="button" onClick={onDownloadRtf}><Download size={15} aria-hidden="true" />RTF</button>
-                <button type="button" onClick={onDownloadWord}><FileDown size={15} aria-hidden="true" />DOCX</button>
-                <button type="button" onClick={onPreviewPdf}><Eye size={15} aria-hidden="true" />PDF</button>
+                <button type="button" onClick={() => onDownloadRtf(resolvedDraftText)}><Download size={15} aria-hidden="true" />RTF</button>
+                <button type="button" onClick={() => onDownloadWord(resolvedDraftText)}><FileDown size={15} aria-hidden="true" />DOCX</button>
+                <button type="button" onClick={() => onPreviewPdf(resolvedDraftText)}><Eye size={15} aria-hidden="true" />PDF</button>
                 <button type="button" onClick={copyDocument}><Copy size={15} aria-hidden="true" />Copia</button>
-                <button type="button" disabled={saving} onClick={onSave}><Save size={15} aria-hidden="true" />{saving ? 'Salvataggio...' : 'Salva nel fascicolo'}</button>
-                <button type="button" onClick={onRefreshPreview}><RefreshCw size={15} aria-hidden="true" />Rigenera dal template</button>
+                <button type="button" disabled={saving} onClick={saveCurrentDraft}><Save size={15} aria-hidden="true" />{saving ? 'Salvataggio...' : 'Salva nel fascicolo'}</button>
+                <button type="button" onClick={() => onPrepareSignature(resolvedDraftText)}><FileSignature size={15} aria-hidden="true" />Firma documento</button>
+                <button type="button" onClick={() => onRefreshPreview(resolvedDraftText)}><RefreshCw size={15} aria-hidden="true" />Rigenera dal template</button>
+                {multipleOpen ? (
+                  <div className="iu-template-pro-multiple" aria-label="Compilazione multipla">
+                    <strong>Compilazione multipla</strong>
+                    <p>Usa i dati e il testo corrente per preparare più modelli RTF collegati alla stessa pratica.</p>
+                    <div className="iu-template-pro-multiple-actions">
+                      <button type="button" onClick={selectVisibleMultipleTemplates}>Seleziona visibili</button>
+                      <button type="button" onClick={clearMultipleTemplates}>Deseleziona</button>
+                      <span>{selectedMultipleCount} selezionati</span>
+                    </div>
+                    {visibleMultipleTemplates.map((item) => (
+                      <label key={`multi-${item.code || item.id}`}>
+                        <input
+                          type="checkbox"
+                          checked={multipleSelection[item.code || item.id] === true}
+                          onChange={(event) => setMultipleSelection((current) => ({ ...current, [item.code || item.id]: event.currentTarget.checked }))}
+                        />
+                        <span>{item.title}</span>
+                      </label>
+                    ))}
+                    <button type="button" onClick={runMultipleCompilation}><Columns3 size={15} aria-hidden="true" />Genera RTF selezionati</button>
+                  </div>
+                ) : null}
               </section>
             ) : null}
           </div>
@@ -1576,6 +1823,7 @@ function GuidePreviewWorkspace({
   activeTool,
   draftText,
   importing,
+  importedDocument,
   importStatus,
   pdfStatus,
   saving,
@@ -1590,13 +1838,16 @@ function GuidePreviewWorkspace({
   onPreviewPdf,
   onDownloadWord,
   onDownloadRtf,
+  onDownloadMultipleRtf,
   onRefreshPreview,
   onSave,
+  onPrepareSignature,
 }: {
   data: TemplateCompilerData
   activeTool: string
   draftText: string
   importing: boolean
+  importedDocument: ImportedDocumentInfo | null
   importStatus: string
   pdfStatus: string
   saving: boolean
@@ -1608,11 +1859,13 @@ function GuidePreviewWorkspace({
   onBodyLineHeightChange: (value: number) => void
   onEditorLayoutChange: (value: Partial<TemplateEditorLayout>) => void
   onImport: () => void
-  onPreviewPdf: () => void
-  onDownloadWord: () => void
-  onDownloadRtf: () => void
-  onRefreshPreview: () => void
-  onSave: () => void
+  onPreviewPdf: (draftOverride?: string) => void
+  onDownloadWord: (draftOverride?: string) => void
+  onDownloadRtf: (draftOverride?: string, targetModelCode?: string) => void
+  onDownloadMultipleRtf: (targetModelCodes: string[], draftOverride?: string) => void
+  onRefreshPreview: (draftOverride?: string) => void
+  onSave: (draftOverride?: string) => void
+  onPrepareSignature: (draftOverride?: string) => void
 }) {
   return (
     <ProfessionalTemplateEditorWorkspace
@@ -1620,6 +1873,7 @@ function GuidePreviewWorkspace({
       activeTool={activeTool}
       draftText={draftText}
       importing={importing}
+      importedDocument={importedDocument}
       importStatus={importStatus}
       pdfStatus={pdfStatus}
       saving={saving}
@@ -1634,8 +1888,10 @@ function GuidePreviewWorkspace({
       onPreviewPdf={onPreviewPdf}
       onDownloadWord={onDownloadWord}
       onDownloadRtf={onDownloadRtf}
+      onDownloadMultipleRtf={onDownloadMultipleRtf}
       onRefreshPreview={onRefreshPreview}
       onSave={onSave}
+      onPrepareSignature={onPrepareSignature}
     />
   )
   const preview = data.guidePreview
@@ -1674,7 +1930,7 @@ function GuidePreviewWorkspace({
         <div>
           <b>Pagine</b>
           <span>Formato A4, margini e timbro coerenti con il modello PDF approvato.</span>
-          <Button type="button" tone="neutral" onClick={onPreviewPdf}>Verifica PDF</Button>
+          <Button type="button" tone="neutral" onClick={() => onPreviewPdf()}>Verifica PDF</Button>
         </div>
       )
     }
@@ -1701,7 +1957,7 @@ function GuidePreviewWorkspace({
             <strong>{bodyLineHeight.toFixed(2)}</strong>
             <button type="button" onClick={() => onBodyLineHeightChange(Math.min(2.2, Number((bodyLineHeight + 0.1).toFixed(2))))}>+</button>
           </div>
-          <Button type="button" tone="neutral" onClick={onDownloadWord}>Scarica Word</Button>
+          <Button type="button" tone="neutral" onClick={() => onDownloadWord()}>Scarica Word</Button>
         </div>
       )
     }
@@ -1729,7 +1985,7 @@ function GuidePreviewWorkspace({
       <div>
         <b>Testi</b>
         <span>Il testo sotto è modificabile direttamente prima di PDF, Word o salvataggio nel fascicolo.</span>
-        <Button type="button" tone="neutral" disabled={!preview.renderEndpoint} onClick={onRefreshPreview}>Aggiorna anteprima dal template</Button>
+        <Button type="button" tone="neutral" disabled={!preview.renderEndpoint} onClick={() => onRefreshPreview()}>Aggiorna anteprima dal template</Button>
       </div>
     )
   })()
@@ -1757,11 +2013,11 @@ function GuidePreviewWorkspace({
                 <UploadCloud size={16} aria-hidden="true" />
                 {importing ? 'Importazione...' : preview.importLabel}
               </Button>
-              <Button type="button" tone="neutral" disabled={!preview.previewPdfHref} onClick={onPreviewPdf}>
+              <Button type="button" tone="neutral" disabled={!preview.previewPdfHref} onClick={() => onPreviewPdf()}>
                 <Eye size={16} aria-hidden="true" />
                 {preview.previewLabel}
               </Button>
-              <Button type="button" tone="primary" disabled={saving || !data.selectors.selectedFascicoloId} onClick={onSave}>
+              <Button type="button" tone="primary" disabled={saving || !data.selectors.selectedFascicoloId} onClick={() => onSave()}>
                 <Save size={16} aria-hidden="true" />
                 {saving ? 'Salvataggio...' : preview.saveLabel}
               </Button>
@@ -1833,9 +2089,9 @@ function GuidePreviewWorkspace({
                   </div>
                   <div className="iu-template-guide-actions">
                     <ButtonLink href={data.catalogHref} tone="neutral">Cambia</ButtonLink>
-                    <Button type="button" tone="neutral" disabled={!preview.renderEndpoint} onClick={onRefreshPreview}>Aggiorna</Button>
-                    <Button type="button" tone="neutral" onClick={onPreviewPdf}>PDF</Button>
-                    <Button type="button" tone="neutral" onClick={onDownloadWord}>Word</Button>
+                    <Button type="button" tone="neutral" disabled={!preview.renderEndpoint} onClick={() => onRefreshPreview()}>Aggiorna</Button>
+                    <Button type="button" tone="neutral" onClick={() => onPreviewPdf()}>PDF</Button>
+                    <Button type="button" tone="neutral" onClick={() => onDownloadWord()}>Word</Button>
                   </div>
                 </section>
                 <section>
@@ -1884,9 +2140,11 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   const [submitError, setSubmitError] = useState('')
   const [importing, setImporting] = useState(false)
   const [importStatus, setImportStatus] = useState('')
+  const [importedDocument, setImportedDocument] = useState<ImportedDocumentInfo | null>(null)
   const [pdfStatus, setPdfStatus] = useState('')
+  const [, setLastSavedEditorUrl] = useState('')
   const [activeGuideTool, setActiveGuideTool] = useState('Testi')
-  const [guideDraftText, setGuideDraftText] = useState('')
+  const [guideDraftText, setGuideDraftText] = useState<string | null>(null)
   const [guideFontSize, setGuideFontSize] = useState(12)
   const [guideLineHeight, setGuideLineHeight] = useState(1.9)
   const guideImportRef = useRef<HTMLInputElement>(null)
@@ -1906,7 +2164,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     getTemplateAttiCompilerPage(modelCode)
       .then((payload) => {
         setData(payload)
-        setGuideDraftText((current) => current || guideDraftFromData(payload))
+        setGuideDraftText(guideDraftFromData(payload))
         setGuideFontSize(payload.guidePreview.editorLayout?.fontSize || payload.editorLayout.fontSize || 12)
         setGuideLineHeight(payload.guidePreview.editorLayout?.lineHeight || payload.editorLayout.lineHeight || 1.9)
       })
@@ -1971,14 +2229,14 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       .finally(() => setSubmitting(false))
   }
 
-  const buildGuideFormData = () => {
+  const buildGuideFormData = (draftOverride?: string) => {
     const formData = new FormData()
     hiddenQuery.forEach((item) => formData.set(item.name, item.value))
     collectControlData(compilerRef.current).forEach((value, name) => formData.set(name, value))
     formData.set('_react_return', '1')
     formData.set('model_code', data.model.code || modelCode)
     formData.set('title', data.model.name || data.guidePreview.template.name || 'Atto')
-    formData.set('testo_generato', stripFixedStampFromDraft(guideDraftText || guideDraftFromData(data), data))
+    formData.set('testo_generato', stripFixedStampFromDraft(draftOverride ?? guideDraftText ?? guideDraftFromData(data), data))
     formData.set('testo_generato__editor_layout', JSON.stringify({
       font_family: guideEditorLayoutRef.current.fontFamily || data.editorLayout.fontFamily || data.fontRegistry.defaults.document,
       heading_font_family: guideEditorLayoutRef.current.headingFontFamily || data.editorLayout.headingFontFamily || data.fontRegistry.defaults.heading,
@@ -1988,6 +2246,8 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       font_size: guideFontSize,
       font_size_pt: guideEditorLayoutRef.current.fontSize || guideFontSize,
       line_height: guideLineHeight,
+      text_align: guideEditorLayoutRef.current.textAlign || data.editorLayout.textAlign || 'justify',
+      stamp_position: guideEditorLayoutRef.current.stampPosition || data.editorLayout.stampPosition || 'top-center',
       page_scale: data.guidePreview.editorLayout.pageScale || 100,
     }))
     formData.set('id_fascicolo', data.selectors.selectedFascicoloId)
@@ -1999,9 +2259,9 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     return formData
   }
 
-  const refreshGuidePreviewFromCompiler = () => {
+  const refreshGuidePreviewFromCompiler = (draftOverride?: string) => {
     if (!data.guidePreview.renderEndpoint) return
-    const formData = buildGuideFormData()
+    const formData = buildGuideFormData(draftOverride)
     setPdfStatus('Aggiorno anteprima dal template compilato...')
     submitFormJson(data.guidePreview.renderEndpoint, formData)
       .then((result) => {
@@ -2018,28 +2278,39 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     previewRenderTimerRef.current = window.setTimeout(refreshGuidePreviewFromCompiler, 700)
   }
 
-  const saveGuidePreview = () => {
+  const saveGuidePreview = (draftOverride?: string) => {
     if (!data.guidePreview.saveEndpoint) {
       submitCompiler()
-      return
+      return Promise.resolve('')
     }
-    if (!data.selectors.selectedFascicoloId || submitting) return
+    if (!data.selectors.selectedFascicoloId || submitting) return Promise.resolve('')
     setSubmitting(true)
     setSubmitError('')
     setSubmitMessage('')
     setPdfStatus('')
-    submitFormJson(data.guidePreview.saveEndpoint, buildGuideFormData())
+    return submitFormJson(data.guidePreview.saveEndpoint, buildGuideFormData(draftOverride))
       .then((result) => {
         const link = result.editor_url || result.redirect_url || result.redirect || ''
+        if (link) setLastSavedEditorUrl(link)
         setSubmitMessage(result.message || (link ? `Documento salvato nel fascicolo. Apri: ${link}` : 'Documento salvato nel fascicolo.'))
+        return String(result.signature_url || link || '')
       })
-      .catch((error) => setSubmitError(error instanceof Error ? error.message : 'Documento non salvato nel fascicolo.'))
+      .catch((error) => {
+        setSubmitError(error instanceof Error ? error.message : 'Documento non salvato nel fascicolo.')
+        return ''
+      })
       .finally(() => setSubmitting(false))
   }
 
-  const submitGuideDocument = (endpoint: string, status: string, success: string) => {
+  const submitGuideDocument = (
+    endpoint: string,
+    status: string,
+    success: string,
+    draftOverride?: string,
+    configureFormData?: (formData: FormData) => void,
+  ) => {
     if (!endpoint) return
-    const formData = buildGuideFormData()
+    const formData = buildGuideFormData(draftOverride)
     const title = data.model.name || data.guidePreview.template.name || 'Atto'
     if (!String(formData.get('title') || '').trim()) formData.set('title', title)
     if (!String(formData.get('testo_generato') || '').trim()) {
@@ -2048,6 +2319,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
         `${title}\n\n${data.summary || 'Bozza generata dal template filtrato dalla Guida Pratica.'}`,
       )
     }
+    configureFormData?.(formData)
     setPdfStatus(status)
     const form = document.createElement('form')
     form.method = 'POST'
@@ -2066,16 +2338,57 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     setPdfStatus(success)
   }
 
-  const downloadGuideWord = () => {
-    submitGuideDocument(data.guidePreview.wordHref, 'Preparo documento Word...', 'Documento Word aperto.')
+  const downloadGuideWord = (draftOverride?: string) => {
+    submitGuideDocument(data.guidePreview.wordHref, 'Preparo documento DOCX...', 'Documento DOCX aperto.', draftOverride)
   }
 
-  const downloadGuideRtf = () => {
-    submitGuideDocument(data.guidePreview.rtfHref, 'Preparo documento RTF...', 'Documento RTF aperto.')
+  const downloadGuideRtf = (draftOverride?: string, targetModelCode?: string) => {
+    const endpoint = targetModelCode
+      ? `/template-atti/compila/${encodeURIComponent(targetModelCode)}/rtf`
+      : data.guidePreview.rtfHref
+    submitGuideDocument(endpoint, 'Preparo documento RTF...', 'Documento RTF aperto.', draftOverride)
   }
 
-  const previewPdf = () => {
-    submitGuideDocument(data.guidePreview.previewPdfHref, 'Apro anteprima PDF...', 'Anteprima PDF aperta.')
+  const downloadGuideMultipleRtf = (targetModelCodes: string[], draftOverride?: string) => {
+    const codes = targetModelCodes.map((code) => String(code || '').trim()).filter(Boolean)
+    if (!codes.length) {
+      setPdfStatus('Seleziona almeno un modello per la compilazione multipla.')
+      return
+    }
+    submitGuideDocument(
+      '/template-atti/api/compilazione-multipla-rtf',
+      'Preparo archivio RTF...',
+      'Archivio RTF aperto.',
+      draftOverride,
+      (formData) => {
+        formData.delete('model_codes')
+        codes.forEach((code) => formData.append('model_codes', code))
+        formData.set('title', 'Compilazione multipla Template Atti')
+      },
+    )
+  }
+
+  const previewPdf = (draftOverride?: string) => {
+    submitGuideDocument(data.guidePreview.previewPdfHref, 'Apro anteprima PDF...', 'Anteprima PDF aperta.', draftOverride)
+  }
+
+  const prepareSignature = (draftOverride?: string) => {
+    const openSignatureFromEditor = (editorUrl: string) => {
+      if (/\/fascicoli\/[^/]+\/documenti\/[^/]+\/firma/i.test(String(editorUrl || ''))) {
+        window.location.assign(editorUrl)
+        return
+      }
+      const match = String(editorUrl || '').match(/\/fascicoli\/([^/]+)\/documenti\/([^/]+)\/editor/i)
+      if (!match) {
+        setPdfStatus('Salvataggio completato. Apri il documento dal fascicolo per firmarlo.')
+        return
+      }
+      window.location.assign(`/fascicoli/${encodeURIComponent(match[1])}/documenti/${encodeURIComponent(match[2])}/firma`)
+    }
+    setPdfStatus('Salvo il documento nel fascicolo prima della firma...')
+    saveGuidePreview(draftOverride).then((link) => {
+      if (link) openSignatureFromEditor(link)
+    })
   }
 
   const importGuideDocument = () => {
@@ -2090,10 +2403,22 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     setImportStatus('Importo il documento nell\'anteprima...')
     submitFormJson(data.guidePreview.importEndpoint || '/template-atti/api/importa-documento', formData)
       .then((result) => {
+        const importPayload = result as Record<string, unknown>
         const content = String(result.contenuto || result.content || '')
+        const fontPayload = importPayload.fonts || importPayload.detectedFonts
+        const fonts = Array.isArray(fontPayload)
+          ? fontPayload.map((item: unknown) => String(item || '').trim()).filter(Boolean)
+          : []
+        setImportedDocument({
+          fileName: String(importPayload.filename || file.name || ''),
+          text: result.tipo === 'html' ? htmlToPlainText(content) : content,
+          fonts,
+          encoding: String(importPayload.encoding || importPayload.codifica || ''),
+          note: String(importPayload.note || 'Documento importato: puoi associarlo ai campi del fascicolo dal pannello Campi.'),
+        })
         if (content.trim()) {
           setGuideDraftText(result.tipo === 'html' ? htmlToPlainText(content) : content)
-          setImportStatus('Documento importato nell\'anteprima. Puoi modificarlo o salvarlo nel fascicolo.')
+          setImportStatus('Documento importato correttamente. Accenti, font rilevati e campi del fascicolo sono disponibili per il template personalizzato.')
         } else {
           setImportStatus(result.errore || result.message || 'Documento importato, ma senza testo estraibile. Puoi salvarlo come originale dal fascicolo.')
         }
@@ -2122,15 +2447,16 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
         <GuidePreviewWorkspace
           data={data}
           activeTool={activeGuideTool}
-          draftText={guideDraftText || guideDraftFromData(data)}
+          draftText={guideDraftText ?? guideDraftFromData(data)}
           importing={importing}
+          importedDocument={importedDocument}
           importStatus={importStatus}
           pdfStatus={submitMessage || submitError || pdfStatus}
           saving={submitting}
           bodyFontSize={guideFontSize}
           bodyLineHeight={guideLineHeight}
           onToolSelect={setActiveGuideTool}
-          onDraftTextChange={setGuideDraftText}
+          onDraftTextChange={(value) => setGuideDraftText(value)}
           onBodyFontSizeChange={setGuideFontSize}
           onBodyLineHeightChange={setGuideLineHeight}
           onEditorLayoutChange={rememberGuideEditorLayout}
@@ -2138,8 +2464,10 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
           onPreviewPdf={previewPdf}
           onDownloadWord={downloadGuideWord}
           onDownloadRtf={downloadGuideRtf}
+          onDownloadMultipleRtf={downloadGuideMultipleRtf}
           onRefreshPreview={refreshGuidePreviewFromCompiler}
           onSave={saveGuidePreview}
+          onPrepareSignature={prepareSignature}
         />
 
         {false ? (

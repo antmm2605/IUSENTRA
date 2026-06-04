@@ -1,0 +1,528 @@
+{
+  "ok": true,
+  "route": "/template-atti/compila/CIV_COM_001?id_fascicolo=2DE106E6",
+  "base": "http://127.0.0.1:8080",
+  "version": "2.249.14",
+  "browser_path": "Playwright Python; Browser integrato bloccato su 127.0.0.1 con net::ERR_BLOCKED_BY_CLIENT",
+  "results": [
+    {
+      "name": "readiness 8080",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "stato": "pronto",
+        "timestamp": "2026-06-04T15:17:39.313419",
+        "versione": "2.249.14"
+      }
+    },
+    {
+      "name": "login admin",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/admin/"
+    },
+    {
+      "name": "impersonificazione studio",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/"
+    },
+    {
+      "name": "apertura editor template reale",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/template-atti/compila/CIV_COM_001?id_fascicolo=2DE106E6"
+    },
+    {
+      "name": "testi visibili iniziali",
+      "ok": true,
+      "detail": {
+        "vietati": []
+      }
+    },
+    {
+      "name": "testi visibili iniziali - date italiane",
+      "ok": true,
+      "detail": {
+        "date_iso": []
+      }
+    },
+    {
+      "name": "scroll iniziale desktop",
+      "ok": true,
+      "detail": "pagina e pannelli scrollati"
+    },
+    {
+      "name": "overflow iniziale desktop",
+      "ok": true,
+      "detail": {
+        "innerWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "clientWidth": 1440
+      }
+    },
+    {
+      "name": "workflow italiano Template selezionato",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Autocompilazione dati studio/cliente/fascicolo",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Editor documento",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Lex Correttore",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Lex Revisore stile legale",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Lex Revisore placeholder",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Lex Revisore normativa/privacy",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Controllo finale",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Versione finale",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "workflow italiano Esporta DOCX / PDF / RTF",
+      "ok": true,
+      "detail": "Template selezionato\nAutocompilazione dati studio/cliente/fascicolo\nEditor documento\nLex Correttore\nLex Revisore stile legale\nLex Revisore placeholder\nLex Revisore normativa/privacy\nControllo finale\nVersione finale\nEsporta DOCX / PDF / RTF"
+    },
+    {
+      "name": "campo fascicolo recipient_or_court",
+      "ok": true,
+      "detail": {
+        "atteso": "Ufficio del Giudice di Pace di Palmi",
+        "ottenuto": "Ufficio del Giudice di Pace di Palmi"
+      }
+    },
+    {
+      "name": "campo fascicolo client_or_sender",
+      "ok": true,
+      "detail": {
+        "atteso": "Moscato Marco",
+        "ottenuto": "Moscato Marco"
+      }
+    },
+    {
+      "name": "campo fascicolo counterparty_or_recipient",
+      "ok": true,
+      "detail": {
+        "atteso": "nn nn",
+        "ottenuto": "nn nn"
+      }
+    },
+    {
+      "name": "campo fascicolo practice_reference",
+      "ok": true,
+      "detail": {
+        "atteso": "Moscato Marco c/ nn nn - 12/2026",
+        "ottenuto": "Moscato Marco c/ nn nn - 12/2026"
+      }
+    },
+    {
+      "name": "campo fascicolo practice_number",
+      "ok": true,
+      "detail": {
+        "atteso": "12/2026",
+        "ottenuto": "RG 12/2026"
+      }
+    },
+    {
+      "name": "campo fascicolo practice_subject",
+      "ok": true,
+      "detail": {
+        "atteso": "Moscato Marco c/ nn nn",
+        "ottenuto": "Moscato Marco c/ nn nn"
+      }
+    },
+    {
+      "name": "campo fascicolo matter",
+      "ok": true,
+      "detail": {
+        "atteso": "Civile",
+        "ottenuto": "Civile"
+      }
+    },
+    {
+      "name": "connessione fisica fascicolo completa",
+      "ok": true,
+      "detail": {
+        "recipient_or_court": "Ufficio del Giudice di Pace di Palmi",
+        "client_or_sender": "Moscato Marco",
+        "counterparty_or_recipient": "nn nn",
+        "practice_reference": "Moscato Marco c/ nn nn - 12/2026",
+        "practice_number": "RG 12/2026",
+        "practice_subject": "Moscato Marco c/ nn nn",
+        "matter": "Civile"
+      }
+    },
+    {
+      "name": "campo avvocato non tronca primo carattere",
+      "ok": true,
+      "detail": "Fatto aggiornato con accenti italiani: ? ? ? ? ? ?. Termine del 4 giugno 2026."
+    },
+    {
+      "name": "campo avvocato entra nel template",
+      "ok": true,
+      "detail": "Ufficio del Giudice di Pace di Palmi\n\nComparsa di Costituzione e Risposta\n\nMoscato Marco, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.\n\nContro nn nn.\n\nIn fatto\n\nFatto aggiornato con accenti italiani: ? ? ? ? ? ?. Termine del 4 giugno 2026.\n\nIn diritto\n\n[POSITION_ON_FACTS]\n\nConclusioni\n\n[REQUESTS_OR_CONCLUSIONS]\n\nVia NINO BIXIO 4, 89029 - TAURIANOVA (RC), 4 giugno 2026\n\nAvv. Roberto Montagnese"
+    },
+    {
+      "name": "cambio modello dal pannello sinistro",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/template-atti/compila/STR_ATR_001?id_fascicolo=2DE106E6"
+    },
+    {
+      "name": "cambio font documento",
+      "ok": true,
+      "detail": "\"Times New Roman\", Times, serif"
+    },
+    {
+      "name": "comando allineamento centra",
+      "ok": true,
+      "detail": "iu-template-pro-paper iu-template-doc-font--times_new_roman iu-template-heading-font--merriweather iu-template-placeholder-font--ibm_plex_mono iu-template-body-size--12 iu-template-leading--19 iu-template-align--center iu-template-stamp-position--top-center"
+    },
+    {
+      "name": "timbro studio spostabile",
+      "ok": true,
+      "detail": {
+        "prima": {
+          "x": 538,
+          "y": 380.15625,
+          "width": 364,
+          "height": 158.34375
+        },
+        "dopo": {
+          "x": 356,
+          "y": -7.4375,
+          "width": 651.203125,
+          "height": 115.3125
+        },
+        "classi": "iu-template-pro-paper iu-template-doc-font--times_new_roman iu-template-heading-font--merriweather iu-template-placeholder-font--ibm_plex_mono iu-template-body-size--12 iu-template-leading--19 iu-template-align--center iu-template-stamp-position--middle-right"
+      }
+    },
+    {
+      "name": "timbro studio completo visibile",
+      "ok": true,
+      "detail": "STUDIO LEGALE MONTAGNESE\nAvv. Roberto Montagnese\nVia NINO BIXIO 4, 89029 - TAURIANOVA (RC) - TAURIANOVA (RC)\nC.F. MNTRRT64L01L063H - P. IVA 01301790802\nTel. +393384626697 - PEC roberto.montagnese@coapalmi.legalmail.it - Email r.montagnese@tiscali.it"
+    },
+    {
+      "name": "Guida pratica inserita nel template",
+      "ok": true,
+      "detail": "Comparsa di costituzione e risposta impostata per contestare fatti, proporre eccezioni, riconvenzionale o chiamata di terzo in modo ordinato.\n\n[RECIPIENT_OR_COURT]\n\n[TITLE]\n\n[CLIENT_OR_SENDER], rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.\n\nContro [COUNTERPARTY_OR_RECIPIENT].\n\nIn fatto\n\n[FACTS]\n\nIn diritto\n\n[POSITION_ON_FACTS]\n\nConclusioni\n\n[REQUESTS_OR_CONCLUSIONS]\n\n[PLACE], [DOCUMENT_DATE]\n\n[LAWYER]"
+    },
+    {
+      "name": "fonte normativa inserita nel template",
+      "ok": true,
+      "detail": "e eccezioni, riconvenzionale o chiamata di terzo in modo ordinato.\n\n\n\nRiferimento normativo: Difese, eccezioni e posizione sui fatti, artt. 166 e 167 c.p.c..\n\n[RECIPIENT_OR_COURT]\n\n[TITLE]\n\n[CLIENT_OR_SENDER], rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.\n\nContro [COUNTERPARTY_OR_RECIPIENT].\n\nIn fatto\n\n[FACTS]\n\nIn diritto\n\n[POSITION_ON_FACTS]\n\nConclusioni\n\n[REQUESTS_OR_CONCLUSIONS]\n\n[PLACE], [DOCUMENT_DATE]\n\n[LAWYER]"
+    },
+    {
+      "name": "Lex genera proposta in diff",
+      "ok": true,
+      "detail": "Clausola proposta: le parti prendono atto della documentazione esaminata e confermano che ogni ulteriore integrazione sarà valutata dal difensore prima del deposito. Indicazione Lex: Mantieni tono professionale, chiaro e adatto al cliente."
+    },
+    {
+      "name": "Lex accetta diff e modifica documento",
+      "ok": true,
+      "detail": "66 e 167 c.p.c..\n\n[RECIPIENT_OR_COURT]\n\n[TITLE]\n\n[CLIENT_OR_SENDER], rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.\n\nContro [COUNTERPARTY_OR_RECIPIENT].\n\nIn fatto\n\n[FACTS]\n\nIn diritto\n\n[POSITION_ON_FACTS]\n\nConclusioni\n\n[REQUESTS_OR_CONCLUSIONS]\n\n[PLACE], [DOCUMENT_DATE]\n\n[LAWYER]\n\nClausola proposta: le parti prendono atto della documentazione esaminata e confermano che ogni ulteriore integrazione sarà valutata dal difensore prima del deposito. Indicazione Lex: Mantieni tono professionale, chiaro e adatto al cliente."
+    },
+    {
+      "name": "Lex rifiuta diff senza applicazione automatica",
+      "ok": true,
+      "detail": "Proposte in diff\nApplica tutte le proposte accettabili\nRevisore Privacy\nRifiutata\nControlla privacy\nComparsa di costituzione e risposta impostata per contestare fatti, proporre eccezioni, riconvenzionale o chiamata di terzo in modo ordinato.\n\nControllo privacy e dati personali in locale, senza trasmissione a servizi esterni.\n\nAccetta\nRifiuta\nCostruttore template\nAccettata\nGenera clausola\n\nTesto aggiuntivo in diff separato, da accettare prima dell'inserimento.\n\nAccetta\nRifiuta\nRevisore Placeholder\nDa decidere\nCampo da completare prima della versione finale\n[FACTS]\n\nIl campo resta evidenziato e richiede conferma dell'avvocato.\n\nAccetta\nRifiuta\nRevisore Normativo\nDa decidere\nVerifica normativa richiesta\nCompleta numero procedimento, difese, eccezioni e conclusioni.\n\nLa proposta non modifica il testo: segnala il punto da confermare.\n\nAccetta\nRifiuta"
+    },
+    {
+      "name": "Lex mode visibili in italiano",
+      "ok": true,
+      "detail": "Proposte in diff\nApplica tutte le proposte accettabili\nRevisore Privacy\nRifiutata\nControlla privacy\nComparsa di costituzione e risposta impostata per contestare fatti, proporre eccezioni, riconvenzionale o chiamata di terzo in modo ordinato.\n\nControllo privacy e dati personali in locale, senza trasmissione a servizi esterni.\n\nAccetta\nRifiuta\nCostruttore template\nAccettata\nGenera clausola\n\nTesto aggiuntivo in diff separato, da accettare prima dell'inserimento.\n\nAccetta\nRifiuta\nRevisore Placeholder\nDa decidere\nCampo da completare prima della versione finale\n[FACTS]\n\nIl campo resta evidenziato e richiede conferma dell'avvocato.\n\nAccetta\nRifiuta\nRevisore Normativo\nDa decidere\nVerifica normativa richiesta\nCompleta numero procedimento, difese, eccezioni e conclusioni.\n\nLa proposta non modifica il testo: segnala il punto da confermare.\n\nAccetta\nRifiuta"
+    },
+    {
+      "name": "Controllo placeholder visibile",
+      "ok": true,
+      "detail": "CONTROLLO FINALE\n\nControllo placeholder\n: verifica campi variabili, segnaposto residui e valori da confermare prima della versione finale.\n\nControllo legal_basis\n: verifica la base giuridica dichiarata e i riferimenti normativi collegati al modello.\n\nControllo privacy/PII\n: evidenzia dati personali, dati sensibili e contenuti da trattare con policy privacy esplicita.\n\nCampo redazionale obbligatorio: Esposizione dei Fatti\n\nCampo redazionale obbligatorio: Richieste / Conclusioni\n\nCampo redazionale obbligatorio: Posizione sui Fatti\n\nCampo redazionale obbligatorio: Eccezioni Processuali\n\nCampo redazionale obbligatorio: Eccezioni di Merito\n\nCampo redazionale obbligatorio: Domanda Riconvenzionale\n\nCampo redazionale obbligatorio: Chiamata di Terzo\n\nCampo redazionale obbligatorio: Mezzi di Prova\n\nCodice oggetto PST mancante nel fascicolo, non nel template\n\nProcura non inclusa nella selezione nel fascicolo, non nel template\n\nSchema ministeriale PST pronto per il canale\n\nBlocchi redazionali ancora vuoti"
+    },
+    {
+      "name": "Controllo legal_basis visibile",
+      "ok": true,
+      "detail": "CONTROLLO FINALE\n\nControllo placeholder\n: verifica campi variabili, segnaposto residui e valori da confermare prima della versione finale.\n\nControllo legal_basis\n: verifica la base giuridica dichiarata e i riferimenti normativi collegati al modello.\n\nControllo privacy/PII\n: evidenzia dati personali, dati sensibili e contenuti da trattare con policy privacy esplicita.\n\nCampo redazionale obbligatorio: Esposizione dei Fatti\n\nCampo redazionale obbligatorio: Richieste / Conclusioni\n\nCampo redazionale obbligatorio: Posizione sui Fatti\n\nCampo redazionale obbligatorio: Eccezioni Processuali\n\nCampo redazionale obbligatorio: Eccezioni di Merito\n\nCampo redazionale obbligatorio: Domanda Riconvenzionale\n\nCampo redazionale obbligatorio: Chiamata di Terzo\n\nCampo redazionale obbligatorio: Mezzi di Prova\n\nCodice oggetto PST mancante nel fascicolo, non nel template\n\nProcura non inclusa nella selezione nel fascicolo, non nel template\n\nSchema ministeriale PST pronto per il canale\n\nBlocchi redazionali ancora vuoti"
+    },
+    {
+      "name": "Controllo privacy/PII visibile",
+      "ok": true,
+      "detail": "CONTROLLO FINALE\n\nControllo placeholder\n: verifica campi variabili, segnaposto residui e valori da confermare prima della versione finale.\n\nControllo legal_basis\n: verifica la base giuridica dichiarata e i riferimenti normativi collegati al modello.\n\nControllo privacy/PII\n: evidenzia dati personali, dati sensibili e contenuti da trattare con policy privacy esplicita.\n\nCampo redazionale obbligatorio: Esposizione dei Fatti\n\nCampo redazionale obbligatorio: Richieste / Conclusioni\n\nCampo redazionale obbligatorio: Posizione sui Fatti\n\nCampo redazionale obbligatorio: Eccezioni Processuali\n\nCampo redazionale obbligatorio: Eccezioni di Merito\n\nCampo redazionale obbligatorio: Domanda Riconvenzionale\n\nCampo redazionale obbligatorio: Chiamata di Terzo\n\nCampo redazionale obbligatorio: Mezzi di Prova\n\nCodice oggetto PST mancante nel fascicolo, non nel template\n\nProcura non inclusa nella selezione nel fascicolo, non nel template\n\nSchema ministeriale PST pronto per il canale\n\nBlocchi redazionali ancora vuoti"
+    },
+    {
+      "name": "import documento riconosce font",
+      "ok": true,
+      "detail": "Template personalizzato importato\n\nDocumento importato: puoi associarlo ai campi del fascicolo dal pannello Campi.\n\nFILE\ntemplate-import-smoke.rtf\nCODIFICA\nutf-8-sig\nFONT RILEVATI\nMerriweather\nPagina vuota\nInserisci testo importato"
+    },
+    {
+      "name": "import pagina vuota per template personalizzato",
+      "ok": true,
+      "detail": "pagina svuotata"
+    },
+    {
+      "name": "import preserva accento à",
+      "ok": true,
+      "detail": "Documento importato con accenti à è é ì ò ù e dati fascicolo."
+    },
+    {
+      "name": "import preserva accento è",
+      "ok": true,
+      "detail": "Documento importato con accenti à è é ì ò ù e dati fascicolo."
+    },
+    {
+      "name": "import preserva accento é",
+      "ok": true,
+      "detail": "Documento importato con accenti à è é ì ò ù e dati fascicolo."
+    },
+    {
+      "name": "import preserva accento ì",
+      "ok": true,
+      "detail": "Documento importato con accenti à è é ì ò ù e dati fascicolo."
+    },
+    {
+      "name": "import preserva accento ò",
+      "ok": true,
+      "detail": "Documento importato con accenti à è é ì ò ù e dati fascicolo."
+    },
+    {
+      "name": "import preserva accento ù",
+      "ok": true,
+      "detail": "Documento importato con accenti à è é ì ò ù e dati fascicolo."
+    },
+    {
+      "name": "associazione campo fascicolo in documento importato",
+      "ok": true,
+      "detail": "Documento importato con accenti à è é ì ò ù e dati fascicolo.[PRACTICE_REFERENCE]"
+    },
+    {
+      "name": "download RTF",
+      "ok": true,
+      "detail": {
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.rtf",
+        "size": 179
+      }
+    },
+    {
+      "name": "download DOCX",
+      "ok": true,
+      "detail": {
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.docx",
+        "size": 36951
+      }
+    },
+    {
+      "name": "comando copia eseguito",
+      "ok": true,
+      "detail": "Documento copiato negli appunti. Documento importato correttamente. Accenti, font rilevati e campi del fascicolo sono disponibili per il template personalizzato. Documento DOCX aperto."
+    },
+    {
+      "name": "rigenera dal template eseguito",
+      "ok": true,
+      "detail": "documento rigenerato"
+    },
+    {
+      "name": "salva nel fascicolo eseguito",
+      "ok": true,
+      "detail": "Documento salvato nel fascicolo come bozza modificabile. Documento importato correttamente. Accenti, font rilevati e campi del fascicolo sono disponibili per il template personalizzato. Documento salvato nel fascicolo come bozza modificabile."
+    },
+    {
+      "name": "anteprima PDF eseguita",
+      "ok": true,
+      "detail": {
+        "url": "http://127.0.0.1:8080/template-atti/compila/CIV_COM_001/pdf",
+        "status": 200
+      }
+    },
+    {
+      "name": "compilazione multipla genera RTF selezionati",
+      "ok": true,
+      "detail": {
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\compilazione_multipla_template_atti-3.zip",
+        "size": 6435,
+        "rtf": [
+          "comparsa_di_costituzione_e_risposta.rtf",
+          "accordo_transattivo.rtf",
+          "appello_al_consiglio_di_stato.rtf",
+          "appello_cautelare.rtf",
+          "appello_cautelare_penale.rtf",
+          "appello_in_materia_di_lavoro.rtf",
+          "appello_previdenziale.rtf",
+          "appello_tributario.rtf",
+          "attestazione_di_conformita.rtf",
+          "appello_civile.rtf"
+        ],
+        "dimensioni": {
+          "comparsa_di_costituzione_e_risposta.rtf": 2492,
+          "accordo_transattivo.rtf": 1220,
+          "appello_al_consiglio_di_stato.rtf": 2135,
+          "appello_cautelare.rtf": 2135,
+          "appello_cautelare_penale.rtf": 2191,
+          "appello_in_materia_di_lavoro.rtf": 2513,
+          "appello_previdenziale.rtf": 2513,
+          "appello_tributario.rtf": 2119,
+          "attestazione_di_conformita.rtf": 2513,
+          "appello_civile.rtf": 2513
+        }
+      }
+    },
+    {
+      "name": "firma documento apre flusso firma",
+      "ok": true,
+      "detail": {
+        "url": "http://127.0.0.1:8080/fascicoli/2DE106E6/documenti/3EFBCC3A/firma",
+        "estratto": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nTutti i Fascicoli\nNuovo Fascicolo\nArchivio\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\ngio 04 giu\nNuovo\nFIRMA DOCUMENTO\ncomparsa_di_costituzione_e_risposta_20260604.html\n\nDa firmare\nRG 12/2026 - Moscato Marco\n\nTorna al fascicolo\nAnteprima\nScarica originale\nDocumento\nDati operativi del fascicolo\nNO"
+      }
+    },
+    {
+      "name": "testi visibili tablet",
+      "ok": true,
+      "detail": {
+        "vietati": []
+      }
+    },
+    {
+      "name": "testi visibili tablet - date italiane",
+      "ok": true,
+      "detail": {
+        "date_iso": []
+      }
+    },
+    {
+      "name": "overflow tablet",
+      "ok": true,
+      "detail": {
+        "innerWidth": 820,
+        "scrollWidth": 820,
+        "bodyScrollWidth": 820,
+        "clientWidth": 820
+      }
+    },
+    {
+      "name": "responsive tablet editor operativo",
+      "ok": true,
+      "detail": {
+        "width": 820,
+        "height": 920
+      }
+    },
+    {
+      "name": "testi visibili mobile",
+      "ok": true,
+      "detail": {
+        "vietati": []
+      }
+    },
+    {
+      "name": "testi visibili mobile - date italiane",
+      "ok": true,
+      "detail": {
+        "date_iso": []
+      }
+    },
+    {
+      "name": "overflow mobile",
+      "ok": true,
+      "detail": {
+        "innerWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "clientWidth": 390
+      }
+    },
+    {
+      "name": "responsive mobile editor operativo",
+      "ok": true,
+      "detail": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "name": "testi visibili finali desktop",
+      "ok": true,
+      "detail": {
+        "vietati": []
+      }
+    },
+    {
+      "name": "testi visibili finali desktop - date italiane",
+      "ok": true,
+      "detail": {
+        "date_iso": []
+      }
+    },
+    {
+      "name": "overflow finale desktop",
+      "ok": true,
+      "detail": {
+        "innerWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "clientWidth": 1440
+      }
+    },
+    {
+      "name": "console senza errori applicativi",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "page errors assenti",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "richieste fallite assenti",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "console_errors": [],
+  "page_errors": [],
+  "failed_requests": [],
+  "downloads": [
+    {
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.rtf",
+      "size": 179
+    },
+    {
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.docx",
+      "size": 36951
+    },
+    {
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\compilazione_multipla_template_atti-3.zip",
+      "size": 6435
+    }
+  ],
+  "screenshots": {
+    "desktop": "artifacts\\react-migration\\template-editor-2.249.14-desktop.png",
+    "tablet": "artifacts\\react-migration\\template-editor-2.249.14-tablet.png",
+    "mobile": "artifacts\\react-migration\\template-editor-2.249.14-mobile.png"
+  },
+  "generated_at": "2026-06-04T17:18:30",
+  "failed_at": "",
+  "detail": ""
+}

@@ -101,6 +101,7 @@ export type TemplateEditorLayout = {
   marginLeft?: number
   paragraphSpacing?: number
   signatureSpacing?: number
+  stampPosition?: string
   printCleanPlaceholders?: boolean
 }
 
@@ -293,6 +294,7 @@ export type TemplateCompilerData = {
   hidden: Record<string, string>
   baseFields: TemplateCompilerField[]
   extraFields: TemplateCompilerField[]
+  contextFields: TemplateCompilerField[]
   stamp: StudioStampPreview
   compliance: {
     available: boolean
@@ -378,6 +380,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
   hidden: {},
   baseFields: [],
   extraFields: [],
+  contextFields: [],
   stamp: { lines: [], text: '', scope: {} },
   compliance: {
     available: false,
@@ -495,6 +498,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     marginLeft: 32,
     paragraphSpacing: 8,
     signatureSpacing: 42,
+    stampPosition: 'top-center',
     printCleanPlaceholders: false,
   },
   editorWorkflow: [],
@@ -819,6 +823,7 @@ function normaliseEditorLayout(input: unknown): TemplateEditorLayout {
     marginLeft: Number(item.marginLeft || item.margin_left_mm || fallback.marginLeft),
     paragraphSpacing: Number(item.paragraphSpacing || item.paragraph_spacing_pt || fallback.paragraphSpacing),
     signatureSpacing: Number(item.signatureSpacing || item.signature_spacing_pt || fallback.signatureSpacing),
+    stampPosition: text(item.stampPosition) || text(item.stamp_position) || fallback.stampPosition,
     printCleanPlaceholders: item.printCleanPlaceholders === true || item.print_clean_placeholders === true,
   }
 }
@@ -1061,6 +1066,7 @@ function normaliseCompilerPage(input: unknown): TemplateCompilerData {
     hidden,
     baseFields: list(page.baseFields).map(normaliseCompilerField).filter((field) => field.name),
     extraFields: list(page.extraFields).map(normaliseCompilerField).filter((field) => field.name),
+    contextFields: list(page.contextFields).map(normaliseCompilerField).filter((field) => field.name),
     stamp: normaliseStudioStamp(page.stamp),
     compliance: {
       available: compliance.available === true,

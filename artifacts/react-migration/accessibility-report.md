@@ -4,6 +4,7 @@ Generato: 2026-05-08
 
 ## Controlli applicati
 
+- 2026-06-04: editor Template Atti 2.249.14 verificato nel browser reale su desktop/tablet/mobile. I pulsanti icona della toolbar, le azioni campi, i tab Campi/Stile/Lex/Fonti/Controlli/Export, Lex diff accetta/rifiuta, import, export, compilazione multipla e firma espongono testo o `aria-label`/`title` operativo; i controlli restano raggiungibili dopo scroll e non producono sovrapposizioni.
 - Nuovi componenti con `role=status`, `aria-live`, `aria-label` e focus ring compatibili con il design system.
 - `IusErrorState` separa messaggio utente e dettagli tecnici espandibili.
 - `IusWizardStepper` espone `aria-current` sul passo attivo.

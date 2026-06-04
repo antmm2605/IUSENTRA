@@ -1,4 +1,5 @@
 import tempfile
+import io
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -253,3 +254,38 @@ def test_script_editor_template_atti_non_contiene_js_rotto():
     assert "document.readyState === 'loading'" in editor_assets
     assert "soggettoSearchSelect('' + uid + ''" not in base_template
     assert "soggettoSearchSelect(\\'" in base_template
+
+
+def test_importa_documento_rtf_mantiene_accenti_e_font(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    ).crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    rtf = (
+        r"{\rtf1\ansi{\fonttbl{\f0 Merriweather;}}"
+        r"\f0 L'avvocato conferma: \u224? \u232? \u236? \u242? \u249?\par"
+        r"Pi\`u chiaro per il cliente.}"
+    ).encode("cp1252")
+    with app.test_client() as client:
+        client.post("/login", data={"username": "avvocato", "password": "Avv12345!"}, follow_redirects=True)
+        response = client.post(
+            "/template-atti/api/importa-documento",
+            data={"file": (io.BytesIO(rtf), "atto.rtf")},
+            content_type="multipart/form-data",
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert "à è ì ò ù" in payload["contenuto"]
+    assert "Merriweather" in payload["fonts"]
+    assert payload["encoding"] in {"cp1252", "utf-8-sig", "latin-1"}

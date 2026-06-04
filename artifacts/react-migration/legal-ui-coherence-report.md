@@ -2,6 +2,12 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+## Aggiornamento 2.249.14
+
+- Template Atti usa linguaggio operativo italiano per studio legale: `Controllo finale`, `Esporta DOCX / PDF / RTF`, `Firma documento`, `Compilazione multipla`, `Inserisci campo` e `Documento salvato nel fascicolo come bozza modificabile`.
+- Il workspace replica la struttura professionale richiesta: catalogo template, editor documento, tab Campi/Stile/Lex/Fonti/Controlli/Export, pannello revisione testo, timbro studio completo e spostabile, font registry e preset.
+- Le azioni non sono decorative: cambio modello, campi fascicolo, Guida Pratica, Lex diff, import, export, compilazione multipla e firma sono state cliccate nel browser reale; nessun testo tecnico vietato o lingua inglese visibile nel flusso verificato.
+
 Aggiornamento 2026-05-25: hotfix preset grafico operativo 2.248.56. Le pagine
 Studio richieste sono state rivalutate contro il preset IUSENTRA e rese più
 coerenti nelle dimensioni dei controlli: Fatturazione, Compensi Forensi,

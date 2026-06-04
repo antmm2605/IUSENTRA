@@ -1,11 +1,12 @@
 """Resolver centrale di precompilazione per Template Atti.
 
-Ogni campo risolto mantiene valore, fonte, affidabilita', editabilita' e motivi
+Ogni campo risolto mantiene valore, fonte, affidabilità, editabilità e motivi
 di assenza. Il servizio accetta oggetti dominio o dict per restare utilizzabile
 da compilatore, Jinja e test.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, asdict
 from datetime import date
 from typing import Any
@@ -17,7 +18,15 @@ CONFIDENCE_LOW = "low"
 CORE_CONTEXT_FIELDS = [
     "destinatario_ufficio_giudiziario",
     "cliente_mittente",
+    "controparte",
+    "counterparty_or_recipient",
     "pratica_collegata",
+    "practice_reference",
+    "practice_number",
+    "practice_subject",
+    "practice_data",
+    "matter",
+    "recipient_or_court",
     "autore",
 ]
 
@@ -30,7 +39,7 @@ SOURCE_LABELS = {
     "parti": "parti del fascicolo",
     "documenti": "documenti fascicolo",
     "today": "data odierna",
-    "legacy": "dati gia' presenti",
+    "legacy": "dati già presenti",
 }
 
 FIELD_LABELS = {
@@ -47,6 +56,10 @@ FIELD_LABELS = {
     "case_reference_display": "Riferimento pratica",
     "case_id": "Pratica collegata",
     "pratica_collegata": "Pratica collegata",
+    "practice_reference": "Riferimento pratica",
+    "practice_number": "Numero / R.G. pratica",
+    "practice_subject": "Oggetto pratica",
+    "practice_data": "Dati pratica",
     "matter": "Materia",
     "title": "Titolo atto",
     "subject": "Oggetto",
@@ -61,8 +74,8 @@ FIELD_LABELS = {
     "competent_court": "Ufficio giudiziario competente",
     "competent_tar": "TAR competente",
     "competent_tax_court": "Corte di Giustizia Tributaria competente",
-    "proceeding_authority": "Autorita procedente",
-    "competent_authority": "Autorita competente",
+    "proceeding_authority": "Autorità procedente",
+    "competent_authority": "Autorità competente",
     "plaintiff": "Parte ricorrente",
     "claimant": "Parte istante",
     "applicant": "Parte richiedente",
@@ -88,7 +101,10 @@ DEFAULT_PREFILL_BINDINGS: dict[str, list[str]] = {
     "case_id": ["fascicolo.id", "legacy.case_id"],
     "pratica_collegata": ["fascicolo.id", "fascicolo.codice", "fascicolo.numero", "legacy.case_id"],
     "practice_id": ["fascicolo.id", "legacy.case_id"],
-    "practice_reference": ["fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "fascicolo.id", "legacy.case_reference_display", "legacy.case_id"],
+    "practice_reference": ["fascicolo.practice_reference_display", "fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "fascicolo.id", "legacy.case_reference_display", "legacy.case_id"],
+    "practice_number": ["fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "fascicolo.codice", "fascicolo.id"],
+    "practice_subject": ["fascicolo.practice_subject_display", "fascicolo.titolo", "fascicolo.oggetto", "legacy.subject"],
+    "practice_data": ["fascicolo.titolo", "fascicolo.oggetto", "fascicolo.note", "legacy.subject"],
     "author_user_id": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "utente.id", "legacy.author_user_id"],
     "autore": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.author_user_id"],
     "cliente": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.client_or_sender"],
@@ -107,9 +123,9 @@ DEFAULT_PREFILL_BINDINGS: dict[str, list[str]] = {
     "client_or_sender": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.client_or_sender"],
     "counterparty_or_recipient": ["parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.counterparty_or_recipient"],
     "lawyer": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.lawyer"],
-    "case_reference_display": ["fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "legacy.case_reference_display"],
-    "matter": ["fascicolo.tipo.value", "fascicolo.materia", "legacy.matter"],
-    "subject": ["fascicolo.oggetto", "fascicolo.titolo", "legacy.subject"],
+    "case_reference_display": ["fascicolo.practice_reference_display", "fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "legacy.case_reference_display"],
+    "matter": ["fascicolo.materia", "fascicolo.tipo.value", "fascicolo.tipo", "fascicolo.area", "fascicolo.branca", "legacy.matter"],
+    "subject": ["fascicolo.practice_subject_display", "fascicolo.oggetto", "fascicolo.titolo", "legacy.subject"],
     "facts": ["fascicolo.note", "legacy.facts"],
     "document_date": ["today", "legacy.document_date"],
     "signature": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.signature"],
@@ -181,6 +197,28 @@ def _clean(value: Any) -> str:
     if isinstance(value, list):
         return "\n".join(_clean(item) for item in value if _clean(item))
     return " ".join(str(value or "").split()).strip()
+
+
+def _display_value_for_field(name: str, value: Any) -> Any:
+    if isinstance(value, list):
+        return value
+    cleaned = _clean(value)
+    if name != "matter" or not cleaned:
+        return cleaned
+    known_matters = {
+        "CIVILE": "Civile",
+        "PENALE": "Penale",
+        "AMMINISTRATIVO": "Amministrativo",
+        "TRIBUTARIO": "Tributario",
+        "LAVORO": "Lavoro",
+        "PRIVACY": "Privacy",
+    }
+    mapped = known_matters.get(cleaned.upper())
+    if mapped:
+        return mapped
+    if cleaned.isupper():
+        return cleaned[:1].upper() + cleaned[1:].lower()
+    return cleaned
 
 
 def _field_label(name: str) -> str:
@@ -292,6 +330,78 @@ def _timbro_payload(studio_timbro: Any) -> dict[str, Any]:
     return {}
 
 
+class _FascicoloPrefillContext(dict):
+    """Espone valori calcolati senza perdere gli attributi originali del fascicolo."""
+
+    def __init__(self, original: Any, computed: dict[str, Any]):
+        super().__init__(computed)
+        self._original = original
+
+    def get(self, name: str, default: Any = None) -> Any:
+        if name in self:
+            return super().get(name, default)
+        value = _value(self._original, name)
+        return default if value is None else value
+
+
+def _rg_reference_value(fascicolo: Any) -> str:
+    raw = _clean(
+        _value(fascicolo, "rg_completo")
+        or _value(fascicolo, "numero_rg")
+        or _value(fascicolo, "numero")
+        or _value(fascicolo, "codice")
+    )
+    if not raw:
+        return ""
+    raw = re.sub(r"(?i)^r\.?\s*g\.?\s*", "", raw).strip()
+    raw = re.sub(r"(?i)\s*r\.?\s*g\.?$", "", raw).strip()
+    return raw
+
+
+def _party_display_name(parti: Any, role: str) -> str:
+    party = _value(parti, role)
+    return _clean(_value(party, "nome_completo") or _value(party, "nome") or party)
+
+
+def _practice_reference_display(fascicolo: Any, parti: Any = None) -> str:
+    assisted = _party_display_name(parti, "assistito_principale") or _clean(
+        _value(fascicolo, "nome_cliente")
+        or _value(fascicolo, "cliente")
+        or _value(fascicolo, "attore_principale")
+    )
+    counterparty = _party_display_name(parti, "controparte_principale") or _clean(_value(fascicolo, "controparte"))
+    parties_title = f"{assisted} c/ {counterparty}" if assisted and counterparty else ""
+    title = parties_title or _practice_subject_display(fascicolo, parti)
+    rg_value = _rg_reference_value(fascicolo)
+    if title and rg_value:
+        return f"{title} - {rg_value}"
+    return title or rg_value or _clean(_value(fascicolo, "id"))
+
+
+def _practice_subject_display(fascicolo: Any, parti: Any = None) -> str:
+    assisted = _party_display_name(parti, "assistito_principale") or _clean(
+        _value(fascicolo, "nome_cliente")
+        or _value(fascicolo, "cliente")
+        or _value(fascicolo, "attore_principale")
+    )
+    counterparty = _party_display_name(parti, "controparte_principale") or _clean(_value(fascicolo, "controparte"))
+    if assisted and counterparty:
+        return f"{assisted} c/ {counterparty}"
+    return _clean(_value(fascicolo, "titolo") or _value(fascicolo, "oggetto"))
+
+
+def _fascicolo_context(fascicolo: Any, parti: Any = None) -> Any:
+    if fascicolo is None:
+        return None
+    return _FascicoloPrefillContext(
+        fascicolo,
+        {
+            "practice_reference_display": _practice_reference_display(fascicolo, parti),
+            "practice_subject_display": _practice_subject_display(fascicolo, parti),
+        },
+    )
+
+
 def build_prefill_context(
     *,
     fascicolo: Any = None,
@@ -308,7 +418,7 @@ def build_prefill_context(
         "studio": _studio_payload(config),
         "utente": utente,
         "cliente": cliente,
-        "fascicolo": fascicolo,
+        "fascicolo": _fascicolo_context(fascicolo, parti),
         "parti": parti or {},
         "documenti": list(documenti or []),
         "legacy": legacy_payload or {},
@@ -337,7 +447,7 @@ def resolve_field(name: str, candidates: list[str], context: dict[str, Any], *, 
         source = _source_from_path(path)
         if _is_empty(value):
             continue
-        normalized_value = value if isinstance(value, list) else _clean(value)
+        normalized_value = _display_value_for_field(name, value)
         alternatives.append(
             {
                 "value": normalized_value,
@@ -377,7 +487,7 @@ def resolve_field(name: str, candidates: list[str], context: dict[str, Any], *, 
         confidence=CONFIDENCE_LOW,
         editable=True,
         required=required,
-        missing_reason=f"Da completare: {_field_label(name)} non e' presente nei dati gia' disponibili.",
+        missing_reason=f"Da completare: {_field_label(name)} non è presente nei dati già disponibili.",
         warnings=[],
         alternatives=[],
         conflict=False,

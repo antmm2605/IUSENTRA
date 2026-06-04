@@ -9,11 +9,13 @@ import io
 import json
 import os
 import re
+import zipfile
 from datetime import date
 from html import escape
 from html.parser import HTMLParser
 from types import SimpleNamespace
 from typing import Any
+from xml.etree import ElementTree
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify,
                    redirect, render_template, request, send_file, url_for)
@@ -597,10 +599,22 @@ def _importa_compilazione_editor_professionale(
     )
     if not created.ok:
         raise RuntimeError("; ".join(created.errors or [created.message or "Importazione editor non riuscita."]))
+    verify_repo = get_fascicoli()
+    verify_fascicolo = verify_repo.get(id_fascicolo)
+    verify_document = next(
+        (
+            item
+            for item in (getattr(verify_fascicolo, "documenti", []) or [])
+            if str(getattr(item, "id", "") or "").strip() == created.document_id
+        ),
+        None,
+    ) if verify_fascicolo else None
+    if verify_document is None:
+        raise RuntimeError("Documento creato ma non leggibile dal fascicolo collegato.")
     try:
         from audit.integrations import emit_act_generated
 
-        percorso = get_fascicoli().percorso_documento(id_fascicolo, created.document_id)
+        percorso = verify_repo.percorso_documento(id_fascicolo, created.document_id)
         emit_act_generated(
             fascicolo_id=id_fascicolo,
             atto_type=str(model.get("category") or model.get("name") or model_code or "ATTO"),
@@ -621,6 +635,7 @@ def _importa_compilazione_editor_professionale(
         "filename": created.filename,
         "open_url": created.open_url,
         "editor_url": created.editor_url or created.open_url,
+        "signature_url": f"/fascicoli/{id_fascicolo}/documenti/{created.document_id}/firma",
         "created_as": created.created_as,
         "compliance_state": created.compliance_state,
     }
@@ -677,8 +692,8 @@ def _safe_word_download_name(title: Any) -> str:
     base = secure_filename(str(title or "").strip().lower().replace(" ", "_"))
     if not base:
         base = "atto"
-    if not base.endswith(".doc"):
-        base = f"{base}.doc"
+    if not base.endswith(".docx"):
+        base = f"{base}.docx"
     return base
 
 
@@ -1219,7 +1234,7 @@ def modifica(id_template: str):
     if not t:
         abort(404)
     if t.builtin:
-        flash("I template built-in non possono essere modificati. Clonalo prima.", "warning")
+        flash("I modelli integrati non possono essere modificati. Clonalo prima.", "warning")
         return redirect(url_for("template_atti.lista"))
     if request.method == "POST":
         try:
@@ -1516,6 +1531,7 @@ def compila(model_code: str):
                             "message": "Bozza creata nell'editor professionale.",
                             "document_id": editor_import["document_id"],
                             "editor_url": editor_import["editor_url"],
+                            "signature_url": editor_import["signature_url"],
                             "redirect": editor_import["editor_url"],
                             "created_as": editor_import.get("created_as") or requested_draft,
                             "compliance_state": editor_import.get("compliance_state") or compliance_result.overall_state,
@@ -1629,6 +1645,7 @@ def compila_guida_pratica_salva(model_code: str):
         "message": "Documento salvato nel fascicolo come bozza modificabile.",
         "document_id": editor_import["document_id"],
         "editor_url": editor_import["editor_url"],
+        "signature_url": editor_import["signature_url"],
         "redirect_url": editor_import["editor_url"],
         "created_as": editor_import.get("created_as") or "working_draft",
         "compliance_state": editor_import.get("compliance_state") or "warning",
@@ -1702,6 +1719,65 @@ def scanner_windows_scan():
 
 # ================================================================ IMPORTA DOCUMENTO
 
+def _decode_document_bytes(data: bytes) -> tuple[str, str]:
+    for encoding in ("utf-8-sig", "utf-16", "cp1252", "latin-1"):
+        try:
+            return data.decode(encoding), encoding
+        except UnicodeDecodeError:
+            continue
+    return data.decode("utf-8", errors="replace"), "utf-8 con caratteri sostitutivi"
+
+
+def _extract_docx_fonts(data: bytes) -> list[str]:
+    fonts: set[str] = set()
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            for name in ("word/document.xml", "word/styles.xml"):
+                if name not in archive.namelist():
+                    continue
+                root = ElementTree.fromstring(archive.read(name))
+                for node in root.iter():
+                    if node.tag.rsplit("}", 1)[-1] != "rFonts":
+                        continue
+                    for attr, value in node.attrib.items():
+                        if attr.rsplit("}", 1)[-1] in {"ascii", "hAnsi", "cs", "eastAsia"} and str(value or "").strip():
+                            fonts.add(str(value).strip())
+    except Exception:
+        current_app.logger.debug("Font DOCX non rilevati", exc_info=True)
+    return sorted(fonts, key=str.casefold)
+
+
+def _extract_rtf_fonts(raw: str) -> list[str]:
+    fonts: set[str] = set()
+    for match in re.finditer(r"\{\\f\d+[^;{}]*\s+([^;{}]+);", raw):
+        name = re.sub(r"\\[a-zA-Z]+-?\d* ?", "", match.group(1)).strip()
+        if name:
+            fonts.add(name)
+    return sorted(fonts, key=str.casefold)
+
+
+def _rtf_to_text(raw: str) -> str:
+    def _unicode_repl(match: re.Match[str]) -> str:
+        code = int(match.group(1))
+        if code < 0:
+            code += 65536
+        return chr(code)
+
+    def _hex_repl(match: re.Match[str]) -> str:
+        try:
+            return bytes.fromhex(match.group(1)).decode("cp1252")
+        except Exception:
+            return ""
+
+    text = re.sub(r"\\u(-?\d+)\??", _unicode_repl, raw)
+    text = re.sub(r"\\'([0-9a-fA-F]{2})", _hex_repl, text)
+    text = re.sub(r"\\par[d]?", "\n", text)
+    text = re.sub(r"\{\\fonttbl.*?\}", "", text, flags=re.DOTALL)
+    text = re.sub(r"\\[a-zA-Z]+-?\d* ?", "", text)
+    text = text.replace("{", "").replace("}", "")
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
 @template_atti.route("/api/importa-documento", methods=["POST"])
 @_richiedi_login
 def api_importa_documento():
@@ -1716,11 +1792,22 @@ def api_importa_documento():
 
         if ext == "docx":
             import mammoth
-            result = mammoth.convert_to_html(file)
+            data = file.read()
+            result = mammoth.convert_to_html(io.BytesIO(data))
             html = result.value or ""
             # Stripping di tag vuoti lasciati da mammoth
             html = re.sub(r"<p>\s*</p>", "", html)
-            return jsonify({"ok": True, "tipo": "html", "contenuto": html})
+            fonts = _extract_docx_fonts(data)
+            return jsonify({
+                "ok": True,
+                "tipo": "html",
+                "contenuto": html,
+                "filename": filename,
+                "fonts": fonts,
+                "detectedFonts": fonts,
+                "encoding": "DOCX UTF-8 interno",
+                "note": "Documento DOCX importato: font e testo sono disponibili per creare un template personalizzato.",
+            })
 
         if ext == "pdf":
             import io as _io
@@ -1733,21 +1820,18 @@ def api_importa_documento():
                     if testo.strip():
                         testo_pagine.append(testo.strip())
             testo = "\n\n".join(testo_pagine)
-            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo})
+            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo, "filename": filename, "fonts": [], "encoding": "PDF testo estratto"})
 
         if ext in {"txt", "text"}:
             data = file.read()
-            testo = data.decode("utf-8-sig", errors="replace")
-            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo})
+            testo, encoding = _decode_document_bytes(data)
+            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo, "filename": filename, "fonts": [], "encoding": encoding})
 
         if ext == "rtf":
-            data = file.read().decode("utf-8", errors="replace")
-            data = re.sub(r"\\'[0-9a-fA-F]{2}", " ", data)
-            data = re.sub(r"\\par[d]?", "\n", data)
-            data = re.sub(r"\\[a-zA-Z]+-?\d* ?", "", data)
-            data = data.replace("{", "").replace("}", "")
-            testo = re.sub(r"\n{3,}", "\n\n", data).strip()
-            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo})
+            raw, encoding = _decode_document_bytes(file.read())
+            fonts = _extract_rtf_fonts(raw)
+            testo = _rtf_to_text(raw)
+            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo, "filename": filename, "fonts": fonts, "detectedFonts": fonts, "encoding": encoding})
 
         return jsonify({"errore": f"Formato '.{ext}' non supportato. Usa DOCX, PDF, RTF o TXT."}), 200
 
@@ -1812,7 +1896,7 @@ def compila_word(model_code: str):
 
         font_meta = font_editor(str(layout.get("font_family") or ""))
     except Exception:
-        font_meta = {"css_stack": "Georgia, 'Times New Roman', serif", "docx_family": "Times New Roman"}
+        font_meta = {"docx_family": "Times New Roman"}
     try:
         font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or 12)))
     except (TypeError, ValueError):
@@ -1822,30 +1906,115 @@ def compila_word(model_code: str):
     except (TypeError, ValueError):
         line_height = 1.45
     timbro = _get_studio_timbro()
-    try:
-        timbro_html = timbro.to_html()
-    except Exception:
-        timbro_html = ""
-    css_stack = str(font_meta.get("css_stack") or "Georgia, 'Times New Roman', serif")
-    html = (
-        "<!doctype html><html><head><meta charset=\"utf-8\">"
-        f"<title>{escape(str(titolo), quote=True)}</title>"
-        "</head><body>"
-        f"<section style=\"font-family: {escape(css_stack, quote=True)}; "
-        "width: 15rem; text-align: center; line-height: 1.1; font-size: 11pt;\">"
-        f"{timbro_html}</section>"
-        f"<pre style=\"font-family: {escape(css_stack, quote=True)}; white-space: pre-wrap; "
-        f"font-size: {font_size:.1f}pt; line-height: {line_height:.2f}; "
-        f"margin-top: 28pt;\">{escape(testo)}</pre>"
-        "</body></html>"
-    )
+    docx_font = str(font_meta.get("docx_family") or layout.get("fallback_font_family") or "Times New Roman")
+    text_align = str(layout.get("text_align") or layout.get("textAlign") or "justify").lower()
+    stamp_position = str(layout.get("stamp_position") or layout.get("stampPosition") or "top-center").lower()
     download_name = _safe_word_download_name(titolo)
-    response = current_app.response_class(
-        html.encode("utf-8"),
-        mimetype="application/msword; charset=utf-8",
+    try:
+        from docx import Document
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.shared import Pt
+
+        document = Document()
+        stamp_alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if stamp_position.endswith("left"):
+            stamp_alignment = WD_ALIGN_PARAGRAPH.LEFT
+        elif stamp_position.endswith("right"):
+            stamp_alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        try:
+            stamp_lines = timbro.to_lines()
+        except Exception:
+            stamp_lines = []
+        if not stamp_lines and getattr(timbro, "text", ""):
+            stamp_lines = [{"text": line} for line in str(timbro.text).splitlines() if line.strip()]
+        for line in stamp_lines:
+            text_value = str(line.get("text") if isinstance(line, dict) else getattr(line, "text", "")).strip()
+            if not text_value:
+                continue
+            paragraph = document.add_paragraph()
+            paragraph.alignment = stamp_alignment
+            run = paragraph.add_run(text_value)
+            run.bold = bool(line.get("bold")) if isinstance(line, dict) else bool(getattr(line, "bold", False))
+            run.font.name = docx_font
+            run.font.size = Pt(9)
+        if stamp_lines:
+            document.add_paragraph("")
+        align_map = {
+            "left": WD_ALIGN_PARAGRAPH.LEFT,
+            "center": WD_ALIGN_PARAGRAPH.CENTER,
+            "right": WD_ALIGN_PARAGRAPH.RIGHT,
+            "justify": WD_ALIGN_PARAGRAPH.JUSTIFY,
+        }
+        body_alignment = align_map.get(text_align, WD_ALIGN_PARAGRAPH.JUSTIFY)
+        for block in str(testo or "").splitlines():
+            paragraph = document.add_paragraph()
+            paragraph.alignment = body_alignment
+            paragraph.paragraph_format.line_spacing = line_height
+            run = paragraph.add_run(block)
+            run.font.name = docx_font
+            run.font.size = Pt(font_size)
+        buf = io.BytesIO()
+        document.save(buf)
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            as_attachment=True,
+            download_name=download_name,
+        )
+    except Exception:
+        current_app.logger.exception("Generazione DOCX non completata per %s", model_code)
+        html = (
+            "<!doctype html><html><head><meta charset=\"utf-8\">"
+            f"<title>{escape(str(titolo), quote=True)}</title>"
+            "</head><body>"
+            f"<pre>{escape(testo)}</pre>"
+            "</body></html>"
+        )
+        response = current_app.response_class(html.encode("utf-8"), mimetype="application/msword; charset=utf-8")
+        response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
+        return response
+
+
+def _rtf_escape(value: str) -> str:
+    parts = []
+    for char in value:
+        code = ord(char)
+        if char == "\\":
+            parts.append("\\\\")
+        elif char == "{":
+            parts.append("\\{")
+        elif char == "}":
+            parts.append("\\}")
+        elif char == "\n":
+            parts.append("\\par\n")
+        elif code > 127:
+            parts.append(f"\\u{code}?")
+        else:
+            parts.append(char)
+    return "".join(parts)
+
+
+def _rtf_content_from_text(testo: str, layout: dict[str, Any] | None = None) -> str:
+    layout = layout or {}
+    try:
+        from pct.template_atti import font_editor
+
+        font_meta = font_editor(str(layout.get("font_family") or ""))
+    except Exception:
+        font_meta = {"rtf_family": "Times New Roman"}
+    try:
+        font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or layout.get("font_size_pt") or 12)))
+    except (TypeError, ValueError):
+        font_size = 12.0
+    rtf_font = str(font_meta.get("rtf_family") or "Times New Roman").replace(";", "")
+    return (
+        "{\\rtf1\\ansi\\deff0"
+        f"{{\\fonttbl{{\\f0 {rtf_font};}}}}"
+        f"\\fs{int(round(font_size * 2))}\n"
+        f"{_rtf_escape(testo)}"
+        "}"
     )
-    response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
-    return response
 
 
 @template_atti.route("/compila/<model_code>/rtf", methods=["POST"])
@@ -1862,47 +2031,59 @@ def compila_rtf(model_code: str):
         testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
-    try:
-        from pct.template_atti import font_editor
-
-        font_meta = font_editor(str(layout.get("font_family") or ""))
-    except Exception:
-        font_meta = {"rtf_family": "Times New Roman"}
-    try:
-        font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or layout.get("font_size_pt") or 12)))
-    except (TypeError, ValueError):
-        font_size = 12.0
-    rtf_font = str(font_meta.get("rtf_family") or "Times New Roman").replace(";", "")
-
-    def _rtf_escape(value: str) -> str:
-        parts = []
-        for char in value:
-            code = ord(char)
-            if char == "\\":
-                parts.append("\\\\")
-            elif char == "{":
-                parts.append("\\{")
-            elif char == "}":
-                parts.append("\\}")
-            elif char == "\n":
-                parts.append("\\par\n")
-            elif code > 127:
-                parts.append(f"\\u{code}?")
-            else:
-                parts.append(char)
-        return "".join(parts)
-
-    content = (
-        "{\\rtf1\\ansi\\deff0"
-        f"{{\\fonttbl{{\\f0 {rtf_font};}}}}"
-        f"\\fs{int(round(font_size * 2))}\n"
-        f"{_rtf_escape(testo)}"
-        "}"
-    )
+    content = _rtf_content_from_text(testo, layout)
     download_name = _safe_word_download_name(titolo).rsplit(".", 1)[0] + ".rtf"
     response = current_app.response_class(content.encode("utf-8"), mimetype="application/rtf; charset=utf-8")
     response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
     return response
+
+
+@template_atti.route("/api/compilazione-multipla-rtf", methods=["POST"])
+@_richiedi_login
+def api_compilazione_multipla_rtf():
+    from pct.compilatore_atti import get_modello, render_compiled_act
+
+    raw_codes = request.form.getlist("model_codes")
+    seen_codes: set[str] = set()
+    model_codes: list[str] = []
+    for raw_code in raw_codes:
+        code = str(raw_code or "").strip()
+        if code and code not in seen_codes:
+            model_codes.append(code)
+            seen_codes.add(code)
+        if len(model_codes) >= 20:
+            break
+    if not model_codes:
+        return jsonify({"ok": False, "message": "Seleziona almeno un modello da compilare."}), 400
+
+    layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
+    archive = io.BytesIO()
+    written = 0
+    used_names: dict[str, int] = {}
+    with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for code in model_codes:
+            model = get_modello(code)
+            if not model:
+                continue
+            resolved = _resolve_compiler_context(code)
+            testo = render_compiled_act(code, resolved["payload"], include_timbro=False)
+            base_name = _safe_word_download_name(str(model.get("name") or code)).rsplit(".", 1)[0] or code
+            file_name = f"{base_name}.rtf"
+            duplicate_index = used_names.get(file_name, 0)
+            used_names[file_name] = duplicate_index + 1
+            if duplicate_index:
+                file_name = f"{base_name}-{duplicate_index + 1}.rtf"
+            zip_file.writestr(file_name, _rtf_content_from_text(testo, layout).encode("utf-8"))
+            written += 1
+    if not written:
+        return jsonify({"ok": False, "message": "Nessun modello selezionato è disponibile per l'esportazione RTF."}), 404
+    archive.seek(0)
+    return send_file(
+        archive,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name="compilazione_multipla_template_atti.zip",
+    )
 
 
 # ================================================================ API assistente redazionale

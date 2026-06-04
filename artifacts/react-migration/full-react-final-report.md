@@ -1101,3 +1101,24 @@ La superficie `/template-atti/compila/<codice>` è stata promossa a workspace Re
 Il registry `template_atti/font_registry.json` governa font classici, moderni, giudiziari, contrattuali, privacy e placeholder, con preset e fallback DOCX/PDF/RTF. Lex Revisione testo genera proposte locali in diff, accettabili/rifiutabili/modificabili, con audit visibile e senza applicazione automatica.
 
 Gate locali verdi: pytest mirati editor/API/UTF-8 13/13, typecheck React, test frontend, build Vite, contratti OpenAPI, route gate, asset retention, Docker reale `127.0.0.1:8080` con `/api/pronto` su `2.249.13`, browser Playwright con Chrome locale su desktop/tablet/mobile, scroll completo, import documento, campi, stile, Lex, Fonti, Controlli, Export e topbar. La prova ha cliccato le 11 azioni Lex, verificato diff accetta/rifiuta/modifica/applica, audit visibile, nessuna modifica automatica prima dell'accettazione, export RTF/DOCX/PDF, salvataggio e rigenerazione. Esito: overflow 0, console applicativa 0 e date visibili in italiano sui tre viewport. Restano da chiudere nel flusso di rilascio sync branch, check remoti e deploy Hetzner.
+
+## Correzione editor template atti professionale 2.249.14
+
+La correzione 2.249.14 rende il workspace realmente collegato al fascicolo: il
+payload React espone campi contestuali per destinatario/ufficio giudiziario,
+cliente/mittente, controparte/destinatario, dati pratica, R.G. e materia. Il
+caso browser reale ha usato il fascicolo `2DE106E6`, con cliente `Moscato Marco`,
+controparte `nn nn`, ufficio `Ufficio del Giudice di Pace di Palmi`, R.G.
+`12/2026` e materia `Civile`.
+
+Il bug di compilazione manuale è stato corretto separando valori dei campi e
+testo del template: l'avvocato può digitare frasi complete con accenti italiani
+senza vedere inserito solo il primo carattere. Import documento, pagina vuota,
+inserimento campi fascicolo, font, allineamenti, timbro studio spostabile,
+Guida Pratica, fonti normative, Lex diff, compilazione multipla ZIP e firma sono
+stati provati con click reali.
+
+Gate locali verdi: 20/20 pytest mirati, compileall, typecheck React, test
+frontend, build Vite, Docker reale `127.0.0.1:8080` con `/api/pronto` su
+`2.249.14`, e browser Playwright desktop/tablet/mobile con 73/73 controlli OK.
+Report: `artifacts/react-migration/template-editor-browser-2.249.14.json`.

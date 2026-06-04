@@ -587,3 +587,16 @@ test mirati e build Vite verdi; audit visuale Chrome desktop/mobile salvato in
 `/notifiche-legali` e dettaglio fascicolo sono stati collegati sul flusso documento d'ufficio. Il backend espone `notificationRelata`, rileva documenti portale non ancora importati, prepara la notifica di sistema e blocca la generazione della relata quando l'acquisizione portale è richiesta ma non completata.
 
 Controlli anti-mascheramento: nessuno scraping portale non autorizzato, nessuna credenziale o PIN salvati, nessun invio PEC automatico. La UI usa link di acquisizione precompilati e lascia all'avvocato accesso, download/import, revisione, firma e invio. I test coprono documento rilasciato non acquisito, documento acquisito, top bar, payload React e presenza della sezione `Relata notifica`.
+
+## Aggiornamento 2.249.14 - 2026-06-04
+
+`/template-atti/compila/<codice>` non maschera più un editor decorativo: i dati
+arrivano dal fascicolo reale, il pannello campi mostra fonte e confidenza, il
+cambio modello ricarica il template selezionato e la compilazione multipla usa
+modelli effettivamente esportabili.
+
+Controlli anti-mascheramento: nessun dato demo, nessun `?_legacy=1` come CTA
+primaria, nessun invio Lex esterno, nessuna modifica automatica senza
+accettazione, fonti normative inseribili solo su click e import documento
+governato da encoding/font rilevati. Browser reale 73/73 OK su Docker
+`127.0.0.1:8080`.

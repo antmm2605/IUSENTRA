@@ -90,6 +90,30 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
     assert not any("{" in item or "}" in item for item in compiler_payload["compliance"]["normativeReferences"])
     assert compiler_payload["baseFields"]
     assert compiler_payload["extraFields"]
+    assert compiler_payload["contextFields"]
+    all_field_names = {
+        field["name"]
+        for field in compiler_payload["baseFields"] + compiler_payload["extraFields"] + compiler_payload["contextFields"]
+    }
+    assert {
+        "destinatario_ufficio_giudiziario",
+        "cliente_mittente",
+        "controparte",
+        "practice_reference",
+        "matter",
+    } & all_field_names
+    matter_field = next(
+        field
+        for field in compiler_payload["baseFields"] + compiler_payload["extraFields"] + compiler_payload["contextFields"]
+        if field["name"] == "matter"
+    )
+    assert matter_field["value"] == "Amministrativo"
+    assert "Civile" in {option["value"] for option in matter_field["options"]}
+    assert "CIVILE" not in {option["value"] for option in matter_field["options"]}
+    assert any(
+        isinstance(ref, dict) and ref.get("official_url") and ref.get("last_verified_at") == "2026-06-04"
+        for ref in compiler_payload["compliance"]["normativeReferences"]
+    )
     assert compiler_payload["fontRegistry"]["policy"]["external_font_downloads"] is False
     assert any(font["key"] == "merriweather" for font in compiler_payload["fontRegistry"]["fonts"])
     assert any(preset["key"] == "giudiziario_civile" for preset in compiler_payload["fontRegistry"]["style_presets"])
@@ -109,9 +133,9 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
         "Lex Revisore stile legale",
         "Lex Revisore placeholder",
         "Lex Revisore normativa/privacy",
-        "Final check",
+        "Controllo finale",
         "Versione finale",
-        "Export DOCX / PDF / RTF",
+        "Esporta DOCX / PDF / RTF",
     ]
     lex_revision = compiler_payload["lexRevision"]
     assert lex_revision["privacyPolicy"]["localOnly"] is True
@@ -134,6 +158,10 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
         "Prepara versione finale",
     }
     assert compiler_payload["templateExamples"]
+    assert not any(
+        "built-in" in str(example.get("description", "")).casefold()
+        for example in compiler_payload["templateExamples"]
+    )
     assert any(
         field.get("note", {}).get("tone") == "missing"
         and "Da completare:" in field.get("note", {}).get("text", "")
@@ -202,3 +230,21 @@ def test_template_atti_export_rtf_locale_usa_testo_e_fallback_font(tmp_path: Pat
     assert "Times New Roman" in body
     assert "TRIBUNALE DI [TRIBUNALE]" in body
     assert "revisione finale" in body
+
+
+def test_template_atti_export_docx_reale_usa_testo_e_fallback_font(tmp_path: Path):
+    client = _client(tmp_path)
+
+    response = client.post(
+        "/template-atti/compila/AMM_RIC_001/word",
+        data={
+            "title": "Comparsa DOCX",
+            "testo_generato": "TRIBUNALE DI ROMA\nL'avvocato conferma la revisione finale.",
+            "testo_generato__editor_layout": '{"font_family":"merriweather","text_align":"justify","stamp_position":"top-right"}',
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    assert response.get_data()[:2] == b"PK"
+    assert "comparsa_docx.docx" in response.headers.get("Content-Disposition", "")

@@ -22,6 +22,7 @@ from flask import (Blueprint, abort, current_app, flash, g, jsonify,
 from werkzeug.utils import secure_filename
 
 from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
+from web.services.app_v2_routing import is_safe_internal_path
 
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
 
@@ -630,12 +631,14 @@ def _importa_compilazione_editor_professionale(
         if current_app.config.get("AUDIT_ENABLED") or str(os.getenv("AUDIT_ENABLED", "")).lower() in {"1", "true", "yes", "on"}:
             raise
         current_app.logger.debug("Audit probatorio ACT_GENERATED non attivo per %s", created.document_id, exc_info=True)
+    editor_url = url_for("editor_documento", id_fasc=id_fascicolo, id_doc=created.document_id)
+    signature_url = url_for("firma_documento", id_fasc=id_fascicolo, id_doc=created.document_id)
     return {
         "document_id": created.document_id,
         "filename": created.filename,
-        "open_url": created.open_url,
-        "editor_url": created.editor_url or created.open_url,
-        "signature_url": f"/fascicoli/{id_fascicolo}/documenti/{created.document_id}/firma",
+        "open_url": editor_url,
+        "editor_url": editor_url,
+        "signature_url": signature_url,
         "created_as": created.created_as,
         "compliance_state": created.compliance_state,
     }
@@ -1245,7 +1248,8 @@ def modifica(id_template: str):
                         note=request.form.get("note", t.note))
             flash("Template aggiornato.", "success")
         except ValueError as e:
-            flash(str(e), "danger")
+            current_app.logger.warning("Template atti non aggiornato: %s", e)
+            flash("Template non aggiornato: controlla i dati inseriti.", "danger")
         return redirect(url_for("template_atti.lista"))
     return render_template("template_atti/form.html", categorie=CATEGORIE, t=t, form=t.to_dict())
 
@@ -1279,7 +1283,8 @@ def elimina(id_template: str):
         gt.elimina(id_template)
         flash("Template eliminato.", "success")
     except ValueError as e:
-        flash(str(e), "warning")
+        current_app.logger.warning("Template atti non eliminato: %s", e)
+        flash("Template non eliminato: elemento non disponibile.", "warning")
     return redirect(url_for("template_atti.lista"))
 
 
@@ -1524,20 +1529,26 @@ def compila(model_code: str):
                     confirmed_warning=confirmed_warning,
                 )
                 if editor_import:
+                    document_id = str(editor_import["document_id"])
+                    id_fascicolo = str(getattr(selected_fascicolo, "id", "") or "").strip()
+                    editor_url = url_for("editor_documento", id_fasc=id_fascicolo, id_doc=document_id)
+                    signature_url = url_for("firma_documento", id_fasc=id_fascicolo, id_doc=document_id)
+                    if not is_safe_internal_path(editor_url):
+                        raise RuntimeError("Percorso editor generato non valido.")
                     flash("Bozza importata nell'editor professionale. Puoi impaginarla e salvarla nel fascicolo.", "success")
                     if request.form.get("_react_return"):
                         return jsonify({
                             "ok": True,
                             "message": "Bozza creata nell'editor professionale.",
-                            "document_id": editor_import["document_id"],
-                            "editor_url": editor_import["editor_url"],
-                            "signature_url": editor_import["signature_url"],
-                            "redirect": editor_import["editor_url"],
+                            "document_id": document_id,
+                            "editor_url": editor_url,
+                            "signature_url": signature_url,
+                            "redirect": editor_url,
                             "created_as": editor_import.get("created_as") or requested_draft,
                             "compliance_state": editor_import.get("compliance_state") or compliance_result.overall_state,
                             "compliance": compliance_result.to_dict(),
                         })
-                    return redirect(editor_import["editor_url"])
+                    return redirect(editor_url)
             except Exception as exc:
                 current_app.logger.exception("Import editor professionale non riuscito per %s: %s", model_code, exc)
                 flash("Bozza creata, ma l'importazione nell'editor professionale non è riuscita. Resta disponibile l'anteprima.", "warning")
@@ -1747,36 +1758,144 @@ def _extract_docx_fonts(data: bytes) -> list[str]:
     return sorted(fonts, key=str.casefold)
 
 
+def _rtf_control_group_span(raw: str, control: str, *, max_scan: int = 300_000) -> tuple[int, int] | None:
+    start = raw.find("{" + control)
+    if start < 0:
+        return None
+    depth = 0
+    limit = min(len(raw), start + max_scan)
+    for index in range(start, limit):
+        char = raw[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return start, index + 1
+    return None
+
+
+def _remove_rtf_control_group(raw: str, control: str) -> str:
+    span = _rtf_control_group_span(raw, control)
+    if span is None:
+        return raw
+    start, end = span
+    return raw[:start] + raw[end:]
+
+
+def _strip_rtf_controls(value: str) -> str:
+    output: list[str] = []
+    index = 0
+    while index < len(value):
+        char = value[index]
+        if char == "\\":
+            index += 1
+            if index >= len(value):
+                break
+            escaped = value[index]
+            if escaped in "{}\\":
+                output.append(escaped)
+                index += 1
+                continue
+            if escaped == "'":
+                index += 3
+                continue
+            if not escaped.isalpha():
+                index += 1
+                continue
+            while index < len(value) and value[index].isalpha():
+                index += 1
+            if index < len(value) and value[index] == "-":
+                index += 1
+            while index < len(value) and value[index].isdigit():
+                index += 1
+            if index < len(value) and value[index] == " ":
+                index += 1
+            continue
+        if char not in "{}":
+            output.append(char)
+        index += 1
+    return "".join(output)
+
+
 def _extract_rtf_fonts(raw: str) -> list[str]:
     fonts: set[str] = set()
-    for match in re.finditer(r"\{\\f\d+[^;{}]*\s+([^;{}]+);", raw):
-        name = re.sub(r"\\[a-zA-Z]+-?\d* ?", "", match.group(1)).strip()
+    span = _rtf_control_group_span(raw, "\\fonttbl", max_scan=60_000)
+    table = raw[span[0]: span[1]] if span else raw[:60_000]
+    for entry in table.split(";"):
+        if "\\f" not in entry:
+            continue
+        name = _strip_rtf_controls(entry).strip(" ;")
         if name:
             fonts.add(name)
     return sorted(fonts, key=str.casefold)
 
 
 def _rtf_to_text(raw: str) -> str:
-    def _unicode_repl(match: re.Match[str]) -> str:
-        code = int(match.group(1))
-        if code < 0:
-            code += 65536
-        return chr(code)
-
-    def _hex_repl(match: re.Match[str]) -> str:
-        try:
-            return bytes.fromhex(match.group(1)).decode("cp1252")
-        except Exception:
-            return ""
-
-    text = re.sub(r"\\u(-?\d+)\??", _unicode_repl, raw)
-    text = re.sub(r"\\'([0-9a-fA-F]{2})", _hex_repl, text)
-    text = re.sub(r"\\par[d]?", "\n", text)
-    text = re.sub(r"\{\\fonttbl.*?\}", "", text, flags=re.DOTALL)
-    text = re.sub(r"\\[a-zA-Z]+-?\d* ?", "", text)
-    text = text.replace("{", "").replace("}", "")
-    text = re.sub(r"[ \t]+\n", "\n", text)
-    return re.sub(r"\n{3,}", "\n\n", text).strip()
+    text = _remove_rtf_control_group(raw, "\\fonttbl")
+    output: list[str] = []
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "\\":
+            index += 1
+            if index >= len(text):
+                break
+            marker = text[index]
+            if marker == "'":
+                hex_value = text[index + 1: index + 3]
+                try:
+                    output.append(bytes.fromhex(hex_value).decode("cp1252"))
+                except Exception:
+                    pass
+                index += 3
+                continue
+            if marker in "{}\\":
+                output.append(marker)
+                index += 1
+                continue
+            if not marker.isalpha():
+                index += 1
+                continue
+            control_start = index
+            while index < len(text) and text[index].isalpha():
+                index += 1
+            control = text[control_start:index]
+            for known_control in ("pard", "par", "line", "tab", "u"):
+                if control.startswith(known_control) and control != known_control:
+                    index = control_start + len(known_control)
+                    control = known_control
+                    break
+            negative = False
+            if index < len(text) and text[index] == "-":
+                negative = True
+                index += 1
+            number_start = index
+            while index < len(text) and text[index].isdigit():
+                index += 1
+            number = text[number_start:index]
+            if index < len(text) and text[index] == " ":
+                index += 1
+            if control in {"par", "pard", "line"}:
+                output.append("\n")
+            elif control == "tab":
+                output.append("\t")
+            elif control == "u" and number:
+                code = int(("-" if negative else "") + number)
+                if code < 0:
+                    code += 65536
+                output.append(chr(code))
+                if index < len(text) and text[index] not in "\\{}\r\n":
+                    index += 1
+            continue
+        if char not in "{}":
+            output.append(char)
+        index += 1
+    cleaned = "".join(output).replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = "\n".join(line.rstrip(" \t") for line in cleaned.split("\n"))
+    while "\n\n\n" in cleaned:
+        cleaned = cleaned.replace("\n\n\n", "\n\n")
+    return cleaned.strip()
 
 @template_atti.route("/api/importa-documento", methods=["POST"])
 @_richiedi_login

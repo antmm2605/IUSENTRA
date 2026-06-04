@@ -6,7 +6,6 @@ da compilatore, Jinja e test.
 """
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, asdict
 from datetime import date
 from typing import Any
@@ -353,9 +352,47 @@ def _rg_reference_value(fascicolo: Any) -> str:
     )
     if not raw:
         return ""
-    raw = re.sub(r"(?i)^r\.?\s*g\.?\s*", "", raw).strip()
-    raw = re.sub(r"(?i)\s*r\.?\s*g\.?$", "", raw).strip()
-    return raw
+    return _strip_rg_label(raw)
+
+
+def _consume_rg_prefix(value: str) -> str:
+    text = value.lstrip()
+    letters: list[str] = []
+    index = 0
+    while index < len(text) and text[index] in "RrGg. ":
+        char = text[index]
+        if char.isalpha():
+            letters.append(char.lower())
+        index += 1
+        compact = "".join(letters)
+        if compact == "rg":
+            while index < len(text) and text[index] in ". ":
+                index += 1
+            return text[index:].strip()
+        if compact and not "rg".startswith(compact):
+            break
+    return value.strip()
+
+
+def _consume_rg_suffix(value: str) -> str:
+    text = value.rstrip()
+    letters_reversed: list[str] = []
+    index = len(text) - 1
+    while index >= 0 and text[index] in "RrGg. ":
+        char = text[index]
+        if char.isalpha():
+            letters_reversed.append(char.lower())
+        index -= 1
+        compact = "".join(letters_reversed)
+        if compact == "gr":
+            return text[: index + 1].rstrip(" .")
+        if compact and not "gr".startswith(compact):
+            break
+    return value.strip()
+
+
+def _strip_rg_label(value: str) -> str:
+    return _consume_rg_suffix(_consume_rg_prefix(value))
 
 
 def _party_display_name(parti: Any, role: str) -> str:

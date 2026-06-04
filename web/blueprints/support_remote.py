@@ -48,6 +48,10 @@ def _json_error(message: str, status: int):
     return jsonify({"ok": False, "error": message, "message": message}), status
 
 
+def _notification_public_error(status: int):
+    return _json_error("Notifiche dispositivo non disponibili.", status)
+
+
 def _json_payload() -> dict:
     payload = request.get_json(silent=True)
     return payload if isinstance(payload, dict) else {}
@@ -92,7 +96,8 @@ def support_push_status():
     try:
         return jsonify(platform_push_status())
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.warning("Stato notifiche dispositivo assistenza non disponibile: %s", exc)
+        return _notification_public_error(exc.status_code)
     except Exception:
         current_app.logger.exception("Stato notifiche dispositivo assistenza non disponibile")
         return _json_error("Stato notifiche dispositivo non disponibile.", 500)
@@ -104,7 +109,8 @@ def support_push_subscribe():
     try:
         return jsonify(register_platform_push_subscription(_json_payload(), user_agent=request.headers.get("User-Agent", "")))
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.warning("Attivazione notifiche dispositivo assistenza non completata: %s", exc)
+        return _notification_public_error(exc.status_code)
     except Exception:
         current_app.logger.exception("Attivazione notifiche dispositivo assistenza non completata")
         return _json_error("Attivazione notifiche dispositivo non completata.", 500)
@@ -116,7 +122,8 @@ def support_push_unsubscribe():
     try:
         return jsonify(revoke_platform_push_subscription(_json_payload()))
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.warning("Disattivazione notifiche dispositivo assistenza non completata: %s", exc)
+        return _notification_public_error(exc.status_code)
     except Exception:
         current_app.logger.exception("Disattivazione notifiche dispositivo assistenza non completata")
         return _json_error("Disattivazione notifiche dispositivo non completata.", 500)
@@ -128,7 +135,8 @@ def support_push_test():
     try:
         return jsonify(send_platform_push_test())
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.warning("Test notifiche dispositivo assistenza non completato: %s", exc)
+        return _notification_public_error(exc.status_code)
     except Exception:
         current_app.logger.exception("Test notifiche dispositivo assistenza non completato")
         return _json_error("Notifica di test non completata.", 500)

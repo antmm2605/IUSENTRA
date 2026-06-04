@@ -54,7 +54,7 @@ def register_reference_lookup_routes(
             return jsonify({"ok": ok, "messaggio": messaggio, "stato": stato})
         except Exception as exc:
             app.logger.exception("Errore api_uffici_aggiorna: %s", exc)
-            return jsonify({"ok": False, "messaggio": str(exc)}), 200
+            return jsonify({"ok": False, "messaggio": "Aggiornamento uffici non completato."}), 200
 
     @app.route("/api/uffici/stato")
     def api_uffici_stato():
@@ -69,7 +69,7 @@ def register_reference_lookup_routes(
             return jsonify(get_gestore(cache_path).stato())
         except Exception as exc:
             app.logger.exception("Errore api_uffici_stato: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Stato uffici non disponibile."}), 200
 
     @app.route("/api/uffici/variazioni")
     def api_uffici_variazioni():
@@ -87,7 +87,7 @@ def register_reference_lookup_routes(
             return jsonify(report)
         except Exception as exc:
             app.logger.exception("Errore api_uffici_variazioni: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Report variazioni uffici non disponibile."}), 200
 
     @app.route("/api/uffici/variazioni/esegui", methods=["POST"])
     def api_uffici_variazioni_esegui():
@@ -111,7 +111,7 @@ def register_reference_lookup_routes(
             return jsonify(report)
         except Exception as exc:
             app.logger.exception("Errore api_uffici_variazioni_esegui: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Verifica variazioni uffici non completata."}), 200
 
     @app.route("/api/uffici/sync/report")
     def api_uffici_sync_report():
@@ -131,7 +131,7 @@ def register_reference_lookup_routes(
             return jsonify(report)
         except Exception as exc:
             app.logger.exception("Errore api_uffici_sync_report: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Report sincronizzazione uffici non disponibile."}), 200
 
     @app.route("/api/uffici/sync/esegui", methods=["POST"])
     def api_uffici_sync_esegui():
@@ -159,7 +159,7 @@ def register_reference_lookup_routes(
             return jsonify(report)
         except Exception as exc:
             app.logger.exception("Errore api_uffici_sync_esegui: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Sincronizzazione uffici non completata."}), 200
 
     @app.route("/api/cf/decodifica")
     def api_cf_decodifica():
@@ -174,7 +174,7 @@ def register_reference_lookup_routes(
             return jsonify(risultato)
         except Exception as exc:
             app.logger.exception("Errore api_cf_decodifica: %s", exc)
-            return jsonify({"errore": str(exc)}), 200
+            return jsonify({"errore": "Decodifica codice fiscale non completata."}), 200
 
     @app.route("/api/cf/calcola")
     def api_cf_calcola():
@@ -195,7 +195,7 @@ def register_reference_lookup_routes(
             return jsonify(risultato)
         except Exception as exc:
             app.logger.exception("Errore api_cf_calcola: %s", exc)
-            return jsonify({"errore": str(exc)}), 200
+            return jsonify({"errore": "Calcolo codice fiscale non completato."}), 200
 
     @app.route("/tribunali")
     def tribunali():

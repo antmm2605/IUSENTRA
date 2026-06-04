@@ -17,6 +17,7 @@ from pct.template_atti import (
     template_font_registry_payload,
 )
 from web.app import create_app
+from web.blueprints.template_atti import _extract_rtf_fonts, _rtf_to_text
 
 
 def _cfg_web(tmp_path):
@@ -289,3 +290,20 @@ def test_importa_documento_rtf_mantiene_accenti_e_font(tmp_path):
     assert "à è ì ò ù" in payload["contenuto"]
     assert "Merriweather" in payload["fonts"]
     assert payload["encoding"] in {"cp1252", "utf-8-sig", "latin-1"}
+
+
+def test_parser_rtf_lineare_preserva_accenti_font_e_ripetizioni():
+    raw = (
+        r"{\rtf1\ansi{\fonttbl{\f0 Merriweather;}{\f1 Times New Roman;}}"
+        + (" " * 5000)
+        + r"\f0 Avvocato: \u224? \u232? \u236? \u242? \u249?\par"
+        + r"Pi\'f9 chiaro per il cliente.}"
+    )
+
+    text = _rtf_to_text(raw)
+    fonts = _extract_rtf_fonts(raw)
+
+    assert "à è ì ò ù" in text
+    assert "Più chiaro per il cliente." in text
+    assert "Merriweather" in fonts
+    assert "Times New Roman" in fonts

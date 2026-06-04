@@ -103,6 +103,28 @@ def test_prefill_riferimento_pratica_usa_cliente_e_controparte_del_fascicolo():
     assert resolved["fields"]["matter"]["value"] == "Civile"
 
 
+def test_prefill_riferimento_pratica_normalizza_rg_senza_regex_su_input_libero():
+    cases = [
+        ("R.G. 12/2026", "12/2026"),
+        ("RG 12/2026", "12/2026"),
+        ("12/2026 R.G.", "12/2026"),
+        ("12/2026 RG", "12/2026"),
+    ]
+
+    for rg_completo, expected in cases:
+        fascicolo = SimpleNamespace(
+            id="fas_rg",
+            nome_cliente="Cliente",
+            controparte="Controparte",
+            rg_completo=rg_completo,
+            tipo="CIVILE",
+        )
+
+        resolved = resolve_template_prefill(model_code="CIV_COM_001", fascicolo=fascicolo)
+
+        assert resolved["fields"]["practice_reference"]["value"] == f"Cliente c/ Controparte - {expected}"
+
+
 def test_merge_prefill_non_sovrascrive_input_utente_e_conserva_missing_reason():
     merged = merge_prefill_values(
         {"client_or_sender": "Cliente digitato", "subject": ""},

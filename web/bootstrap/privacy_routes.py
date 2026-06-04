@@ -83,9 +83,11 @@ def register_privacy_routes(
             if _richiede_json():
                 return jsonify({"ok": True, "id": id_t, "message": "Trattamento eliminato.", "redirect": url_for("registro_trattamenti")})
         except KeyError as exc:
+            app.logger.warning("Trattamento privacy non eliminato: %s", exc)
+            message = "Trattamento non trovato."
             if _richiede_json():
-                return jsonify({"ok": False, "message": str(exc)}), 400
-            flash(str(exc), "danger")
+                return jsonify({"ok": False, "message": message}), 400
+            flash(message, "danger")
         return redirect(url_for("registro_trattamenti"))
 
     @app.route("/clienti/<id_cliente>/consenso", methods=["POST"])

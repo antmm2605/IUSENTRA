@@ -389,7 +389,8 @@ def index():
                     note=f.get("sdi_note", "").strip(),
                 )
         except ValueError as e:
-            flash(str(e), "danger")
+            current_app.logger.warning("Impostazioni non salvate: %s", e)
+            flash("Impostazioni non salvate: controlla i dati inseriti.", "danger")
             return redirect(url_for("impostazioni.index", tab=tab))
 
         gs.aggiorna(cfg)
@@ -545,7 +546,7 @@ def api_local_ai_status():
         return jsonify(get_local_ai_service().health_snapshot())
     except Exception as e:
         current_app.logger.exception("Errore api_local_ai_status: %s", e)
-        return jsonify({"errore": str(e), "runtime": {"status": "error"}, "models": [], "counts": {}}), 200
+        return jsonify({"errore": "Assistente locale non disponibile.", "runtime": {"status": "error"}, "models": [], "counts": {}}), 200
 
 
 @impostazioni.route("/api/local-ai/bootstrap", methods=["POST"])
@@ -559,4 +560,4 @@ def api_local_ai_bootstrap():
         return jsonify({"result": result, "status_payload": service.health_snapshot()})
     except Exception as e:
         current_app.logger.exception("Errore api_local_ai_bootstrap: %s", e)
-        return jsonify({"errore": str(e), "runtime": {"status": "error"}}), 200
+        return jsonify({"errore": "Preparazione assistente locale non completata.", "runtime": {"status": "error"}}), 200

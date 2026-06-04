@@ -231,7 +231,7 @@ class BrowserCheck:
 
             facts = page.locator('[data-testid="template-field-input-facts"]')
             facts.wait_for(timeout=10000)
-            accented = "Fatto aggiornato con accenti italiani: ? ? ? ? ? ?. Termine del 4 giugno 2026."
+            accented = "Fatto aggiornato con accenti italiani: à è é ì ò ù. Termine del 4 giugno 2026."
             facts.fill(accented)
             self.record("campo avvocato non tronca primo carattere", facts.input_value() == accented, facts.input_value())
             self.record("campo avvocato entra nel template", accented in self.editor_preview(page), self.editor_preview(page))
@@ -451,7 +451,7 @@ class BrowserCheck:
             "route": ROUTE,
             "base": BASE,
             "version": VERSION,
-            "browser_path": "Playwright Python; Browser integrato bloccato su 127.0.0.1 con net::ERR_BLOCKED_BY_CLIENT",
+            "browser_path": "Playwright Python su Docker locale 127.0.0.1:8080",
             "results": self.results,
             "console_errors": self.console_errors,
             "page_errors": self.page_errors,

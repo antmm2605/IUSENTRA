@@ -3,7 +3,7 @@
   "route": "/template-atti/compila/CIV_COM_001?id_fascicolo=2DE106E6",
   "base": "http://127.0.0.1:8080",
   "version": "2.249.14",
-  "browser_path": "Playwright Python; Browser integrato bloccato su 127.0.0.1 con net::ERR_BLOCKED_BY_CLIENT",
+  "browser_path": "Playwright Python su Docker locale 127.0.0.1:8080",
   "results": [
     {
       "name": "readiness 8080",
@@ -11,7 +11,7 @@
       "detail": {
         "ok": true,
         "stato": "pronto",
-        "timestamp": "2026-06-04T15:17:39.313419",
+        "timestamp": "2026-06-04T16:26:35.526665",
         "versione": "2.249.14"
       }
     },
@@ -181,12 +181,12 @@
     {
       "name": "campo avvocato non tronca primo carattere",
       "ok": true,
-      "detail": "Fatto aggiornato con accenti italiani: ? ? ? ? ? ?. Termine del 4 giugno 2026."
+      "detail": "Fatto aggiornato con accenti italiani: à è é ì ò ù. Termine del 4 giugno 2026."
     },
     {
       "name": "campo avvocato entra nel template",
       "ok": true,
-      "detail": "Ufficio del Giudice di Pace di Palmi\n\nComparsa di Costituzione e Risposta\n\nMoscato Marco, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.\n\nContro nn nn.\n\nIn fatto\n\nFatto aggiornato con accenti italiani: ? ? ? ? ? ?. Termine del 4 giugno 2026.\n\nIn diritto\n\n[POSITION_ON_FACTS]\n\nConclusioni\n\n[REQUESTS_OR_CONCLUSIONS]\n\nVia NINO BIXIO 4, 89029 - TAURIANOVA (RC), 4 giugno 2026\n\nAvv. Roberto Montagnese"
+      "detail": "Ufficio del Giudice di Pace di Palmi\n\nComparsa di Costituzione e Risposta\n\nMoscato Marco, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.\n\nContro nn nn.\n\nIn fatto\n\nFatto aggiornato con accenti italiani: à è é ì ò ù. Termine del 4 giugno 2026.\n\nIn diritto\n\n[POSITION_ON_FACTS]\n\nConclusioni\n\n[REQUESTS_OR_CONCLUSIONS]\n\nVia NINO BIXIO 4, 89029 - TAURIANOVA (RC), 4 giugno 2026\n\nAvv. Roberto Montagnese"
     },
     {
       "name": "cambio modello dal pannello sinistro",
@@ -321,7 +321,7 @@
       "name": "download RTF",
       "ok": true,
       "detail": {
-        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.rtf",
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-2.rtf",
         "size": 179
       }
     },
@@ -329,7 +329,7 @@
       "name": "download DOCX",
       "ok": true,
       "detail": {
-        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.docx",
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-2.docx",
         "size": 36951
       }
     },
@@ -360,8 +360,8 @@
       "name": "compilazione multipla genera RTF selezionati",
       "ok": true,
       "detail": {
-        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\compilazione_multipla_template_atti-3.zip",
-        "size": 6435,
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\compilazione_multipla_template_atti-2.zip",
+        "size": 6570,
         "rtf": [
           "comparsa_di_costituzione_e_risposta.rtf",
           "accordo_transattivo.rtf",
@@ -375,16 +375,16 @@
           "appello_civile.rtf"
         ],
         "dimensioni": {
-          "comparsa_di_costituzione_e_risposta.rtf": 2492,
-          "accordo_transattivo.rtf": 1220,
-          "appello_al_consiglio_di_stato.rtf": 2135,
-          "appello_cautelare.rtf": 2135,
-          "appello_cautelare_penale.rtf": 2191,
-          "appello_in_materia_di_lavoro.rtf": 2513,
-          "appello_previdenziale.rtf": 2513,
-          "appello_tributario.rtf": 2119,
-          "attestazione_di_conformita.rtf": 2513,
-          "appello_civile.rtf": 2513
+          "comparsa_di_costituzione_e_risposta.rtf": 2948,
+          "accordo_transattivo.rtf": 1452,
+          "appello_al_consiglio_di_stato.rtf": 2599,
+          "appello_cautelare.rtf": 2599,
+          "appello_cautelare_penale.rtf": 2639,
+          "appello_in_materia_di_lavoro.rtf": 2969,
+          "appello_previdenziale.rtf": 2969,
+          "appello_tributario.rtf": 2583,
+          "attestazione_di_conformita.rtf": 2969,
+          "appello_civile.rtf": 2969
         }
       }
     },
@@ -392,7 +392,7 @@
       "name": "firma documento apre flusso firma",
       "ok": true,
       "detail": {
-        "url": "http://127.0.0.1:8080/fascicoli/2DE106E6/documenti/3EFBCC3A/firma",
+        "url": "http://127.0.0.1:8080/fascicoli/2DE106E6/documenti/E6223EB9/firma",
         "estratto": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nTutti i Fascicoli\nNuovo Fascicolo\nArchivio\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\ngio 04 giu\nNuovo\nFIRMA DOCUMENTO\ncomparsa_di_costituzione_e_risposta_20260604.html\n\nDa firmare\nRG 12/2026 - Moscato Marco\n\nTorna al fascicolo\nAnteprima\nScarica originale\nDocumento\nDati operativi del fascicolo\nNO"
       }
     },
@@ -505,16 +505,16 @@
   "failed_requests": [],
   "downloads": [
     {
-      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.rtf",
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-2.rtf",
       "size": 179
     },
     {
-      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-3.docx",
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\comparsa_di_costituzione_e_risposta-2.docx",
       "size": 36951
     },
     {
-      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\compilazione_multipla_template_atti-3.zip",
-      "size": 6435
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.14\\compilazione_multipla_template_atti-2.zip",
+      "size": 6570
     }
   ],
   "screenshots": {
@@ -522,7 +522,7 @@
     "tablet": "artifacts\\react-migration\\template-editor-2.249.14-tablet.png",
     "mobile": "artifacts\\react-migration\\template-editor-2.249.14-mobile.png"
   },
-  "generated_at": "2026-06-04T17:18:30",
+  "generated_at": "2026-06-04T18:27:22",
   "failed_at": "",
   "detail": ""
 }

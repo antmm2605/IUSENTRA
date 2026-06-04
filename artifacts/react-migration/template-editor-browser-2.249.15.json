@@ -11,7 +11,7 @@
       "detail": {
         "ok": true,
         "stato": "pronto",
-        "timestamp": "2026-06-04T19:57:10.863817",
+        "timestamp": "2026-06-04T20:33:16.502032",
         "versione": "2.249.15"
       }
     },
@@ -333,7 +333,7 @@
       "name": "download RTF",
       "ok": true,
       "detail": {
-        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-2.rtf",
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-4.rtf",
         "size": 470
       }
     },
@@ -341,14 +341,17 @@
       "name": "download DOCX",
       "ok": true,
       "detail": {
-        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-2.docx",
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-4.docx",
         "size": 36966
       }
     },
     {
       "name": "comando copia eseguito",
       "ok": true,
-      "detail": "Documento copiato negli appunti con formattazione. Documento importato correttamente. Accenti, font rilevati e campi del fascicolo sono disponibili per il template personalizzato. Documento DOCX aperto."
+      "detail": {
+        "status": "Documento copiato negli appunti. Documento importato correttamente. Accenti, font rilevati e campi del fascicolo sono disponibili per il template personalizzato. Documento DOCX aperto.",
+        "clipboard_preview": "Moscato Marco c/ nn nn - 12/2026Documento importato con accenti à è é ì ò ù e dati fascicolo."
+      }
     },
     {
       "name": "rigenera dal template eseguito",
@@ -372,8 +375,8 @@
       "name": "compilazione multipla genera RTF selezionati",
       "ok": true,
       "detail": {
-        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\compilazione_multipla_template_atti-2.zip",
-        "size": 8020,
+        "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\compilazione_multipla_template_atti-4.zip",
+        "size": 8289,
         "rtf": [
           "comparsa_di_costituzione_e_risposta.rtf",
           "accordo_transattivo.rtf",
@@ -387,16 +390,16 @@
           "appello_civile.rtf"
         ],
         "dimensioni": {
-          "comparsa_di_costituzione_e_risposta.rtf": 4147,
-          "accordo_transattivo.rtf": 2203,
-          "appello_al_consiglio_di_stato.rtf": 3814,
-          "appello_cautelare.rtf": 3814,
-          "appello_cautelare_penale.rtf": 3822,
-          "appello_in_materia_di_lavoro.rtf": 4168,
-          "appello_previdenziale.rtf": 4168,
-          "appello_tributario.rtf": 3798,
-          "attestazione_di_conformita.rtf": 4168,
-          "appello_civile.rtf": 4168
+          "comparsa_di_costituzione_e_risposta.rtf": 5059,
+          "accordo_transattivo.rtf": 2667,
+          "appello_al_consiglio_di_stato.rtf": 4742,
+          "appello_cautelare.rtf": 4742,
+          "appello_cautelare_penale.rtf": 4718,
+          "appello_in_materia_di_lavoro.rtf": 5080,
+          "appello_previdenziale.rtf": 5080,
+          "appello_tributario.rtf": 4726,
+          "attestazione_di_conformita.rtf": 5080,
+          "appello_civile.rtf": 5080
         }
       }
     },
@@ -404,7 +407,7 @@
       "name": "firma documento apre flusso firma",
       "ok": true,
       "detail": {
-        "url": "http://127.0.0.1:8080/fascicoli/2DE106E6/documenti/A02E0999/firma",
+        "url": "http://127.0.0.1:8080/fascicoli/2DE106E6/documenti/2C554D10/firma",
         "estratto": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nTutti i Fascicoli\nNuovo Fascicolo\nArchivio\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\ngio 04 giu\nNuovo\nFIRMA DOCUMENTO\ncomparsa_di_costituzione_e_risposta_20260604.html\n\nDa firmare\nRG 12/2026 - Moscato Marco\n\nTorna al fascicolo\nAnteprima\nScarica originale\nDocumento\nDati operativi del fascicolo\nNO"
       }
     },
@@ -517,16 +520,16 @@
   "failed_requests": [],
   "downloads": [
     {
-      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-2.rtf",
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-4.rtf",
       "size": 470
     },
     {
-      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-2.docx",
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\comparsa_di_costituzione_e_risposta-4.docx",
       "size": 36966
     },
     {
-      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\compilazione_multipla_template_atti-2.zip",
-      "size": 8020
+      "file": "artifacts\\react-migration\\template-editor-downloads-2.249.15\\compilazione_multipla_template_atti-4.zip",
+      "size": 8289
     }
   ],
   "screenshots": {
@@ -534,7 +537,7 @@
     "tablet": "artifacts\\react-migration\\template-editor-2.249.15-tablet.png",
     "mobile": "artifacts\\react-migration\\template-editor-2.249.15-mobile.png"
   },
-  "generated_at": "2026-06-04T21:58:06",
+  "generated_at": "2026-06-04T22:34:11",
   "failed_at": "",
   "detail": ""
 }

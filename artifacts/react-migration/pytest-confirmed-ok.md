@@ -1,5 +1,17 @@
 # Pytest shard confermati OK
 
+## Template Atti professionale 2.249.15 - 2026-06-04
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio test` | OK | Contratti React, sequenza preset IUSENTRA, governance design system, App V2 frontend, legal skills e UI coverage verdi dopo il fix dei download/clipboard senza `Blob`, senza inline style e senza accenti laterali vietati. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short`; `git diff --check` | OK | Asset React referenziati dal manifest presenti dopo la pulizia dei chunk Vite e nessun errore whitespace; restano solo warning CRLF/LF storici sui file testuali toccati. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | Presidio UTF-8 verde: accenti italiani e testi visibili non introducono mojibake. |
+| `pnpm --dir frontend build` | OK | TypeScript e build Vite produzione verdi dopo il fallback copia sincrono e gli asset `TemplateAttiPage` aggiornati. |
+| `docker compose build app`; `docker compose up -d --no-deps --force-recreate app`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Copia Docker locale reale su `127.0.0.1:8080` ricostruita e healthy, `/api/pronto` risponde `ok=true`, versione `2.249.15`. |
+| `python scripts\react-migration\template_editor_browser_check.py` | OK | Browser audit reale su `127.0.0.1:8080`: 74/74. Coperti associazione cliente/fascicolo, toolbar sticky, grassetto senza Markdown, allineamenti, font, timbro, import RTF/PDF, export RTF/DOCX/PDF, copia con lettura appunti, salvataggio fascicolo, firma, Lex, Guida/Fonti e responsive desktop/tablet/mobile. |
+| Browser integrato su `http://127.0.0.1:8080/template-atti/compila/CIV_COM_001?id_fascicolo=2DE106E6` | OK con limite screenshot sandbox | DOM reale caricato, editor presente, toolbar sticky, pannello `Esporta` aperto, pulsante `Copia` cliccato, separatore pagina visibile, nessun overflow orizzontale e nessun errore console. La cattura `Page.captureScreenshot` del browser integrato resta bloccata dalla sandbox, mentre lo script Playwright dedicato produce il report di audit. |
+
 ## Assistenza remota reale, fascicoli e contratti 2.249.3 - 2026-06-01
 
 | Comando / verifica | Esito | Nota |

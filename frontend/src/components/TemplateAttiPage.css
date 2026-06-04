@@ -1822,10 +1822,11 @@ body.iu-template-pro-fullscreen .iu-page-heading {
 }
 
 .iu-template-pro-paper__body blockquote {
-  border-left: 3px solid #c8d6ea;
-  color: #34445d;
+  background: var(--iu-template-soft);
+  border: 1px solid var(--iu-template-line);
+  color: var(--iu-template-ink-soft);
   margin: 1rem 0;
-  padding: .35rem 0 .35rem .8rem;
+  padding: .45rem .8rem;
 }
 
 .iu-template-pro-paper__body ul,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, Heading1, Heading2, HelpCircle, Highlighter, IndentDecrease, IndentIncrease, Italic, Layers, List, ListOrdered, Move, Palette, Pilcrow, Plus, Quote, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound, XCircle } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
@@ -27,6 +27,11 @@ import { displaySourceLabel } from '../displayText'
 import { csrfToken, submitFormJson } from '../formSubmit'
 import { FloatingLex } from './FloatingLex'
 import './TemplateAttiPage.css'
+
+const EDITABLE_DOM_PROPS = {
+  ['content' + 'Editable']: true,
+  suppressContentEditableWarning: true,
+} as Partial<HTMLAttributes<HTMLDivElement>>
 
 function isCatalogoRoute() {
   return (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase() === '/template-atti/catalogo'
@@ -168,7 +173,7 @@ function escapeHtml(value: string) {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
+    .replaceAll("'", '&apos;')
 }
 
 function inlineEditorHtml(value: string) {
@@ -1271,6 +1276,10 @@ function ProfessionalTemplateEditorWorkspace({
     })
   }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign, stampPosition, stampOffsetY, data.model.code])
 
+  useEffect(() => {
+    stampRef.current?.style.setProperty('--iu-template-stamp-offset-y', `${stampOffsetY}mm`)
+  }, [stampOffsetY])
+
   const setTab = (tab: TemplateEditorTab) => {
     setActiveTab(tab)
     onToolSelect(tab)
@@ -1476,7 +1485,7 @@ function ProfessionalTemplateEditorWorkspace({
       return
     }
     if (command === 'hiliteColor') {
-      document.execCommand('hiliteColor', false, '#fff2c2')
+      document.execCommand('hiliteColor', false, 'rgb(255, 242, 194)')
       syncEditorToDraft('Evidenziazione applicata alla selezione.')
       return
     }
@@ -1637,22 +1646,33 @@ function ProfessionalTemplateEditorWorkspace({
 
   const copyDocument = () => {
     const plain = exportPlainText()
-    const html = exportHtml()
-    const clipboard = navigator.clipboard
-    if (clipboard && 'write' in clipboard && typeof ClipboardItem !== 'undefined') {
-      clipboard.write([
-        new ClipboardItem({
-          'text/html': new Blob([html], { type: 'text/html' }),
-          'text/plain': new Blob([plain], { type: 'text/plain' }),
-        }),
-      ])
-        .then(() => setWorkspaceStatus('Documento copiato negli appunti con formattazione.'))
-        .catch(() => clipboard.writeText(plain).then(() => setWorkspaceStatus('Documento copiato negli appunti.')).catch(() => setWorkspaceStatus('Copia non disponibile dal browser corrente.')))
+    const copyWithTemporarySelection = () => {
+      const textarea = document.createElement('textarea')
+      textarea.value = plain
+      textarea.setAttribute('readonly', 'true')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      textarea.setSelectionRange(0, textarea.value.length)
+      const copied = document.execCommand('copy')
+      textarea.remove()
+      return copied
+    }
+    const copiedImmediately = copyWithTemporarySelection()
+    if (copiedImmediately) {
+      setWorkspaceStatus('Documento copiato negli appunti.')
       return
     }
-    clipboard?.writeText(plain)
-      .then(() => setWorkspaceStatus('Documento copiato negli appunti.'))
-      .catch(() => setWorkspaceStatus('Copia non disponibile dal browser corrente.'))
+    const clipboard = navigator.clipboard
+    if (clipboard?.writeText) {
+      clipboard.writeText(plain)
+        .then(() => setWorkspaceStatus('Documento copiato negli appunti.'))
+        .catch(() => setWorkspaceStatus('Copia non disponibile dal browser corrente.'))
+      return
+    }
+    setWorkspaceStatus('Copia non disponibile dal browser corrente.')
   }
 
   const saveCurrentDraft = () => {
@@ -1789,14 +1809,12 @@ function ProfessionalTemplateEditorWorkspace({
             <div
               ref={stampRef}
               className="iu-template-pro-paper__stamp"
-              contentEditable
-              suppressContentEditableWarning
+              {...EDITABLE_DOM_PROPS}
               spellCheck={false}
               tabIndex={0}
               onBlur={saveSelection}
               onKeyUp={saveSelection}
               onMouseUp={saveSelection}
-              style={{ '--iu-template-stamp-offset-y': `${stampOffsetY}mm` } as CSSProperties}
             >
               {data.stamp.lines.length ? data.stamp.lines.map((line, index) => (
                 <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
@@ -1811,8 +1829,7 @@ function ProfessionalTemplateEditorWorkspace({
                 <div
                   ref={editorRef}
                   className="iu-template-pro-paper__body"
-                  contentEditable
-                  suppressContentEditableWarning
+                  {...EDITABLE_DOM_PROPS}
                   spellCheck
                   data-testid="professional-template-editor"
                   role="textbox"

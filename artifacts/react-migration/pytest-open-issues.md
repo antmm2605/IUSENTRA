@@ -1,5 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
+## Template Atti professionale 2.249.15 - 2026-06-04
+
+Nessuna issue di codice aperta sul perimetro Template Atti dopo il fix del gate frontend e la verifica browser reale 74/74.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Clipboard nel browser integrato Codex | Browser integrato | Limite sandbox, non blocco codice | Il browser integrato blocca sia `navigator.clipboard` sia `document.execCommand('copy')`, quindi mostra `Copia non disponibile dal browser corrente` anche dopo il click reale. Lo script Playwright dedicato concede i permessi clipboard e verifica invece `Documento copiato` più lettura degli appunti, quindi il flusso applicativo è coperto. | Mantenere il controllo stretto in `scripts/react-migration/template_editor_browser_check.py` e ripetere il test su browser utente/HTTPS quando si tocca `Copia`. |
+| Screenshot browser integrato | Browser integrato | Limite sandbox, non blocco codice | `Page.captureScreenshot` va in timeout sulla pagina editor locale, pur con DOM, console e interazioni disponibili. | Usare il report e gli screenshot prodotti dallo script browser dedicato per l'audit automatico; non dichiarare prova visiva dal browser integrato quando la cattura è negata. |
+
 ## Supporto remoto studio 2.248.93 - 2026-05-31
 
 Nessuna issue di codice aperta sul perimetro corretto dopo endpoint studio, pulsante React visibile, fallback modal, test mirati e verifica reale browser/WebSocket.

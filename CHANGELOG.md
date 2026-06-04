@@ -9,6 +9,7 @@
 - Lex nell'editor usa azioni redazionali locali con controlli placeholder, `legal_basis`, privacy/PII e istruzioni personalizzate; le proposte restano sempre in diff accettabile/rifiutabile e non applicano modifiche senza conferma.
 - Integrati i materiali utente `files (10).zip` - `files (14).zip`, `kb_set19.json` e `kb_set20.json` nella Guida Pratica e nello Scadenziario: 73 record ricevuti/integrati, 7 nuovi moduli KB, 3.321 termini processuali importati e 1.075 template calcolabili aggiornati.
 - Corretto il flusso assistenza remota: la pagina cliente non mostra più l'anteprima del proprio schermo; la condivisione resta visibile dal lato operatore/SUPERADMIN per prestare assistenza.
+- Allineato l'editor ai gate React: niente `Blob` per copia/download nel componente, niente stile inline o accenti laterali vietati, e comando `Copia` verificato leggendo realmente gli appunti nello script browser dedicato.
 - Verifiche reali su Docker locale `127.0.0.1:8080` versione `2.249.15`: `python scripts\react-migration\template_editor_browser_check.py` verde 74/74 dopo build e ricreazione container; browser integrato confermato con toolbar sticky, collegamento fascicolo visibile, nessun overflow di pagina/pannello/card e screenshot desktop/tablet/mobile in `artifacts/react-migration/template-editor-2.249.15-*.png`.
 
 ## 2.249.14 - 2026-06-04

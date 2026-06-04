@@ -418,7 +418,12 @@ class BrowserCheck:
             page.get_by_role("button", name="Copia", exact=True).click()
             page.wait_for_timeout(500)
             status_text = page.locator(".iu-template-pro-status").inner_text(timeout=10000)
-            self.record("comando copia eseguito", "Documento copiato" in status_text or "Copia non disponibile" in status_text, status_text)
+            clipboard_text = page.evaluate("() => navigator.clipboard.readText()")
+            self.record(
+                "comando copia eseguito",
+                "Documento copiato" in status_text and len(str(clipboard_text or "").strip()) > 80,
+                {"status": status_text, "clipboard_preview": str(clipboard_text or "")[:300]},
+            )
             page.get_by_role("button", name="Rigenera dal template", exact=True).click()
             page.wait_for_timeout(1500)
             self.record("rigenera dal template eseguito", self.editor_raw(page).strip() != "", "documento rigenerato")

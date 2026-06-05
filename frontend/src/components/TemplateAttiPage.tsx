@@ -1325,6 +1325,15 @@ function ProfessionalTemplateEditorWorkspace({
     }
   }, [baseDraftText, data.model.code])
 
+  useEffect(() => {
+    const paper = editorRef.current?.closest('.iu-template-pro-paper') as HTMLElement | null
+    if (!paper) return
+    paper.querySelectorAll<HTMLElement>('[data-page-marker-index]').forEach((marker) => {
+      const markerIndex = Number(marker.dataset.pageMarkerIndex || 0)
+      marker.style.setProperty('--iu-template-page-marker-top', `${Math.round(visualPageHeight * markerIndex)}px`)
+    })
+  }, [visualPageHeight, visualPageCount])
+
   const setTab = (tab: TemplateEditorTab) => {
     setActiveTab(tab)
     onToolSelect(tab)
@@ -1940,8 +1949,8 @@ function ProfessionalTemplateEditorWorkspace({
                   <div
                     className="iu-template-pro-page-marker"
                     data-testid={`template-page-marker-${index + 2}`}
+                    data-page-marker-index={index + 1}
                     key={`page-marker-${index + 2}`}
-                    style={{ top: `${Math.round(visualPageHeight * (index + 1))}px` }}
                     aria-label={`Fine pagina ${index + 1} e inizio pagina ${index + 2}`}
                   >
                     <span>Fine pagina {index + 1}</span>

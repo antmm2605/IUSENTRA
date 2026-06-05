@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.249.17 - 2026-06-05
+
+- Corretto il marker di separazione pagina dell'editor template atti per rispettare il contratto React senza `style={{ ... }}`: la posizione resta governata da CSS e variabile custom aggiornata in modo controllato.
+- Rigenerati gli asset React dopo il fix e confermati i gate frontend locali prima del nuovo push sui branch operativi.
+
 ## 2.249.16 - 2026-06-05
 
 - Blindato l'isolamento multi-tenant su fascicoli, DocumentAI, import bozza Lex, scadenziario e audit PEC: un fascicolo di altro studio ora viene respinto anche nei flussi API tenant-aware e nelle importazioni editor.

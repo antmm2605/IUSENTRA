@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+import pct.support_remote as support_remote
 from pct.auth import GestioneUtenti
 from pct.support_remote import (
     AgentState,
@@ -791,6 +792,10 @@ def test_support_remote_pc_control_scripts_and_agent_are_separate_from_local_sig
     assert "statePollDelayMs = 12000" in operator_script
     assert "stateUrl()" in operator_script
     assert "stateSyncInFlight" in operator_script
+    assert "remoteCommandQueue" in operator_script
+    assert "flushRemoteCommandQueue" in operator_script
+    assert "handleRemoteControlAck" in operator_script
+    assert "remoteCommandAckTimeoutMs = 10000" in operator_script
     assert "document.hidden) return" not in operator_script
     assert "document.hidden) return" not in customer_script
     assert "Microfono operatore disattivato all'avvio" in operator_script
@@ -806,6 +811,28 @@ def test_support_remote_pc_control_scripts_and_agent_are_separate_from_local_sig
     assert "SendInput" in agent_source
     assert "/remote-control/execute" not in local_signer
     assert "SupportPcAgentRequestHandler" not in local_signer
+
+
+def test_support_remote_pc_click_uses_virtual_desktop_origin(monkeypatch):
+    calls: list[tuple[object, ...]] = []
+
+    monkeypatch.setattr(support_remote, "_support_pc_is_windows", lambda: True)
+    monkeypatch.setattr(
+        support_remote,
+        "_support_pc_virtual_screen_geometry",
+        lambda: {"x": -1920, "y": 0, "width": 3840, "height": 1080},
+    )
+    monkeypatch.setattr(support_remote, "_support_pc_move_pointer", lambda x, y: calls.append(("move", x, y)))
+    monkeypatch.setattr(
+        support_remote,
+        "_support_pc_click",
+        lambda button="left", double=False: calls.append(("click", button, double)),
+    )
+
+    result = execute_command({"action": "click", "x_ratio": 0.75, "y_ratio": 0.5})
+
+    assert result == {"ok": True, "action": "click"}
+    assert calls == [("move", 959, 539), ("click", "left", False)]
 
 
 def test_support_remote_platform_config_can_be_saved_from_console(tmp_path: Path):

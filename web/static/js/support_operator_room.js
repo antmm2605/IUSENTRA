@@ -57,8 +57,13 @@
   let remoteFrameMeta = null;
   let closingWsIntentionally = false;
   let stateSyncInFlight = false;
+  let remoteCommandBusy = false;
+  let remoteCommandInFlight = null;
+  let remoteCommandTimer = null;
+  const remoteCommandQueue = [];
   let sessionClosed = Boolean(boot.closed || boot.status === "closed");
   const statePollDelayMs = 12000;
+  const remoteCommandAckTimeoutMs = 10000;
 
   function setStatus(text) {
     if (statusBadge) statusBadge.textContent = text;
@@ -120,7 +125,7 @@
     const active = Boolean(controlApproved && clientConnected && !sessionClosed);
     remoteScreen?.classList.toggle("support-room__screen--control-enabled", active);
     remoteControls().forEach((item) => {
-      item.disabled = !active;
+      item.disabled = !active || remoteCommandBusy;
     });
     if (remoteControlBadge) {
       if (active) {
@@ -315,16 +320,7 @@
         return;
       }
       if (message.type === "remote_control_ack") {
-        if (message.ok) {
-          setStatus("Comando PC eseguito");
-          const result = message.result || {};
-          const detail = result.key || result.text || result.action || "";
-          appendChat(`PC cliente: comando eseguito${detail ? ` (${detail})` : ""}.`, "other");
-        } else {
-          const errorText = message.error || "comando non riuscito";
-          setStatus(`Errore controllo PC: ${errorText}`);
-          appendChat(`PC cliente: comando non riuscito: ${errorText}.`, "other");
-        }
+        handleRemoteControlAck(message);
         return;
       }
       if (message.type === "screen_frame" && message.image) {
@@ -508,6 +504,11 @@
       remoteVideoFallback?.classList.remove("d-none");
     }
     remoteFrameMeta = null;
+    if (remoteCommandTimer) window.clearTimeout(remoteCommandTimer);
+    remoteCommandTimer = null;
+    remoteCommandBusy = false;
+    remoteCommandInFlight = null;
+    remoteCommandQueue.splice(0, remoteCommandQueue.length);
     if (remoteAgentFrame) {
       remoteAgentFrame.classList.add("d-none");
       remoteAgentFrame.src = "";
@@ -548,11 +549,59 @@
       setStatus("Canale realtime non attivo");
       return;
     }
-    ws.send(JSON.stringify({
-      type: "remote_control",
+    remoteCommandQueue.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       command,
+    });
+    flushRemoteCommandQueue();
+  }
+
+  function flushRemoteCommandQueue() {
+    if (remoteCommandBusy || !remoteCommandQueue.length) return;
+    if (sessionClosed || !controlApproved || !ws || ws.readyState !== WebSocket.OPEN) {
+      remoteCommandQueue.splice(0, remoteCommandQueue.length);
+      remoteCommandBusy = false;
+      remoteCommandInFlight = null;
+      updateControlUi();
+      return;
+    }
+    remoteCommandInFlight = remoteCommandQueue.shift();
+    remoteCommandBusy = true;
+    updateControlUi();
+    ws.send(JSON.stringify({
+      type: "remote_control",
+      id: remoteCommandInFlight.id,
+      command: remoteCommandInFlight.command,
     }));
+    if (remoteCommandTimer) window.clearTimeout(remoteCommandTimer);
+    remoteCommandTimer = window.setTimeout(() => {
+      handleRemoteControlAck({
+        type: "remote_control_ack",
+        id: remoteCommandInFlight?.id,
+        ok: false,
+        error: "tempo di risposta del PC cliente esaurito",
+      });
+    }, remoteCommandAckTimeoutMs);
+  }
+
+  function handleRemoteControlAck(message) {
+    if (remoteCommandInFlight?.id && message.id && remoteCommandInFlight.id !== message.id) return;
+    if (remoteCommandTimer) window.clearTimeout(remoteCommandTimer);
+    remoteCommandTimer = null;
+    remoteCommandBusy = false;
+    remoteCommandInFlight = null;
+    if (message.ok) {
+      setStatus("Comando PC eseguito");
+      const result = message.result || {};
+      const detail = result.key || result.text || result.action || "";
+      appendChat(`PC cliente: comando eseguito${detail ? ` (${detail})` : ""}.`, "other");
+    } else {
+      const errorText = message.error || "comando non riuscito";
+      setStatus(`Errore controllo PC: ${errorText}`);
+      appendChat(`PC cliente: comando non riuscito: ${errorText}.`, "other");
+    }
+    updateControlUi();
+    flushRemoteCommandQueue();
   }
 
   function sendRemoteText() {

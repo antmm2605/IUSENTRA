@@ -412,11 +412,13 @@ def audit_support_real_flow() -> dict[str, Any]:
         operator.wait_for_function("() => !document.querySelector('#sendRemoteTextBtn')?.disabled", timeout=30000)
 
         screen_info = agent_status.get("screen") if isinstance(agent_status.get("screen"), dict) else {}
+        screen_x = int(screen_info.get("x") or agent_status.get("screen_x") or 0)
+        screen_y = int(screen_info.get("y") or agent_status.get("screen_y") or 0)
         screen_width = int(screen_info.get("width") or agent_status.get("screen_width") or 0)
         screen_height = int(screen_info.get("height") or agent_status.get("screen_height") or 0)
         expect(screen_width > 0 and screen_height > 0, "Dimensione schermo agente locale non disponibile.")
         click_position = operator.evaluate(
-            """({ targetX, targetY, screenWidth, screenHeight }) => {
+            """({ targetX, targetY, screenX, screenY, screenWidth, screenHeight }) => {
                 const screen = document.querySelector('#remoteScreen');
                 const frame = document.querySelector('#remoteAgentFrame');
                 if (!screen) return null;
@@ -437,14 +439,18 @@ def audit_support_real_flow() -> dict[str, Any]:
                   height = rect.width / sourceRatio;
                   top = (rect.height - height) / 2;
                 }
+                const ratioX = (targetX - screenX) / screenWidth;
+                const ratioY = (targetY - screenY) / screenHeight;
                 return {
-                  x: left + (width * Math.max(0, Math.min(1, targetX / screenWidth))),
-                  y: top + (height * Math.max(0, Math.min(1, targetY / screenHeight))),
+                  x: left + (width * Math.max(0, Math.min(1, ratioX))),
+                  y: top + (height * Math.max(0, Math.min(1, ratioY))),
                 };
             }""",
             {
                 "targetX": float(target_geometry["x"]),
                 "targetY": float(target_geometry["y"]),
+                "screenX": screen_x,
+                "screenY": screen_y,
                 "screenWidth": screen_width,
                 "screenHeight": screen_height,
             },
@@ -468,7 +474,12 @@ def audit_support_real_flow() -> dict[str, Any]:
             "agent": {
                 "ok": bool(agent_status.get("ok")),
                 "platform": agent_status.get("platform"),
-                "screen": {key: agent_status.get(key) for key in ("screen_width", "screen_height") if key in agent_status},
+                "screen": {
+                    "x": screen_x,
+                    "y": screen_y,
+                    "width": screen_width,
+                    "height": screen_height,
+                },
             },
             "session": {"publicId": session["public_id"]},
             "chat": "bidirezionale verificata",

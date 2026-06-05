@@ -46,6 +46,12 @@ SUPPORT_PC_AGENT_ALLOWED_ORIGINS: tuple[str, ...] = (
     "http://127.0.0.1:5173",
     "http://localhost:5173",
 )
+SM_CXSCREEN = 0
+SM_CYSCREEN = 1
+SM_XVIRTUALSCREEN = 76
+SM_YVIRTUALSCREEN = 77
+SM_CXVIRTUALSCREEN = 78
+SM_CYVIRTUALSCREEN = 79
 
 
 def derive_support_repository_db_path(anchor_path: str) -> str:
@@ -316,7 +322,31 @@ def _support_pc_screen_size() -> tuple[int, int]:
     if not _support_pc_is_windows():
         return 0, 0
     user32 = ctypes.windll.user32
-    return int(user32.GetSystemMetrics(0)), int(user32.GetSystemMetrics(1))
+    return int(user32.GetSystemMetrics(SM_CXSCREEN)), int(user32.GetSystemMetrics(SM_CYSCREEN))
+
+
+def _support_pc_virtual_screen_geometry() -> dict[str, int]:
+    if not _support_pc_is_windows():
+        return {"x": 0, "y": 0, "width": 0, "height": 0}
+
+    user32 = ctypes.windll.user32
+    x = int(user32.GetSystemMetrics(SM_XVIRTUALSCREEN))
+    y = int(user32.GetSystemMetrics(SM_YVIRTUALSCREEN))
+    width = int(user32.GetSystemMetrics(SM_CXVIRTUALSCREEN))
+    height = int(user32.GetSystemMetrics(SM_CYVIRTUALSCREEN))
+    if width <= 0 or height <= 0:
+        width, height = _support_pc_screen_size()
+        x = 0
+        y = 0
+    return {"x": x, "y": y, "width": max(width, 0), "height": max(height, 0)}
+
+
+def _support_pc_command_ratio(value: Any) -> float:
+    try:
+        ratio = float(value if value is not None else 0)
+    except (TypeError, ValueError) as exc:
+        raise RemoteControlError("Coordinate comando PC non valide.") from exc
+    return max(0.0, min(1.0, ratio))
 
 
 def _support_pc_mouse_event(flags: int) -> None:
@@ -436,6 +466,7 @@ def _support_pc_capture_screen(max_width: int = 1600, quality: int = 55) -> dict
     except Exception as exc:  # pragma: no cover - dipendenza runtime locale
         raise RemoteControlError("Cattura schermo non disponibile: installa Pillow nell'ambiente locale.") from exc
 
+    geometry = _support_pc_virtual_screen_geometry()
     image = ImageGrab.grab(all_screens=True)
     original_width, original_height = image.size
     max_width = max(480, min(int(max_width or 1600), 2400))
@@ -452,6 +483,11 @@ def _support_pc_capture_screen(max_width: int = 1600, quality: int = 55) -> dict
         "ok": True,
         "width": original_width,
         "height": original_height,
+        "screen": geometry,
+        "x": geometry["x"],
+        "y": geometry["y"],
+        "virtual_width": geometry["width"],
+        "virtual_height": geometry["height"],
         "preview_width": image.size[0],
         "preview_height": image.size[1],
         "captured_at": time.time(),
@@ -468,10 +504,18 @@ def execute_command(command: dict[str, Any], *, dry_run: bool = False) -> dict[s
     if not _support_pc_is_windows():
         raise RemoteControlError("Controllo PC reale disponibile su Windows.")
     if action in {"click", "double_click"}:
-        width, height = _support_pc_screen_size()
-        x = int(float(command.get("x_ratio") or 0) * max(width - 1, 1))
-        y = int(float(command.get("y_ratio") or 0) * max(height - 1, 1))
-        _support_pc_move_pointer(max(0, min(x, width - 1)), max(0, min(y, height - 1)))
+        geometry = _support_pc_virtual_screen_geometry()
+        width = geometry["width"]
+        height = geometry["height"]
+        if width <= 0 or height <= 0:
+            raise RemoteControlError("Dimensione schermo PC non disponibile.")
+        min_x = geometry["x"]
+        min_y = geometry["y"]
+        max_x = min_x + width - 1
+        max_y = min_y + height - 1
+        x = min_x + int(_support_pc_command_ratio(command.get("x_ratio")) * max(width - 1, 1))
+        y = min_y + int(_support_pc_command_ratio(command.get("y_ratio")) * max(height - 1, 1))
+        _support_pc_move_pointer(max(min_x, min(x, max_x)), max(min_y, min(y, max_y)))
         _support_pc_click(str(command.get("button") or "left").lower(), double=action == "double_click")
         return {"ok": True, "action": action}
     if action == "text":
@@ -524,14 +568,16 @@ class SupportPcAgentRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path.split("?", 1)[0] == "/status":
-            width, height = _support_pc_screen_size()
+            geometry = _support_pc_virtual_screen_geometry()
             self._send_json(
                 {
                     "ok": True,
                     "agent": SUPPORT_PC_AGENT_NAME,
                     "version": SUPPORT_PC_AGENT_VERSION,
                     "platform": platform.system(),
-                    "screen": {"width": width, "height": height},
+                    "screen": geometry,
+                    "screen_width": geometry["width"],
+                    "screen_height": geometry["height"],
                     "armed_sessions": SUPPORT_PC_AGENT_STATE.active_count(),
                 }
             )

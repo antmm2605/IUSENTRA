@@ -1,6 +1,6 @@
 {
   "schema": "iusentra.local_real_workflow_audit.v1",
-  "startedAtRome": "2026-06-05T06:45:27+02:00",
+  "startedAtRome": "2026-06-05T08:04:16+02:00",
   "baseUrl": "http://127.0.0.1:8080",
   "noScreenshots": true,
   "ok": true,
@@ -8,11 +8,11 @@
     {
       "name": "isolamento tenant runtime fascicoli/scadenze",
       "ok": true,
-      "started_at": "2026-06-05T06:45:33+02:00",
-      "finished_at": "2026-06-05T06:45:52+02:00",
+      "started_at": "2026-06-05T08:04:22+02:00",
+      "finished_at": "2026-06-05T08:04:40+02:00",
       "details": {
-        "auditTenantSlug": "audit-isolamento-tenant-1780634733075",
-        "foreignFascicoloId": "2EE2E4EB",
+        "auditTenantSlug": "audit-isolamento-tenant-1780639462157",
+        "foreignFascicoloId": "71CC92FB",
         "blockedForCurrentTenant": true,
         "allowedForOwnerTenant": true,
         "documentiAiBlockedForCurrentTenant": true,
@@ -23,21 +23,26 @@
     {
       "name": "assistenza remota reale locale",
       "ok": true,
-      "started_at": "2026-06-05T06:45:52+02:00",
-      "finished_at": "2026-06-05T06:46:24+02:00",
+      "started_at": "2026-06-05T08:04:40+02:00",
+      "finished_at": "2026-06-05T08:05:15+02:00",
       "details": {
         "agent": {
           "ok": true,
           "platform": "Windows",
-          "screen": {}
+          "screen": {
+            "x": -1920,
+            "y": 0,
+            "width": 3840,
+            "height": 1080
+          }
         },
         "session": {
-          "publicId": "204926b6-9df0-43f2-91bc-b4d96090af41"
+          "publicId": "55aeb09f-9510-4130-a3ef-57b06990e7ec"
         },
         "chat": "bidirezionale verificata",
         "microfono": "toggle operatore e cliente verificati",
         "schermo": {
-          "frameBase64Length": 72155,
+          "frameBase64Length": 68411,
           "visible": true
         },
         "controlloPc": {
@@ -49,8 +54,8 @@
     {
       "name": "editor template professionale locale",
       "ok": true,
-      "started_at": "2026-06-05T06:46:24+02:00",
-      "finished_at": "2026-06-05T06:46:45+02:00",
+      "started_at": "2026-06-05T08:05:15+02:00",
+      "finished_at": "2026-06-05T08:05:36+02:00",
       "details": {
         "templateCode": "CIV_COM_001",
         "campi": "stringa completa verificata",
@@ -78,8 +83,8 @@
     {
       "name": "PEC scadenziario agenda persistenza riavvio",
       "ok": true,
-      "started_at": "2026-06-05T06:46:45+02:00",
-      "finished_at": "2026-06-05T06:46:57+02:00",
+      "started_at": "2026-06-05T08:05:36+02:00",
+      "finished_at": "2026-06-05T08:05:49+02:00",
       "details": {
         "pecMessageId": "pec_dd91121ac2696e0399efd850",
         "deadlineId": "e9949123-55b5-4b48-8ec3-ee61ee0698b6",
@@ -93,13 +98,13 @@
   "failures": [],
   "pronto": {
     "ok": true,
-    "versione": "2.249.16",
-    "timestamp": "2026-06-05T04:45:27.134467"
+    "versione": "2.249.18",
+    "timestamp": "2026-06-05T06:04:16.479307"
   },
   "tenant": {
     "slug": "antonella-mammola",
     "storageKey": "tenant-8bf98719c459",
     "name": "Antonella Mammola"
   },
-  "finishedAtRome": "2026-06-05T06:46:57+02:00"
+  "finishedAtRome": "2026-06-05T08:05:49+02:00"
 }

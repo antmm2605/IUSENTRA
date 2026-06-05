@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.249.18 - 2026-06-05
+
+- Corretto il controllo remoto PC nelle sessioni di assistenza su desktop multi-monitor: l'agente ora espone origine e dimensioni dello schermo virtuale Windows e traduce i click sulle coordinate reali, anche quando il monitor condiviso parte da coordinate negative.
+- Serializzati i comandi remoti lato operatore: click, doppio click, testo e tasti rapidi attendono l'esito del comando precedente, evitando che il testo venga inviato prima che il click abbia portato il focus sul PC cliente.
+- Aggiornato l'audit reale locale per calcolare il click remoto usando la geometria effettiva dello schermo cliente; confermato il marker digitato fisicamente nella finestra cliente durante la prova completa.
+
 ## 2.249.17 - 2026-06-05
 
 - Corretto il marker di separazione pagina dell'editor template atti per rispettare il contratto React senza `style={{ ... }}`: la posizione resta governata da CSS e variabile custom aggiornata in modo controllato.

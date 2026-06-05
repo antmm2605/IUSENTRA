@@ -627,8 +627,8 @@ def test_whatsapp():
 def api_local_ai_status():
     try:
         return jsonify(_safe_local_ai_status_payload(get_local_ai_service().health_snapshot()))
-    except Exception as e:
-        current_app.logger.exception("Errore api_local_ai_status: %s", e)
+    except Exception:
+        current_app.logger.warning("Errore api_local_ai_status")
         return jsonify({"errore": "Assistente locale non disponibile.", "runtime": {"status": "error"}, "models": [], "counts": {}}), 200
 
 
@@ -644,6 +644,6 @@ def api_local_ai_bootstrap():
             "result": _safe_local_ai_bootstrap_result(result),
             "status_payload": _safe_local_ai_status_payload(service.health_snapshot()),
         })
-    except Exception as e:
-        current_app.logger.exception("Errore api_local_ai_bootstrap: %s", e)
+    except Exception:
+        current_app.logger.warning("Errore api_local_ai_bootstrap")
         return jsonify({"errore": "Preparazione assistente locale non completata.", "runtime": {"status": "error"}}), 200

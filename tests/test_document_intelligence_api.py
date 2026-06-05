@@ -312,6 +312,61 @@ def test_document_ai_api_documento_inesistente_e_query_vuota(tmp_path: Path):
     assert search.get_json()["mock_fallback"] is False
 
 
+def test_document_ai_api_blocca_fascicolo_di_altro_tenant_prima_di_indicizzare(tmp_path: Path):
+    from pct.tenant import GestioneTenant
+    from tests.test_web_bootstrap import _cfg_web as _cfg_web_multi, _write_studio_config
+    from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg_web_multi(tmp_path), "MULTI_TENANT": True, "STORAGE_MODE_DEFAULT": "JSON"})
+    manager = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio_a = manager.crea("Studio Documenti A", "studio-documenti-a")
+    studio_b = manager.crea("Studio Documenti B", "studio-documenti-b")
+    manager.aggiorna(studio_a.slug, api_key="documenti-a-key")
+    manager.aggiorna(studio_b.slug, api_key="documenti-b-key")
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_a.slug)
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_b.slug)
+
+    paths_b = manager.percorsi_dati(studio_b.slug, reconcile_aliases=False)
+    fascicoli_b = GestioneFascicoli(
+        db_path=paths_b["FASCICOLI_DB"],
+        documents_dir=paths_b["FASCICOLI_DOCS"],
+        archive_dir=paths_b["FASCICOLI_ARCH"],
+    )
+    fascicolo_b = fascicoli_b.nuovo(
+        "Fascicolo documenti solo Studio B",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Cliente Studio B",
+    )
+    fascicoli_b.aggiungi_documento(
+        fascicolo_b.id,
+        "memoria-studio-b.txt",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        "Documento riservato dello Studio B.".encode("utf-8"),
+    )
+
+    headers_a = {"X-API-Key": "documenti-a-key", "X-Tenant-Slug": studio_a.slug}
+    headers_b = {"X-API-Key": "documenti-b-key", "X-Tenant-Slug": studio_b.slug}
+
+    with app.test_client() as client:
+        lista_cross = client.get(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/documenti-ai", headers=headers_a)
+        stato_cross = client.get(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/lex-indexing", headers=headers_a)
+        aggiorna_cross = client.post(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/lex-indexing/aggiorna", headers=headers_a)
+        lista_owner = client.get(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/documenti-ai", headers=headers_b)
+        stato_owner = client.get(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/lex-indexing", headers=headers_b)
+
+    for response in (lista_cross, stato_cross, aggiorna_cross):
+        assert response.status_code == 404
+        payload = response.get_json()
+        assert payload["mock_fallback"] is False
+        assert payload["code"] == "not_found"
+
+    assert lista_owner.status_code == 200
+    assert lista_owner.get_json()["documents"] == []
+    assert stato_owner.status_code == 200
+    assert stato_owner.get_json()["lex_indexing"]["ready"] == 1
+
+
 def test_document_ai_api_permesso_negato_restituisce_403(tmp_path: Path, monkeypatch):
     app = _app(tmp_path)
     fascicolo_id = _crea_fascicolo(app)

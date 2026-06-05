@@ -1,0 +1,1020 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET25_PARTE5",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 5 di 6",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_REVOCA_DELLA_SEPARAZIONE_PERSONALE_E_RICONCILIAZIONE_CONIUGALE_ART_157_C_113010",
+      "denominazione": "Revoca della separazione personale e riconciliazione coniugale (art. 157 c.c.)",
+      "categoria": "Persone e famiglia – separazione – riconciliazione",
+      "rito": "Procedimento volontario ante Tribunale sezione famiglia",
+      "competenza": "Tribunale sezione famiglia del luogo della separazione",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "157",
+          "descrizione": "RICONCILIAZIONE – i coniugi possono riconciliarsi; la riconciliazione fa cessare gli effetti della separazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "157 c. 2",
+          "descrizione": "Riconciliazione tacita – ripresa della convivenza in modo serio e continuato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "157 c. 3",
+          "descrizione": "Nuova separazione – se i coniugi si riseparano, gli accordi precedenti non rivivono"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "5",
+          "descrizione": "Effetti sulla domanda di divorzio pendente – la riconciliazione estingue il processo"
+        },
+        {
+          "fonte": "Cass. SU 16165/2020",
+          "descrizione": "Riconciliazione tacita – requisiti e prova"
+        },
+        {
+          "fonte": "Cass. SU 8734/2023",
+          "descrizione": "Revoca della separazione – effetti sugli accordi economici"
+        }
+      ],
+      "riconciliazione_tacita_Cass_SU_16165_2020": {
+        "presupposti": "Ripresa della CONVIVENZA coniugale in modo SERIO e CONTINUATO",
+        "non_basta": "Incontri occasionali, rapporti sessuali episodici, comunicazioni frequenti",
+        "effetti": "Cessano automaticamente gli effetti della separazione (assegni, affidamento, ecc.)"
+      },
+      "riconciliazione_espressa": {
+        "forma": "Dichiarazione resa da entrambi i coniugi davanti al giudice istruttore o ufficiale di stato civile",
+        "effetti": "Immediata cessazione di tutti gli effetti della separazione"
+      },
+      "nuova_separazione_157c3": {
+        "dopo_riconciliazione": "Se i coniugi si riseparano: gli accordi della separazione precedente NON rivivono",
+        "bisogna": "Stipulare nuovi accordi di separazione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la riconciliazione (ripresa della convivenza)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se vi è un giudizio di divorzio pendente (la riconciliazione lo estingue)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Formalizzare la riconciliazione davanti al giudice o all'ufficiale di stato civile"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_riconciliazione_coniugale_157",
+        "denominazione": "Istanza congiunta di riconciliazione coniugale ex art. 157 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coniuge_1",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "coniuge_2",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_riconciliazione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "espressa_dichiarazione_formale",
+              "tacita_ripresa_convivenza"
+            ]
+          },
+          {
+            "id": "processo_divorzio_pendente",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_riconciliazione_157",
+              "cessazione_effetti_separazione",
+              "estinzione_processo_divorzio_se_pendente"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Riconciliazione tacita: ripresa convivenza SERIA e CONTINUATA (Cass. SU 16165/2020)",
+          "Nuova separazione post-riconciliazione: accordi precedenti non rivivono (art. 157 c. 3)",
+          "Processo di divorzio pendente: la riconciliazione lo estingue"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_o_decreto_separazione_da_revocare",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_riconciliazione_se_tacita",
+          "required_if": "tacita"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine – proponibile in qualunque momento"
+        }
+      ],
+      "codice_originale_ricevuto": "113010",
+      "codice_logico": "GUIDA_REVOCA_DELLA_SEPARAZIONE_PERSONALE_E_RICONCILIAZIONE_CONIUGALE_ART_157_C_113010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "113010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "113010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "113010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DELLA_BANCA_PER_OPERAZIONI_NON_AUTORIZZATE_FRODI_INFORMATI_160175",
+      "denominazione": "Responsabilità della banca per operazioni non autorizzate, frodi informatiche e phishing (D.Lgs. 11/2010)",
+      "categoria": "Responsabilità civile – servizi di pagamento – frodi bancarie",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (contratti bancari)",
+      "competenza": "Tribunale – foro del correntista (consumatore)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 11/2010 (PSD1)",
+          "articolo": "10-12",
+          "descrizione": "Responsabilità del PSP per operazioni non autorizzate – rimborso entro 1 giorno lavorativo"
+        },
+        {
+          "fonte": "D.Lgs. 11/2010 (come modificato da D.Lgs. 218/2017 PSD2)",
+          "articolo": "10",
+          "descrizione": "Autenticazione forte (SCA) – obbligo per le banche"
+        },
+        {
+          "fonte": "D.Lgs. 11/2010",
+          "articolo": "11",
+          "descrizione": "RIMBORSO – la banca rimborsa immediatamente tranne se dolo o colpa grave del cliente"
+        },
+        {
+          "fonte": "TUB D.Lgs. 385/1993",
+          "articolo": "144-bis",
+          "descrizione": "Sanzioni per violazione PSD2"
+        },
+        {
+          "fonte": "Cass. SU 12262/2021",
+          "descrizione": "Phishing – responsabilità della banca per mancata SCA"
+        },
+        {
+          "fonte": "Cass. SU 9770/2022",
+          "descrizione": "Frode SIM swap – responsabilità banca e operatore telefonico"
+        },
+        {
+          "fonte": "Cass. SU 6914/2024",
+          "descrizione": "Vishing e social engineering – colpa grave del cliente: onere prova banca"
+        }
+      ],
+      "sistema_di_responsabilita_D_Lgs_11_2010": {
+        "regola_generale": "La banca (PSP) rimborsa IMMEDIATAMENTE le operazioni non autorizzate",
+        "eccezione": "La banca NON rimborsa se prova DOLO o COLPA GRAVE del cliente",
+        "onere_prova_Cass_SU_6914_2024": "La colpa grave del cliente è a carico della BANCA da provare"
+      },
+      "SCA_strong_customer_authentication_PSD2": {
+        "obbligo": "La banca deve implementare l'autenticazione forte (due fattori) per le operazioni online",
+        "mancata_SCA_Cass_SU_12262_2021": "Se la banca non ha implementato SCA adeguata: responsabilità della banca anche in caso di phishing"
+      },
+      "frodi_tipiche": [
+        "PHISHING – email false che reindirizzano al sito falso della banca",
+        "VISHING – telefonate false del finto operatore bancario",
+        "SIM SWAP – clonazione della SIM per ricevere gli OTP",
+        "SOCIAL ENGINEERING – manipolazione psicologica del cliente",
+        "MALWARE bancario"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "CONTRATTI BANCARI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Inviare subito alla banca richiesta di rimborso ex D.Lgs. 11/2010"
+        },
+        {
+          "step": 2,
+          "descrizione": "Presentare denuncia alle FFOO (querela per truffa informatica)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Raccogliere prove dell'operazione non autorizzata (estratti conto, email, messaggi)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria se la banca non rimborsa"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_rimborso_operazioni_non_autorizzate_D_Lgs_11",
+        "denominazione": "Atto di citazione per rimborso operazioni non autorizzate ex D.Lgs. 11/2010 (PSD2)",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "cliente_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "banca_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "operazioni_non_autorizzate",
+            "type": "array",
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "importo",
+                "type": "currency"
+              },
+              {
+                "id": "tipo_frode",
+                "type": "select",
+                "options": [
+                  "phishing",
+                  "vishing",
+                  "sim_swap",
+                  "social_engineering",
+                  "malware",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "totale_sottratto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "richiesta_rimborso_alla_banca",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_richiesta",
+                "type": "date"
+              },
+              {
+                "id": "risposta_banca",
+                "type": "select",
+                "options": [
+                  "silenzio",
+                  "rifiuto",
+                  "rimborso_parziale"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "denuncia_querela_FFOO",
+            "type": "boolean",
+            "consigliato": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "rimborso_operazioni_non_autorizzate_11_D_Lgs",
+              "condanna_interessi_dal_giorno_sottrazione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "La banca deve rimborsare immediatamente (D.Lgs. 11/2010) tranne se DOLO o COLPA GRAVE del cliente",
+          "ONERE della colpa grave: a carico della BANCA",
+          "Mancata SCA: banca responsabile anche in caso di phishing (Cass. SU 12262/2021)",
+          "Mediazione obbligatoria preventiva"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "estratti_conto_con_operazioni_fraudolente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_frode",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "richiesta_rimborso_e_rifiuto_banca",
+          "required": true
+        },
+        {
+          "id": "denuncia_FFOO",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 2,
+          "decorrenza": "operazione fraudolenta"
+        }
+      ],
+      "codice_originale_ricevuto": "160175",
+      "codice_logico": "GUIDA_RESPONSABILIT_DELLA_BANCA_PER_OPERAZIONI_NON_AUTORIZZATE_FRODI_INFORMATI_160175",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160175"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160175"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160175"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_ART_696_C_P_C_E_CONSULENZA_TECNICA_PREVE_190025",
+      "denominazione": "Accertamento tecnico preventivo (art. 696 c.p.c.) e consulenza tecnica preventiva ai fini della conciliazione (art. 696-bis c.p.c.)",
+      "categoria": "Misure cautelari – accertamento tecnico – consulenza preventiva",
+      "rito": "Procedimento cautelare ante causam o in corso di causa ex artt. 696 e 696-bis c.p.c.",
+      "competenza": "Tribunale del luogo in cui si trova l'oggetto dell'accertamento",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "696",
+          "descrizione": "Accertamento tecnico preventivo – prima o nel corso del giudizio, per constatare lo stato di persone o cose"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "696-bis",
+          "descrizione": "CONSULENZA TECNICA PREVENTIVA ai fini della conciliazione – tentativo di accordo con il consulente"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis e ss.",
+          "descrizione": "Procedura cautelare uniforme applicabile"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "8",
+          "descrizione": "CTP ex 696-bis come condizione di procedibilità in materia sanitaria"
+        },
+        {
+          "fonte": "Cass. SU 14363/2019",
+          "descrizione": "ATP 696 – natura cautelare e usabilità in qualsiasi controversia"
+        },
+        {
+          "fonte": "Cass. SU 11468/2022",
+          "descrizione": "CTP 696-bis – tentativo di conciliazione e relazione del CTU"
+        }
+      ],
+      "differenza_696_vs_696bis": {
+        "ATP_696": {
+          "scopo": "Constatare e documentare lo stato di persone o cose PRIMA che le prove si disperdano",
+          "urgenza": "Richiede il periculum di dispersione delle prove",
+          "esito": "Relazione del CTU utilizzabile come prova nel giudizio di merito"
+        },
+        "CTP_696bis": {
+          "scopo": "Accertare tecnico + tentativo di CONCILIAZIONE tra le parti",
+          "urgenza": "NON richiede il periculum",
+          "esito": "Se le parti si conciliano: verbale di accordo esecutivo. Se non si conciliano: relazione del CTU"
+        }
+      },
+      "casi_tipici": [
+        "Vizi dell'immobile compravenduto (prima che vengano riparati)",
+        "Danni da sinistro stradale (prima della riparazione)",
+        "Vizi d'opera nell'appalto (prima che vengano rimossi)",
+        "Responsabilità medica (CTP 696-bis obbligatoria ex L. 24/2017)",
+        "Difetti del prodotto (prima della distruzione o smaltimento)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Scegliere tra ATP 696 (urgenza) o CTP 696-bis (conciliazione senza urgenza)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per 696: documentare l'urgenza/periculum (rischio dispersione prove)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Proporre un consulente di parte per partecipare alle operazioni peritali"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_ATP_696_o_CTP_696bis",
+        "denominazione": "Ricorso per accertamento tecnico preventivo ex art. 696 c.p.c. o CTP ex art. 696-bis c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_procedimento",
+            "type": "select",
+            "required": true,
+            "options": [
+              "ATP_696_con_urgenza",
+              "CTP_696bis_senza_urgenza"
+            ]
+          },
+          {
+            "id": "oggetto_accertamento",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "periculum_696",
+            "type": "textarea",
+            "required_if": "ATP_696",
+            "note": "Rischio di dispersione delle prove"
+          },
+          {
+            "id": "quesiti_al_CTU",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "nomina_CTU_per_accertamento_696",
+              "nomina_CTU_per_conciliazione_696bis",
+              "verbale_accordo_se_conciliazione_696bis"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "CTP 696-bis in materia sanitaria: CONDIZIONE DI PROCEDIBILITÀ (L. 24/2017 art. 8)",
+          "ATP 696: richiede urgenza/periculum; CTP 696-bis: nessun periculum necessario",
+          "La relazione del CTU è utilizzabile come prova nel successivo giudizio di merito"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_oggetto_accertamento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_urgenza_se_ATP_696",
+          "required_if": "ATP_696"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine fisso – ante causam o in corso di causa"
+        }
+      ],
+      "codice_originale_ricevuto": "190025",
+      "codice_logico": "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_ART_696_C_P_C_E_CONSULENZA_TECNICA_PREVE_190025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ESPROPRIAZIONE_PRESSO_TERZI_DICHIARAZIONE_DEL_TERZO_E_CONTESTAZIONI_ARTT_510010",
+      "denominazione": "Espropriazione presso terzi: dichiarazione del terzo e contestazioni (artt. 547-549 c.p.c.)",
+      "categoria": "Esecuzioni forzate – espropriazione presso terzi",
+      "rito": "Procedimento esecutivo davanti al GE + eventuale giudizio di accertamento ex art. 548-549 c.p.c.",
+      "competenza": "GIUDICE DELL'ESECUZIONE – Tribunale del domicilio del debitore",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "543",
+          "descrizione": "Atto di pignoramento presso terzi – notifica a debitore + terzo"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "547",
+          "descrizione": "DICHIARAZIONE DEL TERZO – obbligo di rendere la dichiarazione di ciò che detiene del debitore"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "548",
+          "descrizione": "Mancata dichiarazione del terzo – effetti: si considera non contestata"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "549",
+          "descrizione": "Contestazione della dichiarazione – giudizio incidentale davanti al GE"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "551",
+          "descrizione": "Assegnazione – se credito liquido: il GE assegna al creditore"
+        },
+        {
+          "fonte": "Cass. SU 13213/2020",
+          "descrizione": "Dichiarazione positiva del terzo – effetti e contestazione"
+        },
+        {
+          "fonte": "Cass. SU 7783/2022",
+          "descrizione": "Contestazione 549 – natura e limiti del giudizio incidentale"
+        }
+      ],
+      "iter_espropriazione_presso_terzi": [
+        "1. Pignoramento notificato a debitore esecutato e al TERZO",
+        "2. Udienza davanti al GE: il terzo rende la dichiarazione",
+        "3a. Se dichiarazione POSITIVA (il terzo detiene beni del debitore): GE assegna",
+        "3b. Se dichiarazione NEGATIVA o OMESSA (art. 548): si considera non contestata",
+        "4. Se creditore contesta la dichiarazione del terzo: giudizio incidentale ex art. 549"
+      ],
+      "terzo_tenuto_alla_dichiarazione": {
+        "datore_lavoro": "Dichiara lo stipendio mensile del debitore",
+        "banca": "Dichiara i saldi dei conti correnti + eventuali depositi",
+        "debitore_del_debitore": "Dichiara quanto deve al debitore esecutato"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la dichiarazione resa dal terzo all'udienza"
+        },
+        {
+          "step": 2,
+          "descrizione": "Se il terzo non si presenta o rende dichiarazione negativa contestabile: attivare il giudizio ex art. 549"
+        },
+        {
+          "step": 3,
+          "descrizione": "Raccogliere prove del credito del debitore verso il terzo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_contestazione_dichiarazione_terzo_549",
+        "denominazione": "Istanza al GE per contestazione della dichiarazione del terzo ex art. 549 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_GE",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "numero_RG_esecuzione",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_esecutato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "terzo_pignorato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_problema",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "terzo_non_comparso_548",
+              "dichiarazione_negativa_contestata_549",
+              "dichiarazione_parziale_contestata",
+              "terzo_nega_credito_ma_vi_sono_prove"
+            ]
+          },
+          {
+            "id": "prove_del_credito_del_debitore_verso_terzo",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_esistenza_credito_del_debitore_verso_terzo",
+              "assegnazione_al_creditore",
+              "condanna_del_terzo_al_pagamento"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Terzo non comparso (art. 548): dichiarazione si considera non contestata",
+          "Contestazione ex 549: giudizio incidentale davanti al GE",
+          "Prova del credito del debitore verso il terzo: a carico del creditore procedente"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_pignoramento_e_notifiche",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_udienza_dichiarazione_terzo",
+          "required": true
+        },
+        {
+          "id": "prove_credito_debitore_verso_terzo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Contestazione: udienza fissata dal GE"
+        }
+      ],
+      "codice_originale_ricevuto": "510010",
+      "codice_logico": "GUIDA_ESPROPRIAZIONE_PRESSO_TERZI_DICHIARAZIONE_DEL_TERZO_E_CONTESTAZIONI_ARTT_510010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PIGNORAMENTO_DI_QUOTA_DI_S_R_L_E_VENDITA_FORZATA_ART_2471_C_C_511030",
+      "denominazione": "Pignoramento di quota di S.r.l. e vendita forzata (art. 2471 c.c.)",
+      "categoria": "Esecuzioni forzate – pignoramento quota societaria",
+      "rito": "Procedimento esecutivo davanti al GE",
+      "competenza": "Tribunale – sede della società; Tribunale delle Imprese per eventuali questioni societarie",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2471",
+          "descrizione": "Pignoramento della quota di S.r.l. – iscrizione nel RI; vendita forzata della quota"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2471-bis",
+          "descrizione": "Diritto di prelazione degli altri soci nel caso di vendita forzata della quota"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2469",
+          "descrizione": "Trasferimento della quota – limiti statutari"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "502 e ss.",
+          "descrizione": "Vendita forzata di beni mobili"
+        },
+        {
+          "fonte": "Cass. SU 14812/2021",
+          "descrizione": "Pignoramento quota SRL – effetti sull'esercizio dei diritti sociali"
+        },
+        {
+          "fonte": "Cass. SU 9653/2023",
+          "descrizione": "Diritto di prelazione soci e vendita forzata ex 2471-bis"
+        }
+      ],
+      "pignoramento_quota_2471": {
+        "formalita": "Notifica al debitore + iscrizione nel Registro delle Imprese",
+        "effetti_sui_diritti_sociali_Cass_SU_14812_2021": "Il pignoramento non priva automaticamente il debitore dei diritti di voto e gestione",
+        "vendita_forzata": "La quota viene venduta all'asta – gli altri soci hanno diritto di prelazione"
+      },
+      "diritto_di_prelazione_2471bis_Cass_SU_9653_2023": {
+        "contenuto": "Gli altri soci hanno diritto di acquistare la quota al prezzo di aggiudicazione",
+        "termine": "Entro il termine fissato dal GE",
+        "clausole_statutarie": "Lo statuto può limitare ulteriormente il trasferimento – ma non in sede esecutiva (la prelazione ex 2471-bis è inderogabile)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Iscrizione del pignoramento nel Registro delle Imprese"
+        },
+        {
+          "step": 2,
+          "descrizione": "Notifica alla S.r.l. e al debitore"
+        },
+        {
+          "step": 3,
+          "descrizione": "Perizia estimativa della quota (per la base d'asta)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "pignoramento_e_vendita_quota_srl_2471",
+        "denominazione": "Atto di pignoramento di quota di S.r.l. e istanza di vendita ex art. 2471 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_GE",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_socio",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "srl",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "quota_da_pignorare",
+            "type": "fraction",
+            "required": true
+          },
+          {
+            "id": "valore_quota_stimato",
+            "type": "currency"
+          },
+          {
+            "id": "iscrizione_RI_effettuata",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "pignoramento_quota_2471",
+              "nomina_esperto_valutazione_quota",
+              "vendita_forzata_con_prelazione_soci_2471bis",
+              "assegnazione_al_creditore"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Iscrizione nel RI: obbligatoria per il perfezionamento del pignoramento",
+          "Diritto di prelazione soci ex 2471-bis: INDEROGABILE",
+          "Clausole statutarie di intrasferibilità: non opponibili in sede esecutiva (art. 2471)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo_e_precetto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visura_camerale_srl",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_iscrizione_RI",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore della quota",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine specifico per il creditore"
+        }
+      ],
+      "codice_originale_ricevuto": "511030",
+      "codice_logico": "GUIDA_PIGNORAMENTO_DI_QUOTA_DI_S_R_L_E_VENDITA_FORZATA_ART_2471_C_C_511030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511030"
+        }
+      ]
+    }
+  ]
+}

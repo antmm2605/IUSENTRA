@@ -1,0 +1,1082 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET25_PARTE4",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 4 di 6",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_S_P_A_DIRITTI_DEGLI_AZIONISTI_DI_MINORANZA_ISPEZIONE_DENUNCIA_AL_TRIBUNA_150075",
+      "denominazione": "S.p.A.: diritti degli azionisti di minoranza – ispezione, denuncia al tribunale e recesso (artt. 2408-2409 c.c.)",
+      "categoria": "Diritto societario – S.p.A. – tutela minoranze",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2408",
+          "descrizione": "Denuncia al collegio sindacale – soci che rappresentano 1/20 del capitale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2409",
+          "descrizione": "DENUNCIA AL TRIBUNALE per gravi irregolarità – soci che rappresentano 1/10 (quotate: 1/20)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2437",
+          "descrizione": "RECESSO del socio – cause legali e statutarie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2441",
+          "descrizione": "Diritto di OPZIONE nelle nuove emissioni – tutela della minoranza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2373",
+          "descrizione": "Conflitto di interessi del socio nelle delibere"
+        },
+        {
+          "fonte": "TUF D.Lgs. 58/1998",
+          "articolo": "128-bis",
+          "descrizione": "Tutela degli azionisti di minoranza nelle società quotate"
+        },
+        {
+          "fonte": "Cass. SU 16908/2021",
+          "descrizione": "Denuncia 2409 – gravi irregolarità nella gestione"
+        },
+        {
+          "fonte": "Cass. SU 5694/2023",
+          "descrizione": "Recesso azionista per giusta causa – criteri aggiornati"
+        }
+      ],
+      "denuncia_al_tribunale_2409": {
+        "legittimazione": "Soci che rappresentano 1/10 del capitale (quotate: 1/20)",
+        "motivo": "Fondato sospetto di gravi irregolarità nella gestione che possono arrecare danno alla società o a sue controllate",
+        "provvedimento_tribunale": "Ispezione giudiziale + eventuale nomina di un amministratore giudiziario"
+      },
+      "recesso_2437_azionista": {
+        "cause_legali": [
+          "Cambiamento oggetto sociale",
+          "Trasformazione",
+          "Trasferimento sede all'estero",
+          "Revoca dello stato di quotazione",
+          "Prolungamento del termine"
+        ],
+        "liquidazione": "Valore di mercato al momento del recesso"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la soglia minima di partecipazione per la denuncia (1/10 del capitale)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare le gravi irregolarità gestionali"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare se proporre denuncia al collegio sindacale (2408) o al Tribunale (2409)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_denuncia_tribunale_2409_o_recesso_2437",
+        "denominazione": "Ricorso al Tribunale delle Imprese per denuncia ex art. 2409 c.c. o recesso ex art. 2437",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "soci_ricorrenti",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "quota_capitale_rappresentata",
+            "type": "percentage",
+            "required": true,
+            "note": "Min 1/10 del capitale per 2409"
+          },
+          {
+            "id": "spa_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "denuncia_2409_irregolarita_gestionali",
+              "recesso_2437_cause_legali",
+              "impugnazione_delibera_diniego_opzione_2441"
+            ]
+          },
+          {
+            "id": "gravi_irregolarita_2409",
+            "type": "textarea",
+            "required_if": "2409",
+            "min_length": 300
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ispezione_giudiziale_2409",
+              "nomina_amministratore_giudiziario",
+              "accertamento_recesso_2437",
+              "liquidazione_quota_a_valore_mercato",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Denuncia 2409: soglia 1/10 del capitale – verificare la partecipazione",
+          "Gravi irregolarità: devono essere concrete e documentate (Cass. SU 16908/2021)",
+          "Competenza TRIBUNALE DELLE IMPRESE"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_partecipazione_azionaria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_gravi_irregolarita",
+          "required_if": "2409",
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine fisso – proponibile al ricorrere dei presupposti"
+        }
+      ],
+      "codice_originale_ricevuto": "150075",
+      "codice_logico": "GUIDA_S_P_A_DIRITTI_DEGLI_AZIONISTI_DI_MINORANZA_ISPEZIONE_DENUNCIA_AL_TRIBUNA_150075",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150075"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LIQUIDAZIONE_DELLA_S_R_L_OBBLIGHI_DEI_LIQUIDATORI_RESPONSABILIT_E_CONTRO_155020",
+      "denominazione": "Liquidazione della S.r.l.: obblighi dei liquidatori, responsabilità e controversie (artt. 2484-2496 c.c.)",
+      "categoria": "Diritto societario – S.r.l. – liquidazione",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2484",
+          "descrizione": "Cause di scioglimento della S.r.l."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2485",
+          "descrizione": "Obbligo degli amministratori di accertare la causa di scioglimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2487",
+          "descrizione": "Nomina dei liquidatori + poteri"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2489",
+          "descrizione": "POTERI DEI LIQUIDATORI – gestione liquidatoria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2490",
+          "descrizione": "Depositi e bilanci in liquidazione – obbligo annuale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2491",
+          "descrizione": "RESPONSABILITÀ dei liquidatori – verso la società, i soci e i creditori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2492-2495",
+          "descrizione": "Cancellazione dal RI e responsabilità residua"
+        },
+        {
+          "fonte": "Cass. SU 6070/2020",
+          "descrizione": "Responsabilità dei liquidatori verso i creditori"
+        },
+        {
+          "fonte": "Cass. SU 12254/2022",
+          "descrizione": "Liquidatore che esegue pagamenti preferenziali ai soci – responsabilità"
+        }
+      ],
+      "responsabilita_liquidatori_2491": {
+        "verso_la_societa": "Per atti compiuti in violazione dei doveri – azione sociale di responsabilità",
+        "verso_i_creditori_Cass_SU_6070_2020": "Se i liquidatori distribuiscono ai soci senza soddisfare prima i creditori: responsabilità personale illimitata",
+        "pagamenti_preferenziali_Cass_SU_12254_2022": "Il liquidatore che paga i soci prima di aver soddisfatto tutti i creditori: responsabilità per l'intero danno"
+      },
+      "cancellazione_e_responsabilita_residua_2495": {
+        "creditori_insoddisfatti": "Possono agire verso i soci (fino al valore di quanto ricevuto) e verso i liquidatori (illimitatamente)",
+        "termine_per_azione": "1 anno dalla cancellazione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare le cause di scioglimento e la regolarità della nomina dei liquidatori"
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisire bilanci di liquidazione e piano di riparto"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentare i comportamenti irregolari dei liquidatori"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_responsabilita_liquidatori_srl_2491",
+        "denominazione": "Azione di responsabilità verso i liquidatori di S.r.l. ex art. 2491 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "creditore_insoddisfatto",
+                  "socio_leso",
+                  "curatore_se_fallita"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "liquidatori_convenuti",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "srl_in_liquidazione",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "condotta_irregolare",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "distribuzione_soci_prima_creditori",
+              "mancato_deposito_bilanci_liquidazione_2490",
+              "atti_gestione_ordinaria_durante_liquidazione",
+              "cancellazione_anticipata"
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_liquidatori_responsabilita_2491",
+              "risarcimento_danno_da_distribuzione_preferenziale",
+              "azione_ex_2495_post_cancellazione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Azione verso creditori post-cancellazione ex 2495: termine 1 ANNO dalla cancellazione",
+          "Distribuzione ai soci prima dei creditori: responsabilità ILLIMITATA del liquidatore",
+          "Competenza TRIBUNALE DELLE IMPRESE"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "bilanci_di_liquidazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "piano_di_riparto",
+          "required": true
+        },
+        {
+          "id": "documentazione_distribuzione_ai_soci",
+          "required_if": "distribuzione_preferenziale",
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Azione ex 2495 post-cancellazione",
+          "anni": 1,
+          "natura": "DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "155020",
+      "codice_logico": "GUIDA_LIQUIDAZIONE_DELLA_S_R_L_OBBLIGHI_DEI_LIQUIDATORI_RESPONSABILIT_E_CONTRO_155020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "155020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "155020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "155020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_TUTELA_DELLA_DITTA_DEL_NOME_COMMERCIALE_E_DELL_INSEGNA_ARTT_2563_2567_C__170040",
+      "denominazione": "Tutela della ditta, del nome commerciale e dell'insegna (artt. 2563-2567 c.c. + artt. 22-24 Cod. PI)",
+      "categoria": "Proprietà industriale – segni distintivi – ditta",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede convenuto o luogo della violazione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2563",
+          "descrizione": "Ditta – nome sotto cui l'imprenditore esercita l'attività"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2564",
+          "descrizione": "Ditta – obbligo di differenziazione se confondibile con ditta preesistente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2565",
+          "descrizione": "Ditta – trasferibile solo con l'azienda"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2568",
+          "descrizione": "Insegna – tutela analoga alla ditta"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "22",
+          "descrizione": "Nome a dominio – tutela contro registrazioni confusorie"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "23-24",
+          "descrizione": "Nomi commerciali – tutela dai marchi e dalla concorrenza sleale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2598 n. 1",
+          "descrizione": "Concorrenza sleale confusoria – uso di segni distintivi altrui"
+        },
+        {
+          "fonte": "Cass. SU 11467/2021",
+          "descrizione": "Ditta confondibile – obbligo di differenziazione e tutela"
+        },
+        {
+          "fonte": "Cass. SU 8934/2023",
+          "descrizione": "Domain name – tutela come segno distintivo"
+        }
+      ],
+      "differenza_ditta_marchio_insegna": {
+        "ditta": "NOME sotto cui l'imprenditore opera – si identifica con l'imprenditore",
+        "marchio": "Segno distintivo per i prodotti/servizi – registrabile e cedibile autonomamente",
+        "insegna": "Segno che contraddistingue i locali dell'impresa – tutela locale"
+      },
+      "obbligo_differenziazione_2564": {
+        "quando": "Una ditta è uguale o simile a una preesistente nello stesso mercato",
+        "obbligo": "Il secondo imprenditore DEVE differenziare la propria ditta (aggiungendo elementi di distinzione)",
+        "priorità": "La prima ditta ha diritto alla tutela"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la preesistenza della propria ditta (data di inizio uso, CCIAA)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare la confondibilità con la ditta del convenuto"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare misura cautelare urgente (inibitoria) se confusione in corso"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_tutela_ditta_2563_2564",
+        "denominazione": "Atto di citazione per tutela della ditta e del nome commerciale ex artt. 2563-2568 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "imprenditore_leso_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_segno_tutelato",
+            "type": "select",
+            "required": true,
+            "options": [
+              "ditta_2563",
+              "insegna_2568",
+              "nome_commerciale",
+              "domain_name"
+            ]
+          },
+          {
+            "id": "prova_preesistenza",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_primo_uso",
+                "type": "date"
+              },
+              {
+                "id": "iscrizione_CCIAA",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_diritto_ditta_preesistente",
+              "inibitoria_uso_ditta_confondibile",
+              "obbligo_differenziazione_2564",
+              "risarcimento_danni",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Priorità per data di primo uso effettivo (non registrazione CCIAA necessariamente)",
+          "Competenza TRIBUNALE DELLE IMPRESE",
+          "Inibitoria cautelare: valutare sempre se confusione sul mercato è in corso"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_primo_uso_e_CCIAA",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_confondibilita",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "170040",
+      "codice_logico": "GUIDA_TUTELA_DELLA_DITTA_DEL_NOME_COMMERCIALE_E_DELL_INSEGNA_ARTT_2563_2567_C__170040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRATTO_DI_CONTO_CORRENTE_BANCARIO_CONTESTAZIONE_DEL_SALDO_ANATOCISMO__143055",
+      "denominazione": "Contratto di conto corrente bancario: contestazione del saldo, anatocismo e commissioni (artt. 1823-1833 c.c.)",
+      "categoria": "Contratti – bancari – conto corrente",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (contratti bancari)",
+      "competenza": "Foro del correntista (consumatore) o luogo della filiale",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1823-1833",
+          "descrizione": "Conto corrente ordinario"
+        },
+        {
+          "fonte": "TUB D.Lgs. 385/1993",
+          "articolo": "117-120",
+          "descrizione": "Trasparenza bancaria + divieto anatocismo + CMS"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "120 c. 2",
+          "descrizione": "Divieto di capitalizzazione trimestrale degli interessi (anatocismo)"
+        },
+        {
+          "fonte": "CICR delibera 9/2/2000 e 2016",
+          "descrizione": "Produzione di interessi su interessi – condizioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2935-2946",
+          "descrizione": "Prescrizione ordinaria e decennale del saldo"
+        },
+        {
+          "fonte": "Cass. SU 24418/2010",
+          "descrizione": "Anatocismo bancario – indebitezza degli interessi anatocistici"
+        },
+        {
+          "fonte": "Cass. SU 15895/2022",
+          "descrizione": "Commissione di massimo scoperto – nullità se non pattuita"
+        },
+        {
+          "fonte": "Cass. SU 9139/2024",
+          "descrizione": "Saldo contestato – onere della prova e prescrizione"
+        }
+      ],
+      "anatocismo_120_TUB": {
+        "divieto": "Gli interessi non possono produrre altri interessi se non quelli maturati dopo la scadenza e solo se pattuiti per iscritto",
+        "prassi_illegittima": "La capitalizzazione trimestrale degli interessi praticata dalle banche fino al 2000 era ILLEGITTIMA",
+        "Cass_SU_24418_2010": "Gli interessi anatocistici addebitati ante 2000 sono INDEBITAMENTE pagati – prescrizione 10 anni"
+      },
+      "commissione_massimo_scoperto_Cass_SU_15895_2022": {
+        "CMS": "Commissione calcolata sul massimo utilizzo del fido in un trimestre",
+        "nullita": "Nulla se non specificamente pattuita per iscritto con indicazione del tasso"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "CONTRATTI BANCARI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Richiedere alla banca tutti gli estratti conto dal momento di apertura"
+        },
+        {
+          "step": 2,
+          "descrizione": "Perizia economica per il ricalcolo del saldo eliminando le voci illegittime"
+        },
+        {
+          "step": 3,
+          "descrizione": "Mediazione obbligatoria prima del giudizio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_conto_corrente_saldo_contestato",
+        "denominazione": "Atto di citazione per ripetizione di indebito su conto corrente bancario ex artt. 1823 c.c. + 120 TUB",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "correntista_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "banca_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_contestazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "anatocismo_capitalizzazione_trimestrale",
+              "commissione_massimo_scoperto_nulla",
+              "tassi_usurari",
+              "spese_non_pattuite",
+              "saldo_contestato_indebitamente_esigito"
+            ]
+          },
+          {
+            "id": "periodo_contestato",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_apertura_conto",
+                "type": "date"
+              },
+              {
+                "id": "data_chiusura_o_ad_oggi",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "perizia_di_parte",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ripetizione_indebito_anatocismo",
+              "rimborso_CMS_nulla",
+              "ricalcolo_saldo_al_netto_voci_illegittime",
+              "interessi_legali_sulle_somme",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria preventiva (contratti bancari)",
+          "Anatocismo ante 2000: prescrizione 10 anni dalla chiusura del conto (Cass. SU 9139/2024)",
+          "Richiedere TUTTI gli estratti conto sin dall'apertura",
+          "Perizia tecnica di parte per il ricalcolo: indispensabile"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "tutti_gli_estratti_conto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratto_conto_corrente_con_condizioni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_economica_ricalcolo",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ripetizione indebito",
+          "anni": 10,
+          "decorrenza": "chiusura del conto o pagamento non dovuto"
+        }
+      ],
+      "codice_originale_ricevuto": "143055",
+      "codice_logico": "GUIDA_CONTRATTO_DI_CONTO_CORRENTE_BANCARIO_CONTESTAZIONE_DEL_SALDO_ANATOCISMO__143055",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143055"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143055"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143055"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_MUTUO_FONDIARIO_E_IPOTECARIO_CONTROVERSIE_USURA_E_RISOLUZIONE_ARTT_1813__143060",
+      "denominazione": "Mutuo fondiario e ipotecario: controversie, usura e risoluzione (artt. 1813-1822 c.c. + TUB artt. 38-42)",
+      "categoria": "Contratti – bancari – mutuo",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (contratti bancari)",
+      "competenza": "Foro del mutuatario (consumatore) o luogo della filiale",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1813-1822",
+          "descrizione": "Contratto di mutuo – restituzione + interessi"
+        },
+        {
+          "fonte": "TUB D.Lgs. 385/1993",
+          "articolo": "38-42",
+          "descrizione": "Mutuo fondiario – disciplina speciale"
+        },
+        {
+          "fonte": "L. 108/1996",
+          "descrizione": "Usura – tasso soglia; nullità clausola di interessi usurari"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1815 c. 2",
+          "descrizione": "Interessi usurari – nullità della clausola; mutuo diventa gratuito"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "120-quater",
+          "descrizione": "Portabilità del mutuo – estinzione anticipata senza penale"
+        },
+        {
+          "fonte": "Cass. SU 19597/2020",
+          "descrizione": "Usura sopravvenuta – non rileva per l'art. 1815 c. 2"
+        },
+        {
+          "fonte": "Cass. SU 14354/2021",
+          "descrizione": "CMS inclusa nel calcolo del TEG per usura"
+        },
+        {
+          "fonte": "Cass. SU 8432/2024",
+          "descrizione": "Rimborso anticipato mutuo – calcolo degli interessi residui"
+        }
+      ],
+      "usura_nel_mutuo_L108_1996": {
+        "tasso_soglia": "Tasso effettivo globale medio + 25% (e non oltre 8 punti percentuali) – determinato trimestralmente dalla Banca d'Italia",
+        "usura_originaria": "Se il tasso è usurario AL MOMENTO DELLA STIPULA: la clausola è NULLA + il mutuo diventa gratuito (art. 1815 c. 2)",
+        "usura_sopravvenuta_Cass_SU_19597_2020": "Non rilevante per 1815 c.2 – ma il debitore non paga più interessi eccedenti la soglia"
+      },
+      "portabilita_mutuo_120quater": {
+        "diritto": "Il mutuatario può trasferire il mutuo ad altra banca senza penale di estinzione anticipata",
+        "procedura": "Surroga ipotecaria – la banca subentrante paga direttamente la banca cedente"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "CONTRATTI BANCARI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto di mutuo + piano di ammortamento + tutte le quietanze"
+        },
+        {
+          "step": 2,
+          "descrizione": "Perizia tecnica per il calcolo del TEG e verifica del tasso soglia"
+        },
+        {
+          "step": 3,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_mutuo_usura_contestazione",
+        "denominazione": "Atto di citazione per nullità clausola interessi usurari nel mutuo ex art. 1815 c. 2 c.c. + L. 108/1996",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "mutuatario_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "banca_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "mutuo",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "importo_originario",
+                "type": "currency"
+              },
+              {
+                "id": "tasso_nominale",
+                "type": "percentage"
+              },
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "tasso_fisso",
+                  "tasso_variabile",
+                  "misto"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "tipo_contestazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "usura_originaria_1815c2",
+              "inclusione_CMS_nel_TEG",
+              "penale_estinzione_anticipata_illegittima",
+              "tasso_variabile_illegittimo",
+              "anatocismo_su_rata_scaduta"
+            ]
+          },
+          {
+            "id": "perizia_TEG_di_parte",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "nullita_clausola_interessi_usurari",
+              "mutuo_gratuito_ex_1815c2",
+              "rimborso_interessi_pagati_in_eccesso",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Usura originaria: mutuo diventa GRATUITO (art. 1815 c. 2) – nessun interesse dovuto",
+          "Usura sopravvenuta: non rilevante per 1815 (Cass. SU 19597/2020)",
+          "CMS va inclusa nel calcolo TEG (Cass. SU 14354/2021)",
+          "Mediazione obbligatoria preventiva (contratti bancari)",
+          "Perizia tecnica TEG: indispensabile"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_mutuo_e_piano_ammortamento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "tutte_le_quietanze_pagamenti",
+          "required": true
+        },
+        {
+          "id": "perizia_tecnica_TEG",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nullità clausola: IMPRESCRITTIBILE"
+        },
+        {
+          "termine": "Rimborso interessi indebitamente pagati: prescrizione 10 anni"
+        }
+      ],
+      "codice_originale_ricevuto": "143060",
+      "codice_logico": "GUIDA_MUTUO_FONDIARIO_E_IPOTECARIO_CONTROVERSIE_USURA_E_RISOLUZIONE_ARTT_1813__143060",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143060"
+        }
+      ]
+    }
+  ]
+}

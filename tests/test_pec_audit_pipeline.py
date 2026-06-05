@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 import os
 import time
+from pathlib import Path
 from types import SimpleNamespace
 
 from flask import Flask, g
@@ -265,6 +266,48 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     digest = client.get("/api/pec/digest")
     assert digest.status_code == 200
     assert digest.get_json()["data"]["new_messages"] == 5
+
+
+def test_pec_api_usa_tenant_autenticato_per_audit_multi_studio(tmp_path):
+    from pct.tenant import GestioneTenant
+    from tests.test_web_bootstrap import _cfg_web, _write_studio_config
+    from web.app import create_app
+    from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg_web(tmp_path), "MULTI_TENANT": True})
+    manager = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio_a = manager.crea("Studio PEC A", "studio-pec-a")
+    studio_b = manager.crea("Studio PEC B", "studio-pec-b")
+    manager.aggiorna(studio_a.slug, api_key="pec-a-key")
+    manager.aggiorna(studio_b.slug, api_key="pec-b-key")
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_a.slug)
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_b.slug)
+
+    headers_a = {"X-API-Key": "pec-a-key", "X-Tenant-Slug": studio_a.slug}
+    headers_b = {"X-API-Key": "pec-b-key", "X-Tenant-Slug": studio_b.slug}
+
+    with app.test_client() as client:
+        ingest_a = client.post("/api/pec/demo/ingest", headers=headers_a)
+        ingest_b = client.post("/api/pec/demo/ingest", headers=headers_b)
+        listing_a = client.get("/api/pec/messages", headers=headers_a)
+        listing_b = client.get("/api/pec/messages", headers=headers_b)
+
+    assert ingest_a.status_code == 200
+    assert ingest_b.status_code == 200
+    assert listing_a.status_code == 200
+    assert listing_b.status_code == 200
+    assert len(listing_a.get_json()["data"]) == 5
+    assert len(listing_b.get_json()["data"]) == 5
+
+    paths_a = manager.percorsi_dati(studio_a.slug, reconcile_aliases=False)
+    paths_b = manager.percorsi_dati(studio_b.slug, reconcile_aliases=False)
+    audit_db_a = paths_a.get("PEC_AUDIT_DB") or Path(paths_a["EMAIL_CASELLA_DB"]).parent / "pec_audit.sqlite"
+    audit_db_b = paths_b.get("PEC_AUDIT_DB") or Path(paths_b["EMAIL_CASELLA_DB"]).parent / "pec_audit.sqlite"
+    for db_path, expected_slug in ((audit_db_a, studio_a.slug), (audit_db_b, studio_b.slug)):
+        with sqlite3.connect(db_path) as conn:
+            tenant_ids = {row[0] for row in conn.execute("SELECT DISTINCT tenant_id FROM pec_messages")}
+        assert tenant_ids == {expected_slug}
 
 
 def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch):

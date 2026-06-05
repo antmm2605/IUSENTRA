@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
-from flask import Flask, Response
+from flask import Flask, Response, has_request_context, request
+
+
+_SUPPORT_MEDIA_PATH_PREFIXES = ("/support/join/", "/support/operatore/")
+
+
+def _permissions_policy_for_current_request() -> str:
+    if has_request_context() and request.path.startswith(_SUPPORT_MEDIA_PATH_PREFIXES):
+        return "camera=(), microphone=(self), display-capture=(self), geolocation=(), payment=()"
+    return "camera=(), microphone=(), geolocation=(), payment=()"
 
 
 def apply_security_headers(response: Response, app: Flask) -> Response:
@@ -11,7 +20,7 @@ def apply_security_headers(response: Response, app: Flask) -> Response:
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+    response.headers.setdefault("Permissions-Policy", _permissions_policy_for_current_request())
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     csp_header = "Content-Security-Policy-Report-Only" if app.config.get("CSP_REPORT_ONLY") else "Content-Security-Policy"
     response.headers.setdefault(csp_header, build_csp(app))

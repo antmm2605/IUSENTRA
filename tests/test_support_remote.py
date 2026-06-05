@@ -761,6 +761,9 @@ def test_support_remote_pc_control_scripts_and_agent_are_separate_from_local_sig
     assert 'fetchAgent("/screenshot"' in customer_script
     assert "screen_frame" in operator_script
     assert "screen_frame" in customer_script
+    assert "remoteDisplayedRect" in operator_script
+    assert "remoteFrameMeta" in operator_script
+    assert "remoteFrameMeta = {" in operator_script
     assert "getUserMedia({ audio: true, video: false })" in customer_script
     assert "Microfono non autorizzato o non disponibile sul PC: assistenza avviata senza audio." in customer_script
     assert "Microfono non disponibile: assistenza avviata senza audio." in customer_script

@@ -1,0 +1,1022 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET25_PARTE2",
+  "denominazione": "Venticinquesimo set - 30 nuovi codici - PARTE 2 di 6",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_LOCAZIONE_ABITATIVA_A_USO_TRANSITORIO_E_PER_STUDENTI_UNIVERSITARI_L_431__140070",
+      "denominazione": "Locazione abitativa a uso transitorio e per studenti universitari (L. 431/1998 artt. 5-6)",
+      "categoria": "Contratti – locazione abitativa transitoria",
+      "rito": "Rito speciale locatizio ex artt. 658-669 c.p.c.",
+      "competenza": "Tribunale del luogo dell'immobile",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 431/1998",
+          "articolo": "5",
+          "descrizione": "Contratti a uso transitorio – durata da 1 a 18 mesi; motivazione della transitorietà obbligatoria"
+        },
+        {
+          "fonte": "L. 431/1998",
+          "articolo": "5 c. 2",
+          "descrizione": "Contratti per studenti universitari – durata da 6 a 36 mesi"
+        },
+        {
+          "fonte": "L. 431/1998",
+          "articolo": "6",
+          "descrizione": "Nullità – se manca la transitorietà o la motivazione: contratto si converte in 4+4"
+        },
+        {
+          "fonte": "D.M. 30/12/2002 (accordi locali)",
+          "descrizione": "Accordi territoriali per canoni calmierati"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1591",
+          "descrizione": "Indennità per occupazione senza titolo dopo scadenza"
+        },
+        {
+          "fonte": "Cass. SU 14688/2019",
+          "descrizione": "Contratto transitorio – invalidità del contratto senza motivazione"
+        },
+        {
+          "fonte": "Cass. SU 8327/2022",
+          "descrizione": "Conversione del contratto transitorio nullo in 4+4"
+        }
+      ],
+      "requisiti_contratto_transitorio_art5": {
+        "durata": "Da 1 a 18 mesi – non rinnovabile se la motivazione viene meno",
+        "motivazione_obbligatoria": "Deve indicare la specifica ragione della transitorietà (es. trasferimento di lavoro, cantiere, corso di formazione)",
+        "assenza_motivazione_Cass_SU_14688_2019": "Il contratto è NULLO nella parte della durata – si converte in 4+4 anni (art. 2 L. 431/1998)"
+      },
+      "studenti_universitari_art5_c2": {
+        "durata": "Da 6 a 36 mesi rinnovabili",
+        "requisito": "Lo studente deve essere iscritto ad un corso universitario in un comune diverso da quello di residenza",
+        "accordi_locali": "Il canone può essere determinato dagli accordi territoriali locali"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "LOCAZIONE"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la validità della motivazione della transitorietà"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare i requisiti per contratto studenti (iscrizione, comune diverso)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_locazione_transitoria_L431_1998",
+        "denominazione": "Atto di citazione / intimazione sfratto per locazione transitoria ex art. 5 L. 431/1998",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "locatore_o_conduttore_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_contratto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "transitorio_art5_c1",
+              "studenti_universitari_art5_c2"
+            ]
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "sfratto_morosita",
+              "finita_locazione_transitoria",
+              "conversione_contratto_nullo_in_4_4",
+              "inadempimento_obbligo_restituzione"
+            ]
+          },
+          {
+            "id": "motivazione_transitorietà_indicata",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "convalida_sfratto_rilascio",
+              "ingiunzione_canoni_insoluti",
+              "accertamento_conversione_in_4_4_se_contratto_nullo",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Assenza di motivazione transitorietà: contratto NULLO + conversione in 4+4 (Cass. SU 14688/2019)",
+          "Contratto studenti: verificare iscrizione e comune di residenza diverso",
+          "Mediazione obbligatoria preventiva"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_locazione_transitoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prova_transitorietà_se_contestata",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione canoni",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "140070",
+      "codice_logico": "GUIDA_LOCAZIONE_ABITATIVA_A_USO_TRANSITORIO_E_PER_STUDENTI_UNIVERSITARI_L_431__140070",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140070"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LOCAZIONE_PER_FINALIT_TURISTICHE_E_AFFITTI_BREVI_L_431_1998_ART_4_D_L_50_140075",
+      "denominazione": "Locazione per finalità turistiche e affitti brevi (L. 431/1998 art. 4 + D.L. 50/2017)",
+      "categoria": "Contratti – locazione turistica",
+      "rito": "Rito ordinario di cognizione (non locatizio per affitti brevi)",
+      "competenza": "Tribunale – foro residenza convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 431/1998",
+          "articolo": "4",
+          "descrizione": "Locazioni per finalità turistiche – non soggette alla disciplina della L. 431/1998"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1571 e ss.",
+          "descrizione": "Locazione ordinaria – applicabile alle locazioni turistiche"
+        },
+        {
+          "fonte": "D.L. 50/2017",
+          "articolo": "4",
+          "descrizione": "Disciplina fiscale degli affitti brevi (max 30 giorni) – cedolare secca 21%"
+        },
+        {
+          "fonte": "D.L. 50/2017",
+          "articolo": "4 c. 5-bis",
+          "descrizione": "Obbligo di ritenuta da parte delle piattaforme (Airbnb, ecc.)"
+        },
+        {
+          "fonte": "D.Lgs. 23/2011",
+          "articolo": "3",
+          "descrizione": "Cedolare secca sulle locazioni"
+        },
+        {
+          "fonte": "Cass. SU 14636/2020",
+          "descrizione": "Locazione turistica vs commerciale – criteri di distinzione"
+        },
+        {
+          "fonte": "Cass. SU 9418/2022",
+          "descrizione": "Affitti brevi piattaforme – obblighi e responsabilità"
+        }
+      ],
+      "distinzione_locazione_turistica_vs_commerciale": {
+        "turistica_art4_L431": "Il conduttore utilizza l'immobile per FINALITÀ TURISTICA – non si applica la disciplina vincolistica della L. 392/1978 né della L. 431/1998",
+        "regola": "Si applica il regime ordinario del codice civile – piena libertà contrattuale"
+      },
+      "affitti_brevi_D_L_50_2017": {
+        "max_30_giorni": "Contratti di durata non superiore a 30 giorni – regime fiscale agevolato (cedolare secca 21%)",
+        "piattaforme": "Airbnb, Booking, ecc. – obbligo di ritenuta del 21% alla fonte sui canoni",
+        "problematiche_comuni": [
+          "Danni all'immobile da turisti",
+          "Mancato pagamento della caparra",
+          "Mancato rispetto delle regole condominiali"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Per immobile condominiale: valutare 1137"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Qualificare il contratto: locazione turistica (L. 431/1998 art. 4) o affitto breve (max 30 gg)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare i danni o l'inadempimento del conduttore/turista"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per danni: perizia estimativa + fotografie"
+        },
+        {
+          "step": 4,
+          "descrizione": "Verificare la caparra cauzionale e le condizioni di restituzione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_locazione_turistica_art4_L431",
+        "denominazione": "Atto di citazione per inadempimento contratto di locazione turistica ex art. 4 L. 431/1998",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "locatore_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "conduttore_turista_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_contratto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "locazione_turistica_L431_art4",
+              "affitto_breve_max_30_gg_D_L_50_2017"
+            ]
+          },
+          {
+            "id": "tipo_contestazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "danni_all_immobile",
+              "mancato_pagamento_canone",
+              "mancata_restituzione_caparra",
+              "violazione_regolamento_condominio",
+              "mancato_rilascio"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risarcimento_danni_immobile",
+              "condanna_pagamento_canone",
+              "condanna_restituzione_immobile",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Locazione turistica: NON si applica L. 431/1998 (disciplina protettiva del conduttore) – solo c.c.",
+          "Affitti brevi > 30 gg: si converte in locazione ordinaria",
+          "Piattaforme digitali: obbligo ritenuta 21% (D.L. 50/2017)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_locazione_turistica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_danni_o_inadempimento",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "140075",
+      "codice_logico": "GUIDA_LOCAZIONE_PER_FINALIT_TURISTICHE_E_AFFITTI_BREVI_L_431_1998_ART_4_D_L_50_140075",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140075"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRATTO_DI_MANDATO_REVOCA_RINUNCIA_E_RESPONSABILIT_DEL_MANDATARIO_ARTT_141040",
+      "denominazione": "Contratto di mandato: revoca, rinuncia e responsabilità del mandatario (artt. 1709-1730 c.c.)",
+      "categoria": "Contratti – mandato",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro residenza convenuto o luogo di esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1703",
+          "descrizione": "Nozione di mandato – il mandatario compie atti giuridici per conto del mandante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1709",
+          "descrizione": "Obbligo di esecuzione del mandatario – diligenza del buon padre di famiglia"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1711",
+          "descrizione": "Eccesso di mandato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1719",
+          "descrizione": "Obbligo di rendiconto del mandatario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1722",
+          "descrizione": "Cause di estinzione del mandato – revoca, rinuncia, morte"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1723",
+          "descrizione": "REVOCA del mandante – con o senza giusta causa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1727",
+          "descrizione": "RINUNCIA del mandatario – con o senza giusta causa"
+        },
+        {
+          "fonte": "Cass. SU 14297/2021",
+          "descrizione": "Mandato irrevocabile – limiti e nullità clausola"
+        },
+        {
+          "fonte": "Cass. SU 9378/2023",
+          "descrizione": "Rendiconto del mandatario – obbligo e contenuto"
+        }
+      ],
+      "revoca_del_mandato_1723": {
+        "mandato_normale": "Revocabile ad nutum (senza causa) – ma se revoca intempestiva → risarcimento",
+        "mandato_irrevocabile": "Se nell'interesse anche del mandatario o di terzi – revocabile solo per giusta causa",
+        "Cass_SU_14297_2021": "Clausola di irrevocabilità assoluta (anche senza interesse): NULLA"
+      },
+      "rinuncia_del_mandatario_1727": {
+        "con_giusta_causa": "Libera da responsabilità",
+        "senza_giusta_causa": "Risarcimento del danno al mandante"
+      },
+      "rendiconto_1719_Cass_SU_9378_2023": {
+        "quando": "Al termine del mandato o a richiesta del mandante",
+        "contenuto": "Elenco di tutte le operazioni compiute + somme ricevute + somme dovute"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto di mandato e i documenti di esecuzione"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se il mandato è irrevocabile (e la legittimità della clausola)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per controversie sul rendiconto: richiedere formalmente il rendiconto al mandatario"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_mandato_revoca_rinuncia_rendiconto",
+        "denominazione": "Atto di citazione per controversia su mandato ex artt. 1709-1730 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "revoca_intempestiva_e_risarcimento",
+              "rinuncia_senza_giusta_causa",
+              "eccesso_di_mandato_1711",
+              "mancato_rendiconto_1719",
+              "mancato_trasferimento_somme_ricevute",
+              "responsabilita_per_cattiva_esecuzione"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_rendiconto_1719",
+              "risarcimento_danno_revoca_intempestiva",
+              "risarcimento_danno_rinuncia_ingiustificata",
+              "restituzione_somme_ricevute",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mandato irrevocabile assoluto: NULLO (Cass. SU 14297/2021)",
+          "Revoca intempestiva: risarcimento dovuto anche se mandato revocabile",
+          "Rendiconto: obbligo del mandatario al termine o su richiesta"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_mandato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_esecuzione_o_inadempimento",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "141040",
+      "codice_logico": "GUIDA_CONTRATTO_DI_MANDATO_REVOCA_RINUNCIA_E_RESPONSABILIT_DEL_MANDATARIO_ARTT_141040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_COMPRAVENDITA_IMMOBILIARE_INADEMPIMENTO_DEL_PROMISSARIO_ACQUIRENTE_E_CAP_142010",
+      "denominazione": "Compravendita immobiliare: inadempimento del promissario acquirente e caparra confirmatoria (art. 1385 c.c.)",
+      "categoria": "Contratti – compravendita immobiliare – inadempimento",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1385",
+          "descrizione": "CAPARRA CONFIRMATORIA – in caso di inadempimento: chi ha ricevuto la caparra può trattenerla; chi l'ha versata può chiederne il doppio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1385 c. 2",
+          "descrizione": "ALTERNATIVA: risoluzione + risarcimento del danno in misura piena"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1351",
+          "descrizione": "Contratto preliminare – forma scritta se il definitivo richiede la forma"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2932",
+          "descrizione": "Esecuzione specifica dell'obbligo di concludere un contratto – sentenza sostitutiva del contratto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2775-bis",
+          "descrizione": "Privilegio speciale del promissario acquirente sugli immobili"
+        },
+        {
+          "fonte": "Cass. SU 18135/2019",
+          "descrizione": "Caparra confirmatoria – scelta tra le due alternative"
+        },
+        {
+          "fonte": "Cass. SU 7631/2022",
+          "descrizione": "Esecuzione specifica 2932 – requisiti e limiti"
+        }
+      ],
+      "caparra_confirmatoria_1385": {
+        "funzione": "Rafforza il vincolo contrattuale + liquidazione anticipata del danno",
+        "se_inadempiente_e_chi_ha_DATO_la_caparra": "Chi ha ricevuto può trattenerla (senza dover provare il danno)",
+        "se_inadempiente_e_chi_ha_RICEVUTO_la_caparra": "Chi ha dato può chiedere il DOPPIO",
+        "alternativa": "In entrambi i casi: rinunciare alla caparra e agire per risarcimento pieno + risoluzione"
+      },
+      "esecuzione_specifica_2932": {
+        "quando": "Il venditore si rifiuta di concludere il contratto definitivo",
+        "effetto": "La sentenza del giudice PRODUCE gli effetti del contratto non concluso – titolo per il trasferimento della proprietà"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto preliminare con indicazione della caparra"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se è stata versata caparra confirmatoria o acconto"
+        },
+        {
+          "step": 3,
+          "descrizione": "Scegliere tra: trattenere la caparra (soluzione rapida) vs agire per risoluzione + risarcimento pieno"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_inadempimento_preliminare_caparra_1385_2932",
+        "denominazione": "Atto di citazione per inadempimento contratto preliminare + caparra confirmatoria ex art. 1385 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "parte_adempiente_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "parte_inadempiente_convenuta",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "immobile",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "contratto_preliminare",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "prezzo_pattuito",
+                "type": "currency"
+              },
+              {
+                "id": "caparra_versata",
+                "type": "currency"
+              },
+              {
+                "id": "trascritto_al_RI",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "strategia_scelta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "trattenere_caparra_1385_c1",
+              "richiedere_doppio_caparra_1385_c1",
+              "esecuzione_specifica_2932",
+              "risoluzione_e_risarcimento_pieno_1385_c2"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_inadempimento",
+              "ritenzione_caparra",
+              "condanna_restituzione_doppio_caparra",
+              "esecuzione_specifica_2932",
+              "risoluzione_e_risarcimento_pieno",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Caparra: scelta ALTERNATIVA – trattenere caparra OPPURE risoluzione + risarcimento pieno",
+          "Non si possono cumulare: caparra + risarcimento pieno (Cass. SU 18135/2019)",
+          "Esecuzione specifica 2932: possibile se il promittente rifiuta di concludere",
+          "Mediazione obbligatoria preventiva (diritti reali)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_preliminare_con_caparra",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prova_del_versamento_della_caparra",
+          "required": true
+        },
+        {
+          "id": "diffida_ad_adempiere",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore immobile",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "142010",
+      "codice_logico": "GUIDA_COMPRAVENDITA_IMMOBILIARE_INADEMPIMENTO_DEL_PROMISSARIO_ACQUIRENTE_E_CAP_142010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRATTO_DI_NOLEGGIO_RESPONSABILIT_PER_DANNI_AL_VEICOLO_NOLEGGIATO_E_CO_143050",
+      "denominazione": "Contratto di noleggio: responsabilità per danni al veicolo noleggiato e controversie (artt. 1571 e ss. c.c.)",
+      "categoria": "Contratti – locazione mobiliare – noleggio",
+      "rito": "Rito ordinario di cognizione; GdP per valori bassi",
+      "competenza": "Tribunale – foro del noleggiante (spesso clausola derogatoria) o del consumatore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1571",
+          "descrizione": "Locazione di cose mobili – nozione (noleggio è locazione di cose mobili)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1574",
+          "descrizione": "Obblighi del conduttore – custodire la cosa e restituirla nello stesso stato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1587",
+          "descrizione": "Obbligo di restituzione in buono stato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1597",
+          "descrizione": "Obblighi alla scadenza – restituzione"
+        },
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "33",
+          "descrizione": "Clausole abusive – applicabile al contratto di noleggio con consumatori"
+        },
+        {
+          "fonte": "Cass. SU 14397/2020",
+          "descrizione": "Noleggio veicoli – responsabilità del noleggiatore per danni al terzo"
+        },
+        {
+          "fonte": "Cass. SU 9182/2023",
+          "descrizione": "Franchigia sul noleggio – clausola vessatoria se sproporzionata"
+        }
+      ],
+      "controversie_tipiche_noleggio": [
+        "Addebito danni al veicolo contestato (danneggiamento durante il noleggio)",
+        "Superamento del chilometraggio incluso e addebiti extra",
+        "Franchigia eccessiva o non concordata",
+        "Fermo tecnico del veicolo e richiesta di risarcimento del noleggiante",
+        "Clausole abusive nel contratto di noleggio"
+      ],
+      "franchigia_Cass_SU_9182_2023": {
+        "contenuto": "La franchigia prevista nei contratti di noleggio (esclusione dalla copertura assicurativa) deve essere adeguatamente comunicata prima della firma",
+        "clausola_abusiva": "Se la franchigia è eccessiva o non comunicata chiaramente: possibile contestazione ex artt. 33-36 Cod. Consumo"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto di noleggio con condizioni generali"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare la copertura assicurativa e la franchigia"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per danni al veicolo: documentare lo stato al ritiro vs alla restituzione"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per clausole abusive: applicare la disciplina Cod. Consumo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_noleggio_danni_controversie",
+        "denominazione": "Atto di citazione per controversia su contratto di noleggio ex artt. 1571 e ss. c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "addebito_danni_contestato",
+              "franchigia_abusiva_o_non_comunicata",
+              "extra_chilometraggio_contestato",
+              "fermo_tecnico_veicolo",
+              "clausola_abusiva_contratto_consumatore"
+            ]
+          },
+          {
+            "id": "importo_contestato",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "contestazione_addebito_danni",
+              "nullita_clausola_abusiva",
+              "risarcimento_danni_da_noleggio_difettoso",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro del consumatore: irrinunciabile se noleggiatore è consumatore",
+          "Franchigia non comunicata chiaramente: possibile nullità come clausola abusiva",
+          "Verifica delle condizioni del veicolo al ritiro: documentare sempre"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_noleggio_con_condizioni_generali",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_stato_veicolo_al_ritiro_e_restituzione",
+          "required": false,
+          "critico_per_danni": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "143050",
+      "codice_logico": "GUIDA_CONTRATTO_DI_NOLEGGIO_RESPONSABILIT_PER_DANNI_AL_VEICOLO_NOLEGGIATO_E_CO_143050",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143050"
+        }
+      ]
+    }
+  ]
+}

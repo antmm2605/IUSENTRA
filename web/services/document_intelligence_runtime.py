@@ -8,6 +8,7 @@ from typing import Any
 from flask import current_app, g, has_app_context, has_request_context, session
 
 from pct.document_intelligence import DocumentAIRepository, DocumentAIService, LexIndexingSummary
+from pct.document_intelligence.security import DocumentAINotFound
 from pct.document_intelligence.sources import DocumentAISource, collect_fascicolo_document_sources
 from web.helpers import get_fascicoli
 from web.services.storage_runtime import get_request_studio_db, get_request_storage_runtime
@@ -52,10 +53,20 @@ def document_ai_tenant_id() -> str:
 
 def document_ai_user_context() -> dict[str, Any]:
     user = g.get("utente_corrente") if has_request_context() else None
-    return {
+    context: dict[str, Any] = {
         "user": user,
         "user_id": str(getattr(user, "id", "") or getattr(user, "username", "") or ""),
     }
+    if has_request_context() and getattr(g, "api_tenant_authenticated", False):
+        tenant_slug = str(getattr(g, "api_tenant_slug", "") or getattr(g, "tenant_context_slug", "") or "").strip()
+        context.update(
+            {
+                "user_id": f"api:{tenant_slug or 'tenant'}",
+                "tenant_slug": tenant_slug,
+                "skip_permission_check": True,
+            }
+        )
+    return context
 
 
 def build_document_ai_service() -> DocumentAIService:
@@ -90,6 +101,17 @@ def collect_document_ai_sources_for_fascicolo(
     )
 
 
+def assert_document_ai_fascicolo_current_tenant(fascicolo_id: str) -> None:
+    """Fail closed when a requested fascicolo is not in the current tenant repository."""
+
+    value = str(fascicolo_id or "").strip()
+    if not value:
+        raise DocumentAINotFound("Documento o fascicolo non trovato")
+    fascicolo = get_fascicoli().get(value)
+    if not fascicolo:
+        raise DocumentAINotFound("Documento o fascicolo non trovato")
+
+
 def build_lex_indexing_summary_payload(
     fascicolo_id: str,
     *,
@@ -97,6 +119,7 @@ def build_lex_indexing_summary_payload(
     retry_errors: bool = False,
     user_context: object | None = None,
 ) -> dict[str, Any]:
+    assert_document_ai_fascicolo_current_tenant(fascicolo_id)
     tenant_id = document_ai_tenant_id()
     context = user_context if user_context is not None else document_ai_user_context()
     service = build_document_ai_service()
@@ -141,4 +164,5 @@ __all__ = [
     "document_ai_tenant_id",
     "document_ai_user_context",
     "fascicoli_db_path",
+    "assert_document_ai_fascicolo_current_tenant",
 ]

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (16).zip::kb_set25_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p5.json",
+  "sha256": "7F7CC033446DF0FBD30C6806025C94E430FA97627FB6DB996CB8C92BF25B926F",
+  "changed": true,
+  "macro_area_id": "SET25_PARTE5",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 5 di 6",
+  "codici_materia_originali": [
+    "113010",
+    "160175",
+    "190025",
+    "510010",
+    "511030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_REVOCA_DELLA_SEPARAZIONE_PERSONALE_E_RICONCILIAZIONE_CONIUGALE_ART_157_C_113010",
+    "GUIDA_RESPONSABILIT_DELLA_BANCA_PER_OPERAZIONI_NON_AUTORIZZATE_FRODI_INFORMATI_160175",
+    "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_ART_696_C_P_C_E_CONSULENZA_TECNICA_PREVE_190025",
+    "GUIDA_ESPROPRIAZIONE_PRESSO_TERZI_DICHIARAZIONE_DEL_TERZO_E_CONTESTAZIONI_ARTT_510010",
+    "GUIDA_PIGNORAMENTO_DI_QUOTA_DI_S_R_L_E_VENDITA_FORZATA_ART_2471_C_C_511030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "113010",
+      "codice_integrato": "GUIDA_REVOCA_DELLA_SEPARAZIONE_PERSONALE_E_RICONCILIAZIONE_CONIUGALE_ART_157_C_113010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160175",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_BANCA_PER_OPERAZIONI_NON_AUTORIZZATE_FRODI_INFORMATI_160175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190025",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_ART_696_C_P_C_E_CONSULENZA_TECNICA_PREVE_190025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510010",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_PRESSO_TERZI_DICHIARAZIONE_DEL_TERZO_E_CONTESTAZIONI_ARTT_510010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "511030",
+      "codice_integrato": "GUIDA_PIGNORAMENTO_DI_QUOTA_DI_S_R_L_E_VENDITA_FORZATA_ART_2471_C_C_511030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

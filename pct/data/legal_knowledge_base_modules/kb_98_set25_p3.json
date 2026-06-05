@@ -1,0 +1,995 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET25_PARTE3",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 3 di 6",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_INVENZIONI_DEL_DIPENDENTE_E_DIRITTO_AL_BREVETTO_ARTT_64_65_D_LGS_30_2005_220155",
+      "denominazione": "Invenzioni del dipendente e diritto al brevetto (artt. 64-65 D.Lgs. 30/2005 Cod. PI)",
+      "categoria": "Lavoro – proprietà intellettuale – invenzioni",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c. (controversia sorta dal rapporto di lavoro)",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro; Tribunale Imprese per aspetti brevettali",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 30/2005 (Cod. PI)",
+          "articolo": "64",
+          "descrizione": "Invenzioni del prestatore di lavoro – invenzione realizzata nell'esecuzione del contratto"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "64 c. 1",
+          "descrizione": "INVENZIONE DI SERVIZIO – brevetto al datore; dipendente ha diritto al compenso se l'invenzione ha importanza industriale"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "64 c. 2",
+          "descrizione": "INVENZIONE AZIENDALE – dipendente usa mezzi del datore fuori dall'orario; brevetto al datore con compenso equo"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "64 c. 3",
+          "descrizione": "INVENZIONE LIBERA – realizzata fuori dall'attività lavorativa; brevetto al dipendente"
+        },
+        {
+          "fonte": "Cod. PI",
+          "articolo": "65",
+          "descrizione": "Invenzioni nell'università e negli enti pubblici di ricerca"
+        },
+        {
+          "fonte": "Cass. SU 12236/2019",
+          "descrizione": "Qualificazione dell'invenzione – di servizio vs aziendale vs libera"
+        },
+        {
+          "fonte": "Cass. SU 8341/2022",
+          "descrizione": "Compenso equo per invenzione aziendale – criteri di calcolo"
+        }
+      ],
+      "tre_tipologie": {
+        "di_servizio_64c1": {
+          "quando": "L'invenzione rientra nell'attività lavorativa prevista dal contratto",
+          "brevetto": "Al DATORE",
+          "compenso_dipendente": "Dovuto se l'invenzione ha rilevante importanza industriale e il compenso non è già incluso nella retribuzione"
+        },
+        "aziendale_64c2": {
+          "quando": "Realizzata fuori dall'orario, ma con mezzi/esperienze del datore",
+          "brevetto": "Al DATORE",
+          "compenso": "COMPENSO EQUO obbligatorio per il dipendente"
+        },
+        "libera_64c3": {
+          "quando": "Realizzata fuori dall'orario, senza mezzi del datore, su materia non rientrante nell'attività del datore",
+          "brevetto": "Al DIPENDENTE"
+        }
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Qualificare l'invenzione: di servizio, aziendale o libera"
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisire il contratto di lavoro + eventuale contratto di segretezza"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per compenso equo: quantificare il valore economico dell'invenzione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_invenzione_dipendente_64_CodPI",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per compenso per invenzione del dipendente ex artt. 64-65 Cod. PI",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "dipendente_inventore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "invenzione",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "di_servizio_64c1",
+                  "aziendale_64c2",
+                  "libera_64c3"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "brevetto_depositato",
+                "type": "boolean"
+              },
+              {
+                "id": "valore_economico_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_titolarita_brevetto_64c3",
+              "condanna_compenso_equo_64c2",
+              "condanna_compenso_invenzione_servizio_64c1",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Qualificazione CRITICA: di servizio (niente automaticamente) vs aziendale (compenso equo) vs libera (brevetto al dipendente)",
+          "Compenso equo 64c2: obbligatorio se invenzione aziendale",
+          "Tribunale delle Imprese per aspetti brevettali"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_lavoro_con_mansioni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_invenzione_e_brevetto",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "220155",
+      "codice_logico": "GUIDA_INVENZIONI_DEL_DIPENDENTE_E_DIRITTO_AL_BREVETTO_ARTT_64_65_D_LGS_30_2005_220155",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220155"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220155"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220155"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_TFR_CALCOLO_CONTESTATO_LIQUIDAZIONE_E_RICHIESTA_DI_PAGAMENTO_ART_2120_C__220160",
+      "denominazione": "TFR: calcolo contestato, liquidazione e richiesta di pagamento (art. 2120 c.c.)",
+      "categoria": "Lavoro – crediti da cessazione del rapporto – TFR",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2120",
+          "descrizione": "TFR – matura per ogni anno di servizio; calcolo: retribuzione annua / 13.5; rivalutazione annua"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2120 c. 1",
+          "descrizione": "Quota annuale TFR = retribuzione totale dell'anno / 13,5"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2120 c. 4",
+          "descrizione": "RIVALUTAZIONE annua – 1,5% fisso + 75% dell'aumento ISTAT prezzi al consumo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2120 c. 5",
+          "descrizione": "Anticipazione del TFR – condizioni e limiti (massimo 70%)"
+        },
+        {
+          "fonte": "L. 297/1982",
+          "descrizione": "Disciplina del TFR – fondo pensione / datore"
+        },
+        {
+          "fonte": "D.Lgs. 252/2005",
+          "articolo": "8",
+          "descrizione": "Destinazione del TFR ai fondi pensione complementare"
+        },
+        {
+          "fonte": "Cass. SU 12598/2020",
+          "descrizione": "TFR – elementi retributivi da includere nel calcolo"
+        },
+        {
+          "fonte": "Cass. SU 9567/2023",
+          "descrizione": "TFR e fondo INPS – rivalutazione e calcolo aggiornato"
+        }
+      ],
+      "calcolo_TFR_2120": {
+        "formula": "Quota annua = Retribuzione annua utile / 13,5",
+        "retribuzione_utile_Cass_SU_12598_2020": "Include: stipendio, superminimi, premi fissi, indennità di contingenza, fringe benefit fissi. Esclusi: rimborsi spese, somme occasionali",
+        "rivalutazione": "Ogni 31 dicembre: 1,5% fisso + 75% aumento indice ISTAT prezzi al consumo",
+        "imposta_sostitutiva": "17% sul TFR (ordinaria) o aliquota media degli ultimi 5 anni se maggiore"
+      },
+      "TFR_al_fondo_D_Lgs_252_2005": {
+        "quando": "Dal 2007: il lavoratore può destinare il TFR a un fondo pensione complementare (scelta entro 6 mesi dall'assunzione)",
+        "silenzio_assenso": "Se non esercita la scelta entro 6 mesi: TFR confluisce al FONDINPS (FondoINPS) per le aziende > 50 dipendenti"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire buste paga di tutto il rapporto e lettera di liquidazione del TFR"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare il calcolo: retribuzione utile + rivalutazioni anno per anno"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se il TFR è rimasto al datore o destinato a fondo pensione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_TFR_calcolo_contestato_2120",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per contestazione calcolo TFR ex art. 2120 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "TFR_liquidato_dal_datore",
+            "type": "currency"
+          },
+          {
+            "id": "TFR_correttamente_calcolato",
+            "type": "currency"
+          },
+          {
+            "id": "differenza_richiesta",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "tipo_contestazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "base_retributiva_errata",
+              "rivalutazione_non_applicata",
+              "elementi_retributivi_esclusi_erroneamente",
+              "mancato_pagamento_totale",
+              "TFR_destinato_fondo_non_trasferito"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_differenza_TFR",
+              "condanna_rivalutazione_e_interessi_2120",
+              "condanna_versamento_al_fondo_pensione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Base di calcolo: retribuzione annua utile (non tutti gli elementi) / 13,5",
+          "Rivalutazione annua obbligatoria: 1,5% fisso + 75% ISTAT",
+          "Prescriz. TFR in costanza rapporto: 5 anni; post cessazione: 5 anni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "buste_paga_intero_rapporto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "lettera_liquidazione_TFR",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "calcolo_ricalcolo_di_parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220160",
+      "codice_logico": "GUIDA_TFR_CALCOLO_CONTESTATO_LIQUIDAZIONE_E_RICHIESTA_DI_PAGAMENTO_ART_2120_C__220160",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220160"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220160"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220160"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ACCERTAMENTO_GIUDIZIALE_DELLA_SUBORDINAZIONE_FINTO_LAVORO_AUTONOMO_ARTT__220165",
+      "denominazione": "Accertamento giudiziale della subordinazione – finto lavoro autonomo (artt. 2094-2096 c.c.)",
+      "categoria": "Lavoro – accertamento della natura del rapporto",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di esecuzione",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2094",
+          "descrizione": "Prestatore di lavoro subordinato – definizione: mettere a disposizione le proprie energie lavorative sotto la direzione del datore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2222",
+          "descrizione": "Contratto d'opera – prestazione di opera prevalentemente personale"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "2",
+          "descrizione": "Collaborazioni etero-organizzate – regime subordinazione applicabile"
+        },
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "61-69",
+          "descrizione": "Contratti a progetto (abrogati D.Lgs. 81/2015)"
+        },
+        {
+          "fonte": "Cass. SU 1663/2020",
+          "descrizione": "Indici di subordinazione – potere direttivo, organizzativo e disciplinare"
+        },
+        {
+          "fonte": "Cass. SU 9146/2022",
+          "descrizione": "Gig economy – Uber, Deliveroo: collaborazioni etero-organizzate"
+        },
+        {
+          "fonte": "Cass. SU 6836/2024",
+          "descrizione": "Finto autonomo – accertamento retroattivo della subordinazione"
+        }
+      ],
+      "indici_di_subordinazione_Cass_SU_1663_2020": [
+        "ETERODIREZIONE: il datore impartisce ordini e istruzioni specifiche",
+        "ORARIO FISSO imposto dal committente",
+        "INSERIMENTO nell'organizzazione aziendale",
+        "Assenza di RISCHIO di impresa del lavoratore",
+        "Continuità e esclusività della prestazione",
+        "Strumenti di lavoro forniti dal datore"
+      ],
+      "effetti_accertamento_subordinazione": [
+        "Applicazione di tutti i diritti del lavoratore subordinato (TFR, ferie, 13a, malattia)",
+        "Contributi previdenziali INPS retroattivi",
+        "Applicazione del CCNL di categoria",
+        "Tutele contro il licenziamento",
+        "Risarcimento per le differenze retributive"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Raccogliere prove degli indici di subordinazione (orario, istruzioni, strumenti)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisire documentazione contrattuale (contratti, ricevute, email)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare le differenze retributive e i contributi non versati"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_accertamento_subordinazione_2094",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per accertamento natura subordinata del rapporto ex art. 2094 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "committente_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_apparente",
+            "type": "select",
+            "required": true,
+            "options": [
+              "partita_IVA_autonomo",
+              "cococo_collaborazione_occasionale",
+              "contratto_progetto",
+              "collaborazione_etero_organizzata_2_D_Lgs81"
+            ]
+          },
+          {
+            "id": "indici_subordinazione_provati",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "eterodirezione_ordini_specifici",
+              "orario_fisso_imposto",
+              "inserimento_organizzazione_aziendale",
+              "assenza_rischio_impresa",
+              "continuita_ed_esclusivita",
+              "strumenti_forniti_dal_datore"
+            ]
+          },
+          {
+            "id": "differenze_retributive_richieste",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_natura_subordinata_2094",
+              "condanna_differenze_retributive_CCNL",
+              "condanna_TFR_e_ratei",
+              "condanna_contributi_previdenziali_INPS",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "L'etichetta contrattuale NON è determinante – conta la sostanza della prestazione",
+          "Collaborazioni etero-organizzate (art. 2 D.Lgs. 81/2015): regime subordinazione anche senza subordinazione formale",
+          "Effetti retroattivi: tutte le differenze dal primo giorno di lavoro"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratti_e_documentazione_rapporto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_indici_subordinazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220165",
+      "codice_logico": "GUIDA_ACCERTAMENTO_GIUDIZIALE_DELLA_SUBORDINAZIONE_FINTO_LAVORO_AUTONOMO_ARTT__220165",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220165"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220165"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220165"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_TIROCINIO_E_STAGE_IRREGOLARIT_TRASFORMAZIONE_IN_RAPPORTO_DI_LAVORO_E_CON_220170",
+      "denominazione": "Tirocinio e stage: irregolarità, trasformazione in rapporto di lavoro e controversie (D.M. 142/1998 + L. 92/2012)",
+      "categoria": "Lavoro – tirocinio formativo",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede dello stage",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.M. 142/1998",
+          "descrizione": "Tirocini formativi – requisiti, convenzione e progetto formativo"
+        },
+        {
+          "fonte": "L. 92/2012 (Fornero)",
+          "articolo": "1 c. 34-36",
+          "descrizione": "Disciplina dei tirocini curriculari ed extracurriculari"
+        },
+        {
+          "fonte": "Linee guida Stato-Regioni 2017",
+          "descrizione": "Standard nazionali per i tirocini – indennità minima"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2094",
+          "descrizione": "Subordinazione – applicabile al tirocinio mascherato da lavoro"
+        },
+        {
+          "fonte": "Cass. SU 15587/2020",
+          "descrizione": "Tirocinio irregolare – accertamento della subordinazione"
+        },
+        {
+          "fonte": "Cass. SU 9822/2023",
+          "descrizione": "Indennità di tirocinio – diritto e quantificazione"
+        }
+      ],
+      "irregolarita_tipiche_del_tirocinio": [
+        "Tirocinio usato come surrogato del lavoro regolare (finto tirocinio)",
+        "Mancanza della convenzione obbligatoria",
+        "Mancanza del progetto formativo individualizzato",
+        "Assenza di tutoring da parte del soggetto ospitante",
+        "Durata superiore al massimo (12 o 24 mesi) senza proroga autorizzata",
+        "Mancato pagamento dell'indennità di tirocinio"
+      ],
+      "trasformazione_tirocinio_in_rapporto_di_lavoro": {
+        "quando": "Se il tirocinio è utilizzato per svolgere attività lavorative ordinarie senza reale formazione",
+        "effetti": "Si applica la disciplina del rapporto di lavoro subordinato – differenze retributive, TFR, contributi"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la regolarità della convenzione e del progetto formativo"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare l'assenza di reale formazione (stesso lavoro dei dipendenti)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare le differenze tra indennità percepita e retribuzione dovuta"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_tirocinio_irregolare_accertamento_subordinazione",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per tirocinio irregolare e accertamento subordinazione",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tirocinante_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "soggetto_ospitante_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_irregolarita",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "finto_tirocinio_attivita_lavorativa",
+              "mancanza_convenzione",
+              "mancanza_progetto_formativo",
+              "mancato_pagamento_indennita",
+              "durata_eccessiva"
+            ]
+          },
+          {
+            "id": "indennita_percepita",
+            "type": "currency"
+          },
+          {
+            "id": "retribuzione_dovuta_se_subordinazione",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_subordinazione",
+              "condanna_differenze_retributive",
+              "condanna_TFR_e_contributi",
+              "condanna_indennita_tirocinio_non_pagata",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Finto tirocinio = rapporto di lavoro subordinato con tutti i diritti conseguenti",
+          "Mancanza convenzione/progetto formativo: tirocinio nullo + subordinazione applicabile",
+          "Indennità minima di tirocinio: fissata dalle Linee guida Stato-Regioni 2017"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "convenzione_tirocinio_e_progetto_formativo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_attivita_lavorativa_reale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220170",
+      "codice_logico": "GUIDA_TIROCINIO_E_STAGE_IRREGOLARIT_TRASFORMAZIONE_IN_RAPPORTO_DI_LAVORO_E_CON_220170",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220170"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220170"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220170"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_ILLECITA_E_CONSEGUENZE_PER_IL_LAVORATORE_ARTT_220175",
+      "denominazione": "Somministrazione di lavoro illecita e conseguenze per il lavoratore (artt. 30-40 D.Lgs. 276/2003)",
+      "categoria": "Lavoro – somministrazione – irregolarità",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di esecuzione della prestazione",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "30-40",
+          "descrizione": "Somministrazione di lavoro – requisiti, contratto, diritti del lavoratore"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "31-40",
+          "descrizione": "Disciplina aggiornata della somministrazione"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "38 c. 2",
+          "descrizione": "SOMMINISTRAZIONE IRREGOLARE – il lavoratore può chiedere la costituzione del rapporto con l'utilizzatore"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "40",
+          "descrizione": "SOMMINISTRAZIONE FRAUDOLENTA – penale + diritto alla costituzione rapporto con utilizzatore"
+        },
+        {
+          "fonte": "Cass. SU 14046/2021",
+          "descrizione": "Somministrazione irregolare – distinzione da fraudolenta; tutele applicabili"
+        },
+        {
+          "fonte": "Cass. SU 11832/2023",
+          "descrizione": "Costituzione del rapporto con l'utilizzatore – effetti retroattivi"
+        }
+      ],
+      "somministrazione_irregolare_vs_fraudolenta": {
+        "irregolare_38c2": "Violazione dei requisiti formali – mancanza del contratto scritto, superamento dei limiti percentuali. Tutela: SOLO lavoratore può chiedere la costituzione del rapporto con l'utilizzatore",
+        "fraudolenta_40": "Somministrazione stipulata con l'intento di eludere norme inderogabili di legge o CCNL. Sanzione penale + diritto alla costituzione del rapporto"
+      },
+      "diritto_alla_costituzione_del_rapporto_38c2": {
+        "quando": "Somministrazione irregolare o fraudolenta",
+        "effetto": "Il lavoratore viene assunto DIRETTAMENTE dall'utilizzatore (come se non ci fosse mai stato il tramite dell'agenzia)",
+        "decorrenza_Cass_SU_11832_2023": "Dal momento della somministrazione irregolare – retroattivo"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Qualificare la violazione: irregolare (tutela lavoratore) vs fraudolenta (sanzione penale + tutela)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare l'utilizzatore come effettivo datore di lavoro"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se la violazione è nei requisiti formali o nell'intento elusivo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_somministrazione_irregolare_38c2",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per somministrazione di lavoro irregolare e costituzione rapporto con utilizzatore",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "agenzia_somministratrice_convenuta",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "utilizzatore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_irregolarita",
+            "type": "select",
+            "required": true,
+            "options": [
+              "somministrazione_irregolare_38c2",
+              "somministrazione_fraudolenta_40"
+            ]
+          },
+          {
+            "id": "vizio_specifico",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "costituzione_rapporto_lavoro_con_utilizzatore_38c2",
+              "condanna_differenze_retributive_CCNL_utilizzatore",
+              "condanna_TFR_dal_primo_giorno",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Diritto alla costituzione rapporto: solo il LAVORATORE può esercitarlo (non il datore)",
+          "Fraudolenta vs irregolare: la fraudolenta porta anche alla sanzione penale",
+          "Effetti retroattivi: dal primo giorno di somministrazione irregolare"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_somministrazione_e_contratto_missione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_irregolarita_o_fraudolenza",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220175",
+      "codice_logico": "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_ILLECITA_E_CONSEGUENZE_PER_IL_LAVORATORE_ARTT_220175",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220175"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220175"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220175"
+        }
+      ]
+    }
+  ]
+}

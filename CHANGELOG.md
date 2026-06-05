@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.249.16 - 2026-06-05
+
+- Blindato l'isolamento multi-tenant su fascicoli, DocumentAI, import bozza Lex, scadenziario e audit PEC: un fascicolo di altro studio ora viene respinto anche nei flussi API tenant-aware e nelle importazioni editor.
+- Corretto il click di controllo remoto lato operatore quando l'immagine condivisa è adattata con bande laterali o verticali: le coordinate vengono calcolate sul rettangolo realmente visualizzato, così il controllo PC raggiunge il campo giusto.
+- Rifinito l'editor template atti dopo audit locale reale: toolbar persistente nello scroll, cambio tab coerente con `Campi/Stile/Lex/Fonti/Controlli/Export`, import documento con anteprima campo pronta e compilazione multipla visibile in Export.
+- Aggiunto `scripts/react-migration/local_real_workflow_audit.py`, audit end-to-end senza screenshot che verifica su `127.0.0.1:8080` isolamento tenant, assistenza remota con controllo PC, chat, microfono, editor template, import/export, responsive e persistenza PEC -> Scadenziario -> Agenda dopo riavvio.
+- Verifiche locali reali su Docker `127.0.0.1:8080`: audit completo verde con tenant `antonella-mammola`, 9 pagine editor, export RTF/DOCX/PDF, import RTF/PDF, controllo remoto con marker digitato, scadenza PEC persistente in agenda e `/api/pronto` verde.
+
 ## 2.249.15 - 2026-06-04
 
 - Reso l'editor template atti un vero editor documento: `contenteditable` con selezione reale, grassetto/corsivo/sottolineato/evidenziatore/allineamenti/liste/rientri/citazione/undo/redo applicati alla selezione e non all'intero blocco, toolbar sticky durante lo scroll e ritorno diretto al catalogo.

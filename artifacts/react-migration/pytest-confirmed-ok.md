@@ -4258,3 +4258,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose build app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale dell'utente ricostruita e ricreata su `127.0.0.1:8080`, readiness `ok=true`, versione `2.249.15`. |
 | `python scripts\react-migration\template_editor_browser_check.py` | OK | Browser Playwright su Docker reale: 74/74 controlli passati dopo il fix finale. Coperti collegamento cliente/fascicolo, cambio template, toolbar sticky, grassetto senza Markdown, allineamento selezione, font, timbro spostabile e formattabile, Guida Pratica/Fonti, Lex diff accetta/rifiuta, controlli placeholder/legal_basis/privacy, import RTF/PDF-layout, export RTF/DOCX/PDF, copia, salvataggio fascicolo, compilazione multipla, firma e responsive desktop/tablet/mobile. |
 | Browser integrato Codex su `http://127.0.0.1:8080/template-atti/compila/CIV_COM_001?id_fascicolo=2DE106E6` | OK | Verifica visiva finale: toolbar `sticky`, collegamento IUSENTRA con cliente `Moscato Marco` e fascicolo `dep - RG 12/2026`, nessun overflow pagina/pannello/card, nessun errore console visibile; screenshot reale salvato in `artifacts/react-migration/template-editor-2.249.15-*.png`. |
+
+## Audit reale multi-tenant, assistenza remota ed editor 2.249.16 - 2026-06-05
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\react-migration\local_real_workflow_audit.py` | OK | Sintassi confermata per lo script di audit end-to-end senza screenshot. |
+| `python -m pytest tests\test_support_remote.py tests\test_security_headers.py tests\test_utf8_integrity.py -q --tb=short` | OK | 33/33 passati: supporto remoto, permissions policy per microfono/display-capture e integrità UTF-8. |
+| `python -m pytest tests\test_document_intelligence_api.py tests\test_editor_ai_api.py tests\test_termini_processuali.py::test_api_scadenziario_blocca_fascicolo_di_altro_tenant tests\test_pec_audit_pipeline.py::test_pec_api_usa_tenant_autenticato_per_audit_multi_studio -q --tb=short` | OK | 20/20 passati: blocco cross-tenant su DocumentAI, editor AI, scadenziario e audit PEC tenant-aware. |
+| `pnpm --dir frontend build` | OK | TypeScript e build Vite verdi; asset React aggiornati e verificati senza riferimenti mancanti. |
+| `python scripts\react-migration\local_real_workflow_audit.py` | OK | Audit reale su `127.0.0.1:8080`: isolamento tenant, assistenza remota con chat, microfono e controllo PC, editor template con 9 pagine, import/export RTF/DOCX/PDF, responsive desktop/tablet/mobile e persistenza PEC -> Scadenziario -> Agenda dopo riavvio. Report: `artifacts/react-migration/local-real-workflow-audit.json`. |
+| `git diff --check` | OK | Nessun errore whitespace; restano solo warning CRLF storici su file JSON/CSV della Guida Pratica. |

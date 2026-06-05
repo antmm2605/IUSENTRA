@@ -37,3 +37,26 @@ def test_security_headers_can_be_report_only() -> None:
     app.config.update(SECURITY_HEADERS_ENABLED=True, CSP_REPORT_ONLY=True)
     response = apply_security_headers(app.response_class("ok"), app)
     assert "Content-Security-Policy-Report-Only" in response.headers
+
+
+def test_support_remote_rooms_allow_microphone_and_display_capture() -> None:
+    app = Flask(__name__)
+    app.config.update(SECURITY_HEADERS_ENABLED=True)
+
+    with app.test_request_context("/support/operatore/sessione-demo"):
+        response = apply_security_headers(app.response_class("ok"), app)
+    policy = response.headers["Permissions-Policy"]
+
+    assert "microphone=(self)" in policy
+    assert "display-capture=(self)" in policy
+    assert "geolocation=()" in policy
+
+
+def test_regular_pages_keep_microphone_denied_by_default() -> None:
+    app = Flask(__name__)
+    app.config.update(SECURITY_HEADERS_ENABLED=True)
+
+    with app.test_request_context("/fascicoli"):
+        response = apply_security_headers(app.response_class("ok"), app)
+
+    assert "microphone=()" in response.headers["Permissions-Policy"]

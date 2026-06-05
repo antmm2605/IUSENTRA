@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (16).zip::kb_set25_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p3.json",
+  "sha256": "C746AE2BCE7CC55BF315E5B9B6FD2662EA184BF0227130CB525E2BE90225CD2D",
+  "changed": true,
+  "macro_area_id": "SET25_PARTE3",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 3 di 6",
+  "codici_materia_originali": [
+    "220155",
+    "220160",
+    "220165",
+    "220170",
+    "220175"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_INVENZIONI_DEL_DIPENDENTE_E_DIRITTO_AL_BREVETTO_ARTT_64_65_D_LGS_30_2005_220155",
+    "GUIDA_TFR_CALCOLO_CONTESTATO_LIQUIDAZIONE_E_RICHIESTA_DI_PAGAMENTO_ART_2120_C__220160",
+    "GUIDA_ACCERTAMENTO_GIUDIZIALE_DELLA_SUBORDINAZIONE_FINTO_LAVORO_AUTONOMO_ARTT__220165",
+    "GUIDA_TIROCINIO_E_STAGE_IRREGOLARIT_TRASFORMAZIONE_IN_RAPPORTO_DI_LAVORO_E_CON_220170",
+    "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_ILLECITA_E_CONSEGUENZE_PER_IL_LAVORATORE_ARTT_220175"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220155",
+      "codice_integrato": "GUIDA_INVENZIONI_DEL_DIPENDENTE_E_DIRITTO_AL_BREVETTO_ARTT_64_65_D_LGS_30_2005_220155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220160",
+      "codice_integrato": "GUIDA_TFR_CALCOLO_CONTESTATO_LIQUIDAZIONE_E_RICHIESTA_DI_PAGAMENTO_ART_2120_C__220160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220165",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_GIUDIZIALE_DELLA_SUBORDINAZIONE_FINTO_LAVORO_AUTONOMO_ARTT__220165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220170",
+      "codice_integrato": "GUIDA_TIROCINIO_E_STAGE_IRREGOLARIT_TRASFORMAZIONE_IN_RAPPORTO_DI_LAVORO_E_CON_220170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220175",
+      "codice_integrato": "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_ILLECITA_E_CONSEGUENZE_PER_IL_LAVORATORE_ARTT_220175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

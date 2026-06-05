@@ -879,6 +879,7 @@ function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
 }
 
 type TemplateEditorTab = 'Campi' | 'Stile' | 'Lex' | 'Fonti' | 'Controlli' | 'Export'
+const TEMPLATE_EDITOR_TABS: TemplateEditorTab[] = ['Campi', 'Stile', 'Lex', 'Fonti', 'Controlli', 'Export']
 
 type ImportedDocumentInfo = {
   fileName: string
@@ -1202,6 +1203,8 @@ function ProfessionalTemplateEditorWorkspace({
   const [proposals, setProposals] = useState<TemplateLexProposal[]>(data.lexRevision.seedProposals)
   const [auditRows, setAuditRows] = useState<string[]>([])
   const [workspaceStatus, setWorkspaceStatus] = useState('')
+  const [visualPageCount, setVisualPageCount] = useState(1)
+  const [visualPageHeight, setVisualPageHeight] = useState(784)
   const editorRef = useRef<HTMLDivElement>(null)
   const savedSelectionRef = useRef<Range | null>(null)
   const lastPlainDraftFromEditorRef = useRef('')
@@ -1221,6 +1224,13 @@ function ProfessionalTemplateEditorWorkspace({
   const lexActions = data.lexRevision.actions
   const statusText = [workspaceStatus, importStatus, pdfStatus].filter(Boolean).join(' ')
   const baseDraftText = draftText
+
+  useEffect(() => {
+    if (TEMPLATE_EDITOR_TABS.includes(activeTool as TemplateEditorTab)) {
+      setActiveTab(activeTool as TemplateEditorTab)
+    }
+  }, [activeTool])
+
   const editorClassName = [
     'iu-template-pro-editor',
     fontVariantClass('iu-template-ui-font', uiFont, 'inter'),
@@ -1280,6 +1290,41 @@ function ProfessionalTemplateEditorWorkspace({
     stampRef.current?.style.setProperty('--iu-template-stamp-offset-y', `${stampOffsetY}mm`)
   }, [stampOffsetY])
 
+  useEffect(() => {
+    const editor = editorRef.current
+    const shell = editor?.closest('.iu-template-pro-paper__body-shell') as HTMLElement | null
+    if (!editor || !shell) return undefined
+
+    let frame = 0
+    const recalcPages = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const shellStyle = window.getComputedStyle(shell)
+        const editorStyle = window.getComputedStyle(editor)
+        const baseHeight = Number.parseFloat(shellStyle.minHeight) || Number.parseFloat(editorStyle.minHeight) || 784
+        const pageHeight = Math.max(560, baseHeight)
+        const contentHeight = Math.max(editor.scrollHeight, editor.getBoundingClientRect().height, pageHeight)
+        setVisualPageHeight(pageHeight)
+        setVisualPageCount(Math.max(1, Math.ceil(contentHeight / pageHeight)))
+      })
+    }
+
+    const resizeObserver = new ResizeObserver(recalcPages)
+    resizeObserver.observe(editor)
+    resizeObserver.observe(shell)
+    const mutationObserver = new MutationObserver(recalcPages)
+    mutationObserver.observe(editor, { childList: true, subtree: true, characterData: true })
+    window.addEventListener('resize', recalcPages)
+    recalcPages()
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      resizeObserver.disconnect()
+      mutationObserver.disconnect()
+      window.removeEventListener('resize', recalcPages)
+    }
+  }, [baseDraftText, data.model.code])
+
   const setTab = (tab: TemplateEditorTab) => {
     setActiveTab(tab)
     onToolSelect(tab)
@@ -1318,9 +1363,19 @@ function ProfessionalTemplateEditorWorkspace({
     const editor = editorRef.current
     const stamp = stampRef.current
     if (!editor) return false
-    editor.focus()
     const selection = window.getSelection()
     if (!selection) return false
+    if (selection.rangeCount > 0 && !selection.isCollapsed) {
+      const currentRange = selection.getRangeAt(0)
+      if (
+        (editor && editor.contains(currentRange.commonAncestorContainer))
+        || (stamp && stamp.contains(currentRange.commonAncestorContainer))
+      ) {
+        savedSelectionRef.current = currentRange.cloneRange()
+        return true
+      }
+    }
+    editor.focus()
     selection.removeAllRanges()
     if (
       savedSelectionRef.current
@@ -1369,6 +1424,53 @@ function ProfessionalTemplateEditorWorkspace({
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false
     const container = selection.getRangeAt(0).commonAncestorContainer
     return Boolean((editor && editor.contains(container)) || (stamp && stamp.contains(container)))
+  }
+
+  const blockElementFromNode = (node: Node, root: HTMLElement) => {
+    const element = node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement
+    const block = element?.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,div') as HTMLElement | null
+    return block && root.contains(block) ? block : null
+  }
+
+  const applyAlignmentSelection = (align: string) => {
+    const editor = editorRef.current
+    const stamp = stampRef.current
+    if (!restoreSelection()) return false
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return false
+    const range = selection.getRangeAt(0)
+    const root = editor && editor.contains(range.commonAncestorContainer)
+      ? editor
+      : stamp && stamp.contains(range.commonAncestorContainer)
+        ? stamp
+        : null
+    if (!root) return false
+    const selectedBlocks = Array.from(root.querySelectorAll<HTMLElement>('p,h1,h2,h3,h4,h5,h6,li,blockquote,div'))
+      .filter((node) => {
+        try {
+          return range.intersectsNode(node)
+        } catch {
+          return false
+        }
+      })
+    const startBlock = blockElementFromNode(range.startContainer, root)
+    const endBlock = blockElementFromNode(range.endContainer, root)
+    if (!selectedBlocks.length && startBlock) selectedBlocks.push(startBlock)
+    if (endBlock && !selectedBlocks.includes(endBlock)) selectedBlocks.push(endBlock)
+    if (!selectedBlocks.length) return false
+    selectedBlocks.forEach((block) => {
+      block.style.textAlign = align === 'justify' ? 'justify' : align
+    })
+    syncEditorToDraft(
+      align === 'left'
+        ? 'Allineamento a sinistra applicato alla selezione.'
+        : align === 'center'
+          ? 'Allineamento centrato applicato alla selezione.'
+          : align === 'right'
+            ? 'Allineamento a destra applicato alla selezione.'
+            : 'Testo selezionato giustificato.',
+    )
+    return true
   }
 
   const insertEditorHtml = (html: string, status?: string) => {
@@ -1457,7 +1559,6 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const applyFormat = (command: string) => {
-    restoreSelection()
     if (command === 'justifyLeft' || command === 'justifyCenter' || command === 'justifyRight' || command === 'justifyFull') {
       const nextAlign = command === 'justifyLeft'
         ? 'left'
@@ -1466,18 +1567,12 @@ function ProfessionalTemplateEditorWorkspace({
           : command === 'justifyRight'
             ? 'right'
             : 'justify'
-      document.execCommand(command, false)
-      syncEditorToDraft(
-        nextAlign === 'left'
-          ? 'Allineamento a sinistra applicato alla selezione.'
-          : nextAlign === 'center'
-            ? 'Allineamento centrato applicato alla selezione.'
-            : nextAlign === 'right'
-              ? 'Allineamento a destra applicato alla selezione.'
-              : 'Testo selezionato giustificato.',
-      )
+      if (applyAlignmentSelection(nextAlign)) return
+      setTextAlign(nextAlign)
+      setWorkspaceStatus('Allineamento documento aggiornato.')
       return
     }
+    restoreSelection()
     if (command === 'formatBlock:h1' || command === 'formatBlock:h2' || command === 'formatBlock:p' || command === 'formatBlock:blockquote') {
       const block = command.split(':')[1]
       document.execCommand('formatBlock', false, block)
@@ -1686,7 +1781,7 @@ function ProfessionalTemplateEditorWorkspace({
       .catch(() => setWorkspaceStatus('Documento non salvato nel fascicolo: controlla i campi richiesti.'))
   }
 
-  const panelTabs: TemplateEditorTab[] = ['Campi', 'Stile', 'Lex', 'Fonti', 'Controlli', 'Export']
+  const panelTabs: TemplateEditorTab[] = TEMPLATE_EDITOR_TABS
   const inlineTools = [
     { label: 'Catalogo template atti', icon: ArrowLeft, action: () => window.location.assign(data.catalogHref || '/template-atti/catalogo') },
     { label: 'Titolo principale', icon: Heading1, action: () => applyFormat('formatBlock:h1') },
@@ -1841,16 +1936,35 @@ function ProfessionalTemplateEditorWorkspace({
                   onFocus={saveSelection}
                   aria-label="Corpo documento modificabile"
                 />
+                {Array.from({ length: Math.max(0, visualPageCount - 1) }).map((_, index) => (
+                  <div
+                    className="iu-template-pro-page-marker"
+                    data-testid={`template-page-marker-${index + 2}`}
+                    key={`page-marker-${index + 2}`}
+                    style={{ top: `${Math.round(visualPageHeight * (index + 1))}px` }}
+                    aria-label={`Fine pagina ${index + 1} e inizio pagina ${index + 2}`}
+                  >
+                    <span>Fine pagina {index + 1}</span>
+                    <strong>Inizio pagina {index + 2}</strong>
+                  </div>
+                ))}
               </div>
               <footer className="iu-template-pro-paper__page-footer">
                 <span>Pagina 1</span>
-                <span>Il timbro viene ripetuto nelle esportazioni su ogni pagina.</span>
+                <span>{visualPageCount > 1 ? `${visualPageCount} pagine stimate` : 'Il timbro viene ripetuto nelle esportazioni su ogni pagina.'}</span>
               </footer>
           </article>
-          <div className="iu-template-pro-page-boundary" aria-label="Fine pagina e inizio pagina successiva">
-            <span>Fine pagina 1</span>
-            <strong>Inizio pagina 2</strong>
-          </div>
+          {Array.from({ length: Math.max(0, visualPageCount - 1) }).map((_, index) => (
+            <div
+              className="iu-template-pro-page-boundary"
+              data-testid={`template-page-boundary-${index + 2}`}
+              key={`page-boundary-${index + 2}`}
+              aria-label={`Fine pagina ${index + 1} e inizio pagina ${index + 2}`}
+            >
+              <span>Fine pagina {index + 1}</span>
+              <strong>Inizio pagina {index + 2}</strong>
+            </div>
+          ))}
         </main>
         <aside className="iu-template-pro-fields" aria-label="Pannello editor template">
           <header>
@@ -1910,6 +2024,27 @@ function ProfessionalTemplateEditorWorkspace({
                     Compila con dati fascicolo
                   </button>
                 </section>
+                {importedDocument ? (
+                  <section className="iu-template-pro-import-card" aria-label="Documento importato">
+                    <h3>Template personalizzato importato</h3>
+                    <p>{importedDocument.note || 'Documento acquisito: puoi svuotare la pagina, reinserire il testo e associare i campi del fascicolo.'}</p>
+                    <dl>
+                      <div><dt>File</dt><dd>{importedDocument.fileName}</dd></div>
+                      <div><dt>Codifica</dt><dd>{importedDocument.encoding || 'riconosciuta automaticamente'}</dd></div>
+                      <div><dt>Font rilevati</dt><dd>{importedDocument.fonts.length ? importedDocument.fonts.slice(0, 6).join(', ') : 'non dichiarati nel file'}</dd></div>
+                    </dl>
+                    {importedDocument.text.trim() ? (
+                      <p className="iu-template-pro-import-card__preview">
+                        <strong>Anteprima testo</strong>
+                        <span>{importedDocument.text.trim().slice(0, 320)}</span>
+                      </p>
+                    ) : null}
+                    <div>
+                      <button type="button" onClick={() => { onDraftTextChange(''); setWorkspaceStatus('Pagina vuota pronta per associare i campi del fascicolo.') }}>Pagina vuota</button>
+                      <button type="button" disabled={!importedDocument.text.trim() && !String(importedDocument.html || '').trim()} onClick={() => { onDraftTextChange(importedDocument.html || importedDocument.text); setWorkspaceStatus('Documento importato inserito nel template personalizzato.') }}>Inserisci testo importato</button>
+                    </div>
+                  </section>
+                ) : null}
                 {fieldGroups.map((group) => (
                   <section className="iu-template-pro-field-group" key={group.id}>
                     <h3>{group.title}</h3>
@@ -1938,21 +2073,6 @@ function ProfessionalTemplateEditorWorkspace({
                     ))}
                   </section>
                 ))}
-                {importedDocument ? (
-                  <section className="iu-template-pro-import-card" aria-label="Documento importato">
-                    <h3>Template personalizzato importato</h3>
-                    <p>{importedDocument.note || 'Documento acquisito: puoi svuotare la pagina, reinserire il testo e associare i campi del fascicolo.'}</p>
-                    <dl>
-                      <div><dt>File</dt><dd>{importedDocument.fileName}</dd></div>
-                      <div><dt>Codifica</dt><dd>{importedDocument.encoding || 'riconosciuta automaticamente'}</dd></div>
-                      <div><dt>Font rilevati</dt><dd>{importedDocument.fonts.length ? importedDocument.fonts.slice(0, 6).join(', ') : 'non dichiarati nel file'}</dd></div>
-                    </dl>
-                    <div>
-                      <button type="button" onClick={() => { onDraftTextChange(''); setWorkspaceStatus('Pagina vuota pronta per associare i campi del fascicolo.') }}>Pagina vuota</button>
-                      <button type="button" disabled={!importedDocument.text.trim() && !String(importedDocument.html || '').trim()} onClick={() => { onDraftTextChange(importedDocument.html || importedDocument.text); setWorkspaceStatus('Documento importato inserito nel template personalizzato.') }}>Inserisci testo importato</button>
-                    </div>
-                  </section>
-                ) : null}
                 <div className="iu-template-pro-progress">
                   <span>Compilazione</span>
                   <progress value={completion} max={100} />
@@ -2016,8 +2136,13 @@ function ProfessionalTemplateEditorWorkspace({
                     ['justify', 'Giustifica'],
                   ].map(([value, label]) => (
                     <button type="button" className={textAlign === value ? 'is-active' : ''} key={value} onMouseDown={(event) => event.preventDefault()} onClick={() => {
+                      const command = value === 'left' ? 'justifyLeft' : value === 'center' ? 'justifyCenter' : value === 'right' ? 'justifyRight' : 'justifyFull'
+                      if (hasEditorSelection()) {
+                        applyFormat(command)
+                        return
+                      }
                       setTextAlign(value)
-                      applyFormat(value === 'left' ? 'justifyLeft' : value === 'center' ? 'justifyCenter' : value === 'right' ? 'justifyRight' : 'justifyFull')
+                      setWorkspaceStatus('Allineamento documento aggiornato.')
                     }}>
                       {label}
                     </button>
@@ -2147,8 +2272,7 @@ function ProfessionalTemplateEditorWorkspace({
                 <button type="button" disabled={saving} onClick={saveCurrentDraft}><Save size={15} aria-hidden="true" />{saving ? 'Salvataggio...' : 'Salva nel fascicolo'}</button>
                 <button type="button" onClick={() => onPrepareSignature(exportPlainText(), exportHtml())}><FileSignature size={15} aria-hidden="true" />Firma documento</button>
                 <button type="button" onClick={() => onRefreshPreview(exportPlainText())}><RefreshCw size={15} aria-hidden="true" />Rigenera dal template</button>
-                {multipleOpen ? (
-                  <div className="iu-template-pro-multiple" aria-label="Compilazione multipla">
+                <div className={`iu-template-pro-multiple${multipleOpen ? ' is-open' : ''}`} aria-label="Compilazione multipla">
                     <strong>Compilazione multipla</strong>
                     <p>Usa i dati e il testo corrente per preparare più modelli RTF collegati alla stessa pratica.</p>
                     <div className="iu-template-pro-multiple-actions">
@@ -2167,8 +2291,7 @@ function ProfessionalTemplateEditorWorkspace({
                       </label>
                     ))}
                     <button type="button" onClick={runMultipleCompilation}><Columns3 size={15} aria-hidden="true" />Genera RTF selezionati</button>
-                  </div>
-                ) : null}
+                </div>
               </section>
             ) : null}
           </div>
@@ -2785,6 +2908,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
           encoding: String(importPayload.encoding || importPayload.codifica || ''),
           note: String(importPayload.note || 'Documento importato: puoi associarlo ai campi del fascicolo dal pannello Campi.'),
         })
+        setActiveGuideTool('Campi')
         if (content.trim()) {
           setGuideDraftText(importedHtml || importedText)
           setImportStatus('Documento importato correttamente. Accenti, font rilevati e campi del fascicolo sono disponibili per il template personalizzato.')

@@ -234,6 +234,61 @@ Dati da completare prima dell'invio:
     assert "<ul><li>Codice fiscale cliente</li><li>Indirizzo controparte</li></ul>" in html
 
 
+def test_importa_bozza_chat_blocca_fascicolo_di_altro_tenant(tmp_path: Path):
+    from pct.fascicoli import GestioneFascicoli
+    from pct.tenant import GestioneTenant
+    from tests.test_web_bootstrap import _cfg_web as _cfg_web_multi, _write_studio_config
+    from web.app import create_app
+    from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg_web_multi(tmp_path), "MULTI_TENANT": True, "STORAGE_MODE_DEFAULT": "JSON"})
+    manager = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio_a = manager.crea("Studio Editor A", "studio-editor-a")
+    studio_b = manager.crea("Studio Editor B", "studio-editor-b")
+    manager.aggiorna(studio_a.slug, api_key="editor-a-key")
+    manager.aggiorna(studio_b.slug, api_key="editor-b-key")
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_a.slug)
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_b.slug)
+
+    paths_a = manager.percorsi_dati(studio_a.slug, reconcile_aliases=False)
+    paths_b = manager.percorsi_dati(studio_b.slug, reconcile_aliases=False)
+    fascicoli_a = GestioneFascicoli(
+        db_path=paths_a["FASCICOLI_DB"],
+        documents_dir=paths_a["FASCICOLI_DOCS"],
+        archive_dir=paths_a["FASCICOLI_ARCH"],
+    )
+    fascicoli_b = GestioneFascicoli(
+        db_path=paths_b["FASCICOLI_DB"],
+        documents_dir=paths_b["FASCICOLI_DOCS"],
+        archive_dir=paths_b["FASCICOLI_ARCH"],
+    )
+    fascicolo_b = fascicoli_b.nuovo("Fascicolo editor Studio B", TipoFascicolo.CIVILE, nome_cliente="Cliente B")
+    payload = {
+        "title": "Bozza isolamento tenant",
+        "answer": "Bozza isolamento tenant\n\nIn fatto\nIl documento resta nello studio corretto.",
+    }
+
+    headers_a = {"X-API-Key": "editor-a-key", "X-Tenant-Slug": studio_a.slug}
+    headers_b = {"X-API-Key": "editor-b-key", "X-Tenant-Slug": studio_b.slug}
+    with app.test_client() as client:
+        blocked = client.post(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/editor-ai/importa-bozza", json=payload, headers=headers_a)
+        created = client.post(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/editor-ai/importa-bozza", json=payload, headers=headers_b)
+
+    assert blocked.status_code == 404
+    assert blocked.get_json()["code"] == "not_found"
+    assert created.status_code == 201
+    assert created.get_json()["mock_fallback"] is False
+
+    assert fascicoli_a.tutti() == []
+    reloaded_b = GestioneFascicoli(
+        db_path=paths_b["FASCICOLI_DB"],
+        documents_dir=paths_b["FASCICOLI_DOCS"],
+        archive_dir=paths_b["FASCICOLI_ARCH"],
+    )
+    assert len(reloaded_b.get(fascicolo_b.id).documenti) == 1
+
+
 def test_modifiche_ed_export_non_espongono_path_assoluti(tmp_path: Path, monkeypatch):
     client, _fake = _client(tmp_path, monkeypatch)
 

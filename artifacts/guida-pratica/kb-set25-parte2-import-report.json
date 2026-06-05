@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (16).zip::kb_set25_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p2.json",
+  "sha256": "7BBD61894D68543CAA64FFCB5E683A245EEAAF4FAD52840B702E082A7772C70C",
+  "changed": true,
+  "macro_area_id": "SET25_PARTE2",
+  "denominazione": "Venticinquesimo set - 30 nuovi codici - PARTE 2 di 6",
+  "codici_materia_originali": [
+    "140070",
+    "140075",
+    "141040",
+    "142010",
+    "143050"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LOCAZIONE_ABITATIVA_A_USO_TRANSITORIO_E_PER_STUDENTI_UNIVERSITARI_L_431__140070",
+    "GUIDA_LOCAZIONE_PER_FINALIT_TURISTICHE_E_AFFITTI_BREVI_L_431_1998_ART_4_D_L_50_140075",
+    "GUIDA_CONTRATTO_DI_MANDATO_REVOCA_RINUNCIA_E_RESPONSABILIT_DEL_MANDATARIO_ARTT_141040",
+    "GUIDA_COMPRAVENDITA_IMMOBILIARE_INADEMPIMENTO_DEL_PROMISSARIO_ACQUIRENTE_E_CAP_142010",
+    "GUIDA_CONTRATTO_DI_NOLEGGIO_RESPONSABILIT_PER_DANNI_AL_VEICOLO_NOLEGGIATO_E_CO_143050"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "140070",
+      "codice_integrato": "GUIDA_LOCAZIONE_ABITATIVA_A_USO_TRANSITORIO_E_PER_STUDENTI_UNIVERSITARI_L_431__140070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140075",
+      "codice_integrato": "GUIDA_LOCAZIONE_PER_FINALIT_TURISTICHE_E_AFFITTI_BREVI_L_431_1998_ART_4_D_L_50_140075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141040",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_MANDATO_REVOCA_RINUNCIA_E_RESPONSABILIT_DEL_MANDATARIO_ARTT_141040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "142010",
+      "codice_integrato": "GUIDA_COMPRAVENDITA_IMMOBILIARE_INADEMPIMENTO_DEL_PROMISSARIO_ACQUIRENTE_E_CAP_142010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143050",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_NOLEGGIO_RESPONSABILIT_PER_DANNI_AL_VEICOLO_NOLEGGIATO_E_CO_143050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

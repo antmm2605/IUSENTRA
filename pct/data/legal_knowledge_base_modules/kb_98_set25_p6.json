@@ -1,0 +1,1101 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET25_PARTE6",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 6 di 6",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_AZIONE_REVOCATORIA_NEL_CONTESTO_DELLA_LIQUIDAZIONE_GIUDIZIALE_ARTT_163_1_512065",
+      "denominazione": "Azione revocatoria nel contesto della liquidazione giudiziale (artt. 163-176 D.Lgs. 14/2019 CCII)",
+      "categoria": "Procedure concorsuali – revocatoria concorsuale",
+      "rito": "Procedimento davanti al Tribunale fallimentare – giudice delegato e sezione specializzata",
+      "competenza": "Tribunale fallimentare – sede dell'impresa in liquidazione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "163",
+          "descrizione": "Atti a titolo gratuito – revocabili se compiuti nei 2 anni prima della domanda di LG"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "164",
+          "descrizione": "Pagamenti di debiti non scaduti – revocabili nei 6 mesi"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "165",
+          "descrizione": "ATTI NORMALI – revocabili se il creditore era a conoscenza dello stato di insolvenza"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "166",
+          "descrizione": "Atti ANOMALI – presunzione di conoscenza dell'insolvenza (revocabili senza prova della conoscenza)"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "167",
+          "descrizione": "ESENZIONI dalla revocatoria – pagamenti in esecuzione di accordi di ristrutturazione, pagamenti normali dell'attività"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "176",
+          "descrizione": "Revocatoria ordinaria nel contesto concorsuale – art. 2901 c.c."
+        },
+        {
+          "fonte": "Cass. SU 12476/2021",
+          "descrizione": "Revocatoria concorsuale – periodo sospetto e prova della scientia decoctionis"
+        },
+        {
+          "fonte": "Cass. SU 9341/2023",
+          "descrizione": "Esenzioni CCII art. 167 – pagamenti in continuità aziendale"
+        }
+      ],
+      "atti_revocabili_e_periodi_sospetto": {
+        "atti_gratuiti_163": {
+          "periodo": "2 ANNI prima della domanda di LG",
+          "presunzione": "Scientia decoctionis presunta"
+        },
+        "pagamenti_anticipati_164": {
+          "periodo": "6 MESI",
+          "presunzione": "Presunta scientia"
+        },
+        "atti_normali_165": {
+          "periodo": "6 MESI",
+          "prova_richiesta": "Curatore deve provare la scientia del creditore"
+        },
+        "atti_anomali_166": {
+          "periodo": "1 ANNO",
+          "presunzione": "Scientia presunta"
+        }
+      },
+      "esenzioni_art167": [
+        "Pagamenti per prestazioni di servizi strumentali all'accesso a procedure concorsuali",
+        "Pagamenti in esecuzione di accordi di ristrutturazione dei debiti omologati",
+        "Pagamenti che costituiscono atti di ordinaria amministrazione",
+        "Pagamenti effettuati in esecuzione del piano attestato"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare gli atti revocabili nel periodo sospetto"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se l'atto rientra nelle esenzioni ex art. 167"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per atti normali: raccogliere prove della scientia decoctionis del convenuto"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_revocatoria_concorsuale_CCII_163_176",
+        "denominazione": "Azione revocatoria concorsuale ex artt. 163-166 D.Lgs. 14/2019 CCII",
+        "campi_chiave": [
+          {
+            "id": "tribunale_fallimentare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "curatore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_beneficiario_atto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "atto_revocando",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "atto_gratuito_163",
+                  "pagamento_anticipato_164",
+                  "atto_normale_165",
+                  "atto_anomalo_166"
+                ]
+              },
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "importo_o_valore",
+                "type": "currency"
+              },
+              {
+                "id": "nel_periodo_sospetto",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "scientia_decoctionis_convenutodel",
+            "type": "textarea",
+            "required_if": "atto_normale_165"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "revoca_atto_e_restituzione_alla_massa",
+              "condanna_pagamento_valore_bene",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Verificare il PERIODO SOSPETTO – decorre dalla DOMANDA di LG (non dalla sentenza)",
+          "Atti anomali 166: presunzione di scientia – il convenuto deve provare la non conoscenza",
+          "Verificare le esenzioni art. 167 prima di procedere",
+          "CCII ha sostituito la L. 267/1942 (vecchio fallimento)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_apertura_LG",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_atto_revocando",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prove_scientia_se_atto_normale",
+          "required_if": "atto_normale_165"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione revocatoria concorsuale",
+          "anni": 3,
+          "decorrenza": "apertura LG"
+        }
+      ],
+      "codice_originale_ricevuto": "512065",
+      "codice_logico": "GUIDA_AZIONE_REVOCATORIA_NEL_CONTESTO_DELLA_LIQUIDAZIONE_GIUDIZIALE_ARTT_163_1_512065",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512065"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512065"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512065"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DICHIARAZIONE_DI_ESECUTIVIT_DEL_LODO_ARBITRALE_ART_825_C_P_C_E_IMPUGNAZI_191025",
+      "denominazione": "Dichiarazione di esecutività del lodo arbitrale (art. 825 c.p.c.) e impugnazione del lodo",
+      "categoria": "Arbitrato – exequatur del lodo",
+      "rito": "Procedimento camerale ex art. 825 c.p.c. davanti alla Corte d'Appello",
+      "competenza": "Corte d'Appello nel cui distretto è la sede dell'arbitrato",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "824-bis",
+          "descrizione": "Lodo arbitrale – ha efficacia di sentenza tra le parti"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "825",
+          "descrizione": "DEPOSITO E DICHIARAZIONE DI ESECUTIVITÀ – il lodo deve essere depositato nella cancelleria della Corte d'Appello"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "827",
+          "descrizione": "IMPUGNAZIONE del lodo arbitrale – nullità, revocazione, opposizione di terzo"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "828-829",
+          "descrizione": "Impugnazione per nullità – cause tassative (90 giorni)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "830",
+          "descrizione": "Effetti dell'impugnazione – sospensiva su istanza"
+        },
+        {
+          "fonte": "Cass. SU 17781/2021",
+          "descrizione": "Lodo arbitrale – natura e effetti post deposito"
+        },
+        {
+          "fonte": "Cass. SU 9456/2023",
+          "descrizione": "Impugnazione per nullità – motivi ammissibili"
+        }
+      ],
+      "exequatur_825": {
+        "procedura": "Deposito del lodo nella cancelleria della Corte d'Appello + istanza di esecutività",
+        "effetto": "Il presidente della Corte appone il decreto di esecutività – il lodo diventa TITOLO ESECUTIVO",
+        "condizioni_rifiuto": "Il presidente rifiuta se il lodo è contrario all'ordine pubblico"
+      },
+      "impugnazione_per_nullita_828_829": {
+        "termine": "90 GIORNI dalla notificazione del lodo",
+        "motivi_tassativi": [
+          "Invalidità del patto compromissorio",
+          "Difetto di costituzione del collegio",
+          "Vizi di procedura",
+          "Pronuncia su materia non arbitrabile",
+          "Contrasto con l'ordine pubblico",
+          "Vizi della motivazione (solo se rilevanti)"
+        ],
+        "Cass_SU_9456_2023": "I motivi sono tassativi – non si può impugnare per errori nel merito"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Per exequatur: depositare il lodo + istanza alla Corte d'Appello"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per impugnazione: verificare il termine di 90 gg dalla notifica del lodo"
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificare il motivo tassativo di impugnazione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_exequatur_o_impugnazione_lodo_825_828",
+        "denominazione": "Istanza di exequatur del lodo arbitrale ex art. 825 c.p.c. o impugnazione per nullità ex art. 828",
+        "campi_chiave": [
+          {
+            "id": "corte_appello",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_atto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "exequatur_825",
+              "impugnazione_nullita_828"
+            ]
+          },
+          {
+            "id": "attore_o_istante",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "controparte_o_arbitri",
+            "type": "object_persona"
+          },
+          {
+            "id": "lodo",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_lodo",
+                "type": "date"
+              },
+              {
+                "id": "data_notifica_lodo",
+                "type": "date",
+                "critico_per_90_gg": true
+              },
+              {
+                "id": "oggetto_controversia",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "motivo_impugnazione_se_nullita",
+            "type": "select",
+            "required_if": "impugnazione",
+            "options": [
+              "invalidita_patto_compromissorio",
+              "difetto_costituzione_collegio",
+              "materia_non_arbitrabile",
+              "contrasto_ordine_pubblico",
+              "vizio_procedura"
+            ]
+          },
+          {
+            "id": "rispetto_termine_90_gg",
+            "type": "boolean",
+            "critico_se_impugnazione": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "decreto_esecutivita_825",
+              "nullita_lodo_828",
+              "sospensione_lodo_830"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Impugnazione: 90 GG dalla NOTIFICAZIONE del lodo – DECADENZIALE",
+          "Motivi di nullità: TASSATIVI – no errori di merito (Cass. SU 9456/2023)",
+          "Corte d'Appello del distretto dove è la sede dell'arbitrato"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "lodo_arbitrale_originale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "convenzione_arbitrale",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Impugnazione per nullità",
+          "giorni": 90,
+          "decorrenza": "notificazione del lodo",
+          "natura": "DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "191025",
+      "codice_logico": "GUIDA_DICHIARAZIONE_DI_ESECUTIVIT_DEL_LODO_ARBITRALE_ART_825_C_P_C_E_IMPUGNAZI_191025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "191025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "191025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "191025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ISTANZA_URGENTE_DI_PROTEZIONE_PROVVISORIA_NEL_PROCEDIMENTO_DI_AMMINISTRA_413115",
+      "denominazione": "Istanza urgente di protezione provvisoria nel procedimento di Amministrazione di Sostegno (art. 405 c.c.)",
+      "categoria": "Persone e famiglia – AdS – misure urgenti",
+      "rito": "Procedimento camerale urgente davanti al GIUDICE TUTELARE",
+      "competenza": "Giudice Tutelare del luogo di residenza del beneficiario",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "405",
+          "descrizione": "Procedimento per l'apertura dell'AdS – il GT può emettere PROVVEDIMENTI URGENTI in qualsiasi momento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "405 c. 4",
+          "descrizione": "Provvedimenti provvisori e urgenti – il GT può anche procedere D'UFFICIO"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "407",
+          "descrizione": "Audizione del beneficiario – obbligatoria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "408",
+          "descrizione": "Scelta dell'amministratore – preferenza per parenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "409",
+          "descrizione": "Effetti dell'apertura – atti compiuti senza il consenso dell'AdS"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "412",
+          "descrizione": "ANNULLAMENTO atti compiuti dal beneficiario in violazione dell'AdS"
+        },
+        {
+          "fonte": "Cass. SU 11200/2022",
+          "descrizione": "Misure urgenti AdS – requisiti e tipologia provvedimenti"
+        },
+        {
+          "fonte": "Cass. SU 9871/2024",
+          "descrizione": "Annullamento atti compiuti dal beneficiario senza AdS"
+        }
+      ],
+      "misure_urgenti_405_c4": {
+        "quando": "Situazione di immediato pericolo per il beneficiario (finanziario, fisico, personale)",
+        "senza_contraddittorio": "Il GT può provvedere anche D'UFFICIO senza aspettare la nomina definitiva",
+        "tipologia": [
+          "Nomina provvisoria dell'AdS",
+          "Blocco dei conti correnti",
+          "Sospensione di atti in corso",
+          "Nomina di un curatore speciale per singoli atti urgenti"
+        ]
+      },
+      "annullamento_atti_412_Cass_SU_9871_2024": {
+        "quando": "Atti compiuti dal beneficiario DOPO l'apertura dell'AdS senza il necessario consenso dell'amministratore",
+        "legittimati": "L'AdS, il beneficiario stesso (se capace), i suoi eredi e aventi causa"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare l'urgenza: pericolo imminente per il beneficiario"
+        },
+        {
+          "step": 2,
+          "descrizione": "Proporre un amministratore di sostegno provvisorio"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per blocco conti: identificare gli istituti bancari e i numeri di conto"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_misure_urgenti_AdS_405",
+        "denominazione": "Ricorso urgente al GT per misure provvisorie di AdS ex art. 405 c. 4 c.c.",
+        "campi_chiave": [
+          {
+            "id": "giudice_tutelare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "beneficiario",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "urgenza_documentata",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_pericolo",
+                "type": "select_multi",
+                "options": [
+                  "dilapidazione_patrimonio",
+                  "influenza_persone_terze",
+                  "pericolo_fisico",
+                  "atti_giuridici_dannosi_in_corso",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "amministratore_provvisorio_proposto",
+            "type": "object_persona"
+          },
+          {
+            "id": "misure_urgenti_richieste",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "nomina_provvisoria_AdS",
+              "blocco_conti_correnti",
+              "sospensione_atti_in_corso",
+              "nomina_curatore_speciale_singoli_atti"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Misure urgenti: il GT può provvedere anche D'UFFICIO",
+          "Audizione del beneficiario: obbligatoria (anche urgente)",
+          "Annullamento atti post-apertura AdS: azione ex art. 412 (Cass. SU 9871/2024)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_urgenza_e_condizioni_beneficiario",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_se_disponibile",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_atti_dannosi_in_corso",
+          "required_if": "atti_in_corso"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Urgente – richiedere udienza nell'immediato"
+        }
+      ],
+      "codice_originale_ricevuto": "413115",
+      "codice_logico": "GUIDA_ISTANZA_URGENTE_DI_PROTEZIONE_PROVVISORIA_NEL_PROCEDIMENTO_DI_AMMINISTRA_413115",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413115"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413115"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413115"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_IMPUGNAZIONE_DELLA_SANZIONE_ACCESSORIA_SOSPENSIONE_PATENTE_CONFISCA_ECC__240020",
+      "denominazione": "Impugnazione della sanzione accessoria (sospensione patente, confisca, ecc.) – art. 204-bis C.d.S.",
+      "categoria": "Diritto amministrativo – sanzioni accessorie – C.d.S.",
+      "rito": "Rito sommario ex art. 7 D.Lgs. 150/2011 davanti al GdP o al Tribunale",
+      "competenza": "GdP del luogo della commessa violazione (patente); Tribunale per sanzioni oltre la competenza del GdP",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 285/1992 (C.d.S.)",
+          "articolo": "204-bis",
+          "descrizione": "Opposizione alle sanzioni amministrative del Codice della Strada"
+        },
+        {
+          "fonte": "C.d.S.",
+          "articolo": "218",
+          "descrizione": "Sospensione della patente di guida – presupposti e durata"
+        },
+        {
+          "fonte": "C.d.S.",
+          "articolo": "219",
+          "descrizione": "Revoca della patente di guida"
+        },
+        {
+          "fonte": "C.d.S.",
+          "articolo": "213",
+          "descrizione": "Confisca del veicolo"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "7",
+          "descrizione": "Rito sommario per le opposizioni alle sanzioni amministrative"
+        },
+        {
+          "fonte": "Cass. SU 14267/2020",
+          "descrizione": "Sospensione patente – natura e impugnabilità"
+        },
+        {
+          "fonte": "Cass. SU 8932/2023",
+          "descrizione": "Confisca veicolo – proporzione e diritti del terzo proprietario"
+        }
+      ],
+      "sanzioni_accessorie_contestabili": {
+        "sospensione_patente_218": {
+          "quando": "Infrazioni gravi al C.d.S. (eccesso di velocità grave, guida in stato di ebbrezza, ecc.)",
+          "motivi_opposizione": [
+            "Difetto di motivazione dell'atto",
+            "Violazione procedimentale",
+            "Errata applicazione delle norme",
+            "Proporzione della sanzione"
+          ]
+        },
+        "confisca_veicolo_213": {
+          "motivi_opposizione_terzo": "Se il veicolo appartiene a un terzo non responsabile della violazione: confisca illegittima (Cass. SU 8932/2023)"
+        }
+      },
+      "termine_opposizione_204bis_CdS": "30 GIORNI dalla notifica del verbale",
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICARE il termine di 30 gg dalla notifica del verbale – CRITICO"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare i motivi di opposizione (vizi formali, sostanziali, proporzione)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per confisca: verificare la proprietà del veicolo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_sanzione_accessoria_204bis_CdS",
+        "denominazione": "Ricorso in opposizione a sanzione accessoria del C.d.S. ex art. 204-bis D.Lgs. 285/1992",
+        "campi_chiave": [
+          {
+            "id": "gdp_o_tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "amministrazione_resistente",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "tipo_sanzione_accessoria",
+            "type": "select",
+            "required": true,
+            "options": [
+              "sospensione_patente_218",
+              "revoca_patente_219",
+              "confisca_veicolo_213"
+            ]
+          },
+          {
+            "id": "verbale_notificato",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "critico_per_30_gg": true
+              },
+              {
+                "id": "infrazione_contestata",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "rispetto_termine_30_gg",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "motivi_opposizione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "difetto_motivazione",
+              "violazione_procedimentale",
+              "errata_applicazione_norma",
+              "sproporzione_sanzione",
+              "terzo_proprietario_veicolo_confiscato",
+              "presupposti_non_integrati"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_sanzione_accessoria",
+              "restituzione_veicolo_confiscato",
+              "sospensione_cautelare_sanzione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 30 GG dalla notifica del verbale – DECADENZIALE",
+          "Confisca e terzo proprietario: se il veicolo è di un terzo estraneo alla violazione – confisca illegittima",
+          "Rito sommario ex D.Lgs. 150/2011 art. 7"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbale_con_relata_notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_motivi_opposizione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffe GdP/Tribunale",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE",
+          "giorni": 30,
+          "decorrenza": "notifica verbale",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "240020",
+      "codice_logico": "GUIDA_IMPUGNAZIONE_DELLA_SANZIONE_ACCESSORIA_SOSPENSIONE_PATENTE_CONFISCA_ECC__240020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AZIONE_INIBITORIA_COLLETTIVA_CONTRO_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEI_C_180035",
+      "denominazione": "Azione inibitoria collettiva contro clausole abusive nei contratti dei consumatori (art. 37 Cod. Consumo + D.Lgs. 206/2005)",
+      "categoria": "Tutela collettiva dei consumatori – inibitoria",
+      "rito": "Rito ordinario – Tribunale delle Imprese (o azione inibitoria ex art. 37 Cod. Consumo)",
+      "competenza": "Tribunale delle Imprese – sede del professionista convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "37",
+          "descrizione": "AZIONE INIBITORIA – associazioni dei consumatori possono agire contro i professionisti che usano clausole abusive"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "37-bis",
+          "descrizione": "AGCM – può accertare l'abusività delle clausole e inibirne l'uso"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "33-36",
+          "descrizione": "Clausole abusive (già coperte da codice 140040 per azione individuale)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "840-bis e ss.",
+          "descrizione": "Azione di classe (2021) per tutela collettiva"
+        },
+        {
+          "fonte": "Direttiva UE 93/13/CEE",
+          "articolo": "7",
+          "descrizione": "Obbligo per gli Stati di prevedere rimedi adeguati e efficaci contro le clausole abusive"
+        },
+        {
+          "fonte": "Cass. SU 14776/2021",
+          "descrizione": "Azione inibitoria 37 – differenza da azione individuale di nullità"
+        },
+        {
+          "fonte": "Cass. SU 11346/2023",
+          "descrizione": "AGCM e inibitoria 37-bis – efficacia erga omnes del provvedimento"
+        }
+      ],
+      "differenza_da_azione_individuale_140040": {
+        "azione_individuale_140040": "Il SINGOLO CONSUMATORE chiede la nullità della clausola nel proprio contratto",
+        "azione_inibitoria_37": "Un'ASSOCIAZIONE DI CONSUMATORI chiede al Tribunale di INIBIRNE L'USO FUTURO da parte del professionista – effetti erga omnes per i nuovi contratti"
+      },
+      "legittimati_attivi_art37": [
+        "Associazioni dei consumatori iscritte nell'elenco MIMIT",
+        "Camere di commercio",
+        "Associazioni di professionisti",
+        "AGCM (art. 37-bis) – d'ufficio o su segnalazione"
+      ],
+      "effetti_dell_inibitoria": {
+        "inibitoria_semplice": "Il professionista non può più usare quella clausola nei nuovi contratti",
+        "pubblicazione_sentenza": "Obbligo di pubblicazione per informare i consumatori",
+        "contemptu_di_corte": "Penale per ogni violazione dell'inibitoria"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare le clausole abusive nei contratti standard del professionista"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare la legittimazione dell'associazione ricorrente (iscrizione elenco)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Raccogliere campioni dei contratti con le clausole abusive"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare se presentare segnalazione all'AGCM (art. 37-bis) come alternativa"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_inibitoria_clausole_abusive_art37_CodCons",
+        "denominazione": "Atto di citazione per azione inibitoria collettiva ex art. 37 Cod. Consumo",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "associazione_consumatori_attrice",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "iscrizione_elenco_MIMIT",
+                "type": "string",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "professionista_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "clausole_abusive_contestate",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "testo_clausola",
+                "type": "textarea"
+              },
+              {
+                "id": "tipo_abusivita",
+                "type": "select",
+                "options": [
+                  "lista_grigia_33",
+                  "squilibrio_significativo_34",
+                  "clausola_nera_33n1_responsabilita"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "richiesta_cautelare_inibitoria_urgente",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "inibitoria_uso_clausole_abusive",
+              "ordine_di_rimozione_dai_contratti_in_corso",
+              "pubblicazione_sentenza_su_quotidiani",
+              "penale_per_ogni_violazione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Legittimazione attiva: associazioni iscritte nell'elenco MIMIT",
+          "Effetti erga omnes: il professionista non può più usare la clausola con nessun consumatore",
+          "Alternativa: segnalazione all'AGCM per provvedimento inibitorio d'ufficio (art. 37-bis)",
+          "Competenza: TRIBUNALE DELLE IMPRESE"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "certificato_iscrizione_elenco_MIMIT",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratti_standard_con_clausole_abusive",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine specifico – proponibile al ricorrere dei presupposti"
+        }
+      ],
+      "codice_originale_ricevuto": "180035",
+      "codice_logico": "GUIDA_AZIONE_INIBITORIA_COLLETTIVA_CONTRO_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEI_C_180035",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180035"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "180035"
+        }
+      ]
+    }
+  ]
+}

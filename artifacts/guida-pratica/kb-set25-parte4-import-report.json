@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (16).zip::kb_set25_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p4.json",
+  "sha256": "555A31FB9F440A05EC9BB816C07FF3B6870D5E59BE1C70181656B45A528CBB96",
+  "changed": true,
+  "macro_area_id": "SET25_PARTE4",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 4 di 6",
+  "codici_materia_originali": [
+    "150075",
+    "155020",
+    "170040",
+    "143055",
+    "143060"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_P_A_DIRITTI_DEGLI_AZIONISTI_DI_MINORANZA_ISPEZIONE_DENUNCIA_AL_TRIBUNA_150075",
+    "GUIDA_LIQUIDAZIONE_DELLA_S_R_L_OBBLIGHI_DEI_LIQUIDATORI_RESPONSABILIT_E_CONTRO_155020",
+    "GUIDA_TUTELA_DELLA_DITTA_DEL_NOME_COMMERCIALE_E_DELL_INSEGNA_ARTT_2563_2567_C__170040",
+    "GUIDA_CONTRATTO_DI_CONTO_CORRENTE_BANCARIO_CONTESTAZIONE_DEL_SALDO_ANATOCISMO__143055",
+    "GUIDA_MUTUO_FONDIARIO_E_IPOTECARIO_CONTROVERSIE_USURA_E_RISOLUZIONE_ARTT_1813__143060"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150075",
+      "codice_integrato": "GUIDA_S_P_A_DIRITTI_DEGLI_AZIONISTI_DI_MINORANZA_ISPEZIONE_DENUNCIA_AL_TRIBUNA_150075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155020",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_DELLA_S_R_L_OBBLIGHI_DEI_LIQUIDATORI_RESPONSABILIT_E_CONTRO_155020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170040",
+      "codice_integrato": "GUIDA_TUTELA_DELLA_DITTA_DEL_NOME_COMMERCIALE_E_DELL_INSEGNA_ARTT_2563_2567_C__170040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143055",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_CONTO_CORRENTE_BANCARIO_CONTESTAZIONE_DEL_SALDO_ANATOCISMO__143055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143060",
+      "codice_integrato": "GUIDA_MUTUO_FONDIARIO_E_IPOTECARIO_CONTROVERSIE_USURA_E_RISOLUZIONE_ARTT_1813__143060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

@@ -220,3 +220,70 @@ def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):
     assert len(agenda_rows) == 1
     assert agenda_rows[0]["kind"] == "SCADENZA"
     assert agenda_rows[0]["title"] == "Appello breve auditato"
+
+
+def test_api_scadenziario_blocca_fascicolo_di_altro_tenant(tmp_path: Path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+    from pct.tenant import GestioneTenant
+    from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg_web(tmp_path), "MULTI_TENANT": True})
+    manager = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio_a = manager.crea("Studio A", "studio-a")
+    studio_b = manager.crea("Studio B", "studio-b")
+    manager.aggiorna(studio_a.slug, api_key="studio-a-key")
+    manager.aggiorna(studio_b.slug, api_key="studio-b-key")
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_a.slug)
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_b.slug)
+    paths_a = manager.percorsi_dati(studio_a.slug, reconcile_aliases=False)
+    paths_b = manager.percorsi_dati(studio_b.slug, reconcile_aliases=False)
+    fascicoli_b = GestioneFascicoli(paths_b["FASCICOLI_DB"], documents_dir=paths_b["FASCICOLI_DOCS"])
+    fascicolo_b = fascicoli_b.nuovo("Ricorso Studio B", TipoFascicolo.CIVILE, nome_cliente="Cliente B")
+
+    headers_a = {"X-API-Key": "studio-a-key", "X-Tenant-Slug": studio_a.slug}
+    headers_b = {"X-API-Key": "studio-b-key", "X-Tenant-Slug": studio_b.slug}
+    payload = {
+        "template_code": "CIV_APPELLO_BREVE",
+        "input_date": "2030-07-30",
+        "case_reference": "RG TENANT/2030",
+        "title": "Scadenza isolamento tenant",
+        "suspend_august": False,
+        "id_fascicolo": fascicolo_b.id,
+    }
+
+    with app.test_client() as client:
+        blocked = client.post("/api/v1/ui/scadenziario/termini/crea-scadenza", json=payload, headers=headers_a)
+        scadenziario_a = client.get("/api/v1/ui/scadenziario?vista=tutte", headers=headers_a)
+        agenda_a = client.get("/api/v1/ui/agenda?from=2030-07-30&to=2030-09-15", headers=headers_a)
+        created = client.post("/api/v1/ui/scadenziario/termini/crea-scadenza", json=payload, headers=headers_b)
+        scadenziario_b = client.get("/api/v1/ui/scadenziario?vista=tutte", headers=headers_b)
+        agenda_b = client.get("/api/v1/ui/agenda?from=2030-07-30&to=2030-09-15", headers=headers_b)
+
+    assert blocked.status_code == 404
+    blocked_payload = blocked.get_json()
+    assert blocked_payload["crossTenantBlocked"] is True
+    assert blocked_payload["messaggio"] == "Fascicolo non trovato nello studio corrente."
+    assert scadenziario_a.status_code == 200
+    assert agenda_a.status_code == 200
+    assert not any(item.get("fascicoloId") == fascicolo_b.id for item in scadenziario_a.get_json()["items"])
+    assert not any(item.get("matter") == fascicolo_b.id for item in agenda_a.get_json()["events"])
+
+    assert created.status_code == 200
+    created_payload = created.get_json()
+    assert created_payload["ok"] is True
+    assert scadenziario_b.status_code == 200
+    assert agenda_b.status_code == 200
+    scadenze_b = [
+        item
+        for item in scadenziario_b.get_json()["items"]
+        if item.get("title") == "Scadenza isolamento tenant"
+    ]
+    assert len(scadenze_b) == 1
+    assert scadenze_b[0]["fascicoloId"] == fascicolo_b.id
+    eventi_b = [
+        item
+        for item in agenda_b.get_json()["events"]
+        if item.get("matter") == fascicolo_b.id and item.get("source") == "agenda"
+    ]
+    assert len(eventi_b) == 1

@@ -2954,6 +2954,30 @@ def _sync_calculated_deadline_to_agenda(
         }
 
 
+def _validate_current_tenant_fascicolo_id(id_fascicolo: str) -> tuple[bool, dict[str, str] | None]:
+    """Blocca riferimenti a fascicoli non presenti nello studio corrente."""
+
+    value = str(id_fascicolo or "").strip()
+    if not value:
+        return True, None
+    try:
+        fascicolo = get_fascicoli().get(value)
+    except Exception:
+        current_app.logger.warning("Validazione fascicolo scadenziario non disponibile.", exc_info=True)
+        return False, {
+            "ok": False,
+            "errore": "Fascicolo non verificabile nello studio corrente.",
+            "messaggio": "Fascicolo non verificabile nello studio corrente.",
+        }
+    if fascicolo:
+        return True, None
+    return False, {
+        "ok": False,
+        "errore": "Fascicolo non trovato nello studio corrente.",
+        "messaggio": "Fascicolo non trovato nello studio corrente.",
+    }
+
+
 @api_v1_react.post("/scadenziario/termini/override")
 @_richiedi_auth
 def scadenziario_termini_override():
@@ -2990,6 +3014,10 @@ def scadenziario_termini_crea_scadenza():
         template = result["template"]
         title = str(payload.get("title") or payload.get("titolo") or template["name"]).strip()
         due_date = str(result["deadline"])
+        id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "").strip()
+        valid_fascicolo, fascicolo_error = _validate_current_tenant_fascicolo_id(id_fascicolo)
+        if not valid_fascicolo:
+            return jsonify({**(fascicolo_error or {}), "crossTenantBlocked": True}), 404
         parsed_due_date = _parse_italian_deadline_date(due_date)
         if parsed_due_date and parsed_due_date < _deadline_today_rome():
             return jsonify({
@@ -3006,7 +3034,6 @@ def scadenziario_termini_crea_scadenza():
             None,
         )
         description = str(payload.get("description") or result["explanation"] or "")
-        id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "")
         if existing:
             agenda = _sync_calculated_deadline_to_agenda(
                 marker=marker,

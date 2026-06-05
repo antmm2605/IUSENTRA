@@ -28,7 +28,17 @@ def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def _tenant_id() -> str:
-    return "default"
+    for value in (
+        getattr(g, "api_tenant_slug", ""),
+        getattr(g, "tenant_context_slug", ""),
+        getattr(g, "tenant_slug", ""),
+    ):
+        candidate = str(value or "").strip()
+        if candidate:
+            return candidate
+    user = g.get("utente_corrente")
+    candidate = str(getattr(user, "tenant_slug", "") or "").strip()
+    return candidate or "default"
 
 
 def _actor() -> str:

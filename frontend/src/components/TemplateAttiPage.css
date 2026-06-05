@@ -1045,10 +1045,12 @@ body.iu-template-pro-fullscreen .iu-page-heading {
   background: #e8edf4;
   color: #172033;
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   font-family: Inter, Arial, Helvetica, sans-serif;
+  height: 100vh;
+  max-height: 100vh;
   min-height: calc(100vh - var(--iu-topbar-h, 0px));
-  overflow: visible;
+  overflow: hidden;
 }
 
 .iu-template-ui-font--source_serif,
@@ -1461,7 +1463,7 @@ body.iu-template-pro-fullscreen .iu-page-heading {
 .iu-template-pro-layout {
   display: grid;
   grid-template-columns: 21.25rem minmax(36rem, 1fr) 21.25rem;
-  height: calc(100vh - 6.35rem);
+  height: auto;
   min-height: 0;
 }
 
@@ -1793,6 +1795,44 @@ body.iu-template-pro-fullscreen .iu-page-heading {
   color: #172033;
   overflow-wrap: anywhere;
   position: relative;
+}
+
+.iu-template-pro-page-marker {
+  align-items: center;
+  color: #68778f;
+  display: grid;
+  font-size: .68rem;
+  font-weight: 900;
+  gap: .2rem;
+  justify-items: center;
+  left: -3.8rem;
+  letter-spacing: 0;
+  pointer-events: none;
+  position: absolute;
+  right: -3.8rem;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.iu-template-pro-page-marker::before,
+.iu-template-pro-page-marker::after {
+  background: #d2dbe9;
+  content: "";
+  display: block;
+  height: 1px;
+  width: 100%;
+}
+
+.iu-template-pro-page-marker span,
+.iu-template-pro-page-marker strong {
+  background: #fffefa;
+  border: 1px solid #dbe3ee;
+  border-radius: 999px;
+  padding: .12rem .5rem;
+}
+
+.iu-template-pro-page-marker strong {
+  color: #18345d;
 }
 
 .iu-template-pro-paper__body:focus {
@@ -2171,6 +2211,29 @@ body.iu-template-pro-fullscreen .iu-page-heading {
 }
 
 .iu-template-pro-import-card dt {
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.iu-template-pro-import-card__preview {
+  background: #ffffff;
+  border: 1px solid #dce8f6;
+  border-radius: 7px;
+  display: grid;
+  gap: .2rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: .55rem;
+}
+
+.iu-template-pro-import-card__preview strong,
+.iu-template-pro-import-card__preview span {
+  display: block;
+}
+
+.iu-template-pro-import-card__preview strong {
+  color: #203450;
+  font-size: .7rem;
   font-weight: 900;
   text-transform: uppercase;
 }

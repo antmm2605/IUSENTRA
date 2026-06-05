@@ -54,6 +54,7 @@
   let clientConnected = false;
   let pageFullscreen = false;
   let operatorMicMuted = false;
+  let remoteFrameMeta = null;
   let closingWsIntentionally = false;
   let stateSyncInFlight = false;
   let sessionClosed = Boolean(boot.closed || boot.status === "closed");
@@ -327,6 +328,10 @@
         return;
       }
       if (message.type === "screen_frame" && message.image) {
+        remoteFrameMeta = {
+          width: Number(message.width || message.preview_width || 0),
+          height: Number(message.height || message.preview_height || 0),
+        };
         if (remoteAgentFrame) {
           remoteAgentFrame.src = message.image;
           remoteAgentFrame.classList.remove("d-none");
@@ -502,6 +507,7 @@
       remoteVideo.classList.remove("d-none");
       remoteVideoFallback?.classList.remove("d-none");
     }
+    remoteFrameMeta = null;
     if (remoteAgentFrame) {
       remoteAgentFrame.classList.add("d-none");
       remoteAgentFrame.src = "";
@@ -556,10 +562,50 @@
     remoteControlText.value = "";
   }
 
+  function remoteDisplayedRect() {
+    if (!remoteScreen) return null;
+    const rect = remoteScreen.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+
+    let sourceWidth = 0;
+    let sourceHeight = 0;
+    if (remoteAgentFrame && !remoteAgentFrame.classList.contains("d-none")) {
+      sourceWidth = Number(remoteFrameMeta?.width || remoteAgentFrame.naturalWidth || 0);
+      sourceHeight = Number(remoteFrameMeta?.height || remoteAgentFrame.naturalHeight || 0);
+    } else if (remoteVideo && !remoteVideo.classList.contains("d-none")) {
+      sourceWidth = Number(remoteVideo.videoWidth || 0);
+      sourceHeight = Number(remoteVideo.videoHeight || 0);
+    }
+
+    if (!sourceWidth || !sourceHeight) {
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    }
+
+    const sourceRatio = sourceWidth / sourceHeight;
+    const containerRatio = rect.width / rect.height;
+    if (containerRatio > sourceRatio) {
+      const width = rect.height * sourceRatio;
+      return {
+        left: rect.left + ((rect.width - width) / 2),
+        top: rect.top,
+        width,
+        height: rect.height,
+      };
+    }
+
+    const height = rect.width / sourceRatio;
+    return {
+      left: rect.left,
+      top: rect.top + ((rect.height - height) / 2),
+      width: rect.width,
+      height,
+    };
+  }
+
   function sendRemoteClick(event, action, button) {
     if (!remoteScreen) return;
     event.preventDefault();
-    const rect = remoteScreen.getBoundingClientRect();
+    const rect = remoteDisplayedRect();
     if (!rect.width || !rect.height) return;
     const xRatio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     const yRatio = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));

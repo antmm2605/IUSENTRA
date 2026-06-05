@@ -117,6 +117,12 @@ def _audit_chat_draft_import(fascicolo_id: str, document_id: str) -> None:
         current_app.logger.debug("Audit import bozza Lex non registrato.", exc_info=True)
 
 
+def _assert_fascicolo_corrente(fascicolo_id: str) -> None:
+    value = clean_text(fascicolo_id)
+    if not value or not get_fascicoli().get(value):
+        raise EditorAINotFound("Fascicolo non trovato.")
+
+
 @api_v1_editor_ai.get("/fascicoli/<fascicolo_id>/editor-ai/bootstrap")
 @_richiedi_auth
 def editor_ai_bootstrap(fascicolo_id: str):
@@ -189,6 +195,7 @@ def editor_ai_importa_bozza_chat(fascicolo_id: str):
         normalized_answer = normalize_legal_draft_layout(answer)
         html_content = legal_markdown_to_editor_html(normalized_answer)
         title = _draft_import_title(payload, normalized_answer)
+        _assert_fascicolo_corrente(fascicolo_id)
         try:
             from web.services.document_crypto import encrypt_doc
         except Exception:

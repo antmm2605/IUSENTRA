@@ -53,10 +53,20 @@ def editor_ai_tenant_id() -> str:
 
 def editor_ai_user_context() -> dict[str, Any]:
     user = g.get("utente_corrente") if has_request_context() else None
-    return {
+    context: dict[str, Any] = {
         "user": user,
         "user_id": str(getattr(user, "id", "") or getattr(user, "username", "") or ""),
     }
+    if has_request_context() and getattr(g, "api_tenant_authenticated", False):
+        tenant_slug = str(getattr(g, "api_tenant_slug", "") or getattr(g, "tenant_context_slug", "") or "").strip()
+        context.update(
+            {
+                "user_id": f"api:{tenant_slug or 'tenant'}",
+                "tenant_slug": tenant_slug,
+                "skip_permission_check": True,
+            }
+        )
+    return context
 
 
 def build_template_repository() -> GestioneTemplateAtti:

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (16).zip::kb_set25_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p6.json",
+  "sha256": "2DFEC708E5C02C72E1AD67F6190B39876AC3E4EAC7F8FC768F34BAB6E42F2B75",
+  "changed": true,
+  "macro_area_id": "SET25_PARTE6",
+  "denominazione": "Venticinquesimo set - 30 codici - PARTE 6 di 6",
+  "codici_materia_originali": [
+    "512065",
+    "191025",
+    "413115",
+    "240020",
+    "180035"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_REVOCATORIA_NEL_CONTESTO_DELLA_LIQUIDAZIONE_GIUDIZIALE_ARTT_163_1_512065",
+    "GUIDA_DICHIARAZIONE_DI_ESECUTIVIT_DEL_LODO_ARBITRALE_ART_825_C_P_C_E_IMPUGNAZI_191025",
+    "GUIDA_ISTANZA_URGENTE_DI_PROTEZIONE_PROVVISORIA_NEL_PROCEDIMENTO_DI_AMMINISTRA_413115",
+    "GUIDA_IMPUGNAZIONE_DELLA_SANZIONE_ACCESSORIA_SOSPENSIONE_PATENTE_CONFISCA_ECC__240020",
+    "GUIDA_AZIONE_INIBITORIA_COLLETTIVA_CONTRO_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEI_C_180035"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512065",
+      "codice_integrato": "GUIDA_AZIONE_REVOCATORIA_NEL_CONTESTO_DELLA_LIQUIDAZIONE_GIUDIZIALE_ARTT_163_1_512065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191025",
+      "codice_integrato": "GUIDA_DICHIARAZIONE_DI_ESECUTIVIT_DEL_LODO_ARBITRALE_ART_825_C_P_C_E_IMPUGNAZI_191025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413115",
+      "codice_integrato": "GUIDA_ISTANZA_URGENTE_DI_PROTEZIONE_PROVVISORIA_NEL_PROCEDIMENTO_DI_AMMINISTRA_413115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240020",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DELLA_SANZIONE_ACCESSORIA_SOSPENSIONE_PATENTE_CONFISCA_ECC__240020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180035",
+      "codice_integrato": "GUIDA_AZIONE_INIBITORIA_COLLETTIVA_CONTRO_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEI_C_180035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -2,6 +2,20 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento PEC Control Tower - 6 giugno 2026
+
+`pec_control_tower` è una sorgente interna dello studio. Non è fonte pubblica e
+non sostituisce la valutazione professionale: raccoglie MIME PEC, ricevute,
+`daticert.xml`, allegati, fascicolo, scadenze in bozza, task, notifiche e prove
+per permettere a Lex di rispondere a domande operative sullo stato della pratica.
+
+Lex deve usare prima questa sorgente quando la domanda riguarda PEC ricevute che
+generano scadenze, notifiche da fare, invii senza consegna, termini non
+confermati, atti di cancelleria, comunicazioni PA, notifiche fallite, prova
+completa o rischio di decadenza. Le fonti normative mostrate restano cornice da
+verificare sul caso concreto e non trasformano una bozza di presidio in termine
+legale definitivo.
+
 ## Aggiornamento Template Atti e fonti ufficiali - 4 giugno 2026
 
 Il pannello `Fonti` dell'editor template atti usa un registry dedicato,

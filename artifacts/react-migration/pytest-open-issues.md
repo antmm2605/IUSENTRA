@@ -1,5 +1,15 @@
 # Pytest issue aperte e risoluzioni
 
+## PEC Control Tower e Lex AI 2.249.19 - 2026-06-06
+
+Nessuna issue di codice aperta sul perimetro repository/API/Lex dopo test mirati e script reale generativo.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Script Windows UTF-8 | `tests\test_pec_control_tower.py` | Risolto localmente | Il primo lancio via subprocess decodificava stdout con UTF-8 mentre il processo figlio stampava con encoding console Windows. Lo script ora forza stdout/stderr UTF-8. | Mantenere il test subprocess quando si tocca lo script. |
+| Orari Lex PEC | Script generativo e risposta Lex | Risolto localmente | Le date ISO con offset venivano mostrate senza conversione del fuso. Il formatter operativo converte ora gli ISO con timezone in `Europe/Rome`. | Mantenere le verifiche su orari italiani nelle risposte Lex. |
+| Docker locale e deploy Hetzner | Gate finale di rilascio | Da eseguire prima di chiusura release | La tranche codice è verde su test mirati; non è ancora stata dichiarata chiusura completa con Docker reale `127.0.0.1:8080`, push branch gemelli, gate GitHub e deploy Hetzner. | Eseguire i gate finali di release prima di dichiarare il lavoro distribuito. |
+
 ## Template Atti professionale 2.249.15 - 2026-06-04
 
 Nessuna issue di codice aperta sul perimetro Template Atti dopo il fix del gate frontend e la verifica browser reale 74/74.

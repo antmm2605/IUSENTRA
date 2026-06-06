@@ -141,6 +141,18 @@ class OperationalKnowledgeService:
                 ]
             return [self.tools.get_fascicolo(target, context), self.tools.get_documenti_fascicolo(target, context)]
 
+        if route.intent == "pec_control_tower":
+            results = [self.tools.answer_pec_control_question(question, context, limit=self.settings.max_results)]
+            if fascicolo_id:
+                results.extend(
+                    [
+                        self.tools.get_fascicolo(fascicolo_id, context),
+                        self.tools.get_documenti_fascicolo(fascicolo_id, context),
+                        self.tools.get_scadenze_by_fascicolo(fascicolo_id, context),
+                    ]
+                )
+            return results
+
         if route.intent == "deadlines_overview":
             if fascicolo_id:
                 return [

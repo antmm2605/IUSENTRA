@@ -9,6 +9,11 @@ from typing import Any
 from .models import OperationalAnswer, OperationalRoute, OperationalSourceReference, OperationalToolResult
 from .serializers import clean_spaces
 
+try:  # pragma: no cover - disponibile sulle versioni Python supportate
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover
+    ZoneInfo = None  # type: ignore[assignment]
+
 
 _ITALIAN_MONTHS = {
     1: "gennaio",
@@ -25,6 +30,7 @@ _ITALIAN_MONTHS = {
     12: "dicembre",
 }
 _ITALIAN_MONTH_NAMES = tuple(_ITALIAN_MONTHS.values())
+_ROME_TZ = ZoneInfo("Europe/Rome") if ZoneInfo is not None else None
 
 
 class OperationalResponseComposer:
@@ -160,6 +166,8 @@ class OperationalResponseComposer:
             return self._communication_draft_lines(results, gaps)
         if route.intent == "communications_lookup":
             return self._communications_lines(results, gaps, question=question)
+        if route.intent == "pec_control_tower":
+            return self._pec_control_tower_lines(results, gaps)
         if route.intent == "studio_context_overview":
             return self._studio_context_overview_lines(results, gaps)
         if route.intent == "sources_overview":
@@ -369,6 +377,23 @@ class OperationalResponseComposer:
             lines.append("Fonti interne: comunicazioni del tenant corrente con permessi applicati.")
             return lines
         return ["Non ho trovato comunicazioni reali consultabili nelle caselle autorizzate."]
+
+    def _pec_control_tower_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+        payloads = _data_for(results, "pec_control_tower")
+        payload = payloads[0] if payloads and isinstance(payloads[0], dict) else {}
+        items = [dict(item) for item in list(payload.get("items") or []) if isinstance(item, dict)]
+        lines: list[str] = [clean_spaces(payload.get("summary")) or f"Eventi PEC trovati: {len(items)}."]
+        answer_kind = clean_spaces(payload.get("answer_kind"))
+        for item in items[:8]:
+            lines.extend(_pec_control_item_lines(item, answer_kind=answer_kind))
+        if len(items) > 8:
+            lines.append(f"Altri elementi non mostrati: {len(items) - 8}.")
+        payload_gaps = [clean_spaces(item) for item in list(payload.get("coverage_gaps") or []) if clean_spaces(item)]
+        all_gaps = _unique_strings([*gaps, *payload_gaps])
+        if all_gaps:
+            lines.append("Limiti: " + _join_clean_sentences(all_gaps[:3]) + ".")
+        lines.append("Fonti interne: PEC Control Tower, fascicoli, scadenziario, agenda, notifiche e prove del tenant corrente.")
+        return lines
 
     def _communication_draft_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
         pec_rows = _sort_communications(_data_for(results, "email_pec"))
@@ -689,7 +714,18 @@ def _format_italian_date(value: Any) -> str:
             parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
         except Exception:
             return text
+        if parsed.tzinfo is not None and _ROME_TZ is not None:
+            parsed = parsed.astimezone(_ROME_TZ)
         return _italian_date_parts(parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute)
+
+    if match.groupdict().get("hour") and re.search(r"(?:Z|[+-]\d{2}:?\d{2})$", text):
+        try:
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            if parsed.tzinfo is not None and _ROME_TZ is not None:
+                parsed = parsed.astimezone(_ROME_TZ)
+            return _italian_date_parts(parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute)
+        except Exception:
+            pass
 
     year = int(match.group("year"))
     month = int(match.group("month"))
@@ -1803,6 +1839,93 @@ def _pec_audit_control_lines(row: dict[str, Any]) -> list[str]:
     for question in questions[:2]:
         lines.append(f"  Domanda guida: {question}")
     return lines
+
+
+def _pec_control_item_lines(row: dict[str, Any], *, answer_kind: str = "") -> list[str]:
+    title = clean_spaces(row.get("title") or row.get("titolo") or row.get("subject") or row.get("summary") or row.get("label"))
+    if not title:
+        title = clean_spaces(row.get("id")) or "Elemento PEC"
+    link = _row_link(row, label=title) or title
+    status = _pec_control_status_label(row.get("status") or row.get("stato"))
+    risk = clean_spaces(row.get("risk_level") or row.get("priority"))
+    date_value = _format_italian_date(row.get("received_at") or row.get("due_at") or row.get("created_at") or row.get("start_at"))
+    pieces = [piece for piece in (f"stato {status}" if status else "", f"rischio {risk}" if risk else "", date_value) if piece]
+    lines = [f"- {link}: {'; '.join(pieces) if pieces else 'da presidiare'}."]
+    matter_id = clean_spaces(row.get("fascicolo_id") or row.get("matter_id"))
+    if matter_id:
+        lines.append(f"  Fascicolo collegato: {matter_id}.")
+    if clean_spaces(row.get("legal_category")):
+        lines.append(f"  Tipo evento: {clean_spaces(row.get('legal_category')).replace('_', ' ').lower()}.")
+    if clean_spaces(row.get("recipient")):
+        lines.append(f"  Destinatario: {clean_spaces(row.get('recipient'))}.")
+    if answer_kind == "confirmed_deadlines":
+        confirmed_by = clean_spaces(row.get("confirmed_by"))
+        confirmed_at = _format_italian_date(row.get("confirmed_at"))
+        rule = clean_spaces(row.get("confirmation_rule")).rstrip(".")
+        lines.append(
+            f"  Conferma: {confirmed_by or 'autore non indicato'}"
+            f"{(' il ' + confirmed_at) if confirmed_at else ''}"
+            f"{(' con regola ' + rule) if rule else ''}."
+        )
+    if answer_kind == "complete_proof" or "proof_complete" in row:
+        complete = row.get("proof_complete") is True
+        missing = [_pec_proof_role_label(item) for item in list(row.get("missing_roles") or []) if clean_spaces(item)]
+        lines.append("  Prova: completa." if complete else f"  Prova: incompleta{(' - manca ' + ', '.join(missing)) if missing else ''}.")
+    deadlines = [dict(item) for item in list(row.get("deadlines") or []) if isinstance(item, dict)]
+    for deadline in deadlines[:2]:
+        due = _format_italian_date(deadline.get("due_at")) or clean_spaces(deadline.get("due_at"))
+        d_status = _pec_control_status_label(deadline.get("status"))
+        title = clean_spaces(deadline.get("title")) or "Scadenza"
+        lines.append(f"  Scadenza - {title}: {due or 'data da confermare'}; {d_status or 'da confermare'}.")
+    tasks = [dict(item) for item in list(row.get("tasks") or []) if isinstance(item, dict)]
+    if tasks:
+        lines.append("  Da fare: " + _join_clean_sentences(clean_spaces(item.get("title")) for item in tasks[:3]) + ".")
+    events = [dict(item) for item in list(row.get("events") or []) if isinstance(item, dict)]
+    if events:
+        event = events[0]
+        produced = [clean_spaces(item) for item in list(event.get("produced_documents") or []) if clean_spaces(item)]
+        missing = [clean_spaces(item) for item in list(event.get("missing_documents") or []) if clean_spaces(item)]
+        articles = [clean_spaces(item) for item in list(event.get("legal_articles") or []) if clean_spaces(item)]
+        if produced:
+            lines.append("  Documenti presenti: " + ", ".join(produced[:4]) + ".")
+        if missing:
+            lines.append("  Documenti da verificare: " + ", ".join(missing[:4]) + ".")
+        if articles:
+            lines.append("  Articoli/fonti da considerare: " + ", ".join(articles[:4]) + ".")
+    summary = clean_spaces(row.get("summary"))
+    if summary and summary.lower() not in title.lower():
+        lines.append(f"  Sintesi: {_short_text(summary, max_length=180).rstrip('.')}.")
+    return lines
+
+
+def _pec_control_status_label(value: Any) -> str:
+    raw = clean_spaces(value)
+    labels = {
+        "open": "aperto",
+        "confirmed": "confermata",
+        "draft_pending_confirmation": "da confermare",
+        "approved_manual_send_required": "approvata, invio manuale richiesto",
+        "waiting_delivery": "in attesa di consegna",
+        "failed_review_required": "mancata consegna da rimediare",
+        "partial": "parziale",
+        "complete": "completa",
+    }
+    return labels.get(raw, raw)
+
+
+def _pec_proof_role_label(value: Any) -> str:
+    raw = clean_spaces(value)
+    labels = {
+        "acceptance": "ricevuta di accettazione",
+        "delivery": "ricevuta di consegna",
+        "failed_delivery": "ricevuta negativa",
+    }
+    return labels.get(raw, raw)
+
+
+def _join_clean_sentences(values) -> str:
+    cleaned = [clean_spaces(value).rstrip(".") for value in values if clean_spaces(value)]
+    return "; ".join(cleaned)
 
 
 def _communication_details(row: dict[str, Any], *, include_folder: bool = False) -> list[str]:

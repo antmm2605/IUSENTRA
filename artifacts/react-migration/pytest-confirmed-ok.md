@@ -1,5 +1,14 @@
 # Pytest shard confermati OK
 
+## PEC Control Tower e Lex AI 2.249.19 - 2026-06-06
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\test_pec_control_tower.py --runtime-root .tmp\pec-control-tower-final-2` | OK | Script reale generativo: 7 PEC sintetiche realistiche ingestate, 6 scadenze, 5 notifiche, audit HMAC valido e 10/10 domande Lex obbligatorie con risposta corretta. |
+| `python -m pytest tests\test_pec_control_tower.py -q` | OK | 3/3: repository/schema/audit, script end-to-end Lex e API Flask tenant-aware per ingest/lista/conferma scadenza/audit. |
+| `python -m py_compile pct\pec_control_tower.py web\blueprints\pec_control_tower_api.py lex\operational_knowledge\tools.py lex\operational_knowledge\query_router.py lex\operational_knowledge\service.py lex\operational_knowledge\response_composer.py scripts\test_pec_control_tower.py` | OK | Sintassi dei moduli toccati confermata. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Packaging versione `2.249.19`, presidio UTF-8 `4/4` e whitespace senza errori; solo warning CRLF/LF storico sui due report Markdown aggiornati. |
+
 ## Template Atti professionale 2.249.15 - 2026-06-04
 
 | Comando / verifica | Esito | Nota |

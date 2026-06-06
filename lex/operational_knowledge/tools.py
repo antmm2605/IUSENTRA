@@ -536,6 +536,52 @@ class OperationalKnowledgeTools:
         result.permission = decision
         return result
 
+    def answer_pec_control_question(
+        self,
+        question: str,
+        context: OperationalQueryContext,
+        *,
+        limit: int = 20,
+    ) -> OperationalToolResult:
+        decision = self._decision("pec_control_tower", context)
+        if not decision.allowed:
+            return self._blocked("pec_control_tower", decision)
+        repo = self._pec_control_tower_repository(context)
+        if repo is None:
+            return self._unavailable("pec_control_tower", "PEC Control Tower non ancora disponibile per questo studio.")
+        try:
+            payload = repo.answer_question(question, limit=limit)
+        except Exception as exc:
+            return self._unavailable("pec_control_tower", f"PEC Control Tower non interrogabile: {exc}")
+        result = self._plain_result("pec_control_tower", context, [payload], "pec_control_answer")
+        result.permission = decision
+        if not list(payload.get("items") or []):
+            result.coverage_gaps.extend(str(item) for item in list(payload.get("coverage_gaps") or []) if str(item or "").strip())
+        return result
+
+    def list_pec_control_events(
+        self,
+        context: OperationalQueryContext,
+        *,
+        query: str = "",
+        limit: int = 20,
+    ) -> OperationalToolResult:
+        decision = self._decision("pec_control_tower", context)
+        if not decision.allowed:
+            return self._blocked("pec_control_tower", decision)
+        repo = self._pec_control_tower_repository(context)
+        if repo is None:
+            return self._unavailable("pec_control_tower", "PEC Control Tower non ancora disponibile per questo studio.")
+        try:
+            rows = repo.list_communications(query=query, limit=limit)
+        except Exception as exc:
+            return self._unavailable("pec_control_tower", f"Eventi PEC non interrogabili: {exc}")
+        result = self._plain_result("pec_control_tower", context, rows, "evento_pec")
+        result.permission = decision
+        if not rows:
+            result.coverage_gaps.append("Nessun evento giuridico PEC tracciato nella Control Tower.")
+        return result
+
     def list_ordinary_email_messages(
         self,
         context: OperationalQueryContext,
@@ -897,6 +943,36 @@ class OperationalKnowledgeTools:
                 fascicoli_db_path=tenant_data_path("FASCICOLI_DB", current_app.config.get("FASCICOLI_DB", ""), require_tenant=True),
                 fascicoli_docs_path=tenant_data_path("FASCICOLI_DOCS", current_app.config.get("FASCICOLI_DOCS", ""), require_tenant=True),
                 scadenziario_db_path=tenant_data_path("SCADENZIARIO_DB", current_app.config.get("SCADENZIARIO_DB", ""), require_tenant=True),
+            )
+        except Exception:
+            return None
+
+    def _pec_control_tower_repository(self, context: OperationalQueryContext | None = None) -> Any | None:
+        if "pec_control_tower" in self.repositories:
+            return self.repositories["pec_control_tower"]
+        try:
+            from pathlib import Path
+
+            from flask import current_app, g
+
+            from pct.pec_control_tower import PecControlTowerRepository
+            from web.services.tenant_paths import tenant_data_path
+
+            email_db = Path(tenant_data_path("EMAIL_CASELLA_DB", current_app.config.get("EMAIL_CASELLA_DB", ""), require_tenant=True))
+            data_paths = getattr(g, "data_paths", {}) or {}
+            db_path = Path(str(data_paths.get("PEC_CONTROL_TOWER_DB") or email_db.parent / "pec_control_tower.sqlite"))
+            tenant_id = clean_spaces(
+                getattr(g, "tenant_slug", "")
+                or getattr(g, "auth_tenant_slug", "")
+                or getattr(context, "tenant_id", "")
+            ) or "default"
+            return PecControlTowerRepository(
+                db_path,
+                tenant_id=tenant_id,
+                fascicoli_db_path=tenant_data_path("FASCICOLI_DB", current_app.config.get("FASCICOLI_DB", ""), require_tenant=True),
+                fascicoli_docs_path=tenant_data_path("FASCICOLI_DOCS", current_app.config.get("FASCICOLI_DOCS", ""), require_tenant=True),
+                scadenziario_db_path=tenant_data_path("SCADENZIARIO_DB", current_app.config.get("SCADENZIARIO_DB", ""), require_tenant=True),
+                agenda_db_path=tenant_data_path("AGENDA_DB", current_app.config.get("AGENDA_DB", ""), require_tenant=True),
             )
         except Exception:
             return None
@@ -1277,6 +1353,10 @@ def _with_action_links(source_id: str, object_type: str, row: dict[str, Any]) ->
         message_id = clean_spaces(row.get("id"))
         if message_id:
             row.setdefault("mime_url", f"/api/pec/messages/{message_id}/mime")
+    if source_id == "pec_control_tower":
+        object_id = clean_spaces(row.get("id"))
+        if object_id:
+            row.setdefault("action_url", f"/email/?pec_control_tower={object_id}")
     if source_id in {"email_pec", "email_ordinaria"}:
         message_url = _action_url(source_id, "email", row)
         if message_url:
@@ -1328,6 +1408,8 @@ def _action_url(source_id: str, object_type: str, row: dict[str, Any]) -> str:
         return f"/email-ordinaria/messaggio/{object_id}"
     if source_id == "pec_audit":
         return f"/email/?pec_audit={object_id}"
+    if source_id == "pec_control_tower":
+        return f"/email/?pec_control_tower={object_id}"
     if source_id == "agenda":
         return "/agenda"
     if source_id == "scadenziario":
@@ -1387,6 +1469,15 @@ def _card_record(row: dict[str, Any]) -> dict[str, Any]:
         "normative_references",
         "agent_questions",
         "recommended_actions",
+        "answer_kind",
+        "summary",
+        "items",
+        "coverage_gaps",
+        "legal_category",
+        "legal_event_type",
+        "technical_type",
+        "risk_level",
+        "fascicolo_id",
     )
     payload = {key: row.get(key) for key in allowed if key in row and row.get(key) not in ("", None, [], {})}
     if "allegati" in payload and isinstance(payload["allegati"], list):

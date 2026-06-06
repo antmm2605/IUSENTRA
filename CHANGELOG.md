@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.249.19 - 2026-06-06
+
+- Introdotta la PEC Control Tower tenant-aware: parser MIME/daticert/ZIP, classificazione prudente, eventi giuridici, scadenze in bozza, agenda, task, notifiche, prove e audit HMAC con schema SQLite/PostgreSQL paritario.
+- Collegata Lex AI alla nuova sorgente `pec_control_tower`, con routing e risposte operative per PEC che generano scadenze, notifiche da fare, invii senza consegna, termini non confermati, cancelleria, PA, notifiche fallite, prova completa, conferme e rischio decadenza.
+- Aggiunti API REST `/api/pec/ingest`, `/api/communications`, `/api/deadlines`, `/api/agenda`, `/api/notifications/*`, `/api/audit/*` e calendario ICS, senza invio PEC automatico.
+- Aggiunto `scripts/test_pec_control_tower.py`: genera PEC realistiche, alimenta Lex e verifica 10/10 domande operative con output UTF-8; test mirati `tests/test_pec_control_tower.py` verdi.
+
 ## 2.249.18 - 2026-06-05
 
 - Corretto il controllo remoto PC nelle sessioni di assistenza su desktop multi-monitor: l'agente ora espone origine e dimensioni dello schermo virtuale Windows e traduce i click sulle coordinate reali, anche quando il monitor condiviso parte da coordinate negative.

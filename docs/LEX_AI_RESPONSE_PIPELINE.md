@@ -7,6 +7,29 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.249.19 - 6 giugno 2026
+
+Lex conosce la nuova sorgente interna `pec_control_tower`, alimentata da
+`pct.pec_control_tower.PecControlTowerRepository`. Quando l'avvocato chiede
+quali PEC generano scadenze, quali notifiche fare, quali invii non hanno ancora
+consegna, quali termini sono da confermare, quali atti arrivano da cancelleria,
+quali comunicazioni PA richiedono risposta, quali notifiche sono fallite, quale
+prova è completa, chi ha confermato una scadenza o quale fascicolo rischia una
+decadenza, il router deve usare `pec_control_tower` prima delle viste generiche
+su email, scadenziario o notifiche.
+
+La risposta deve partire da eventi giuridici PEC tracciati: fascicolo collegato,
+documenti presenti, documenti da verificare, articoli/fonti da considerare,
+scadenze in bozza, task, notifiche o riscontri e prove. Le scadenze restano
+`da confermare` finché non vengono confermate dall'avvocato con regola e audit;
+Lex non deve presentarle come termine legale definitivo.
+
+Il test reale di generazione è
+`python scripts/test_pec_control_tower.py --runtime-root <cartella>`: genera PEC
+di cancelleria, PA, notifica, accettazione senza consegna, prova completa e
+mancata consegna, alimenta il RAG operativo di Lex e interroga tutte le domande
+obbligatorie fino a risposta corretta.
+
 ## Aggiornamento operativo 2.248.26 - 24 maggio 2026
 
 La pipeline compatta `pct.pec_ocr_pipeline` emette `lex.ingest.doc` solo dopo WORM, antivirus, verifica firma, estrazione ZIP sicura, dedup SHA-256 e `ocr.result`. Lex deve trattare questi documenti come evidenze operative interne: citare `mail_id`, `doc_id`, checksum, `run_id`, confidenza OCR e candidato fascicolo/R.G. quando presente, senza trasformare il risultato OCR in parere legale conclusivo.

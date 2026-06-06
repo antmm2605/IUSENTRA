@@ -273,6 +273,23 @@ class OperationalQueryRouter:
         if "quali fonti" in text or "fonti hai usato" in text or text in {"fonti", "mostra fonti"}:
             return OperationalRoute("sources_overview", "sources_overview", ("clienti", "fascicoli", "fonti_ufficiali"), entity_query)
 
+        if _looks_like_pec_control_question(text):
+            return OperationalRoute(
+                "pec_control_tower",
+                "pec_control_tower",
+                (
+                    "pec_control_tower",
+                    "pec_audit",
+                    "email_pec",
+                    "fascicoli",
+                    "documenti_fascicolo",
+                    "scadenziario",
+                    "agenda",
+                    "notifiche",
+                ),
+                entity_query,
+            )
+
         if any(token in text for token in ("timeline", "cronologia", "linea del tempo")) and (
             "fascicol" in text or "pratica" in text or focus_topic == "fascicoli"
         ):
@@ -437,6 +454,42 @@ def _looks_like_communication_draft(text: str) -> bool:
     if not any(token in text for token in ("pec", "email", "posta", "messaggio")):
         return False
     return any(token in text for token in ("scrivi", "redigi", "prepara", "bozza", "risposta", "rispondi"))
+
+
+def _looks_like_pec_control_question(text: str) -> bool:
+    if not text:
+        return False
+    has_pec_or_proof = any(token in text for token in ("pec", "daticert", "ricevut", "consegna", "accettazione", "prova completa"))
+    has_legal_event = any(
+        token in text
+        for token in (
+            "scadenz",
+            "termine",
+            "notific",
+            "cancelleria",
+            "pubblica amministrazione",
+            "comunicazioni pa",
+            "decaden",
+            "fascicolo rischia",
+            "chi ha confermato",
+            "atti arrivati",
+            "fallit",
+        )
+    )
+    exact_questions = (
+        "quali pec ricevute oggi generano scadenze",
+        "quali notifiche verso enti o controparti devo fare",
+        "quali pec inviate non hanno ancora ricevuta di consegna",
+        "quali termini sono stati calcolati ma non confermati",
+        "quali atti sono arrivati da cancelleria",
+        "quali comunicazioni pa richiedono risposta",
+        "quali notifiche sono fallite",
+        "qual e la prova completa",
+        "qual è la prova completa",
+        "chi ha confermato la scadenza",
+        "quale fascicolo rischia una decadenza",
+    )
+    return any(question in text for question in exact_questions) or (has_pec_or_proof and has_legal_event)
 
 
 def _looks_like_communication_attachment_question(text: str) -> bool:

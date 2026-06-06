@@ -248,6 +248,13 @@ export type TemplateNormativeReference = {
   officialUrl: string
   reasonForApplication: string
   verificationStatus: string
+  lastVerifiedAt: string
+  scope: string
+  sourceType: string
+  coverageRole: string
+  deprecated: boolean
+  matchReason: string
+  registryVersion: string
   confidence: number
 }
 
@@ -257,6 +264,12 @@ export type TemplateNormativeSource = {
   officialUrl: string
   verificationStatus: string
   lastVerifiedAt: string
+  scope: string
+  sourceType: string
+  coverageRole: string
+  deprecated: boolean
+  matchReason: string
+  registryVersion: string
 }
 
 export type TemplateCompilerField = {
@@ -321,6 +334,7 @@ export type TemplateCompilerData = {
     recommended: string[]
     normativeReferences: TemplateNormativeReference[]
     sources: TemplateNormativeSource[]
+    officialTemplateSources: TemplateNormativeReference[]
     nextActions: string[]
     reasonedExplanation: string
     procedibility: string[]
@@ -339,6 +353,7 @@ export type TemplateCompilerData = {
   sections: Array<{ label: string; state: string }>
   guidePreview: TemplateGuidePreview
   templateExamples: TemplateExample[]
+  officialTemplateSources: TemplateNormativeReference[]
   fontRegistry: TemplateFontRegistry
   editorLayout: TemplateEditorLayout
   editorWorkflow: TemplateEditorWorkflowStep[]
@@ -407,6 +422,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     recommended: [],
     normativeReferences: [],
     sources: [],
+    officialTemplateSources: [],
     nextActions: [],
     reasonedExplanation: '',
     procedibility: [],
@@ -421,6 +437,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
   attachments: [],
   sections: [],
   templateExamples: [],
+  officialTemplateSources: [],
   fontRegistry: {
     schemaVersion: '',
     policy: {},
@@ -1020,6 +1037,13 @@ function normaliseNormativeReference(input: unknown): TemplateNormativeReference
     officialUrl: text(item.official_url) || text(item.officialUrl),
     reasonForApplication: text(item.reason_for_application) || text(item.reasonForApplication),
     verificationStatus: text(item.verification_status) || text(item.verificationStatus),
+    lastVerifiedAt: text(item.last_verified_at) || text(item.lastVerifiedAt),
+    scope: text(item.scope),
+    sourceType: text(item.source_type) || text(item.sourceType),
+    coverageRole: text(item.coverage_role) || text(item.coverageRole),
+    deprecated: item.deprecated === true,
+    matchReason: text(item.match_reason) || text(item.matchReason),
+    registryVersion: text(item.registry_version) || text(item.registryVersion),
     confidence: Number(item.confidence || 0),
   }
 }
@@ -1032,6 +1056,12 @@ function normaliseNormativeSource(input: unknown): TemplateNormativeSource {
     officialUrl: text(item.official_url) || text(item.officialUrl),
     verificationStatus: text(item.verification_status) || text(item.verificationStatus),
     lastVerifiedAt: text(item.last_verified_at) || text(item.lastVerifiedAt),
+    scope: text(item.scope),
+    sourceType: text(item.source_type) || text(item.sourceType),
+    coverageRole: text(item.coverage_role) || text(item.coverageRole),
+    deprecated: item.deprecated === true,
+    matchReason: text(item.match_reason) || text(item.matchReason),
+    registryVersion: text(item.registry_version) || text(item.registryVersion),
   }
 }
 
@@ -1042,6 +1072,12 @@ function normaliseCompilerPage(input: unknown): TemplateCompilerData {
   const checks = asRecord(page.checks)
   const compliance = asRecord(page.compliance)
   const hiddenInput = asRecord(page.hidden)
+  const officialTemplateSources = list(
+    page.officialTemplateSources
+    || page.official_template_sources
+    || compliance.officialTemplateSources
+    || compliance.official_template_sources,
+  ).map(normaliseNormativeReference).filter((value) => value.title || value.article)
   const hidden: Record<string, string> = {}
   Object.entries(hiddenInput).forEach(([key, value]) => {
     hidden[key] = text(value)
@@ -1100,6 +1136,9 @@ function normaliseCompilerPage(input: unknown): TemplateCompilerData {
       recommended: list(compliance.recommended).map((value) => text(value)).filter(Boolean),
       normativeReferences: list(compliance.normativeReferences).map(normaliseNormativeReference).filter((value) => value.title || value.article),
       sources: list(compliance.sources).map(normaliseNormativeSource).filter((value) => value.id || value.title),
+      officialTemplateSources: list(compliance.officialTemplateSources || compliance.official_template_sources)
+        .map(normaliseNormativeReference)
+        .filter((value) => value.title || value.article),
       nextActions: list(compliance.nextActions).map((value) => text(value)).filter(Boolean),
       reasonedExplanation: text(compliance.reasonedExplanation),
       procedibility: list(compliance.procedibility).map((value) => text(value)).filter(Boolean),
@@ -1120,6 +1159,7 @@ function normaliseCompilerPage(input: unknown): TemplateCompilerData {
       return { label: text(item.label), state: text(item.state) }
     }).filter((section) => section.label),
     templateExamples: list(page.templateExamples || page.template_examples).map(normaliseTemplateExample).filter((example) => example.id),
+    officialTemplateSources,
     fontRegistry: normaliseFontRegistry(page.fontRegistry || page.font_registry),
     editorLayout: normaliseEditorLayout(page.editorLayout || page.editor_layout),
     editorWorkflow: list(page.editorWorkflow || page.editor_workflow).map(normaliseWorkflowStep).filter((step) => step.id),

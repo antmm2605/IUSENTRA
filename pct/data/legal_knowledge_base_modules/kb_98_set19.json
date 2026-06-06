@@ -236,7 +236,7 @@
           "decorrenza": "conoscenza della violazione"
         }
       ],
-      "codice_originale_ricevuto": "180030",
+      "codice_originale_ricevuto": "GUIDA_DANNO_DA_TRATTAMENTO_ILLECITO_DI_DATI_PERSONALI_GDPR_D_LGS_196_2003_CODI_180030",
       "codice_logico": "GUIDA_DANNO_DA_TRATTAMENTO_ILLECITO_DI_DATI_PERSONALI_GDPR_D_LGS_196_2003_CODI_180030",
       "guida_interna_non_depositabile": true,
       "depositabile": false,
@@ -505,7 +505,7 @@
           "norma": "art. 2946 c.c."
         }
       ],
-      "codice_originale_ricevuto": "140050",
+      "codice_originale_ricevuto": "GUIDA_COMODATO_RISOLUZIONE_RILASCIO_ANTICIPATO_E_INDENNIT_ARTT_1803_1812_C_C_140050",
       "codice_logico": "GUIDA_COMODATO_RISOLUZIONE_RILASCIO_ANTICIPATO_E_INDENNIT_ARTT_1803_1812_C_C_140050",
       "guida_interna_non_depositabile": true,
       "depositabile": false,
@@ -775,7 +775,7 @@
           "norma": "art. 2946 c.c."
         }
       ],
-      "codice_originale_ricevuto": "121015",
+      "codice_originale_ricevuto": "GUIDA_LEGATO_TESTAMENTARIO_AZIONE_PER_L_ADEMPIMENTO_CONTESTAZIONE_E_RINUNCIA_A_121015",
       "codice_logico": "GUIDA_LEGATO_TESTAMENTARIO_AZIONE_PER_L_ADEMPIMENTO_CONTESTAZIONE_E_RINUNCIA_A_121015",
       "guida_interna_non_depositabile": true,
       "depositabile": false,
@@ -813,7 +813,7 @@
       ]
     },
     {
-      "codice": "220120",
+      "codice": "GUIDA_APPRENDISTATO_RISOLUZIONE_CONVERSIONE_220120",
       "denominazione": "Contratto di apprendistato: risoluzione illegittima e conversione a tempo indeterminato (D.Lgs. 81/2015 artt. 41-47)",
       "categoria": "Lavoro – apprendistato – tipologie contrattuali",
       "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
@@ -1079,7 +1079,21 @@
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "220120"
         }
-      ]
+      ],
+      "codice_originale_ricevuto": "220120",
+      "codice_logico": "GUIDA_APPRENDISTATO_RISOLUZIONE_CONVERSIONE_220120",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "220011",
+        "221011",
+        "222011",
+        "220120",
+        "221120",
+        "222120"
+      ],
+      "nota_integrazione_iusentra": "Il codice 220120 è ufficiale nel catalogo locale per dimissioni; la scheda ricevuta riguarda apprendistato, risoluzione e conversione del rapporto. Resta guida interna e propone i codici ufficiali apprendistato/dimissioni da valutare nel fascicolo."
     },
     {
       "codice": "GUIDA_RESPONSABILIT_SANITARIA_PER_ERRATA_PRESCRIZIONE_O_SOMMINISTRAZIONE_DI_FA_160120",
@@ -1336,7 +1350,7 @@
           "norma": "art. 2947 c.c."
         }
       ],
-      "codice_originale_ricevuto": "160120",
+      "codice_originale_ricevuto": "GUIDA_RESPONSABILIT_SANITARIA_PER_ERRATA_PRESCRIZIONE_O_SOMMINISTRAZIONE_DI_FA_160120",
       "codice_logico": "GUIDA_RESPONSABILIT_SANITARIA_PER_ERRATA_PRESCRIZIONE_O_SOMMINISTRAZIONE_DI_FA_160120",
       "guida_interna_non_depositabile": true,
       "depositabile": false,

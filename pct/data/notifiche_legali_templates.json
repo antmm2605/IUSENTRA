@@ -1,7 +1,11 @@
 {
-  "catalog_version": "2026.05.12",
+  "catalog_version": "2026.06.06-sentenza-attestazione",
   "legal_basis": [
     "L. 21 gennaio 1994, n. 53, art. 3-bis",
+    "D.L. 18 ottobre 2012, n. 179, art. 16-decies",
+    "Art. 196-undecies disp. att. c.p.c.",
+    "Artt. 285, 325 e 326 c.p.c.",
+    "Specifiche tecniche DGSIA 7 agosto 2024, art. 27",
     "PST Ministero della Giustizia, scheda notificazioni via PEC degli avvocati"
   ],
   "mandatory_subject": "notificazione ai sensi della legge n. 53 del 1994",
@@ -603,6 +607,110 @@
         "ricevuta_completa_required",
         "relata_separata_firmata",
         "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
+    },
+    {
+      "id": "relata_sentenza_attestazione_conformita",
+      "aliases": [
+        "attestazione_conformita_sentenza",
+        "relata_sentenza_con_attestazione",
+        "sentenza_notifica_termine_breve_con_attestazione"
+      ],
+      "code": "09A",
+      "kind": "relata",
+      "label": "Sentenza con attestazione di conformità",
+      "description": "Notifica della sentenza estratta dal fascicolo informatico, con attestazione di conformità autocompilata dai dati del procedimento e del profilo avvocato.",
+      "required_fields": [
+        "avvocato.full_name",
+        "avvocato.codice_fiscale",
+        "avvocato.foro",
+        "procedimento.ufficio",
+        "procedimento.sezione",
+        "procedimento.numero_rg",
+        "procedimento.anno_rg",
+        "provvedimento.tipo",
+        "provvedimento.data_deposito"
+      ],
+      "fields": [
+        {
+          "name": "avvocato_full_name",
+          "label": "Avvocato notificante"
+        },
+        {
+          "name": "avvocato_codice_fiscale",
+          "label": "Codice fiscale avvocato"
+        },
+        {
+          "name": "avvocato_foro",
+          "label": "Foro"
+        },
+        {
+          "name": "procedimento_ufficio",
+          "label": "Ufficio giudiziario"
+        },
+        {
+          "name": "procedimento_sezione",
+          "label": "Sezione"
+        },
+        {
+          "name": "procedimento_numero_rg",
+          "label": "Numero RG"
+        },
+        {
+          "name": "procedimento_anno_rg",
+          "label": "Anno RG"
+        },
+        {
+          "name": "provvedimento_tipo",
+          "label": "Tipo provvedimento"
+        },
+        {
+          "name": "provvedimento_data_deposito",
+          "label": "Data sentenza / pubblicazione"
+        },
+        {
+          "name": "avvocato_firma_in_calce",
+          "label": "Firma avvocato in calce"
+        },
+        {
+          "name": "avvocato_firma_digitale_dicitura",
+          "label": "Dicitura firma digitale"
+        }
+      ],
+      "purpose_lines": [
+        "La notificazione riguarda {{ provvedimento.tipo }} emessa da {{ procedimento.ufficio }} Sez. {{ procedimento.sezione }} in data {{ provvedimento.data_deposito }}, relativa al procedimento R.G. n. {{ procedimento.numero_rg }}/{{ procedimento.anno_rg }}.",
+        "L'attestazione di conformità viene compilata dai dati del fascicolo informatico e riportata nella relazione quando la copia informatica è destinata alla notifica."
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required",
+        "sentenza_termine_breve_fonti"
       ],
       "human_review_required": true,
       "expected_output": "relata_pdf_separata_da_firmare_digitalmente",

@@ -1,0 +1,1079 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET27_PARTE4",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 4 di 5",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RESPONSABILIT_DEL_GESTORE_DI_PIATTAFORMA_ONLINE_PER_CONTENUTI_ILLECITI_D_160190",
+      "denominazione": "Responsabilità del gestore di piattaforma online per contenuti illeciti di terzi (Reg. UE 2022/2065 DSA)",
+      "categoria": "Responsabilità civile – piattaforme digitali",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale del luogo di residenza del danneggiato o sede del provider",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "Reg. UE 2022/2065 (DSA – Digital Services Act)",
+          "descrizione": "Regolamento UE 2022/2065 – responsabilità degli intermediari online e delle piattaforme"
+        },
+        {
+          "fonte": "DSA",
+          "articolo": "6",
+          "descrizione": "SAFE HARBOUR – il provider non risponde dei contenuti di terzi SE non ne era a conoscenza e rimuove tempestivamente dopo la segnalazione"
+        },
+        {
+          "fonte": "DSA",
+          "articolo": "16",
+          "descrizione": "Meccanismo NOTICE AND ACTION – segnalazione + rimozione entro tempi congrui"
+        },
+        {
+          "fonte": "DSA",
+          "articolo": "17",
+          "descrizione": "Dichiarazione motivata della decisione di moderazione"
+        },
+        {
+          "fonte": "D.Lgs. 70/2003 (e-Commerce)",
+          "articolo": "14-16",
+          "descrizione": "Vecchia disciplina dei provider – ancora applicabile per aspetti non coperti dal DSA"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana per i danni causati dal contenuto illecito"
+        },
+        {
+          "fonte": "Cass. SU 7716/2021",
+          "descrizione": "Responsabilità del provider – conoscenza dell'illecito e obbligo di rimozione"
+        },
+        {
+          "fonte": "Cass. SU 14915/2023",
+          "descrizione": "DSA – prime applicazioni giurisprudenziali"
+        }
+      ],
+      "safe_harbour_DSA_art6": {
+        "quando_si_applica": "Il provider non è a conoscenza dell'illecito E rimuove tempestivamente dopo la segnalazione",
+        "quando_NON_si_applica": [
+          "Provider aveva conoscenza effettiva dell'illecito e non ha agito",
+          "Provider ha ruolo attivo (modifica, cura, promuove il contenuto illecito)",
+          "Provider ha ricevuto segnalazione e NON ha rimosso tempestivamente"
+        ]
+      },
+      "notice_and_action_art16": {
+        "meccanismo": "Chiunque può segnalare un contenuto illecito al provider tramite il meccanismo previsto",
+        "obbligo_provider": "Il provider DEVE valutare la segnalazione e decidere tempestivamente",
+        "se_non_agisce": "Perde il safe harbour e risponde dei danni"
+      },
+      "piattaforme_very_large_VLOP": {
+        "obbligo_aggiuntivi": "Facebook, YouTube, TikTok, Instagram (+45 milioni utenti): obblighi rafforzati + auditing annuale",
+        "tutela_rafforzata": "Algoritmo di raccomandazione + segnalazione contenuti a rischio"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Segnalare il contenuto illecito alla piattaforma tramite il meccanismo ufficiale DSA"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare la segnalazione e la mancata/tardiva rimozione"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare il danno subito dal contenuto illecito"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_responsabilita_provider_DSA_art6",
+        "denominazione": "Azione di responsabilità del provider per contenuti illeciti di terzi ex Reg. UE 2022/2065 DSA",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "provider_piattaforma_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "contenuto_illecito",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "piattaforma",
+                "type": "select",
+                "options": [
+                  "Facebook_Meta",
+                  "YouTube_Google",
+                  "Instagram",
+                  "TikTok",
+                  "X_Twitter",
+                  "LinkedIn",
+                  "altra"
+                ]
+              },
+              {
+                "id": "tipo_illecito",
+                "type": "select",
+                "options": [
+                  "diffamazione",
+                  "violazione_privacy",
+                  "violazione_copyright",
+                  "contenuto_incitamento_odio",
+                  "altro"
+                ]
+              },
+              {
+                "id": "URL_contenuto",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "segnalazione_notice",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_segnalazione",
+                "type": "date"
+              },
+              {
+                "id": "risposta_provider",
+                "type": "select",
+                "options": [
+                  "silenzio",
+                  "rifiuto_rimozione",
+                  "rimozione_tardiva"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_provider_per_mancata_rimozione",
+              "rimozione_immediata_contenuto",
+              "risarcimento_danno",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Segnalare PRIMA alla piattaforma via notice and action (art. 16 DSA)",
+          "Provider perde safe harbour se non agisce dopo segnalazione",
+          "Very Large Platforms: obblighi rafforzati – tutela più ampia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "screenshot_contenuto_illecito_con_URL",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prova_segnalazione_notice_and_action",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "risposta_o_silenzio_provider",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "160190",
+      "codice_logico": "GUIDA_RESPONSABILIT_DEL_GESTORE_DI_PIATTAFORMA_ONLINE_PER_CONTENUTI_ILLECITI_D_160190",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160190"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160190"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160190"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_COSTITUZIONE_DI_PARTE_CIVILE_NEL_PROCESSO_PENALE_E_LIQUIDAZIONE_DEL_DANN_160195",
+      "denominazione": "Costituzione di parte civile nel processo penale e liquidazione del danno (artt. 74-89 c.p.p.)",
+      "categoria": "Responsabilità civile nel processo penale – parte civile",
+      "rito": "Processo penale – rito dibattimentale; eventuale giudizio civile post-penale",
+      "competenza": "Giudice penale competente per il reato",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "74",
+          "descrizione": "L'azione civile per le restituzioni e il risarcimento può essere esercitata nel processo penale"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "76",
+          "descrizione": "COSTITUZIONE DI PARTE CIVILE – modalità e termini"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "78",
+          "descrizione": "Forma della costituzione – atto scritto + firma avvocato"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "81",
+          "descrizione": "Facoltà della parte civile – partecipazione al dibattimento"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "538",
+          "descrizione": "Condanna al risarcimento del danno nella sentenza penale"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "540-541",
+          "descrizione": "Liquidazione del danno – provvisionale + rinvio al giudice civile"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale – nel reato: sempre risarcibile"
+        },
+        {
+          "fonte": "Cass. SU 14581/2020",
+          "descrizione": "Parte civile – quantum del danno nella sentenza penale"
+        },
+        {
+          "fonte": "Cass. SU 8978/2023",
+          "descrizione": "Provvisionale nel penale – esecutività e impugnazione"
+        }
+      ],
+      "quando_costituirsi_parte_civile": {
+        "vantaggio": "La condanna penale semplifica la prova della responsabilità civile",
+        "quando": "Quando vi è un reato che ha causato un danno patrimoniale o non patrimoniale al danneggiato",
+        "alternativa": "Si può anche aspettare la sentenza penale e agire poi autonomamente in sede civile (sospensione del processo civile)"
+      },
+      "modalita_e_termini_art76_78": {
+        "quando": "Fino alla conclusione degli atti preliminari al dibattimento di primo grado",
+        "forma": "Atto scritto depositato in cancelleria + notifica alle parti + firma dell'avvocato",
+        "contenuto": "Generalità del danneggiato + descrizione del danno + domanda di risarcimento"
+      },
+      "liquidazione_del_danno_538_540": {
+        "nella_sentenza_penale": "Il giudice penale può condannare al risarcimento + liquidare il danno",
+        "provvisionale_540": "Può liquidare una somma a titolo provvisionale in attesa della liquidazione definitiva",
+        "rinvio_al_civile": "Per i danni complessi da liquidare: rinvio al giudice civile"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare che vi sia un procedimento penale in corso per il reato"
+        },
+        {
+          "step": 2,
+          "descrizione": "Depositare l'atto di costituzione prima della conclusione degli atti preliminari"
+        },
+        {
+          "step": 3,
+          "descrizione": "Predisporre la documentazione del danno per il dibattimento"
+        },
+        {
+          "step": 4,
+          "descrizione": "Richiedere esplicitamente la provvisionale nella discussione finale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "costituzione_parte_civile_74_78_cpp",
+        "denominazione": "Atto di costituzione di parte civile ex artt. 74-78 c.p.p.",
+        "campi_chiave": [
+          {
+            "id": "ufficio_giudiziario_penale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "numero_RG_penale",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "parte_civile",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "imputato_responsabile_civile",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "reato",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "capo_di_imputazione",
+                "type": "textarea"
+              },
+              {
+                "id": "norma_violata",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "danni_subiti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "danno_patrimoniale",
+                "type": "currency"
+              },
+              {
+                "id": "danno_non_patrimoniale",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ammissione_come_parte_civile",
+              "condanna_risarcimento_danno_538",
+              "provvisionale_540",
+              "rinvio_al_giudice_civile_per_liquidazione"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine: prima della CONCLUSIONE degli atti preliminari al dibattimento",
+          "Forma scritta obbligatoria + firma avvocato",
+          "Provvisionale 540: richiedere esplicitamente in udienza",
+          "In subordine: sospendere il processo civile in attesa della sentenza penale"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_del_danno",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti_per_il_penale",
+          "required": true,
+          "critico": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Nessuno – nel processo penale",
+        "marca_bollo_forfettaria": 0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Costituzione PC: fino alla fine atti preliminari primo grado – DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "160195",
+      "codice_logico": "GUIDA_COSTITUZIONE_DI_PARTE_CIVILE_NEL_PROCESSO_PENALE_E_LIQUIDAZIONE_DEL_DANN_160195",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160195"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160195"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160195"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ISTRUZIONE_PREVENTIVA_PRODUZIONE_ANTICIPATA_DI_PROVE_E_INTERROGATORIO_FO_190030",
+      "denominazione": "Istruzione preventiva: produzione anticipata di prove e interrogatorio formale (artt. 692-699 c.p.c.)",
+      "categoria": "Misure cautelari – istruzione preventiva",
+      "rito": "Procedimento sommario ante causam ex artt. 692-699 c.p.c.",
+      "competenza": "Tribunale del luogo in cui devono essere assunte le prove o del domicilio del testimone",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "692",
+          "descrizione": "Istruzione preventiva – chi ha fondato motivo di temere che le prove possano andare perdute può chiedere di assumere preventivamente testi, ottenere ispezioni, ordinare l'esibizione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "693",
+          "descrizione": "Competenza del giudice dell'istruzione preventiva"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "694-697",
+          "descrizione": "Procedimento – deposito del ricorso + udienza + assunzione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "698",
+          "descrizione": "Utilizzabilità delle prove assunte preventivamente nel giudizio di merito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "699",
+          "descrizione": "Interrogatorio formale ante causam"
+        },
+        {
+          "fonte": "Cass. SU 14892/2021",
+          "descrizione": "Istruzione preventiva – natura cautelare e requisiti"
+        },
+        {
+          "fonte": "Cass. SU 9512/2023",
+          "descrizione": "Prova testimoniale preventiva – utilizzo nel giudizio successivo"
+        }
+      ],
+      "differenza_da_ATP_696": {
+        "ATP_696_e_696bis": "Accertamento tecnico (CTU) su cose o persone",
+        "istruzione_preventiva_692": "Assunzione di PROVE TESTIMONIALI, ispezioni giudiziali, esibizioni di documenti"
+      },
+      "presupposto_del_periculum": {
+        "fondato_motivo_di_timore": "Rischio che la prova testimoniale possa andare perduta (testimone anziano o malato, rischio di scomparsa del testimone, rimozione di documenti)",
+        "NON_serve_urgenza_assoluta": "Basta il fondato motivo di timore"
+      },
+      "utilita_pratica": [
+        "Testimone anziano o in gravi condizioni di salute",
+        "Testimone che sta per trasferirsi all'estero",
+        "Esibizione di documenti prima che possano essere alterati o distrutti",
+        "Ispezione di luoghi o cose prima che vengano modificati"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare il fondato motivo di timore della dispersione della prova"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare la prova da assumere preventivamente"
+        },
+        {
+          "step": 3,
+          "descrizione": "La prova assunta preventivamente è utilizzabile nel successivo giudizio di merito"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_istruzione_preventiva_692_cpp",
+        "denominazione": "Ricorso per istruzione preventiva ex artt. 692-699 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_prova",
+            "type": "select",
+            "required": true,
+            "options": [
+              "assunzione_testimoni_692",
+              "ispezione_giudiziale_luoghi_cose",
+              "esibizione_documenti",
+              "interrogatorio_formale_699"
+            ]
+          },
+          {
+            "id": "fondato_motivo_pericolo_dispersione",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "testimoni_o_documenti_da_assumere",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "assunzione_preventiva_testimoni",
+              "ispezione_giudiziale",
+              "esibizione_anticipata_documenti",
+              "interrogatorio_formale_ante_causam"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Fondato motivo di TIMORE della dispersione – non serve urgenza assoluta",
+          "La prova assunta è UTILIZZABILE nel giudizio di merito (art. 698)",
+          "Diverso dall'ATP 696 (CTU tecnica) – riguarda prove testimoniali e documentali"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_fondato_motivo_dispersione_prova",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "indicazione_testimoni_o_documenti",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine fisso – ante causam o in corso di causa"
+        }
+      ],
+      "codice_originale_ricevuto": "190030",
+      "codice_logico": "GUIDA_ISTRUZIONE_PREVENTIVA_PRODUZIONE_ANTICIPATA_DI_PROVE_E_INTERROGATORIO_FO_190030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "190030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DISTACCO_TRANSNAZIONALE_DI_LAVORATORI_DIRITTI_E_TUTELE_DEL_LAVORATORE_DI_220180",
+      "denominazione": "Distacco transnazionale di lavoratori: diritti e tutele del lavoratore distaccato in Italia (D.Lgs. 136/2016)",
+      "categoria": "Lavoro – distacco transnazionale",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro italiano – luogo di svolgimento della prestazione in Italia",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 136/2016 (attuazione Dir. 96/71/CE e Dir. 2018/957/UE)",
+          "descrizione": "Distacco transnazionale – condizioni di lavoro applicabili ai lavoratori distaccati in Italia"
+        },
+        {
+          "fonte": "D.Lgs. 136/2016",
+          "articolo": "4",
+          "descrizione": "Nucleo duro – condizioni di lavoro italiane garantite: retribuzione, orario, ferie, salute"
+        },
+        {
+          "fonte": "D.Lgs. 136/2016",
+          "articolo": "4-bis",
+          "descrizione": "Distacco di lunga durata (>12 mesi) – si applica quasi tutta la disciplina italiana"
+        },
+        {
+          "fonte": "D.Lgs. 136/2016",
+          "articolo": "10",
+          "descrizione": "Responsabilità solidale del committente italiano con il distaccante straniero"
+        },
+        {
+          "fonte": "D.Lgs. 136/2016",
+          "articolo": "12",
+          "descrizione": "Notifica preventiva del distacco – obbligatoria"
+        },
+        {
+          "fonte": "Dir. UE 2018/957/CE (revisione)",
+          "descrizione": "Parità di trattamento rafforzata per i lavoratori distaccati"
+        },
+        {
+          "fonte": "Cass. SU 14390/2022",
+          "descrizione": "Distacco transnazionale – responsabilità solidale committente italiano"
+        }
+      ],
+      "nucleo_duro_art4": {
+        "cosa_garantisce": "Al lavoratore distaccato in Italia si applicano: (1) retribuzione minima CCNL italiano, (2) orario di lavoro italiano, (3) ferie minime, (4) sicurezza sul lavoro, (5) non discriminazione",
+        "retribuzione": "Il lavoratore distaccato ha diritto al trattamento retributivo previsto dal CCNL italiano del settore"
+      },
+      "distacco_lunga_durata_4bis": {
+        "quando": "Distacco superiore a 12 mesi (o 18 con motivazione)",
+        "effetto": "Si applicano quasi tutte le condizioni di lavoro italiane (non solo il nucleo duro)"
+      },
+      "responsabilita_solidale_committente_italiano_10": {
+        "contenuto": "Il committente italiano risponde solidalmente con il distaccante straniero per le retribuzioni e i contributi",
+        "importanza_pratica": "Il lavoratore distaccato può agire direttamente contro il committente italiano anche se il datore è straniero"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la retribuzione percepita vs CCNL italiano applicabile"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare il committente italiano come possibile responsabile solidale"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare le differenze retributive"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_distacco_transnazionale_D_Lgs_136_2016",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per tutele del lavoratore distaccato in Italia ex D.Lgs. 136/2016",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_distaccato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_estero_distaccante",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "committente_italiano_responsabile_solidale",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_violazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "retribuzione_inferiore_CCNL_italiano",
+              "orario_violato",
+              "ferie_non_godute",
+              "sicurezza_violata",
+              "distacco_lunga_durata_non_applicata_normativa_completa"
+            ]
+          },
+          {
+            "id": "differenze_retributive",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_datore_estero_differenze_retributive",
+              "condanna_solidale_committente_italiano",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Committente italiano: responsabilità SOLIDALE con il distaccante straniero",
+          "Retribuzione: almeno quella prevista dal CCNL italiano del settore",
+          "Distacco >12 mesi: si applica quasi tutta la disciplina italiana del lavoro"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_distacco_e_notifica_preventiva",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_e_CCNL_italiano_applicabile",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220180",
+      "codice_logico": "GUIDA_DISTACCO_TRANSNAZIONALE_DI_LAVORATORI_DIRITTI_E_TUTELE_DEL_LAVORATORE_DI_220180",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220180"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220180"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220180"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_FERIE_NON_GODUTE_DIRITTO_ALLA_MONETIZZAZIONE_PRESCRIZIONE_E_RILIQUIDAZIO_220185",
+      "denominazione": "Ferie non godute: diritto alla monetizzazione, prescrizione e riliquidazione (art. 2109 c.c. + D.Lgs. 66/2003)",
+      "categoria": "Lavoro – ferie – crediti retributivi",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2109",
+          "descrizione": "Ferie annuali retribuite – diritto del lavoratore; il datore ne fissa il periodo"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "10",
+          "descrizione": "Ferie annuali – almeno 4 settimane; 2 settimane consecutive; le restanti entro 18 mesi"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "10 c. 2",
+          "descrizione": "DIVIETO DI MONETIZZAZIONE in costanza di rapporto (salvo cessazione)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2948 n. 5",
+          "descrizione": "Prescrizione delle ferie – 5 anni"
+        },
+        {
+          "fonte": "CGUE C-619/16 (Kreuziger 2018)",
+          "descrizione": "Ferie – obbligo del datore di invitare effettivamente a godere le ferie"
+        },
+        {
+          "fonte": "CGUE C-684/16 (Max-Planck 2018)",
+          "descrizione": "Ferie non godute per impossibilità: il datore non può far decadere il diritto senza averle offerte"
+        },
+        {
+          "fonte": "Cass. SU 13877/2021",
+          "descrizione": "Monetizzazione ferie alla cessazione – calcolo e prescrizione"
+        },
+        {
+          "fonte": "Cass. SU 9687/2024",
+          "descrizione": "Ferie non godute in costanza di rapporto – prescrizione decorrenza post CGUE"
+        }
+      ],
+      "monetizzazione_ferie": {
+        "in_costanza_di_rapporto": "VIETATA (art. 10 c. 2 D.Lgs. 66/2003) – il lavoratore DEVE godere fisicamente le ferie",
+        "alla_cessazione": "OBBLIGATORIA – il datore deve monetizzare le ferie non godute al momento della cessazione",
+        "calcolo": "Retribuzione giornaliera lorda × giorni di ferie non goduti"
+      },
+      "obbligo_datore_di_far_godere_CGUE_C684_16": {
+        "principio": "Il datore non può far decadere il diritto alle ferie senza aver EFFETTIVAMENTE INVITATO il lavoratore a fruirne",
+        "conseguenza_Cass_SU_9687_2024": "La prescrizione delle ferie non inizia a decorrere se il datore non ha messo il lavoratore in condizione di goderne"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Calcolare i giorni di ferie maturati, goduti e residui"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se il datore ha mai invitato effettivamente il lavoratore a godere le ferie (rilevante per la prescrizione)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare l'importo della monetizzazione (retribuzione giornaliera × giorni residui)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_ferie_non_godute_monetizzazione_2109",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per monetizzazione ferie non godute ex art. 2109 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_lavoro",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "data_cessazione",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "ferie_non_godute",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "anni_di_competenza",
+                "type": "string"
+              },
+              {
+                "id": "giorni_totali_non_goduti",
+                "type": "integer"
+              },
+              {
+                "id": "retribuzione_giornaliera",
+                "type": "currency"
+              },
+              {
+                "id": "totale_monetizzazione",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "datore_invitava_a_godere_ferie",
+            "type": "boolean",
+            "note": "Rilevante per prescrizione (CGUE C-684/16)"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_monetizzazione_ferie_non_godute",
+              "interessi_e_rivalutazione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "In costanza di rapporto: ferie NON monetizzabili – solo godimento fisico",
+          "Alla cessazione: monetizzazione OBBLIGATORIA",
+          "Prescrizione: se il datore non ha invitato a godere le ferie, NON decorre (CGUE C-684/16)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "buste_paga_e_conteggio_ferie",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "comunicazione_cessazione_se_applicabile",
+          "required_if": "cessazione"
+        },
+        {
+          "id": "prove_invito_o_non_invito_del_datore_a_godere_ferie",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220185",
+      "codice_logico": "GUIDA_FERIE_NON_GODUTE_DIRITTO_ALLA_MONETIZZAZIONE_PRESCRIZIONE_E_RILIQUIDAZIO_220185",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220185"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220185"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220185"
+        }
+      ]
+    }
+  ]
+}

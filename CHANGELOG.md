@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.249.22 - 2026-06-06
+
+- Esteso il presidio PEC alle udienze con strumenti audiovisivi/remoto: `Comunicazione.xml` inline, PDF diretti e PDF compressi in ZIP alimentano profilo processuale, OCR, link, orario, giudice, parti, agenda/task e Lex/RAG; il link viene marcato utilizzabile solo se identico al valore letto dalla fonte.
+- Esteso il Centro Fonti Ufficiali Lex con audit di consegna verso Ricerca Legale/Lex/RAG: 402 fonti censite, 357 ufficiali, 343 operative, 14 da attivare, 0 buchi ufficiali; ogni riga espone materiali giuridici, articoli/codici, D.Lgs./D.M./regole tecniche, sentenze/udienze/provvedimenti e sequenza di ricerca.
+- Portati i nuovi campi del Centro Fonti nella UI Ricerca Legale (`source-delivery:*`) e nelle risposte Lex su fonti ufficiali, codici, decreti legislativi, sentenze e udienze, con ranking che privilegia Normattiva/codici e fonti giurisprudenziali ufficiali rispetto a contenitori generici o know-how non ufficiale.
+- Collegato il motore aggiornamenti legali al presidio avvocato del Centro Fonti: `autofetchMonitor` arricchisce ogni fonte con uso pratico, fase, output atteso, azione richiesta, materiali giuridici, articoli/codici, decreti/regole, sentenze/udienze/provvedimenti, URL ufficiale e domanda Lex di prova; la UI Ricerca Legale mostra queste informazioni nelle schede "Fonti da presidiare".
+- Allineato il presidio massivo PEC al contatore dell'avviso automatico: il controllo a blocchi registra come presidiate anche PEC storiche con solo identificativo/esito PCT, duplicati, MIME non disponibili, scadenze già presenti e termini scaduti, così dopo il completamento l'avvocato vede `0 comunicazioni richiedono presidio` e le esecuzioni successive lavorano solo le nuove PEC.
+- Riallineato il DB normativa per tassi antiusura 2026: Q1 e Q2 ora usano le 24 categorie ufficiali per trimestre dai decreti MEF in Gazzetta Ufficiale `25A07045` e `26A01653`, con fonte specifica esposta a Ricerca Legale/Lex e alias storico `carte_credito_revolving` ricondotto a `credito_revolving`.
+- Rafforzato lo strumento di verifica usura: sceglie il trimestre dalla data dell'operazione, restituisce TEGM, soglia, categoria ufficiale, fonte GU specifica e avviso di normalizzazione categoria quando serve.
+- Corretto il caricamento massivo della pagina PEC/email: la lista usa riepiloghi audit leggeri sopra le 80 comunicazioni, mentre il dettaglio singola PEC mantiene parsing, allegati, report, collegamento fascicolo e prova completa.
+- Rafforzata la risoluzione tenant della UI React/API: le sorgenti PEC usano lo slug/studio corrente invece di ricadere su `default`, evitando letture lente e improprie nel database audit dello studio reale.
+- Reso l'audit sorgenti Lex tenant-aware sugli alias registrati (`tenant_slug`, `tenant_storage_key`, `tenant_id`): gli alias dello stesso studio sono tracciati, le righe di studi estranei restano bloccanti.
+- Confermati gate mirati su PEC, DocumentAI, Template Atti, Ricerca Legale, Lex operativa, UTF-8, typecheck/build React, audit Guida Pratica, audit Template Atti e audit isolamento tenant.
+
+## 2.249.21 - 2026-06-06
+
+- Estesa la copertura Template Atti con fonti ufficiali primarie, decreti legislativi, correttivi, fonti secondarie, attuative, telematiche, deontologiche e autorità competenti: audit severo `scripts/audit_template_atti_legal_sources.py --fail-on-issues` verde su 1512/1512 righe modello, zero problemi modello e zero problemi fonte.
+- Pubblicate le ricerche web/fonti modello in Ricerca Legale come record `template-atti-source:*`, con URL ufficiale, autorità, data, ruolo, ambito, prefissi modello, termini di attivazione e controlli operativi verificabili dall'avvocato.
+- Aggiornato l'editor Template Atti per mostrare il ruolo `Fonte secondaria collegata` nel pannello Fonti, senza confondere basi comuni con copertura specifica del modello.
+- Integrati e riparati i nuovi materiali Guida Pratica/set utente: importer idempotente sugli alias `GUIDA_*`, collisioni 220120/411603 separate dai codici ufficiali, audit materiali utente verde su 256 record e 5745 righe senza perdita verso software, UI o Lex.
+- Aggiornato lo scadenziario dalla Guida Pratica con 87 termini letti e 12 template calcolabili; i report JSON/CSV sono in `artifacts/guida-pratica/`.
+- Rafforzata Lex AI sul fascicolo attivo: la sintesi legge agenda, udienze, provvedimenti, verbali, sentenze, esiti e scadenze successive dalle sorgenti operative tenant-aware, segnalando quando manca un esito conclusivo leggibile.
+- Documentata la memoria operativa e il report fonti in `docs/LEX_RAG_OPERATIONAL_MEMORY.md`, `docs/LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md` e `docs/specs/ministero/TEMPLATE_ATTI_FONTI_UFFICIALI_2026-06-06.md`; confermati test mirati Lex/Ricerca Legale/Template Atti/UTF-8, typecheck e build React.
+
+## 2.249.20 - 2026-06-06
+
+- Corretto il collegamento reale tra casella PEC tenant-aware, PEC Control Tower e Lex: le acquisizioni locali e le risposte Lex alimentano ora in modo idempotente gli eventi giuridici dai MIME già salvati nello studio corrente.
+- Aggiunto `/api/pec/backfill-locali` e rafforzata l'acquisizione PEC storica: il presidio audit e la Control Tower restano sincronizzati, con deduplica per hash MIME e senza invio PEC automatico.
+- Aggiunto audit read-only `scripts/audit_lex_tenant_sources.py` per contare sorgenti Lex per tenant e verificare che PEC, fascicoli, documenti, scadenze, agenda e Control Tower restino sotto la cartella dello studio senza righe di altri tenant.
+- Rafforzati i test su backfill Lex da casella locale e isolamento tenant A/B: due studi nello stesso storage logico non vedono eventi PEC dell'altro studio.
+- Chiarito che `Scadenze dai PDF` è solo un importatore mirato dai documenti fascicolo: Lex deve ragionare anche su PEC, fascicoli, scadenziario, agenda, notifiche e prove del tenant corrente.
+- Collegato il widget Lex del dettaglio/quadro fascicolo al `caseId` e al `clientId` reali, con normalizzazione backend di `pagePath`: la domanda sul fascicolo attivo recupera ora le fonti del fascicolo aperto anche senza contesto esplicito nel testo.
+- Estesa la sintesi Lex del fascicolo agli estratti indicizzati dei documenti: richieste su documenti chiave, rischi, cosa manca e prossimi passi non si fermano più al conteggio dei documenti.
+
 ## 2.249.19 - 2026-06-06
 
 - Introdotta la PEC Control Tower tenant-aware: parser MIME/daticert/ZIP, classificazione prudente, eventi giuridici, scadenze in bozza, agenda, task, notifiche, prove e audit HMAC con schema SQLite/PostgreSQL paritario.

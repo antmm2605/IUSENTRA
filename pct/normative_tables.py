@@ -315,7 +315,7 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     "interesse_legale_2026": FonteOperativa(
         code="interesse_legale_2026",
         title="G.U. - saggio interessi legali 2026",
-        url="https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticoloDefault/originario?atto.codiceRedazionale=25A07054&atto.dataPubblicazioneGazzetta=2025-12-31&atto.tipoProvvedimento=DECRETO",
+        url="https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=25A06705&atto.dataPubblicazioneGazzetta=2025-12-13&tipoSerie=serie_generale&tipoVigenza=originario",
         note="Dal 1 gennaio 2026 il saggio legale e pari all'1,60%.",
     ),
     "mora_231_2025_h1": FonteOperativa(
@@ -391,6 +391,34 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         note="Sezione MEF Dipartimento del Tesoro con i decreti trimestrali TEGM e soglie antiusura per categoria di operazione.",
         change_detection="availability_only",
     ),
+    "mef_tassi_usura_2026_q1": FonteOperativa(
+        code="mef_tassi_usura_2026_q1",
+        title="G.U. n. 302/2025 - tassi soglia usura Q1 2026",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=25A07045&atto.dataPubblicazioneGazzetta=2025-12-31"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note=(
+            "D.M. MEF 23 dicembre 2025: rilevazione 1 luglio - 30 settembre 2025, "
+            "applicazione dal 1 gennaio al 31 marzo 2026."
+        ),
+        change_detection="content_hash",
+    ),
+    "mef_tassi_usura_2026_q2": FonteOperativa(
+        code="mef_tassi_usura_2026_q2",
+        title="G.U. n. 75/2026 - tassi soglia usura Q2 2026",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=26A01653&atto.dataPubblicazioneGazzetta=2026-03-31"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note=(
+            "D.M. MEF 27 marzo 2026: rilevazione 1 ottobre - 31 dicembre 2025, "
+            "applicazione dal 1 aprile al 30 giugno 2026."
+        ),
+        change_detection="content_hash",
+    ),
     # ── ISTAT ────────────────────────────────────────────────────────────────
     "istat_portale": FonteOperativa(
         code="istat_portale",
@@ -420,11 +448,11 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     "cassa_forense_contributi_2026": FonteOperativa(
         code="cassa_forense_contributi_2026",
         title="Cassa Forense - contributi minimi obbligatori 2026",
-        url="https://www.cassaforense.it/contributi-minimi-obbligatori/",
+        url="https://www.cassaforense.it/media/pkxmzmvw/tabella-contributi-minimi.pdf",
         note=(
-            "Contributo soggettivo: 14,5% sul reddito netto professionale, minimo EUR 2.725. "
-            "Contributo integrativo: 4% sui compensi (addebitabile al cliente ex L. 576/1980). "
-            "Contributo di maternita/assistenza: EUR 191. Fonte: comunicato ufficiale Cassa Forense 2026."
+            "Tabella ufficiale contributi minimi: per il 2026 contributo soggettivo minimo EUR 2.790, "
+            "aliquota autoliquidazione 17%, contributo integrativo minimo EUR 355 con aliquota 4%; "
+            "contributo maternita indicato come da definire nella tabella consultata."
         ),
         change_detection="availability_only",
     ),
@@ -650,6 +678,128 @@ def canonical_reference_catalog_definition() -> Dict[str, Any]:
         "published_at": SEED_REVISION,
         "effective_from": SEED_REVISION,
     }
+
+
+USURA_CATEGORY_ALIASES = {
+    "carte_credito_revolving": "credito_revolving",
+    "factoring": "factoring_fino_50000",
+}
+
+
+def _normalize_usura_category(category: str) -> str:
+    value = (category or "").strip()
+    return USURA_CATEGORY_ALIASES.get(value, value)
+
+
+def _tasso_usura_rows_2026() -> List[Dict[str, Any]]:
+    labels = {
+        "aperture_credito_cc_fino_5000": "Aperture di credito in conto corrente fino a EUR 5.000",
+        "aperture_credito_cc_oltre_5000": "Aperture di credito in conto corrente oltre EUR 5.000",
+        "scoperti_senza_affidamento_fino_1500": "Scoperti senza affidamento fino a EUR 1.500",
+        "scoperti_senza_affidamento_oltre_1500": "Scoperti senza affidamento oltre EUR 1.500",
+        "anticipi_sconti_crediti_fino_50000": "Anticipi su crediti e sconti fino a EUR 50.000",
+        "anticipi_sconti_crediti_50000_200000": "Anticipi su crediti e sconti da EUR 50.000 a EUR 200.000",
+        "anticipi_sconti_crediti_oltre_200000": "Anticipi su crediti e sconti oltre EUR 200.000",
+        "credito_personale": "Credito personale",
+        "credito_finalizzato": "Credito finalizzato",
+        "factoring_fino_50000": "Factoring fino a EUR 50.000",
+        "factoring_oltre_50000": "Factoring oltre EUR 50.000",
+        "leasing_immobiliare_fisso": "Leasing immobiliare a tasso fisso",
+        "leasing_immobiliare_variabile": "Leasing immobiliare a tasso variabile",
+        "leasing_aeronavale_autoveicoli_fino_25000": "Leasing aeronavale e su autoveicoli fino a EUR 25.000",
+        "leasing_aeronavale_autoveicoli_oltre_25000": "Leasing aeronavale e su autoveicoli oltre EUR 25.000",
+        "leasing_strumentale_fino_25000": "Leasing strumentale fino a EUR 25.000",
+        "leasing_strumentale_oltre_25000": "Leasing strumentale oltre EUR 25.000",
+        "mutui_ipotecari_fisso": "Mutui con garanzia ipotecaria a tasso fisso",
+        "mutui_ipotecari_variabile": "Mutui con garanzia ipotecaria a tasso variabile",
+        "cessione_quinto_fino_15000": "Cessione del quinto fino a EUR 15.000",
+        "cessione_quinto_oltre_15000": "Cessione del quinto oltre EUR 15.000",
+        "credito_revolving": "Credito revolving",
+        "carte_credito": "Finanziamenti con utilizzo di carte di credito",
+        "altri_finanziamenti": "Altri finanziamenti",
+    }
+    quarters = [
+        (
+            "2026-Q1",
+            "2026-01-01",
+            "2026-03-31",
+            "mef_tassi_usura_2026_q1",
+            [
+                ("aperture_credito_cc_fino_5000", 10.54, 17.1750),
+                ("aperture_credito_cc_oltre_5000", 8.88, 15.1000),
+                ("scoperti_senza_affidamento_fino_1500", 15.65, 23.5625),
+                ("scoperti_senza_affidamento_oltre_1500", 15.74, 23.6750),
+                ("anticipi_sconti_crediti_fino_50000", 8.05, 14.0625),
+                ("anticipi_sconti_crediti_50000_200000", 6.51, 12.1375),
+                ("anticipi_sconti_crediti_oltre_200000", 4.99, 10.2375),
+                ("credito_personale", 11.46, 18.3250),
+                ("credito_finalizzato", 11.03, 17.7875),
+                ("factoring_fino_50000", 6.39, 11.9875),
+                ("factoring_oltre_50000", 4.72, 9.9000),
+                ("leasing_immobiliare_fisso", 5.77, 11.2125),
+                ("leasing_immobiliare_variabile", 5.28, 10.6000),
+                ("leasing_aeronavale_autoveicoli_fino_25000", 9.26, 15.5750),
+                ("leasing_aeronavale_autoveicoli_oltre_25000", 8.20, 14.2500),
+                ("leasing_strumentale_fino_25000", 9.88, 16.3500),
+                ("leasing_strumentale_oltre_25000", 7.17, 12.9625),
+                ("mutui_ipotecari_fisso", 3.96, 8.9500),
+                ("mutui_ipotecari_variabile", 4.13, 9.1625),
+                ("cessione_quinto_fino_15000", 13.73, 21.1625),
+                ("cessione_quinto_oltre_15000", 9.46, 15.8250),
+                ("credito_revolving", 15.77, 23.7125),
+                ("carte_credito", 11.76, 18.7000),
+                ("altri_finanziamenti", 14.54, 22.1750),
+            ],
+        ),
+        (
+            "2026-Q2",
+            "2026-04-01",
+            "2026-06-30",
+            "mef_tassi_usura_2026_q2",
+            [
+                ("aperture_credito_cc_fino_5000", 10.53, 17.1625),
+                ("aperture_credito_cc_oltre_5000", 8.86, 15.0750),
+                ("scoperti_senza_affidamento_fino_1500", 15.76, 23.7000),
+                ("scoperti_senza_affidamento_oltre_1500", 15.65, 23.5625),
+                ("anticipi_sconti_crediti_fino_50000", 8.06, 14.0750),
+                ("anticipi_sconti_crediti_50000_200000", 6.50, 12.1250),
+                ("anticipi_sconti_crediti_oltre_200000", 4.97, 10.2125),
+                ("credito_personale", 11.32, 18.1500),
+                ("credito_finalizzato", 10.88, 17.6000),
+                ("factoring_fino_50000", 6.41, 12.0125),
+                ("factoring_oltre_50000", 4.66, 9.8250),
+                ("leasing_immobiliare_fisso", 6.16, 11.7000),
+                ("leasing_immobiliare_variabile", 5.43, 10.7875),
+                ("leasing_aeronavale_autoveicoli_fino_25000", 9.24, 15.5500),
+                ("leasing_aeronavale_autoveicoli_oltre_25000", 8.26, 14.3250),
+                ("leasing_strumentale_fino_25000", 9.92, 16.4000),
+                ("leasing_strumentale_oltre_25000", 7.21, 13.0125),
+                ("mutui_ipotecari_fisso", 4.05, 9.0625),
+                ("mutui_ipotecari_variabile", 4.08, 9.1000),
+                ("cessione_quinto_fino_15000", 13.85, 21.3125),
+                ("cessione_quinto_oltre_15000", 9.44, 15.8000),
+                ("credito_revolving", 16.07, 24.0700),
+                ("carte_credito", 11.57, 18.4625),
+                ("altri_finanziamenti", 14.23, 21.7875),
+            ],
+        ),
+    ]
+    rows: List[Dict[str, Any]] = []
+    for quarter, start, end, source_code, values in quarters:
+        for category, tegm, soglia in values:
+            rows.append(
+                {
+                    "quarter": quarter,
+                    "start": start,
+                    "end": end,
+                    "category": category,
+                    "tegm": tegm,
+                    "soglia": soglia,
+                    "label": labels[category],
+                    "source_code": source_code,
+                }
+            )
+    return rows
 
 
 def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
@@ -1105,51 +1255,21 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "e valutazione di nullita di clausole contrattuali per usura."
             ),
             "strategy": "seed_mirror",
-            "source_codes": ["legge_108_1996_usura", "bancaditalia_tassi_usura", "mef_decreto_usura"],
-            "watch_source_ids": ["bancaditalia", "gazzetta_ufficiale"],
-            "rows": [
-                # Dati Q1 2026 (vigenti 01/01/2026 – 31/03/2026) da comunicato Banca d'Italia
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "aperture_credito_cc_fino_5000", "tegm": 13.11, "soglia": 20.39,
-                 "label": "Aperture di credito in c/c ≤ EUR 5.000"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "aperture_credito_cc_oltre_5000", "tegm": 10.54, "soglia": 17.18,
-                 "label": "Aperture di credito in c/c > EUR 5.000"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "factoring", "tegm": 5.23, "soglia": 10.54,
-                 "label": "Factoring"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "credito_personale", "tegm": 12.78, "soglia": 19.98,
-                 "label": "Credito personale"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "credito_finalizzato", "tegm": 11.42, "soglia": 18.28,
-                 "label": "Credito finalizzato"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "mutui_ipotecari_fisso", "tegm": 4.61, "soglia": 9.76,
-                 "label": "Mutui ipotecari a tasso fisso"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "mutui_ipotecari_variabile", "tegm": 4.41, "soglia": 9.51,
-                 "label": "Mutui ipotecari a tasso variabile"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "leasing_immobiliare_fisso", "tegm": 4.82, "soglia": 10.03,
-                 "label": "Leasing immobiliare a tasso fisso"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "leasing_immobiliare_variabile", "tegm": 4.47, "soglia": 9.59,
-                 "label": "Leasing immobiliare a tasso variabile"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "leasing_mobiliare_fisso", "tegm": 8.61, "soglia": 14.76,
-                 "label": "Leasing mobiliare a tasso fisso"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "leasing_mobiliare_variabile", "tegm": 5.71, "soglia": 11.14,
-                 "label": "Leasing mobiliare a tasso variabile"},
-                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
-                 "category": "carte_credito_revolving", "tegm": 19.37, "soglia": 28.21,
-                 "label": "Carte di credito revolving"},
+            "source_codes": [
+                "legge_108_1996_usura",
+                "bancaditalia_tassi_usura",
+                "mef_decreto_usura",
+                "mef_tassi_usura_2026_q1",
+                "mef_tassi_usura_2026_q2",
             ],
+            "watch_source_ids": ["bancaditalia", "gazzetta_ufficiale"],
+            "rows": _tasso_usura_rows_2026(),
             "defaults": {
                 "note": (
-                    "Soglia = TEGM × 1,25 + 4 pp (L. 108/1996 come mod. D.L. 70/2011). "
-                    "Dati seed Q1 2026 — verificare e aggiornare ogni trimestre da "
+                    "Soglia = TEGM x 1,25 + 4 punti percentuali, con differenza massima "
+                    "di 8 punti tra limite e tasso medio (L. 108/1996 come modificata "
+                    "dal D.L. 70/2011). Dati Q1/Q2 2026 letti dagli allegati ufficiali "
+                    "ai decreti MEF in Gazzetta Ufficiale. Aggiornare ogni trimestre da "
                     "https://www.bancaditalia.it/compiti/vigilanza/compiti-vigilanza/tegm/ "
                     "e relativo decreto MEF in "
                     "https://www.dt.mef.gov.it/it/attivita_istituzionali/sistema_bancario_finanziario/anti_usura/categorie_creditizie/"
@@ -1157,7 +1277,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "formula": "soglia = tegm * 1.25 + 4",
                 "aggiornamento": "trimestrale",
             },
-            "published_at": "2025-12-31",
+            "published_at": "2026-03-31",
             "effective_from": "2026-01-01",
         },
         # ── Tassi BCE ─────────────────────────────────────────────────────────
@@ -1357,35 +1477,36 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "year": 2026,
                     "tipo": "soggettivo",
-                    "aliquota": 14.5,
-                    "minimo_eur": 2725.0,
+                    "aliquota": 17.0,
+                    "minimo_eur": 2790.0,
                     "base": "reddito_netto_professionale",
                     "label": "Contributo soggettivo 2026",
-                    "note": "Aliquota 14,5% sul reddito netto professionale. Minimo EUR 2.725.",
+                    "note": "Aliquota 17% in autoliquidazione Mod. 5. Minimo EUR 2.790 secondo tabella ufficiale Cassa Forense.",
                 },
                 {
                     "year": 2026,
                     "tipo": "integrativo",
                     "aliquota": 4.0,
-                    "minimo_eur": 725.0,
+                    "minimo_eur": 355.0,
                     "base": "compensi_lordi",
                     "label": "Contributo integrativo 2026",
-                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 725.",
+                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 355 secondo tabella ufficiale Cassa Forense.",
                 },
                 {
                     "year": 2026,
                     "tipo": "maternita_assistenza",
                     "aliquota": 0.0,
-                    "minimo_eur": 191.0,
+                    "minimo_eur": 0.0,
+                    "status": "da_definire",
                     "base": "importo_fisso",
                     "label": "Contributo maternita/assistenza 2026",
-                    "note": "Importo fisso EUR 191 annuo.",
+                    "note": "Importo da definire nella tabella ufficiale Cassa Forense consultata: non usare come importo definitivo.",
                 },
             ],
             "defaults": {
                 "note": (
                     "Aggiornare annualmente con la circolare Cassa Forense da "
-                    "https://www.cassaforense.it/contributi-minimi-obbligatori/"
+                    "https://www.cassaforense.it/media/pkxmzmvw/tabella-contributi-minimi.pdf"
                 ),
                 "aggiornamento": "annuale",
             },
@@ -2002,6 +2123,7 @@ class GestioneTabelleNormative:
     def usura_soglia_per_categoria(self, category: str, on_date: Optional[date] = None) -> Optional[Dict[str, Any]]:
         """Soglia usura per la categoria e data indicata."""
         try:
+            category = _normalize_usura_category(category)
             rows = self.rows("tasso_usura")
             if not rows:
                 return None

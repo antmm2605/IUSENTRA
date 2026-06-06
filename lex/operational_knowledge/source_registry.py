@@ -206,10 +206,10 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("EMAIL_CASELLA_DB", "PEC_CONTROL_TOWER_DB", "FASCICOLI_DB", "SCADENZIARIO_DB", "AGENDA_DB"),
         permissions=("messaggi.leggi", "fascicoli.leggi"),
         repository_module="pct.pec_control_tower.PecControlTowerRepository",
-        api_surface="/api/pec/ingest, /api/communications, /api/deadlines, /api/notifications/*",
+        api_surface="/api/pec/ingest, /api/pec/backfill-locali, /api/communications, /api/deadlines, /api/notifications/*",
         tools=("answer_pec_control_question", "list_pec_control_events"),
         document_retrieval=True,
-        notes="Ogni PEC viene trasformata in evento giuridico tracciato con fascicolo, scadenze in bozza, agenda, task, notifiche, prove e audit HMAC; Lex puo' rispondere a domande operative senza confermare automaticamente termini legali.",
+        notes="Ogni PEC viene trasformata in evento giuridico tracciato con fascicolo, scadenze in bozza, agenda, task, notifiche, prove e audit HMAC; Lex può alimentare in modo idempotente la Control Tower dalla casella PEC tenant-aware e rispondere a domande operative senza confermare automaticamente termini legali.",
     ),
     _src(
         "email_ordinaria",
@@ -339,6 +339,24 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         repository_module="pct.template_atti.GestioneTemplateAtti",
         tools=("search_template_atti",),
         sensitive=False,
+    ),
+    _src(
+        "template_atti_fonti_ufficiali",
+        "Fonti ufficiali dei Template Atti",
+        "fonte_template",
+        "fonti_pubbliche",
+        tenant_keys=(),
+        permissions=(),
+        repository_module="pct.template_atti_legal_sources",
+        api_surface="/api/v1/ui/template-atti/compila/<codice>",
+        tools=("search_template_atti_sources",),
+        sensitive=False,
+        official_public_source=True,
+        notes=(
+            "Registro verificato il 2026-06-06 con audit 1512/1512 righe modello: "
+            "fonte specifica, telematica, deontologica, ordinamento forense o autorita' "
+            "competente modello per modello; la base comune non chiude la copertura."
+        ),
     ),
     _src(
         "editor_ai",

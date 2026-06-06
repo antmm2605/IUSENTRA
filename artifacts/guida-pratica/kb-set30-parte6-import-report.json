@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (19).zip::kb_set30_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set30_p6.json",
+  "sha256": "9528E4C62041FF41D9ACDE233E9A8224B13901A85F12586C2D857F5ADC570DB3",
+  "changed": false,
+  "macro_area_id": "SET30_PARTE6",
+  "denominazione": "Trentesimo set - PARTE 6 di 8",
+  "codici_materia_originali": [
+    "220215",
+    "220220",
+    "220225",
+    "220230",
+    "240035"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_COLLOCAMENTO_OBBLIGATORIO_DEI_DISABILI_TUTELE_E_CONTROVERSIE_L_68_1999_220215",
+    "GUIDA_RETRIBUZIONE_VARIABILE_MBO_E_PREMI_AZIENDALI_CONTROVERSIE_E_DIRITTO_AL_P_220220",
+    "GUIDA_CONGEDO_PARENTALE_MATERNIT_E_PATERNIT_TUTELE_E_CONTROVERSIE_D_LGS_151_20_220225",
+    "GUIDA_PENSIONE_DI_INVALIDIT_CIVILE_E_ASSEGNO_DI_INVALIDIT_INPS_RICORSO_AVVERSO_220230",
+    "GUIDA_PERMESSO_DI_COSTRUIRE_IMPUGNAZIONE_AL_TAR_E_SCIA_EDILIZIA_DPR_380_2001_A_240035"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220215",
+      "codice_integrato": "GUIDA_COLLOCAMENTO_OBBLIGATORIO_DEI_DISABILI_TUTELE_E_CONTROVERSIE_L_68_1999_220215",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220220",
+      "codice_integrato": "GUIDA_RETRIBUZIONE_VARIABILE_MBO_E_PREMI_AZIENDALI_CONTROVERSIE_E_DIRITTO_AL_P_220220",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220225",
+      "codice_integrato": "GUIDA_CONGEDO_PARENTALE_MATERNIT_E_PATERNIT_TUTELE_E_CONTROVERSIE_D_LGS_151_20_220225",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220230",
+      "codice_integrato": "GUIDA_PENSIONE_DI_INVALIDIT_CIVILE_E_ASSEGNO_DI_INVALIDIT_INPS_RICORSO_AVVERSO_220230",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240035",
+      "codice_integrato": "GUIDA_PERMESSO_DI_COSTRUIRE_IMPUGNAZIONE_AL_TAR_E_SCIA_EDILIZIA_DPR_380_2001_A_240035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

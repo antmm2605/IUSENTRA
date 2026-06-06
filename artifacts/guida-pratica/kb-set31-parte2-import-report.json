@@ -1,0 +1,60 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (20).zip::kb_set31_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set31_p2.json",
+  "sha256": "58B4F9B26E2561F0A4BA092DF02913A0539C13BCC948E156989589E1D5F65C90",
+  "changed": false,
+  "macro_area_id": "SET31_PARTE2",
+  "denominazione": "Trentunesimo set - PARTE 2 di 6",
+  "codici_materia_originali": [
+    "141075",
+    "143100",
+    "143105",
+    "145020",
+    "150105"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DEPOSITO_BANCARIO_DI_TITOLI_E_CUSTODIA_CONTROVERSIE_E_RESPONSABILIT_ARTT_141075",
+    "GUIDA_CONTRATTO_DI_FRANCHISING_INADEMPIMENTO_SCIOGLIMENTO_E_TUTELA_DEL_FRANCHI_143100",
+    "GUIDA_CONTRATTO_SUBFORNITURA_ABUSO_DIPENDENZA_ECONOMICA_143105",
+    "GUIDA_LOCAZIONE_COMMERCIALE_DISDETTA_PER_SCADENZA_RINNOVO_E_INDENNIT_DI_AVVIAM_145020",
+    "GUIDA_S_P_A_RIDUZIONE_DEL_CAPITALE_PER_PERDITE_E_MISURE_DI_EMERGENZA_ARTT_2446_150105"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "141075",
+      "codice_integrato": "GUIDA_DEPOSITO_BANCARIO_DI_TITOLI_E_CUSTODIA_CONTROVERSIE_E_RESPONSABILIT_ARTT_141075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143100",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_FRANCHISING_INADEMPIMENTO_SCIOGLIMENTO_E_TUTELA_DEL_FRANCHI_143100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143105",
+      "codice_integrato": "GUIDA_CONTRATTO_SUBFORNITURA_ABUSO_DIPENDENZA_ECONOMICA_143105",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140021",
+        "140022",
+        "140999"
+      ],
+      "reason": "Il codice 143105 è ufficiale nel catalogo locale per noleggio; la scheda ricevuta riguarda subfornitura e abuso di dipendenza economica. Resta guida interna non depositabile per non sostituire il modello ufficiale già presente."
+    },
+    {
+      "codice_originale": "145020",
+      "codice_integrato": "GUIDA_LOCAZIONE_COMMERCIALE_DISDETTA_PER_SCADENZA_RINNOVO_E_INDENNIT_DI_AVVIAM_145020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150105",
+      "codice_integrato": "GUIDA_S_P_A_RIDUZIONE_DEL_CAPITALE_PER_PERDITE_E_MISURE_DI_EMERGENZA_ARTT_2446_150105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

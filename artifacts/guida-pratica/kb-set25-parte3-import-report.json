@@ -2,7 +2,7 @@
   "source": "C:\\Users\\antmm\\Downloads\\files (16).zip::kb_set25_p3.json",
   "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p3.json",
   "sha256": "C746AE2BCE7CC55BF315E5B9B6FD2662EA184BF0227130CB525E2BE90225CD2D",
-  "changed": true,
+  "changed": false,
   "macro_area_id": "SET25_PARTE3",
   "denominazione": "Venticinquesimo set - 30 codici - PARTE 3 di 6",
   "codici_materia_originali": [

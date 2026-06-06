@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (18).zip::kb_set27_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p4.json",
+  "sha256": "F4EC7D0FEE3247CE5737C16E18F6788D7C17F0323DD17D7D41165100B7409D4D",
+  "changed": false,
+  "macro_area_id": "SET27_PARTE4",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 4 di 5",
+  "codici_materia_originali": [
+    "160190",
+    "160195",
+    "190030",
+    "220180",
+    "220185"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DEL_GESTORE_DI_PIATTAFORMA_ONLINE_PER_CONTENUTI_ILLECITI_D_160190",
+    "GUIDA_COSTITUZIONE_DI_PARTE_CIVILE_NEL_PROCESSO_PENALE_E_LIQUIDAZIONE_DEL_DANN_160195",
+    "GUIDA_ISTRUZIONE_PREVENTIVA_PRODUZIONE_ANTICIPATA_DI_PROVE_E_INTERROGATORIO_FO_190030",
+    "GUIDA_DISTACCO_TRANSNAZIONALE_DI_LAVORATORI_DIRITTI_E_TUTELE_DEL_LAVORATORE_DI_220180",
+    "GUIDA_FERIE_NON_GODUTE_DIRITTO_ALLA_MONETIZZAZIONE_PRESCRIZIONE_E_RILIQUIDAZIO_220185"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160190",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_GESTORE_DI_PIATTAFORMA_ONLINE_PER_CONTENUTI_ILLECITI_D_160190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160195",
+      "codice_integrato": "GUIDA_COSTITUZIONE_DI_PARTE_CIVILE_NEL_PROCESSO_PENALE_E_LIQUIDAZIONE_DEL_DANN_160195",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190030",
+      "codice_integrato": "GUIDA_ISTRUZIONE_PREVENTIVA_PRODUZIONE_ANTICIPATA_DI_PROVE_E_INTERROGATORIO_FO_190030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220180",
+      "codice_integrato": "GUIDA_DISTACCO_TRANSNAZIONALE_DI_LAVORATORI_DIRITTI_E_TUTELE_DEL_LAVORATORE_DI_220180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220185",
+      "codice_integrato": "GUIDA_FERIE_NON_GODUTE_DIRITTO_ALLA_MONETIZZAZIONE_PRESCRIZIONE_E_RILIQUIDAZIO_220185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

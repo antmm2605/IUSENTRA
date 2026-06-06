@@ -256,6 +256,67 @@ def test_contributo_unificato_appalti_cassazione_e_non_indicato(tmp_path):
     assert non_indicato["base"] == 6000.0
 
 
+def test_contributi_cassa_forense_2026_usa_fonte_ufficiale_e_non_inventa_maternita(tmp_path):
+    gestore = _gestore(tmp_path)
+
+    result = gestore.calcola_contributi_cassa_forense(
+        {
+            "cf_anno": "2026",
+            "cf_reddito": "10000",
+            "cf_compensi": "10000",
+        }
+    )
+
+    contributi = {row["tipo"]: row for row in result["contributi"]}
+    assert contributi["soggettivo"]["aliquota"] == 17.0
+    assert contributi["soggettivo"]["calcolato"] == 2790.0
+    assert contributi["integrativo"]["aliquota"] == 4.0
+    assert contributi["integrativo"]["calcolato"] == 400.0
+    assert contributi["maternita_assistenza"]["status"] == "da_definire"
+    assert contributi["maternita_assistenza"]["calcolato"] == 0.0
+    assert result["totale"] == 3190.0
+    assert any("da definire" in warning for warning in result["warnings"])
+    assert any(source["code"] == "cassa_forense_contributi_2026" for source in result["sources"])
+
+
+def test_verifica_soglia_usura_usa_q2_2026_e_fonte_gu_specifica(tmp_path):
+    gestore = _gestore(tmp_path)
+
+    result = gestore.verifica_soglia_usura(
+        {
+            "usura_categoria": "credito_personale",
+            "usura_tasso": "18.20",
+            "usura_data": "2026-04-15",
+        }
+    )
+
+    assert result["quarter"] == "2026-Q2"
+    assert result["tegm"] == 11.32
+    assert result["soglia"] == 18.15
+    assert result["supera_soglia"] is True
+    assert result["esito"] == "USURARIO"
+    assert any(source["code"] == "mef_tassi_usura_2026_q2" for source in result["sources"])
+
+
+def test_verifica_soglia_usura_normalizza_alias_storico_carte_revolving(tmp_path):
+    gestore = _gestore(tmp_path)
+
+    result = gestore.verifica_soglia_usura(
+        {
+            "usura_categoria": "carte_credito_revolving",
+            "usura_tasso": "24",
+            "usura_data": "2026-04-15",
+        }
+    )
+
+    assert result["categoria_input"] == "carte_credito_revolving"
+    assert result["categoria"] == "credito_revolving"
+    assert result["quarter"] == "2026-Q2"
+    assert result["soglia"] == 24.07
+    assert result["supera_soglia"] is False
+    assert any("ricondotta alla categoria ufficiale" in note for note in result["notes"])
+
+
 def test_interessi_legali_2025_su_anno_intero(tmp_path):
     gestore = _gestore(tmp_path)
     result = gestore.calcola_interessi(

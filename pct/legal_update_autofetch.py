@@ -797,15 +797,24 @@ def _source_monitor_row(
     review_published = _positive_int(activity.get("review_published"), 0)
     cursor = dict(cursors.get(code) or {})
     latest_status = str((agent_run or {}).get("status") or cursor.get("last_status") or "").lower()
+    has_acquired_documents = bool(raw_documents or normalized_documents or review_published)
     if not bool(source.get("enabled", True)):
         status = "non_monitorata"
         reason = "Fonte disattivata."
+    elif has_acquired_documents:
+        status = "pronta"
+        if review_published:
+            reason = "Fonte acquisita, indicizzata e pubblicata."
+        elif normalized_documents:
+            reason = "Fonte acquisita e indicizzata per Ricerca Legale e Lex/RAG."
+        else:
+            reason = "Fonte acquisita nel repository aggiornamenti."
+        if latest_status in {"failed", "timeout"}:
+            detail = str((agent_run or {}).get("error_message") or cursor.get("last_error") or "Ultimo controllo tecnico da riprendere.")
+            reason = f"{reason} Controllo successivo da riprendere: {detail}"
     elif latest_status in {"failed", "timeout"}:
         status = "da_verificare"
         reason = str((agent_run or {}).get("error_message") or cursor.get("last_error") or "Ultimo controllo non riuscito.")
-    elif raw_documents or normalized_documents or review_published:
-        status = "pronta"
-        reason = "Fonte con dati acquisiti o pubblicati."
     else:
         status = "non_pronta"
         reason = "Fonte censita ma ancora senza documenti acquisiti."

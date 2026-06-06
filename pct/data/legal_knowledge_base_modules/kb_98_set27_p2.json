@@ -1,0 +1,1059 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET27_PARTE2",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 2 di 5",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIT_ESPROPRIATIVA_E_OPPOSIZIONE__130135",
+      "denominazione": "Espropriazione per pubblica utilità: indennità espropriativa e opposizione (DPR 327/2001)",
+      "categoria": "Diritti reali – espropriazione per P.U.",
+      "rito": "Ricorso al TAR per vizi del procedimento; opposizione alla stima al Tribunale (art. 54 DPR 327/2001)",
+      "competenza": "TAR per i vizi del procedimento; Corte d'Appello per la determinazione dell'indennità",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "DPR 327/2001 (TU Espropriazioni)",
+          "articolo": "1-60",
+          "descrizione": "Testo unico in materia di espropriazione per pubblica utilità"
+        },
+        {
+          "fonte": "DPR 327/2001",
+          "articolo": "37",
+          "descrizione": "Indennità di espropriazione per aree edificabili – valore di mercato"
+        },
+        {
+          "fonte": "DPR 327/2001",
+          "articolo": "40",
+          "descrizione": "Indennità per aree agricole"
+        },
+        {
+          "fonte": "DPR 327/2001",
+          "articolo": "54",
+          "descrizione": "OPPOSIZIONE alla stima – davanti alla Corte d'Appello"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "42",
+          "descrizione": "Espropriazione per pubblica utilità con indennizzo"
+        },
+        {
+          "fonte": "CEDU Prot. 1 art. 1",
+          "descrizione": "Protezione della proprietà – indennizzo proporzionato"
+        },
+        {
+          "fonte": "Cass. SU 14329/2019",
+          "descrizione": "Indennità espropriativa – calcolo del valore di mercato"
+        },
+        {
+          "fonte": "Cass. SU 9814/2022",
+          "descrizione": "Occupazione acquisitiva – risarcimento del danno"
+        }
+      ],
+      "doppia_tutela": {
+        "TAR_per_vizi_procedimento": "Impugnazione del decreto di esproprio per vizi formali o sostanziali del procedimento (termine 60 gg)",
+        "Corte_Appello_per_stima_art54": "Opposizione alla stima dell'indennità se il proprietario ritiene l'indennità insufficiente"
+      },
+      "indennita_di_espropriazione_37": {
+        "aree_edificabili": "Valore di mercato al momento dell'esproprio",
+        "aree_agricole_40": "Valore agricolo medio + indennità aggiuntiva per il coltivatore diretto"
+      },
+      "occupazione_acquisitiva_Cass_SU_9814_2022": {
+        "quando": "La PA occupa illegittimamente il terreno e realizza un'opera pubblica",
+        "rimedio": "Risarcimento del danno equivalente al valore di mercato + lucro cessante"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare se il procedimento espropriativo è regolare (DPR 327/2001)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Perizia estimativa del valore di mercato del bene espropriato"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per vizi procedimentali: ricorso TAR entro 60 gg dal decreto di esproprio"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per stima insufficiente: opposizione alla stima alla Corte d'Appello"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "opposizione_stima_espropriazione_54_DPR327",
+        "denominazione": "Opposizione alla stima dell'indennità di espropriazione ex art. 54 DPR 327/2001",
+        "campi_chiave": [
+          {
+            "id": "corte_appello_competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "espropriato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "ente_espropriante_convenuto",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "bene_espropriato",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "indennita_offerta",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "valore_di_mercato_stimato",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "perizia_estimativa_di_parte",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "tipo_area",
+            "type": "select",
+            "options": [
+              "edificabile_37",
+              "agricola_40"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "rideterminazione_indennita_al_valore_mercato",
+              "risarcimento_occupazione_illegittima",
+              "interessi_sulla_differenza",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Vizi procedimentali: ricorso TAR entro 60 GG – diverso dall'opposizione stima",
+          "Perizia estimativa di parte: fondamentale per la stima alternativa",
+          "Occupazione acquisitiva: risarcimento integrale (Cass. SU 9814/2022)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "decreto_di_esproprio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_estimativa_di_parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "visure_catastali_bene_espropriato",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Ricorso TAR vizi procedimento",
+          "giorni": 60,
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "Opposizione stima Corte d'Appello: 30 gg dalla comunicazione dell'indennità"
+        }
+      ],
+      "codice_originale_ricevuto": "130135",
+      "codice_logico": "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIT_ESPROPRIATIVA_E_OPPOSIZIONE__130135",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130135"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130135"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130135"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DENUNCIA_DI_NUOVA_OPERA_E_DANNO_TEMUTO_AZIONE_POSSESSORIA_ANTICIPATORIA__130140",
+      "denominazione": "Denuncia di nuova opera e danno temuto – azione possessoria anticipatoria (artt. 1171-1172 c.c.)",
+      "categoria": "Diritti reali – azioni possessorie – nunciazione",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1171",
+          "descrizione": "DENUNCIA DI NUOVA OPERA – il possessore può denunciare l'inizio di un'opera che minaccia di recare danno alla cosa posseduta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1172",
+          "descrizione": "DENUNCIA DI DANNO TEMUTO – il possessore può denunciare la minaccia di danno grave e prossimo da un edificio, albero o altra cosa"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "688-699",
+          "descrizione": "Procedimento delle denunce – azione sommaria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1170",
+          "descrizione": "Azione di manutenzione del possesso"
+        },
+        {
+          "fonte": "Cass. SU 14389/2020",
+          "descrizione": "Denuncia nuova opera – presupposti e provvedimenti del giudice"
+        },
+        {
+          "fonte": "Cass. SU 8712/2022",
+          "descrizione": "Danno temuto – imminenza e gravità del danno"
+        }
+      ],
+      "denuncia_nuova_opera_1171": {
+        "quando": "Opera in corso (non ancora ultimata) che minaccia di recare danno alla cosa posseduta o a diritti del denunciante",
+        "termine": "Entro 1 anno dall'inizio dell'opera",
+        "rimedio": "Il giudice può ordinare la SOSPENSIONE dei lavori o la prestazione di idonee cautele"
+      },
+      "denuncia_danno_temuto_1172": {
+        "quando": "Grave e prossimo pericolo di danno da edificio, albero, altra cosa esistente (non in costruzione)",
+        "rimedio": "Adozione delle misure idonee per evitare il danno o, se non possibile, prestazione di idonea cauzione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare l'opera iniziata o la cosa pericolosa (fotografie, perizia tecnica)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per nuova opera: verificare che non sia già ultimata (termine 1 anno dall'inizio)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Mediazione obbligatoria"
+        },
+        {
+          "step": 4,
+          "descrizione": "Se urgente: richiedere provvedimento cautelare urgente (art. 700 c.p.c.)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "denuncia_nuova_opera_danno_temuto_1171_1172",
+        "denominazione": "Ricorso per denuncia di nuova opera ex art. 1171 c.c. o denuncia di danno temuto ex art. 1172 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "denunciante_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "autore_opera_o_proprietario_cosa_pericolosa",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "denuncia_nuova_opera_1171",
+              "denuncia_danno_temuto_1172"
+            ]
+          },
+          {
+            "id": "descrizione_pericolo",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "perizia_tecnica_pericolo",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "per_nuova_opera_data_inizio",
+            "type": "date",
+            "required_if": "1171"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "sospensione_lavori_1171",
+              "adozione_misure_idonee_1172",
+              "prestazione_cauzione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Denuncia nuova opera: entro 1 ANNO dall'inizio dei lavori",
+          "Danno temuto: la cosa pericolosa deve esistere già (non in costruzione)",
+          "Perizia tecnica fondamentale per documentare la gravità e l'imminenza del pericolo",
+          "Mediazione obbligatoria preventiva (diritti reali)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_opera_o_cosa_pericolosa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_tecnica_pericolo",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Denuncia nuova opera: 1 ANNO dall'inizio – DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "130140",
+      "codice_logico": "GUIDA_DENUNCIA_DI_NUOVA_OPERA_E_DANNO_TEMUTO_AZIONE_POSSESSORIA_ANTICIPATORIA__130140",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130140"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130140"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130140"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_FIDEIUSSIONE_ESCUSSIONE_REGRESSO_E_NULLIT_DELLA_FIDEIUSSIONE_OMNIBUS_ART_140080",
+      "denominazione": "Fideiussione: escussione, regresso e nullità della fideiussione omnibus (artt. 1936-1957 c.c.)",
+      "categoria": "Contratti – garanzie personali – fideiussione",
+      "rito": "Rito ordinario di cognizione; decreto ingiuntivo se titolo certo",
+      "competenza": "Tribunale – foro fideiussore (consumatore) o foro convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1936",
+          "descrizione": "Fideiussione – chi garantisce l'adempimento di un'obbligazione altrui verso il creditore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1941-1945",
+          "descrizione": "Solidarietà del fideiussore + beneficio di escussione + eccezioni opponibili"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1946",
+          "descrizione": "Fideiussione solidale – rinuncia al beneficio di escussione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1950-1952",
+          "descrizione": "REGRESSO del fideiussore verso il debitore principale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1957",
+          "descrizione": "DECADENZA – il creditore che entro 6 mesi dalla scadenza non propone azione contro il debitore libera il fideiussore"
+        },
+        {
+          "fonte": "Cass. SU 41994/2021",
+          "descrizione": "Fideiussione omnibus su schema ABI – nullità parziale per intesa anticoncorrenziale"
+        },
+        {
+          "fonte": "Cass. SU 7945/2023",
+          "descrizione": "Decadenza 1957 – decorrenza e prova"
+        }
+      ],
+      "fideiussione_omnibus_Cass_SU_41994_2021": {
+        "problema": "Le fideiussioni bancarie basate sullo schema ABI del 2003 contengono clausole anticoncorrenziali (intesa vietata ex art. 2 L. 287/1990)",
+        "clausole_nulle": [
+          "Rinuncia ai termini di decadenza ex 1957",
+          "Rinuncia all'exceptio inadimpleti contractus",
+          "Clausola di reviviscenza"
+        ],
+        "effetto": "Quelle clausole sono NULLE – la fideiussione rimane valida nelle restanti parti"
+      },
+      "decadenza_1957_Cass_SU_7945_2023": {
+        "regola": "Il creditore deve proporre azione contro il debitore principale entro 6 MESI dalla scadenza dell'obbligazione",
+        "se_non_lo_fa": "Il fideiussore è LIBERO dall'obbligo",
+        "clausola_rinuncia_nulla": "La clausola che fa rinunciare al beneficio di decadenza è nulla nelle fideiussioni omnibus ABI"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "CONTRATTI BANCARI se fideiussione bancaria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare se la fideiussione è basata su schema ABI (clausole potenzialmente nulle)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare il rispetto del termine di decadenza ex art. 1957"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per regresso: acquisire la prova del pagamento al creditore"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria se fideiussione bancaria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_fideiussione_escussione_o_eccezioni",
+        "denominazione": "Azione per escussione fideiussione o contestazione clausole nulle ex artt. 1936-1957 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "creditore_vs_fideiussore",
+                  "fideiussore_vs_debitore_regresso",
+                  "fideiussore_vs_banca_nullita_clausole"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fideiussione",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "fideiussione_ordinaria",
+                  "fideiussione_omnibus_schema_ABI",
+                  "garanzia_autonoma"
+                ]
+              },
+              {
+                "id": "importo_garantito",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "escussione_fideiussione_da_parte_creditore",
+              "eccezione_decadenza_1957",
+              "nullita_clausole_omnibus_ABI_41994_2021",
+              "regresso_fideiussore_vs_debitore_1950"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_fideiussore_al_pagamento",
+              "liberazione_fideiussore_per_decadenza_1957",
+              "nullita_clausole_rinuncia_decadenza",
+              "condanna_debitore_per_regresso_1950",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Fideiussione omnibus schema ABI: clausole rinuncia decadenza 1957 NULLE (Cass. SU 41994/2021)",
+          "Decadenza 1957: creditore deve agire entro 6 MESI dalla scadenza",
+          "Mediazione obbligatoria se fideiussione bancaria"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_fideiussione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "obbligazione_garantita_e_prove_inadempimento",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione_se_bancaria",
+          "required_if": "bancaria",
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Decadenza creditore 1957",
+          "mesi": 6,
+          "decorrenza": "scadenza obbligazione",
+          "natura": "DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "140080",
+      "codice_logico": "GUIDA_FIDEIUSSIONE_ESCUSSIONE_REGRESSO_E_NULLIT_DELLA_FIDEIUSSIONE_OMNIBUS_ART_140080",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140080"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRATTO_DI_SPEDIZIONE_RESPONSABILIT_DELLO_SPEDIZIONIERE_E_PERDITA_DELL_141055",
+      "denominazione": "Contratto di spedizione: responsabilità dello spedizioniere e perdita della merce (artt. 1737-1741 c.c.)",
+      "categoria": "Contratti – spedizione",
+      "rito": "Rito ordinario di cognizione; GdP per valori bassi",
+      "competenza": "Tribunale – foro residenza convenuto o luogo di esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1737",
+          "descrizione": "Contratto di spedizione – lo spedizioniere si obbliga verso il mandante a concludere, in nome proprio e per conto del mandante, un contratto di trasporto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1738",
+          "descrizione": "Obblighi dello spedizioniere – scegliere il vettore, curare le operazioni accessorie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1739",
+          "descrizione": "Responsabilità per la perdita o avaria delle cose"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1740",
+          "descrizione": "Spedizioniere vettore – quando assume la responsabilità del trasporto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1741",
+          "descrizione": "PRESCRIZIONE – 1 anno"
+        },
+        {
+          "fonte": "D.Lgs. 286/2005 (Autotrasporto)",
+          "descrizione": "Responsabilità del vettore per il trasporto su strada"
+        },
+        {
+          "fonte": "Cass. SU 14287/2020",
+          "descrizione": "Spedizioniere – distinzione da vettore e responsabilità"
+        },
+        {
+          "fonte": "Cass. SU 9564/2023",
+          "descrizione": "Perdita merce durante la spedizione – prova e responsabilità"
+        }
+      ],
+      "spedizioniere_vs_vettore": {
+        "spedizioniere_1737": "Organizza il trasporto (sceglie il vettore, cura le formalità) – NON trasporta direttamente",
+        "vettore": "Trasporta fisicamente la merce – risponde per perdita e avaria",
+        "spedizioniere_vettore_1740": "Se lo spedizioniere esegue il trasporto direttamente: risponde come VETTORE"
+      },
+      "responsabilita_spedizioniere_1739": {
+        "per_scelta_del_vettore": "Risponde se ha scelto un vettore inidoneo",
+        "per_istruzioni": "Risponde se non ha seguito le istruzioni del mandante",
+        "per_perdita_nelle_fasi_accessorie": "Risponde per perdite nelle fasi di cui è direttamente responsabile (carico, sdoganamento)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICARE il termine di prescrizione di 1 anno – CRITICO"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare la consegna allo spedizioniere e la perdita/avaria"
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificare il valore della merce perduta o danneggiata"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_spedizioniere_perdita_merce_1737_1741",
+        "denominazione": "Atto di citazione per responsabilità dello spedizioniere per perdita merce ex artt. 1737-1741 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "mittente_o_destinatario_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "spedizioniere_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_responsabilita",
+            "type": "select",
+            "required": true,
+            "options": [
+              "perdita_merce_durante_spedizione",
+              "avaria_merce",
+              "ritardo_consegna",
+              "scelta_vettore_inidoneo_1739",
+              "spedizioniere_vettore_1740"
+            ]
+          },
+          {
+            "id": "valore_merce_perduta",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_risarcimento_perdita_merce",
+              "condanna_avaria",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "PRESCRIZIONE 1 ANNO ex art. 1741 c.c. – BREVISSIMA",
+          "Spedizioniere vettore (1740): se trasporta direttamente → responsabilità da vettore",
+          "Prova della consegna allo spedizioniere e del valore: fondamentale"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_spedizione_e_lettera_di_vettura",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prova_consegna_e_valore_merce",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_perdita_o_avaria",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 1,
+          "norma": "art. 1741 c.c.",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "141055",
+      "codice_logico": "GUIDA_CONTRATTO_DI_SPEDIZIONE_RESPONSABILIT_DELLO_SPEDIZIONIERE_E_PERDITA_DELL_141055",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141055"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141055"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141055"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_MUTUO_TRA_PRIVATI_RESTITUZIONE_INTERESSI_E_INTERESSI_USURARI_ARTT_1813_1_143070",
+      "denominazione": "Mutuo tra privati: restituzione, interessi e interessi usurari (artt. 1813-1822 c.c.)",
+      "categoria": "Contratti – mutuo tra privati",
+      "rito": "Rito ordinario; decreto ingiuntivo se prova scritta del mutuo",
+      "competenza": "Tribunale – foro residenza convenuto o luogo di esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1813",
+          "descrizione": "Mutuo – il mutuante consegna una somma di denaro o altri beni fungibili, il mutuatario si obbliga a restituire gli stessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1815",
+          "descrizione": "Interessi – il mutuatario paga gli interessi pattuiti o legali; se usurari: clausola nulla + mutuo gratuito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1816-1818",
+          "descrizione": "Termini di restituzione + impossibilità di richiedere prima della scadenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1820",
+          "descrizione": "Mutuo a termine indeterminato – restituzione a richiesta con preavviso"
+        },
+        {
+          "fonte": "L. 108/1996",
+          "descrizione": "Usura – tasso soglia anche per mutui tra privati"
+        },
+        {
+          "fonte": "Cass. SU 24413/2020",
+          "descrizione": "Mutuo tra privati – prova della consegna (contratto reale)"
+        },
+        {
+          "fonte": "Cass. SU 8932/2022",
+          "descrizione": "Interessi nel mutuo tra privati – presunzione di onerosità"
+        }
+      ],
+      "mutuo_contratto_reale": {
+        "principio": "Il mutuo si perfeziona con la CONSEGNA della somma – non basta il consenso",
+        "prova_Cass_SU_24413_2020": "Il mutuante deve provare l'effettiva consegna della somma (bonifico, assegno, quietanza)"
+      },
+      "interessi_nel_mutuo_privato": {
+        "pattuizione_scritta": "Gli interessi devono essere pattuiti per iscritto",
+        "assenza_patto": "Si presumono gli interessi legali (non zero)",
+        "interessi_usurari": "Se il tasso supera il tasso soglia L. 108/1996: nullità della clausola + mutuo gratuito (art. 1815 c. 2)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la consegna effettiva della somma (bonifico, assegno)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare il tasso di interesse pattuito vs tasso soglia usura"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare il termine di restituzione pattuito"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_restituzione_mutuo_privato_1813_1822",
+        "denominazione": "Azione per restituzione del mutuo e pagamento degli interessi ex artt. 1813-1822 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "mutuante_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "mutuatario_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "mutuo",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "somma_erogata",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "prova_consegna",
+                "type": "select",
+                "options": [
+                  "bonifico",
+                  "assegno",
+                  "quietanza_scritta",
+                  "testimonianze"
+                ]
+              },
+              {
+                "id": "tasso_interesse_pattuito",
+                "type": "percentage"
+              },
+              {
+                "id": "scadenza_restituzione",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "restituzione_capitale",
+              "pagamento_interessi",
+              "risoluzione_per_inadempimento",
+              "eccezione_usura_nullita_interessi"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_restituzione_capitale",
+              "condanna_interessi_pattuiti",
+              "nullita_interessi_usurari_mutuo_gratuito",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mutuo reale: serve prova della CONSEGNA effettiva della somma",
+          "Interessi usurari: tasso soglia L. 108/1996 → nullità + mutuo gratuito",
+          "Decreto ingiuntivo se prova scritta del mutuo (contratto + prova consegna)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_mutuo_scritto_o_riconoscimento_debito",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "prova_consegna_somma_bonifico_o_assegno",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "143070",
+      "codice_logico": "GUIDA_MUTUO_TRA_PRIVATI_RESTITUZIONE_INTERESSI_E_INTERESSI_USURARI_ARTT_1813_1_143070",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143070"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p1.json",
+  "sha256": "0055659428278BB3C7BFAF3E55F81B164C1E11D846E92B45BA4B80AA8E52A9B3",
+  "changed": true,
+  "macro_area_id": "SET32_PARTE1",
+  "denominazione": "Trentaduesimo set - 40 nuovi codici - PARTE 1 di 8",
+  "codici_materia_originali": [
+    "112001",
+    "120075",
+    "121022",
+    "413130",
+    "413135"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+    "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_NOMINA_TUTORE_E_PROTEZIONE_L_47_2017_D_120075",
+    "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IDONEIT_E_RICONOSCIMENTO_IN_ITALIA__121022",
+    "GUIDA_DICHIARAZIONE_DI_ADOTTABILIT_DEL_MINORE_IN_STATO_DI_ABBANDONO_ARTT_8_21__413130",
+    "GUIDA_RETTIFICAZIONE_DI_ATTI_DI_STATO_CIVILE_ERRORI_OMISSIONI_E_RICONOSCIMENTO_413135"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "112001",
+      "codice_integrato": "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "111214",
+        "411640",
+        "411679",
+        "102002"
+      ],
+      "reason": "Il codice 112001 è ufficiale nel catalogo locale come voce deprecata diversa; la scheda ricevuta riguarda fondo patrimoniale, opponibilità ai creditori e revocatoria. Resta guida interna e propone i codici ufficiali fondo patrimoniale/revocatoria da valutare nel fascicolo."
+    },
+    {
+      "codice_originale": "120075",
+      "codice_integrato": "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_NOMINA_TUTORE_E_PROTEZIONE_L_47_2017_D_120075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "121022",
+      "codice_integrato": "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IDONEIT_E_RICONOSCIMENTO_IN_ITALIA__121022",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413130",
+      "codice_integrato": "GUIDA_DICHIARAZIONE_DI_ADOTTABILIT_DEL_MINORE_IN_STATO_DI_ABBANDONO_ARTT_8_21__413130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413135",
+      "codice_integrato": "GUIDA_RETTIFICAZIONE_DI_ATTI_DI_STATO_CIVILE_ERRORI_OMISSIONI_E_RICONOSCIMENTO_413135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

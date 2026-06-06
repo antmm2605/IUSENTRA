@@ -11,7 +11,7 @@ from .serializers import clean_spaces
 
 _ACCOUNTING_SOURCE_IDS = {"fatturazione", "preventivi", "conferimenti", "pagamenti", "timesheet", "tariffario"}
 _COMMUNICATION_SOURCE_IDS = {"email_pec", "email_ordinaria", "messaggi"}
-_LEGAL_SOURCE_IDS = {"legal_intelligence", "update_intelligence", "fonti_ufficiali", "web_libero"}
+_LEGAL_SOURCE_IDS = {"legal_intelligence", "update_intelligence", "fonti_ufficiali", "template_atti_fonti_ufficiali", "web_libero"}
 
 
 class LexContextProvider:
@@ -42,8 +42,18 @@ class LexContextProvider:
         studio_context = dict(studio_context or {})
         raw = metadata.get("active_context")
         active = dict(raw) if isinstance(raw, dict) else {}
-        page_context = clean_spaces(active.get("page_context") or metadata.get("page_context") or metadata.get("page_section"))
-        page_path = clean_spaces(active.get("page_path") or metadata.get("page_path"))
+        page_context = clean_spaces(
+            active.get("page_context")
+            or active.get("pageContext")
+            or active.get("context")
+            or metadata.get("page_context")
+            or metadata.get("pageContext")
+            or metadata.get("page_section")
+            or metadata.get("context")
+        )
+        page_path = clean_spaces(
+            active.get("page_path") or active.get("pagePath") or metadata.get("page_path") or metadata.get("pagePath")
+        )
         context_type = clean_spaces(active.get("context_type") or active.get("contextType") or metadata.get("context_type")).lower()
         if not context_type:
             context_type = cls._infer_context_type(page_context=page_context, page_path=page_path)

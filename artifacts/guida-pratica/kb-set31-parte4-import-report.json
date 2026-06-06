@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (20).zip::kb_set31_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set31_p4.json",
+  "sha256": "0C69ED8F817348368117A88A10EE5A798F615BD04B41B28B97A72A6926D162EB",
+  "changed": false,
+  "macro_area_id": "SET31_PARTE4",
+  "denominazione": "Trentunesimo set - PARTE 4 di 6",
+  "codici_materia_originali": [
+    "170045",
+    "180045",
+    "199015",
+    "220235",
+    "220240"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TUTELA_DEL_MARCHIO_DI_FATTO_USO_ANTERIORE_E_CONTESTAZIONE_DI_REGISTRAZIO_170045",
+    "GUIDA_PRATICHE_COMMERCIALI_SCORRETTE_AZIONE_INDIVIDUALE_DEL_CONSUMATORE_E_SEGN_180045",
+    "GUIDA_OPPOSIZIONE_TARDIVA_A_DECRETO_INGIUNTIVO_PER_CASO_FORTUITO_O_FORZA_MAGGI_199015",
+    "GUIDA_PATTO_DI_NON_CONCORRENZA_POST_RAPPORTO_DI_LAVORO_VALIDIT_CORRISPETTIVO_E_220235",
+    "GUIDA_TRASFERIMENTO_D_AZIENDA_E_TUTELA_DEL_LAVORATORE_MANTENIMENTO_DEL_RAPPORT_220240"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170045",
+      "codice_integrato": "GUIDA_TUTELA_DEL_MARCHIO_DI_FATTO_USO_ANTERIORE_E_CONTESTAZIONE_DI_REGISTRAZIO_170045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180045",
+      "codice_integrato": "GUIDA_PRATICHE_COMMERCIALI_SCORRETTE_AZIONE_INDIVIDUALE_DEL_CONSUMATORE_E_SEGN_180045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199015",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_TARDIVA_A_DECRETO_INGIUNTIVO_PER_CASO_FORTUITO_O_FORZA_MAGGI_199015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220235",
+      "codice_integrato": "GUIDA_PATTO_DI_NON_CONCORRENZA_POST_RAPPORTO_DI_LAVORO_VALIDIT_CORRISPETTIVO_E_220235",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220240",
+      "codice_integrato": "GUIDA_TRASFERIMENTO_D_AZIENDA_E_TUTELA_DEL_LAVORATORE_MANTENIMENTO_DEL_RAPPORT_220240",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

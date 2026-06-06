@@ -20,6 +20,7 @@ import {
   type TemplateLexAction,
   type TemplateLexProposal,
   type TemplateExample,
+  type TemplateNormativeReference,
   type TemplateAttiPageData,
   type TemplateAttiRecord,
 } from '../templateAttiData'
@@ -685,20 +686,73 @@ function ReliabilityScoreCard({ data }: { data: TemplateCompilerData }) {
   )
 }
 
+function sourceRoleLabel(item: TemplateNormativeReference) {
+  const role = item.coverageRole || item.sourceType || item.scope
+  const labels: Record<string, string> = {
+    specifica: 'Fonte specifica',
+    telematica: 'Regola telematica',
+    secondaria_collegata: 'Fonte secondaria collegata',
+    autorita: 'Autorità competente',
+    deontologia: 'Presidio deontologico',
+    ordinamento_professionale: 'Ordinamento forense',
+    base_comune: 'Base comune',
+  }
+  return labels[role] || item.scope || item.sourceType || 'Fonte documentata'
+}
+
+function sourceRoleTone(item: TemplateNormativeReference): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
+  if (item.deprecated) return 'warning'
+  if (item.coverageRole === 'base_comune') return 'neutral'
+  if (['telematica', 'secondaria_collegata', 'deontologia', 'autorita', 'ordinamento_professionale'].includes(item.coverageRole)) return 'info'
+  return 'success'
+}
+
+function displayVerifiedDate(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return value
+  return `${match[3]}/${match[2]}/${match[1]}`
+}
+
+function NormativeReferenceRow({ item }: { item: TemplateNormativeReference }) {
+  const heading = [item.article, item.title].filter(Boolean).join(' - ') || item.sourceTitle || 'Fonte ufficiale'
+  return (
+    <article className="iu-template-source-row">
+      <div className="iu-template-source-row__head">
+        <strong>{heading}</strong>
+        <Badge tone={sourceRoleTone(item)}>{sourceRoleLabel(item)}</Badge>
+      </div>
+      {item.sourceTitle ? <span>{item.sourceTitle}</span> : null}
+      {item.reasonForApplication ? <p>{item.reasonForApplication}</p> : null}
+      <div className="iu-template-source-row__meta">
+        {item.lastVerifiedAt ? <span>Verificata il {displayVerifiedDate(item.lastVerifiedAt)}</span> : null}
+        {item.matchReason ? <span>{item.matchReason}</span> : null}
+        {item.verificationStatus ? <span>{item.verificationStatus.replaceAll('_', ' ')}</span> : null}
+      </div>
+      {item.deprecated || item.coverageRole === 'base_comune' ? (
+        <p className="iu-template-source-row__warning">
+          {item.deprecated
+            ? 'Fonte transitoria: usare solo se la pratica rientra nel periodo indicato.'
+            : 'Base comune: non sostituisce la fonte specifica del modello.'}
+        </p>
+      ) : null}
+      {item.officialUrl ? (
+        <a className="iu-template-source-row__link" href={item.officialUrl} target="_blank" rel="noreferrer">
+          <ExternalLink size={14} aria-hidden="true" />
+          Apri fonte ufficiale
+        </a>
+      ) : null}
+    </article>
+  )
+}
+
 function NormativeReferencesCard({ data }: { data: TemplateCompilerData }) {
   const refs = data.compliance.normativeReferences
   if (!refs.length) return null
   return (
     <section className="iu-template-compiler-panel">
-      <h3>Riferimenti applicabili</h3>
+      <h3>Fonti del modello</h3>
       <div className="iu-template-compliance-list">
-        {refs.slice(0, 6).map((item) => (
-          <p key={item.id || `${item.title}-${item.article}`}>
-            <strong>{item.article || item.title}</strong>
-            {item.reasonForApplication ? `: ${item.reasonForApplication}` : ''}
-            {item.verificationStatus ? ` (${item.verificationStatus.replaceAll('_', ' ')})` : ''}
-          </p>
-        ))}
+        {refs.slice(0, 12).map((item) => <NormativeReferenceRow item={item} key={item.id || `${item.title}-${item.article}`} />)}
       </div>
     </section>
   )
@@ -2248,16 +2302,23 @@ function ProfessionalTemplateEditorWorkspace({
                   <BookOpen size={14} aria-hidden="true" />
                   Inserisci guida nel template
                 </button>
-                {(data.compliance.normativeReferences.length ? data.compliance.normativeReferences : []).slice(0, 8).map((ref) => (
-                  <article key={ref.id || ref.title}>
-                    <strong>{ref.title || ref.sourceTitle || ref.article}</strong>
-                    <span>{ref.article || ref.reasonForApplication}</span>
-                    <button type="button" onClick={() => insertDocumentBlock(`Riferimento normativo: ${ref.title || ref.sourceTitle || ref.article}${ref.article ? `, ${ref.article}` : ''}.`)}>
-                      Inserisci riferimento
-                    </button>
-                  </article>
-                ))}
-                {!data.compliance.normativeReferences.length ? <p>Fonti disponibili nella pratica e nei controlli del modello.</p> : null}
+                {(() => {
+                  const sourceRows = data.compliance.normativeReferences.length
+                    ? data.compliance.normativeReferences
+                    : data.officialTemplateSources.length
+                      ? data.officialTemplateSources
+                      : data.compliance.officialTemplateSources
+                  return sourceRows.length ? sourceRows.slice(0, 10).map((ref) => (
+                    <article key={ref.id || ref.title || ref.article}>
+                      <strong>{ref.title || ref.sourceTitle || ref.article}</strong>
+                      <span>{[ref.article, ref.coverageRole, ref.reasonForApplication].filter(Boolean).join(' - ')}</span>
+                      {ref.officialUrl ? <a href={ref.officialUrl} target="_blank" rel="noreferrer">Apri fonte</a> : null}
+                      <button type="button" onClick={() => insertDocumentBlock(`Riferimento normativo: ${ref.title || ref.sourceTitle || ref.article}${ref.article ? `, ${ref.article}` : ''}.`)}>
+                        Inserisci riferimento
+                      </button>
+                    </article>
+                  )) : <p>Fonti ufficiali del modello non ancora disponibili per questa scheda.</p>
+                })()}
               </section>
             ) : null}
             {activeTab === 'Controlli' ? (

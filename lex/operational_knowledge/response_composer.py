@@ -296,11 +296,12 @@ class OperationalResponseComposer:
             for key, label in (("stato", "Stato"), ("tribunale", "Ufficio"), ("nome_cliente", "Cliente"), ("controparte", "Controparte")):
                 if clean_spaces(fascicolo.get(key)):
                     lines.append(f"{label}: {fascicolo.get(key)}.")
+        document_analysis_requested = _looks_like_document_analysis(question)
         if documenti:
             lines.append(f"Documenti del fascicolo collegati o indicizzati: {len(documenti)}.")
-            if route.intent == "documenti_fascicolo" and _looks_like_document_analysis(question):
+            if route.intent in {"documenti_fascicolo", "fascicolo_summary"} and document_analysis_requested:
                 lines.append("Punti importanti verificabili dai documenti disponibili:")
-            if route.intent == "documenti_fascicolo" and _looks_like_document_analysis(question):
+            if route.intent in {"documenti_fascicolo", "fascicolo_summary"} and document_analysis_requested:
                 for row in documenti[:5]:
                     lines.append(f"- {_document_line(row)}")
                     excerpt = _document_excerpt(row)
@@ -310,8 +311,30 @@ class OperationalResponseComposer:
                     lines.append("Ho usato il testo indicizzato disponibile; eventuali sezioni non indicizzate restano da verificare nel documento originale.")
                 else:
                     lines.append("Il testo integrale non risulta disponibile in questa evidenza: non invento contenuti e segnalo solo metadati, data, tipo, hash e link editor.")
+                if route.intent == "fascicolo_summary" and _looks_like_missing_or_next_steps(question):
+                    lines.append("Cosa manca e prossimi passi vanno confermati sulle fonti operative mostrate: controlla estratti, allegati, scadenze, ricevute e documenti non ancora firmati o non ancora classificati.")
             else:
                 lines.extend(f"- {_document_line(row)}" for row in documenti[:5])
+        outcome_documents = [row for row in documenti if _is_outcome_document(row)]
+        if outcome_documents:
+            lines.append("Provvedimenti, verbali o sentenze rilevati nel fascicolo:")
+            for row in outcome_documents[:4]:
+                lines.append(f"- {_outcome_document_line(row)}")
+        elif route.intent == "fascicolo_summary" and (
+            _looks_like_missing_or_next_steps(question) or _looks_like_case_outcome_question(question)
+        ):
+            lines.append("Esito pratica: non risulta ancora un provvedimento, verbale o sentenza conclusiva leggibile nelle fonti consultate.")
+        agenda_rows = _data_for(results, "agenda")
+        hearing_rows = [row for row in agenda_rows if _is_hearing_event(row)]
+        if hearing_rows:
+            lines.append("Udienze ed eventi processuali collegati:")
+            lines.extend(f"- {_hearing_event_line(row)}" for row in hearing_rows[:4])
+        scadenze_rows = _data_for(results, "scadenziario")
+        if scadenze_rows and (outcome_documents or hearing_rows or _looks_like_missing_or_next_steps(question)):
+            lines.append("Termini e attività successive da presidiare:")
+            lines.extend(f"- {_dated_label(row)}" for row in scadenze_rows[:4])
+        if route.intent == "fascicolo_summary" and _looks_like_case_outcome_question(question):
+            lines.append("Per valutare cosa ha inciso sull'esito, Lex usa solo eventi, udienze, documenti e termini realmente censiti nel fascicolo.")
         for source_id, label in (("scadenziario", "Scadenze"), ("agenda", "Agenda"), ("preventivi", "Preventivi"), ("fatturazione", "Parcelle")):
             rows = _data_for(results, source_id)
             if rows:
@@ -483,8 +506,61 @@ class OperationalResponseComposer:
         question: str = "",
     ) -> list[str]:
         rows = []
-        for source_id in ("legal_intelligence", "update_intelligence", "fonti_ufficiali", "web_libero"):
+        for source_id in ("legal_intelligence", "update_intelligence", "fonti_ufficiali", "template_atti_fonti_ufficiali", "web_libero"):
             rows.extend(_data_for(results, source_id))
+        source_delivery_rows = [
+            row
+            for row in rows
+            if clean_spaces(row.get("kind")) == "centro_fonti_operativo"
+        ]
+        if source_delivery_rows:
+            lines = [f"Fonti operative pertinenti trovate: {len(source_delivery_rows)}."]
+            for row in source_delivery_rows[:6]:
+                title = _label(row)
+                state = clean_spaces(row.get("state"))
+                phase = clean_spaces(row.get("practice_phase"))
+                output = clean_spaces(row.get("expected_output"))
+                context = clean_spaces(row.get("professional_context"))
+                action = clean_spaces(row.get("activation_action"))
+                question_line = clean_spaces(row.get("lex_test_question"))
+                url = clean_spaces(row.get("official_url"))
+                legal_materials = [clean_spaces(item) for item in list(row.get("legal_materials") or []) if clean_spaces(item)]
+                articles_and_codes = [clean_spaces(item) for item in list(row.get("articles_and_codes") or []) if clean_spaces(item)]
+                decrees_and_rules = [clean_spaces(item) for item in list(row.get("decrees_and_rules") or []) if clean_spaces(item)]
+                case_law_and_hearings = [clean_spaces(item) for item in list(row.get("case_law_and_hearings") or []) if clean_spaces(item)]
+                research_steps = [clean_spaces(item) for item in list(row.get("research_steps") or []) if clean_spaces(item)]
+                lines.append(f"- **{title}**: {state}.")
+                if phase:
+                    lines.append(f"  Fase pratica: {phase}.")
+                if output:
+                    lines.append(f"  Output atteso: {output}.")
+                if context:
+                    lines.append(f"  Contesto utile: {context}.")
+                if legal_materials:
+                    lines.append(f"  Materiali da controllare: {'; '.join(legal_materials[:3])}.")
+                if articles_and_codes:
+                    lines.append(f"  Articoli/codici: {'; '.join(articles_and_codes[:2])}.")
+                if decrees_and_rules:
+                    lines.append(f"  Decreti e regole tecniche: {'; '.join(decrees_and_rules[:2])}.")
+                if case_law_and_hearings:
+                    lines.append(f"  Sentenze, udienze e provvedimenti: {'; '.join(case_law_and_hearings[:2])}.")
+                if research_steps:
+                    lines.append(f"  Sequenza di ricerca: {'; '.join(research_steps[:2])}.")
+                if action:
+                    lines.append(f"  Azione: {action}.")
+                if question_line:
+                    lines.append(f"  Domanda Lex da verificare: {question_line}.")
+                if url:
+                    lines.append(f"  Fonte: {_markdown_link(url, label='Apri fonte ufficiale')}.")
+            display_gaps = [
+                gap
+                for gap in gaps
+                if "Nessuna fonte ufficiale citabile trovata nell'indice locale configurato" not in gap
+            ]
+            if display_gaps:
+                lines.append("Limiti: " + "; ".join(display_gaps[:3]) + ".")
+            lines.append("Uso professionale: una fonte catalogata non basta per citare in atto; prima va collegata al documento, alla regola vigente, al modello o alla prova del fascicolo.")
+            return lines
         attachment_rows = [row for row in rows if clean_spaces(row.get("attachment_url") or row.get("url_allegato"))]
         if attachment_rows:
             primary = attachment_rows[0]
@@ -576,6 +652,7 @@ class OperationalResponseComposer:
 
     def _template_editor_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
         templates = _data_for(results, "template_atti")
+        template_sources = _data_for(results, "template_atti_fonti_ufficiali")
         editor = _data_for(results, "editor_ai")
         fascicoli = _data_for(results, "fascicoli")
         documenti = _data_for(results, "documenti_fascicolo")
@@ -583,6 +660,15 @@ class OperationalResponseComposer:
         if templates:
             lines.append(f"Template atti compatibili: {len(templates)}.")
             lines.extend(f"- {_label(row)}" for row in templates[:5])
+        if template_sources:
+            lines.append(f"Fonti ufficiali dei modelli: {len(template_sources)} riferimenti documentati.")
+            for row in template_sources[:6]:
+                label = _label(row)
+                code = clean_spaces(row.get("template_code"))
+                article = clean_spaces(row.get("article"))
+                role = clean_spaces(row.get("coverage_role"))
+                parts = [part for part in (code, article, label, role) if part]
+                lines.append("- " + " - ".join(parts))
         if editor:
             row = editor[0]
             lines.append(f"Editor Lex: {_label(row)}.")
@@ -649,6 +735,7 @@ class OperationalResponseComposer:
             "email_ordinaria": "Email ordinaria",
             "editor_ai": "Editor Lex",
             "template_atti": "Template atti",
+            "template_atti_fonti_ufficiali": "Fonti ufficiali Template Atti",
         }
         lines = []
         for result in results:
@@ -783,6 +870,66 @@ def _document_excerpt(row: dict[str, Any], *, limit: int = 520) -> str:
     return excerpt[: limit - 3].rstrip() + "..."
 
 
+_OUTCOME_DOCUMENT_TOKENS = (
+    "sentenza",
+    "ordinanza",
+    "decreto",
+    "verbale",
+    "provvedimento",
+    "omologa",
+    "conciliazione",
+    "esito",
+    "accoglimento",
+    "rigetto",
+)
+
+
+def _is_outcome_document(row: dict[str, Any]) -> bool:
+    haystack = clean_spaces(
+        " ".join(
+            str(row.get(key) or "")
+            for key in ("nome", "title", "titolo", "tipo", "categoria", "status", "anteprima", "summary")
+        )
+    ).lower()
+    return any(token in haystack for token in _OUTCOME_DOCUMENT_TOKENS)
+
+
+def _outcome_document_line(row: dict[str, Any]) -> str:
+    base = _document_line(row).rstrip(".")
+    excerpt = _document_excerpt(row, limit=220)
+    if excerpt:
+        return f"{base}. Estratto: {excerpt}"
+    return base + "."
+
+
+def _is_hearing_event(row: dict[str, Any]) -> bool:
+    haystack = clean_spaces(
+        " ".join(str(row.get(key) or "") for key in ("titolo", "title", "tipo", "categoria", "descrizione", "note", "oggetto"))
+    ).lower()
+    return any(token in haystack for token in ("udienz", "rinvio", "trattazione", "comparizione", "discussione", "camera di consiglio"))
+
+
+def _hearing_event_line(row: dict[str, Any]) -> str:
+    base = _dated_label(row)
+    pieces = []
+    for key, label in (
+        ("ufficio", "ufficio"),
+        ("giudice", "giudice"),
+        ("esito", "esito"),
+        ("outcome", "esito"),
+        ("provvedimento", "provvedimento"),
+        ("prossima_attivita", "prossima attività"),
+        ("next_action", "prossima attività"),
+    ):
+        value = clean_spaces(row.get(key))
+        if value:
+            pieces.append(f"{label} {value}")
+    note = _short_text(row.get("note") or row.get("descrizione"), max_length=180).rstrip(".")
+    if note and note.lower() not in base.lower():
+        pieces.append(f"nota {note}")
+    return base + (f" ({'; '.join(pieces)})." if pieces else ".")
+
+
 def _payment_line(row: dict[str, Any]) -> str:
     label = clean_spaces(row.get("descrizione")) or _label(row)
     amount = clean_spaces(row.get("importo") or row.get("totale") or row.get("amount"))
@@ -801,6 +948,30 @@ def _payment_line(row: dict[str, Any]) -> str:
 def _looks_like_document_analysis(question: str) -> bool:
     text = clean_spaces(question).lower()
     return any(token in text for token in ("analizza", "spiega", "spiegami", "riassumi", "sintesi", "punti important", "punti più important"))
+
+
+def _looks_like_missing_or_next_steps(question: str) -> bool:
+    text = clean_spaces(question).lower()
+    return any(token in text for token in ("cosa manca", "mancano", "prossimi passi", "prossima azione", "rischi", "rischio"))
+
+
+def _looks_like_case_outcome_question(question: str) -> bool:
+    text = clean_spaces(question).lower()
+    return any(
+        token in text
+        for token in (
+            "esito",
+            "sentenza",
+            "provvedimento",
+            "udienza",
+            "verbale",
+            "successo",
+            "andata bene",
+            "andata male",
+            "cosa ha inciso",
+            "decisivo",
+        )
+    )
 
 
 def _studio_priority_lines(results: list[OperationalToolResult]) -> list[str]:

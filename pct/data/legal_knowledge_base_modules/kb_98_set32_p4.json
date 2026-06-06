@@ -1,0 +1,2283 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET32_PARTE4",
+  "denominazione": "PARTE 4 di 8",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_LOCAZIONE_DI_IMMOBILE_AD_USO_PROFESSIONALE_STUDI_MEDICI_LEGALI_NOTARILI__145025",
+      "denominazione": "Locazione di immobile ad uso professionale (studi medici, legali, notarili): durata e tutele (L. 392/1978 artt. 42-46)",
+      "categoria": "Contratti – locazione uso professionale",
+      "rito": "Rito speciale locatizio",
+      "competenza": "Tribunale del luogo dell'immobile",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "42",
+          "descrizione": "Locazione uso professionale – si applicano le norme sull'uso non abitativo (durata 6 anni + 6 anni)"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "36",
+          "descrizione": "CESSIONE DEL CONTRATTO – il conduttore può cedere il contratto al successore nell'attività"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "34",
+          "descrizione": "INDENNITÀ DI AVVIAMENTO – dovuta anche agli studi professionali se aperti al pubblico"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Studio professionale – indennità avviamento per studi aperti al pubblico"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Cessione del contratto di locazione professionale al successore"
+        }
+      ],
+      "cessione_contratto_professionisti_36": {
+        "diritto": "Il professionista (medico, avvocato, notaio) può cedere il contratto di locazione al collega che subentra nella stessa attività",
+        "opposizione_locatore": "Il locatore può opporsi per gravi motivi entro 30 gg dalla comunicazione"
+      },
+      "indennita_avviamento_professionisti": {
+        "quando": "Se lo studio è aperto al pubblico (es. medico, dentista) – studi privati non aperti al pubblico: no indennità",
+        "importo": "18 mensilità"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "LOCAZIONE"
+      },
+      "atto_principale": {
+        "tipo_atto": "azione_locazione_professionale_42_L392",
+        "denominazione": "Azione per controversie su locazione uso professionale ex artt. 42-46 L. 392/1978",
+        "campi_chiave": [
+          {
+            "id": "tribunale"
+          },
+          {
+            "id": "attore",
+            "type": "object_persona"
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona"
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "options": [
+              "cessione_contratto_professionista_36",
+              "indennita_avviamento_per_studi_aperti_pubblico",
+              "disdetta_illegittima"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "condanna_indennita_avviamento_34",
+              "autorizzazione_cessione_contratto_36",
+              "annullamento_disdetta"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Cessione contratto: opposizione locatore entro 30 GG",
+          "Indennità avviamento: solo se lo studio è APERTO AL PUBBLICO",
+          "Mediazione obbligatoria preventiva"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_locazione_uso_professionale"
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione canoni",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "145025",
+      "codice_logico": "GUIDA_LOCAZIONE_DI_IMMOBILE_AD_USO_PROFESSIONALE_STUDI_MEDICI_LEGALI_NOTARILI__145025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145025"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 luglio 1978, n. 392 - Disciplina delle locazioni di immobili urbani",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978;392!vig=",
+          "ambito": "locazioni urbane, uso diverso, prelazione, indennità di avviamento e rilascio",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145025"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 9 dicembre 1998, n. 431 - Locazioni abitative",
+          "url": "https://www.normattiva.it/eli/id/1998/12/15/098G0483/CONSOLIDATED",
+          "ambito": "locazioni abitative, durata 4+4, canone concordato, rilascio e nullità",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "145025"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 6 giugno 2001, n. 380 - Testo unico edilizia",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001;380!vig=",
+          "ambito": "permesso di costruire, SCIA edilizia, abusi, sanatoria e titoli edilizi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 26 marzo 2010, n. 59 - servizi nel mercato interno",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;59!vig=",
+          "ambito": "SCIA commerciale, servizi, autorizzazioni e controlli amministrativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 30 marzo 1942, n. 327 - Codice della navigazione",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327!vig=",
+          "ambito": "concessioni demaniali marittime e lacuali, revoca, decadenza, beni demaniali e navigazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 marzo 2023, n. 36 - Codice dei contratti pubblici",
+          "url": "https://www.normattiva.it/eli/id/2023/03/31/23G00044/CONSOLIDATED",
+          "ambito": "appalti pubblici, affidamenti, esecuzione, digitalizzazione, trasparenza e rimedi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "ANAC",
+          "titolo": "Contratti pubblici - attuazione D.Lgs. 36/2023 e BDNCP",
+          "url": "https://www.anticorruzione.it/contratti-pubblici",
+          "ambito": "piattaforme, BDNCP, pubblicità legale, FAQ e presidi ANAC sugli appalti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 agosto 1990, n. 241 - procedimento amministrativo e autotutela",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990;241!vig=",
+          "ambito": "procedimento amministrativo, accesso, motivazione, autotutela, termini e partecipazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 2 luglio 2010, n. 104 - Codice del processo amministrativo",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;104!vig=",
+          "ambito": "ricorso amministrativo, TAR, appello, cautelari, termini e risarcimento PA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 29 settembre 1973, n. 600 - accertamento imposte sui redditi",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973;600!vig=",
+          "ambito": "accertamento redditi, redditometro, termini, avvisi e prove del contribuente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 ottobre 1972, n. 633 - IVA",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1972;633!vig=",
+          "ambito": "IVA, accertamento, detrazione, liquidazione, rimborsi e sanzioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 aprile 1986, n. 131 - Testo unico imposta di registro",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;131!vig=",
+          "ambito": "imposta di registro, atti giudiziari, avvisi, liquidazione e registrazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 ottobre 1990, n. 346 - imposta su successioni e donazioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990;346!vig=",
+          "ambito": "successioni, donazioni, franchigie, aliquote e adempimenti fiscali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2019, n. 160 - disciplina IMU vigente",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019;160!vig=",
+          "ambito": "IMU, presupposto, soggetti passivi, base imponibile e termini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2013, n. 147 - IUC/TARI",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2013;147!vig=",
+          "ambito": "TARI, presupposto, utenze, regolamenti comunali e termini locali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 22 dicembre 1986, n. 917 - TUIR",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;917!vig=",
+          "ambito": "IRPEF, redditi, plusvalenze, base imponibile e accertamento",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 29 dicembre 2022, n. 197 - bilancio 2023 e definizioni agevolate",
+          "url": "https://www.normattiva.it/eli/stato/LEGGE/2022/12/29/197/CONSOLIDATED",
+          "ambito": "definizione liti fiscali pendenti, tregua fiscale, rottamazione e misure tributarie collegate",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 agosto 2022, n. 130 - riforma della giustizia tributaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2022;130!vig=",
+          "ambito": "giustizia tributaria, magistratura tributaria, prova, onere probatorio e definizione liti pendenti pregresse",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 6 dicembre 2011, n. 201 - crescita, equità e consolidamento conti pubblici",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2011-12-06;201!vig=",
+          "ambito": "pensioni, strumenti di pagamento, IVIE, IVAFE e imposte patrimoniali su attività estere",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Definizione agevolata delle controversie tributarie pendenti - Legge 197/2022",
+          "url": "https://telematici.agenziaentrate.gov.it/Main/Avviso?id=20230315101031",
+          "ambito": "domande telematiche, software, provvedimento attuativo e liti fiscali pendenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Quadro W - investimenti esteri, IVIE e IVAFE",
+          "url": "https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-w",
+          "ambito": "monitoraggio fiscale, IVIE, IVAFE, imposta cripto-attività, istruzioni dichiarazione 730/2026",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "MEF - Dipartimento delle Finanze",
+          "titolo": "Portale del Federalismo Fiscale",
+          "url": "https://www.portalefederalismofiscale.gov.it/",
+          "ambito": "aliquote, delibere comunali, IMU, TARI e fiscalità locale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Indici sintetici di affidabilità fiscale",
+          "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/indici_sintetici_affidabilita.html",
+          "ambito": "ISA, effetti premiali, accertamento e presidi dichiarativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle entrate-Riscossione",
+          "titolo": "Accertamento esecutivo e avviso di addebito INPS",
+          "url": "https://www.agenziaentrateriscossione.gov.it/it/Per-saperne-di-piu/documenti-della-riscossione/accertamento-esecutivo-e-avviso-di-addebito-inps/",
+          "ambito": "atti impositivi esecutivi, ricorso, pagamento e affidamento alla riscossione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "mediazione civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 8 marzo 2017, n. 24 - responsabilità sanitaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017-03-08;24~art10-com2=",
+          "ambito": "responsabilità sanitaria, assicurazione, rivalsa e regresso",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "responsabilità sanitaria"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_S_R_L_CESSIONE_DI_QUOTE_DIRITTI_DI_PRELAZIONE_STATUTARI_E_LIMITAZIONI_AL_150110",
+      "denominazione": "S.r.l.: cessione di quote, diritti di prelazione statutari e limitazioni al trasferimento (artt. 2469-2471 c.c.)",
+      "categoria": "Diritto societario – S.r.l. – cessione quote",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2469",
+          "descrizione": "Trasferimento delle quote – liberamente trasferibili salvo clausole statutarie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2469 c. 2",
+          "descrizione": "Clausole di intrasferibilità – possono limitare o vietare il trasferimento; se vietano: recesso del socio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2470",
+          "descrizione": "Efficacia del trasferimento – dal momento dell'iscrizione nel RI"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2471",
+          "descrizione": "Pignoramento della quota – iscrizione nel RI"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Prelazione statutaria – violazione e rimedi del socio pretermesso"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Cessione quote SRL senza rispetto prelazione – riscatto del socio pretermesso"
+        }
+      ],
+      "clausola_prelazione_statutaria": {
+        "meccanismo": "Lo statuto può prevedere che prima di cedere la quota a terzi: l'offerente debba proporla agli altri soci alle stesse condizioni",
+        "violazione_Cass_SU_9876_2023": "Se la quota viene ceduta senza rispettare la prelazione: il socio pretermesso può RISCATTARE la quota dal terzo acquirente"
+      },
+      "clausola_intrasferibilita_2469c2": {
+        "se_statuto_vieta_trasferimento": "Il socio che vuole uscire ha diritto al RECESSO dalla società – liquidazione della quota"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "azione_cessione_quote_srl_prelazione_2469",
+        "denominazione": "Azione per riscatto quota SRL per violazione prelazione statutaria ex art. 2469 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese"
+          },
+          {
+            "id": "socio_pretermesso_attore"
+          },
+          {
+            "id": "cedente_e_acquirente_convenuti",
+            "type": "array_persone"
+          },
+          {
+            "id": "quota_venduta",
+            "type": "fraction"
+          },
+          {
+            "id": "prezzo_cessione",
+            "type": "currency"
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "options": [
+              "riscatto_per_violazione_prelazione",
+              "nullita_cessione_senza_prelazione",
+              "recesso_per_clausola_intrasferibilita"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "riscatto_quota_dal_terzo",
+              "nullita_cessione",
+              "reintegra_nei_diritti_sociali"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Violazione prelazione: il socio pretermesso può RISCATTARE la quota",
+          "Intrasferibilità assoluta: diritto di recesso del socio che vuole uscire",
+          "Competenza TRIBUNALE DELLE IMPRESE"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "statuto_con_clausola_prelazione"
+        },
+        {
+          "id": "atto_cessione_quote_contestato"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Riscatto: entro 90 GG dalla conoscenza della cessione"
+        }
+      ],
+      "codice_originale_ricevuto": "150110",
+      "codice_logico": "GUIDA_S_R_L_CESSIONE_DI_QUOTE_DIRITTI_DI_PRELAZIONE_STATUTARI_E_LIMITAZIONI_AL_150110",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150110"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150110"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150110"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 luglio 1978, n. 392 - Disciplina delle locazioni di immobili urbani",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978;392!vig=",
+          "ambito": "locazioni urbane, uso diverso, prelazione, indennità di avviamento e rilascio",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "locazioni abitative e commerciali"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 9 dicembre 1998, n. 431 - Locazioni abitative",
+          "url": "https://www.normattiva.it/eli/id/1998/12/15/098G0483/CONSOLIDATED",
+          "ambito": "locazioni abitative, durata 4+4, canone concordato, rilascio e nullità",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "locazioni abitative e commerciali"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 6 giugno 2001, n. 380 - Testo unico edilizia",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001;380!vig=",
+          "ambito": "permesso di costruire, SCIA edilizia, abusi, sanatoria e titoli edilizi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 26 marzo 2010, n. 59 - servizi nel mercato interno",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;59!vig=",
+          "ambito": "SCIA commerciale, servizi, autorizzazioni e controlli amministrativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 30 marzo 1942, n. 327 - Codice della navigazione",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327!vig=",
+          "ambito": "concessioni demaniali marittime e lacuali, revoca, decadenza, beni demaniali e navigazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 marzo 2023, n. 36 - Codice dei contratti pubblici",
+          "url": "https://www.normattiva.it/eli/id/2023/03/31/23G00044/CONSOLIDATED",
+          "ambito": "appalti pubblici, affidamenti, esecuzione, digitalizzazione, trasparenza e rimedi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "ANAC",
+          "titolo": "Contratti pubblici - attuazione D.Lgs. 36/2023 e BDNCP",
+          "url": "https://www.anticorruzione.it/contratti-pubblici",
+          "ambito": "piattaforme, BDNCP, pubblicità legale, FAQ e presidi ANAC sugli appalti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 agosto 1990, n. 241 - procedimento amministrativo e autotutela",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990;241!vig=",
+          "ambito": "procedimento amministrativo, accesso, motivazione, autotutela, termini e partecipazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 2 luglio 2010, n. 104 - Codice del processo amministrativo",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;104!vig=",
+          "ambito": "ricorso amministrativo, TAR, appello, cautelari, termini e risarcimento PA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 29 settembre 1973, n. 600 - accertamento imposte sui redditi",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973;600!vig=",
+          "ambito": "accertamento redditi, redditometro, termini, avvisi e prove del contribuente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 ottobre 1972, n. 633 - IVA",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1972;633!vig=",
+          "ambito": "IVA, accertamento, detrazione, liquidazione, rimborsi e sanzioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 aprile 1986, n. 131 - Testo unico imposta di registro",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;131!vig=",
+          "ambito": "imposta di registro, atti giudiziari, avvisi, liquidazione e registrazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 ottobre 1990, n. 346 - imposta su successioni e donazioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990;346!vig=",
+          "ambito": "successioni, donazioni, franchigie, aliquote e adempimenti fiscali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2019, n. 160 - disciplina IMU vigente",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019;160!vig=",
+          "ambito": "IMU, presupposto, soggetti passivi, base imponibile e termini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2013, n. 147 - IUC/TARI",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2013;147!vig=",
+          "ambito": "TARI, presupposto, utenze, regolamenti comunali e termini locali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 22 dicembre 1986, n. 917 - TUIR",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;917!vig=",
+          "ambito": "IRPEF, redditi, plusvalenze, base imponibile e accertamento",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 29 dicembre 2022, n. 197 - bilancio 2023 e definizioni agevolate",
+          "url": "https://www.normattiva.it/eli/stato/LEGGE/2022/12/29/197/CONSOLIDATED",
+          "ambito": "definizione liti fiscali pendenti, tregua fiscale, rottamazione e misure tributarie collegate",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 agosto 2022, n. 130 - riforma della giustizia tributaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2022;130!vig=",
+          "ambito": "giustizia tributaria, magistratura tributaria, prova, onere probatorio e definizione liti pendenti pregresse",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 6 dicembre 2011, n. 201 - crescita, equità e consolidamento conti pubblici",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2011-12-06;201!vig=",
+          "ambito": "pensioni, strumenti di pagamento, IVIE, IVAFE e imposte patrimoniali su attività estere",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Definizione agevolata delle controversie tributarie pendenti - Legge 197/2022",
+          "url": "https://telematici.agenziaentrate.gov.it/Main/Avviso?id=20230315101031",
+          "ambito": "domande telematiche, software, provvedimento attuativo e liti fiscali pendenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Quadro W - investimenti esteri, IVIE e IVAFE",
+          "url": "https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-w",
+          "ambito": "monitoraggio fiscale, IVIE, IVAFE, imposta cripto-attività, istruzioni dichiarazione 730/2026",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "MEF - Dipartimento delle Finanze",
+          "titolo": "Portale del Federalismo Fiscale",
+          "url": "https://www.portalefederalismofiscale.gov.it/",
+          "ambito": "aliquote, delibere comunali, IMU, TARI e fiscalità locale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Indici sintetici di affidabilità fiscale",
+          "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/indici_sintetici_affidabilita.html",
+          "ambito": "ISA, effetti premiali, accertamento e presidi dichiarativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle entrate-Riscossione",
+          "titolo": "Accertamento esecutivo e avviso di addebito INPS",
+          "url": "https://www.agenziaentrateriscossione.gov.it/it/Per-saperne-di-piu/documenti-della-riscossione/accertamento-esecutivo-e-avviso-di-addebito-inps/",
+          "ambito": "atti impositivi esecutivi, ricorso, pagamento e affidamento alla riscossione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "mediazione civile"
+        },
+        {
+          "ente": "Camera di Commercio",
+          "titolo": "Registro delle imprese e adempimenti societari",
+          "url": "https://www.vr.camcom.gov.it/content/il-registro-imprese",
+          "ambito": "visure, assetti societari, scioglimento, liquidazione e pubblicità legale dell'impresa",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "societario e registro imprese"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_ART_56_D_LGS_14_2019_CCII_TUTELE_E_BENEFI_152025",
+      "denominazione": "Piano attestato di risanamento (art. 56 D.Lgs. 14/2019 CCII) – tutele e benefici",
+      "categoria": "Procedure concorsuali – piano attestato",
+      "rito": "Nessun procedimento giudiziario obbligatorio – atti stragiudiziali + eventuale revocatoria",
+      "competenza": "Tribunale fallimentare se contestato",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "56",
+          "descrizione": "Piano attestato di risanamento – l'imprenditore redige un piano per il risanamento dell'esposizione debitoria"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "56 c. 1",
+          "descrizione": "Protezione dalla revocatoria – gli atti eseguiti in attuazione del piano non sono revocabili"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "56 c. 2",
+          "descrizione": "Attestazione – il professionista indipendente certifica la veridicità e la fattibilità del piano"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "24",
+          "descrizione": "Esdebitazione – post-completamento del piano"
+        },
+        {
+          "fonte": "Cass. SU 14897/2022",
+          "descrizione": "Piano attestato – presupposti della protezione dalla revocatoria"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Attestatore indipendente – requisiti e responsabilità"
+        }
+      ],
+      "vantaggi_piano_attestato": {
+        "protezione_revocatoria": "Gli atti (pagamenti, garanzie) eseguiti in attuazione del piano ATTESTATO non sono revocabili in caso di successiva LG",
+        "riservatezza": "Non è pubblico – nessuna pubblicità al RI (differenza dal concordato)",
+        "velocità": "Nessuna procedura giudiziaria obbligatoria – solo accordo con creditori"
+      },
+      "differenze_da_composizione_negoziata": {
+        "152020": "Procedimento con esperto CCIAA – fase negoziale assistita",
+        "152025": "Piano attestato: già concorda con i creditori + l'attestatore certifica il piano – più avanzato"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "contestazione_o_tutela_piano_attestato_56_CCII",
+        "denominazione": "Contestazione della revocatoria degli atti del piano attestato ex art. 56 CCII o azione del creditore escluso",
+        "campi_chiave": [
+          {
+            "id": "tribunale_fallimentare"
+          },
+          {
+            "id": "attore"
+          },
+          {
+            "id": "convenuto"
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "options": [
+              "eccezione_esenzione_revocatoria_56",
+              "contestazione_piano_attestato_da_creditore",
+              "responsabilita_attestatore"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "accertamento_esenzione_revocatoria",
+              "nullita_piano_attestato",
+              "risarcimento_attestatore"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Protezione dalla revocatoria: gli atti del piano sono esenti",
+          "Attestatore: responsabilità se certifica dati falsi",
+          "Piano attestato: nessuna pubblicità (differenza da concordato)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "piano_attestato_e_relazione_attestatore"
+        },
+        {
+          "id": "atti_contestati"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Contestazione revocatoria: nei termini della procedura concorsuale"
+        }
+      ],
+      "codice_originale_ricevuto": "152025",
+      "codice_logico": "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_ART_56_D_LGS_14_2019_CCII_TUTELE_E_BENEFI_152025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152025"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 12 gennaio 2019, n. 14 - Codice della crisi d'impresa e dell'insolvenza",
+          "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2019/01/12/14/CONSOLIDATED",
+          "ambito": "composizione negoziata, strumenti di regolazione della crisi, insolvenza e procedure concorsuali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152025"
+        },
+        {
+          "ente": "Unioncamere",
+          "titolo": "Piattaforma nazionale composizione negoziata",
+          "url": "https://composizionenegoziata.camcom.it/",
+          "ambito": "accesso alla composizione negoziata, test pratico, istanza e gestione documentale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152025"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "fondo patrimoniale e tutela dei creditori"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 6 giugno 2001, n. 380 - Testo unico edilizia",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001;380!vig=",
+          "ambito": "permesso di costruire, SCIA edilizia, abusi, sanatoria e titoli edilizi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 26 marzo 2010, n. 59 - servizi nel mercato interno",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;59!vig=",
+          "ambito": "SCIA commerciale, servizi, autorizzazioni e controlli amministrativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 30 marzo 1942, n. 327 - Codice della navigazione",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327!vig=",
+          "ambito": "concessioni demaniali marittime e lacuali, revoca, decadenza, beni demaniali e navigazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 marzo 2023, n. 36 - Codice dei contratti pubblici",
+          "url": "https://www.normattiva.it/eli/id/2023/03/31/23G00044/CONSOLIDATED",
+          "ambito": "appalti pubblici, affidamenti, esecuzione, digitalizzazione, trasparenza e rimedi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "ANAC",
+          "titolo": "Contratti pubblici - attuazione D.Lgs. 36/2023 e BDNCP",
+          "url": "https://www.anticorruzione.it/contratti-pubblici",
+          "ambito": "piattaforme, BDNCP, pubblicità legale, FAQ e presidi ANAC sugli appalti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 agosto 1990, n. 241 - procedimento amministrativo e autotutela",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990;241!vig=",
+          "ambito": "procedimento amministrativo, accesso, motivazione, autotutela, termini e partecipazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 2 luglio 2010, n. 104 - Codice del processo amministrativo",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;104!vig=",
+          "ambito": "ricorso amministrativo, TAR, appello, cautelari, termini e risarcimento PA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 29 settembre 1973, n. 600 - accertamento imposte sui redditi",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973;600!vig=",
+          "ambito": "accertamento redditi, redditometro, termini, avvisi e prove del contribuente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 ottobre 1972, n. 633 - IVA",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1972;633!vig=",
+          "ambito": "IVA, accertamento, detrazione, liquidazione, rimborsi e sanzioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 aprile 1986, n. 131 - Testo unico imposta di registro",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;131!vig=",
+          "ambito": "imposta di registro, atti giudiziari, avvisi, liquidazione e registrazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 ottobre 1990, n. 346 - imposta su successioni e donazioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990;346!vig=",
+          "ambito": "successioni, donazioni, franchigie, aliquote e adempimenti fiscali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2019, n. 160 - disciplina IMU vigente",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019;160!vig=",
+          "ambito": "IMU, presupposto, soggetti passivi, base imponibile e termini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2013, n. 147 - IUC/TARI",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2013;147!vig=",
+          "ambito": "TARI, presupposto, utenze, regolamenti comunali e termini locali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 22 dicembre 1986, n. 917 - TUIR",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;917!vig=",
+          "ambito": "IRPEF, redditi, plusvalenze, base imponibile e accertamento",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 29 dicembre 2022, n. 197 - bilancio 2023 e definizioni agevolate",
+          "url": "https://www.normattiva.it/eli/stato/LEGGE/2022/12/29/197/CONSOLIDATED",
+          "ambito": "definizione liti fiscali pendenti, tregua fiscale, rottamazione e misure tributarie collegate",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 agosto 2022, n. 130 - riforma della giustizia tributaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2022;130!vig=",
+          "ambito": "giustizia tributaria, magistratura tributaria, prova, onere probatorio e definizione liti pendenti pregresse",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 6 dicembre 2011, n. 201 - crescita, equità e consolidamento conti pubblici",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2011-12-06;201!vig=",
+          "ambito": "pensioni, strumenti di pagamento, IVIE, IVAFE e imposte patrimoniali su attività estere",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Definizione agevolata delle controversie tributarie pendenti - Legge 197/2022",
+          "url": "https://telematici.agenziaentrate.gov.it/Main/Avviso?id=20230315101031",
+          "ambito": "domande telematiche, software, provvedimento attuativo e liti fiscali pendenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Quadro W - investimenti esteri, IVIE e IVAFE",
+          "url": "https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-w",
+          "ambito": "monitoraggio fiscale, IVIE, IVAFE, imposta cripto-attività, istruzioni dichiarazione 730/2026",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "MEF - Dipartimento delle Finanze",
+          "titolo": "Portale del Federalismo Fiscale",
+          "url": "https://www.portalefederalismofiscale.gov.it/",
+          "ambito": "aliquote, delibere comunali, IMU, TARI e fiscalità locale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Indici sintetici di affidabilità fiscale",
+          "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/indici_sintetici_affidabilita.html",
+          "ambito": "ISA, effetti premiali, accertamento e presidi dichiarativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle entrate-Riscossione",
+          "titolo": "Accertamento esecutivo e avviso di addebito INPS",
+          "url": "https://www.agenziaentrateriscossione.gov.it/it/Per-saperne-di-piu/documenti-della-riscossione/accertamento-esecutivo-e-avviso-di-addebito-inps/",
+          "ambito": "atti impositivi esecutivi, ricorso, pagamento e affidamento alla riscossione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "EUR-Lex",
+          "titolo": "Regolamento (UE) 2016/679 - protezione dei dati personali",
+          "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita",
+          "ambito": "GDPR, responsabilità, risarcimento ex art. 82, sicurezza, basi giuridiche e diritti dell'interessato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "privacy e consenso sanitario"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 30 giugno 2003, n. 196 - Codice privacy",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=003G0218&atto.dataPubblicazioneGazzetta=2003-07-29&tipoDettaglio=vigente",
+          "ambito": "protezione dati personali, raccordo nazionale al GDPR, reclami, ricorsi e responsabilità",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "privacy e consenso sanitario"
+        },
+        {
+          "ente": "Garante per la protezione dei dati personali",
+          "titolo": "Regolamento UE 2016/679 - testo e riferimenti del Garante",
+          "url": "https://www.garanteprivacy.it/regolamentoue",
+          "ambito": "testo GDPR, considerando, guide, provvedimenti e orientamenti dell'autorità competente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "privacy e consenso sanitario"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 22 dicembre 2017, n. 219 - consenso informato e DAT",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017;219!vig=",
+          "ambito": "consenso informato, disposizioni anticipate di trattamento, relazione di cura e autodeterminazione sanitaria",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "privacy e consenso sanitario"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 8 marzo 2017, n. 24 - responsabilità sanitaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017-03-08;24~art10-com2=",
+          "ambito": "responsabilità sanitaria, assicurazione, rivalsa e regresso",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "privacy e consenso sanitario"
+        },
+        {
+          "ente": "Camera di Commercio",
+          "titolo": "Registro delle imprese e adempimenti societari",
+          "url": "https://www.vr.camcom.gov.it/content/il-registro-imprese",
+          "ambito": "visure, assetti societari, scioglimento, liquidazione e pubblicità legale dell'impresa",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "crisi d'impresa"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PATTI_PARASOCIALI_E_SINDACATI_DI_VOTO_NELLE_S_P_A_ARTT_2341_BIS_E_2341_T_154025",
+      "denominazione": "Patti parasociali e sindacati di voto nelle S.p.A. (artt. 2341-bis e 2341-ter c.c.)",
+      "categoria": "Diritto societario – patti parasociali",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2341-bis",
+          "descrizione": "Patti parasociali – patti che limitano il voto o il trasferimento di azioni, o che realizzano accordi di dominio; durata max 5 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2341-ter",
+          "descrizione": "Pubblicità dei patti nelle società quotate – dichiarazione in assemblea"
+        },
+        {
+          "fonte": "TUF D.Lgs. 58/1998",
+          "articolo": "122",
+          "descrizione": "Patti parasociali nelle quotate – comunicazione CONSOB e pubblicità"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Patto parasociale – validità e durata massima"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Sindacato di voto – violazione e risarcimento"
+        }
+      ],
+      "patti_parasociali_2341bis": {
+        "cosa_sono": "Accordi tra soci che disciplinano il comportamento in assemblea o la circolazione delle azioni AL DI FUORI dello statuto",
+        "tipi": [
+          "Sindacato di voto: i soci si accordano su come votare",
+          "Sindacato di blocco: limitazioni al trasferimento delle azioni",
+          "Accordi di dominio: una parte guida la gestione"
+        ],
+        "durata_massima": "5 anni per le società chiuse; 3 anni per le quotate"
+      },
+      "violazione_sindacato_voto_Cass_SU_9876_2023": {
+        "effetto": "La violazione del sindacato di voto è inadempimento contrattuale – risarcimento dei danni",
+        "voto_in_assemblea": "Il voto espresso in violazione non è invalido (è atto societario) ma genera responsabilità contrattuale"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "azione_patti_parasociali_2341bis",
+        "denominazione": "Azione per violazione di patti parasociali ex art. 2341-bis c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese"
+          },
+          {
+            "id": "parte_lesa_attore"
+          },
+          {
+            "id": "parte_inadempiente_convenuta"
+          },
+          {
+            "id": "tipo_patto",
+            "type": "select",
+            "options": [
+              "sindacato_voto",
+              "sindacato_blocco",
+              "accordo_dominio"
+            ]
+          },
+          {
+            "id": "violazione",
+            "type": "textarea"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "risarcimento_danni_violazione_patto",
+              "nullita_patto_per_durata_eccessiva"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Violazione patto parasociale: non invalida il voto societario – solo risarcimento",
+          "Durata massima: 5 anni (3 per quotate)",
+          "Competenza TRIBUNALE DELLE IMPRESE"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "patto_parasociale"
+        },
+        {
+          "id": "documentazione_violazione"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "154025",
+      "codice_logico": "GUIDA_PATTI_PARASOCIALI_E_SINDACATI_DI_VOTO_NELLE_S_P_A_ARTT_2341_BIS_E_2341_T_154025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154025"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 6 giugno 2001, n. 380 - Testo unico edilizia",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001;380!vig=",
+          "ambito": "permesso di costruire, SCIA edilizia, abusi, sanatoria e titoli edilizi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 26 marzo 2010, n. 59 - servizi nel mercato interno",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;59!vig=",
+          "ambito": "SCIA commerciale, servizi, autorizzazioni e controlli amministrativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 30 marzo 1942, n. 327 - Codice della navigazione",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327!vig=",
+          "ambito": "concessioni demaniali marittime e lacuali, revoca, decadenza, beni demaniali e navigazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 marzo 2023, n. 36 - Codice dei contratti pubblici",
+          "url": "https://www.normattiva.it/eli/id/2023/03/31/23G00044/CONSOLIDATED",
+          "ambito": "appalti pubblici, affidamenti, esecuzione, digitalizzazione, trasparenza e rimedi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "ANAC",
+          "titolo": "Contratti pubblici - attuazione D.Lgs. 36/2023 e BDNCP",
+          "url": "https://www.anticorruzione.it/contratti-pubblici",
+          "ambito": "piattaforme, BDNCP, pubblicità legale, FAQ e presidi ANAC sugli appalti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 agosto 1990, n. 241 - procedimento amministrativo e autotutela",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990;241!vig=",
+          "ambito": "procedimento amministrativo, accesso, motivazione, autotutela, termini e partecipazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 2 luglio 2010, n. 104 - Codice del processo amministrativo",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;104!vig=",
+          "ambito": "ricorso amministrativo, TAR, appello, cautelari, termini e risarcimento PA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 29 settembre 1973, n. 600 - accertamento imposte sui redditi",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973;600!vig=",
+          "ambito": "accertamento redditi, redditometro, termini, avvisi e prove del contribuente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 ottobre 1972, n. 633 - IVA",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1972;633!vig=",
+          "ambito": "IVA, accertamento, detrazione, liquidazione, rimborsi e sanzioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 aprile 1986, n. 131 - Testo unico imposta di registro",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;131!vig=",
+          "ambito": "imposta di registro, atti giudiziari, avvisi, liquidazione e registrazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 ottobre 1990, n. 346 - imposta su successioni e donazioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990;346!vig=",
+          "ambito": "successioni, donazioni, franchigie, aliquote e adempimenti fiscali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2019, n. 160 - disciplina IMU vigente",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019;160!vig=",
+          "ambito": "IMU, presupposto, soggetti passivi, base imponibile e termini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2013, n. 147 - IUC/TARI",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2013;147!vig=",
+          "ambito": "TARI, presupposto, utenze, regolamenti comunali e termini locali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 22 dicembre 1986, n. 917 - TUIR",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;917!vig=",
+          "ambito": "IRPEF, redditi, plusvalenze, base imponibile e accertamento",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 29 dicembre 2022, n. 197 - bilancio 2023 e definizioni agevolate",
+          "url": "https://www.normattiva.it/eli/stato/LEGGE/2022/12/29/197/CONSOLIDATED",
+          "ambito": "definizione liti fiscali pendenti, tregua fiscale, rottamazione e misure tributarie collegate",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 agosto 2022, n. 130 - riforma della giustizia tributaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2022;130!vig=",
+          "ambito": "giustizia tributaria, magistratura tributaria, prova, onere probatorio e definizione liti pendenti pregresse",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 6 dicembre 2011, n. 201 - crescita, equità e consolidamento conti pubblici",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2011-12-06;201!vig=",
+          "ambito": "pensioni, strumenti di pagamento, IVIE, IVAFE e imposte patrimoniali su attività estere",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Definizione agevolata delle controversie tributarie pendenti - Legge 197/2022",
+          "url": "https://telematici.agenziaentrate.gov.it/Main/Avviso?id=20230315101031",
+          "ambito": "domande telematiche, software, provvedimento attuativo e liti fiscali pendenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Quadro W - investimenti esteri, IVIE e IVAFE",
+          "url": "https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-w",
+          "ambito": "monitoraggio fiscale, IVIE, IVAFE, imposta cripto-attività, istruzioni dichiarazione 730/2026",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "MEF - Dipartimento delle Finanze",
+          "titolo": "Portale del Federalismo Fiscale",
+          "url": "https://www.portalefederalismofiscale.gov.it/",
+          "ambito": "aliquote, delibere comunali, IMU, TARI e fiscalità locale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Indici sintetici di affidabilità fiscale",
+          "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/indici_sintetici_affidabilita.html",
+          "ambito": "ISA, effetti premiali, accertamento e presidi dichiarativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle entrate-Riscossione",
+          "titolo": "Accertamento esecutivo e avviso di addebito INPS",
+          "url": "https://www.agenziaentrateriscossione.gov.it/it/Per-saperne-di-piu/documenti-della-riscossione/accertamento-esecutivo-e-avviso-di-addebito-inps/",
+          "ambito": "atti impositivi esecutivi, ricorso, pagamento e affidamento alla riscossione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3 - negoziazione assistita",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014;132~art3=",
+          "ambito": "risarcimento da circolazione e domande di pagamento entro soglia, fuori dai casi di mediazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "negoziazione assistita"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 24 febbraio 1998, n. 58 - Testo unico della finanza",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=098G0075&atto.dataPubblicazioneGazzetta=1998-03-26&tipoDettaglio=vigente",
+          "ambito": "servizi di investimento, intermediari finanziari, obblighi informativi e ACF",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "finanziario"
+        },
+        {
+          "ente": "CONSOB",
+          "titolo": "Arbitro per le Controversie Finanziarie",
+          "url": "https://www.consob.it/web/area-pubblica/arbitro-per-le-controversie-finanziarie",
+          "ambito": "ADR per controversie finanziarie tra investitori e intermediari",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "finanziario"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_IMPRENDITORE_INDIVIDUALE_RESPONSABILIT_PATRIMONIALE_ILLIMITATA_E_STRUMEN_156010",
+      "denominazione": "Imprenditore individuale: responsabilità patrimoniale illimitata e strumenti di tutela (artt. 2740-2742 c.c.)",
+      "categoria": "Diritto commerciale – imprenditore individuale",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro del debitore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2740",
+          "descrizione": "RESPONSABILITÀ PATRIMONIALE – il debitore risponde delle obbligazioni con TUTTI i suoi beni presenti e futuri"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2740 c. 2",
+          "descrizione": "Limitazioni di responsabilità ammesse SOLO nei casi stabiliti dalla legge"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2741",
+          "descrizione": "Par condicio creditorum – i creditori hanno uguale diritto su tutti i beni del debitore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2742",
+          "descrizione": "Garanzia patrimoniale – creditori hanno garanzia generica su tutto il patrimonio"
+        },
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "1 c. 2",
+          "descrizione": "Imprenditore individuale – soggetto a LG (già fallimento)"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Responsabilità illimitata imprenditore individuale – separazione patrimoni"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Fondo patrimoniale e imprenditore – creditori d'impresa"
+        }
+      ],
+      "responsabilita_illimitata_2740": {
+        "principio": "L'imprenditore individuale risponde con TUTTO il suo patrimonio (personale + aziendale)",
+        "strumenti_tutela_limitata": [
+          "Trasformazione in S.r.l. unipersonale – responsabilità limitata",
+          "Fondo patrimoniale – ma opponibile solo per debiti estranei ai bisogni della famiglia",
+          "Separazione patrimoniale – limitata a casi specifici"
+        ]
+      },
+      "par_condicio_creditorum_2741": {
+        "principio": "Tutti i creditori chirografari hanno uguale diritto",
+        "eccezioni": "Crediti privilegiati (INPS, AE, banche con ipoteca) hanno preferenza"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "azione_creditori_vs_imprenditore_individuale_2740",
+        "denominazione": "Azione esecutiva contro l'imprenditore individuale ex art. 2740 c.c. (beni personali + aziendali)",
+        "campi_chiave": [
+          {
+            "id": "tribunale"
+          },
+          {
+            "id": "creditore_attore"
+          },
+          {
+            "id": "imprenditore_convenuto"
+          },
+          {
+            "id": "tipo_credito",
+            "type": "select",
+            "options": [
+              "credito_da_attivita_d_impresa",
+              "credito_personale_privato"
+            ]
+          },
+          {
+            "id": "beni_del_debitore",
+            "type": "select_multi",
+            "options": [
+              "immobili_personali",
+              "beni_aziendali",
+              "conto_corrente_personale",
+              "macchinari"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "pignoramento_beni_personali_2740",
+              "pignoramento_beni_aziendali"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Responsabilità illimitata: TUTTI i beni (personali + aziendali)",
+          "Fondo patrimoniale: non opponibile ai creditori d'impresa",
+          "Alternativa: trasformazione in S.r.l. unipersonale per il futuro"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo_e_precetto"
+        },
+        {
+          "id": "visura_camerale_imprenditore"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "156010",
+      "codice_logico": "GUIDA_IMPRENDITORE_INDIVIDUALE_RESPONSABILIT_PATRIMONIALE_ILLIMITATA_E_STRUMEN_156010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "156010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "156010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "156010"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 29 settembre 1973, n. 600 - accertamento imposte sui redditi",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973;600!vig=",
+          "ambito": "accertamento redditi, redditometro, termini, avvisi e prove del contribuente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 ottobre 1972, n. 633 - IVA",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1972;633!vig=",
+          "ambito": "IVA, accertamento, detrazione, liquidazione, rimborsi e sanzioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 aprile 1986, n. 131 - Testo unico imposta di registro",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;131!vig=",
+          "ambito": "imposta di registro, atti giudiziari, avvisi, liquidazione e registrazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 ottobre 1990, n. 346 - imposta su successioni e donazioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990;346!vig=",
+          "ambito": "successioni, donazioni, franchigie, aliquote e adempimenti fiscali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2019, n. 160 - disciplina IMU vigente",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019;160!vig=",
+          "ambito": "IMU, presupposto, soggetti passivi, base imponibile e termini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2013, n. 147 - IUC/TARI",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2013;147!vig=",
+          "ambito": "TARI, presupposto, utenze, regolamenti comunali e termini locali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 22 dicembre 1986, n. 917 - TUIR",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;917!vig=",
+          "ambito": "IRPEF, redditi, plusvalenze, base imponibile e accertamento",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 29 dicembre 2022, n. 197 - bilancio 2023 e definizioni agevolate",
+          "url": "https://www.normattiva.it/eli/stato/LEGGE/2022/12/29/197/CONSOLIDATED",
+          "ambito": "definizione liti fiscali pendenti, tregua fiscale, rottamazione e misure tributarie collegate",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 agosto 2022, n. 130 - riforma della giustizia tributaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2022;130!vig=",
+          "ambito": "giustizia tributaria, magistratura tributaria, prova, onere probatorio e definizione liti pendenti pregresse",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 6 dicembre 2011, n. 201 - crescita, equità e consolidamento conti pubblici",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2011-12-06;201!vig=",
+          "ambito": "pensioni, strumenti di pagamento, IVIE, IVAFE e imposte patrimoniali su attività estere",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Definizione agevolata delle controversie tributarie pendenti - Legge 197/2022",
+          "url": "https://telematici.agenziaentrate.gov.it/Main/Avviso?id=20230315101031",
+          "ambito": "domande telematiche, software, provvedimento attuativo e liti fiscali pendenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Quadro W - investimenti esteri, IVIE e IVAFE",
+          "url": "https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-w",
+          "ambito": "monitoraggio fiscale, IVIE, IVAFE, imposta cripto-attività, istruzioni dichiarazione 730/2026",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "MEF - Dipartimento delle Finanze",
+          "titolo": "Portale del Federalismo Fiscale",
+          "url": "https://www.portalefederalismofiscale.gov.it/",
+          "ambito": "aliquote, delibere comunali, IMU, TARI e fiscalità locale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Indici sintetici di affidabilità fiscale",
+          "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/indici_sintetici_affidabilita.html",
+          "ambito": "ISA, effetti premiali, accertamento e presidi dichiarativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle entrate-Riscossione",
+          "titolo": "Accertamento esecutivo e avviso di addebito INPS",
+          "url": "https://www.agenziaentrateriscossione.gov.it/it/Per-saperne-di-piu/documenti-della-riscossione/accertamento-esecutivo-e-avviso-di-addebito-inps/",
+          "ambito": "atti impositivi esecutivi, ricorso, pagamento e affidamento alla riscossione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "INPS",
+          "titolo": "Ricorsi amministrativi",
+          "url": "https://www.inps.it/it/it/dettaglio-scheda.it.schede-servizio-strumento.schede-servizi.ricorsi-amministrativi.html",
+          "ambito": "ricorsi amministrativi previdenziali e assistenziali prima o accanto al contenzioso",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "previdenza e assistenza"
+        },
+        {
+          "ente": "Camera di Commercio",
+          "titolo": "Registro delle imprese e adempimenti societari",
+          "url": "https://www.vr.camcom.gov.it/content/il-registro-imprese",
+          "ambito": "visure, assetti societari, scioglimento, liquidazione e pubblicità legale dell'impresa",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "societario e registro imprese"
+        },
+        {
+          "ente": "Ministero della Giustizia - Procura della Repubblica",
+          "titolo": "Nulla osta e autorizzazioni per negoziazione assistita in materia di famiglia",
+          "url": "https://procura-roma.giustizia.it/it/nulla_osta_separaz_divorzi.page",
+          "ambito": "separazione, divorzio e modifiche consensuali con negoziazione assistita",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "negoziazione assistita famiglia"
+        }
+      ]
+    }
+  ]
+}

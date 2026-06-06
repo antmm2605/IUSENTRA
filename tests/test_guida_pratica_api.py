@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from html import unescape
+from io import BytesIO
 from pathlib import Path
+
+from docx import Document
 
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from tests.test_applicazioni import _crea_operatore, _login
@@ -323,11 +325,10 @@ def test_template_guida_word_export_accetta_layout_editor_vuoto(tmp_path: Path):
             },
         )
 
-    body = response.get_data(as_text=True)
-
     assert response.status_code == 200
-    assert response.mimetype == "application/msword"
-    assert "Testo modificato dall'avvocato nell'anteprima." in unescape(body)
+    assert response.mimetype == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    body = "\n".join(paragraph.text for paragraph in Document(BytesIO(response.data)).paragraphs)
+    assert "Testo modificato dall'avvocato nell'anteprima." in body
     assert "Firmato digitalmente" not in body
 
 

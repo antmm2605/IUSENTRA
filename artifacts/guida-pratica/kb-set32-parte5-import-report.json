@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p5.json",
+  "sha256": "F6D0A11D3B7FF29C544130CB280F4E4DEBE38FDB460F4434BCF0DEFC1F6839D3",
+  "changed": true,
+  "macro_area_id": "SET32_PARTE5",
+  "denominazione": "PARTE 5 di 8",
+  "codici_materia_originali": [
+    "160250",
+    "160255",
+    "160260",
+    "160270",
+    "191030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_PER_VIOLAZIONE_DEI_DATI_PERSONALI_GDPR_ART_82_REG_UE_679_2_160250",
+    "GUIDA_RESPONSABILIT_PER_MANCATO_CONSENSO_INFORMATO_IN_AMBITO_SANITARIO_L_219_2_160255",
+    "GUIDA_STRESS_LAVORO_CORRELATO_E_BURN_OUT_RESPONSABILIT_DEL_DATORE_E_RISARCIMEN_160260",
+    "GUIDA_RESPONSABILIT_DELL_ORGANIZZATORE_DI_EVENTI_E_DELLA_PA_PER_DANNI_AI_PARTE_160270",
+    "GUIDA_AZIONE_REVOCATORIA_ORDINARIA_ACTIO_PAULIANA_REVOCA_DEGLI_ATTI_IN_FRODE_A_191030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160250",
+      "codice_integrato": "GUIDA_RESPONSABILIT_PER_VIOLAZIONE_DEI_DATI_PERSONALI_GDPR_ART_82_REG_UE_679_2_160250",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160255",
+      "codice_integrato": "GUIDA_RESPONSABILIT_PER_MANCATO_CONSENSO_INFORMATO_IN_AMBITO_SANITARIO_L_219_2_160255",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160260",
+      "codice_integrato": "GUIDA_STRESS_LAVORO_CORRELATO_E_BURN_OUT_RESPONSABILIT_DEL_DATORE_E_RISARCIMEN_160260",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160270",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELL_ORGANIZZATORE_DI_EVENTI_E_DELLA_PA_PER_DANNI_AI_PARTE_160270",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191030",
+      "codice_integrato": "GUIDA_AZIONE_REVOCATORIA_ORDINARIA_ACTIO_PAULIANA_REVOCA_DEGLI_ATTI_IN_FRODE_A_191030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

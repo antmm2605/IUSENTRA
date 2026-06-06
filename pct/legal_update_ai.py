@@ -82,6 +82,8 @@ NORM_TYPE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("decreto_legge", re.compile(r"\bdecreto[\s-]legge\b", re.IGNORECASE)),
     ("decreto_legislativo", re.compile(r"\bdecreto legislativo\b", re.IGNORECASE)),
     ("decreto_ministeriale", re.compile(r"\bdecreto ministeriale\b", re.IGNORECASE)),
+    ("decreto_presidente_repubblica", re.compile(r"\b(?:d\.?\s*p\.?\s*r\.?|decreto del presidente della repubblica)\b", re.IGNORECASE)),
+    ("regio_decreto", re.compile(r"\b(?:r\.?\s*d\.?|regio decreto)\b", re.IGNORECASE)),
     ("regolamento", re.compile(r"\bregolamento\b", re.IGNORECASE)),
     ("direttiva", re.compile(r"\bdirettiva\b", re.IGNORECASE)),
     ("decisione", re.compile(r"\bdecisione\b", re.IGNORECASE)),

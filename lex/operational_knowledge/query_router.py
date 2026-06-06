@@ -35,6 +35,12 @@ OFFICIAL_SOURCE_LOOKUP_TOKENS = (
     "rg ",
     "fonte ufficiale",
     "fonti ufficiali",
+    "fonti del modello",
+    "fonte del modello",
+    "codice deontologico",
+    "deontologico",
+    "ordinamento forense",
+    "equo compenso",
 )
 
 ENTITY_STOPWORDS = {
@@ -270,8 +276,11 @@ class OperationalQueryRouter:
                 ),
                 entity_query,
             )
+        if _is_official_source_lookup_text(text):
+            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "template_atti_fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
+
         if "quali fonti" in text or "fonti hai usato" in text or text in {"fonti", "mostra fonti"}:
-            return OperationalRoute("sources_overview", "sources_overview", ("clienti", "fascicoli", "fonti_ufficiali"), entity_query)
+            return OperationalRoute("sources_overview", "sources_overview", ("clienti", "fascicoli", "fonti_ufficiali", "template_atti_fonti_ufficiali"), entity_query)
 
         if _looks_like_pec_control_question(text):
             return OperationalRoute(
@@ -315,6 +324,14 @@ class OperationalQueryRouter:
                 "communications_lookup",
                 "communications_lookup",
                 ("email_pec", "pec_audit", "email_ordinaria", "messaggi"),
+                entity_query,
+            )
+
+        if _looks_like_active_case_overview(text, metadata, focus_topic):
+            return OperationalRoute(
+                "fascicolo_summary",
+                "fascicolo_summary",
+                ("fascicoli", "documenti_fascicolo", "scadenziario", "agenda", "preventivi", "conferimenti", "fatturazione", "pagamenti", "timesheet"),
                 entity_query,
             )
 
@@ -384,6 +401,9 @@ class OperationalQueryRouter:
         if any(token in text for token in ("tariffario", "compenso", "onorario", "scaglione")):
             return OperationalRoute("tariffario_lookup", "tariffario_lookup", ("tariffario",), entity_query)
 
+        if _is_official_source_lookup_text(text):
+            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "template_atti_fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
+
         if "preventiv" in text:
             return OperationalRoute("preventivo_summary", "preventivo_summary", ("preventivi", "conferimenti", "tariffario"), entity_query)
 
@@ -393,11 +413,8 @@ class OperationalQueryRouter:
         if any(token in text for token in ("fattur", "parcell", "incass", "pagament", "quadro economico")):
             return OperationalRoute("billing_summary", "billing_summary", ("fatturazione", "preventivi", "conferimenti", "pagamenti", "timesheet"), entity_query)
 
-        if _is_official_source_lookup_text(text):
-            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
-
         if any(token in text for token in ("template", "modello atto", "modelli atto", "editor", "redazione", "bozza", "atto professionale")):
-            return OperationalRoute("template_lookup", "template_lookup", ("template_atti", "editor_ai", "fascicoli", "documenti_fascicolo"), entity_query)
+            return OperationalRoute("template_lookup", "template_lookup", ("template_atti", "template_atti_fonti_ufficiali", "editor_ai", "fascicoli", "documenti_fascicolo"), entity_query)
 
         if any(token in text for token in ("document", "atto", "atti", "mancano", "riassumi gli ultimi")):
             return OperationalRoute("documenti_fascicolo", "documenti_fascicolo", ("fascicoli", "documenti_fascicolo", "template_atti"), entity_query)
@@ -414,7 +431,7 @@ class OperationalQueryRouter:
             )
 
         if any(token in text for token in ("normativa", "giurisprudenza", "fonti ufficiali", "normattiva", "gazzetta")):
-            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
+            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "template_atti_fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
 
         if "fascicolo" in text or "pratica" in text or focus_topic == "fascicoli":
             return OperationalRoute(
@@ -448,6 +465,34 @@ def _contains_action_block_token(text: str) -> bool:
         if re.search(rf"(^|[^\w]){re.escape(clean)}([^\w]|$)", text, flags=re.UNICODE):
             return True
     return False
+
+
+def _looks_like_active_case_overview(text: str, metadata: dict[str, Any], focus_topic: str = "") -> bool:
+    if not ("fascicol" in text or "pratica" in text or focus_topic == "fascicoli"):
+        return False
+    active_context = dict(metadata.get("active_context") or {}) if isinstance(metadata.get("active_context"), dict) else {}
+    has_case_context = bool(
+        clean_spaces(metadata.get("fascicolo_id") or metadata.get("pratica_id"))
+        or clean_spaces(active_context.get("case_id") or active_context.get("linked_case_id"))
+    )
+    if not has_case_context:
+        return False
+    return any(
+        token in text
+        for token in (
+            "sintesi",
+            "riepilogo",
+            "riassum",
+            "quadro",
+            "situazione",
+            "risch",
+            "cosa manca",
+            "mancano",
+            "prossimi passi",
+            "prossima azione",
+            "documenti chiave",
+        )
+    )
 
 
 def _looks_like_communication_draft(text: str) -> bool:

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
+    available_template_fields,
     build_attestazione_conformita_payload,
     build_client_communication,
     generate_attestazione_conformita_docx,
@@ -17,6 +18,7 @@ from pct.notifiche_legali import (
     legal_notification_automation_payload,
     list_client_communication_templates,
     list_notification_templates,
+    get_notification_template,
     notification_directive_matrix,
     office_notification_evidence_from_pec,
     preview_legal_relata,
@@ -197,6 +199,48 @@ def test_attestazione_conformita_docx_generato_contiene_placeholder_compilati(tm
     assert "ATTESTAZIONE DI CONFORMITÀ" in text
     assert "Avv. Mario Rossi" in text
     assert "ricorso.pdf" in text
+
+
+def test_attestazione_sentenza_autocompila_modello_word_e_firma():
+    payload = _legal_payload()
+    payload.update({
+        "caso_notifica": "sentenza_termine_breve",
+        "avvocato_nome": "Giuseppe",
+        "avvocato_cognome": "Montagnese",
+        "avvocato_cf": "MNTGPP94L01G791A",
+        "avvocato_foro": "Palmi",
+        "ufficio_giudiziario": "Tribunale di Palmi",
+        "sezione": "Lavoro",
+        "numero_rg": "704",
+        "anno_rg": "2026",
+        "provvedimento_tipo": "Sentenza",
+        "provvedimento_data_deposito": "2026-06-05",
+        "documenti": [
+            {
+                "nome_file": "sentenza.pdf",
+                "descrizione": "Sentenza",
+                "origine": "copia_fascicolo_informatico",
+                "data_documento": "2026-06-05",
+            }
+        ],
+        "attestazione_multipla": True,
+    })
+
+    model = build_attestazione_conformita_payload(payload)
+    result = validate_legal_notification(payload)
+
+    assert model["ok"] is True
+    assert "Il sottoscritto Avv. Giuseppe Montagnese C. F. MNTGPP94L01G791A, del Foro di Palmi," in model["text"]
+    assert "Sentenza, emessa dal Tribunale di Palmi Sez. Lavoro in data 05/06/2026" in model["text"]
+    assert "R.G. n. 704/2026 dal quale è estratta." in model["text"]
+    assert "Avv. Giuseppe Montagnese" in model["text"]
+    assert "Firmato digitalmente" in model["text"]
+    assert model["campi_database"]["avvocato"]["firma_in_calce"] == "Avv. Giuseppe Montagnese"
+    assert model["campi_database"]["avvocato"]["firma_digitale_dicitura"] == "Firmato digitalmente"
+    assert result.ok is True
+    assert result.template_id == "relata_sentenza_attestazione_conformita"
+    assert "ATTESTAZIONE DI CONFORMITÀ" in result.relata_text
+    assert "Sentenza, emessa dal Tribunale di Palmi Sez. Lavoro in data 05/06/2026" in result.relata_text
 
 
 def test_notifica_l53_audit_automatico_include_normativa_e_piu_allegati():
@@ -567,12 +611,28 @@ def test_matrice_notifica_esposta_per_ui_e_script():
     matrix = notification_directive_matrix()
 
     assert any(item["value"] == "difensore" and "reginde" in item["allowedRegisters"] for item in matrix["roles"])
-    assert any(item["value"] == "sentenza_termine_breve" and item["templateId"] == "relata_sentenza_termine_breve" for item in matrix["cases"])
+    assert any(item["value"] == "sentenza_termine_breve" and item["templateId"] == "relata_sentenza_attestazione_conformita" for item in matrix["cases"])
     assert all(item["legalBasis"] for item in matrix["roles"])
     assert all(item["legalBasis"] and item["recipientRule"] and item["allowedRecipientRoles"] for item in matrix["cases"])
     assert any(item["id"] == "l53_art3ter" for item in matrix["roles"][0]["legalBasis"])
     provvedimento = next(item for item in matrix["cases"] if item["value"] == "provvedimento_giudice")
     assert any(item["id"] == "dgsia_2024_art22" for item in provvedimento["legalBasis"])
+    sentenza = next(item for item in matrix["cases"] if item["value"] == "sentenza_termine_breve")
+    assert any(item["id"] == "cpc_326" for item in sentenza["legalBasis"])
+    assert any(item["id"] == "dl179_art16decies" for item in sentenza["legalBasis"])
+
+
+def test_modello_sentenza_attestazione_esposto_con_campi_autocompilanti():
+    template = get_notification_template("relata_sentenza_attestazione_conformita")
+    tokens = {item["token"] for item in available_template_fields()}
+
+    assert template is not None
+    assert template["label"] == "Sentenza con attestazione di conformità"
+    assert "avvocato.full_name" in template["required_fields"]
+    assert "provvedimento.data_deposito" in template["required_fields"]
+    assert "{{ avvocato.firma_in_calce }}" in tokens
+    assert "{{ avvocato.firma_digitale_dicitura }}" in tokens
+    assert "{{ provvedimento.data_deposito }}" in tokens
 
 
 def test_allegati_notifica_ed_eml_pec_ufficio_sono_controllati():

@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-06-06T12:06:43Z",
+  "dry_run": false,
+  "sources": [
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p1.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p2.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p3.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p4.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p5.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p6.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set26_p1.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set26_p2.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p1.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p2.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p3.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p4.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p5.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set28.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_set29.json"
+  ],
+  "records": 87,
+  "by_phase": {
+    "prescrizione_decadenza": 50,
+    "generico_da_classificare": 12,
+    "impugnazione": 12,
+    "notifica": 4,
+    "deposito": 4,
+    "udienza": 2,
+    "presupposto_temporale": 1,
+    "procedimentale": 1,
+    "costituzione": 1
+  },
+  "by_classification": {
+    "termine_lungo_o_prescrizione": 38,
+    "informativo_non_calcolabile": 36,
+    "calcolabile_giorni": 11,
+    "calcolabile_anni_da_verificare": 1,
+    "calcolabile_mesi": 1
+  },
+  "calculable_templates": 12,
+  "csv": "artifacts\\guida-pratica\\termini-processuali-import-2026-06-06.csv",
+  "db": "D:\\legale\\IUSENTRA\\data\\scadenziario\\termini_processuali.json",
+  "import": {
+    "imported_at": "2026-06-06T12:06:43Z",
+    "records": 87,
+    "templates_upserted": 12,
+    "by_phase": {
+      "prescrizione_decadenza": 50,
+      "generico_da_classificare": 12,
+      "impugnazione": 12,
+      "notifica": 4,
+      "deposito": 4,
+      "udienza": 2,
+      "presupposto_temporale": 1,
+      "procedimentale": 1,
+      "costituzione": 1
+    },
+    "by_classification": {
+      "termine_lungo_o_prescrizione": 38,
+      "informativo_non_calcolabile": 36,
+      "calcolabile_giorni": 11,
+      "calcolabile_anni_da_verificare": 1,
+      "calcolabile_mesi": 1
+    }
+  }
+}

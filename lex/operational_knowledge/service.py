@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Any
 
 from .audit import OperationalAuditRecorder
@@ -14,7 +14,8 @@ from .reasoner import LexStudioReasoner
 from .response_composer import OperationalResponseComposer
 from .serializers import clean_spaces, serialize_generic
 from .settings import OperationalKnowledgeSettings
-from .tools import OperationalKnowledgeTools, current_week_range
+from .tools import OperationalKnowledgeTools, current_reference_date, current_week_range
+from .unified_chat import LexContextProvider
 
 
 class OperationalKnowledgeService:
@@ -47,7 +48,7 @@ class OperationalKnowledgeService:
         if not self.settings.enabled:
             return None
 
-        metadata = dict(metadata or {})
+        metadata = LexContextProvider.enrich_metadata(dict(metadata or {}))
         question_for_route, metadata = _apply_conversation_followup(question, metadata)
         route = self.router.route(question_for_route, metadata=metadata)
         if route is None:
@@ -155,9 +156,10 @@ class OperationalKnowledgeService:
 
         if route.intent == "deadlines_overview":
             if fascicolo_id:
+                today = current_reference_date()
                 return [
                     self.tools.get_scadenze_by_fascicolo(fascicolo_id, context),
-                    self.tools.get_agenda_range(context, start=date.today(), end=date.today() + timedelta(days=14), limit=20),
+                    self.tools.get_agenda_range(context, start=today, end=today + timedelta(days=14), limit=20),
                 ]
             if "cliente" in question.lower():
                 if cliente_id:
@@ -173,7 +175,8 @@ class OperationalKnowledgeService:
                     results.append(self.tools.get_scadenze_by_cliente(cliente_id, context))
                     results.append(self.tools.get_agenda_range(context, cliente_id=cliente_id, limit=20))
                 return results
-            start, end = current_week_range() if "settimana" in question.lower() else (date.today(), date.today() + timedelta(days=14))
+            today = current_reference_date()
+            start, end = current_week_range() if "settimana" in question.lower() else (today, today + timedelta(days=14))
             return [
                 self.tools.get_agenda_range(context, start=start, end=end, limit=30),
                 self._all_scadenze(context),
@@ -185,7 +188,8 @@ class OperationalKnowledgeService:
                 return [self.tools.search_agenda("udienza", context, limit=30, latest=True)]
             if "udienz" in lowered:
                 return [self.tools.search_agenda("udienza", context, limit=30)]
-            start, end = current_week_range() if "settimana" in question.lower() else (date.today(), date.today() + timedelta(days=14))
+            today = current_reference_date()
+            start, end = current_week_range() if "settimana" in question.lower() else (today, today + timedelta(days=14))
             return [self.tools.get_agenda_range(context, start=start, end=end, limit=30)]
 
         if route.intent == "notifications_lookup":
@@ -235,6 +239,7 @@ class OperationalKnowledgeService:
         if route.intent == "template_lookup":
             results = [
                 self.tools.search_template_atti(entity_query or question, context, limit=self.settings.max_results),
+                self.tools.search_template_atti_sources(entity_query or question, context, limit=self.settings.max_results),
                 self.tools.get_editor_ai_status(context),
             ]
             if fascicolo_id:
@@ -252,6 +257,7 @@ class OperationalKnowledgeService:
                 self.tools.get_legal_intelligence_items(entity_query or question, context, limit=6),
                 self.tools.get_update_intelligence_items(entity_query or question, context, limit=6),
                 self.tools.search_legal_sources(entity_query or question, context, limit=6),
+                self.tools.search_template_atti_sources(entity_query or question, context, limit=6),
             ]
             if _should_integrate_free_web_articles(question):
                 web_query = _free_web_article_query(question, results)
@@ -294,10 +300,11 @@ class OperationalKnowledgeService:
 
     def _studio_context_overview_route(self, context, entity_query: str) -> list[OperationalToolResult]:
         query = "" if _is_generic_studio_overview_query(entity_query) else (entity_query or "")
+        today = current_reference_date()
         return [
             self.tools.search_clienti(query, context, limit=4),
             self.tools.search_fascicoli(query, context, limit=4),
-            self.tools.get_agenda_range(context, start=date.today(), end=date.today() + timedelta(days=14), limit=8),
+            self.tools.get_agenda_range(context, start=today, end=today + timedelta(days=14), limit=8),
             self._all_scadenze(context),
             self.tools.list_pec_messages(context, query=query, limit=5),
             self.tools.list_ordinary_email_messages(context, query=query, limit=5),
@@ -314,6 +321,7 @@ class OperationalKnowledgeService:
             self.tools.get_fascicolo(target, context),
             self.tools.get_documenti_fascicolo(target, context),
             self.tools.get_scadenze_by_fascicolo(target, context),
+            self.tools.get_agenda_range(context, limit=30),
             self.tools.get_parcelle_by_fascicolo(target, context),
             self.tools.get_attivita_by_fascicolo(target, context),
         ]
@@ -688,10 +696,17 @@ def _extract_reference_from_text(text: str) -> dict[str, str]:
 
 
 def _is_short_followup(text: str, tokens: tuple[str, ...]) -> bool:
-    if any(token in text for token in tokens):
+    if any(_matches_followup_token(text, token) for token in tokens):
         return True
     words = [word for word in re.split(r"\W+", text, flags=re.UNICODE) if word]
     return 0 < len(words) <= 4 and any(word in {"e", "poi", "anche", "quindi", "questo", "questa", "quello", "quella"} for word in words)
+
+
+def _matches_followup_token(text: str, token: str) -> bool:
+    clean = clean_spaces(token).lower()
+    if not clean:
+        return False
+    return re.search(rf"(^|[^\w]){re.escape(clean)}\w*", text, flags=re.UNICODE) is not None
 
 
 def _is_generic_studio_overview_query(entity_query: str) -> bool:
@@ -723,6 +738,8 @@ def _looks_like_fresh_operational_question(text: str) -> bool:
     clean = clean_spaces(text).lower()
     if not clean:
         return False
+    if "fonti" in clean and any(token in clean for token in ("usato", "usate", "consultato", "consultate")):
+        return True
     if any(token in clean for token in ("preventivo", "conferimento", "template", "modello atto", "modelli atto")):
         return True
     if "pec" in clean and ("fascicolo" in clean or "pratica" in clean):

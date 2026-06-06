@@ -196,14 +196,14 @@ function sectionById(data: LegalIntelligencePageData, id: string) {
 function sourceStatusTone(status: string): BadgeTone {
   const value = status.toLocaleLowerCase('it-IT').replace(/_/g, ' ')
   if (value === 'pronta' || value === 'pronto') return 'success'
-  if (value === 'da verificare' || value === 'non pronta') return 'warning'
+  if (value === 'da verificare' || value === 'non pronta' || value === 'controllo sistema') return 'warning'
   if (value === 'failed' || value === 'timeout' || value === 'errore') return 'danger'
   if (value === 'non monitorata') return 'neutral'
   return 'info'
 }
 function readableStatus(status: string) {
   const value = status.replace(/_/g, ' ').trim()
-  if (!value) return 'da verificare'
+  if (!value) return 'controllo sistema'
   return value.slice(0, 1).toLocaleUpperCase('it-IT') + value.slice(1)
 }
 function sourceProgress(source: LegalAutofetchSource) {
@@ -211,9 +211,17 @@ function sourceProgress(source: LegalAutofetchSource) {
     source.rawDocuments ? `${source.rawDocuments.toLocaleString('it-IT')} letti` : '',
     source.normalizedDocuments ? `${source.normalizedDocuments.toLocaleString('it-IT')} con testo` : '',
     source.reviewPublished ? `${source.reviewPublished.toLocaleString('it-IT')} pubblicati` : '',
-    source.reviewPending ? `${source.reviewPending.toLocaleString('it-IT')} da verificare` : '',
+    source.reviewPending ? `${source.reviewPending.toLocaleString('it-IT')} in revisione sistema` : '',
   ].filter(Boolean)
   return parts.length ? parts.join(' · ') : source.reason || 'Fonte censita, in attesa di acquisizione.'
+}
+function sourceLegalPreview(source: LegalAutofetchSource) {
+  return [
+    source.articlesAndCodes[0],
+    source.decreesAndRules[0],
+    source.caseLawAndHearings[0],
+    source.legalMaterials[0],
+  ].filter(Boolean).slice(0, 3)
 }
 function AcquisitionReadinessPanel({
   data,
@@ -227,9 +235,10 @@ function AcquisitionReadinessPanel({
   if (!hasMonitor) return null
   const queueOpen = monitor.queue.queued + monitor.queue.running
   const failedJobs = monitor.queue.failed + monitor.queue.timeout
+  const lawyerReadiness = monitor.lawyerReadiness
   const sourcePreview = [...monitor.sources]
     .sort((first, second) => {
-      const order: Record<string, number> = { da_verificare: 0, 'da verificare': 0, non_pronta: 1, pronta: 2, non_monitorata: 3 }
+      const order: Record<string, number> = { completamento_fonti_ufficiali: 0, da_verificare: 1, 'da verificare': 1, non_pronta: 2, pronta: 3, non_monitorata: 4 }
       return (order[first.status] ?? 4) - (order[second.status] ?? 4) || first.sourceName.localeCompare(second.sourceName, 'it-IT')
     })
     .slice(0, 12)
@@ -244,17 +253,25 @@ function AcquisitionReadinessPanel({
     },
     {
       id: 'blocked',
-      label: 'Da verificare',
+      label: 'Fonti da completare',
       value: monitor.sourcesNotReady,
-      note: 'Manca acquisizione, testo, OCR o ultimo controllo.',
+      note: 'Manca acquisizione, testo, OCR o ultimo controllo automatico.',
       icon: <AlertTriangle size={18} aria-hidden="true" />,
       tone: monitor.sourcesNotReady ? 'warning' as BadgeTone : 'success' as BadgeTone,
+    },
+    {
+      id: 'lex',
+      label: 'Domande Lex',
+      value: lawyerReadiness.lexTestableSources,
+      note: 'Fonti con domanda di prova collegata al lavoro dell’avvocato.',
+      icon: <MessageCircle size={18} aria-hidden="true" />,
+      tone: lawyerReadiness.lexTestableSources ? 'success' as BadgeTone : 'warning' as BadgeTone,
     },
     {
       id: 'queue',
       label: 'Coda',
       value: queueOpen,
-      note: 'Job in attesa o in esecuzione.',
+      note: 'Controlli in attesa o in corso.',
       icon: <Clock3 size={18} aria-hidden="true" />,
       tone: 'info' as BadgeTone,
     },
@@ -262,7 +279,7 @@ function AcquisitionReadinessPanel({
       id: 'failed',
       label: 'Errori',
       value: failedJobs,
-      note: 'Job falliti o scaduti da riprendere.',
+      note: 'Controlli falliti o scaduti da riprendere.',
       icon: <Files size={18} aria-hidden="true" />,
       tone: failedJobs ? 'danger' as BadgeTone : 'neutral' as BadgeTone,
     },
@@ -285,25 +302,40 @@ function AcquisitionReadinessPanel({
       {sourcePreview.length ? (
         <div className="iu-li-acquisition__sources">
           <div className="iu-li-source-preview__head">
-            <strong>Fonti e documenti</strong>
+            <strong>Fonti sincronizzate e fonti da completare</strong>
             <ButtonLink href="/admin/aggiornamenti-legali/fonti" tone="neutral">Gestisci fonti</ButtonLink>
           </div>
           <div className="iu-li-acquisition__source-grid">
-            {sourcePreview.map((source) => (
-              <button
-                className="iu-li-acquisition__source"
-                key={source.sourceCode}
-                onClick={() => onArchiveSearch(source.sourceName, '', source.sourceName)}
-                type="button"
-              >
-                <span>
-                  <strong>{source.sourceName}</strong>
-                  <Badge tone={sourceStatusTone(source.status)}>{readableStatus(source.status)}</Badge>
-                </span>
-                <small>{sourceProgress(source)}</small>
-                {source.lastFinishedAt ? <em>Ultimo controllo {formatDate(source.lastFinishedAt)}</em> : null}
-              </button>
-            ))}
+            {sourcePreview.map((source) => {
+              const legalPreview = sourceLegalPreview(source)
+              const testQuery = source.lexTestQuestion || source.sourceName
+              return (
+                <button
+                  className="iu-li-acquisition__source"
+                  key={source.sourceCode}
+                  onClick={() => onArchiveSearch(testQuery, source.practicePhase, source.sourceName)}
+                  type="button"
+                >
+                  <span className="iu-li-acquisition__source-title">
+                    <strong>{source.sourceName}</strong>
+                    <Badge tone={source.deliveryStatusLabel ? source.deliveryTone : sourceStatusTone(source.status)}>
+                      {source.deliveryStatusLabel || readableStatus(source.status)}
+                    </Badge>
+                  </span>
+                  {source.lawyerUse ? <small><b>Serve per:</b> {source.lawyerUse}</small> : null}
+                  {source.practicePhase ? <small><b>Fase:</b> {source.practicePhase}</small> : null}
+                  <small><b>Acquisizione:</b> {sourceProgress(source)}</small>
+                  {source.systemAction || source.lawyerAction ? <small><b>Azione sistema:</b> {source.systemAction || source.lawyerAction}</small> : null}
+                  {legalPreview.length ? (
+                    <ul className="iu-li-acquisition__source-points" aria-label={`Materiali collegati a ${source.sourceName}`}>
+                      {legalPreview.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  ) : null}
+                  {source.lexTestQuestion ? <em>Domanda Lex: {source.lexTestQuestion}</em> : null}
+                  {source.lastFinishedAt ? <em>Ultimo controllo {formatDate(source.lastFinishedAt)}</em> : null}
+                </button>
+              )
+            })}
           </div>
         </div>
       ) : null}
@@ -412,7 +444,7 @@ function DataAccessPanel({
         <SearchCheck size={18} aria-hidden="true" />
         <div>
           <h2>Fonti e acquisizioni</h2>
-          <p>Stato reale delle fonti: documenti letti, testo disponibile, coda, errori e ragioni di pronto o da verificare.</p>
+          <p>Stato reale delle fonti: documenti letti, testo disponibile, coda, errori e stati pronti, acquisizioni in corso e fonti da completare.</p>
         </div>
       </header>
       <AcquisitionReadinessPanel data={data} onArchiveSearch={onArchiveSearch} />
@@ -979,7 +1011,7 @@ function MediazioneRegistryExplorer({
                     {record.territory ? <small>{record.territory}</small> : null}
                   </td>
                   <td>{record.organismoType || record.subtitle || '-'}</td>
-                  <td><Badge tone={record.stateTone}>{record.stateLabel || 'Da verificare'}</Badge></td>
+                  <td><Badge tone={record.stateTone}>{record.stateLabel || 'Fonte da completare'}</Badge></td>
                   <td>
                     <span>{record.taxCode ? `CF ${record.taxCode}` : 'CF non indicato'}</span>
                     <small>{record.vatNumber ? `P. IVA ${record.vatNumber}` : 'P. IVA non indicata'}</small>

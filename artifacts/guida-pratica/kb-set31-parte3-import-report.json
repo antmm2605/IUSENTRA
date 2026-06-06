@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (20).zip::kb_set31_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set31_p3.json",
+  "sha256": "093739C849FB217547FBD2A4E7664651A00E58ACC74EAE70060550DA5F84A8CE",
+  "changed": false,
+  "macro_area_id": "SET31_PARTE3",
+  "denominazione": "Trentunesimo set - PARTE 3 di 6",
+  "codici_materia_originali": [
+    "152020",
+    "160230",
+    "160235",
+    "160240",
+    "160245"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_COMPOSIZIONE_NEGOZIATA_DELLA_CRISI_D_IMPRESA_ARTT_12_25_UNDECIES_D_LGS_1_152020",
+    "GUIDA_FORZA_MAGGIORE_E_IMPOSSIBILIT_SOPRAVVENUTA_SCIOGLIMENTO_DEL_CONTRATTO_E__160230",
+    "GUIDA_DANNI_DA_VEICOLO_NON_ASSICURATO_O_NON_IDENTIFICATO_FONDO_VITTIME_DELLA_S_160235",
+    "GUIDA_DIFFAMAZIONE_A_MEZZO_INTERNET_SOCIAL_MEDIA_E_STAMPA_ONLINE_RISARCIMENTO__160240",
+    "GUIDA_RESPONSABILIT_CIVILE_PER_DANNI_DA_SPORT_INVERNALI_L_363_2003_E_ATTIVIT_S_160245"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "152020",
+      "codice_integrato": "GUIDA_COMPOSIZIONE_NEGOZIATA_DELLA_CRISI_D_IMPRESA_ARTT_12_25_UNDECIES_D_LGS_1_152020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160230",
+      "codice_integrato": "GUIDA_FORZA_MAGGIORE_E_IMPOSSIBILIT_SOPRAVVENUTA_SCIOGLIMENTO_DEL_CONTRATTO_E__160230",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160235",
+      "codice_integrato": "GUIDA_DANNI_DA_VEICOLO_NON_ASSICURATO_O_NON_IDENTIFICATO_FONDO_VITTIME_DELLA_S_160235",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160240",
+      "codice_integrato": "GUIDA_DIFFAMAZIONE_A_MEZZO_INTERNET_SOCIAL_MEDIA_E_STAMPA_ONLINE_RISARCIMENTO__160240",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160245",
+      "codice_integrato": "GUIDA_RESPONSABILIT_CIVILE_PER_DANNI_DA_SPORT_INVERNALI_L_363_2003_E_ATTIVIT_S_160245",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

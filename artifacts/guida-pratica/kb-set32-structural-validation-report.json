@@ -1,0 +1,508 @@
+{
+  "generated_at": "2026-06-06T16:14:19Z",
+  "sources": [
+    "C:\\Users\\antmm\\Downloads\\files (21).zip"
+  ],
+  "files": [
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p1.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p1.json",
+      "sha256": "0055659428278BB3C7BFAF3E55F81B164C1E11D846E92B45BA4B80AA8E52A9B3",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE1",
+      "denominazione": "Trentaduesimo set - 40 nuovi codici - PARTE 1 di 8",
+      "codici_materia_originali": [
+        "112001",
+        "120075",
+        "121022",
+        "413130",
+        "413135"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+        "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_NOMINA_TUTORE_E_PROTEZIONE_L_47_2017_D_120075",
+        "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IDONEIT_E_RICONOSCIMENTO_IN_ITALIA__121022",
+        "GUIDA_DICHIARAZIONE_DI_ADOTTABILIT_DEL_MINORE_IN_STATO_DI_ABBANDONO_ARTT_8_21__413130",
+        "GUIDA_RETTIFICAZIONE_DI_ATTI_DI_STATO_CIVILE_ERRORI_OMISSIONI_E_RICONOSCIMENTO_413135"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "112001",
+          "codice_integrato": "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "111214",
+            "411640",
+            "411679",
+            "102002"
+          ],
+          "reason": "Il codice 112001 è ufficiale nel catalogo locale come voce deprecata diversa; la scheda ricevuta riguarda fondo patrimoniale, opponibilità ai creditori e revocatoria. Resta guida interna e propone i codici ufficiali fondo patrimoniale/revocatoria da valutare nel fascicolo."
+        },
+        {
+          "codice_originale": "120075",
+          "codice_integrato": "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_NOMINA_TUTORE_E_PROTEZIONE_L_47_2017_D_120075",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "121022",
+          "codice_integrato": "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IDONEIT_E_RICONOSCIMENTO_IN_ITALIA__121022",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "413130",
+          "codice_integrato": "GUIDA_DICHIARAZIONE_DI_ADOTTABILIT_DEL_MINORE_IN_STATO_DI_ABBANDONO_ARTT_8_21__413130",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "413135",
+          "codice_integrato": "GUIDA_RETTIFICAZIONE_DI_ATTI_DI_STATO_CIVILE_ERRORI_OMISSIONI_E_RICONOSCIMENTO_413135",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p2.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p2.json",
+      "sha256": "3475E9E519CE1C8255D189C777472F24F1A3E5962B8F7C2898DC4B1D4A231E56",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE2",
+      "denominazione": "Trentaduesimo set - PARTE 2 di 8",
+      "codici_materia_originali": [
+        "130175",
+        "130180",
+        "130185",
+        "140095",
+        "141080"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_ACCESSIONE_COSTRUZIONE_SU_SUOLO_ALTRUI_INDENNIT_E_RIPETIZIONE_ARTT_934_9_130175",
+        "GUIDA_REGOLAMENTO_DEI_CONFINI_E_APPOSIZIONE_DEI_TERMINI_ARTT_950_951_C_C_130180",
+        "GUIDA_AZIONE_DI_MANUTENZIONE_DEL_POSSESSO_E_SPOGLIO_ARTT_1168_1170_C_C_130185",
+        "GUIDA_CONTRATTO_DI_COMODATO_TERMINE_RESTITUZIONE_ANTICIPATA_E_RIMBORSO_SPESE_A_140095",
+        "GUIDA_TRASPORTO_FERROVIARIO_DI_PERSONE_RITARDI_CANCELLAZIONI_E_DIRITTI_DEI_PAS_141080"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "130175",
+          "codice_integrato": "GUIDA_ACCESSIONE_COSTRUZIONE_SU_SUOLO_ALTRUI_INDENNIT_E_RIPETIZIONE_ARTT_934_9_130175",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "130180",
+          "codice_integrato": "GUIDA_REGOLAMENTO_DEI_CONFINI_E_APPOSIZIONE_DEI_TERMINI_ARTT_950_951_C_C_130180",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "130185",
+          "codice_integrato": "GUIDA_AZIONE_DI_MANUTENZIONE_DEL_POSSESSO_E_SPOGLIO_ARTT_1168_1170_C_C_130185",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "140095",
+          "codice_integrato": "GUIDA_CONTRATTO_DI_COMODATO_TERMINE_RESTITUZIONE_ANTICIPATA_E_RIMBORSO_SPESE_A_140095",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "141080",
+          "codice_integrato": "GUIDA_TRASPORTO_FERROVIARIO_DI_PERSONE_RITARDI_CANCELLAZIONI_E_DIRITTI_DEI_PAS_141080",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p3.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p3.json",
+      "sha256": "A46CFED0E94FEE8B6823468CF633B0D0FCE099C7314DCE2FE8D34045CC54FB66",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE3",
+      "denominazione": "PARTE 3 di 8",
+      "codici_materia_originali": [
+        "141090",
+        "143110",
+        "143115",
+        "143120",
+        "143125"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_CONTRATTO_DI_MEDIAZIONE_IMMOBILIARE_DIRITTO_ALLA_PROVVIGIONE_RESPONSABIL_141090",
+        "GUIDA_CONTRATTO_DI_SOMMINISTRAZIONE_INADEMPIMENTO_CLAUSOLA_DI_ESCLUSIVA_E_RECE_143110",
+        "GUIDA_RC_AUTO_RISARCIMENTO_DIRETTO_E_AZIONE_DIRETTA_VERSO_LA_COMPAGNIA_ARTT_14_143115",
+        "GUIDA_CONTRATTI_DERIVATI_E_SWAP_NULLIT_PER_MANCANZA_DI_CAUSA_ASIMMETRIA_INFORM_143120",
+        "GUIDA_CONTRATTO_DI_RENDITA_VITALIZIA_INADEMPIMENTO_RISOLUZIONE_E_VITALIZIO_ALI_143125"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "141090",
+          "codice_integrato": "GUIDA_CONTRATTO_DI_MEDIAZIONE_IMMOBILIARE_DIRITTO_ALLA_PROVVIGIONE_RESPONSABIL_141090",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "143110",
+          "codice_integrato": "GUIDA_CONTRATTO_DI_SOMMINISTRAZIONE_INADEMPIMENTO_CLAUSOLA_DI_ESCLUSIVA_E_RECE_143110",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "143115",
+          "codice_integrato": "GUIDA_RC_AUTO_RISARCIMENTO_DIRETTO_E_AZIONE_DIRETTA_VERSO_LA_COMPAGNIA_ARTT_14_143115",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "143120",
+          "codice_integrato": "GUIDA_CONTRATTI_DERIVATI_E_SWAP_NULLIT_PER_MANCANZA_DI_CAUSA_ASIMMETRIA_INFORM_143120",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "143125",
+          "codice_integrato": "GUIDA_CONTRATTO_DI_RENDITA_VITALIZIA_INADEMPIMENTO_RISOLUZIONE_E_VITALIZIO_ALI_143125",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p4.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p4.json",
+      "sha256": "316A6F52A44CBD75D69DFD8793C6D34A76045A869EAB074AF36D83C0BD373E0C",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE4",
+      "denominazione": "PARTE 4 di 8",
+      "codici_materia_originali": [
+        "145025",
+        "150110",
+        "152025",
+        "154025",
+        "156010"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_LOCAZIONE_DI_IMMOBILE_AD_USO_PROFESSIONALE_STUDI_MEDICI_LEGALI_NOTARILI__145025",
+        "GUIDA_S_R_L_CESSIONE_DI_QUOTE_DIRITTI_DI_PRELAZIONE_STATUTARI_E_LIMITAZIONI_AL_150110",
+        "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_ART_56_D_LGS_14_2019_CCII_TUTELE_E_BENEFI_152025",
+        "GUIDA_PATTI_PARASOCIALI_E_SINDACATI_DI_VOTO_NELLE_S_P_A_ARTT_2341_BIS_E_2341_T_154025",
+        "GUIDA_IMPRENDITORE_INDIVIDUALE_RESPONSABILIT_PATRIMONIALE_ILLIMITATA_E_STRUMEN_156010"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "145025",
+          "codice_integrato": "GUIDA_LOCAZIONE_DI_IMMOBILE_AD_USO_PROFESSIONALE_STUDI_MEDICI_LEGALI_NOTARILI__145025",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "150110",
+          "codice_integrato": "GUIDA_S_R_L_CESSIONE_DI_QUOTE_DIRITTI_DI_PRELAZIONE_STATUTARI_E_LIMITAZIONI_AL_150110",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "152025",
+          "codice_integrato": "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_ART_56_D_LGS_14_2019_CCII_TUTELE_E_BENEFI_152025",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "154025",
+          "codice_integrato": "GUIDA_PATTI_PARASOCIALI_E_SINDACATI_DI_VOTO_NELLE_S_P_A_ARTT_2341_BIS_E_2341_T_154025",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "156010",
+          "codice_integrato": "GUIDA_IMPRENDITORE_INDIVIDUALE_RESPONSABILIT_PATRIMONIALE_ILLIMITATA_E_STRUMEN_156010",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p5.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p5.json",
+      "sha256": "F6D0A11D3B7FF29C544130CB280F4E4DEBE38FDB460F4434BCF0DEFC1F6839D3",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE5",
+      "denominazione": "PARTE 5 di 8",
+      "codici_materia_originali": [
+        "160250",
+        "160255",
+        "160260",
+        "160270",
+        "191030"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_RESPONSABILIT_PER_VIOLAZIONE_DEI_DATI_PERSONALI_GDPR_ART_82_REG_UE_679_2_160250",
+        "GUIDA_RESPONSABILIT_PER_MANCATO_CONSENSO_INFORMATO_IN_AMBITO_SANITARIO_L_219_2_160255",
+        "GUIDA_STRESS_LAVORO_CORRELATO_E_BURN_OUT_RESPONSABILIT_DEL_DATORE_E_RISARCIMEN_160260",
+        "GUIDA_RESPONSABILIT_DELL_ORGANIZZATORE_DI_EVENTI_E_DELLA_PA_PER_DANNI_AI_PARTE_160270",
+        "GUIDA_AZIONE_REVOCATORIA_ORDINARIA_ACTIO_PAULIANA_REVOCA_DEGLI_ATTI_IN_FRODE_A_191030"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "160250",
+          "codice_integrato": "GUIDA_RESPONSABILIT_PER_VIOLAZIONE_DEI_DATI_PERSONALI_GDPR_ART_82_REG_UE_679_2_160250",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "160255",
+          "codice_integrato": "GUIDA_RESPONSABILIT_PER_MANCATO_CONSENSO_INFORMATO_IN_AMBITO_SANITARIO_L_219_2_160255",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "160260",
+          "codice_integrato": "GUIDA_STRESS_LAVORO_CORRELATO_E_BURN_OUT_RESPONSABILIT_DEL_DATORE_E_RISARCIMEN_160260",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "160270",
+          "codice_integrato": "GUIDA_RESPONSABILIT_DELL_ORGANIZZATORE_DI_EVENTI_E_DELLA_PA_PER_DANNI_AI_PARTE_160270",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "191030",
+          "codice_integrato": "GUIDA_AZIONE_REVOCATORIA_ORDINARIA_ACTIO_PAULIANA_REVOCA_DEGLI_ATTI_IN_FRODE_A_191030",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 6
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p6.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p6.json",
+      "sha256": "C4A25B3769764C50B2642B0D53C1FD8C73859EE4688573EE254A3DC787D87858",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE6",
+      "denominazione": "PARTE 6 di 8",
+      "codici_materia_originali": [
+        "190040",
+        "199020",
+        "220250",
+        "220255",
+        "220260"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_TITOLO_ESECUTIVO_EUROPEO_E_PROCEDURA_EUROPEA_PER_CREDITI_NON_CONTESTATI__190040",
+        "GUIDA_EXEQUATUR_DI_LODO_ARBITRALE_STRANIERO_E_RICONOSCIMENTO_IN_ITALIA_ARTT_83_199020",
+        "GUIDA_INFORTUNI_SUL_LAVORO_AZIONE_CIVILE_DEL_LAVORATORE_E_RIVALSA_INAIL_VERSO__220250",
+        "GUIDA_CONTRATTO_DI_LAVORO_A_TEMPO_PARZIALE_PART_TIME_CONTROVERSIE_TRASFORMAZIO_220255",
+        "GUIDA_PENSIONE_ANTICIPATA_CONTROVERSIE_CON_INPS_SU_REQUISITI_FINESTRE_E_BLOCCO_220260"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "190040",
+          "codice_integrato": "GUIDA_TITOLO_ESECUTIVO_EUROPEO_E_PROCEDURA_EUROPEA_PER_CREDITI_NON_CONTESTATI__190040",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "199020",
+          "codice_integrato": "GUIDA_EXEQUATUR_DI_LODO_ARBITRALE_STRANIERO_E_RICONOSCIMENTO_IN_ITALIA_ARTT_83_199020",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220250",
+          "codice_integrato": "GUIDA_INFORTUNI_SUL_LAVORO_AZIONE_CIVILE_DEL_LAVORATORE_E_RIVALSA_INAIL_VERSO__220250",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220255",
+          "codice_integrato": "GUIDA_CONTRATTO_DI_LAVORO_A_TEMPO_PARZIALE_PART_TIME_CONTROVERSIE_TRASFORMAZIO_220255",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220260",
+          "codice_integrato": "GUIDA_PENSIONE_ANTICIPATA_CONTROVERSIE_CON_INPS_SU_REQUISITI_FINESTRE_E_BLOCCO_220260",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p7.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p7.json",
+      "sha256": "6DDBF00DA246A2A5E6998BA2C957841CE12326D04E7C5709657C5A816C9FE0FA",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE7",
+      "denominazione": "PARTE 7 di 8",
+      "codici_materia_originali": [
+        "220265",
+        "220270",
+        "240060",
+        "240065",
+        "412010"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_DISTACCO_DEL_LAVORATORE_CONDIZIONI_DI_LEGITTIMIT_CONSENSO_E_CONTROVERSIE_220265",
+        "GUIDA_DEMANSIONAMENTO_E_MODIFICA_UNILATERALE_DELLE_MANSIONI_ART_2103_C_C_RIFOR_220270",
+        "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_E_LACUALE_RINNOVO_DECADENZA_E_CONTROVERS_240060",
+        "GUIDA_LEGGE_PINTO_INDENNIZZO_PER_IRRAGIONEVOLE_DURATA_DEL_PROCESSO_L_89_2001_240065",
+        "GUIDA_IMPUGNAZIONE_DEL_RICONOSCIMENTO_DI_PATERNIT_DA_PARTE_DI_TERZI_INTERESSAT_412010"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "220265",
+          "codice_integrato": "GUIDA_DISTACCO_DEL_LAVORATORE_CONDIZIONI_DI_LEGITTIMIT_CONSENSO_E_CONTROVERSIE_220265",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220270",
+          "codice_integrato": "GUIDA_DEMANSIONAMENTO_E_MODIFICA_UNILATERALE_DELLE_MANSIONI_ART_2103_C_C_RIFOR_220270",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "240060",
+          "codice_integrato": "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_E_LACUALE_RINNOVO_DECADENZA_E_CONTROVERS_240060",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "240065",
+          "codice_integrato": "GUIDA_LEGGE_PINTO_INDENNIZZO_PER_IRRAGIONEVOLE_DURATA_DEL_PROCESSO_L_89_2001_240065",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "412010",
+          "codice_integrato": "GUIDA_IMPUGNAZIONE_DEL_RICONOSCIMENTO_DI_PATERNIT_DA_PARTE_DI_TERZI_INTERESSAT_412010",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p8.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p8.json",
+      "sha256": "1DA33C9C89789359EE407E011D2E5264057A076794A3302827A41A0575B7A8B7",
+      "changed": true,
+      "macro_area_id": "SET32_PARTE8",
+      "denominazione": "PARTE 8 di 8",
+      "codici_materia_originali": [
+        "510020",
+        "511045",
+        "512125",
+        "512130",
+        "512135"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_IN_SOMMA_DI_DENARO_SOSTITUZIONE_DEL_BENE_PI_510020",
+        "GUIDA_ASSEGNAZIONE_DELLA_CASA_CONIUGALE_IN_SEPARAZIONE_E_DIVORZIO_ART_337_SEXI_511045",
+        "GUIDA_ACCERTAMENTO_DA_OPERAZIONI_SOGGETTIVAMENTE_INESISTENTI_FATTURE_FALSE_IVA_512125",
+        "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_PENDENTI_E_CONDONI_FISCALI_L_19_512130",
+        "GUIDA_IVIE_E_IVAFE_IMPOSTA_SU_IMMOBILI_E_ATTIVIT_FINANZIARIE_ALL_ESTERO_ACCERT_512135"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "510020",
+          "codice_integrato": "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_IN_SOMMA_DI_DENARO_SOSTITUZIONE_DEL_BENE_PI_510020",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "511045",
+          "codice_integrato": "GUIDA_ASSEGNAZIONE_DELLA_CASA_CONIUGALE_IN_SEPARAZIONE_E_DIVORZIO_ART_337_SEXI_511045",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512125",
+          "codice_integrato": "GUIDA_ACCERTAMENTO_DA_OPERAZIONI_SOGGETTIVAMENTE_INESISTENTI_FATTURE_FALSE_IVA_512125",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512130",
+          "codice_integrato": "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_PENDENTI_E_CONDONI_FISCALI_L_19_512130",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512135",
+          "codice_integrato": "GUIDA_IVIE_E_IVAFE_IMPOSTA_SU_IMMOBILI_E_ATTIVIT_FINANZIARIE_ALL_ESTERO_ACCERT_512135",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    }
+  ],
+  "duplicates_skipped": [],
+  "records_received": 40,
+  "records_integrated": 40,
+  "official_depositable_kept": [],
+  "internal_non_depositable_aliases": [
+    "GUIDA_ACCERTAMENTO_DA_OPERAZIONI_SOGGETTIVAMENTE_INESISTENTI_FATTURE_FALSE_IVA_512125",
+    "GUIDA_ACCESSIONE_COSTRUZIONE_SU_SUOLO_ALTRUI_INDENNIT_E_RIPETIZIONE_ARTT_934_9_130175",
+    "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IDONEIT_E_RICONOSCIMENTO_IN_ITALIA__121022",
+    "GUIDA_ASSEGNAZIONE_DELLA_CASA_CONIUGALE_IN_SEPARAZIONE_E_DIVORZIO_ART_337_SEXI_511045",
+    "GUIDA_AZIONE_DI_MANUTENZIONE_DEL_POSSESSO_E_SPOGLIO_ARTT_1168_1170_C_C_130185",
+    "GUIDA_AZIONE_REVOCATORIA_ORDINARIA_ACTIO_PAULIANA_REVOCA_DEGLI_ATTI_IN_FRODE_A_191030",
+    "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_E_LACUALE_RINNOVO_DECADENZA_E_CONTROVERS_240060",
+    "GUIDA_CONTRATTI_DERIVATI_E_SWAP_NULLIT_PER_MANCANZA_DI_CAUSA_ASIMMETRIA_INFORM_143120",
+    "GUIDA_CONTRATTO_DI_COMODATO_TERMINE_RESTITUZIONE_ANTICIPATA_E_RIMBORSO_SPESE_A_140095",
+    "GUIDA_CONTRATTO_DI_LAVORO_A_TEMPO_PARZIALE_PART_TIME_CONTROVERSIE_TRASFORMAZIO_220255",
+    "GUIDA_CONTRATTO_DI_MEDIAZIONE_IMMOBILIARE_DIRITTO_ALLA_PROVVIGIONE_RESPONSABIL_141090",
+    "GUIDA_CONTRATTO_DI_RENDITA_VITALIZIA_INADEMPIMENTO_RISOLUZIONE_E_VITALIZIO_ALI_143125",
+    "GUIDA_CONTRATTO_DI_SOMMINISTRAZIONE_INADEMPIMENTO_CLAUSOLA_DI_ESCLUSIVA_E_RECE_143110",
+    "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_IN_SOMMA_DI_DENARO_SOSTITUZIONE_DEL_BENE_PI_510020",
+    "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_PENDENTI_E_CONDONI_FISCALI_L_19_512130",
+    "GUIDA_DEMANSIONAMENTO_E_MODIFICA_UNILATERALE_DELLE_MANSIONI_ART_2103_C_C_RIFOR_220270",
+    "GUIDA_DICHIARAZIONE_DI_ADOTTABILIT_DEL_MINORE_IN_STATO_DI_ABBANDONO_ARTT_8_21__413130",
+    "GUIDA_DISTACCO_DEL_LAVORATORE_CONDIZIONI_DI_LEGITTIMIT_CONSENSO_E_CONTROVERSIE_220265",
+    "GUIDA_EXEQUATUR_DI_LODO_ARBITRALE_STRANIERO_E_RICONOSCIMENTO_IN_ITALIA_ARTT_83_199020",
+    "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+    "GUIDA_IMPRENDITORE_INDIVIDUALE_RESPONSABILIT_PATRIMONIALE_ILLIMITATA_E_STRUMEN_156010",
+    "GUIDA_IMPUGNAZIONE_DEL_RICONOSCIMENTO_DI_PATERNIT_DA_PARTE_DI_TERZI_INTERESSAT_412010",
+    "GUIDA_INFORTUNI_SUL_LAVORO_AZIONE_CIVILE_DEL_LAVORATORE_E_RIVALSA_INAIL_VERSO__220250",
+    "GUIDA_IVIE_E_IVAFE_IMPOSTA_SU_IMMOBILI_E_ATTIVIT_FINANZIARIE_ALL_ESTERO_ACCERT_512135",
+    "GUIDA_LEGGE_PINTO_INDENNIZZO_PER_IRRAGIONEVOLE_DURATA_DEL_PROCESSO_L_89_2001_240065",
+    "GUIDA_LOCAZIONE_DI_IMMOBILE_AD_USO_PROFESSIONALE_STUDI_MEDICI_LEGALI_NOTARILI__145025",
+    "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_NOMINA_TUTORE_E_PROTEZIONE_L_47_2017_D_120075",
+    "GUIDA_PATTI_PARASOCIALI_E_SINDACATI_DI_VOTO_NELLE_S_P_A_ARTT_2341_BIS_E_2341_T_154025",
+    "GUIDA_PENSIONE_ANTICIPATA_CONTROVERSIE_CON_INPS_SU_REQUISITI_FINESTRE_E_BLOCCO_220260",
+    "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_ART_56_D_LGS_14_2019_CCII_TUTELE_E_BENEFI_152025",
+    "GUIDA_RC_AUTO_RISARCIMENTO_DIRETTO_E_AZIONE_DIRETTA_VERSO_LA_COMPAGNIA_ARTT_14_143115",
+    "GUIDA_REGOLAMENTO_DEI_CONFINI_E_APPOSIZIONE_DEI_TERMINI_ARTT_950_951_C_C_130180",
+    "GUIDA_RESPONSABILIT_DELL_ORGANIZZATORE_DI_EVENTI_E_DELLA_PA_PER_DANNI_AI_PARTE_160270",
+    "GUIDA_RESPONSABILIT_PER_MANCATO_CONSENSO_INFORMATO_IN_AMBITO_SANITARIO_L_219_2_160255",
+    "GUIDA_RESPONSABILIT_PER_VIOLAZIONE_DEI_DATI_PERSONALI_GDPR_ART_82_REG_UE_679_2_160250",
+    "GUIDA_RETTIFICAZIONE_DI_ATTI_DI_STATO_CIVILE_ERRORI_OMISSIONI_E_RICONOSCIMENTO_413135",
+    "GUIDA_STRESS_LAVORO_CORRELATO_E_BURN_OUT_RESPONSABILIT_DEL_DATORE_E_RISARCIMEN_160260",
+    "GUIDA_S_R_L_CESSIONE_DI_QUOTE_DIRITTI_DI_PRELAZIONE_STATUTARI_E_LIMITAZIONI_AL_150110",
+    "GUIDA_TITOLO_ESECUTIVO_EUROPEO_E_PROCEDURA_EUROPEA_PER_CREDITI_NON_CONTESTATI__190040",
+    "GUIDA_TRASPORTO_FERROVIARIO_DI_PERSONE_RITARDI_CANCELLAZIONI_E_DIRITTI_DEI_PAS_141080"
+  ],
+  "termini_processuali_raw": 41
+}

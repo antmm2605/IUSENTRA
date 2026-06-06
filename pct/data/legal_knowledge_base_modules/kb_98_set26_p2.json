@@ -1,0 +1,1121 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET26_PARTE2",
+  "denominazione": "Ventiseiesimo set - 10 nuovi codici - PARTE 2 di 2",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "411602",
+      "denominazione": "Ordine di protezione contro gli abusi familiari (artt. 342-bis e 342-ter c.c.)",
+      "categoria": "Persone e famiglia – tutela dalla violenza domestica",
+      "rito": "Procedimento urgente davanti al Tribunale sezione famiglia – inaudita altera parte se necessario",
+      "competenza": "Tribunale sezione famiglia del luogo di residenza o domicilio del ricorrente",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "342-bis",
+          "descrizione": "ORDINE DI PROTEZIONE – il giudice può ordinare alla parte che tiene la condotta pregiudizievole di cessare + allontanarsi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "342-ter",
+          "descrizione": "Contenuto dell'ordine di protezione – allontanamento + divieto di avvicinamento + mantenimento + affidamento figli"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "736-bis",
+          "descrizione": "Procedimento – ricorso → decreto inaudita altera parte → udienza di convalida"
+        },
+        {
+          "fonte": "L. 154/2001",
+          "descrizione": "Norme contro la violenza nelle relazioni familiari"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "572",
+          "descrizione": "Maltrattamenti in famiglia – reato penale (concorre con l'azione civile)"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "612-bis",
+          "descrizione": "Atti persecutori (stalking) – reato penale"
+        },
+        {
+          "fonte": "D.L. 93/2013 (conv. L. 119/2013)",
+          "descrizione": "Misure urgenti in materia di sicurezza – violenza di genere"
+        },
+        {
+          "fonte": "Cass. SU 14476/2019",
+          "descrizione": "Ordine di protezione – presupposti e contenuto"
+        },
+        {
+          "fonte": "Cass. SU 10674/2022",
+          "descrizione": "Durata dell'ordine e proroga"
+        }
+      ],
+      "presupposti_342bis": {
+        "condotta_pregiudizievole": "Grave pregiudizio all'integrità fisica o morale ovvero alla libertà del coniuge o del convivente",
+        "non_solo_coniugi": "Applicabile anche a conviventi, fidanzati, ex partner",
+        "urgenza": "Il giudice può provvedere INAUDITA ALTERA PARTE se il contraddittorio preventivo metterebbe a rischio il ricorrente"
+      },
+      "contenuto_ordine_342ter": {
+        "allontanamento": "Obbligo di allontanarsi dalla casa familiare",
+        "divieto_avvicinamento": "Divieto di avvicinarsi ai luoghi frequentati dal ricorrente",
+        "mantenimento": "Il giudice può disporre il pagamento di un assegno periodico",
+        "affidamento_figli": "Può regolare l'affidamento dei figli",
+        "durata": "Non superiore a 12 mesi – prorogabile"
+      },
+      "rapporto_con_procedimento_penale": {
+        "parallelo": "L'ordine civile e il procedimento penale per maltrattamenti/stalking sono PARALLELI e indipendenti",
+        "vantaggio_civile": "L'ordine civile è più rapido (inaudita) e non richiede la querela"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la condotta pregiudizievole (fotografie lesioni, messaggi, testimonianze)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Valutare se richiedere il provvedimento inaudita altera parte per urgenza"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare denuncia/querela penale contestuale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_ordine_protezione_342bis",
+        "denominazione": "Ricorso urgente per ordine di protezione contro abusi familiari ex art. 342-bis c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente_vittima",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "autore_condotta_resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_relazione",
+            "type": "select",
+            "options": [
+              "coniugi",
+              "conviventi",
+              "ex_partner",
+              "familiari_conviventi"
+            ]
+          },
+          {
+            "id": "condotta_pregiudizievole",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select_multi",
+                "options": [
+                  "violenza_fisica",
+                  "violenza_psicologica",
+                  "stalking_e_persecuzioni",
+                  "minacce",
+                  "violenza_economica",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "prove_disponibili",
+            "type": "select_multi",
+            "options": [
+              "fotografie_lesioni",
+              "messaggi_email_minacce",
+              "testimonianze",
+              "referto_medico",
+              "precedenti_denunce"
+            ]
+          },
+          {
+            "id": "richiesta_inaudita_altera_parte",
+            "type": "boolean"
+          },
+          {
+            "id": "figli_minori_presenti",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ordine_allontanamento_casa_familiare",
+              "divieto_avvicinamento_luoghi",
+              "assegno_periodico_342ter",
+              "regolamentazione_affidamento_figli",
+              "durata_12_mesi_prorogabile"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Inaudita altera parte: richiedere se il contraddittorio preventivo è pericoloso",
+          "Durata massima: 12 mesi – prorogabile su richiesta",
+          "Violazione dell'ordine: reato ex art. 388 c.p. (inosservanza provvedimento del giudice)",
+          "Cumulare con denuncia penale (maltrattamenti 572 o stalking 612-bis)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_condotta_pregiudizievole",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "referti_medici_o_psicologici",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Procedimento urgente – senza termine; ordine dura 12 mesi + proroga"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411602"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411602"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411602"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_FUSIONE_DI_SOCIET_OPPOSIZIONE_DEI_CREDITORI_E_TUTELA_ARTT_2503_2503_BIS__150085",
+      "denominazione": "Fusione di società: opposizione dei creditori e tutela (artt. 2503-2503-bis c.c.)",
+      "categoria": "Diritto societario – operazioni straordinarie – fusione",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede di una delle società partecipanti alla fusione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2501",
+          "descrizione": "Fusione – nozione; incorporazione o fusione propria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2501-bis",
+          "descrizione": "Fusione a seguito di acquisizione con indebitamento (LBO)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2502",
+          "descrizione": "Deliberazione di fusione – quorum e voto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2503",
+          "descrizione": "OPPOSIZIONE DEI CREDITORI – termine 60 giorni dalla pubblicazione; il Tribunale può autorizzare anche in pendenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2503-bis",
+          "descrizione": "Fusione di S.r.l. – disciplina speciale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2504",
+          "descrizione": "Atto di fusione – iscrizione nel RI"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2504-quater",
+          "descrizione": "Effetti – la fusione non può essere più dichiarata invalida dopo l'iscrizione"
+        },
+        {
+          "fonte": "Cass. SU 14976/2021",
+          "descrizione": "Opposizione creditori alla fusione – legittimazione e motivi"
+        },
+        {
+          "fonte": "Cass. SU 8753/2023",
+          "descrizione": "Fusione LBO – tutela dei creditori della società acquisita"
+        }
+      ],
+      "opposizione_creditori_2503": {
+        "termine": "60 GIORNI dalla pubblicazione del progetto di fusione",
+        "chi_può_opporsi": "Qualsiasi creditore anteriore alla pubblicazione del progetto di fusione",
+        "effetto_dell_opposizione": "Blocca la fusione finché il Tribunale non si pronuncia",
+        "autorizzazione_del_Tribunale": "Il Tribunale può autorizzare la fusione anche in pendenza dell'opposizione se la società offre garanzie adeguate"
+      },
+      "irrevocabilita_dopo_iscrizione_2504quater": {
+        "principio": "Dopo l'iscrizione nel RI: la fusione NON può più essere dichiarata invalida",
+        "tutela_residua": "I creditori possono agire per il risarcimento del danno"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICARE il termine di 60 gg dalla pubblicazione del progetto – CRITICO"
+        },
+        {
+          "step": 2,
+          "descrizione": "Valutare il rischio di pregiudizio al proprio credito dalla fusione"
+        },
+        {
+          "step": 3,
+          "descrizione": "Depositare l'opposizione in cancelleria + notifica alle società fusioni"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_fusione_2503",
+        "denominazione": "Ricorso in opposizione alla fusione di società ex art. 2503 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_opponente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "societa_fusione_convenute",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "credito_vantato",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "titolo",
+                "type": "string"
+              },
+              {
+                "id": "importo",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "data_pubblicazione_progetto_fusione",
+            "type": "date",
+            "critico_per_60_gg": true
+          },
+          {
+            "id": "rispetto_termine_60_gg",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "motivi_opposizione",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "blocco_fusione_fino_a_pronuncia",
+              "condanna_offerta_garanzie_adeguate",
+              "in_subordine_risarcimento_danni"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine 60 GG dalla PUBBLICAZIONE – DECADENZIALE",
+          "Dopo iscrizione nel RI: fusione IRREVOCABILE – solo risarcimento (art. 2504-quater)",
+          "Competenza TRIBUNALE DELLE IMPRESE"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "progetto_di_fusione_pubblicato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_credito_opponente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE",
+          "giorni": 60,
+          "decorrenza": "pubblicazione progetto di fusione",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "150085",
+      "codice_logico": "GUIDA_FUSIONE_DI_SOCIET_OPPOSIZIONE_DEI_CREDITORI_E_TUTELA_ARTT_2503_2503_BIS__150085",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150085"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150085"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150085"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RIMBORSO_IVA_CONTESTAZIONE_DEL_RIGETTO_E_AZIONE_GIUDIZIARIA_ART_30_DPR_6_512060",
+      "denominazione": "Rimborso IVA: contestazione del rigetto e azione giudiziaria (art. 30 DPR 633/1972 + D.Lgs. 546/1992)",
+      "categoria": "Diritto tributario – IVA – rimborso",
+      "rito": "Rito tributario davanti alla CORTE DI GIUSTIZIA TRIBUTARIA I GRADO",
+      "competenza": "CGT I Grado della provincia del domicilio fiscale del richiedente",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "DPR 633/1972 (IVA)",
+          "articolo": "30",
+          "descrizione": "Rimborso IVA – casi in cui sorge il diritto al rimborso"
+        },
+        {
+          "fonte": "DPR 633/1972",
+          "articolo": "38-bis",
+          "descrizione": "Rimborso IVA prioritario per i soggetti a rischio frode"
+        },
+        {
+          "fonte": "DPR 633/1972",
+          "articolo": "57",
+          "descrizione": "DECADENZA dell'accertamento IVA – 5 anni"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "19 c. 1 lett. g",
+          "descrizione": "Impugnabilità del diniego di rimborso IVA davanti alla CGT"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "21",
+          "descrizione": "Termine 60 giorni per il ricorso"
+        },
+        {
+          "fonte": "Reg. UE 282/2011",
+          "descrizione": "IVA transfrontaliera – rimborso soggetti non stabiliti"
+        },
+        {
+          "fonte": "Cass. SU 18798/2020",
+          "descrizione": "Rimborso IVA – decorrenza della prescrizione del diritto"
+        },
+        {
+          "fonte": "Cass. SU 7453/2023",
+          "descrizione": "Diniego rimborso IVA – motivazione e impugnazione"
+        }
+      ],
+      "casi_tipici_rimborso_IVA_art30": [
+        "Credito IVA annuale (saldo finale dichiarazione): rimborso se si superano determinate soglie",
+        "Credito IVA infragruppo",
+        "Rimborso per cessazione dell'attività",
+        "Rimborso per applicazione dell'aliquota ridotta a operazioni tassate ad aliquota ordinaria",
+        "Rimborso per operazioni non imponibili (export)",
+        "Rimborso per soggetti non residenti (8a Direttiva)"
+      ],
+      "diniego_rimborso_e_impugnazione": {
+        "forma": "Il diniego deve essere motivato",
+        "impugnazione": "Ricorso alla CGT entro 60 GG dalla notifica del diniego",
+        "silenzio_60_giorni": "Se l'Agenzia delle Entrate non risponde entro 60 gg: silenzio-rigetto impugnabile",
+        "prescrizione_Cass_SU_18798_2020": "10 anni dall'istanza di rimborso non contestata"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 17-bis D.Lgs. 546/1992",
+        "materia": "Atti fino a €50.000"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Presentare istanza di rimborso IVA all'Agenzia delle Entrate"
+        },
+        {
+          "step": 2,
+          "descrizione": "Attendere 60 gg: se silenzio → silenzio-rigetto impugnabile"
+        },
+        {
+          "step": 3,
+          "descrizione": "Impugnare il diniego (espresso o tacito) entro 60 gg"
+        },
+        {
+          "step": 4,
+          "descrizione": "Reclamo/mediazione se rimborso ≤ €50.000"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_CGT_rimborso_IVA_30_DPR633",
+        "denominazione": "Ricorso alla CGT per rimborso IVA ex art. 30 DPR 633/1972 + D.Lgs. 546/1992",
+        "campi_chiave": [
+          {
+            "id": "CGT_competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "contribuente_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "agenzia_entrate_resistente",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "istanza_rimborso",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_presentazione",
+                "type": "date"
+              },
+              {
+                "id": "importo_richiesto",
+                "type": "currency"
+              },
+              {
+                "id": "causale_rimborso_art30",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "tipo_diniego",
+            "type": "select",
+            "required": true,
+            "options": [
+              "diniego_espresso_motivato",
+              "silenzio_rigetto_60_gg"
+            ]
+          },
+          {
+            "id": "data_diniego_o_decorrenza_silenzio",
+            "type": "date",
+            "critico_per_60_gg": true
+          },
+          {
+            "id": "rispetto_termine_60_gg",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "reclamo_mediazione_se_entro_50000",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_diritto_al_rimborso_IVA",
+              "condanna_AE_al_rimborso_con_interessi",
+              "sospensiva_cautelare_se_urgente"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine 60 GG dal diniego espresso o dalla scadenza del silenzio-rigetto – DECADENZIALE",
+          "Reclamo/mediazione obbligatorio per importi ≤ €50.000",
+          "Interessi legali sul rimborso decorrono dalla domanda"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "istanza_rimborso_e_ricevuta",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "diniego_AE_o_prova_silenzio_60_gg",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_credito_IVA",
+          "required": true
+        },
+        {
+          "id": "verbale_reclamo_mediazione_se_applicabile",
+          "required_if": "≤50000"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffe CGT speciali",
+        "marca_bollo": "€ 27,00"
+      },
+      "termini_processuali": [
+        {
+          "termine": "RICORSO CGT",
+          "giorni": 60,
+          "decorrenza": "diniego o silenzio-rigetto",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Prescrizione diritto al rimborso",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "512060",
+      "codice_logico": "GUIDA_RIMBORSO_IVA_CONTESTAZIONE_DEL_RIGETTO_E_AZIONE_GIUDIZIARIA_ART_30_DPR_6_512060",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512060"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512060"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTO_CORRENTE_ORDINARIO_CONTESTAZIONE_DEL_SALDO_APPROVAZIONE_DEL_RENDIC_143065",
+      "denominazione": "Conto corrente ordinario: contestazione del saldo, approvazione del rendiconto e pagamento (artt. 1832-1833 c.c.)",
+      "categoria": "Contratti – conto corrente ordinario (non bancario)",
+      "rito": "Rito ordinario di cognizione; decreto ingiuntivo se saldo approvato",
+      "competenza": "Tribunale – foro residenza convenuto o luogo di esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1823",
+          "descrizione": "Conto corrente – le parti si impegnano ad annotare in un unico conto i crediti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1832",
+          "descrizione": "APPROVAZIONE DEL RENDICONTO – il conto si considera approvato se non contestato entro 6 mesi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1833",
+          "descrizione": "Chiusura e saldo – al termine: il saldo può essere esigito immediatamente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1834",
+          "descrizione": "Conto corrente a tempo indeterminato – recesso con preavviso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1835",
+          "descrizione": "Interessi e costi nel conto corrente"
+        },
+        {
+          "fonte": "Cass. SU 14286/2019",
+          "descrizione": "Saldo del conto corrente – contestazione tardiva"
+        },
+        {
+          "fonte": "Cass. SU 8832/2022",
+          "descrizione": "Approvazione tacita del rendiconto 1832 – effetti e limiti"
+        }
+      ],
+      "differenza_da_conto_corrente_bancario_143055": {
+        "conto_corrente_ordinario_1823": "Tra due imprenditori o privati – annotazione reciproca di crediti e debiti di rapporti commerciali",
+        "conto_corrente_bancario_TUB": "Tra banca e cliente – disciplina speciale TUB + norma 1823 per rinvio"
+      },
+      "approvazione_tacita_1832_Cass_SU_8832_2022": {
+        "regola": "Se il rendiconto non è contestato entro 6 MESI dalla comunicazione: si considera APPROVATO",
+        "effetto": "Il saldo approvato diventa esigibile e il debitore non può più contestare le singole partite",
+        "limiti": "La contestazione è ancora possibile per: errori di calcolo, omissioni, duplicazioni, falsificazioni"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare se i rendiconti periodici sono stati inviati e se sono decorsi i 6 mesi senza contestazione"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per contestazione tardiva: verificare se si rientra nelle eccezioni (errori, omissioni)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per decreto ingiuntivo: il saldo approvato costituisce titolo per il DI"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_saldo_conto_corrente_1832_1833",
+        "denominazione": "Atto di citazione per pagamento saldo conto corrente ex artt. 1832-1833 c.c. o contestazione del saldo",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "creditore_del_saldo",
+                  "debitore_che_contesta_saldo"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "saldo_contestato_o_richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "rendiconto_approvato",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_comunicazione_rendiconto",
+                "type": "date"
+              },
+              {
+                "id": "contestazione_entro_6_mesi",
+                "type": "boolean"
+              },
+              {
+                "id": "se_non_contestato_approvato_1832",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "pagamento_saldo_approvato",
+              "contestazione_entro_6_mesi_per_errori",
+              "contestazione_per_omissioni_o_duplicazioni"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_pagamento_saldo_1833",
+              "rettifica_saldo_per_errori_omissioni",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Saldo approvato (non contestato in 6 mesi): ESIGIBILE IMMEDIATAMENTE con DI",
+          "Contestazione dopo 6 mesi: solo per errori di calcolo, omissioni, duplicazioni, falsificazioni",
+          "Conto corrente ≠ conto corrente bancario: disciplina diversa"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "rendiconto_periodico_e_prova_comunicazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "estratto_conto_partite",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Contestazione rendiconto: 6 MESI dalla comunicazione – DECADENZIALE"
+        },
+        {
+          "termine": "Prescrizione saldo",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "143065",
+      "codice_logico": "GUIDA_CONTO_CORRENTE_ORDINARIO_CONTESTAZIONE_DEL_SALDO_APPROVAZIONE_DEL_RENDIC_143065",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143065"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143065"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143065"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRATTO_DI_COMMISSIONE_RESPONSABILIT_DEL_COMMISSIONARIO_E_RENDICONTO_A_141050",
+      "denominazione": "Contratto di commissione: responsabilità del commissionario e rendiconto (artt. 1731-1736 c.c.)",
+      "categoria": "Contratti – commissione commerciale",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale – foro residenza convenuto o luogo di esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1731",
+          "descrizione": "Commissione – il commissionario compie atti giuridici per conto del committente ma IN NOME PROPRIO"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1732",
+          "descrizione": "Obbligo del commissionario di seguire le istruzioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1733",
+          "descrizione": "OBBLIGO DI RENDICONTO – il commissionario deve rendere conto al committente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1734",
+          "descrizione": "Responsabilità per la solvibilità del terzo (star del credere)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1735",
+          "descrizione": "Provvigione del commissionario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1736",
+          "descrizione": "Compenso del commissionario – anche per gli affari non conclusi se non per sua colpa"
+        },
+        {
+          "fonte": "Cass. SU 11439/2020",
+          "descrizione": "Commissione – star del credere e garanzia del terzo"
+        },
+        {
+          "fonte": "Cass. SU 7834/2022",
+          "descrizione": "Rendiconto del commissionario – contenuto e contestazione"
+        }
+      ],
+      "differenza_da_mandato_e_agenzia": {
+        "commissione_1731": "Il commissionario agisce IN NOME PROPRIO – il terzo non conosce il committente",
+        "mandato_1703": "Il mandatario può agire in nome del mandante (mandato con rappresentanza) o in nome proprio (senza rappresentanza)",
+        "agenzia_1742": "L'agente promuove affari ma NON li conclude autonomamente"
+      },
+      "star_del_credere_1734": {
+        "cos_e": "La clausola con cui il commissionario garantisce la solvibilità del terzo con cui contratta",
+        "effetti": "Il commissionario risponde in proprio se il terzo non paga",
+        "corrispettivo": "Il committente deve pagare un'indennità aggiuntiva per il maggiore rischio"
+      },
+      "rendiconto_1733_Cass_SU_7834_2022": {
+        "obbligo": "Il commissionario deve rendicontare al committente tutte le operazioni compiute",
+        "contenuto": "Elenco delle operazioni + somme ricevute + somme dovute + prova degli acquisti/vendite effettuati"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto di commissione + le istruzioni ricevute"
+        },
+        {
+          "step": 2,
+          "descrizione": "Richiedere formalmente il rendiconto al commissionario"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se esiste la clausola star del credere"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_commissione_rendiconto_e_responsabilita_1731_1736",
+        "denominazione": "Azione per rendiconto del commissionario o responsabilità per star del credere ex artt. 1731-1736 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "committente_vs_commissionario",
+                  "commissionario_vs_committente"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "mancato_rendiconto_1733",
+              "violazione_istruzioni_1732",
+              "star_del_credere_garanzia_terzo_1734",
+              "provvigione_non_pagata_1735",
+              "violazione_obbligo_riportare_affari_conclusi"
+            ]
+          },
+          {
+            "id": "importo_contestato",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_rendiconto_1733",
+              "condanna_pagamento_star_del_credere",
+              "condanna_provvigione_insoluta",
+              "risarcimento_danni_per_istruzioni_violate",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Commissione: il commissionario agisce IN NOME PROPRIO verso i terzi",
+          "Star del credere (1734): clausola che garantisce la solvibilità del terzo – corrispettivo aggiuntivo",
+          "Rendiconto obbligatorio al termine o su richiesta"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_commissione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "istruzioni_e_documentazione_operazioni_effettuate",
+          "required": true
+        },
+        {
+          "id": "richiesta_rendiconto_e_risposta",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "141050",
+      "codice_logico": "GUIDA_CONTRATTO_DI_COMMISSIONE_RESPONSABILIT_DEL_COMMISSIONARIO_E_RENDICONTO_A_141050",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141050"
+        }
+      ]
+    }
+  ]
+}

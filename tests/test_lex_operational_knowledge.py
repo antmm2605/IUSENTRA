@@ -47,6 +47,11 @@ QSP_ATTACHMENT_OCR_TEXT = (
 )
 
 
+@pytest.fixture(autouse=True)
+def _stable_lex_reference_date(monkeypatch):
+    monkeypatch.setenv("IUSENTRA_LEX_REFERENCE_DATE", "2026-05-20")
+
+
 class _User:
     def __init__(self, permissions: set[str], *, tenant_slug: str = "tenant-a"):
         self.id = "user-a"
@@ -406,6 +411,31 @@ def test_operational_knowledge_document_analysis_usa_testo_indicizzato():
     assert "non invento contenuti" not in answer.answer
 
 
+def test_operational_knowledge_fascicolo_attivo_da_page_path_js_usa_fonti_reali():
+    repositories = _base_repositories()
+    fascicolo = repositories["fascicoli"].rows[0]
+    fascicolo.documenti[0].anteprima = (
+        "Il fascicolo contiene opposizione a decreto ingiuntivo, rischio di decadenza "
+        "e necessita di verificare la procura alle liti prima del prossimo deposito."
+    )
+    service, user = _service(repositories=repositories)
+
+    answer = service.answer(
+        question="Fammi una sintesi del fascicolo attivo: documenti chiave, rischi aperti, cosa manca e prossimi passi.",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        metadata={"pagePath": "/fascicoli/fas-1", "context": "fascicolo-dettaglio"},
+    )
+
+    assert answer is not None
+    assert answer.route is not None
+    assert answer.route.intent == "fascicolo_summary"
+    assert "Fascicolo: Rossi / Bianchi" in answer.answer
+    assert "Estratto leggibile" in answer.answer
+    assert "rischio di decadenza" in answer.answer
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
+
+
 def test_operational_knowledge_document_analysis_legge_file_fascicolo_se_indice_ai_manca(tmp_path: Path):
     repositories = _base_repositories()
     fascicolo = repositories["fascicoli"].rows[0]
@@ -623,6 +653,108 @@ def test_all_scadenze_passa_contesto_tenant_al_manager():
     assert result.ok
     assert calls == ["tenant-a"]
     assert result.data[0]["titolo"] == "Presidio PEC tenant"
+
+
+def test_lex_operational_knowledge_include_db_normativa_operativo():
+    class _NormativeTables:
+        def snapshot(self):
+            return {
+                "tabelle": [
+                    {
+                        "id": "interesse_legale",
+                        "title": "Interessi legali",
+                        "category": "tassi",
+                        "description": "Saggi di interesse legale per periodo di validità.",
+                        "sync_status": "sincronizzata",
+                        "last_synced_at": "2026-06-06T09:00:00",
+                        "sources": [
+                            {
+                                "code": "interesse_legale_2026",
+                                "title": "Gazzetta Ufficiale - saggio interessi legali 2026",
+                                "url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=25A06705",
+                            }
+                        ],
+                    }
+                ]
+            }
+
+        def rows(self, table_id: str):
+            assert table_id == "interesse_legale"
+            return [
+                {
+                    "label": "Interesse legale 2026",
+                    "start": "2026-01-01",
+                    "end": "2026-12-31",
+                    "rate": 1.6,
+                }
+            ]
+
+        def catalogo_riferimenti_normativi(self):
+            return [
+                {
+                    "reference_code": "dm_55_parametri_compensi",
+                    "title": "D.M. 55/2014 - parametri compensi forensi",
+                    "article": "artt. 1-29",
+                    "description": "Parametri per fasi, valore, preventivo, liquidazione e presidio deontologico.",
+                    "url": "https://www.normattiva.it/",
+                }
+            ]
+
+    class _LegalIntelligence:
+        normative_tables = _NormativeTables()
+
+        def recent_alerts(self, limit=12):
+            return []
+
+        def catalogo_fonti(self):
+            return []
+
+    tools = OperationalKnowledgeTools(repositories={"legal_intelligence": _LegalIntelligence()})
+    user = _User(_all_permissions())
+    context = OperationalQueryContext(
+        tenant_id="tenant-a",
+        user_id=user.id,
+        user=user,
+        permissions=_all_permissions(),
+    )
+
+    interessi = tools.get_legal_intelligence_items("interesse legale 2026", context, limit=5)
+    assert interessi.ok
+    table = next(item for item in interessi.data if item["kind"] == "tabella_normativa")
+    assert table["id"] == "interesse_legale"
+    assert table["fonti"][0]["codice"] == "interesse_legale_2026"
+    assert table["righe_campione"][0]["label"] == "Interesse legale 2026"
+    assert "calcolare interessi" in table["uso_operativo"]
+    assert any("decorrenza" in check for check in table["controlli_lex"])
+
+    compensi = tools.get_legal_intelligence_items("parametri compensi", context, limit=5)
+    assert compensi.ok
+    reference = next(item for item in compensi.data if item["kind"] == "riferimento_normativo")
+    assert reference["id"] == "dm_55_parametri_compensi"
+    assert "modello" in reference["uso_operativo"]
+    assert any("testo vigente" in check for check in reference["controlli_lex"])
+
+
+def test_lex_fonti_ufficiali_risponde_con_codici_decreti_sentenz_udienze():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(
+        question="Quali fonti ufficiali mi servono per codice civile, codice penale, decreti legislativi, sentenze e udienze?",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+    )
+
+    assert answer is not None
+    assert answer.route is not None
+    assert answer.route.intent == "official_sources_lookup"
+    assert "Fonti operative pertinenti trovate" in answer.answer
+    assert "Codice civile" in answer.answer
+    assert "Codice penale" in answer.answer
+    assert "D.Lgs." in answer.answer
+    assert "Articoli/codici" in answer.answer
+    assert "Sentenze, udienze e provvedimenti" in answer.answer
+    assert "OpenGA" in answer.answer
+    assert any(source.source_id == "fonti_ufficiali" for source in answer.sources)
 
 
 def test_fascicolo_route_risolve_domanda_lunga_senza_perdere_il_nucleo_pratica():
@@ -1113,6 +1245,59 @@ def test_lex_studio_reasoner_colleague_conversation_score_reaches_90_percent():
     assert score >= 0.90, f"Score conversazione Lex {score:.0%}, fallimenti: {failures}"
 
 
+def test_fascicolo_summary_espone_udienze_sentenze_esito_e_prossimi_passi():
+    repositories = _base_repositories()
+    fascicolo = repositories["fascicoli"].rows[0]
+    fascicolo.documenti.append(
+        SimpleNamespace(
+            id="doc-sentenza-1",
+            nome="sentenza_accoglimento.pdf",
+            tipo="SENTENZA",
+            sha256="def456",
+            data_caricamento="2026-05-22",
+            anteprima="Sentenza di accoglimento con condanna alle spese; decisiva la prova documentale prodotta prima dell'udienza.",
+        )
+    )
+    repositories["agenda"].rows.append(
+        SimpleNamespace(
+            id="app-esito-1",
+            titolo="Udienza di discussione",
+            tipo="UDIENZA",
+            id_cliente="cli-1",
+            data_ora="2026-05-21T09:00:00",
+            esito="Discussione trattenuta in decisione",
+            provvedimento="Sentenza depositata",
+            prossima_attivita="Verificare termine per impugnazione e notifica della sentenza",
+        )
+    )
+    repositories["scadenziario"].rows.append(
+        SimpleNamespace(
+            id="sca-imp-1",
+            titolo="Valutare impugnazione o notifica sentenza",
+            id_fascicolo="fas-1",
+            data_scadenza="2026-06-21",
+        )
+    )
+    service, user = _service(repositories=repositories)
+    answer = service.answer(
+        question="Fammi una sintesi del fascicolo attivo: esito, udienze, cosa manca e prossimi passi.",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+        metadata={"fascicolo_id": "fas-1", "pagePath": "/fascicoli/fas-1"},
+    )
+
+    assert answer is not None
+    assert answer.route.intent == "fascicolo_summary"
+    assert "Provvedimenti, verbali o sentenze rilevati nel fascicolo" in answer.answer
+    assert "Sentenza di accoglimento" in answer.answer
+    assert "Udienze ed eventi processuali collegati" in answer.answer
+    assert "Discussione trattenuta in decisione" in answer.answer
+    assert "Termini e attività successive da presidiare" in answer.answer
+    assert "21 giugno 2026" in answer.answer
+    assert "Fonti interne: fascicolo e moduli collegati autorizzati" in answer.answer
+
+
 def test_lex_studio_reasoner_legal_language_and_dates_audit_reaches_99_percent():
     service, user = _service(repositories=_base_repositories())
     studio = SimpleNamespace(slug="tenant-a")
@@ -1304,6 +1489,29 @@ def test_template_lookup_is_reported_as_template_source():
 
     assert answer is not None
     assert any(source.source_id == "template_atti" for source in answer.sources)
+
+
+def test_template_lookup_include_fonti_ufficiali_modello():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(
+        question="Quali fonti del modello preventivo professionale includono codice deontologico ed equo compenso?",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+    )
+
+    assert answer is not None
+    payload = str(answer.to_dict())
+    assert any(source.source_id == "template_atti_fonti_ufficiali" for source in answer.sources)
+    assert "Codice deontologico" in payload
+    assert "equo compenso" in payload
+
+
+def test_router_fonti_modello_deontologico_usa_sorgente_template_fonti():
+    route = OperationalQueryRouter().route("fonti del modello incarico con codice deontologico")
+
+    assert route is not None
+    assert "template_atti_fonti_ufficiali" in route.source_ids
 
 
 def _qsp_9926_rows():

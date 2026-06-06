@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (19).zip::kb_set30_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set30_p8.json",
+  "sha256": "BCD1183194094CD128B194DB71782B9BB2A4EF2A430A8E59C11D414AB8F5F8A4",
+  "changed": false,
+  "macro_area_id": "SET30_PARTE8",
+  "denominazione": "Trentesimo set - PARTE 8 di 8",
+  "codici_materia_originali": [
+    "512080",
+    "512085",
+    "512090",
+    "512095",
+    "190035"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMPOSTA_DI_SUCCESSIONE_E_DONAZIONE_ACCERTAMENTO_LIQUIDAZIONE_E_CONTESTAZ_512080",
+    "GUIDA_IMU_CONTESTAZIONE_AVVISO_DI_ACCERTAMENTO_COMUNALE_D_LGS_23_2011_L_160_20_512085",
+    "GUIDA_CONTRIBUTI_PREVIDENZIALI_INPS_CONTESTAZIONE_OMISSIONE_PRESCRIZIONE_E_OPP_512090",
+    "GUIDA_IMU_E_TRIBUTI_LOCALI_RIMBORSO_PER_PAGAMENTI_IN_ECCESSO_O_INDEBITO_L_160__512095",
+    "GUIDA_ESIBIZIONE_DI_DOCUMENTI_IN_GIUDIZIO_E_ORDINE_DI_ESIBIZIONE_ART_210_C_P_C_190035"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512080",
+      "codice_integrato": "GUIDA_IMPOSTA_DI_SUCCESSIONE_E_DONAZIONE_ACCERTAMENTO_LIQUIDAZIONE_E_CONTESTAZ_512080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512085",
+      "codice_integrato": "GUIDA_IMU_CONTESTAZIONE_AVVISO_DI_ACCERTAMENTO_COMUNALE_D_LGS_23_2011_L_160_20_512085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512090",
+      "codice_integrato": "GUIDA_CONTRIBUTI_PREVIDENZIALI_INPS_CONTESTAZIONE_OMISSIONE_PRESCRIZIONE_E_OPP_512090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512095",
+      "codice_integrato": "GUIDA_IMU_E_TRIBUTI_LOCALI_RIMBORSO_PER_PAGAMENTI_IN_ECCESSO_O_INDEBITO_L_160__512095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190035",
+      "codice_integrato": "GUIDA_ESIBIZIONE_DI_DOCUMENTI_IN_GIUDIZIO_E_ORDINE_DI_ESIBIZIONE_ART_210_C_P_C_190035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

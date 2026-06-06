@@ -3141,7 +3141,19 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <PdfPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)}/>
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
-      <FloatingLex context="fascicolo-dettaglio" title="Lex AI fascicolo" body="Posso sintetizzare profilo, documenti, attività, scadenze, cancelleria, parti e prossime azioni del fascicolo aperto." primaryHref="#lex" primaryLabel="Apri Lex fascicolo" secondaryHref={quadroHref} secondaryLabel="Quadro fascicolo" />
+      <FloatingLex
+        context="fascicolo-dettaglio"
+        contextType="case"
+        caseId={f.id || id}
+        clientId={clientId}
+        activeContext={{ context_type: 'case', case_id: f.id || id, client_id: clientId }}
+        title="Lex AI fascicolo"
+        body="Posso sintetizzare profilo, documenti, attività, scadenze, cancelleria, parti e prossime azioni del fascicolo aperto."
+        primaryHref="#lex"
+        primaryLabel="Apri Lex fascicolo"
+        secondaryHref={quadroHref}
+        secondaryLabel="Quadro fascicolo"
+      />
     </main>
   )
 }
@@ -3177,6 +3189,7 @@ function QuadroPage({ id }:{id:string}) {
   const [loading, setLoading] = useState(true)
   useEffect(() => { let active = true; getFascicoloDetail(id, { include: 'all' }).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
   const f = data.fascicolo
+  const clientId = data.client?.id || f.clientId
   const encodedId = encodeURIComponent(f.id || id)
   const operationalHref = f.operationalHref || `/fascicoli/${encodedId}`
   const detailHref = f.href || `/fascicoli/${encodedId}`
@@ -3225,7 +3238,19 @@ function QuadroPage({ id }:{id:string}) {
         <QuadroAxis id="telematico" title="Servizi telematici" icon={<Send size={18}/>} status={data.telematic.length ? 'Presidiati' : 'Da configurare'} tone={data.telematic.length ? 'primary' : 'warning'}><div className="iu-fas-quadro-flow">{data.telematic.slice(0, 3).map((item) => <QuadroMiniCard key={item.label} label={item.label} value={item.value} note={item.note} tone={item.tone} href={item.href}/>)}</div><a className="iu-fas-inline-link" href="/telematico"><Send size={14}/> Apri servizi telematici</a></QuadroAxis>
       </section>
       <a className="iu-fas-back-top" href="#fascicolo-quadro-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
-      <FloatingLex context="fascicolo-quadro" title="Lex AI quadro" body="Posso leggere il quadro della pratica, riassumere commerciale, operativo, conformità, economico e documenti, e suggerire la prossima azione utile." primaryHref="#lex" primaryLabel="Apri Lex quadro" secondaryHref={detailHref} secondaryLabel="Apri dettaglio" />
+      <FloatingLex
+        context="fascicolo-quadro"
+        contextType="case"
+        caseId={f.id || id}
+        clientId={clientId}
+        activeContext={{ context_type: 'case', case_id: f.id || id, client_id: clientId }}
+        title="Lex AI quadro"
+        body="Posso leggere il quadro della pratica, riassumere commerciale, operativo, conformità, economico e documenti, e suggerire la prossima azione utile."
+        primaryHref="#lex"
+        primaryLabel="Apri Lex quadro"
+        secondaryHref={detailHref}
+        secondaryLabel="Apri dettaglio"
+      />
     </main>
   )
 }

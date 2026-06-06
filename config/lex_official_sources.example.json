@@ -46,7 +46,7 @@
     {
       "id": "codici_normattiva",
       "name": "Codici fondamentali Normattiva",
-      "enabled": false,
+      "enabled": true,
       "priority": 92,
       "connector": "normattiva_collection",
       "type": "normativa_codici",
@@ -80,7 +80,7 @@
     {
       "id": "ministero_giustizia",
       "name": "Ministero della Giustizia",
-      "enabled": false,
+      "enabled": true,
       "priority": 80,
       "connector": "static_urls",
       "type": "fonte_istituzionale",
@@ -96,7 +96,7 @@
     {
       "id": "pst_pct",
       "name": "Portale Servizi Telematici / PCT",
-      "enabled": false,
+      "enabled": true,
       "priority": 78,
       "connector": "static_urls",
       "type": "processo_telematico",
@@ -124,7 +124,7 @@
     {
       "id": "pat_siga",
       "name": "PAT / SIGA Amministrativo",
-      "enabled": false,
+      "enabled": true,
       "priority": 74,
       "connector": "static_urls",
       "type": "processo_telematico",
@@ -143,7 +143,7 @@
     {
       "id": "ptt_sigit",
       "name": "PTT / SIGIT Tributario",
-      "enabled": false,
+      "enabled": true,
       "priority": 72,
       "connector": "static_urls",
       "type": "processo_telematico",
@@ -165,7 +165,7 @@
     {
       "id": "pdp_penale",
       "name": "PDP Penale",
-      "enabled": false,
+      "enabled": true,
       "priority": 70,
       "connector": "static_urls",
       "type": "processo_telematico",
@@ -183,7 +183,7 @@
     {
       "id": "cnf",
       "name": "Consiglio Nazionale Forense",
-      "enabled": false,
+      "enabled": true,
       "priority": 68,
       "connector": "static_urls",
       "type": "fonte_forense",
@@ -205,146 +205,218 @@
     {
       "id": "agenzia_entrate",
       "name": "Agenzia delle Entrate",
-      "enabled": false,
+      "enabled": true,
       "priority": 66,
       "connector": "static_urls",
       "type": "fonte_fiscale",
       "refresh": "manual",
       "base_url": "https://www.agenziaentrate.gov.it/",
       "topics": ["tributario", "fatturazione"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.agenziaentrate.gov.it/portale/web/guest/provvedimenti",
+          "https://www.agenziaentrate.gov.it/portale/web/guest/circolari",
+          "https://www.agenziaentrate.gov.it/portale/web/guest/risoluzioni",
+          "https://www.agenziaentrate.gov.it/portale/web/guest/risposte-alle-istanze-di-interpello"
+        ]
+      }
     },
     {
       "id": "garante_privacy",
       "name": "Garante Privacy",
-      "enabled": false,
+      "enabled": true,
       "priority": 64,
       "connector": "static_urls",
       "type": "authority",
       "refresh": "manual",
       "base_url": "https://www.garanteprivacy.it/",
       "topics": ["privacy"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.garanteprivacy.it/normativa-e-provvedimenti",
+          "https://www.garanteprivacy.it/home/provvedimenti-normativa/provvedimenti",
+          "https://www.garanteprivacy.it/home/provvedimenti-normativa/provvedimenti/linee-guida",
+          "https://www.garanteprivacy.it/home/provvedimenti-normativa/normativa"
+        ]
+      }
     },
     {
       "id": "eurlex",
       "name": "EUR-Lex",
-      "enabled": false,
+      "enabled": true,
       "priority": 62,
       "connector": "static_urls",
       "type": "fonte_europea",
       "refresh": "manual",
       "base_url": "https://eur-lex.europa.eu/",
       "topics": ["diritto europeo"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://eur-lex.europa.eu/homepage.html",
+          "https://eur-lex.europa.eu/oj/direct-access.html",
+          "https://eur-lex.europa.eu/content/help/data-reuse/webservice.html"
+        ]
+      }
     },
     {
       "id": "anac",
       "name": "ANAC",
-      "enabled": false,
+      "enabled": true,
       "priority": 58,
       "connector": "static_urls",
       "type": "authority",
       "refresh": "manual",
       "base_url": "https://www.anticorruzione.it/",
       "topics": ["appalti", "anticorruzione"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.anticorruzione.it/",
+          "https://dati.anticorruzione.it/opendata/",
+          "https://www.anticorruzione.it/-/contratti-pubblici"
+        ]
+      }
     },
     {
       "id": "inps",
       "name": "INPS",
-      "enabled": false,
+      "enabled": true,
       "priority": 56,
       "connector": "static_urls",
       "type": "ente",
       "refresh": "manual",
       "base_url": "https://www.inps.it/",
       "topics": ["previdenza", "lavoro"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.inps.it/it/it/inps-comunica/atti.html",
+          "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa.html"
+        ]
+      }
     },
     {
       "id": "inail",
       "name": "INAIL",
-      "enabled": false,
+      "enabled": true,
       "priority": 54,
       "connector": "static_urls",
       "type": "ente",
       "refresh": "manual",
       "base_url": "https://www.inail.it/",
       "topics": ["previdenza", "lavoro"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.inail.it/portale/it/atti-e-documenti.html",
+          "https://www.inail.it/portale/it/atti-e-documenti/note-provvedimenti-e-istruzioni-operative/normativa-circolari-inail.html"
+        ]
+      }
     },
     {
       "id": "banca_italia",
       "name": "Banca d'Italia",
-      "enabled": false,
+      "enabled": true,
       "priority": 52,
       "connector": "static_urls",
       "type": "authority",
       "refresh": "manual",
       "base_url": "https://www.bancaditalia.it/",
       "topics": ["bancario"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.bancaditalia.it/compiti/vigilanza/normativa/",
+          "https://www.bancaditalia.it/compiti/vigilanza/compiti-vigilanza/tegm/",
+          "https://www.bancaditalia.it/compiti/tutela-educazione/usura/",
+          "https://www.bancaditalia.it/compiti/tutela-educazione/abf/"
+        ]
+      }
     },
     {
       "id": "agcm",
       "name": "AGCM",
-      "enabled": false,
+      "enabled": true,
       "priority": 50,
       "connector": "static_urls",
       "type": "authority",
       "refresh": "manual",
       "base_url": "https://www.agcm.it/",
       "topics": ["consumatori", "concorrenza"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.agcm.it/competenze/tutela-del-consumatore",
+          "https://www.agcm.it/competenze/tutela-del-consumatore/pratiche-commerciali-scorrette/",
+          "https://www.agcm.it/pubblicazioni/bollettino-settimanale"
+        ]
+      }
     },
     {
       "id": "agcom",
       "name": "AGCOM",
-      "enabled": false,
+      "enabled": true,
       "priority": 48,
       "connector": "static_urls",
       "type": "authority",
       "refresh": "manual",
       "base_url": "https://www.agcom.it/",
       "topics": ["comunicazioni", "consumatori"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.agcom.it/provvedimenti",
+          "https://www.agcom.it/agcom-per-te/i-miei-diritti/contenzioso-tra-utenti-e-operatori",
+          "https://conciliaweb.agcom.it/conciliaweb/cliente/index.htm?lang=it"
+        ]
+      }
     },
     {
       "id": "ipa",
       "name": "IndicePA",
-      "enabled": false,
+      "enabled": true,
       "priority": 46,
       "connector": "static_urls",
       "type": "registro_pubblico",
       "refresh": "manual",
       "base_url": "https://indicepa.gov.it/",
       "topics": ["pubblica amministrazione", "PEC/notifiche"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.indicepa.gov.it/",
+          "https://www.indicepa.gov.it/ipa-dati/",
+          "https://indicepa.gov.it/ipa-files/help-portale/index.html"
+        ]
+      }
     },
     {
       "id": "inipec",
       "name": "INI-PEC",
-      "enabled": false,
+      "enabled": true,
       "priority": 44,
       "connector": "static_urls",
       "type": "registro_pubblico",
       "refresh": "manual",
       "base_url": "https://www.inipec.gov.it/",
       "topics": ["PEC/notifiche"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://www.inipec.gov.it/cerca-pec",
+          "https://registroimprese.infocamere.it/ini-pec"
+        ]
+      }
     },
     {
       "id": "inad",
       "name": "INAD",
-      "enabled": false,
+      "enabled": true,
       "priority": 42,
       "connector": "static_urls",
       "type": "registro_pubblico",
       "refresh": "manual",
       "base_url": "https://domiciliodigitale.gov.it/",
       "topics": ["domicilio digitale", "PEC/notifiche"],
-      "settings": {"urls": []}
+      "settings": {
+        "urls": [
+          "https://domiciliodigitale.gov.it/dgit/home/public/#!/home",
+          "https://www.agid.gov.it/it/agenzia/stampa-e-comunicazione/notizie/2023/06/06/nasce-inad-lindice-nazionale-domicili-digitali",
+          "https://docs.italia.it/media/pdf/lg-domiciliodigitalecittadino-docs/stabile/lg-domiciliodigitalecittadino-docs.pdf"
+        ]
+      }
     },
     {
       "id": "fonti_studio_locali",

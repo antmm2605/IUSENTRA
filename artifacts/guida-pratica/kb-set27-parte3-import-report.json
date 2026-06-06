@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (18).zip::kb_set27_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p3.json",
+  "sha256": "211FD938AE79333B0E12241844B5151938CECB8AF82ECCA5A7AAB4BC6634E42B",
+  "changed": false,
+  "macro_area_id": "SET27_PARTE3",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 3 di 5",
+  "codici_materia_originali": [
+    "143075",
+    "151115",
+    "152015",
+    "154015",
+    "160185"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CARTA_DI_CREDITO_E_SERVIZI_DI_PAGAMENTO_CONTESTAZIONE_ADDEBITI_E_RIMBORS_143075",
+    "GUIDA_ASSOCIAZIONE_IN_PARTECIPAZIONE_SCIOGLIMENTO_RENDICONTO_E_PARTECIPAZIONE__151115",
+    "GUIDA_CONCORDATO_PREVENTIVO_IN_CONTINUIT_AZIENDALE_ARTT_84_120_D_LGS_14_2019_C_152015",
+    "GUIDA_COOPERATIVE_ESCLUSIONE_DEL_SOCIO_LAVORATORE_E_CONTESTAZIONI_ARTT_2533_25_154015",
+    "GUIDA_RESPONSABILIT_DEL_COMMITTENTE_PER_INFORTUNI_NELL_APPALTO_ART_26_D_LGS_81_160185"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "143075",
+      "codice_integrato": "GUIDA_CARTA_DI_CREDITO_E_SERVIZI_DI_PAGAMENTO_CONTESTAZIONE_ADDEBITI_E_RIMBORS_143075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "151115",
+      "codice_integrato": "GUIDA_ASSOCIAZIONE_IN_PARTECIPAZIONE_SCIOGLIMENTO_RENDICONTO_E_PARTECIPAZIONE__151115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "152015",
+      "codice_integrato": "GUIDA_CONCORDATO_PREVENTIVO_IN_CONTINUIT_AZIENDALE_ARTT_84_120_D_LGS_14_2019_C_152015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154015",
+      "codice_integrato": "GUIDA_COOPERATIVE_ESCLUSIONE_DEL_SOCIO_LAVORATORE_E_CONTESTAZIONI_ARTT_2533_25_154015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160185",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_COMMITTENTE_PER_INFORTUNI_NELL_APPALTO_ART_26_D_LGS_81_160185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

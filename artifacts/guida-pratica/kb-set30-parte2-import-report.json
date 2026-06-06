@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (19).zip::kb_set30_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set30_p2.json",
+  "sha256": "531F927FEDDF0817DB2F71B89ED04E2170F388751222A6672E91AF2F72975A26",
+  "changed": false,
+  "macro_area_id": "SET30_PARTE2",
+  "denominazione": "Trentesimo set - PARTE 2 di 8",
+  "codici_materia_originali": [
+    "140085",
+    "141060",
+    "141065",
+    "143085",
+    "143090"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SURROGAZIONE_DELL_ASSICURATORE_E_RIVALSA_VERSO_IL_RESPONSABILE_DEL_SINIS_140085",
+    "GUIDA_RESPONSABILIT_DEL_VETTORE_AEREO_PER_DANNI_A_PASSEGGERI_E_BAGAGLI_CONV_MO_141060",
+    "GUIDA_RESPONSABILIT_DEL_VETTORE_TERRESTRE_PER_PERDITA_AVARIA_E_RITARDO_NEL_TRA_141065",
+    "GUIDA_CONTRATTO_DI_FACTORING_CESSIONE_DEI_CREDITI_D_IMPRESA_E_RIVALSA_L_52_199_143085",
+    "GUIDA_LEASING_IMMOBILIARE_ABITATIVO_INADEMPIMENTO_RISOLUZIONE_E_TUTELE_L_124_2_143090"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "140085",
+      "codice_integrato": "GUIDA_SURROGAZIONE_DELL_ASSICURATORE_E_RIVALSA_VERSO_IL_RESPONSABILE_DEL_SINIS_140085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141060",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_VETTORE_AEREO_PER_DANNI_A_PASSEGGERI_E_BAGAGLI_CONV_MO_141060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141065",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_VETTORE_TERRESTRE_PER_PERDITA_AVARIA_E_RITARDO_NEL_TRA_141065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143085",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_FACTORING_CESSIONE_DEI_CREDITI_D_IMPRESA_E_RIVALSA_L_52_199_143085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143090",
+      "codice_integrato": "GUIDA_LEASING_IMMOBILIARE_ABITATIVO_INADEMPIMENTO_RISOLUZIONE_E_TUTELE_L_124_2_143090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,1961 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET32_PARTE1",
+  "denominazione": "Trentaduesimo set - 40 nuovi codici - PARTE 1 di 8",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+      "denominazione": "Fondo patrimoniale: costituzione, opponibilità ai creditori e azione revocatoria (artt. 167-171 c.c.)",
+      "categoria": "Persone e famiglia – regime patrimoniale – fondo patrimoniale",
+      "rito": "Rito ordinario; revocatoria fondo patrimoniale: rito ordinario",
+      "competenza": "Tribunale sezione famiglia per controversie tra coniugi; Tribunale ordinario per revocatoria",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "167",
+          "descrizione": "Fondo patrimoniale – i coniugi possono destinare beni a far fronte ai bisogni della famiglia"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "168",
+          "descrizione": "Amministrazione del fondo – congiunta dai coniugi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "169",
+          "descrizione": "Inalienabilità – i beni del fondo non possono essere alienati senza il consenso di entrambi e del giudice se ci sono figli minori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "170",
+          "descrizione": "ESECUZIONE FORZATA – vietata per debiti contratti per bisogni estranei alla famiglia"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2901",
+          "descrizione": "REVOCATORIA – i creditori possono chiedere la revoca della costituzione del fondo se fraudolenta"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Fondo patrimoniale – creditori e bisogni estranei alla famiglia"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Revocatoria del fondo patrimoniale – presupposti e termini"
+        }
+      ],
+      "tutela_dei_creditori_art170": {
+        "regola": "I creditori possono eseguire sui beni del fondo SOLO per debiti contratti per bisogni della famiglia",
+        "bisogni_estranei": "Se il debito è per un'attività di impresa: il creditore non può pignorare i beni del fondo",
+        "onere_prova": "Il creditore deve provare che il debito era per bisogni della famiglia"
+      },
+      "revocatoria_2901": {
+        "quando": "La costituzione del fondo è fraudolenta – fatta per sottrarre beni ai creditori",
+        "scientia_decoctionis": "Se il coniuge sapeva dell'insolvenza: revocatoria disponibile",
+        "termine": "5 anni dall'atto costitutivo del fondo"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "azione_revocatoria_fondo_patrimoniale_2901_o_opposizione_esecuzione_170",
+        "denominazione": "Azione revocatoria del fondo patrimoniale o opposizione all'esecuzione ex art. 170 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select"
+          },
+          {
+            "id": "creditore_o_debitore_attore",
+            "type": "object_persona"
+          },
+          {
+            "id": "coniugi_convenuti",
+            "type": "array_persone"
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "options": [
+              "revocatoria_costituzione_fondo_2901",
+              "opposizione_esecuzione_170_bisogni_estranei",
+              "contestazione_alienazione_senza_autorizzazione_169"
+            ]
+          },
+          {
+            "id": "debito_per_bisogni_famiglia",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "revoca_costituzione_fondo",
+              "opposizione_esecuzione_creditori",
+              "nullita_alienazione_169"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Art. 170: l'esecuzione è vietata per debiti ESTRANEI ai bisogni della famiglia",
+          "Revocatoria: presupposto la frode alla legge – fondo costituito per eludere i creditori",
+          "Termini revocatoria: 5 anni dall'atto costitutivo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costituzione_fondo_con_trascrizione"
+        },
+        {
+          "id": "documentazione_credito_e_tipo_debito"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Revocatoria: 5 anni dall'atto costitutivo"
+        }
+      ],
+      "codice_originale_ricevuto": "112001",
+      "codice_logico": "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "111214",
+        "411640",
+        "411679",
+        "102002"
+      ],
+      "nota_integrazione_iusentra": "Il codice 112001 è ufficiale nel catalogo locale come voce deprecata diversa; la scheda ricevuta riguarda fondo patrimoniale, opponibilità ai creditori e revocatoria. Resta guida interna e propone i codici ufficiali fondo patrimoniale/revocatoria da valutare nel fascicolo.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "112001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "112001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "112001"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "112001"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "112001"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 6 giugno 2001, n. 380 - Testo unico edilizia",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001;380!vig=",
+          "ambito": "permesso di costruire, SCIA edilizia, abusi, sanatoria e titoli edilizi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 26 marzo 2010, n. 59 - servizi nel mercato interno",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;59!vig=",
+          "ambito": "SCIA commerciale, servizi, autorizzazioni e controlli amministrativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 30 marzo 1942, n. 327 - Codice della navigazione",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327!vig=",
+          "ambito": "concessioni demaniali marittime e lacuali, revoca, decadenza, beni demaniali e navigazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 marzo 2023, n. 36 - Codice dei contratti pubblici",
+          "url": "https://www.normattiva.it/eli/id/2023/03/31/23G00044/CONSOLIDATED",
+          "ambito": "appalti pubblici, affidamenti, esecuzione, digitalizzazione, trasparenza e rimedi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "ANAC",
+          "titolo": "Contratti pubblici - attuazione D.Lgs. 36/2023 e BDNCP",
+          "url": "https://www.anticorruzione.it/contratti-pubblici",
+          "ambito": "piattaforme, BDNCP, pubblicità legale, FAQ e presidi ANAC sugli appalti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 agosto 1990, n. 241 - procedimento amministrativo e autotutela",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990;241!vig=",
+          "ambito": "procedimento amministrativo, accesso, motivazione, autotutela, termini e partecipazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 2 luglio 2010, n. 104 - Codice del processo amministrativo",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;104!vig=",
+          "ambito": "ricorso amministrativo, TAR, appello, cautelari, termini e risarcimento PA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 12 gennaio 2019, n. 14 - Codice della crisi d'impresa e dell'insolvenza",
+          "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2019/01/12/14/CONSOLIDATED",
+          "ambito": "composizione negoziata, strumenti di regolazione della crisi, insolvenza e procedure concorsuali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "crisi d'impresa"
+        },
+        {
+          "ente": "Unioncamere",
+          "titolo": "Piattaforma nazionale composizione negoziata",
+          "url": "https://composizionenegoziata.camcom.it/",
+          "ambito": "accesso alla composizione negoziata, test pratico, istanza e gestione documentale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "crisi d'impresa"
+        },
+        {
+          "ente": "Camera di Commercio",
+          "titolo": "Registro delle imprese e adempimenti societari",
+          "url": "https://www.vr.camcom.gov.it/content/il-registro-imprese",
+          "ambito": "visure, assetti societari, scioglimento, liquidazione e pubblicità legale dell'impresa",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "crisi d'impresa"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Ministero della Giustizia - Tribunale per i Minorenni",
+          "titolo": "Competenza per materia del Tribunale per i Minorenni",
+          "url": "https://tribmin-trento.giustizia.it/it/comp_per_materia.page",
+          "ambito": "competenza civile minorile, volontaria giurisdizione, adozione e tutela dei minori",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "famiglia e minori"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_NOMINA_TUTORE_E_PROTEZIONE_L_47_2017_D_120075",
+      "denominazione": "Minore straniero non accompagnato: nomina tutore e protezione (L. 47/2017 + D.Lgs. 142/2015)",
+      "categoria": "Persone e famiglia – minori – MSNA",
+      "rito": "Procedimento camerale urgente davanti al Giudice Tutelare",
+      "competenza": "Giudice Tutelare del luogo di residenza/dimora del MSNA",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 47/2017 (Legge Zampa)",
+          "articolo": "1-20",
+          "descrizione": "Disposizioni in materia di misure di protezione dei MSNA"
+        },
+        {
+          "fonte": "L. 47/2017",
+          "articolo": "3",
+          "descrizione": "DIVIETO DI RESPINGIMENTO – il MSNA non può essere respinto alla frontiera"
+        },
+        {
+          "fonte": "L. 47/2017",
+          "articolo": "4",
+          "descrizione": "COLLOQUIO CON IL MSNA – da parte delle autorità competenti"
+        },
+        {
+          "fonte": "L. 47/2017",
+          "articolo": "11",
+          "descrizione": "NOMINA DEL TUTORE – il GT nomina un tutore volontario"
+        },
+        {
+          "fonte": "D.Lgs. 142/2015",
+          "articolo": "18-19",
+          "descrizione": "Accoglienza dei MSNA – in strutture dedicate"
+        },
+        {
+          "fonte": "D.Lgs. 286/1998 (TU Immigrazione)",
+          "articolo": "31 c. 3",
+          "descrizione": "Autorizzazione alla permanenza per motivi familiari"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "MSNA – tutela e procedimento"
+        }
+      ],
+      "tutore_volontario_L47_art11": {
+        "chi_nomina": "Il Giudice Tutelare",
+        "chi_puo_essere_tutore": "Persone fisiche o rappresentanti di enti locali iscritti negli elenchi regionali",
+        "obblighi": "Cura l'interesse del MSNA, lo rappresenta legalmente, assiste nelle procedure di asilo"
+      },
+      "procedimento_urgente": {
+        "immediatezza": "Il GT nomina il tutore con urgenza non appena il MSNA viene identificato",
+        "senza_aspettare": "Non si attende il provvedimento definitivo – nomina provvisoria immediata"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "istanza_nomina_tutore_MSNA_L47",
+        "denominazione": "Istanza urgente al GT per nomina tutore MSNA ex art. 11 L. 47/2017",
+        "campi_chiave": [
+          {
+            "id": "giudice_tutelare",
+            "type": "select"
+          },
+          {
+            "id": "richiedente",
+            "type": "object_persona",
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "servizi_sociali",
+                  "forze_ordine",
+                  "UNHCR",
+                  "avvocato"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "MSNA",
+            "type": "object_persona"
+          },
+          {
+            "id": "nazionalita",
+            "type": "string"
+          },
+          {
+            "id": "tutore_proposto",
+            "type": "object_persona"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "nomina_tutore_volontario_L47_11",
+              "autorizzazione_permanenza_TU_286_31c3"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Nomina URGENTE – il GT deve provvedere immediatamente",
+          "Divieto di respingimento: il MSNA NON può essere allontanato prima della nomina del tutore"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_identificazione_MSNA"
+        },
+        {
+          "id": "rapporto_servizi_sociali"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente"
+      },
+      "termini_processuali": [
+        {
+          "termine": "URGENTE – entro 30 giorni dall'identificazione"
+        }
+      ],
+      "codice_originale_ricevuto": "120075",
+      "codice_logico": "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_NOMINA_TUTORE_E_PROTEZIONE_L_47_2017_D_120075",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120075"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 aprile 2017, n. 47 - minori stranieri non accompagnati",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017;47!vig=",
+          "ambito": "misure di protezione, tutori volontari, accertamento età, accoglienza e superiore interesse del minore",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120075"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 18 agosto 2015, n. 142 - accoglienza e protezione internazionale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-08-18;142!vig=",
+          "ambito": "accoglienza richiedenti protezione internazionale, procedure comuni e tutela dei minori stranieri",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120075"
+        },
+        {
+          "ente": "Ministero del Lavoro e delle Politiche Sociali",
+          "titolo": "Minori stranieri non accompagnati - attuazione e monitoraggio",
+          "url": "https://www.lavoro.gov.it/notizie/pagine/legge-sui-minori-stranieri-non-accompagnati",
+          "ambito": "tutori volontari, percorsi di protezione, coordinamento istituzionale e monitoraggio MSNA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120075"
+        },
+        {
+          "ente": "Ministero della Giustizia - Tribunale per i Minorenni",
+          "titolo": "Competenza per materia del Tribunale per i Minorenni",
+          "url": "https://tribmin-trento.giustizia.it/it/comp_per_materia.page",
+          "ambito": "competenza civile minorile, volontaria giurisdizione, adozione e tutela dei minori",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120075"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 4 maggio 1983, n. 184 - adozione e affidamento dei minori",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1983;184!vig=",
+          "ambito": "adozione nazionale e internazionale, dichiarazione di adottabilità, affidamento e accesso alle origini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Commissione per le Adozioni Internazionali",
+          "titolo": "La strada dell'adozione internazionale",
+          "url": "https://www.commissioneadozioni.it/it/per-una-famiglia-adottiva/per-adottare/la-strada-delladozione/",
+          "ambito": "decreto di idoneità, ente autorizzato, ingresso del minore, trascrizione e fase post-adottiva",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 3 novembre 2000, n. 396 - ordinamento dello stato civile",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2000-11-03;396!vig=",
+          "ambito": "registri di stato civile, rettifica, annotazione, trascrizione, nascita, matrimonio e cittadinanza",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 14 aprile 1982, n. 164 - rettificazione di attribuzione di sesso",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=082U0164&atto.dataPubblicazioneGazzetta=1982-04-19&tipoDettaglio=vigente",
+          "ambito": "rettificazione di attribuzione di sesso, stato civile e provvedimenti conseguenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "ENAC",
+          "titolo": "Regolamento (CE) n. 261/2004 - diritti dei passeggeri aerei",
+          "url": "https://www.enac.gov.it/passeggeri/diritti-dei-passeggeri/regolamentoce261_2004/",
+          "ambito": "negato imbarco, cancellazione, ritardo prolungato, reclami ENAC e assistenza passeggeri",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "trasporto e vettori"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 10 gennaio 2004, n. 12 - Convenzione di Montreal sul trasporto aereo internazionale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2004;12!vig=",
+          "ambito": "responsabilità del vettore aereo, bagagli, ritardi e danni nel trasporto internazionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "trasporto e vettori"
+        },
+        {
+          "ente": "EUR-Lex",
+          "titolo": "Regolamento (UE) 2021/782 - diritti e obblighi dei passeggeri ferroviari",
+          "url": "https://eur-lex.europa.eu/eli/reg/2021/782/oj?locale=it",
+          "ambito": "ritardi, cancellazioni, rimborso, assistenza, informazioni al passeggero e indennizzo ferroviario",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "trasporto e vettori"
+        },
+        {
+          "ente": "Autorità di Regolazione dei Trasporti",
+          "titolo": "Trasporto ferroviario - tutela diritti dei passeggeri",
+          "url": "https://www.autorita-trasporti.it/tutela-diritti-dei-passeggeri-trasporto-ferroviario/",
+          "ambito": "reclamo di seconda istanza, organismo nazionale, Reg. 1371/2007 previgente e Reg. UE 2021/782",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "trasporto e vettori"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 6 giugno 2001, n. 380 - Testo unico edilizia",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001;380!vig=",
+          "ambito": "permesso di costruire, SCIA edilizia, abusi, sanatoria e titoli edilizi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 26 marzo 2010, n. 59 - servizi nel mercato interno",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;59!vig=",
+          "ambito": "SCIA commerciale, servizi, autorizzazioni e controlli amministrativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 30 marzo 1942, n. 327 - Codice della navigazione",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327!vig=",
+          "ambito": "concessioni demaniali marittime e lacuali, revoca, decadenza, beni demaniali e navigazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 marzo 2023, n. 36 - Codice dei contratti pubblici",
+          "url": "https://www.normattiva.it/eli/id/2023/03/31/23G00044/CONSOLIDATED",
+          "ambito": "appalti pubblici, affidamenti, esecuzione, digitalizzazione, trasparenza e rimedi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "ANAC",
+          "titolo": "Contratti pubblici - attuazione D.Lgs. 36/2023 e BDNCP",
+          "url": "https://www.anticorruzione.it/contratti-pubblici",
+          "ambito": "piattaforme, BDNCP, pubblicità legale, FAQ e presidi ANAC sugli appalti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 agosto 1990, n. 241 - procedimento amministrativo e autotutela",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990;241!vig=",
+          "ambito": "procedimento amministrativo, accesso, motivazione, autotutela, termini e partecipazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 2 luglio 2010, n. 104 - Codice del processo amministrativo",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;104!vig=",
+          "ambito": "ricorso amministrativo, TAR, appello, cautelari, termini e risarcimento PA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "amministrativo, edilizia e appalti"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 29 settembre 1973, n. 600 - accertamento imposte sui redditi",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973;600!vig=",
+          "ambito": "accertamento redditi, redditometro, termini, avvisi e prove del contribuente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 ottobre 1972, n. 633 - IVA",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1972;633!vig=",
+          "ambito": "IVA, accertamento, detrazione, liquidazione, rimborsi e sanzioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 aprile 1986, n. 131 - Testo unico imposta di registro",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;131!vig=",
+          "ambito": "imposta di registro, atti giudiziari, avvisi, liquidazione e registrazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 ottobre 1990, n. 346 - imposta su successioni e donazioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990;346!vig=",
+          "ambito": "successioni, donazioni, franchigie, aliquote e adempimenti fiscali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2019, n. 160 - disciplina IMU vigente",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019;160!vig=",
+          "ambito": "IMU, presupposto, soggetti passivi, base imponibile e termini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2013, n. 147 - IUC/TARI",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2013;147!vig=",
+          "ambito": "TARI, presupposto, utenze, regolamenti comunali e termini locali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 22 dicembre 1986, n. 917 - TUIR",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;917!vig=",
+          "ambito": "IRPEF, redditi, plusvalenze, base imponibile e accertamento",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 29 dicembre 2022, n. 197 - bilancio 2023 e definizioni agevolate",
+          "url": "https://www.normattiva.it/eli/stato/LEGGE/2022/12/29/197/CONSOLIDATED",
+          "ambito": "definizione liti fiscali pendenti, tregua fiscale, rottamazione e misure tributarie collegate",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 agosto 2022, n. 130 - riforma della giustizia tributaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2022;130!vig=",
+          "ambito": "giustizia tributaria, magistratura tributaria, prova, onere probatorio e definizione liti pendenti pregresse",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 6 dicembre 2011, n. 201 - crescita, equità e consolidamento conti pubblici",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2011-12-06;201!vig=",
+          "ambito": "pensioni, strumenti di pagamento, IVIE, IVAFE e imposte patrimoniali su attività estere",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Definizione agevolata delle controversie tributarie pendenti - Legge 197/2022",
+          "url": "https://telematici.agenziaentrate.gov.it/Main/Avviso?id=20230315101031",
+          "ambito": "domande telematiche, software, provvedimento attuativo e liti fiscali pendenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Quadro W - investimenti esteri, IVIE e IVAFE",
+          "url": "https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-w",
+          "ambito": "monitoraggio fiscale, IVIE, IVAFE, imposta cripto-attività, istruzioni dichiarazione 730/2026",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "MEF - Dipartimento delle Finanze",
+          "titolo": "Portale del Federalismo Fiscale",
+          "url": "https://www.portalefederalismofiscale.gov.it/",
+          "ambito": "aliquote, delibere comunali, IMU, TARI e fiscalità locale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Indici sintetici di affidabilità fiscale",
+          "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/indici_sintetici_affidabilita.html",
+          "ambito": "ISA, effetti premiali, accertamento e presidi dichiarativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle entrate-Riscossione",
+          "titolo": "Accertamento esecutivo e avviso di addebito INPS",
+          "url": "https://www.agenziaentrateriscossione.gov.it/it/Per-saperne-di-piu/documenti-della-riscossione/accertamento-esecutivo-e-avviso-di-addebito-inps/",
+          "ambito": "atti impositivi esecutivi, ricorso, pagamento e affidamento alla riscossione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IDONEIT_E_RICONOSCIMENTO_IN_ITALIA__121022",
+      "denominazione": "Adozione internazionale: procedimento, idoneità e riconoscimento in Italia (L. 184/1983 + Conv. Aja 1993)",
+      "categoria": "Persone e famiglia – adozione internazionale",
+      "rito": "Procedimento davanti al Tribunale per i Minorenni + CAI (Commissione Adozioni Internazionali)",
+      "competenza": "Tribunale per i Minorenni del distretto di residenza degli adottanti",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "29-43",
+          "descrizione": "Adozione internazionale – procedimento e requisiti"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "30",
+          "descrizione": "Dichiarazione di idoneità – il TdM la rilascia agli aspiranti adottanti"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "35",
+          "descrizione": "RICONOSCIMENTO – il TdM riconosce il provvedimento straniero di adozione"
+        },
+        {
+          "fonte": "Conv. Aja 29/5/1993",
+          "descrizione": "Convenzione sulla protezione dei minori e cooperazione in materia di adozione internazionale"
+        },
+        {
+          "fonte": "L. 476/1998 (ratifica Conv. Aja)",
+          "descrizione": "Disciplina italiana di recepimento"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Adozione internazionale – interesse superiore del minore"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Riconoscimento del provvedimento estero di adozione"
+        }
+      ],
+      "procedimento_adozione_internazionale": {
+        "step1": "Dichiarazione di disponibilità al TdM",
+        "step2": "Indagine psico-sociale dei servizi sociali",
+        "step3": "DICHIARAZIONE DI IDONEITÀ del TdM (decreto)",
+        "step4": "Affidamento internazionale tramite ente autorizzato (EA)",
+        "step5": "RICONOSCIMENTO del provvedimento straniero da parte del TdM",
+        "step6": "Trascrizione nei registri di stato civile"
+      },
+      "paesi_non_aderenti_conv_aja": {
+        "problema": "Adozioni da paesi non aderenti alla Conv. Aja: più complicate",
+        "soluzione": "Il TdM valuta caso per caso il superiore interesse del minore"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_TdM_adozione_internazionale_L184",
+        "denominazione": "Ricorso al TdM per dichiarazione di idoneità o riconoscimento adozione internazionale ex L. 184/1983",
+        "campi_chiave": [
+          {
+            "id": "tribunale_minorenni",
+            "type": "select"
+          },
+          {
+            "id": "aspiranti_adottanti",
+            "type": "array_persone"
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "options": [
+              "dichiarazione_idoneita_art30",
+              "riconoscimento_provvedimento_estero_art35",
+              "opposizione_diniego_idoneita"
+            ]
+          },
+          {
+            "id": "paese_adozione",
+            "type": "string"
+          },
+          {
+            "id": "paese_aderente_conv_aja",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "decreto_idoneita_L184_30",
+              "riconoscimento_adozione_estera_35"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Idoneità: richiede indagine psico-sociale dei servizi sociali",
+          "Paesi non Conv. Aja: procedimento più complesso",
+          "Ente autorizzato (EA): obbligatorio come intermediario"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "relazione_servizi_sociali"
+        },
+        {
+          "id": "provvedimento_straniero_di_adozione_se_riconoscimento"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Procedimento senza termine fisso"
+        }
+      ],
+      "codice_originale_ricevuto": "121022",
+      "codice_logico": "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IDONEIT_E_RICONOSCIMENTO_IN_ITALIA__121022",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121022"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121022"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121022"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 4 maggio 1983, n. 184 - adozione e affidamento dei minori",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1983;184!vig=",
+          "ambito": "adozione nazionale e internazionale, dichiarazione di adottabilità, affidamento e accesso alle origini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121022"
+        },
+        {
+          "ente": "Commissione per le Adozioni Internazionali",
+          "titolo": "La strada dell'adozione internazionale",
+          "url": "https://www.commissioneadozioni.it/it/per-una-famiglia-adottiva/per-adottare/la-strada-delladozione/",
+          "ambito": "decreto di idoneità, ente autorizzato, ingresso del minore, trascrizione e fase post-adottiva",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121022"
+        },
+        {
+          "ente": "Ministero della Giustizia - Tribunale per i Minorenni",
+          "titolo": "Competenza per materia del Tribunale per i Minorenni",
+          "url": "https://tribmin-trento.giustizia.it/it/comp_per_materia.page",
+          "ambito": "competenza civile minorile, volontaria giurisdizione, adozione e tutela dei minori",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121022"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 aprile 2017, n. 47 - minori stranieri non accompagnati",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017;47!vig=",
+          "ambito": "misure di protezione, tutori volontari, accertamento età, accoglienza e superiore interesse del minore",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 18 agosto 2015, n. 142 - accoglienza e protezione internazionale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-08-18;142!vig=",
+          "ambito": "accoglienza richiedenti protezione internazionale, procedure comuni e tutela dei minori stranieri",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Ministero del Lavoro e delle Politiche Sociali",
+          "titolo": "Minori stranieri non accompagnati - attuazione e monitoraggio",
+          "url": "https://www.lavoro.gov.it/notizie/pagine/legge-sui-minori-stranieri-non-accompagnati",
+          "ambito": "tutori volontari, percorsi di protezione, coordinamento istituzionale e monitoraggio MSNA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 3 novembre 2000, n. 396 - ordinamento dello stato civile",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2000-11-03;396!vig=",
+          "ambito": "registri di stato civile, rettifica, annotazione, trascrizione, nascita, matrimonio e cittadinanza",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 14 aprile 1982, n. 164 - rettificazione di attribuzione di sesso",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=082U0164&atto.dataPubblicazioneGazzetta=1982-04-19&tipoDettaglio=vigente",
+          "ambito": "rettificazione di attribuzione di sesso, stato civile e provvedimenti conseguenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "mediazione civile"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DICHIARAZIONE_DI_ADOTTABILIT_DEL_MINORE_IN_STATO_DI_ABBANDONO_ARTT_8_21__413130",
+      "denominazione": "Dichiarazione di adottabilità del minore in stato di abbandono (artt. 8-21 L. 184/1983)",
+      "categoria": "Persone e famiglia – adottabilità – stato di abbandono",
+      "rito": "Procedimento davanti al Tribunale per i Minorenni",
+      "competenza": "Tribunale per i Minorenni del distretto di residenza del minore",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "8",
+          "descrizione": "STATO DI ABBANDONO – il minore in stato di abbandono morale e materiale è dichiarabile adottabile"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "10-14",
+          "descrizione": "Procedimento – il TdM procede d'ufficio o su segnalazione; nomina curatore speciale"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "15",
+          "descrizione": "Dichiarazione di adottabilità – decreto del TdM"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "17-19",
+          "descrizione": "Impugnazione – i genitori possono impugnare"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "articolo": "25",
+          "descrizione": "Adozione legittimante – effetti sulla famiglia biologica"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "30",
+          "descrizione": "Dovere dei genitori di educare i figli"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Stato di abbandono – interpretazione restrittiva + recupero familiare"
+        },
+        {
+          "fonte": "Cass. SU 9876/2023",
+          "descrizione": "Dichiarazione adottabilità – procedimento e garanzie"
+        }
+      ],
+      "stato_di_abbandono_art8": {
+        "definizione": "Il minore è in stato di abbandono morale e materiale quando è privo di assistenza morale e materiale da parte dei genitori o dei parenti tenuti a provvedervi",
+        "interpretazione_restrittiva_Cass_SU_14897_2021": "La dichiarazione di adottabilità è l'EXTREMA RATIO – si tenta prima il recupero familiare con supporto dei servizi"
+      },
+      "procedimento": {
+        "avvio": "D'ufficio o su segnalazione dei servizi sociali, dei parenti, del PM",
+        "curatore_speciale": "Nomina obbligatoria per il minore",
+        "contraddittorio": "I genitori hanno diritto alla difesa tecnica prima della dichiarazione"
+      },
+      "impugnazione_genitori": {
+        "chi": "I genitori che si sono visti togliere la potestà e dichiarare il figlio adottabile",
+        "rimedio": "Appello alla Corte d'Appello + Cassazione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_dichiarazione_adottabilita_L184_17",
+        "denominazione": "Impugnazione della dichiarazione di adottabilità ex art. 17 L. 184/1983",
+        "campi_chiave": [
+          {
+            "id": "corte_appello_o_tdm",
+            "type": "select"
+          },
+          {
+            "id": "genitori_o_parenti_ricorrenti",
+            "type": "array_persone"
+          },
+          {
+            "id": "minore",
+            "type": "object_persona"
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "options": [
+              "impugnazione_dichiarazione_adottabilita_17",
+              "opposizione_stato_abbandono",
+              "contestazione_misure_allontanamento"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "revoca_dichiarazione_adottabilita",
+              "rientro_minore_nella_famiglia",
+              "piano_recupero_familiare"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Extrema ratio: prima recupero familiare con supporto servizi",
+          "Difesa tecnica dei genitori: obbligatoria",
+          "Impugnazione: Corte d'Appello + Cassazione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "decreto_dichiarazione_adottabilita"
+        },
+        {
+          "id": "relazione_servizi_sociali"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Impugnazione: 30 GG dalla notifica del decreto"
+        }
+      ],
+      "codice_originale_ricevuto": "413130",
+      "codice_logico": "GUIDA_DICHIARAZIONE_DI_ADOTTABILIT_DEL_MINORE_IN_STATO_DI_ABBANDONO_ARTT_8_21__413130",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413130"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413130"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413130"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 4 maggio 1983, n. 184 - adozione e affidamento dei minori",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1983;184!vig=",
+          "ambito": "adozione nazionale e internazionale, dichiarazione di adottabilità, affidamento e accesso alle origini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413130"
+        },
+        {
+          "ente": "Commissione per le Adozioni Internazionali",
+          "titolo": "La strada dell'adozione internazionale",
+          "url": "https://www.commissioneadozioni.it/it/per-una-famiglia-adottiva/per-adottare/la-strada-delladozione/",
+          "ambito": "decreto di idoneità, ente autorizzato, ingresso del minore, trascrizione e fase post-adottiva",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413130"
+        },
+        {
+          "ente": "Ministero della Giustizia - Tribunale per i Minorenni",
+          "titolo": "Competenza per materia del Tribunale per i Minorenni",
+          "url": "https://tribmin-trento.giustizia.it/it/comp_per_materia.page",
+          "ambito": "competenza civile minorile, volontaria giurisdizione, adozione e tutela dei minori",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413130"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 aprile 2017, n. 47 - minori stranieri non accompagnati",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017;47!vig=",
+          "ambito": "misure di protezione, tutori volontari, accertamento età, accoglienza e superiore interesse del minore",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 18 agosto 2015, n. 142 - accoglienza e protezione internazionale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-08-18;142!vig=",
+          "ambito": "accoglienza richiedenti protezione internazionale, procedure comuni e tutela dei minori stranieri",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Ministero del Lavoro e delle Politiche Sociali",
+          "titolo": "Minori stranieri non accompagnati - attuazione e monitoraggio",
+          "url": "https://www.lavoro.gov.it/notizie/pagine/legge-sui-minori-stranieri-non-accompagnati",
+          "ambito": "tutori volontari, percorsi di protezione, coordinamento istituzionale e monitoraggio MSNA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 3 novembre 2000, n. 396 - ordinamento dello stato civile",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2000-11-03;396!vig=",
+          "ambito": "registri di stato civile, rettifica, annotazione, trascrizione, nascita, matrimonio e cittadinanza",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 14 aprile 1982, n. 164 - rettificazione di attribuzione di sesso",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=082U0164&atto.dataPubblicazioneGazzetta=1982-04-19&tipoDettaglio=vigente",
+          "ambito": "rettificazione di attribuzione di sesso, stato civile e provvedimenti conseguenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 29 settembre 1973, n. 600 - accertamento imposte sui redditi",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973;600!vig=",
+          "ambito": "accertamento redditi, redditometro, termini, avvisi e prove del contribuente",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 ottobre 1972, n. 633 - IVA",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1972;633!vig=",
+          "ambito": "IVA, accertamento, detrazione, liquidazione, rimborsi e sanzioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 26 aprile 1986, n. 131 - Testo unico imposta di registro",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;131!vig=",
+          "ambito": "imposta di registro, atti giudiziari, avvisi, liquidazione e registrazione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 ottobre 1990, n. 346 - imposta su successioni e donazioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990;346!vig=",
+          "ambito": "successioni, donazioni, franchigie, aliquote e adempimenti fiscali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2019, n. 160 - disciplina IMU vigente",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019;160!vig=",
+          "ambito": "IMU, presupposto, soggetti passivi, base imponibile e termini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 27 dicembre 2013, n. 147 - IUC/TARI",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2013;147!vig=",
+          "ambito": "TARI, presupposto, utenze, regolamenti comunali e termini locali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 22 dicembre 1986, n. 917 - TUIR",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986;917!vig=",
+          "ambito": "IRPEF, redditi, plusvalenze, base imponibile e accertamento",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 29 dicembre 2022, n. 197 - bilancio 2023 e definizioni agevolate",
+          "url": "https://www.normattiva.it/eli/stato/LEGGE/2022/12/29/197/CONSOLIDATED",
+          "ambito": "definizione liti fiscali pendenti, tregua fiscale, rottamazione e misure tributarie collegate",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 agosto 2022, n. 130 - riforma della giustizia tributaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2022;130!vig=",
+          "ambito": "giustizia tributaria, magistratura tributaria, prova, onere probatorio e definizione liti pendenti pregresse",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 6 dicembre 2011, n. 201 - crescita, equità e consolidamento conti pubblici",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2011-12-06;201!vig=",
+          "ambito": "pensioni, strumenti di pagamento, IVIE, IVAFE e imposte patrimoniali su attività estere",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Definizione agevolata delle controversie tributarie pendenti - Legge 197/2022",
+          "url": "https://telematici.agenziaentrate.gov.it/Main/Avviso?id=20230315101031",
+          "ambito": "domande telematiche, software, provvedimento attuativo e liti fiscali pendenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Quadro W - investimenti esteri, IVIE e IVAFE",
+          "url": "https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-w",
+          "ambito": "monitoraggio fiscale, IVIE, IVAFE, imposta cripto-attività, istruzioni dichiarazione 730/2026",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "MEF - Dipartimento delle Finanze",
+          "titolo": "Portale del Federalismo Fiscale",
+          "url": "https://www.portalefederalismofiscale.gov.it/",
+          "ambito": "aliquote, delibere comunali, IMU, TARI e fiscalità locale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle Entrate",
+          "titolo": "Indici sintetici di affidabilità fiscale",
+          "url": "https://www1.agenziaentrate.gov.it/web_app_entrate/indici_sintetici_affidabilita.html",
+          "ambito": "ISA, effetti premiali, accertamento e presidi dichiarativi",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Agenzia delle entrate-Riscossione",
+          "titolo": "Accertamento esecutivo e avviso di addebito INPS",
+          "url": "https://www.agenziaentrateriscossione.gov.it/it/Per-saperne-di-piu/documenti-della-riscossione/accertamento-esecutivo-e-avviso-di-addebito-inps/",
+          "ambito": "atti impositivi esecutivi, ricorso, pagamento e affidamento alla riscossione",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "tributario e fiscalità locale"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RETTIFICAZIONE_DI_ATTI_DI_STATO_CIVILE_ERRORI_OMISSIONI_E_RICONOSCIMENTO_413135",
+      "denominazione": "Rettificazione di atti di stato civile: errori, omissioni e riconoscimento di gender identity (DPR 396/2000)",
+      "categoria": "Persone e famiglia – stato civile – rettificazione",
+      "rito": "Procedimento in camera di consiglio davanti al Tribunale Ordinario",
+      "competenza": "Tribunale del luogo dove è registrato l'atto da rettificare",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "DPR 396/2000",
+          "articolo": "95-98",
+          "descrizione": "RETTIFICAZIONE di atti dello stato civile – errori materiali, omissioni, indicazioni false"
+        },
+        {
+          "fonte": "DPR 396/2000",
+          "articolo": "95",
+          "descrizione": "Ricorso al Tribunale per la rettificazione"
+        },
+        {
+          "fonte": "L. 164/1982",
+          "articolo": "1-7",
+          "descrizione": "RETTIFICAZIONE DI ATTRIBUZIONI DI SESSO – riconoscimento dell'identità di genere"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "96 DPR 396",
+          "descrizione": "Comunicazione all'ufficiale di stato civile per la rettificazione"
+        },
+        {
+          "fonte": "Cass. SU 15138/2015",
+          "descrizione": "Rettificazione sesso – non richiede intervento chirurgico"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Rettificazione atti stato civile – errori formali"
+        }
+      ],
+      "rettificazione_ordinaria_art95": {
+        "causa": "Errori materiali, omissioni, indicazioni false nell'atto di nascita/matrimonio/morte",
+        "procedura": "Ricorso al Tribunale → decreto → comunicazione all'ufficiale di stato civile"
+      },
+      "rettificazione_sesso_L164_Cass_SU_15138_2015": {
+        "quando": "Persona che ha intrapreso un percorso di riaffermazione di genere",
+        "NON_obbligo_chirurgia": "La Cassazione ha escluso l'obbligo dell'intervento chirurgico",
+        "effetti": "Cambio di nome, genere nei documenti, possibilità di contrarre matrimonio nel nuovo genere"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_rettificazione_atto_stato_civile_DPR396_o_L164",
+        "denominazione": "Ricorso per rettificazione di atto di stato civile ex art. 95 DPR 396/2000 o rettificazione di sesso ex L. 164/1982",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select"
+          },
+          {
+            "id": "richiedente",
+            "type": "object_persona"
+          },
+          {
+            "id": "tipo_rettificazione",
+            "type": "select",
+            "options": [
+              "errore_materiale_atto_nascita",
+              "omissione_atto_nascita",
+              "rettificazione_attribuzione_di_sesso_L164"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "options": [
+              "decreto_rettificazione_95_DPR396",
+              "rettificazione_sesso_L164",
+              "comunicazione_ANPR"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Rettificazione sesso: NON richiede intervento chirurgico (Cass. SU 15138/2015)",
+          "PM deve essere sentito nel procedimento"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_stato_civile_da_rettificare"
+        },
+        {
+          "id": "documentazione_a_supporto"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine – proponibile in qualunque momento"
+        }
+      ],
+      "codice_originale_ricevuto": "413135",
+      "codice_logico": "GUIDA_RETTIFICAZIONE_DI_ATTI_DI_STATO_CIVILE_ERRORI_OMISSIONI_E_RICONOSCIMENTO_413135",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413135"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413135"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413135"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.P.R. 3 novembre 2000, n. 396 - ordinamento dello stato civile",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2000-11-03;396!vig=",
+          "ambito": "registri di stato civile, rettifica, annotazione, trascrizione, nascita, matrimonio e cittadinanza",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413135"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 14 aprile 1982, n. 164 - rettificazione di attribuzione di sesso",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=082U0164&atto.dataPubblicazioneGazzetta=1982-04-19&tipoDettaglio=vigente",
+          "ambito": "rettificazione di attribuzione di sesso, stato civile e provvedimenti conseguenti",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413135"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 31 maggio 1995, n. 218 - diritto internazionale privato",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1995;218!vig=",
+          "ambito": "riconoscimento sentenze straniere, giurisdizione, legge applicabile e stato civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "413135"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - riforma del processo civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "rito civile, famiglia, esecuzione forzata, mediazione, negoziazione assistita e arbitrato",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "processo civile e riforma Cartabia"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "codice civile sostanziale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 7 aprile 2017, n. 47 - minori stranieri non accompagnati",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017;47!vig=",
+          "ambito": "misure di protezione, tutori volontari, accertamento età, accoglienza e superiore interesse del minore",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 18 agosto 2015, n. 142 - accoglienza e protezione internazionale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-08-18;142!vig=",
+          "ambito": "accoglienza richiedenti protezione internazionale, procedure comuni e tutela dei minori stranieri",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Ministero del Lavoro e delle Politiche Sociali",
+          "titolo": "Minori stranieri non accompagnati - attuazione e monitoraggio",
+          "url": "https://www.lavoro.gov.it/notizie/pagine/legge-sui-minori-stranieri-non-accompagnati",
+          "ambito": "tutori volontari, percorsi di protezione, coordinamento istituzionale e monitoraggio MSNA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 4 maggio 1983, n. 184 - adozione e affidamento dei minori",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1983;184!vig=",
+          "ambito": "adozione nazionale e internazionale, dichiarazione di adottabilità, affidamento e accesso alle origini",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Commissione per le Adozioni Internazionali",
+          "titolo": "La strada dell'adozione internazionale",
+          "url": "https://www.commissioneadozioni.it/it/per-una-famiglia-adottiva/per-adottare/la-strada-delladozione/",
+          "ambito": "decreto di idoneità, ente autorizzato, ingresso del minore, trascrizione e fase post-adottiva",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Ministero della Giustizia - Tribunale per i Minorenni",
+          "titolo": "Competenza per materia del Tribunale per i Minorenni",
+          "url": "https://tribmin-trento.giustizia.it/it/comp_per_materia.page",
+          "ambito": "competenza civile minorile, volontaria giurisdizione, adozione e tutela dei minori",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "minori, adozioni e stato civile"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione / Italgiure",
+          "titolo": "SentenzeWeb - ricerca libera tra sentenze civili e penali della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/",
+          "ambito": "giurisprudenza di legittimità, sentenze e ordinanze civili/penali recenti, verifica massime e principi di diritto",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte Suprema di Cassazione - CED",
+          "titolo": "ItalgiureWeb - archivi CED della Corte di cassazione",
+          "url": "https://www.italgiure.giustizia.it/",
+          "ambito": "archivi giurisprudenziali e normativi CED, ECLI e raccolte di giurisprudenza civile",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte costituzionale",
+          "titolo": "Elenco pronunce della Corte costituzionale",
+          "url": "https://www.cortecostituzionale.it/elenco-pronunce",
+          "ambito": "sentenze, ordinanze, decisioni di accoglimento/rigetto, udienze e verifica costituzionale",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Giustizia Amministrativa",
+          "titolo": "Tutti i provvedimenti - Consiglio di Stato e TAR",
+          "url": "https://www.giustizia-amministrativa.it/en/provvedimenti-cds",
+          "ambito": "sentenze, ordinanze, decreti e pareri del Consiglio di Stato/TAR per appalti, edilizia, PA e autotutela",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Dipartimento della Giustizia Tributaria - MEF",
+          "titolo": "Portale della Giustizia Tributaria e banca dati giurisprudenziale",
+          "url": "https://www.giustizia-tributaria.it/",
+          "ambito": "giurisprudenza tributaria, sentenze di merito, massimario nazionale e banca dati SententIA",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Portale europeo della giustizia elettronica",
+          "titolo": "Motore di ricerca ECLI - European Case-Law Identifier",
+          "url": "https://e-justice.europa.eu/topics/legislation-and-case-law/european-case-law-identifier-ecli-search-engine_it",
+          "ambito": "ricerca di decisioni giudiziarie europee e nazionali con identificatore ECLI",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte di giustizia dell'Unione europea",
+          "titolo": "CURIA - ricerca giurisprudenza UE",
+          "url": "https://curia.europa.eu/juris/recherche.jsf?language=it",
+          "ambito": "sentenze, ordinanze e conclusioni della Corte di giustizia e del Tribunale UE",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        },
+        {
+          "ente": "Corte europea dei diritti dell'uomo",
+          "titolo": "HUDOC - banca dati giurisprudenza CEDU",
+          "url": "https://www.echr.coe.int/en/hudoc-database",
+          "ambito": "sentenze, decisioni, comunicazioni, opinioni consultive e sintesi giurisprudenziali CEDU",
+          "verificato_il": "2026-06-06",
+          "metodo": "ricerca web su fonte ufficiale",
+          "matched_by": "giurisprudenza nazionale ed europea"
+        }
+      ]
+    }
+  ]
+}

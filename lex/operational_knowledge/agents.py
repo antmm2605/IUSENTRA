@@ -126,8 +126,8 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "documenti_fascicolo",
         "Documenti e atti fascicolo",
         "documentale",
-        ("documenti_fascicolo", "template_atti", "fascicoli"),
-        ("get_documenti_fascicolo", "search_documenti_fascicolo", "search_template_atti"),
+        ("documenti_fascicolo", "template_atti", "template_atti_fonti_ufficiali", "fascicoli"),
+        ("get_documenti_fascicolo", "search_documenti_fascicolo", "search_template_atti", "search_template_atti_sources"),
         ("ai.usa", "fascicoli.leggi"),
         (
             "Mostra solo metadati o testo indicizzato citabile.",
@@ -152,9 +152,10 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "redazione_atti_editor",
         "Redazione atti, editor e copilota Lex",
         "documentale",
-        ("editor_ai", "chat_lex_editor", "template_atti", "documenti_fascicolo", "contratti_pareri"),
+        ("editor_ai", "chat_lex_editor", "template_atti", "template_atti_fonti_ufficiali", "documenti_fascicolo", "contratti_pareri"),
         (
             "list_template_atti",
+            "search_template_atti_sources",
             "read_template_atto",
             "collect_fascicolo_context",
             "generate_editor_draft",
@@ -173,8 +174,8 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "giurisprudenza_cassazione",
         "Citazioni verificate e ricerca giurisprudenziale",
         "fonti_pubbliche",
-        ("citazioni_cassazione", "legal_intelligence", "update_intelligence", "fonti_ufficiali"),
-        ("search_legal_sources", "get_legal_intelligence_items", "get_update_intelligence_items"),
+        ("citazioni_cassazione", "legal_intelligence", "update_intelligence", "fonti_ufficiali", "template_atti_fonti_ufficiali"),
+        ("search_legal_sources", "search_template_atti_sources", "get_legal_intelligence_items", "get_update_intelligence_items"),
         ("ai.usa",),
         (
             "Usa Cassazione ufficiale/corpus verificato per massime e citazioni.",

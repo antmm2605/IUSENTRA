@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (19).zip::kb_set30_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set30_p5.json",
+  "sha256": "A387EC7AA5573A4578160743FC83CFE8D452D1B68BB97C0023AB8114E2C3A323",
+  "changed": true,
+  "macro_area_id": "SET30_PARTE5",
+  "denominazione": "Trentesimo set - PARTE 5 di 8",
+  "codici_materia_originali": [
+    "160225",
+    "180040",
+    "199010",
+    "220205",
+    "220210"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DEL_PRODUTTORE_FARMACEUTICO_PER_EFFETTI_COLLATERALI_NON_AD_160225",
+    "GUIDA_CONTRATTI_A_DISTANZA_E_CONTRATTI_ONLINE_DIRITTO_DI_RECESSO_E_PRATICHE_CO_180040",
+    "GUIDA_OPPOSIZIONE_ALL_ISCRIZIONE_IPOTECARIA_E_CANCELLAZIONE_IPOTECA_ARTT_2808__199010",
+    "GUIDA_WHISTLEBLOWING_TUTELA_DEL_SEGNALANTE_NEL_SETTORE_PRIVATO_D_LGS_24_2023_220205",
+    "GUIDA_MOBBING_AZIONE_RISARCITORIA_DEL_LAVORATORE_VITTIMA_DI_CONDOTTE_PERSECUTO_220210"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160225",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_PRODUTTORE_FARMACEUTICO_PER_EFFETTI_COLLATERALI_NON_AD_160225",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180040",
+      "codice_integrato": "GUIDA_CONTRATTI_A_DISTANZA_E_CONTRATTI_ONLINE_DIRITTO_DI_RECESSO_E_PRATICHE_CO_180040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199010",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_ALL_ISCRIZIONE_IPOTECARIA_E_CANCELLAZIONE_IPOTECA_ARTT_2808__199010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220205",
+      "codice_integrato": "GUIDA_WHISTLEBLOWING_TUTELA_DEL_SEGNALANTE_NEL_SETTORE_PRIVATO_D_LGS_24_2023_220205",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220210",
+      "codice_integrato": "GUIDA_MOBBING_AZIONE_RISARCITORIA_DEL_LAVORATORE_VITTIMA_DI_CONDOTTE_PERSECUTO_220210",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

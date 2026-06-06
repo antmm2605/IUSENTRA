@@ -19,6 +19,21 @@ from pct.legal_update_autofetch import (
     LegalAutoFetchConfig,
     build_legal_update_operational_monitor,
 )
+from pct.template_atti_legal_sources import (
+    LAST_VERIFIED_AT as TEMPLATE_ATTI_SOURCES_VERIFIED_AT,
+    REGISTRY_VERSION as TEMPLATE_ATTI_SOURCES_REGISTRY_VERSION,
+    TEMPLATE_ATTI_LEGAL_SOURCES,
+    template_atti_source_registry_summary,
+)
+from pct.guida_pratica.web_enrichment import (
+    SOURCE_LIBRARY as GUIDA_PRATICA_WEB_SOURCE_LIBRARY,
+    VERIFIED_ON as GUIDA_PRATICA_WEB_VERIFIED_ON,
+)
+from pct.legal_practice_research_matrix import (
+    LEGAL_PRACTICE_RESEARCH_MATRIX,
+    LEGAL_NOMINAL_REFERENCE_LIBRARY,
+    legal_practice_research_summary,
+)
 from web.services.lex_studio_knowledge_status import (
     LEGAL_AGENT_FOCUS,
     build_advanced_ai_section,
@@ -48,6 +63,11 @@ try:
     from web.services.legal_official_context import build_official_context as _build_official_context
 except Exception:  # pragma: no cover - la pagina resta consultabile anche senza lettura web
     _build_official_context = None
+
+try:
+    from scripts.audit_legal_source_delivery import build_audit as _build_legal_source_delivery_audit
+except Exception:  # pragma: no cover - il catalogo fonti resta opzionale se lo script non è importabile
+    _build_legal_source_delivery_audit = None
 
 
 _PST_MEDIAZIONE_RECOVERY_URL = (
@@ -109,7 +129,7 @@ _OFFICIAL_SOURCE_CODES = {
     "cassazione",
 }
 _LEGAL_REFERENCE_RE = re.compile(
-    r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*p\.?\s*r\.?|legge|l\.|sentenza|ordinanza|delibera|messaggio|circolare)"
+    r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?|decreto\s+ministeriale|legge|l\.|sentenza|ordinanza|delibera|messaggio|circolare)"
     r"\b.{0,120}\b(?:n\.?\s*)?\d{1,6}(?:/\d{2,4})?\b",
     re.IGNORECASE,
 )
@@ -315,7 +335,11 @@ def _value(value: Any, key: str, fallback: Any = "") -> Any:
 
 
 def _list(value: Any) -> list[Any]:
-    return value if isinstance(value, list) else []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, (tuple, set)):
+        return list(value)
+    return []
 
 
 def _dict(value: Any) -> dict[str, Any]:
@@ -366,6 +390,25 @@ def _is_official_href(url: str) -> bool:
             "giustizia-amministrativa.it",
             "agenziaentrate.gov.it",
             "eur-lex.europa.eu",
+            "consiglionazionaleforense.it",
+            "codicedeontologico-cnf.it",
+            "bancaditalia.it",
+            "dt.mef.gov.it",
+            "mef.gov.it",
+            "inps.it",
+            "inail.it",
+            "anticorruzione.it",
+            "garanteprivacy.it",
+            "ivass.it",
+            "consob.it",
+            "agcom.it",
+            "mimit.gov.it",
+            "giustiziatributaria.gov.it",
+            "curia.europa.eu",
+            "echr.coe.int",
+            "coe.int",
+            "e-justice.europa.eu",
+            "europa.eu",
         )
     )
 
@@ -442,6 +485,74 @@ def _record_excerpt(record: Mapping[str, Any]) -> str:
     )
 
 
+def _record_context_sufficiency_length(record: Mapping[str, Any]) -> int:
+    return max(
+        len(_record_excerpt(record)),
+        len(_text(record.get("officialContext"))),
+        len(_text(record.get("contextSummary"))),
+    )
+
+
+def _record_search_haystack(record: Mapping[str, Any]) -> str:
+    return " ".join(
+        [
+            *(
+                _text(record.get(key)).lower()
+                for key in (
+                    "title",
+                    "subtitle",
+                    "sourceLabel",
+                    "sourceKind",
+                    "area",
+                    "branch",
+                    "territory",
+                    "registryNumber",
+                    "registrySection",
+                    "sourceExcerpt",
+                    "officialContext",
+                    "contextSummary",
+                    "date",
+                )
+            ),
+            " ".join(_text(item).lower() for item in _list(record.get("keyPoints"))),
+            " ".join(_text(item).lower() for item in _list(record.get("operationalChecks"))),
+        ]
+    )
+
+
+def _record_covers_query(record: Mapping[str, Any], search_query: str) -> bool:
+    tokens = _context_tokens(search_query)
+    if not tokens:
+        return True
+    haystack = _record_search_haystack(record)
+    matched = [token for token in tokens if token in haystack]
+    if len(tokens) <= 3:
+        return len(matched) == len(tokens)
+    required = len(tokens) if len(tokens) <= 4 else max(4, int(round(len(tokens) * 0.75)))
+    return len(matched) >= required
+
+
+def _governed_records_cover_query(records: Iterable[Mapping[str, Any]], search_query: str) -> bool:
+    governed = [
+        record
+        for record in records
+        if _is_governed_sufficient_context(record, search_query)
+    ]
+    if not governed:
+        return False
+    if any(_record_covers_query(record, search_query) for record in governed):
+        return True
+    tokens = _context_tokens(search_query)
+    if not tokens:
+        return True
+    combined_haystack = " ".join(_record_search_haystack(record) for record in governed)
+    matched = [token for token in tokens if token in combined_haystack]
+    if len(tokens) <= 3:
+        return len(matched) == len(tokens)
+    required = len(tokens) if len(tokens) <= 4 else max(4, int(round(len(tokens) * 0.75)))
+    return len(matched) >= required
+
+
 def _looks_like_exact_legal_reference(value: Any) -> bool:
     return bool(_LEGAL_REFERENCE_RE.search(_text(value)))
 
@@ -449,7 +560,21 @@ def _looks_like_exact_legal_reference(value: Any) -> bool:
 def _legal_reference_number(value: Any) -> str:
     text = _text(value)
     match = re.search(r"\bn\.?\s*(\d{1,6})(?:/\d{2,4})?\b", text, flags=re.IGNORECASE)
-    return match.group(1) if match else ""
+    if match:
+        return match.group(1)
+    named_number = re.search(
+        r"\b(?:delibera|messaggio|circolare|provvedimento)\b.{0,60}?(?:numero|n\.?)?\s*(\d{1,6})(?:/\d{2,4})?\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if named_number:
+        return named_number.group(1)
+    shorthand = re.search(
+        r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?)\s*(\d{1,6})(?:/\d{2,4})?\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return shorthand.group(1) if shorthand else ""
 
 
 def _requested_reference_source(value: Any) -> str:
@@ -515,11 +640,29 @@ def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query
     requested_source = _requested_reference_source(search_query)
     if requested_source:
         record_source = _record_reference_source(record)
+        record_id = _text(record.get("id"))
+        if record_id.startswith("guida-pratica-source:"):
+            record_source = requested_source
         if record_source and record_source != requested_source:
             return False
     haystack = " ".join(
-        _text(record.get(key))
-        for key in ("title", "sourceExcerpt", "subtitle", "registryNumber", "officialContext", "contextSummary")
+        [
+            *(
+                _text(record.get(key))
+                for key in (
+                    "title",
+                    "sourceLabel",
+                    "sourceKind",
+                    "sourceExcerpt",
+                    "subtitle",
+                    "registryNumber",
+                    "officialContext",
+                    "contextSummary",
+                )
+            ),
+            " ".join(_text(item) for item in _list(record.get("keyPoints"))),
+            " ".join(_text(item) for item in _list(record.get("operationalChecks"))),
+        ]
     ).lower()
     return bool(re.search(rf"(?<!\d){re.escape(reference_number)}(?!\d)", haystack))
 
@@ -539,6 +682,10 @@ def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_qu
 
 def _record_dedupe_key(record: Mapping[str, Any]) -> str:
     record_id = _text(record.get("id"))
+    if record_id.startswith("template-atti-source:"):
+        return record_id
+    if record_id.startswith("normative-table:") or record_id.startswith("normative-reference:"):
+        return record_id
     if record_id.startswith("registro-mediazione-"):
         return f"mediazione:{record_id}"
     source_href = _text(record.get("sourceHref")).rstrip("/").lower()
@@ -675,9 +822,9 @@ def _tone(value: Any) -> str:
     text = _text(value).lower().replace("_", " ")
     if not text:
         return "neutral"
-    if text in {"published", "pubblicata", "approved", "approvata", "sincronizzata", "aggiornata", "ok"}:
+    if text in {"published", "pubblicata", "approved", "approvata", "sincronizzata", "aggiornata", "ok", "controllata", "controllo automatico completato"}:
         return "success"
-    if text in {"pending", "pending review", "in revisione", "verifica richiesta", "da verificare"}:
+    if text in {"pending", "pending review", "in revisione", "verifica richiesta", "da verificare", "controllo automatico da completare", "acquisizione da completare"}:
         return "warning"
     if text in {"error", "errore", "fallita", "non aggiornata"}:
         return "danger"
@@ -1127,6 +1274,8 @@ def _context_has_navigation_noise(value: Any) -> bool:
 def _needs_live_official_context(record: Mapping[str, Any], search_query: str) -> bool:
     source_href = _text(record.get("sourceHref"))
     exact_reference = _looks_like_exact_legal_reference(search_query) or _looks_like_exact_legal_reference(record.get("title"))
+    if _is_governed_sufficient_context(record, search_query):
+        return False
     if exact_reference and not _record_relevant_for_exact_reference(record, search_query):
         return False
     if bool(record.get("contextCompleted")) and len(_record_excerpt(record)) >= 360:
@@ -1539,6 +1688,1032 @@ def _safe_official_archive_record(row: Mapping[str, Any], index: int, *, archive
     }
 
 
+def _template_source_role_label(source: Mapping[str, Any]) -> str:
+    role = _text(source.get("coverage_role")).lower()
+    source_type = _text(source.get("source_type")).lower()
+    if role == "base_comune":
+        return "fonte generale"
+    if role == "specifica":
+        return "fonte specifica"
+    if role == "secondaria_collegata":
+        return "fonte secondaria collegata"
+    if role == "telematica":
+        return "fonte telematica"
+    if role == "autorita":
+        return "autorità competente"
+    if role == "deontologia":
+        return "presidio deontologico"
+    if role == "ordinamento_professionale":
+        return "ordinamento professionale"
+    if source_type:
+        return source_type
+    return "fonte modello"
+
+
+def _template_source_tone(source: Mapping[str, Any]) -> str:
+    if bool(source.get("deprecated")):
+        return "warning"
+    role = _text(source.get("coverage_role")).lower()
+    if role in {"specifica", "telematica", "autorita", "deontologia", "ordinamento_professionale", "secondaria_collegata"}:
+        return "success"
+    if role == "base_comune":
+        return "info"
+    return "neutral"
+
+
+def _template_atti_source_record(source: Mapping[str, Any], index: int) -> dict[str, Any]:
+    source_id = _text(source.get("id")) or f"fonte_modello_{index}"
+    title = _text(source.get("title")) or _text(source.get("source_title")) or "Fonte modello"
+    source_title = _text(source.get("source_title")) or title
+    article = _text(source.get("article"))
+    reason = _short(source.get("reason_for_application"), 900)
+    role_label = _template_source_role_label(source)
+    source_type = _text(source.get("source_type")) or "normativa"
+    scope = _text(source.get("scope")) or "specifica"
+    prefixes = [_text(item) for item in _list(source.get("applies_to_prefixes")) if _text(item)]
+    terms = [_text(item) for item in _list(source.get("match_terms")) if _text(item)]
+    source_href = _safe_href(source.get("official_url"))
+    deprecated = bool(source.get("deprecated"))
+    key_points = [
+        f"Fonte: {source_title}",
+        f"Ruolo nel modello: {role_label}",
+        f"Ambito: {scope}",
+    ]
+    if article:
+        key_points.append(f"Riferimento: {article}")
+    if prefixes:
+        key_points.append(f"Modelli collegati per prefisso: {', '.join(prefixes[:12])}")
+    if terms:
+        key_points.append(f"Termini di attivazione: {', '.join(terms[:8])}")
+    operational_checks = [
+        "Verificare nel modello specifico rito, competenza, termini, deposito e documenti richiesti.",
+        "Controllare decorrenza, regime transitorio e fonte collegata prima dell'uso in atto.",
+        "La fonte generale non chiude l'audit se manca una fonte specifica o collegata.",
+    ]
+    if role_label in {"presidio deontologico", "ordinamento professionale"}:
+        operational_checks.append("Verificare informazione al cliente, mandato, compenso, conflitto e riservatezza.")
+    if role_label in {"fonte telematica", "fonte secondaria collegata"}:
+        operational_checks.append("Verificare specifiche tecniche, formato deposito, ricevute e canale telematico.")
+    return {
+        "id": f"template-atti-source:{source_id}",
+        "kind": "fonte modello",
+        "title": title,
+        "subtitle": reason,
+        "sourceExcerpt": reason,
+        "officialContext": reason,
+        "contextSummary": reason,
+        "sourceContext": key_points,
+        "keyPoints": key_points,
+        "operationalChecks": operational_checks,
+        "contextCompleted": True,
+        "contextStatus": "Fonte censita e collegata ai modelli Template Atti",
+        "contextSource": "Registro fonti ufficiali Template Atti",
+        "sourceLabel": source_title,
+        "sourceKind": role_label,
+        "sourceHref": source_href,
+        "date": _text(source.get("last_verified_at")) or TEMPLATE_ATTI_SOURCES_VERIFIED_AT,
+        "area": source_type,
+        "branch": article or scope,
+        "approvalLabel": "audit modello" if not deprecated else "fonte transitoria",
+        "approvalTone": _template_source_tone(source),
+        "stateLabel": _text(source.get("verification_status")) or "fonte verificata",
+        "stateTone": "warning" if deprecated else "success",
+        "registryNumber": ", ".join(prefixes[:10]),
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "fonte ufficiale modello",
+        "registryKind": TEMPLATE_ATTI_SOURCES_REGISTRY_VERSION,
+        "registrySection": scope,
+    }
+
+
+def _template_atti_source_records(warnings: list[dict[str, str]]) -> list[dict[str, Any]]:
+    try:
+        return [
+            _template_atti_source_record(source, index)
+            for index, source in enumerate(TEMPLATE_ATTI_LEGAL_SOURCES, start=1)
+            if isinstance(source, Mapping)
+        ]
+    except Exception:
+        warnings.append(_warning("fonti_template_atti_non_disponibili", "Fonti ufficiali dei modelli non disponibili in Ricerca Legale."))
+        return []
+
+
+def _template_atti_source_items(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    total = len(records)
+    role_counts: dict[str, int] = {}
+    for record in records:
+        role = _text(record.get("sourceKind")) or "fonte"
+        role_counts[role] = role_counts.get(role, 0) + 1
+    linked_count = sum(
+        1
+        for record in records
+        if _text(record.get("sourceKind")).lower() not in {"fonte generale", ""}
+    )
+    items = [
+        _item("template_fonti_totali", "Fonti modello censite", total, f"Registro {TEMPLATE_ATTI_SOURCES_REGISTRY_VERSION}", "primary"),
+        _item("template_fonti_collegate", "Fonti specifiche o collegate", linked_count, "Richieste dall'audit dei modelli", "success" if linked_count else "warning"),
+        _item("template_fonti_verifica", "Ultima verifica", TEMPLATE_ATTI_SOURCES_VERIFIED_AT, "Fonti web ufficiali riportate in Ricerca Legale", "info"),
+    ]
+    for index, (role, count) in enumerate(sorted(role_counts.items()), start=1):
+        items.append(_item(f"template_ruolo_{index}", role, count, "Ruolo fonte nel registro modelli", "success" if role != "fonte generale" else "info"))
+    return items
+
+
+def _normative_table_rows(manager: Any, table_id: str, *, limit: int = 3) -> list[dict[str, Any]]:
+    normative_tables = getattr(manager, "normative_tables", None)
+    rows_fn = getattr(normative_tables, "rows", None)
+    if not table_id or rows_fn is None:
+        return []
+    try:
+        rows = rows_fn(table_id)
+    except Exception:
+        return []
+    return [dict(row) for row in list(rows or [])[:limit] if isinstance(row, Mapping)]
+
+
+def _normative_all_references(
+    manager: Any,
+    normative_snapshot: Mapping[str, Any],
+    warnings: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    normative_tables = getattr(manager, "normative_tables", None)
+    catalog_fn = getattr(normative_tables, "catalogo_riferimenti_normativi", None)
+    if catalog_fn is not None:
+        try:
+            rows = catalog_fn()
+            return [dict(row) for row in rows or [] if isinstance(row, Mapping)]
+        except Exception:
+            warnings.append(
+                _warning(
+                    "db_normativa_riferimenti_parziali",
+                    "Catalogo completo dei riferimenti normativi non disponibile: uso l'anteprima del tenant corrente.",
+                )
+            )
+    return [dict(row) for row in _list(normative_snapshot.get("riferimenti_normativi")) if isinstance(row, Mapping)]
+
+
+def _normative_sources(row: Mapping[str, Any]) -> tuple[list[str], list[str], list[str]]:
+    sources = [source for source in _list(row.get("sources")) if isinstance(source, Mapping)]
+    source_titles: list[str] = []
+    source_urls: list[str] = []
+    source_codes: list[str] = []
+    for source in sources:
+        title = _text(source.get("title"))
+        url = _safe_href(source.get("url"))
+        code = _text(source.get("code"))
+        if title and title not in source_titles:
+            source_titles.append(title)
+        if url and url not in source_urls:
+            source_urls.append(url)
+        if code and code not in source_codes:
+            source_codes.append(code)
+    for code in _list(row.get("source_codes")):
+        text = _text(code)
+        if text and text not in source_codes:
+            source_codes.append(text)
+    return source_titles, source_urls, source_codes
+
+
+def _normative_table_use_label(row: Mapping[str, Any]) -> str:
+    table_id = _text(row.get("id")).lower()
+    category = _text(row.get("category")).lower()
+    title = _text(row.get("title")).lower()
+    haystack = f"{table_id} {category} {title}"
+    if "contributo_unificato" in haystack:
+        return "calcolo contributo unificato, anticipazioni, valore causa ed esenzioni"
+    if "tariffario" in haystack or "compensi" in haystack:
+        return "preventivo, compenso, parametri forensi, fasi e controllo equo compenso"
+    if "interesse_legale" in haystack or "mora" in haystack or "tasso" in haystack:
+        return "conteggi interessi, mora, usura, rivalutazioni e domanda economica"
+    if "pignoramento" in haystack or "assegno_sociale" in haystack:
+        return "esecuzione presso terzi, quota pignorabile, minimo vitale e strategia recupero credito"
+    if "mediazione" in haystack:
+        return "condizione di procedibilità, organismo, costi, istanza e verbale di mediazione"
+    if "appalti" in haystack or "anac" in haystack:
+        return "contratti pubblici, soglie, rito, autorità competente e documenti di gara"
+    if "istat" in haystack or "foi" in haystack or "nic" in haystack:
+        return "rivalutazione monetaria, canoni, assegni e poste economiche indicizzate"
+    if "riferimenti_normativi" in haystack:
+        return "collegamento tra redattori, modelli, motori di calcolo e fonte normativa"
+    return "controllo operativo della pratica, del modello, dei costi o della fonte applicabile"
+
+
+def _normative_table_checks(row: Mapping[str, Any], sample_rows: list[dict[str, Any]]) -> list[str]:
+    use_label = _normative_table_use_label(row)
+    checks = [
+        f"Usare la tabella per {use_label}, non come parere automatico.",
+        "Il sistema deve collegare data, valore, rito, materia e fonte vigente prima di proporre il dato in un atto.",
+        "Se la tabella richiede controllo, il motore deve completare fonte primaria, autorità competente e audit prima dell'uso operativo.",
+    ]
+    haystack = f"{row.get('id', '')} {row.get('category', '')} {row.get('title', '')}".lower()
+    if "contributo_unificato" in haystack:
+        checks.append("Controllare valore della causa, esenzioni, rito speciale, pagamento e prova del contributo.")
+    if "tariffario" in haystack or "compensi" in haystack:
+        checks.append("Verificare mandato, informativa al cliente, preventivo, fasi effettive e presidio deontologico.")
+    if "interesse" in haystack or "mora" in haystack or "tasso" in haystack or "istat" in haystack:
+        checks.append("Agganciare periodo esatto, capitale, decorrenza, prova del credito e domanda giudiziale.")
+    if "pignoramento" in haystack or "assegno_sociale" in haystack:
+        checks.append("Verificare natura del credito, limiti ex art. 545 c.p.c., accredito conto e provvedimento del giudice.")
+    if "mediazione" in haystack:
+        checks.append("Verificare materia obbligatoria, invito, organismo competente, adesione, verbale ed effetti sui termini.")
+    if sample_rows:
+        checks.append("Campione dati letto dal tenant: " + "; ".join(_short(row, 90) for row in sample_rows[:2]))
+    return checks[:6]
+
+
+def _normative_table_record(
+    manager: Any,
+    row: Mapping[str, Any],
+    index: int,
+) -> dict[str, Any]:
+    table_id = _text(row.get("id")) or f"tabella_normativa_{index}"
+    title = _text(row.get("title")) or table_id
+    description = _short(row.get("description"), 520)
+    category = _text(row.get("category")) or "normativa"
+    status = _text(row.get("sync_status")) or "da verificare"
+    status_label = {
+        "sincronizzata": "controllo automatico completato",
+        "aggiornata": "controllo automatico completato",
+        "verifica_richiesta": "controllo automatico da completare",
+        "da_verificare": "controllo automatico da completare",
+        "da verificare": "controllo automatico da completare",
+    }.get(status.lower(), status.replace("_", " "))
+    warning = _short(row.get("last_warning"), 360)
+    source_titles, source_urls, source_codes = _normative_sources(row)
+    samples = _normative_table_rows(manager, table_id, limit=3)
+    sample_count = len(samples)
+    try:
+        normative_tables = getattr(manager, "normative_tables", None)
+        rows_fn = getattr(normative_tables, "rows", None)
+        total_rows = len(list(rows_fn(table_id))) if rows_fn is not None else sample_count
+    except Exception:
+        total_rows = sample_count
+    source_href = source_urls[0] if source_urls else ""
+    source_label = ", ".join(source_titles[:2]) or "DB normativa IUSENTRA"
+    source_excerpt_parts = [
+        description,
+        f"Uso studio: {_normative_table_use_label(row)}.",
+        f"Stato sistema: {status_label}.",
+    ]
+    if total_rows:
+        source_excerpt_parts.append(f"Righe strutturate: {total_rows}.")
+    if samples:
+        source_excerpt_parts.append("Dati campione: " + "; ".join(_short(sample, 120) for sample in samples[:3]) + ".")
+    if source_titles:
+        source_excerpt_parts.append("Fonti: " + "; ".join(source_titles[:4]) + ".")
+    if source_codes:
+        source_excerpt_parts.append("Codici fonte: " + ", ".join(source_codes[:8]) + ".")
+    if warning:
+        source_excerpt_parts.append("Avviso: " + warning)
+    excerpt = _short(" ".join(part for part in source_excerpt_parts if part), 900)
+    key_points = [
+        f"Tabella: {title}",
+        f"Categoria: {category}",
+        f"Uso operativo: {_normative_table_use_label(row)}",
+        f"Stato sincronizzazione: {status_label}",
+    ]
+    if total_rows:
+        key_points.append(f"Righe disponibili nel tenant: {total_rows}")
+    if source_titles:
+        key_points.append(f"Fonti presidiate: {', '.join(source_titles[:4])}")
+    return {
+        "id": f"normative-table:{table_id}",
+        "kind": "db normativa",
+        "title": title,
+        "subtitle": excerpt,
+        "sourceExcerpt": excerpt,
+        "officialContext": excerpt,
+        "contextSummary": _short(excerpt, 520),
+        "sourceContext": key_points,
+        "keyPoints": key_points,
+        "operationalChecks": _normative_table_checks(row, samples),
+        "contextCompleted": True,
+        "contextStatus": "Tabella normativa letta dal DB normativa del tenant corrente",
+        "contextSource": "DB normativa tenant-aware",
+        "sourceLabel": source_label,
+        "sourceKind": "tabella normativa operativa",
+        "sourceHref": source_href,
+        "date": _text(row.get("last_synced_at")),
+        "area": category,
+        "branch": ", ".join(_text(item) for item in _list(row.get("watch_source_ids")) if _text(item)) or "fonti operative",
+        "approvalLabel": status_label,
+        "approvalTone": _tone(status),
+        "stateLabel": status_label,
+        "stateTone": _tone(status),
+        "registryNumber": f"{total_rows} righe" if total_rows else _text(row.get("versions_count")),
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "tabella normativa strutturata",
+        "registryKind": "db_normativa",
+        "registrySection": category,
+    }
+
+
+def _normative_reference_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
+    reference_code = _text(row.get("reference_code")) or f"riferimento_normativo_{index}"
+    title = _text(row.get("title")) or reference_code
+    article = _text(row.get("article"))
+    description = _short(row.get("description"), 520)
+    source_href = _safe_href(row.get("url"))
+    source_label = _source_label_from_url(source_href) if source_href else "DB normativa IUSENTRA"
+    areas = [_text(item) for item in _list(row.get("areas")) if _text(item)]
+    tipologie = [_text(item) for item in _list(row.get("tipologie_labels")) if _text(item)]
+    motori = [_text(item) for item in _list(row.get("motori")) if _text(item)]
+    redattori = [_text(item) for item in _list(row.get("redattori")) if _text(item)]
+    watch_ids = [_text(item) for item in _list(row.get("watch_source_ids")) if _text(item)]
+    excerpt = _short(
+        " ".join(
+            part
+            for part in (
+                article,
+                description,
+                "Aree: " + ", ".join(areas[:4]) if areas else "",
+                "Tipologie: " + ", ".join(tipologie[:4]) if tipologie else "",
+                "Motori: " + ", ".join(motori[:3]) if motori else "",
+                "Redattori: " + ", ".join(redattori[:3]) if redattori else "",
+            )
+            if part
+        ),
+        900,
+    )
+    key_points = [
+        f"Riferimento: {article or title}",
+        f"Titolo operativo: {title}",
+    ]
+    if areas:
+        key_points.append(f"Aree pratica: {', '.join(areas[:5])}")
+    if tipologie:
+        key_points.append(f"Tipologie collegate: {', '.join(tipologie[:5])}")
+    if motori:
+        key_points.append(f"Motori software: {', '.join(motori[:4])}")
+    if redattori:
+        key_points.append(f"Redattori/modelli: {', '.join(redattori[:4])}")
+    checks = [
+        "Usare il riferimento per collegare strategia, modello, calcolo e fonte normativa del caso concreto.",
+        "Verificare testo vigente, ambito applicativo, rito, competenza e prove prima della citazione in atto.",
+        "Se il riferimento apre termini o costi, aggiornare scadenziario, agenda, modello e domanda Lex collegata.",
+    ]
+    if watch_ids:
+        checks.append(f"Fonti monitorate: {', '.join(watch_ids[:5])}.")
+    return {
+        "id": f"normative-reference:{reference_code}",
+        "kind": "db normativa",
+        "title": title,
+        "subtitle": excerpt,
+        "sourceExcerpt": excerpt,
+        "officialContext": excerpt,
+        "contextSummary": _short(excerpt, 520),
+        "sourceContext": key_points,
+        "keyPoints": key_points,
+        "operationalChecks": checks[:6],
+        "contextCompleted": True,
+        "contextStatus": "Riferimento normativo strutturato nel DB normativa",
+        "contextSource": "DB normativa tenant-aware",
+        "sourceLabel": source_label,
+        "sourceKind": "riferimento normativo strutturato",
+        "sourceHref": source_href,
+        "date": _text(row.get("last_synced_at") or row.get("updated_at")),
+        "area": ", ".join(areas[:3]) or "normativa",
+        "branch": article or ", ".join(tipologie[:3]) or "riferimenti",
+        "approvalLabel": "strutturato",
+        "approvalTone": "success" if source_href else "warning",
+        "stateLabel": "collegato a motori e redattori" if motori or redattori else "riferimento",
+        "stateTone": "success",
+        "registryNumber": reference_code,
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "riferimento normativo strutturato",
+        "registryKind": "db_normativa",
+        "registrySection": "riferimenti_normativi",
+    }
+
+
+def _normative_db_records(
+    manager: Any,
+    snapshot: Mapping[str, Any],
+    warnings: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    normative_snapshot = _dict(snapshot.get("normative_tables"))
+    records: list[dict[str, Any]] = []
+    for index, row in enumerate(_list(normative_snapshot.get("tabelle")), start=1):
+        if isinstance(row, Mapping):
+            records.append(_normative_table_record(manager, row, index))
+    references = _normative_all_references(manager, normative_snapshot, warnings)
+    for index, row in enumerate(references, start=1):
+        if isinstance(row, Mapping):
+            records.append(_normative_reference_record(row, index))
+    return records
+
+
+def _normative_db_items(records: list[dict[str, Any]], snapshot: Mapping[str, Any]) -> list[dict[str, Any]]:
+    normative_snapshot = _dict(snapshot.get("normative_tables"))
+    table_records = [record for record in records if _text(record.get("id")).startswith("normative-table:")]
+    reference_records = [record for record in records if _text(record.get("id")).startswith("normative-reference:")]
+    return [
+        _item(
+            "db_normativa_tabelle",
+            "Tabelle operative",
+            int(normative_snapshot.get("totali") or len(table_records)),
+            "Tassi, soglie, contributi, tariffari, mediazione e registri utili allo studio.",
+            "success" if table_records else "warning",
+        ),
+        _item(
+            "db_normativa_sincronizzate",
+            "Sincronizzate",
+            int(normative_snapshot.get("sincronizzate") or 0),
+            "Tabelle con fonte o seed operativo allineato.",
+            "success" if int(normative_snapshot.get("sincronizzate") or 0) else "neutral",
+        ),
+        _item(
+            "db_normativa_verifica",
+            "Da verificare",
+            int(normative_snapshot.get("verifica_richiesta") or 0),
+            "Tabelle che richiedono controllo fonte prima dell'uso definitivo.",
+            "warning" if int(normative_snapshot.get("verifica_richiesta") or 0) else "success",
+        ),
+        _item(
+            "db_normativa_riferimenti",
+            "Riferimenti collegati",
+            int(normative_snapshot.get("riferimenti_normativi_totali") or len(reference_records)),
+            "Collegamenti tra norme, motori, redattori e modelli.",
+            "success" if reference_records else "neutral",
+        ),
+    ]
+
+
+_GUIDA_PRATICA_GIURISPRUDENZA_KEYS = {
+    "ministero_sentenze_provvedimenti",
+    "cassazione_sentenzeweb",
+    "cassazione_italgiure",
+    "corte_costituzionale_pronunce",
+    "giustizia_amministrativa_provvedimenti",
+    "giustizia_tributaria_banca_dati",
+    "ejustice_ecli",
+    "curia_giurisprudenza_ue",
+    "hudoc_cedu",
+}
+_GUIDA_PRATICA_UDIENZA_KEYS = {
+    "pst_udienze_da_remoto_2023",
+    "ministero_giustizia_127ter_2023",
+}
+_GUIDA_PRATICA_AUTORITA_HINTS = (
+    "ANAC",
+    "AGCM",
+    "ENAC",
+    "INPS",
+    "INAIL",
+    "IVASS",
+    "CONSAP",
+    "CONSOB",
+    "Banca d'Italia",
+    "UIBM",
+    "MEF",
+)
+
+
+def _guida_pratica_source_kind(source_id: str, source: Mapping[str, Any]) -> str:
+    if source_id in _GUIDA_PRATICA_GIURISPRUDENZA_KEYS:
+        return "fonte giurisprudenziale"
+    if source_id in _GUIDA_PRATICA_UDIENZA_KEYS:
+        return "fonte udienza e provvedimento"
+    ente = _text(source.get("ente"))
+    if ente == "Normattiva":
+        return "fonte normativa"
+    if "Ministero" in ente or "Portale Servizi Telematici" in ente:
+        return "fonte ministeriale"
+    if any(hint in ente for hint in _GUIDA_PRATICA_AUTORITA_HINTS):
+        return "autorità competente"
+    return "fonte ufficiale Guida Pratica"
+
+
+def _guida_pratica_source_record(source_id: str, source: Mapping[str, Any]) -> dict[str, Any]:
+    title = _text(source.get("titolo")) or source_id
+    ente = _text(source.get("ente")) or "Fonte"
+    ambito = _short(source.get("ambito"), 900)
+    role_label = _guida_pratica_source_kind(source_id, source)
+    checks = [
+        "Verificare testo vigente, decorrenza, rito e competenza prima di usare la fonte nell'atto.",
+        "Collegare la fonte a fascicolo, template e scadenziario solo dopo aver confermato fatti, documenti e termini.",
+        "Lex deve dichiarare se la fonte è normativa, tecnica, autorità competente, udienza/provvedimento o giurisprudenza.",
+    ]
+    if role_label == "fonte giurisprudenziale":
+        checks.append("Prima di citare una sentenza, verificare numero, data, organo, massima/estratto e coerenza con l'esito della pratica.")
+    if role_label == "fonte udienza e provvedimento":
+        checks.append("Controllare provvedimento di fissazione, modalità d'udienza, termine per note e prova del deposito.")
+    if role_label == "autorità competente":
+        checks.append("Verificare modulistica, reclamo/segnalazione, presupposti amministrativi e stato della pratica presso l'autorità.")
+    return {
+        "id": f"guida-pratica-source:{source_id}",
+        "kind": "fonte Guida Pratica",
+        "title": title,
+        "subtitle": ambito,
+        "sourceExcerpt": ambito,
+        "officialContext": ambito,
+        "contextSummary": ambito,
+        "sourceContext": [
+            f"Ente: {ente}",
+            f"Ruolo nel RAG: {role_label}",
+            f"Ambito: {ambito}",
+        ],
+        "keyPoints": [
+            f"Fonte: {title}",
+            f"Ente: {ente}",
+            f"Ambito operativo: {ambito}",
+        ],
+        "operationalChecks": checks,
+        "contextCompleted": True,
+        "contextStatus": "Fonte censita per Guida Pratica, scadenziario e RAG Lex",
+        "contextSource": "Registro fonti web Guida Pratica",
+        "sourceLabel": ente,
+        "sourceKind": role_label,
+        "sourceHref": _safe_href(source.get("url")),
+        "date": GUIDA_PRATICA_WEB_VERIFIED_ON,
+        "area": "Guida Pratica e RAG Legal",
+        "branch": role_label,
+        "approvalLabel": "fonte web verificata",
+        "approvalTone": "success",
+        "stateLabel": "indicizzata per Ricerca Legale",
+        "stateTone": "success",
+        "registryNumber": source_id,
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "fonte web Guida Pratica",
+        "registryKind": "guida_pratica_web_enrichment",
+        "registrySection": role_label,
+    }
+
+
+def _guida_pratica_source_records(warnings: list[dict[str, str]]) -> list[dict[str, Any]]:
+    try:
+        return [
+            _guida_pratica_source_record(source_id, source)
+            for source_id, source in sorted(GUIDA_PRATICA_WEB_SOURCE_LIBRARY.items())
+            if isinstance(source, Mapping)
+        ]
+    except Exception:
+        warnings.append(_warning("fonti_guida_pratica_non_disponibili", "Fonti Guida Pratica non disponibili in Ricerca Legale."))
+        return []
+
+
+def _guida_pratica_source_items(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    role_counts: dict[str, int] = {}
+    for record in records:
+        role = _text(record.get("sourceKind")) or "fonte"
+        role_counts[role] = role_counts.get(role, 0) + 1
+    items = [
+        _item("guida_fonti_totali", "Fonti Guida/RAG", len(records), f"Verificate il {GUIDA_PRATICA_WEB_VERIFIED_ON}", "primary"),
+        _item(
+            "guida_fonti_giurisprudenza",
+            "Sentenze e giurisprudenza",
+            role_counts.get("fonte giurisprudenziale", 0),
+            "Cassazione, Corte costituzionale, TAR/Consiglio di Stato, tributaria, UE e CEDU",
+            "success" if role_counts.get("fonte giurisprudenziale", 0) else "warning",
+        ),
+        _item(
+            "guida_fonti_udienze",
+            "Udienze e decreti",
+            role_counts.get("fonte udienza e provvedimento", 0),
+            "PST/DGSIA e Ministero per udienze da remoto, note scritte e provvedimenti",
+            "success" if role_counts.get("fonte udienza e provvedimento", 0) else "warning",
+        ),
+    ]
+    for index, (role, count) in enumerate(sorted(role_counts.items()), start=1):
+        items.append(_item(f"guida_ruolo_{index}", role, count, "Ruolo fonte nel RAG Guida Pratica", "success"))
+    return items
+
+
+def _practice_research_record(entry: Mapping[str, Any], index: int) -> dict[str, Any]:
+    entry_id = _text(entry.get("id")) or f"materia_{index}"
+    title = _text(entry.get("title")) or entry_id
+    area = _text(entry.get("area")) or "Materia"
+    scope = _text(entry.get("scope"))
+    sources = [source for source in _list(entry.get("official_sources")) if isinstance(source, Mapping)]
+    source_labels = [
+        " - ".join(
+            part
+            for part in (
+                _text(source.get("label")),
+                _text(source.get("authority")),
+                _text(source.get("source_code")),
+            )
+            if part
+        )
+        for source in sources
+    ]
+    source_urls = [_safe_href(source.get("url")) for source in sources if _safe_href(source.get("url"))]
+    articles = [_text(item) for item in _list(entry.get("articles_and_codes")) if _text(item)]
+    decrees = [_text(item) for item in _list(entry.get("decrees_and_rules")) if _text(item)]
+    case_law = [_text(item) for item in _list(entry.get("case_law_and_hearings")) if _text(item)]
+    acts = [_text(item) for item in _list(entry.get("acts_to_prepare")) if _text(item)]
+    deadlines = [_text(item) for item in _list(entry.get("deadlines_tasks")) if _text(item)]
+    lex_questions = [_text(item) for item in _list(entry.get("lex_questions")) if _text(item)]
+    research_queries = [_text(item) for item in _list(entry.get("research_queries")) if _text(item)]
+    key_points = [
+        f"Materia: {area}",
+        f"Perimetro reale: {scope}",
+    ]
+    if source_labels:
+        key_points.append(f"Fonti ufficiali collegate: {'; '.join(source_labels[:5])}")
+    if articles:
+        key_points.append(f"Norme e articoli specifici: {'; '.join(articles[:4])}")
+    if decrees:
+        key_points.append(f"Decreti e regole tecniche specifiche: {'; '.join(decrees[:4])}")
+    if case_law:
+        key_points.append(f"Udienze, sentenze e provvedimenti da monitorare: {'; '.join(case_law[:4])}")
+    operational_checks = [
+        "Ricerca web svolta e trasformata in matrice pratica IUSENTRA, non in promemoria generico.",
+        *[f"Atto da produrre: {item}" for item in acts],
+        *[f"Scadenza o task da alimentare: {item}" for item in deadlines],
+        *[f"Domanda Lex di audit: {item}" for item in lex_questions],
+        *[f"Query fonte ufficiale tracciata: {item}" for item in research_queries],
+    ]
+    return {
+        "id": f"practice-research:{entry_id}",
+        "kind": "matrice pratica legale",
+        "title": title,
+        "subtitle": scope,
+        "sourceExcerpt": scope,
+        "officialContext": " | ".join(key_points),
+        "contextSummary": f"{area}: {scope}",
+        "sourceContext": key_points,
+        "keyPoints": key_points,
+        "operationalChecks": operational_checks,
+        "legalMaterials": [scope, *source_labels],
+        "articlesAndCodes": articles,
+        "decreesAndRules": decrees,
+        "caseLawAndHearings": case_law,
+        "researchSteps": research_queries,
+        "contextCompleted": True,
+        "contextStatus": "Matrice pratica pubblicata in Ricerca Legale e destinata a Lex/RAG",
+        "contextSource": "Matrice ricerche legali per materia",
+        "sourceLabel": source_labels[0] if source_labels else "Fonti ufficiali materia",
+        "sourceKind": "matrice pratica con fonti ufficiali",
+        "sourceHref": source_urls[0] if source_urls else "/ricerca-legale",
+        "date": "2026-06-06",
+        "area": area,
+        "branch": "copertura pratica",
+        "approvalLabel": "copertura pratica pubblicata",
+        "approvalTone": "success",
+        "stateLabel": "sincronizzata e pubblicata",
+        "stateTone": "success",
+        "registryNumber": entry_id,
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "ricerca web per materia",
+        "registryKind": "matrice_pratiche_legali",
+        "registrySection": area,
+    }
+
+
+def _practice_research_records() -> list[dict[str, Any]]:
+    return [
+        _practice_research_record(entry, index)
+        for index, entry in enumerate(LEGAL_PRACTICE_RESEARCH_MATRIX, start=1)
+        if isinstance(entry, Mapping)
+    ]
+
+
+def _practice_reference_parent_titles() -> dict[str, str]:
+    return {
+        _text(entry.get("id")): _text(entry.get("title")) or _text(entry.get("id"))
+        for entry in LEGAL_PRACTICE_RESEARCH_MATRIX
+        if isinstance(entry, Mapping) and _text(entry.get("id"))
+    }
+
+
+def _practice_nominal_reference_record(entry: Mapping[str, Any], index: int) -> dict[str, Any]:
+    reference_id = _text(entry.get("id")) or f"riferimento_{index}"
+    label = _text(entry.get("label")) or reference_id
+    kind = _text(entry.get("kind")) or "riferimento ufficiale"
+    authority = _text(entry.get("authority")) or "Fonte ufficiale"
+    url = _safe_href(entry.get("url"))
+    articles = _text(entry.get("articles"))
+    practical_use = _text(entry.get("use"))
+    parent_titles = _practice_reference_parent_titles()
+    practice_ids = [_text(item) for item in _list(entry.get("practice_ids")) if _text(item)]
+    linked_practices = [parent_titles.get(item, item) for item in practice_ids if parent_titles.get(item, item)]
+    key_points = [
+        f"Riferimento nominale: {label}",
+        f"Autorità/fonte ufficiale: {authority}",
+        f"Tipo: {kind}",
+    ]
+    if articles:
+        key_points.append(f"Articoli, atti o contenuto specifico: {articles}")
+    if linked_practices:
+        key_points.append(f"Materie/pratiche collegate: {'; '.join(linked_practices[:8])}")
+    if practical_use:
+        key_points.append(f"Uso operativo: {practical_use}")
+    operational_checks = [
+        f"Fonte ufficiale nominale tracciata: {label}.",
+        f"Autorità competente: {authority}.",
+    ]
+    if articles:
+        operational_checks.append(f"Riferimento specifico da usare nella pratica: {articles}.")
+    if practical_use:
+        operational_checks.append(f"Output operativo: {practical_use}.")
+    for practice in linked_practices:
+        operational_checks.append(f"Collegata alla pratica: {practice}.")
+    return {
+        "id": f"practice-reference:{reference_id}",
+        "kind": kind,
+        "title": label,
+        "subtitle": practical_use,
+        "sourceExcerpt": practical_use or articles,
+        "officialContext": " | ".join(key_points),
+        "contextSummary": practical_use or articles or label,
+        "sourceContext": key_points,
+        "keyPoints": key_points,
+        "operationalChecks": operational_checks,
+        "legalMaterials": [label, authority, practical_use],
+        "articlesAndCodes": [articles] if articles else [],
+        "decreesAndRules": [label] if any(token in kind.lower() for token in ("decreto", "regola", "testo unico")) else [],
+        "caseLawAndHearings": [label] if any(token in kind.lower() for token in ("sentenz", "udienz", "provvediment", "ricorsi")) else [],
+        "researchSteps": [
+            f"Controllare fonte ufficiale {authority}: {label}",
+            f"Usare il riferimento nel contesto: {'; '.join(linked_practices[:4])}" if linked_practices else "",
+        ],
+        "contextCompleted": True,
+        "contextStatus": "Riferimento nominale ufficiale pubblicato",
+        "contextSource": "Libreria riferimenti nominali per materie",
+        "sourceLabel": authority,
+        "sourceKind": f"fonte ufficiale - {kind}",
+        "sourceHref": url,
+        "date": "2026-06-06",
+        "area": "; ".join(linked_practices[:3]) or "Ricerca Legale",
+        "branch": kind,
+        "approvalLabel": "riferimento ufficiale pubblicato",
+        "approvalTone": "success",
+        "stateLabel": "sincronizzata e pubblicata",
+        "stateTone": "success",
+        "registryNumber": reference_id,
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "fonte ufficiale nominale",
+        "registryKind": "riferimenti_nominali_pratiche",
+        "registrySection": kind,
+    }
+
+
+def _practice_nominal_reference_records() -> list[dict[str, Any]]:
+    return [
+        _practice_nominal_reference_record(entry, index)
+        for index, entry in enumerate(LEGAL_NOMINAL_REFERENCE_LIBRARY, start=1)
+        if isinstance(entry, Mapping)
+    ]
+
+
+def _practice_research_items(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    summary = legal_practice_research_summary()
+    area_counts: dict[str, int] = {}
+    for record in records:
+        area = _text(record.get("area")) or "Materia"
+        area_counts[area] = area_counts.get(area, 0) + 1
+    items = [
+        _item(
+            "matrice_pratiche_totale",
+            "Materie presidiate",
+            int(summary.get("practice_areas") or 0),
+            "Civile, lavoro, famiglia, penale, amministrativo, tributario, bancario, privacy, crisi, telematico e fonti UE/CEDU.",
+            "primary",
+        ),
+        _item(
+            "matrice_schede",
+            "Schede operative",
+            len(records),
+            "Ogni scheda espone norme, decreti, udienze/sentenze, atti, scadenze e domande Lex.",
+            "success" if records else "warning",
+        ),
+        _item(
+            "matrice_fonti_collegate",
+            "Fonti collegate",
+            int(summary.get("linked_source_codes") or 0),
+            "Codici sorgente riusati senza duplicare i registri ufficiali.",
+            "success",
+        ),
+        _item(
+            "matrice_riferimenti_nominali",
+            "Riferimenti nominali",
+            int(summary.get("nominal_references") or 0),
+            "Leggi, decreti, regole tecniche, portali, registri, udienze, sentenze e provvedimenti nominati.",
+            "success",
+        ),
+    ]
+    for index, (area, count) in enumerate(sorted(area_counts.items()), start=1):
+        items.append(_item(f"matrice_area_{index}", area, count, "Copertura pratica pubblicata", "success"))
+    return items
+
+
+def _source_delivery_audit(warnings: list[dict[str, str]]) -> dict[str, Any]:
+    if _build_legal_source_delivery_audit is None:
+        warnings.append(
+            _warning(
+                "centro_fonti_audit_non_disponibile",
+                "Audit Centro Fonti Ufficiali Lex non disponibile in questo momento.",
+            )
+        )
+        return {}
+    try:
+        audit = _build_legal_source_delivery_audit()
+    except Exception:
+        warnings.append(
+            _warning(
+                "centro_fonti_audit_non_completato",
+                "Audit Centro Fonti Ufficiali Lex non completato: controllare configurazione e registri fonti.",
+            )
+        )
+        return {}
+    return audit if isinstance(audit, dict) else {}
+
+
+def _source_delivery_status_label(status: Any) -> str:
+    value = _text(status)
+    labels = {
+        "operativa_controllabile": "pronta, sincronizzata e pubblicata",
+        "da_attivare_controllabile": "acquisizione governata dal sistema",
+        "gap": "fonte ufficiale da completare",
+        "contesto_non_ufficiale": "contesto professionale non ufficiale",
+    }
+    return labels.get(value, value.replace("_", " ") or "controllo sistema")
+
+
+def _source_delivery_tone(status: Any) -> str:
+    value = _text(status)
+    if value == "operativa_controllabile":
+        return "success"
+    if value == "da_attivare_controllabile":
+        return "warning"
+    if value == "gap":
+        return "danger"
+    if value == "contesto_non_ufficiale":
+        return "neutral"
+    return "info"
+
+
+def _source_delivery_kind(row: Mapping[str, Any]) -> str:
+    status = _text(row.get("delivery_status"))
+    if status == "gap":
+        return "fonte ufficiale da completare" if row.get("official") else "fonte di contesto da completare"
+    if status == "da_attivare_controllabile":
+        return "fonte ufficiale in acquisizione governata"
+    if row.get("official"):
+        return "fonte ufficiale governata"
+    return "know-how professionale non ufficiale"
+
+
+def _source_delivery_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
+    source_id = _text(row.get("source_id")) or f"fonte_{index}"
+    registry = _text(row.get("registry")) or "registro_fonti"
+    title = _text(row.get("title")) or source_id
+    status = _text(row.get("delivery_status")) or "controllo_sistema"
+    status_label = _source_delivery_status_label(status)
+    gap_reason = _text(row.get("gap_reason"))
+    destinations = [_text(item) for item in _list(row.get("destinations")) if _text(item)]
+    topics = [_text(item) for item in _list(row.get("topics")) if _text(item)]
+    notes = [_text(item) for item in _list(row.get("notes")) if _text(item)]
+    lawyer_use = _text(row.get("lawyer_use")) or "collegare la fonte a una decisione, un atto, una prova o un termine"
+    practice_phase = _text(row.get("practice_phase"))
+    expected_output = _text(row.get("expected_output"))
+    professional_context = _text(row.get("professional_context"))
+    activation_action = _text(row.get("activation_action"))
+    lex_test_question = _text(row.get("lex_test_question"))
+    source_href = _safe_href(row.get("url"))
+    legal_materials = [_text(item) for item in _list(row.get("legal_materials")) if _text(item)]
+    articles_and_codes = [_text(item) for item in _list(row.get("articles_and_codes")) if _text(item)]
+    decrees_and_rules = [_text(item) for item in _list(row.get("decrees_and_rules")) if _text(item)]
+    case_law_and_hearings = [_text(item) for item in _list(row.get("case_law_and_hearings")) if _text(item)]
+    research_steps = [_text(item) for item in _list(row.get("research_steps")) if _text(item)]
+    material_summary_parts = []
+    if legal_materials:
+        material_summary_parts.append(f"Materiali giuridici: {'; '.join(legal_materials[:3])}")
+    if articles_and_codes:
+        material_summary_parts.append(f"Articoli/codici: {'; '.join(articles_and_codes[:2])}")
+    if decrees_and_rules:
+        material_summary_parts.append(f"Decreti e regole: {'; '.join(decrees_and_rules[:2])}")
+    if case_law_and_hearings:
+        material_summary_parts.append(f"Sentenze, udienze e provvedimenti: {'; '.join(case_law_and_hearings[:2])}")
+    material_summary = " | ".join(material_summary_parts)
+    key_points = [
+        f"Registro: {registry}",
+        f"Stato consegna: {status_label}",
+        f"Uso per l'avvocato: {lawyer_use}",
+    ]
+    if practice_phase:
+        key_points.append(f"Fase pratica: {practice_phase}")
+    if expected_output:
+        key_points.append(f"Output atteso: {expected_output}")
+    if destinations:
+        key_points.append(f"Arriva a: {', '.join(destinations[:8])}")
+    if topics:
+        key_points.append(f"Ambito: {', '.join(topics[:6])}")
+    if legal_materials:
+        key_points.append(f"Materiali giuridici: {'; '.join(legal_materials[:4])}")
+    if articles_and_codes:
+        key_points.append(f"Articoli e codici: {'; '.join(articles_and_codes[:3])}")
+    if decrees_and_rules:
+        key_points.append(f"Decreti e regole tecniche: {'; '.join(decrees_and_rules[:3])}")
+    if case_law_and_hearings:
+        key_points.append(f"Sentenze, udienze e provvedimenti: {'; '.join(case_law_and_hearings[:3])}")
+    if gap_reason:
+        key_points.append(f"Fonte da completare: {gap_reason}")
+    operational_checks = [
+        "Ricerca Legale espone URL, autorità, ambito, materiali giuridici e destinazioni di prodotto.",
+        "Lex/RAG collega la fonte a modello, guida, scadenza, fascicolo o domanda operativa quando la pratica la richiede.",
+        "Il motore aggiornamenti acquisisce per lotti progressivi, deduplica, indicizza e conserva la domanda Lex di prova.",
+    ]
+    if research_steps:
+        operational_checks.extend(research_steps[:5])
+    if activation_action:
+        operational_checks.insert(0, activation_action)
+    if lex_test_question:
+        operational_checks.append(f"Domanda Lex di prova: {lex_test_question}")
+    if gap_reason:
+        operational_checks.insert(0, f"Completare nel software la fonte ufficiale nominale: {gap_reason}.")
+    if not row.get("official"):
+        operational_checks.append("Non usare questa fonte come copertura normativa autonoma: richiede fonte ufficiale collegata.")
+    return {
+        "id": f"source-delivery:{registry}:{source_id}",
+        "kind": "centro fonti",
+        "title": f"Centro Fonti: {title}",
+        "subtitle": material_summary or professional_context or gap_reason or lawyer_use,
+        "sourceExcerpt": material_summary or professional_context or gap_reason or lawyer_use,
+        "officialContext": " | ".join(item for item in (professional_context, material_summary or lawyer_use) if item),
+        "contextSummary": " | ".join(item for item in (professional_context, material_summary or gap_reason or lawyer_use) if item),
+        "sourceContext": key_points,
+        "keyPoints": key_points,
+        "operationalChecks": operational_checks,
+        "legalMaterials": legal_materials,
+        "articlesAndCodes": articles_and_codes,
+        "decreesAndRules": decrees_and_rules,
+        "caseLawAndHearings": case_law_and_hearings,
+        "researchSteps": research_steps,
+        "contextCompleted": status != "gap",
+        "contextStatus": status_label,
+        "contextSource": "Audit Centro Fonti Ufficiali Lex",
+        "sourceLabel": _text(row.get("authority")) or title,
+        "sourceKind": _source_delivery_kind(row),
+        "sourceHref": source_href,
+        "date": "2026-06-06",
+        "area": _text(row.get("category")) or "fonti ufficiali",
+        "branch": status_label,
+        "approvalLabel": status_label,
+        "approvalTone": _source_delivery_tone(status),
+        "stateLabel": status_label,
+        "stateTone": _source_delivery_tone(status),
+        "registryNumber": source_id,
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "audit fonte legale",
+        "registryKind": "centro_fonti_ufficiali_lex",
+        "registrySection": status,
+        "territory": registry,
+    }
+
+
+def _source_delivery_records(audit: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        _source_delivery_record(row, index)
+        for index, row in enumerate(_list(audit.get("sources")), start=1)
+        if isinstance(row, Mapping)
+    ]
+
+
+def _source_delivery_items(audit: Mapping[str, Any]) -> list[dict[str, Any]]:
+    summary = _dict(audit.get("summary"))
+    if not summary:
+        return []
+    return [
+        _item(
+            "centro_fonti_totali",
+            "Fonti attraversate",
+            int(summary.get("total_sources") or 0),
+            "Registri, configurazioni, adapter, DB normativa, Guida Pratica e Template Atti.",
+            "primary",
+        ),
+        _item(
+            "centro_fonti_operative",
+            "Operative",
+            int(summary.get("operational_sources") or 0),
+            "Fonti che arrivano a Ricerca Legale, Lex/RAG, editor, guida, scadenziario o DB normativa.",
+            "success",
+        ),
+        _item(
+            "centro_fonti_da_completare",
+            "Fonti da completare",
+            int(summary.get("activation_pending_sources") or 0),
+            "Fonti controllabili ma non ancora acquisite automaticamente dal motore.",
+            "warning" if int(summary.get("activation_pending_sources") or 0) else "success",
+        ),
+        _item(
+            "centro_fonti_da_completare_reali",
+            "Da completare",
+            int(summary.get("gaps") or 0),
+            "Fonti senza catena completa o con motore non ancora operativo.",
+            "danger" if int(summary.get("gaps") or 0) else "success",
+        ),
+        _item(
+            "centro_fonti_ufficiali_da_completare",
+            "Fonti ufficiali da completare",
+            int(summary.get("official_gaps") or 0),
+            "Fonti ufficiali da completare prima di parlare di copertura completa.",
+            "danger" if int(summary.get("official_gaps") or 0) else "success",
+        ),
+    ]
+
+
 def _search_repository_records(pipeline: Any, warnings: list[dict[str, str]], search_query: str) -> list[dict[str, Any]]:
     if not search_query:
         return []
@@ -1589,8 +2764,34 @@ def _official_archive_counts(warnings: list[dict[str, str]]) -> dict[str, Any]:
         return {}
 
 
+def _is_governed_registry_record(record: Mapping[str, Any]) -> bool:
+    record_id = _text(record.get("id"))
+    return record_id.startswith(
+        (
+            "template-atti-source:",
+            "guida-pratica-source:",
+            "normative-table:",
+            "normative-reference:",
+            "source-delivery:",
+        )
+    )
+
+
+def _is_governed_sufficient_context(record: Mapping[str, Any], search_query: str) -> bool:
+    if not _is_governed_registry_record(record):
+        return False
+    excerpt = _record_excerpt(record)
+    if not bool(record.get("contextCompleted")) or _record_context_sufficiency_length(record) < 60:
+        return False
+    if _looks_like_exact_legal_reference(search_query) and not _record_relevant_for_exact_reference(record, search_query):
+        return False
+    return bool(_list(record.get("keyPoints")) or _list(record.get("operationalChecks")) or _text(record.get("officialContext")))
+
+
 def _is_weak_source_context(record: Mapping[str, Any], search_query: str) -> bool:
     if not search_query:
+        return False
+    if _is_governed_sufficient_context(record, search_query):
         return False
     excerpt = _record_excerpt(record)
     title = _text(record.get("title"))
@@ -1604,6 +2805,13 @@ def _is_weak_source_context(record: Mapping[str, Any], search_query: str) -> boo
         return True
     if exact_reference and not official:
         return True
+    if (
+        exact_reference
+        and official
+        and bool(record.get("contextCompleted"))
+        and (_list(record.get("keyPoints")) or _list(record.get("operationalChecks")))
+    ):
+        return False
     if exact_reference and len(excerpt) < 260:
         return True
     if exact_reference and title and excerpt.strip().lower() == title.strip().lower():
@@ -1622,15 +2830,22 @@ def _needs_public_fallback(records: list[dict[str, Any]], search_query: str) -> 
         if not _looks_like_exact_legal_reference(search_query)
         or _record_relevant_for_exact_reference(record, search_query)
     ]
+    if _governed_records_cover_query(relevant_records, search_query):
+        return False
     if any(_is_weak_source_context(record, search_query) for record in relevant_records):
         return True
     exact_reference = _looks_like_exact_legal_reference(search_query)
     official_context = [
         record
         for record in relevant_records
-        if "ufficiale" in _text(record.get("sourceKind")).lower()
-        and len(_record_excerpt(record)) >= (180 if exact_reference else 80)
+        if (
+            "ufficiale" in _text(record.get("sourceKind")).lower()
+            or _is_official_href(record.get("sourceHref"))
+        )
+        and _record_context_sufficiency_length(record) >= (120 if exact_reference else 80)
     ]
+    if official_context and not any(_record_covers_query(record, search_query) for record in official_context):
+        return True
     required_sources = 1 if exact_reference else 2
     return len(official_context) < required_sources
 
@@ -1799,11 +3014,156 @@ def _autofetch_monitor(
     return monitor if isinstance(monitor, dict) else {}
 
 
+def _source_delivery_index(audit: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
+    def key(value: Any) -> str:
+        return "_".join(_text(value).lower().replace("-", "_").split())
+
+    rows = [row for row in _list(audit.get("sources")) if isinstance(row, Mapping)]
+
+    def score(row: Mapping[str, Any]) -> int:
+        value = 0
+        if row.get("official"):
+            value += 20
+        if _text(row.get("delivery_status")) == "operativa_controllabile":
+            value += 15
+        if _text(row.get("registry")) == "legal_update_sources":
+            value += 10
+        if row.get("legal_materials"):
+            value += 3
+        if row.get("case_law_and_hearings"):
+            value += 3
+        return value
+
+    index: dict[str, Mapping[str, Any]] = {}
+    scores: dict[str, int] = {}
+    for row in rows:
+        keys = {
+            key(row.get("source_id")),
+            key(row.get("title")),
+            key(row.get("authority")),
+        }
+        for item in keys:
+            if not item:
+                continue
+            row_score = score(row)
+            if item not in index or row_score > scores.get(item, -1):
+                index[item] = row
+                scores[item] = row_score
+    return index
+
+
+def _enrich_autofetch_monitor_for_lawyer(
+    monitor: Mapping[str, Any],
+    audit: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not monitor:
+        return {}
+    index = _source_delivery_index(audit)
+
+    def key(value: Any) -> str:
+        return "_".join(_text(value).lower().replace("-", "_").split())
+
+    enriched_sources: list[dict[str, Any]] = []
+    operational_sources = 0
+    action_required_sources = 0
+    lex_testable_sources = 0
+    sources_with_case_law = 0
+    sources_with_decrees = 0
+    for row in _list(monitor.get("sources")):
+        if not isinstance(row, Mapping):
+            continue
+        source = dict(row)
+        delivery = (
+            index.get(key(source.get("source_code")))
+            or index.get(key(source.get("source_name")))
+            or {}
+        )
+        status = _text(delivery.get("delivery_status"))
+        status_label = _source_delivery_status_label(status) if status else ""
+        legal_materials = [_text(item) for item in _list(delivery.get("legal_materials")) if _text(item)]
+        articles_and_codes = [_text(item) for item in _list(delivery.get("articles_and_codes")) if _text(item)]
+        decrees_and_rules = [_text(item) for item in _list(delivery.get("decrees_and_rules")) if _text(item)]
+        case_law_and_hearings = [_text(item) for item in _list(delivery.get("case_law_and_hearings")) if _text(item)]
+        research_steps = [_text(item) for item in _list(delivery.get("research_steps")) if _text(item)]
+        destinations = [_text(item) for item in _list(delivery.get("destinations")) if _text(item)]
+        lawyer_use = _text(delivery.get("lawyer_use"))
+        activation_action = _text(delivery.get("activation_action"))
+        lex_test_question = _text(delivery.get("lex_test_question"))
+        has_documents = any(
+            _positive_int(source.get(document_key), 0) > 0
+            for document_key in ("raw_documents", "normalized_documents", "review_published")
+        )
+        monitor_status = _text(source.get("status"))
+        if delivery:
+            operational_sources += 1
+            if status == "gap" or (monitor_status != "pronta" and not has_documents):
+                action_required_sources += 1
+            if lex_test_question:
+                lex_testable_sources += 1
+            if case_law_and_hearings:
+                sources_with_case_law += 1
+            if decrees_and_rules:
+                sources_with_decrees += 1
+        source.update(
+            {
+                "delivery_status": status,
+                "delivery_status_label": status_label,
+                "delivery_tone": _source_delivery_tone(status) if status else _autofetch_tone(source.get("status")),
+                "delivery_registry": _text(delivery.get("registry")),
+                "authority": _text(delivery.get("authority")),
+                "source_href": _safe_href(delivery.get("url")),
+                "lawyer_use": lawyer_use,
+                "practice_phase": _text(delivery.get("practice_phase")),
+                "expected_output": _text(delivery.get("expected_output")),
+                "professional_context": _text(delivery.get("professional_context")),
+                "activation_action": activation_action,
+                "lex_test_question": lex_test_question,
+                "destinations": destinations,
+                "legal_materials": legal_materials,
+                "articles_and_codes": articles_and_codes,
+                "decrees_and_rules": decrees_and_rules,
+                "case_law_and_hearings": case_law_and_hearings,
+                "research_steps": research_steps,
+                "system_action": activation_action
+                or (
+                    "Fonte acquisita o indicizzata: il sistema la espone in Ricerca Legale e la collega a Lex/RAG quando la pratica la richiama."
+                    if has_documents or status == "operativa_controllabile"
+                    else "Acquisizione automatica da completare nel motore fonti: nessun controllo è scaricato all'avvocato."
+                ),
+                "publication_status_label": (
+                    "pubblicata" if _positive_int(source.get("review_published"), 0)
+                    else "indicizzata" if _positive_int(source.get("normalized_documents"), 0)
+                    else "acquisita" if _positive_int(source.get("raw_documents"), 0)
+                    else "da acquisire dal sistema"
+                ),
+                "lawyer_action": activation_action
+                or (
+                    "Fonte pronta nel sistema: usare la scheda per pratica, fascicolo, modello o domanda Lex."
+                    if has_documents or status == "operativa_controllabile"
+                    else "Acquisizione automatica in carico al sistema."
+                ),
+            }
+        )
+        enriched_sources.append(source)
+
+    enriched = dict(monitor)
+    enriched["sources"] = enriched_sources
+    enriched["lawyer_readiness"] = {
+        "operational_sources": operational_sources,
+        "action_required_sources": action_required_sources,
+        "lex_testable_sources": lex_testable_sources,
+        "sources_with_case_law": sources_with_case_law,
+        "sources_with_decrees": sources_with_decrees,
+        "status": "pronto" if action_required_sources == 0 and operational_sources else "completamento_fonti_ufficiali",
+    }
+    return enriched
+
+
 def _autofetch_tone(status: Any) -> str:
     value = _text(status).lower()
     if value == "pronta" or value == "pronto":
         return "success"
-    if value in {"da_verificare", "da verificare", "non_pronta", "non pronta"}:
+    if value in {"da_verificare", "da verificare", "non_pronta", "non pronta", "completamento_fonti_ufficiali", "completamento fonti ufficiali"}:
         return "warning"
     if value in {"errore", "failed", "timeout", "bloccata"}:
         return "danger"
@@ -1818,22 +3178,28 @@ def _autofetch_source_items(monitor: Mapping[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(row, dict):
             continue
         label = _text(row.get("source_name") or row.get("source_code")) or "Fonte"
-        status = _text(row.get("status") or "da_verificare")
+        status = _text(row.get("status") or "controllo_sistema")
         raw_documents = _positive_int(row.get("raw_documents"), 0)
         normalized = _positive_int(row.get("normalized_documents"), 0)
         published = _positive_int(row.get("review_published"), 0)
         pending = _positive_int(row.get("review_pending"), 0)
         count_note = (
-            f"letti {raw_documents}, testo {normalized}, pubblicati {published}, da verificare {pending}"
+            f"letti {raw_documents}, testo {normalized}, pubblicati {published}, in revisione sistema {pending}"
             if raw_documents or normalized or published or pending
             else _text(row.get("reason"))
         )
+        lawyer_use = _text(row.get("lawyer_use"))
+        lex_question = _text(row.get("lex_test_question"))
+        if lawyer_use:
+            count_note = f"{count_note}. Serve per: {lawyer_use}"
+        if lex_question:
+            count_note = f"{count_note}. Domanda Lex: {lex_question}"
         items.append(
             _item(
                 f"autofetch_{index}_{_text(row.get('source_code')) or 'fonte'}",
                 label,
                 status.replace("_", " "),
-                count_note or "Fonte censita, in attesa di acquisizione.",
+                count_note or "Acquisizione automatica non ancora completata dal sistema.",
                 _autofetch_tone(status),
             )
         )
@@ -1951,7 +3317,16 @@ def build_react_legal_intelligence_payload(
     mediazione_official_records = _mediazione_official_registry_records()
     matters = _matters(pipeline, warnings)
     source_items = _source_items(snapshot, update_snapshot)
+    template_source_records = _template_atti_source_records(warnings)
+    guida_pratica_source_records = _guida_pratica_source_records(warnings)
+    practice_research_records = _practice_research_records()
+    practice_nominal_reference_records = _practice_nominal_reference_records()
+    normative_db_records = _normative_db_records(manager, snapshot, warnings)
+    source_delivery_audit = _source_delivery_audit(warnings)
+    source_delivery_records = _source_delivery_records(source_delivery_audit)
+    template_source_registry = template_atti_source_registry_summary()
     autofetch_monitor = _autofetch_monitor(pipeline, config, warnings)
+    autofetch_monitor = _enrich_autofetch_monitor_for_lawyer(autofetch_monitor, source_delivery_audit)
     autofetch_source_items = _autofetch_source_items(autofetch_monitor)
     official_counts = _official_archive_counts(warnings)
     normattiva_counts = _dict(official_counts.get("normattiva"))
@@ -1971,14 +3346,69 @@ def build_react_legal_intelligence_payload(
         records = _dedupe_records(mediazione_official_records + mediazione_records)
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json"
     elif page == "ricerca-legale":
+        normative_matches = [
+            record
+            for record in normative_db_records
+            if _matches_query(record, search_query)
+        ]
+        normative_matches = sorted(
+            normative_matches,
+            key=lambda record: _record_query_rank(record, search_query),
+            reverse=True,
+        )
+        guida_pratica_matches = [
+            record
+            for record in guida_pratica_source_records
+            if _matches_query(record, search_query)
+        ]
+        guida_pratica_matches = sorted(
+            guida_pratica_matches,
+            key=lambda record: _record_query_rank(record, search_query),
+            reverse=True,
+        )
         local_matches = [
             record
             for record in news_records + mediazione_official_records + mediazione_records
             if _matches_query(record, search_query)
         ]
-        search_records = _search_repository_records(pipeline, warnings, search_query)
-        official_archive_records = _official_archive_records(warnings, search_query)
-        combined_search = _dedupe_records(search_records + official_archive_records + local_matches)
+        template_matches = [
+            record
+            for record in template_source_records
+            if _matches_query(record, search_query)
+        ]
+        source_delivery_matches = [
+            record
+            for record in source_delivery_records
+            if _matches_query(record, search_query)
+        ]
+        practice_research_matches = [
+            record
+            for record in practice_research_records + practice_nominal_reference_records
+            if _matches_query(record, search_query)
+        ]
+        exact_template_matches = (
+            _filter_records_for_exact_reference(template_matches, search_query)
+            if _looks_like_exact_legal_reference(search_query)
+            else []
+        )
+        exact_reference_number = _legal_reference_number(search_query)
+        template_source_complete = bool(
+            exact_reference_number
+            and
+            exact_template_matches
+            and not _needs_public_fallback(exact_template_matches, search_query)
+        )
+        search_records = [] if template_source_complete else _search_repository_records(pipeline, warnings, search_query)
+        pre_archive_records = _dedupe_records(search_records + normative_matches + practice_research_matches + guida_pratica_matches + template_matches + source_delivery_matches + local_matches)
+        if (
+            _looks_like_exact_legal_reference(search_query)
+            and pre_archive_records
+            and not _needs_public_fallback(pre_archive_records, search_query)
+        ):
+            official_archive_records = []
+        else:
+            official_archive_records = _official_archive_records(warnings, search_query)
+        combined_search = _dedupe_records(search_records + normative_matches + practice_research_matches + guida_pratica_matches + template_matches + source_delivery_matches + official_archive_records + local_matches)
         combined_search = _filter_records_for_exact_reference(combined_search, search_query)
         combined_search = _sort_records_for_query(combined_search, search_query)
         if _needs_public_fallback(combined_search, search_query):
@@ -1993,7 +3423,21 @@ def build_react_legal_intelligence_payload(
             )
             combined_search = _filter_records_for_exact_reference(combined_search, search_query)
             combined_search = _sort_records_for_query(combined_search, search_query)
-        records = combined_search if search_query else _dedupe_records(news_records + mediazione_official_records + mediazione_records)
+        records = (
+            combined_search
+            if search_query
+            else _dedupe_records(
+                normative_db_records
+                + practice_research_records
+                + practice_nominal_reference_records
+                + source_delivery_records
+                + template_source_records
+                + guida_pratica_source_records
+                + news_records
+                + mediazione_official_records
+                + mediazione_records
+            )
+        )
         if search_query and not records:
             warnings.append(
                 _warning(
@@ -2017,6 +3461,27 @@ def build_react_legal_intelligence_payload(
             _item("query", "Termini cercati", search_query or "nessun termine", "Archivio e fonti collegate", "primary" if search_query else "neutral"),
             _item("risultati", "Risultati", len(records), "Schede disponibili", "success" if records else "neutral"),
             _item("archivio", "Archivio studio", len(search_records), "Aggiornamenti giuridici indicizzati", "info" if search_records else "neutral"),
+            _item(
+                "centro_fonti",
+                "Centro Fonti",
+                len([record for record in records if _text(record.get("registryKind")) == "centro_fonti_ufficiali_lex"]),
+                "Fonti configurate, operative o da completare con riferimento nominale",
+                "info" if any(_text(record.get("registryKind")) == "centro_fonti_ufficiali_lex" for record in records) else "neutral",
+            ),
+            _item(
+                "matrice_pratiche",
+                "Matrice pratiche",
+                len([record for record in records if _text(record.get("registryKind")) in {"matrice_pratiche_legali", "riferimenti_nominali_pratiche"}]),
+                "Materie e riferimenti nominali ufficiali cercabili",
+                "success" if any(_text(record.get("registryKind")) in {"matrice_pratiche_legali", "riferimenti_nominali_pratiche"} for record in records) else "neutral",
+            ),
+            _item(
+                "db_normativa",
+                "DB normativa",
+                len([record for record in records if _text(record.get("registryKind")) == "db_normativa"]),
+                "Tabelle, riferimenti e parametri operativi dello studio",
+                "success" if any(_text(record.get("registryKind")) == "db_normativa" for record in records) else "neutral",
+            ),
             _item("normattiva", "Normattiva", len([record for record in official_archive_records if record.get("sourceLabel") == "Normattiva"]), "Estratti dall'archivio locale ufficiale", "success" if official_archive_records else "neutral"),
             _item("fonti_ufficiali", "Fonti ufficiali", len([record for record in records if "ufficiale" in _text(record.get("sourceKind")).lower()]), "Con estratto o riferimento consultabile", "success"),
         ],
@@ -2025,6 +3490,7 @@ def build_react_legal_intelligence_payload(
     lex_presidio_section = build_lex_operational_section(config=config, focus_agent_ids=LEGAL_AGENT_FOCUS)
     advanced_ai_section = build_advanced_ai_section()
     lex_agent_metric = build_lex_agent_metric(config=config, focus_agent_ids=LEGAL_AGENT_FOCUS)
+    source_lawyer_readiness = _dict(autofetch_monitor.get("lawyer_readiness"))
 
     return {
         "source": "repository_reali",
@@ -2041,6 +3507,69 @@ def build_react_legal_intelligence_payload(
         "metrics": [
             _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Archivio e monitor governato", "primary"),
             _metric(
+                "fonti_modelli",
+                "Fonti modelli",
+                int(template_source_registry.get("total_sources") or len(template_source_records)),
+                "Fonti ufficiali, secondarie, tecniche e deontologiche collegate ai Template Atti",
+                "success" if template_source_records else "warning",
+            ),
+            _metric(
+                "fonti_guida_pratica",
+                "Fonti Guida/RAG",
+                len(guida_pratica_source_records),
+                "Norme, decreti, autorità, udienze e giurisprudenza esposte in Ricerca Legale",
+                "success" if guida_pratica_source_records else "warning",
+            ),
+            _metric(
+                "centro_fonti_ufficiali",
+                "Centro Fonti",
+                int(_dict(source_delivery_audit.get("summary")).get("total_sources") or len(source_delivery_records)),
+                "Fonti attraversate da configurazione, motore aggiornamenti, RAG, DB normativa, Guida e modelli",
+                "success" if source_delivery_records else "warning",
+            ),
+            _metric(
+                "matrice_pratiche_legali",
+                "Matrice pratiche",
+                len(practice_research_records),
+                "Schede per materia con norme, decreti, udienze, sentenze, atti, scadenze e domande Lex",
+                "success" if practice_research_records else "warning",
+            ),
+            _metric(
+                "riferimenti_nominali_pratiche",
+                "Riferimenti nominali",
+                len(practice_nominal_reference_records),
+                "Leggi, decreti, articoli, portali ufficiali, registri, udienze, sentenze e provvedimenti nominati",
+                "success" if practice_nominal_reference_records else "warning",
+            ),
+            _metric(
+                "fonti_da_attivare",
+                "Acquisizioni sistema",
+                int(_dict(source_delivery_audit.get("summary")).get("activation_pending_sources") or 0),
+                "Fonti ufficiali in acquisizione governata dal motore",
+                "warning" if int(_dict(source_delivery_audit.get("summary")).get("activation_pending_sources") or 0) else "success",
+            ),
+            _metric(
+                "fonti_ufficiali_da_completare",
+                "Fonti da completare",
+                int(_dict(source_delivery_audit.get("summary")).get("official_gaps") or 0),
+                "Fonti ufficiali con catena non ancora completa",
+                "danger" if int(_dict(source_delivery_audit.get("summary")).get("official_gaps") or 0) else "success",
+            ),
+            _metric(
+                "db_normativa",
+                "DB normativa",
+                int(_dict(snapshot.get("normative_tables")).get("totali") or len([record for record in normative_db_records if _text(record.get("id")).startswith("normative-table:")])),
+                "Tabelle operative per strategia, calcoli, costi, soglie, scadenze e modelli",
+                "success" if normative_db_records else "warning",
+            ),
+            _metric(
+                "riferimenti_db_normativa",
+                "Riferimenti normativa",
+                int(_dict(snapshot.get("normative_tables")).get("riferimenti_normativi_totali") or len([record for record in normative_db_records if _text(record.get("id")).startswith("normative-reference:")])),
+                "Norme collegate a motori, redattori, modelli e controlli Lex",
+                "success" if normative_db_records else "warning",
+            ),
+            _metric(
                 "fonti_pronte",
                 "Fonti pronte",
                 int(autofetch_monitor.get("sources_ready") or 0),
@@ -2049,17 +3578,24 @@ def build_react_legal_intelligence_payload(
             ),
             _metric(
                 "fonti_non_pronte",
-                "Fonti da verificare",
+                "Fonti da completare",
                 int(autofetch_monitor.get("sources_not_ready") or 0),
-                "Motivo visibile nel monitor fonti",
+                "Motivo tecnico visibile nel monitor fonti",
                 "warning" if int(autofetch_monitor.get("sources_not_ready") or 0) else "success",
+            ),
+            _metric(
+                "fonti_con_domanda_lex",
+                "Domande Lex fonte",
+                int(source_lawyer_readiness.get("lex_testable_sources") or 0),
+                "Fonti con domanda di prova per verificare che Lex sappia usarle nella pratica",
+                "success" if int(source_lawyer_readiness.get("lex_testable_sources") or 0) else "warning",
             ),
             _metric(
                 "coda_fonti",
                 "Coda fonti",
                 int(_dict(autofetch_monitor.get("queue")).get("queued") or 0)
                 + int(_dict(autofetch_monitor.get("queue")).get("running") or 0),
-                "Job in attesa o in esecuzione",
+                "Controlli in attesa o in corso",
                 "info",
             ),
             _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Disponibili nello studio", "info"),
@@ -2091,6 +3627,41 @@ def build_react_legal_intelligence_payload(
                 _official_archive_items(normattiva_counts, gazzetta_counts),
                 "Archivi ufficiali non disponibili.",
             ),
+            _section(
+                "centro_fonti_ufficiali_lex",
+                "Centro Fonti Ufficiali Lex",
+                "fonti",
+                _source_delivery_items(source_delivery_audit),
+                "Audit Centro Fonti non disponibile.",
+            ),
+            _section(
+                "db_normativa",
+                "DB normativa operativo",
+                "fonti",
+                _normative_db_items(normative_db_records, snapshot),
+                "DB normativa non disponibile.",
+            ),
+            _section(
+                "matrice_pratiche_legali",
+                "Matrice pratiche e riferimenti nominali",
+                "fonti",
+                _practice_research_items(practice_research_records),
+                "Matrice pratiche non disponibile.",
+            ),
+            _section(
+                "ricerche_web_modelli",
+                "Ricerche web e fonti modello",
+                "fonti",
+                _template_atti_source_items(template_source_records),
+                "Fonti modello non disponibili.",
+            ),
+            _section(
+                "ricerche_web_guida_pratica",
+                "Ricerche web Guida Pratica e RAG",
+                "fonti",
+                _guida_pratica_source_items(guida_pratica_source_records),
+                "Fonti Guida Pratica non disponibili.",
+            ),
             lex_presidio_section,
             advanced_ai_section,
             _section(
@@ -2107,23 +3678,23 @@ def build_react_legal_intelligence_payload(
                     ),
                     _item(
                         "da_verificare",
-                        "Fonti da verificare",
+                        "Fonti da completare",
                         int(autofetch_monitor.get("sources_not_ready") or 0),
-                        "Fonti censite ma senza documenti, con OCR/testo mancante o ultimo controllo non riuscito.",
+                        "Fonti censite ma senza documenti, con OCR/testo mancante o controllo automatico non completato.",
                         "warning" if int(autofetch_monitor.get("sources_not_ready") or 0) else "success",
                     ),
                     _item(
                         "coda",
-                        "Coda job",
+                        "Controlli in coda",
                         int(_dict(autofetch_monitor.get("queue")).get("total") or 0),
-                        "Job governati con deduplica, retry, timeout e ripresa.",
+                        "Acquisizioni governate con deduplica, ripresa e limite di tempo.",
                         "info",
                     ),
                     _item(
                         "stato",
                         "Stato complessivo",
-                        _dict(autofetch_monitor.get("readiness")).get("status") or "da verificare",
-                        "Pronto solo quando non ci sono fonti bloccate o job falliti.",
+                        _dict(autofetch_monitor.get("readiness")).get("status") or "controllo sistema",
+                        "Pronto solo quando non ci sono fonti bloccate o controlli falliti.",
                         _autofetch_tone(_dict(autofetch_monitor.get("readiness")).get("status")),
                     ),
                 ],

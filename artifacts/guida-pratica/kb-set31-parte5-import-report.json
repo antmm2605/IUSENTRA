@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (20).zip::kb_set31_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set31_p5.json",
+  "sha256": "E8DBF51934E69733DD23920A68B7BB0B007C0AC311C252D8770365F647AE434C",
+  "changed": false,
+  "macro_area_id": "SET31_PARTE5",
+  "denominazione": "Trentunesimo set - PARTE 5 di 6",
+  "codici_materia_originali": [
+    "220245",
+    "240050",
+    "240055",
+    "413120",
+    "413125"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CAMBIO_APPALTO_E_TRASFERIMENTO_DEI_LAVORATORI_TUTELE_E_CLAUSOLE_SOCIALI__220245",
+    "GUIDA_AUTOTUTELA_AMMINISTRATIVA_REVOCA_E_ANNULLAMENTO_D_UFFICIO_DI_PROVVEDIMEN_240050",
+    "GUIDA_RISARCIMENTO_DEL_DANNO_DA_PROVVEDIMENTO_AMMINISTRATIVO_ILLEGITTIMO_ART_3_240055",
+    "GUIDA_RICONOSCIMENTO_IN_ITALIA_DI_SENTENZA_STRANIERA_DI_DIVORZIO_SEPARAZIONE_O_413120",
+    "GUIDA_AUTORIZZAZIONE_GIUDIZIALE_PER_ATTI_DI_STRAORDINARIA_AMMINISTRAZIONE_DEL__413125"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220245",
+      "codice_integrato": "GUIDA_CAMBIO_APPALTO_E_TRASFERIMENTO_DEI_LAVORATORI_TUTELE_E_CLAUSOLE_SOCIALI__220245",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240050",
+      "codice_integrato": "GUIDA_AUTOTUTELA_AMMINISTRATIVA_REVOCA_E_ANNULLAMENTO_D_UFFICIO_DI_PROVVEDIMEN_240050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240055",
+      "codice_integrato": "GUIDA_RISARCIMENTO_DEL_DANNO_DA_PROVVEDIMENTO_AMMINISTRATIVO_ILLEGITTIMO_ART_3_240055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413120",
+      "codice_integrato": "GUIDA_RICONOSCIMENTO_IN_ITALIA_DI_SENTENZA_STRANIERA_DI_DIVORZIO_SEPARAZIONE_O_413120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413125",
+      "codice_integrato": "GUIDA_AUTORIZZAZIONE_GIUDIZIALE_PER_ATTI_DI_STRAORDINARIA_AMMINISTRAZIONE_DEL__413125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,1189 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET26_PARTE1",
+  "denominazione": "Ventiseiesimo set - 10 nuovi codici - PARTE 1 di 2",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_ENFITEUSI_AFFRANCAZIONE_CONVERSIONE_E_CONTROVERSIE_ARTT_959_972_C_C_130130",
+      "denominazione": "Enfiteusi: affrancazione, conversione e controversie (artt. 959-972 c.c.)",
+      "categoria": "Diritti reali su cosa altrui – enfiteusi",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "959",
+          "descrizione": "Enfiteusi – diritto di pieno godimento + obbligo di migliorare il fondo + pagamento del canone"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "960",
+          "descrizione": "Canone enfiteutico – obbligazione periodica dell'enfiteuta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "965",
+          "descrizione": "DEVOLUZIONE – il concedente può chiedere la restituzione per mancato pagamento del canone (2 anni) o deterioramento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "966",
+          "descrizione": "AFFRANCAZIONE – l'enfiteuta può acquistare la proprietà del fondo pagando 15 volte il canone annuo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "967",
+          "descrizione": "Conversione – il concedente può chiedere la conversione in rendita fondiaria"
+        },
+        {
+          "fonte": "L. 1138/1970",
+          "descrizione": "Revisione del canone enfiteutico – aggiornamento al valore attuale"
+        },
+        {
+          "fonte": "Cass. SU 14734/2021",
+          "descrizione": "Enfiteusi – natura e affrancazione; calcolo del prezzo"
+        },
+        {
+          "fonte": "Cass. SU 9812/2023",
+          "descrizione": "Devoluzione per non miglioramento – presupposti e prova"
+        }
+      ],
+      "istituto_in_declino_ma_presente": {
+        "prevalenza": "L'enfiteusi è un istituto antico ma ancora presente, soprattutto nelle aree rurali del Sud Italia e in contesti di fondi ecclesiastici",
+        "pratica_attuale": "Molte enfiteusi storiche sono oggetto di affrancazione o devoluzione"
+      },
+      "affrancazione_966": {
+        "diritto": "L'enfiteuta ha il DIRITTO POTESTATIVO di acquistare la piena proprietà del fondo",
+        "prezzo": "15 VOLTE il canone annuo enfiteutico",
+        "aggiornamento_canone_L1138_1970": "Prima dell'affrancazione: il canone va aggiornato ai valori correnti"
+      },
+      "devoluzione_965": {
+        "cause": [
+          "Mancato pagamento del canone per 2 ANNI",
+          "Deterioramento del fondo",
+          "Alienazione senza consenso del concedente (se previsto)"
+        ],
+        "effetto": "Il fondo torna al concedente"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare il titolo dell'enfiteusi (atto costitutivo + trascrizione)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per affrancazione: aggiornare il canone + calcolare 15 volte"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per devoluzione: documentare 2 anni di mancato pagamento o deterioramento"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_enfiteusi_affrancazione_devoluzione",
+        "denominazione": "Atto di citazione per controversia enfiteutica (affrancazione, devoluzione) ex artt. 959-972 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "enfiteuta_per_affrancazione",
+                  "concedente_per_devoluzione",
+                  "concedente_per_canoni_arretrati"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_enfiteutico",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "canone_annuo",
+            "type": "currency"
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "affrancazione_966_acquisto_proprieta",
+              "devoluzione_965_mancato_pagamento",
+              "devoluzione_965_deterioramento",
+              "recupero_canoni_arretrati",
+              "aggiornamento_canone_L1138_1970"
+            ]
+          },
+          {
+            "id": "prezzo_affrancazione_15x_canone",
+            "type": "currency",
+            "required_if": "affrancazione"
+          },
+          {
+            "id": "anni_canone_non_pagato",
+            "type": "integer",
+            "required_if": "devoluzione_mancato_pagamento"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_diritto_affrancazione",
+              "trasferimento_proprieta_previa_pagamento",
+              "devoluzione_fondo_al_concedente",
+              "condanna_canoni_arretrati",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Affrancazione: prezzo = 15 x canone annuo AGGIORNATO (L. 1138/1970)",
+          "Devoluzione per mancato pagamento: richiede 2 ANNI di arretrati",
+          "Mediazione obbligatoria preventiva (diritti reali)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costitutivo_enfiteusi_con_trascrizione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "quietanze_canoni_o_prova_morosita",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Devoluzione per mancato pagamento: 2 anni di arretrati (presupposto)"
+        },
+        {
+          "termine": "Prescrizione canoni",
+          "anni": 5,
+          "norma": "art. 2948 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "130130",
+      "codice_logico": "GUIDA_ENFITEUSI_AFFRANCAZIONE_CONVERSIONE_E_CONTROVERSIE_ARTT_959_972_C_C_130130",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130130"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130130"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130130"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_AMBIENTALE_E_DANNO_ALL_AMBIENTE_D_LGS_152_2006_TUA_L_349_1_160180",
+      "denominazione": "Responsabilità ambientale e danno all'ambiente (D.Lgs. 152/2006 TUA + L. 349/1986)",
+      "categoria": "Responsabilità civile – danno ambientale",
+      "rito": "Rito ordinario; per il danno pubblico all'ambiente: azione dello Stato ex D.Lgs. 152/2006",
+      "competenza": "Tribunale del luogo del danno; per danni diffusi: foro erariale (Corte dei Conti)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 152/2006 (TUA)",
+          "articolo": "300",
+          "descrizione": "DANNO AMBIENTALE – deterioramento significativo di una risorsa naturale (acque, suolo, biodiversità)"
+        },
+        {
+          "fonte": "TUA",
+          "articolo": "311",
+          "descrizione": "Risarcimento del danno ambientale – a favore dello Stato (Ministero Ambiente)"
+        },
+        {
+          "fonte": "TUA",
+          "articolo": "313",
+          "descrizione": "Misure di prevenzione e ripristino – obbligo del danneggiante"
+        },
+        {
+          "fonte": "L. 349/1986",
+          "articolo": "18",
+          "descrizione": "Responsabilità per danni all'ambiente – abrogata parzialmente dal TUA"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana – applicabile ai singoli danneggiati da inquinamento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "844",
+          "descrizione": "Immissioni – per danni a fondi privati da attività inquinanti vicine"
+        },
+        {
+          "fonte": "Direttiva UE 2004/35/CE (ELD)",
+          "descrizione": "Responsabilità ambientale – principio chi inquina paga"
+        },
+        {
+          "fonte": "Cass. SU 21504/2019",
+          "descrizione": "Danno ambientale privato – risarcimento al proprietario del fondo inquinato"
+        },
+        {
+          "fonte": "Cass. SU 9413/2022",
+          "descrizione": "Bonifica e ripristino ambientale – obbligo e responsabilità"
+        }
+      ],
+      "doppio_binario_danno_ambientale": {
+        "danno_pubblico_all_ambiente_311_TUA": {
+          "titolare": "Lo STATO (Ministero dell'Ambiente) – azione per il risarcimento del danno alla risorsa naturale",
+          "misure": "Ripristino ambientale o risarcimento per equivalente",
+          "principio": "Chi inquina paga"
+        },
+        "danno_privato_ai_singoli_2043_cc": {
+          "chi": "Il singolo proprietario o utente che subisce danni patrimoniali o alla salute dall'inquinamento",
+          "rimedi": "Risarcimento del danno + inibitoria dell'attività inquinante",
+          "onere_prova": "Il privato prova danno + nesso causale + responsabilità dell'inquinatore"
+        }
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Perizia tecnica per documentare il tipo e l'entità dell'inquinamento"
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificare il soggetto responsabile dell'inquinamento"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per danno privato: documentare il nesso causale tra l'attività e il danno al fondo/alla salute"
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutare denuncia alle autorità ambientali (ARPA, ISPRA) per rafforzare la prova"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_danno_ambientale_privato_2043_TUA",
+        "denominazione": "Atto di citazione per risarcimento del danno ambientale privato ex art. 2043 c.c. + D.Lgs. 152/2006",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "inquinatore_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_inquinamento",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "inquinamento_suolo",
+              "inquinamento_acque_sotterranee",
+              "inquinamento_atmosferico",
+              "inquinamento_acustico_844",
+              "inquinamento_da_rifiuti"
+            ]
+          },
+          {
+            "id": "danni_subiti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "svalutazione_immobile",
+                "type": "currency"
+              },
+              {
+                "id": "danno_biologico_da_esposizione",
+                "type": "currency"
+              },
+              {
+                "id": "costi_bonifica_fondo",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "perizia_tecnica_inquinamento",
+            "type": "boolean",
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "inibitoria_attivita_inquinante",
+              "condanna_bonifica_e_ripristino",
+              "risarcimento_danno_patrimoniale_svalutazione",
+              "risarcimento_danno_biologico",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Perizia tecnica AMBIENTALE fondamentale: prova del nesso causale",
+          "Segnalazione ad ARPA/autorità ambientali per rafforzare la prova",
+          "Danno pubblico all'ambiente: azione separata dello Stato (Ministero Ambiente)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "perizia_tecnica_ambientale",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_attivita_inquinante",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "relazioni_ARPA_o_autorita_ambientali",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 5,
+          "norma": "art. 2947 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "160180",
+      "codice_logico": "GUIDA_RESPONSABILIT_AMBIENTALE_E_DANNO_ALL_AMBIENTE_D_LGS_152_2006_TUA_L_349_1_160180",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160180"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160180"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160180"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRATTO_DI_AGENZIA_RECESSO_INDENNIT_DI_FINE_RAPPORTO_E_PATTO_DI_NON_CO_141045",
+      "denominazione": "Contratto di agenzia: recesso, indennità di fine rapporto e patto di non concorrenza (artt. 1742-1753 c.c.)",
+      "categoria": "Contratti – agenzia commerciale",
+      "rito": "Rito del lavoro ex art. 409 n. 3 c.p.c. (rapporto parasubordinato) o rito ordinario",
+      "competenza": "Tribunale del lavoro o ordinario – luogo di esecuzione",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1742",
+          "descrizione": "Contratto di agenzia – l'agente promuove affari per conto del preponente in una zona determinata"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1748",
+          "descrizione": "Provvigione dell'agente – diritto alla provvigione sugli affari conclusi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1750",
+          "descrizione": "RECESSO – preavviso obbligatorio in proporzione alla durata del contratto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1751",
+          "descrizione": "INDENNITÀ DI FINE RAPPORTO – all'agente al termine del contratto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1751-bis",
+          "descrizione": "PATTO DI NON CONCORRENZA post-contrattuale – durata max 2 anni"
+        },
+        {
+          "fonte": "D.Lgs. 65/1999 (attuazione Dir. 86/653/CEE)",
+          "descrizione": "Agenzia commerciale – disciplina aggiornata"
+        },
+        {
+          "fonte": "AEC (Accordi Economici Collettivi)",
+          "descrizione": "Integrano la disciplina civilistica dell'agenzia"
+        },
+        {
+          "fonte": "Cass. SU 12945/2021",
+          "descrizione": "Indennità fine rapporto agente – calcolo e presupposti"
+        },
+        {
+          "fonte": "Cass. SU 8234/2023",
+          "descrizione": "Patto non concorrenza agente – durata e validità"
+        }
+      ],
+      "diritto_alla_provvigione_1748": {
+        "quando_matura": "Quando l'affare è stato concluso grazie all'attività dell'agente",
+        "provvigione_sugli_affari_in_corso": "L'agente ha diritto alla provvigione anche sugli affari conclusi dopo la cessazione se promossi durante il contratto"
+      },
+      "indennita_fine_rapporto_1751_Cass_SU_12945_2021": {
+        "quando_spetta": "Al termine del contratto (salvo recesso per giusta causa dell'agente o inadempimento dell'agente)",
+        "calcolo": "In base alle provvigioni degli ultimi 5 anni e all'apporto dell'agente nella clientela",
+        "massimale": "Non può superare 1 anno di provvigioni calcolate sulla media degli ultimi 5 anni"
+      },
+      "patto_non_concorrenza_1751bis_Cass_SU_8234_2023": {
+        "durata_massima": "2 anni post cessazione",
+        "forma": "Scritta – pena nullità",
+        "corrispettivo": "Deve essere previsto un corrispettivo adeguato"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisire il contratto di agenzia + AEC applicabile"
+        },
+        {
+          "step": 2,
+          "descrizione": "Calcolare le provvigioni maturate e non pagate"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare l'indennità di fine rapporto (media ultimi 5 anni)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Verificare il patto di non concorrenza (forma scritta + durata max 2 anni)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_agenzia_commerciale_indennita_provvigioni",
+        "denominazione": "Ricorso per provvigioni, indennità di fine rapporto e recesso nel contratto di agenzia ex artt. 1742-1753 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "agente_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "preponente_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "durata_contratto",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date"
+              },
+              {
+                "id": "data_fine",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "provvigioni_non_pagate_1748",
+              "mancato_preavviso_1750",
+              "indennita_fine_rapporto_1751",
+              "violazione_patto_non_concorrenza_1751bis",
+              "recesso_per_giusta_causa"
+            ]
+          },
+          {
+            "id": "media_provvigioni_ultimi_5_anni",
+            "type": "currency"
+          },
+          {
+            "id": "indennita_fine_rapporto_calcolata",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_provvigioni_insolute",
+              "condanna_indennita_fine_rapporto_1751",
+              "indennita_sostitutiva_preavviso",
+              "corrispettivo_patto_non_concorrenza",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Rito del lavoro ex art. 409 n. 3 c.p.c. (rapporto parasubordinato)",
+          "Indennità fine rapporto: massimale 1 anno di provvigioni (media 5 anni)",
+          "Patto non concorrenza: forma scritta + durata max 2 anni + corrispettivo adeguato"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_agenzia_e_AEC_applicabile",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "rendiconto_provvigioni_e_affari",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "calcolo_indennita_fine_rapporto",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia o in base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione provvigioni",
+          "anni": 5,
+          "norma": "art. 2948 n. 4 c.c."
+        },
+        {
+          "termine": "Prescrizione indennità fine rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "141045",
+      "codice_logico": "GUIDA_CONTRATTO_DI_AGENZIA_RECESSO_INDENNIT_DI_FINE_RAPPORTO_E_PATTO_DI_NON_CO_141045",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141045"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141045"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "141045"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RECESSO_DEL_SOCIO_DALLA_S_P_A_E_LIQUIDAZIONE_DELL_AZIONE_ARTT_2437_2437__150080",
+      "denominazione": "Recesso del socio dalla S.p.A. e liquidazione dell'azione (artt. 2437-2437-sexies c.c.)",
+      "categoria": "Diritto societario – S.p.A. – recesso del socio",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2437",
+          "descrizione": "RECESSO – cause legali inderogabili: cambiamento oggetto, trasformazione, trasferimento sede estero, revoca quotazione, prolungamento termine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2437-bis",
+          "descrizione": "Recesso – comunicazione entro 15 giorni dalla delibera; con azioni vincolate: entro 1 anno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2437-ter",
+          "descrizione": "LIQUIDAZIONE dell'azione – valore patrimoniale + avviamento; perizia dei sindaci"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2437-quater",
+          "descrizione": "Acquisto delle azioni dal recesso – offerta ai soci, acquisto dalla società, annullamento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2437-quinquies",
+          "descrizione": "Recesso nelle società quotate"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2437-sexies",
+          "descrizione": "Azioni riscattabili"
+        },
+        {
+          "fonte": "Cass. SU 7614/2021",
+          "descrizione": "Recesso S.p.A. – cause statutarie aggiuntive e loro validità"
+        },
+        {
+          "fonte": "Cass. SU 11673/2024",
+          "descrizione": "Valore di liquidazione dell'azione – criteri aggiornati"
+        }
+      ],
+      "differenza_da_recesso_SRL_2473": {
+        "SPA_2437": "Disciplina più rigida; liquidazione determinata da perizia dei sindaci",
+        "SRL_2473": "Più flessibile; valore di mercato determinato dal giudice se non c'è accordo"
+      },
+      "cause_legali_inderogabili_2437": [
+        "Cambiamento significativo dell'oggetto sociale",
+        "Trasformazione della società",
+        "Trasferimento della sede all'estero",
+        "Revoca dello stato di quotazione",
+        "Proroga della durata",
+        "Introduzione/soppressione di clausole compromissorie"
+      ],
+      "liquidazione_2437ter_Cass_SU_11673_2024": {
+        "valore": "In base al PATRIMONIO NETTO rettificato per riflettere il valore corrente degli asset + avviamento",
+        "perizia_sindaci": "Determinata dai sindaci entro 30 giorni dalla comunicazione del recesso",
+        "contestazione": "Il socio recedente può contestare la perizia entro 30 giorni – il Tribunale nomina un esperto"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Comunicare il recesso entro 15 gg dalla delibera che lo legittima"
+        },
+        {
+          "step": 2,
+          "descrizione": "Attendere la perizia dei sindaci (30 gg dalla comunicazione)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Se il valore non è congruo: contestare la perizia entro 30 gg"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_liquidazione_azione_socio_recedente_2437ter",
+        "denominazione": "Azione per liquidazione dell'azione del socio recedente ex art. 2437-ter c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "socio_recedente_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "spa_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "causa_recesso",
+            "type": "select",
+            "required": true,
+            "options": [
+              "cambiamento_oggetto_2437n1",
+              "trasformazione_2437n2",
+              "sede_estero",
+              "revoca_quotazione",
+              "prolungamento_termine",
+              "causa_statutaria"
+            ]
+          },
+          {
+            "id": "comunicazione_recesso",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_comunicazione",
+                "type": "date"
+              },
+              {
+                "id": "rispetto_15_gg",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "perizia_sindaci",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "valore_determinato_dai_sindaci",
+                "type": "currency"
+              },
+              {
+                "id": "contestazione_entro_30_gg",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "valore_richiesto_dal_socio",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_diritto_al_recesso",
+              "nomina_esperto_per_contestazione_perizia",
+              "condanna_liquidazione_a_valore_equo",
+              "interessi_dal_recesso",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Comunicazione recesso: entro 15 GG dalla delibera – DECADENZIALE",
+          "Contestazione perizia sindaci: entro 30 GG – DECADENZIALE",
+          "Competenza TRIBUNALE DELLE IMPRESE",
+          "Valore: patrimonio netto rettificato + avviamento (Cass. SU 11673/2024)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "delibera_che_legittima_il_recesso",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "comunicazione_recesso_con_prova_data",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_sindaci",
+          "required": false,
+          "critico_se_disponibile": true
+        },
+        {
+          "id": "bilanci_societari",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore delle azioni",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Comunicazione recesso",
+          "giorni": 15,
+          "decorrenza": "delibera",
+          "natura": "DECADENZIALE"
+        },
+        {
+          "termine": "Contestazione perizia sindaci",
+          "giorni": 30,
+          "natura": "DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "150080",
+      "codice_logico": "GUIDA_RECESSO_DEL_SOCIO_DALLA_S_P_A_E_LIQUIDAZIONE_DELL_AZIONE_ARTT_2437_2437__150080",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150080"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ADOZIONE_DEL_MAGGIORENNE_ARTT_291_314_C_C_PROCEDIMENTO_E_REVOCA_120065",
+      "denominazione": "Adozione del maggiorenne (artt. 291-314 c.c.) – procedimento e revoca",
+      "categoria": "Persone e famiglia – adozione del maggiorenne",
+      "rito": "Procedimento in camera di consiglio davanti al Tribunale Ordinario",
+      "competenza": "Tribunale del luogo di residenza dell'adottante",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "291",
+          "descrizione": "Adozione del maggiorenne – l'adottante deve avere almeno 18 anni più dell'adottato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "293",
+          "descrizione": "Consenso dell'adottato e dei suoi genitori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "294",
+          "descrizione": "Opposizione del pubblico ministero"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "297",
+          "descrizione": "EFFETTI – l'adottato acquista il cognome dell'adottante; rapporto civile con la famiglia adottiva"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "299",
+          "descrizione": "Aggiunta del cognome dell'adottante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "300",
+          "descrizione": "Adozione del figlio del coniuge – effetti speciali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "305-306",
+          "descrizione": "REVOCA dell'adozione – per indegnità sopravvenuta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "313",
+          "descrizione": "Effetti dell'adozione sulla successione"
+        },
+        {
+          "fonte": "Cass. SU 18783/2020",
+          "descrizione": "Adozione del maggiorenne – interesse serio e legittimo"
+        },
+        {
+          "fonte": "Cass. SU 14197/2023",
+          "descrizione": "Revoca per indegnità – presupposti"
+        }
+      ],
+      "differenza_da_adozione_minore": {
+        "adozione_minore": "Legame genitoriale pieno con interruzione con la famiglia biologica",
+        "adozione_maggiorenne": "Rapporto di adozione CIVILE – non interrompe i legami con la famiglia biologica + aggiunge il cognome"
+      },
+      "presupposti_291_Cass_SU_18783_2020": {
+        "differenza_eta": "Adottante almeno 18 anni più anziano dell'adottato",
+        "assenza_discendenti_legittimi": "L'adottante non deve avere discendenti legittimi (salvo che adottino il figlio del coniuge)",
+        "interesse_serio_e_legittimo": "L'adozione deve rispondere a un interesse meritevole di tutela"
+      },
+      "revoca_305_306_Cass_SU_14197_2023": {
+        "motivi": "Indegnità sopravvenuta dell'adottato verso l'adottante",
+        "effetti": "Cessazione di tutti gli effetti dell'adozione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la differenza d'età (18 anni) e l'assenza di discendenti legittimi"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere il consenso dell'adottato e dei suoi genitori"
+        },
+        {
+          "step": 3,
+          "descrizione": "Redigere atto notarile + ricorso al Tribunale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_adozione_maggiorenne_291_cc",
+        "denominazione": "Ricorso al Tribunale per adozione del maggiorenne ex art. 291 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "adottante_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "adottato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "verifica_requisiti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "eta_adottante",
+                "type": "integer"
+              },
+              {
+                "id": "eta_adottato",
+                "type": "integer"
+              },
+              {
+                "id": "differenza_18_anni",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "assenza_discendenti_legittimi_adottante",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "options": [
+              "adozione_ordinaria_291",
+              "adozione_figlio_del_coniuge_300",
+              "revoca_per_indegnita_305"
+            ]
+          },
+          {
+            "id": "interesse_serio_e_legittimo",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "pronuncia_adozione_maggiorenne",
+              "aggiunta_cognome_adottante_299",
+              "revoca_adozione_305"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Differenza d'età: ALMENO 18 anni – CRITICO",
+          "Discendenti legittimi dell'adottante: impediscono l'adozione (salvo figlio del coniuge)",
+          "PM deve essere sentito – può opporsi",
+          "L'adozione del maggiorenne NON interrompe i legami con la famiglia biologica"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_nascita_adottante_e_adottato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "consenso_scritto_adottato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stati_di_famiglia",
+          "required": true
+        },
+        {
+          "id": "atto_notarile_volonta_adottante",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine – proponibile in qualunque momento"
+        }
+      ],
+      "codice_originale_ricevuto": "120065",
+      "codice_logico": "GUIDA_ADOZIONE_DEL_MAGGIORENNE_ARTT_291_314_C_C_PROCEDIMENTO_E_REVOCA_120065",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120065"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120065"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "120065"
+        }
+      ]
+    }
+  ]
+}

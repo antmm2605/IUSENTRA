@@ -1,0 +1,1192 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET29_5CODICI",
+  "denominazione": "Ventinovesimo set - 5 nuovi codici",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RESPONSABILIT_DEL_PROFESSIONISTA_PER_ERRORE_PROFESSIONALE_AVVOCATO_COMME_160205",
+      "denominazione": "Responsabilità del professionista per errore professionale: avvocato, commercialista, notaio (artt. 1218-2043 c.c.)",
+      "categoria": "Responsabilità civile – responsabilità professionale",
+      "rito": "Rito ordinario di cognizione; rito del lavoro se rapporto parasubordinato",
+      "competenza": "Tribunale del foro del professionista o residenza del cliente",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1176 c. 2",
+          "descrizione": "Diligenza professionale qualificata – il professionista risponde con la diligenza del perito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale – il professionista risponde per inadempimento delle obbligazioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità aquiliana – in subordine per il danno ingiusto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2229-2238",
+          "descrizione": "Professioni intellettuali – disciplina generale"
+        },
+        {
+          "fonte": "L. 247/2012 (Ord. Forense)",
+          "articolo": "9-12",
+          "descrizione": "Responsabilità disciplinare e civile dell'avvocato"
+        },
+        {
+          "fonte": "D.Lgs. 139/2005 (Ord. Commercialisti)",
+          "descrizione": "Responsabilità del dottore commercialista"
+        },
+        {
+          "fonte": "L. 89/1913 (Notariato)",
+          "articolo": "28",
+          "descrizione": "Responsabilità del notaio per atti nulli o annullabili"
+        },
+        {
+          "fonte": "Cass. SU 15781/2005",
+          "descrizione": "Avvocato – responsabilità per perdita di chance processuale"
+        },
+        {
+          "fonte": "Cass. SU 8935/2022",
+          "descrizione": "Notaio – responsabilità per atti affetti da vizi non rilevati"
+        },
+        {
+          "fonte": "Cass. SU 14587/2023",
+          "descrizione": "Commercialista – responsabilità per omessa dichiarazione fiscale"
+        }
+      ],
+      "obbligazione_di_mezzi_vs_risultato": {
+        "regola_generale": "Il professionista ha un'OBBLIGAZIONE DI MEZZI – non garantisce il risultato ma la diligenza qualificata",
+        "eccezione_obbligazione_risultato": "In certi casi il professionista garantisce il risultato (es. il notaio garantisce la validità formale dell'atto)"
+      },
+      "errori_tipici_per_categoria": {
+        "avvocato": [
+          "Omessa impugnazione nei termini (prescrizione o decadenza del cliente per colpa dell'avvocato)",
+          "Mancata notifica dell'atto introduttivo",
+          "Errata qualificazione giuridica della domanda",
+          "Omessa segnalazione di termini decadenziali al cliente"
+        ],
+        "commercialista": [
+          "Omessa presentazione della dichiarazione fiscale",
+          "Errori nel calcolo delle imposte con sanzioni al cliente",
+          "Omessa segnalazione di adempimenti obbligatori"
+        ],
+        "notaio": [
+          "Mancata verifica delle ipoteche sull'immobile",
+          "Rogito su immobile con vizi che rendono l'atto annullabile",
+          "Mancata identificazione delle parti"
+        ]
+      },
+      "prova_del_nesso_causale_per_chance_15781_2005": {
+        "perdita_di_chance_processuale": "Se l'errore dell'avvocato ha fatto perdere la causa: il cliente non deve provare che avrebbe vinto, ma che aveva una SERIA PROBABILITÀ di vincere",
+        "quantificazione": "Valore della causa × probabilità di successo (calcolo probabilistico)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare l'errore professionale (confronto tra condotta tenuta e condotta dovuta)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Quantificare il danno: perdita di chance, sanzioni subite, danni diretti"
+        },
+        {
+          "step": 3,
+          "descrizione": "Acquisire la polizza assicurativa professionale del professionista (obbligatoria per tutti dal 2013)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_responsabilita_professionale_1218_2043",
+        "denominazione": "Azione di responsabilità professionale contro avvocato, commercialista o notaio ex artt. 1218-1176 c. 2 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "cliente_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "professionista_convenuto",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "categoria",
+                "type": "select",
+                "options": [
+                  "avvocato",
+                  "commercialista_revisore",
+                  "notaio",
+                  "altro_professionista"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "errore_professionale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "omessa_impugnazione_avvocato",
+                  "prescrizione_per_colpa_avvocato",
+                  "omessa_dichiarazione_fiscale",
+                  "errori_calcolo_imposte_commercialista",
+                  "mancata_verifica_ipoteche_notaio",
+                  "rogito_su_bene_con_vizi_notaio",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "violazione_standard_professionale",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "danno",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select_multi",
+                "options": [
+                  "perdita_di_chance_processuale",
+                  "sanzioni_fiscali",
+                  "valore_bene_con_vizi",
+                  "danno_diretto_accertato"
+                ]
+              },
+              {
+                "id": "importo",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "polizza_assicurativa_professionista",
+            "type": "boolean",
+            "consigliato": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risarcimento_danno_da_errore_professionale",
+              "perdita_di_chance_processuale_15781_2005",
+              "rimborso_sanzioni_subite",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Obbligazione di MEZZI: prova la condotta negligente (non che avresti vinto)",
+          "Perdita di chance avvocato: calcolo probabilistico (Cass. SU 15781/2005)",
+          "Polizza professionale obbligatoria: convenire anche la compagnia assicuratrice",
+          "Notaio: responsabilità diretta per vizi non rilevati (Cass. SU 8935/2022)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_incarico_professionale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_errore_professionale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "polizza_assicurativa_se_disponibile",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione contrattuale",
+          "anni": 10
+        },
+        {
+          "termine": "Prescrizione aquiliana (in subordine)",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "160205",
+      "codice_logico": "GUIDA_RESPONSABILIT_DEL_PROFESSIONISTA_PER_ERRORE_PROFESSIONALE_AVVOCATO_COMME_160205",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160205"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160205"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160205"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DIRITTO_DI_USO_E_DIRITTO_DI_ABITAZIONE_CONTESTAZIONI_E_TUTELA_ARTT_1021__130150",
+      "denominazione": "Diritto di uso e diritto di abitazione: contestazioni e tutela (artt. 1021-1026 c.c.)",
+      "categoria": "Diritti reali su cosa altrui – uso e abitazione",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile – foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1021",
+          "descrizione": "DIRITTO D'USO – chi ha questo diritto può usare la cosa e raccogliere i frutti per i bisogni propri e della famiglia"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1022",
+          "descrizione": "DIRITTO DI ABITAZIONE – chi ha questo diritto può abitare la casa limitatamente ai bisogni propri e della famiglia"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1024",
+          "descrizione": "Inalienabilità – i diritti di uso e abitazione non possono essere ceduti o locati"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1025",
+          "descrizione": "Obblighi – contribuzione proporzionale alle spese"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1026",
+          "descrizione": "Norme applicabili dall'usufrutto per quanto non diversamente disposto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "540",
+          "descrizione": "Diritto di abitazione al coniuge superstite sulla casa familiare"
+        },
+        {
+          "fonte": "Cass. SU 14312/2021",
+          "descrizione": "Diritto di abitazione del coniuge superstite – inalienabilità e tutela"
+        },
+        {
+          "fonte": "Cass. SU 9431/2023",
+          "descrizione": "Conflitto tra diritto di abitazione e diritti degli eredi"
+        }
+      ],
+      "uso_vs_abitazione_vs_usufrutto": {
+        "usufrutto": "Pieno godimento della cosa con raccolta di TUTTI i frutti – cedibile e locabile",
+        "uso_1021": "Godimento limitato ai bisogni propri e della famiglia – INALIENABILE e non locabile",
+        "abitazione_1022": "Solo abitare l'immobile per i bisogni propri e della famiglia – INALIENABILE e non locabile"
+      },
+      "diritto_abitazione_coniuge_superstite_540": {
+        "fonte": "art. 540 c.c. – diritto indisponibile del coniuge superstite",
+        "contenuto": "Il coniuge superstite ha diritto di abitazione sulla casa familiare + diritto d'uso sui mobili",
+        "inalienabile_540": "Il coniuge non può cedere il diritto né il testatore può privarnelo"
+      },
+      "controversie_tipiche": [
+        "Erede che vuole vendere l'immobile gravato da diritto di abitazione del coniuge superstite",
+        "Titolare del diritto che vuole locarlo (non può – art. 1024)",
+        "Contestazione dell'estensione del diritto (cosa rientra nei bisogni della famiglia)",
+        "Molestie al diritto da parte del proprietario nudo"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "DIRITTI REALI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare il titolo del diritto (testamento, successione legale, contratto)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare se il diritto è stato trascritto"
+        },
+        {
+          "step": 3,
+          "descrizione": "Mediazione obbligatoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_tutela_uso_abitazione_1021_1022",
+        "denominazione": "Azione per tutela del diritto di uso o di abitazione ex artt. 1021-1026 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "titolare_diritto_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "proprietario_nudo_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_diritto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "uso_1021",
+              "abitazione_1022",
+              "abitazione_coniuge_superstite_540"
+            ]
+          },
+          {
+            "id": "titolo",
+            "type": "select",
+            "options": [
+              "testamento",
+              "successione_legale_540",
+              "contratto",
+              "usucapione"
+            ]
+          },
+          {
+            "id": "tipo_contestazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "molestie_del_proprietario_nudo",
+              "espropriazione_del_diritto_da_parte_erede",
+              "contestazione_estensione_bisogni_famiglia",
+              "locazione_non_autorizzata_1024"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_diritto_uso_o_abitazione",
+              "cessazione_molestie",
+              "reintegrazione_nel_godimento",
+              "risarcimento_danni",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Uso e abitazione: INALIENABILI e non locabili (art. 1024)",
+          "Diritto abitazione coniuge superstite (540): INDISPONIBILE – nemmeno il testatore può privarnelo",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Conflitto con eredi: il coniuge superstite prevale (Cass. SU 9431/2023)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_del_diritto_testamento_o_atto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "trascrizione_del_diritto_se_disponibile",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Azione di tutela: IMPRESCRITTIBILE finché dura la molestia"
+        }
+      ],
+      "codice_originale_ricevuto": "130150",
+      "codice_logico": "GUIDA_DIRITTO_DI_USO_E_DIRITTO_DI_ABITAZIONE_CONTESTAZIONI_E_TUTELA_ARTT_1021__130150",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130150"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130150"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130150"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CLAUSOLA_COMPROMISSORIA_ARBITRATO_IRRITUALE_E_PATTO_COMPROMISSORIO_ARTT__211005",
+      "denominazione": "Clausola compromissoria, arbitrato irrituale e patto compromissorio (artt. 806-808-ter c.p.c.)",
+      "categoria": "Arbitrato – patto compromissorio e clausola compromissoria",
+      "rito": "Procedimento arbitrale privato; eventuale impugnazione davanti alla Corte d'Appello",
+      "competenza": "Arbitri (sede convenuta); Corte d'Appello per le impugnazioni (art. 828 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "806",
+          "descrizione": "Compromettibilità in arbitri – materie disponibili arbitrabili; materie non arbitrabili"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "807",
+          "descrizione": "Compromesso – accordo dopo la nascita della controversia; forma scritta"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "808",
+          "descrizione": "Clausola compromissoria – accordo preventivo nel contratto principale; forma scritta"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "808-bis",
+          "descrizione": "Clausola compromissoria per controversie extracontrattuali"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "808-ter",
+          "descrizione": "ARBITRATO IRRITUALE – gli arbitri decidono come amichevoli compositori; il lodo ha efficacia contrattuale"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "819-ter",
+          "descrizione": "Rapporti tra arbitri e autorità giudiziaria – eccezione di compromesso"
+        },
+        {
+          "fonte": "Cass. SU 24153/2019",
+          "descrizione": "Clausola compromissoria – interpretazione e ambito"
+        },
+        {
+          "fonte": "Cass. SU 7987/2022",
+          "descrizione": "Arbitrato irrituale vs rituale – distinzione e conseguenze"
+        }
+      ],
+      "arbitrato_rituale_vs_irrituale": {
+        "rituale_806_824bis": "Il lodo ha EFFICACIA DI SENTENZA – impugnabile davanti alla Corte d'Appello per i motivi tassativi dell'art. 829",
+        "irrituale_808ter_Cass_SU_7987_2022": "Il lodo ha EFFICACIA CONTRATTUALE – impugnabile per i vizi del contratto (errore, dolo, violenza)"
+      },
+      "materie_non_arbitrabili_806": [
+        "Diritti indisponibili (stato delle persone, filiazione, matrimonio)",
+        "Controversie di lavoro (salvo arbitrato irrituale previsto da CCNL)",
+        "Materie di giurisdizione esclusiva del G.A.",
+        "Azioni di classe"
+      ],
+      "eccezione_di_compromesso_819ter": {
+        "quando": "Una delle parti è convenuta davanti al giudice ordinario nonostante la clausola compromissoria",
+        "effetto": "Il giudice DECLINA la giurisdizione a favore degli arbitri",
+        "termine": "L'eccezione deve essere sollevata nella prima difesa"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la validità formale della clausola compromissoria (forma scritta)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare la materia è arbitrabile"
+        },
+        {
+          "step": 3,
+          "descrizione": "Se siamo in giudizio ordinario nonostante la clausola: eccepire il compromesso nella prima difesa"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atti_relativi_arbitrato_806_808ter",
+        "denominazione": "Atti relativi all'arbitrato: clausola compromissoria, eccezione di compromesso, impugnazione lodo irrituale",
+        "campi_chiave": [
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "eccezione_compromesso_819ter_in_giudizio_ordinario",
+              "impugnazione_lodo_irrituale_808ter",
+              "accertamento_validita_clausola_compromissoria",
+              "nomina_arbitri_in_difetto_di_accordo"
+            ]
+          },
+          {
+            "id": "parte_attore_o_eccipiente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "parte_convenuta",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_arbitrato",
+            "type": "select",
+            "options": [
+              "rituale_806",
+              "irrituale_808ter"
+            ]
+          },
+          {
+            "id": "clausola_compromissoria",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "forma_scritta",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "materia_controversia",
+                "type": "textarea"
+              },
+              {
+                "id": "materia_arbitrabile",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "declaratoria_competenza_arbitri",
+              "impugnazione_lodo_irrituale_per_vizi_contratto",
+              "nullita_clausola_compromissoria"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Eccezione di compromesso: nella PRIMA DIFESA – altrimenti il giudice trattiene la causa",
+          "Lodo irrituale: impugnazione per vizi del contratto (errore, dolo, violenza) – non motivi dell'art. 829",
+          "Materie non arbitrabili: eccezione rilevabile d'ufficio"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_con_clausola_compromissoria_o_compromesso",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "lodo_se_impugnazione",
+          "required_if": "impugnazione"
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Impugnazione lodo rituale: 90 GG dalla notificazione"
+        },
+        {
+          "termine": "Impugnazione lodo irrituale: 5 anni (prescrizione contrattuale)"
+        }
+      ],
+      "codice_originale_ricevuto": "211005",
+      "codice_logico": "GUIDA_CLAUSOLA_COMPROMISSORIA_ARBITRATO_IRRITUALE_E_PATTO_COMPROMISSORIO_ARTT__211005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "211005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "211005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "211005"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONTRATTO_A_TEMPO_DETERMINATO_CONVERSIONE_PER_VIOLAZIONE_DEI_LIMITI_E_DI_220200",
+      "denominazione": "Contratto a tempo determinato: conversione per violazione dei limiti e diritti del lavoratore (D.Lgs. 81/2015 artt. 19-29)",
+      "categoria": "Lavoro – contratto a tempo determinato",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "19",
+          "descrizione": "Durata massima: 24 mesi complessivi con lo stesso datore (salvo CCNL)"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "21",
+          "descrizione": "Proroghe: max 4; rinnovo dopo pausa (10-20 gg secondo durata)"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "23",
+          "descrizione": "LIMITE QUANTITATIVO: max 20% dell'organico a tempo indeterminato"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "24",
+          "descrizione": "DIRITTO DI PRECEDENZA – il lavoratore a termine ha priorità nelle assunzioni a TI"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "28",
+          "descrizione": "CONVERSIONE – in caso di violazione dei limiti: il contratto si converte a TI"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "29",
+          "descrizione": "INDENNITÀ di importo compreso tra 2,5 e 12 mensilità in alternativa alla conversione"
+        },
+        {
+          "fonte": "Cass. SU 14785/2020",
+          "descrizione": "Contratto a termine – mancanza di causale e conversione"
+        },
+        {
+          "fonte": "Cass. SU 9867/2023",
+          "descrizione": "Indennità risarcitoria ex art. 29 – calcolo e alternativa alla conversione"
+        }
+      ],
+      "violazioni_che_portano_alla_conversione_28": [
+        "Superamento dei 24 mesi complessivi (art. 19)",
+        "Superamento delle 4 proroghe consentite (art. 21)",
+        "Rinnovo senza rispettare la pausa obbligatoria (10 o 20 giorni)",
+        "Causale del rinnovo mancante dopo i primi 12 mesi",
+        "Superamento del limite quantitativo del 20% (art. 23)"
+      ],
+      "conversione_vs_indennita_28_29": {
+        "conversione_28": "Il rapporto si converte a TI dalla data della violazione",
+        "indennita_29": "In alternativa alla conversione: indennità da 2,5 a 12 mensilità – il giudice sceglie",
+        "Cass_SU_9867_2023": "Il giudice può scegliere l'indennità anche senza richiesta esplicita del lavoratore"
+      },
+      "diritto_precedenza_24": {
+        "contenuto": "Il lavoratore che ha avuto contratti a termine per oltre 6 mesi ha PRIORITÀ nelle nuove assunzioni a TI dello stesso datore",
+        "durata": "Il diritto dura 1 anno dalla cessazione del contratto",
+        "esercizio": "Il lavoratore deve manifestare per iscritto la volontà di esercitare il diritto"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Ricostruire tutta la storia dei contratti a termine con lo stesso datore"
+        },
+        {
+          "step": 2,
+          "descrizione": "Calcolare la durata complessiva e il numero di proroghe"
+        },
+        {
+          "step": 3,
+          "descrizione": "Impugnazione stragiudiziale entro 60 GG dalla cessazione – CRITICO"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_contratto_termine_conversione_28_D_Lgs_81",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per conversione contratto a termine ex artt. 28-29 D.Lgs. 81/2015",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "storia_contratti_termine",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date"
+              },
+              {
+                "id": "data_fine",
+                "type": "date"
+              },
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "primo_contratto",
+                  "proroga",
+                  "rinnovo"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "durata_complessiva_mesi",
+            "type": "integer",
+            "note": "Deve superare 24 mesi per la conversione"
+          },
+          {
+            "id": "numero_proroghe",
+            "type": "integer",
+            "note": "Max 4 – oltre = violazione"
+          },
+          {
+            "id": "violazione_contestata",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "superamento_24_mesi_19",
+              "superamento_4_proroghe_21",
+              "rinnovo_senza_pausa_21",
+              "mancanza_causale_rinnovo_dopo_12_mesi",
+              "superamento_limite_20_percento_23"
+            ]
+          },
+          {
+            "id": "impugnazione_stragiudiziale",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_invio",
+                "type": "date"
+              },
+              {
+                "id": "rispetto_60_gg",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "conversione_contratto_a_TI_28",
+              "indennita_2_5_12_mensilita_29",
+              "retribuzioni_dal_giorno_della_conversione",
+              "diritto_precedenza_assunzioni_24",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "IMPUGNAZIONE STRAGIUDIZIALE 60 GG dalla cessazione + RICORSO 180 GG – DECADENZIALI",
+          "24 mesi: soglia cumulativa con qualsiasi tipo di contratto a termine con lo stesso datore",
+          "Indennità 29: alternativa alla conversione – da 2,5 a 12 mensilità"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "tutti_i_contratti_a_termine_con_proroghe",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_periodo",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE STRAGIUDIZIALE",
+          "giorni": 60,
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DEPOSITO RICORSO",
+          "giorni": 180,
+          "decorrenza": "impugnazione",
+          "natura": "DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "220200",
+      "codice_logico": "GUIDA_CONTRATTO_A_TEMPO_DETERMINATO_CONVERSIONE_PER_VIOLAZIONE_DEI_LIMITI_E_DI_220200",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220200"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220200"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220200"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ACCORDO_DI_RISTRUTTURAZIONE_DEI_DEBITI_ARTT_57_64_D_LGS_14_2019_CCII_512075",
+      "denominazione": "Accordo di ristrutturazione dei debiti (artt. 57-64 D.Lgs. 14/2019 CCII)",
+      "categoria": "Procedure concorsuali – accordo di ristrutturazione",
+      "rito": "Procedimento speciale davanti al Tribunale fallimentare",
+      "competenza": "Tribunale – sezione fallimentare – sede dell'impresa",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "57",
+          "descrizione": "Accordo di ristrutturazione dei debiti – l'imprenditore raggiunge un accordo con creditori che rappresentino almeno il 60% dei crediti"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "58",
+          "descrizione": "Contenuto dell'accordo – può prevedere pagamenti parziali, dilazioni, conversioni"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "59",
+          "descrizione": "ATTESTAZIONE – il professionista certifica la veridicità dei dati e l'attuabilità"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "60",
+          "descrizione": "Protezione – dalla data della pubblicazione: blocco delle azioni esecutive"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "61",
+          "descrizione": "ACCORDO AD EFFICACIA ESTESA – se creditori 75%: vincola anche i dissenzienti della stessa classe"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "63",
+          "descrizione": "OMOLOGAZIONE – il Tribunale omologa se non vi sono opposizioni o queste sono infondate"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "64",
+          "descrizione": "Risoluzione e annullamento – se il debitore non esegue"
+        },
+        {
+          "fonte": "Cass. SU 9476/2023",
+          "descrizione": "Accordo ristrutturazione – efficacia estesa e creditori dissenzienti"
+        },
+        {
+          "fonte": "Cass. SU 14987/2024",
+          "descrizione": "Attestazione – responsabilità del professionista attestatore"
+        }
+      ],
+      "differenza_da_concordato_preventivo": {
+        "accordo_ristrutturazione_57": "NON richiede la delibera dell'assemblea – l'imprenditore tratta direttamente con i creditori; più flessibile",
+        "concordato_preventivo_84": "Richiede il voto della maggioranza dei creditori per classi; piena giurisdizione del Tribunale"
+      },
+      "soglia_creditori_57": {
+        "base": "Almeno il 60% dei crediti deve aderire",
+        "estesa_61": "Con il 75%: l'accordo vincola anche i creditori dissenzienti della stessa categoria (cram-down)"
+      },
+      "protezione_dalle_esecuzioni_60": {
+        "quando_scatta": "Dalla data di pubblicazione nel Registro delle Imprese della domanda di omologazione",
+        "durata": "Fino alla omologazione o al rigetto"
+      },
+      "opposizione_dei_creditori_dissenzienti_63": {
+        "motivi": "L'accordo è dannoso per i creditori o non rispetta la par condicio",
+        "termine": "30 giorni dalla pubblicazione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare i creditori e negoziare con quelli che rappresentano almeno il 60%"
+        },
+        {
+          "step": 2,
+          "descrizione": "Nomina del professionista attestatore"
+        },
+        {
+          "step": 3,
+          "descrizione": "Pubblicazione nel RI e domanda di omologazione al Tribunale"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per l'accordo ad efficacia estesa: raggiungere il 75% per vincolare i dissenzienti"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "domanda_omologazione_accordo_ristrutturazione_57_64_CCII",
+        "denominazione": "Domanda di omologazione dell'accordo di ristrutturazione ex artt. 57-63 D.Lgs. 14/2019 CCII",
+        "campi_chiave": [
+          {
+            "id": "tribunale_fallimentare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "imprenditore_ricorrente",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "attestatore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "creditori_aderenti",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "percentuale_crediti_aderenti",
+                "type": "percentage",
+                "note": "Min 60%"
+              },
+              {
+                "id": "accordo_ad_efficacia_estesa_61",
+                "type": "boolean",
+                "note": "Se ≥75%: vincola dissenzienti della stessa categoria"
+              }
+            ]
+          },
+          {
+            "id": "contenuto_accordo",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "omologazione_accordo_ristrutturazione_63",
+              "protezione_dalle_esecuzioni_60",
+              "accordo_efficacia_estesa_61"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "60% crediti: soglia minima per l'accordo base; 75% per efficacia estesa",
+          "Attestatore indipendente OBBLIGATORIO",
+          "Pubblicazione nel RI: attiva la protezione dalle esecuzioni",
+          "Creditori dissenzienti possono opporsi entro 30 GG dalla pubblicazione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "testo_accordo_di_ristrutturazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "relazione_attestatore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_creditori_aderenti_e_dissenzienti",
+          "required": true
+        },
+        {
+          "id": "bilanci_e_documentazione_finanziaria",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Opposizione creditori dissenzienti: 30 GG dalla pubblicazione",
+          "natura": "DECADENZIALE"
+        }
+      ],
+      "codice_originale_ricevuto": "512075",
+      "codice_logico": "GUIDA_ACCORDO_DI_RISTRUTTURAZIONE_DEI_DEBITI_ARTT_57_64_D_LGS_14_2019_CCII_512075",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512075"
+        }
+      ]
+    }
+  ]
+}

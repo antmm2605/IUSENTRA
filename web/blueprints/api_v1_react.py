@@ -1069,7 +1069,14 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
 
 
 def _tenant_runtime_label() -> str:
-    return str(g.get("tenant_slug", "") or g.get("auth_tenant_slug", "") or "default")
+    tenant = g.get("tenant")
+    return str(
+        g.get("tenant_context_slug", "")
+        or g.get("tenant_slug", "")
+        or g.get("auth_tenant_slug", "")
+        or getattr(tenant, "slug", "")
+        or "default"
+    )
 
 
 def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
@@ -6542,12 +6549,63 @@ def _react_template_compliance_payload(
     form_values: dict[str, Any],
     validation_rules: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    model_name = ""
+    model_area = ""
+    try:
+        from pct.compilatore_atti import get_modello
+
+        model = get_modello(model_code)
+        if model:
+            if isinstance(model, dict):
+                model_name = str(model.get("nome") or model.get("titolo") or model.get("name") or "")
+                model_area = str(model.get("categoria") or model.get("area") or model.get("materia") or "")
+            else:
+                model_name = str(getattr(model, "nome", "") or getattr(model, "titolo", "") or "")
+                model_area = str(getattr(model, "categoria", "") or getattr(model, "area", "") or "")
+    except Exception:
+        model_name = ""
+        model_area = ""
+    try:
+        from pct.template_atti_unified_catalog import get_unified_template_item
+
+        catalog_item = get_unified_template_item(model_code) or {}
+        model_name = model_name or str(catalog_item.get("titolo") or catalog_item.get("nome") or "")
+        model_area = " ".join(
+            str(catalog_item.get(key) or "")
+            for key in (
+                "area",
+                "materia",
+                "macro_area",
+                "canale_deposito",
+                "processo_area",
+                "cartabia_profile",
+            )
+        ).strip() or model_area
+    except Exception:
+        pass
+
     try:
         from pct.template_atti_legal_sources import template_atti_sources_for_model
 
-        official_template_sources = template_atti_sources_for_model(model_code=model_code)
+        official_template_sources = template_atti_sources_for_model(
+            model_code=model_code,
+            model_name=model_name,
+            area=model_area,
+        )
     except Exception:
         official_template_sources = []
+
+    def _evidence_count(*groups: Any) -> int:
+        seen: set[str] = set()
+        for group in groups:
+            for item in group or []:
+                if isinstance(item, dict):
+                    key = str(item.get("id") or item.get("source_id") or item.get("title") or "").strip()
+                else:
+                    key = str(getattr(item, "id", "") or getattr(item, "source_id", "") or getattr(item, "title", "") or item or "").strip()
+                if key:
+                    seen.add(key.casefold())
+        return len(seen)
 
     def _with_template_sources(references: Any) -> list[Any]:
         rows = list(references or [])
@@ -6618,7 +6676,10 @@ def _react_template_compliance_payload(
             "profile": f"{compliance.rito} - {compliance.fase}".strip(" -"),
             "rulesetVersion": compliance.ruleset_version,
             "sourceLabel": "Fonti ufficiali applicabili",
-            "evidenceCount": len(compliance.source_pack),
+            "evidenceCount": _evidence_count(
+                [item.to_dict() for item in compliance.source_pack],
+                official_template_sources,
+            ),
             "missingFields": [item.label for item in compliance.missing_fields],
             "missingFieldRows": [item.to_dict() for item in compliance.missing_fields],
             "missingDocuments": [item.to_dict() for item in compliance.missing_documents],
@@ -6626,6 +6687,7 @@ def _react_template_compliance_payload(
             "recommended": [check.message for check in compliance.checks if check.state == "warning"],
             "normativeReferences": _with_template_sources([item.to_dict() for item in compliance.normative_references]),
             "sources": [item.to_dict() for item in compliance.source_pack] + official_template_sources,
+            "officialTemplateSources": official_template_sources,
             "layoutProfile": payload.get("layout_compliance") or {},
             "stampPolicy": payload.get("page_stamp_compliance") or {},
             "reliabilityScore": payload.get("reliability_score") or {},
@@ -6668,7 +6730,10 @@ def _react_template_compliance_payload(
             "profile": str(verification.get("cartabia_profile") or enriched.get("cartabia_profile") or ""),
             "rulesetVersion": str(verification.get("ruleset_version") or enriched.get("versione_regole") or ""),
             "sourceLabel": str(verification.get("fonte_regole") or enriched.get("fonte_regole") or ""),
-            "evidenceCount": len(verification.get("source_evidence_ids") or enriched.get("source_evidence_ids") or []),
+            "evidenceCount": _evidence_count(
+                [{"id": item} for item in (verification.get("source_evidence_ids") or enriched.get("source_evidence_ids") or [])],
+                official_template_sources,
+            ),
             "missingFields": [str(item) for item in (verification.get("missing_fields") or []) if str(item or "").strip()],
             "blocking": [
                 str((item or {}).get("label") or (item or {}).get("codice") or "").strip()
@@ -6681,6 +6746,8 @@ def _react_template_compliance_payload(
                 if isinstance(item, dict)
             ],
             "normativeReferences": _with_template_sources(_rule_list(enriched.get("normativa_riferimento"))),
+            "sources": official_template_sources,
+            "officialTemplateSources": official_template_sources,
             "procedibility": _rule_list(enriched.get("condizioni_procedibilita")),
             "deadlines": _rule_list(enriched.get("termini_processuali_rilevanti")),
             "cartabiaControls": _rule_list(enriched.get("controlli_cartabia"), replace_underscore=True),
@@ -6708,11 +6775,13 @@ def _react_template_compliance_payload(
             "profile": "",
             "rulesetVersion": "",
             "sourceLabel": "Fonte normativa da verificare",
-            "evidenceCount": 0,
+            "evidenceCount": _evidence_count(official_template_sources),
             "missingFields": [],
             "blocking": ["Controlli Cartabia non disponibili per il modello."],
             "recommended": [],
             "normativeReferences": _with_template_sources([]),
+            "sources": official_template_sources,
+            "officialTemplateSources": official_template_sources,
             "procedibility": [],
             "deadlines": [],
             "cartabiaControls": [],
@@ -7329,6 +7398,7 @@ def template_atti_compila_page(model_code: str):
                 "extraFields": extra_fields,
                 "contextFields": context_fields,
                 "templateExamples": _react_template_examples_payload(model_code, model_name),
+                "officialTemplateSources": compliance_payload.get("officialTemplateSources") or compliance_payload.get("sources") or [],
                 "fontRegistry": font_registry,
                 "editorLayout": editor_layout,
                 "editorWorkflow": _react_template_editor_workflow_payload(),

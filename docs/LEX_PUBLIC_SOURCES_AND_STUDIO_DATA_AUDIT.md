@@ -2,6 +2,151 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento Centro Fonti Ufficiali Lex e pacchetto giuridico minimo - 6 giugno 2026
+
+Il Centro Fonti Ufficiali Lex non è più solo un elenco di sorgenti: lo script
+`scripts/audit_legal_source_delivery.py` attraversa configurazione fonti,
+Legal Source Engine, policy ricerca, motore aggiornamenti, registri Template
+Atti, Guida Pratica, DB normativa e sorgenti operative Lex, poi produce audit
+JSON/CSV/Markdown in `artifacts/legal-sources/`.
+
+Aggiornamento operativo dello stesso giorno: il motore aggiornamenti legali
+riusa l'audit Centro Fonti anche nel monitor visibile in Ricerca Legale. Ogni
+fonte monitorata espone ora uso per l'avvocato, fase pratica, output atteso,
+azione richiesta, fonte ufficiale, materiali giuridici, articoli/codici,
+decreti o regole tecniche, sentenze/udienze/provvedimenti e domanda Lex di
+prova. In questo modo il Centro Fonti non resta invisibile: l'avvocato vede cosa
+controllare, quale lacuna chiudere e quale ricerca far eseguire a Lex.
+
+Stato audit del 6 giugno 2026: 402 fonti censite, 357 ufficiali, 343 operative
+e controllabili, 14 controllabili ma da attivare, 45 fonti di contesto non
+ufficiale, 0 buchi reali e 0 buchi su fonti ufficiali. Tutte le 402 righe
+espongono il pacchetto giuridico minimo: materiali giuridici, articoli/codici,
+decreti e regole tecniche, sentenze/udienze/provvedimenti e sequenza di
+ricerca.
+
+Il pacchetto minimo serve a rispondere come un avvocato: quale legge o decreto
+usare, quale D.Lgs. o D.M. controllare, quali articoli di codice civile,
+procedura civile, penale, procedura penale, processo amministrativo, tributario
+o norme speciali collegare, quali prassi dell'autorità competente considerare,
+quali sentenze, ordinanze, decreti, verbali o udienze incidono su strategia,
+prova, termine o rischio.
+
+Ricerca Legale espone queste righe come record `source-delivery:*` con
+`legalMaterials`, `articlesAndCodes`, `decreesAndRules`,
+`caseLawAndHearings` e `researchSteps`. Lex/RAG usa gli stessi campi quando la
+domanda riguarda fonti ufficiali, codici, decreti legislativi, decreti
+ministeriali, sentenze o udienze: la risposta non deve più fermarsi a "fonte
+presente", ma deve indicare cosa controllare e come collegarlo al fascicolo,
+modello, scadenza, prova o strategia.
+
+Verifiche mirate: `tests/test_audit_legal_source_delivery.py`,
+`tests/test_react_legal_intelligence_search.py::test_ricerca_legale_espone_centro_fonti_ufficiali_lex`,
+`tests/test_react_legal_intelligence_search.py::test_ricerca_legale_cerca_centro_fonti_senza_fallback_live`
+e `tests/test_lex_operational_knowledge.py::test_lex_fonti_ufficiali_risponde_con_codici_decreti_sentenz_udienze`.
+
+## Aggiornamento DB normativa, Ricerca Legale e tassi usura - 6 giugno 2026
+
+Il DB normativa non è più trattato come semplice archivio tecnico: Ricerca
+Legale espone le tabelle e i riferimenti strutturati come record
+`normative-table:*` e `normative-reference:*`, mentre Lex/RAG li legge come
+fonti operative per calcoli, soglie, controlli modello, scadenziario e domande
+dell'avvocato. La ricerca su DB normativa non deve bloccare il fallback pubblico
+quando trova solo fonti generiche non pertinenti alla domanda specifica.
+
+La tabella `tasso_usura` è stata riallineata alle fonti ufficiali vigenti alla
+data del 6 giugno 2026. Il Q1 2026 è collegato al D.M. MEF 23 dicembre 2025,
+pubblicato in G.U. n. 302 del 31 dicembre 2025, codice redazionale `25A07045`;
+il Q2 2026 è collegato al D.M. MEF 27 marzo 2026, pubblicato in G.U. n. 75 del
+31 marzo 2026, codice redazionale `26A01653`. Le fonti generali restano Banca
+d'Italia TEGM e MEF anti-usura, ma la citazione operativa deve indicare il
+decreto trimestrale specifico applicabile alla data dell'operazione.
+
+Copertura tabellare attuale: 48 righe, cioè 24 categorie ufficiali Q1 2026 e 24
+categorie ufficiali Q2 2026. Le categorie coperte sono aperture di credito in
+conto corrente fino/oltre EUR 5.000, scoperti senza affidamento fino/oltre EUR
+1.500, anticipi e sconti su crediti per tre fasce, credito personale, credito
+finalizzato, factoring fino/oltre EUR 50.000, leasing immobiliare fisso e
+variabile, leasing aeronavale/autoveicoli fino/oltre EUR 25.000, leasing
+strumentale fino/oltre EUR 25.000, mutui ipotecari fisso e variabile, cessione
+del quinto fino/oltre EUR 15.000, credito revolving, carte di credito e altri
+finanziamenti. Il vecchio codice UI `carte_credito_revolving` viene ricondotto
+alla categoria ufficiale `credito_revolving` senza interrompere pratiche o form
+salvati.
+
+Uso operativo richiesto a Lex: quando l'avvocato chiede se un tasso è usurario,
+Lex deve scegliere il trimestre dalla data dell'operazione, mostrare TEGM,
+soglia, categoria ufficiale, fonte GU specifica, margine rispetto alla soglia e
+limite professionale della verifica. Quando la data non rientra in Q1/Q2 2026,
+il sistema deve usare la riga vigente più vicina solo come fallback prudente e
+deve mantenere l'obbligo di aggiornamento trimestrale.
+
+Verifiche eseguite: `tests/test_normative_tables.py` controlla Q1/Q2, fonte GU
+specifica, selezione per data e alias storico; `tests/test_strumenti_legali.py`
+controlla lo strumento di verifica usura su Q2 2026; i test Ricerca Legale/Lex
+confermano che il DB normativa è ricercabile e non maschera ricerche pubbliche
+quando l'archivio interno non copre davvero la domanda.
+
+## Aggiornamento fonti Template Atti, Ricerca Legale e RAG - 6 giugno 2026
+
+La copertura Template Atti è stata portata su audit severo: 1512/1512 righe
+modello OK tra catalogo unificato e compilatore atti, 0 problemi modello e 0
+problemi fonte nel report
+`artifacts/template-atti/template-atti-official-sources-audit-2026-06-06.md`.
+La fonte `base_comune` non chiude più la copertura: ogni modello deve avere
+almeno una fonte professionale valida e almeno una fonte collegata, tecnica,
+attuativa, deontologica o di autorità competente.
+
+Le ricerche web ufficiali sono versionate in
+`docs/specs/ministero/TEMPLATE_ATTI_FONTI_UFFICIALI_2026-06-06.md` e vengono
+pubblicate anche in Ricerca Legale come record `template-atti-source:*`, con
+URL ufficiale, autorità, data di consultazione, ruolo, ambito, prefissi modello,
+termini di attivazione, limiti e controlli operativi. Lex/RAG può usarle come
+fonti di presidio redazionale, distinguendo norma primaria, fonte secondaria,
+regola telematica, fonte deontologica, autorità competente, fonte transitoria e
+punto da verificare dall'avvocato.
+
+La copertura include fonti primarie e collegate: Normattiva per codici, leggi,
+decreti legislativi e correttivi; D.M. 44/2011, D.M. 217/2023, art.
+196-quater disp. att. c.p.c. e specifiche PST/PCT/PDP; PAT e PTT; D.Lgs.
+216/2024 e D.M. 150/2023 per ADR; Banca d'Italia ABF, Consob ACF, IVASS/AAS,
+AGCOM ConciliaWeb, ANAC, Garante Privacy/EUR-Lex; UIBM/MIMIT, SIAE, Agenzia
+Entrate/RLI Web, Ministero dell'Interno e Commissione nazionale asilo; Codice
+deontologico, ordinamento forense, parametri ed equo compenso.
+
+## Aggiornamento isolamento tenant e sorgenti Lex - 6 giugno 2026
+
+Lex non deve trattare il pannello `Scadenze dai PDF` come unica lettura dello
+studio: quel pannello è solo un importatore mirato che cerca date nei PDF dei
+fascicoli. Il ragionamento operativo deve invece combinare sorgenti interne
+tenant-aware distinte: PEC, PEC Control Tower, fascicoli, documenti fascicolo,
+scadenziario, agenda, notifiche/prove e registri collegati.
+
+Ogni sorgente deve risolversi dal tenant corrente tramite i path applicativi
+dedicati (`EMAIL_CASELLA_DB`, `PEC_CONTROL_TOWER_DB`, `FASCICOLI_DB`,
+`FASCICOLI_DOCS`, `SCADENZIARIO_DB`, `AGENDA_DB`, `NOTIFICATIONS_DB`) e non deve
+leggere archivi globali o di altri studi. Il controllo read-only
+`scripts/audit_lex_tenant_sources.py` conta le sorgenti disponibili per ogni
+tenant e segnala se una Control Tower contiene righe con `tenant_id` non
+collegato allo studio. Il controllo legge `tenant_user_directory.json` e accetta
+solo gli alias registrati dello stesso studio (`tenant_slug`,
+`tenant_storage_key`, `tenant_id`); qualunque identificativo estraneo resta una
+violazione bloccante dell'isolamento dati.
+
+Per le domande PEC operative, Lex deve prima verificare che la PEC Control Tower
+sia alimentata dalla casella PEC reale del tenant corrente. Se una risposta
+risulterebbe vuota, Lex tenta un backfill idempotente dai MIME già salvati in
+`email/casella.json`, senza usare dati di altri studi e senza inventare
+scadenze o prove assenti.
+
+Per le domande sul fascicolo attivo, Lex deve ricevere o ricostruire il contesto
+del fascicolo aperto (`caseId`, `clientId`, `pagePath`) prima del routing. La
+sintesi operativa non deve limitarsi al conteggio dei documenti indicizzati:
+quando la domanda chiede documenti chiave, rischi aperti, cosa manca o prossimi
+passi, la risposta deve includere gli estratti leggibili già presenti nel RAG
+DocumentAI/fascicolo e dichiarare i limiti delle fonti mancanti senza inventare
+contenuti.
+
 ## Aggiornamento PEC Control Tower - 6 giugno 2026
 
 `pec_control_tower` è una sorgente interna dello studio. Non è fonte pubblica e

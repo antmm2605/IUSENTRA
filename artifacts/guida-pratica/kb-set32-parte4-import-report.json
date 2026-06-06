@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p4.json",
+  "sha256": "316A6F52A44CBD75D69DFD8793C6D34A76045A869EAB074AF36D83C0BD373E0C",
+  "changed": true,
+  "macro_area_id": "SET32_PARTE4",
+  "denominazione": "PARTE 4 di 8",
+  "codici_materia_originali": [
+    "145025",
+    "150110",
+    "152025",
+    "154025",
+    "156010"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LOCAZIONE_DI_IMMOBILE_AD_USO_PROFESSIONALE_STUDI_MEDICI_LEGALI_NOTARILI__145025",
+    "GUIDA_S_R_L_CESSIONE_DI_QUOTE_DIRITTI_DI_PRELAZIONE_STATUTARI_E_LIMITAZIONI_AL_150110",
+    "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_ART_56_D_LGS_14_2019_CCII_TUTELE_E_BENEFI_152025",
+    "GUIDA_PATTI_PARASOCIALI_E_SINDACATI_DI_VOTO_NELLE_S_P_A_ARTT_2341_BIS_E_2341_T_154025",
+    "GUIDA_IMPRENDITORE_INDIVIDUALE_RESPONSABILIT_PATRIMONIALE_ILLIMITATA_E_STRUMEN_156010"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "145025",
+      "codice_integrato": "GUIDA_LOCAZIONE_DI_IMMOBILE_AD_USO_PROFESSIONALE_STUDI_MEDICI_LEGALI_NOTARILI__145025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150110",
+      "codice_integrato": "GUIDA_S_R_L_CESSIONE_DI_QUOTE_DIRITTI_DI_PRELAZIONE_STATUTARI_E_LIMITAZIONI_AL_150110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "152025",
+      "codice_integrato": "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_ART_56_D_LGS_14_2019_CCII_TUTELE_E_BENEFI_152025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154025",
+      "codice_integrato": "GUIDA_PATTI_PARASOCIALI_E_SINDACATI_DI_VOTO_NELLE_S_P_A_ARTT_2341_BIS_E_2341_T_154025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156010",
+      "codice_integrato": "GUIDA_IMPRENDITORE_INDIVIDUALE_RESPONSABILIT_PATRIMONIALE_ILLIMITATA_E_STRUMEN_156010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

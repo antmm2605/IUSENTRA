@@ -1,0 +1,1078 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET27_PARTE5",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 5 di 5",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_IMPUGNAZIONE_DEL_SILENZIO_INADEMPIMENTO_DELLA_P_A_ART_31_D_LGS_104_2010__240025",
+      "denominazione": "Impugnazione del silenzio-inadempimento della P.A. (art. 31 D.Lgs. 104/2010 CPA)",
+      "categoria": "Diritto amministrativo – silenzio della P.A.",
+      "rito": "Rito speciale del silenzio ex art. 117 CPA – procedimento camerale accelerato",
+      "competenza": "TAR competente per la P.A. resistente",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 104/2010 (CPA)",
+          "articolo": "31",
+          "descrizione": "Azione avverso il silenzio – il ricorrente può agire se la PA non provvede entro i termini"
+        },
+        {
+          "fonte": "CPA",
+          "articolo": "117",
+          "descrizione": "RITO SPECIALE DEL SILENZIO – procedimento camerale; udienza entro 30 giorni"
+        },
+        {
+          "fonte": "L. 241/1990",
+          "articolo": "2",
+          "descrizione": "Obbligo di provvedere – la PA deve concludere il procedimento entro 30 gg (salvo diverso termine)"
+        },
+        {
+          "fonte": "L. 241/1990",
+          "articolo": "2-bis",
+          "descrizione": "Danno da ritardo – risarcibile"
+        },
+        {
+          "fonte": "L. 241/1990",
+          "articolo": "10-bis",
+          "descrizione": "Preavviso di rigetto – obbligo nei procedimenti a istanza di parte"
+        },
+        {
+          "fonte": "Cass. SU 11677/2021",
+          "descrizione": "Silenzio PA – applicazione dell'art. 31 CPA"
+        },
+        {
+          "fonte": "Cons. Stato Ad. Pl. 9/2023",
+          "descrizione": "Silenzio inadempimento – obbligo di provvedere e rimedi"
+        }
+      ],
+      "tipologie_di_silenzio": {
+        "silenzio_inadempimento": "La PA non provvede sul procedimento avviato dal privato – rimedio: art. 31 CPA",
+        "silenzio_rigetto": "Il silenzio equivale a diniego per legge (es. SCIA) – rimedio: impugnazione del silenzio-diniego",
+        "silenzio_assenso": "Il silenzio equivale ad accoglimento per legge (es. alcune autorizzazioni)"
+      },
+      "termine_obbligo_provvedere_L241_art2": {
+        "termine_generale": "30 GIORNI dalla presentazione dell'istanza",
+        "termini_diversi": "Alcune materie hanno termini diversi (es. 60 gg per autorizzazioni commerciali)",
+        "dopo_la_scadenza": "Il privato può presentare ricorso al TAR ex art. 117 CPA"
+      },
+      "danno_da_ritardo_2bis_L241": {
+        "risarcibile": "Il ritardo della PA nel provvedere è risarcibile",
+        "presupposti": "Danno effettivo + nesso causale + colpa della PA"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare che sia scaduto il termine per provvedere (30 gg o termine speciale)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Inviare diffida formale alla PA a provvedere entro 15 gg (utile per il giudizio)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Depositare ricorso al TAR ex art. 117 CPA"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_silenzio_inadempimento_31_CPA",
+        "denominazione": "Ricorso al TAR per silenzio-inadempimento della PA ex art. 31 CPA + rito speciale art. 117",
+        "campi_chiave": [
+          {
+            "id": "TAR_competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "PA_resistente",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "istanza_presentata",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_presentazione",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "oggetto_istanza",
+                "type": "textarea"
+              },
+              {
+                "id": "termine_scaduto",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "diffida_inviata",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_diffida",
+                "type": "date"
+              },
+              {
+                "id": "risposta_PA",
+                "type": "select",
+                "options": [
+                  "silenzio",
+                  "rigetto_tardivo",
+                  "nessuna_risposta"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "danno_da_ritardo_richiesto",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_silenzio_inadempimento",
+              "condanna_PA_a_provvedere_entro_termine",
+              "nomina_commissario_ad_acta",
+              "risarcimento_danno_da_ritardo_2bis_L241"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Rito speciale 117 CPA: udienza entro 30 GG dal deposito del ricorso",
+          "Inviare diffida scritta prima del ricorso (rafforza la posizione processuale)",
+          "Commissario ad acta: il TAR può nominarlo se la PA non provvede",
+          "Danno da ritardo: risarcibile separatamente (art. 2-bis L. 241/1990)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "istanza_presentata_alla_PA",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "diffida_e_prova_invio",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffe TAR in base al valore",
+        "marca_bollo": "€ 27,00"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Ricorso al TAR: dopo la scadenza del termine per provvedere + 1 anno dalla maturazione del silenzio"
+        }
+      ],
+      "codice_originale_ricevuto": "240025",
+      "codice_logico": "GUIDA_IMPUGNAZIONE_DEL_SILENZIO_INADEMPIMENTO_DELLA_P_A_ART_31_D_LGS_104_2010__240025",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240025"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240025"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ACCESSO_AGLI_ATTI_AMMINISTRATIVI_RICORSO_PER_DINIEGO_ARTT_22_28_L_241_19_240030",
+      "denominazione": "Accesso agli atti amministrativi: ricorso per diniego (artt. 22-28 L. 241/1990 + accesso civico FOIA)",
+      "categoria": "Diritto amministrativo – accesso agli atti",
+      "rito": "Rito speciale ex art. 116 CPA – procedimento camerale accelerato",
+      "competenza": "TAR del luogo in cui ha sede la PA che detiene i documenti",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 241/1990",
+          "articolo": "22",
+          "descrizione": "Accesso documentale – diritto di accedere ai documenti amministrativi (interesse legittimo)"
+        },
+        {
+          "fonte": "L. 241/1990",
+          "articolo": "25",
+          "descrizione": "Procedimento – istanza all'ufficio competente; silenzio-diniego dopo 30 gg"
+        },
+        {
+          "fonte": "D.Lgs. 33/2013 (FOIA)",
+          "articolo": "5",
+          "descrizione": "ACCESSO CIVICO – accesso generalizzato ai dati e documenti detenuti dalla PA (senza interesse specifico)"
+        },
+        {
+          "fonte": "D.Lgs. 33/2013",
+          "articolo": "5-bis",
+          "descrizione": "Eccezioni all'accesso civico – sicurezza, privacy, ecc."
+        },
+        {
+          "fonte": "CPA",
+          "articolo": "116",
+          "descrizione": "Rito speciale sull'accesso – procedimento camerale urgente"
+        },
+        {
+          "fonte": "Cass. SU 14378/2021",
+          "descrizione": "Accesso documentale – interesse differenziato e concreto"
+        },
+        {
+          "fonte": "Cons. Stato Ad. Pl. 10/2020",
+          "descrizione": "FOIA – accesso civico e limiti"
+        }
+      ],
+      "tipologie_di_accesso": {
+        "accesso_documentale_22_L241": {
+          "chi": "Chi ha un interesse DIRETTO, CONCRETO e ATTUALE alla visione del documento",
+          "documenti": "Tutti i documenti amministrativi in possesso della PA"
+        },
+        "accesso_civico_semplice_D_Lgs33": {
+          "chi": "CHIUNQUE – senza necessità di dimostrare un interesse",
+          "documenti": "Solo i documenti che la PA ha OBBLIGO di pubblicare (ma non ha pubblicato)"
+        },
+        "accesso_generalizzato_FOIA": {
+          "chi": "CHIUNQUE",
+          "documenti": "Qualsiasi dato o documento detenuto dalla PA (salvo eccezioni tassative)",
+          "novita_italiana": "Dal 2016 – ispirato al Freedom of Information Act anglosassone"
+        }
+      },
+      "silenzio_diniego_25_L241": {
+        "quando": "Se la PA non risponde entro 30 gg dall'istanza: silenzio-diniego",
+        "rimedio": "Ricorso al TAR ex art. 116 CPA"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Scegliere il tipo di accesso: documentale (interesse specifico) o generalizzato FOIA (chiunque)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Presentare istanza formale alla PA + attesa di 30 gg"
+        },
+        {
+          "step": 3,
+          "descrizione": "In caso di diniego o silenzio: ricorso TAR ex art. 116 CPA"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_accesso_atti_116_CPA",
+        "denominazione": "Ricorso al TAR per accesso agli atti amministrativi ex art. 116 CPA",
+        "campi_chiave": [
+          {
+            "id": "TAR_competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "richiedente_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "PA_resistente",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "tipo_accesso",
+            "type": "select",
+            "required": true,
+            "options": [
+              "documentale_22_L241_interesse_specifico",
+              "generalizzato_FOIA_5_D_Lgs33"
+            ]
+          },
+          {
+            "id": "documenti_richiesti",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "interesse_specifico_se_documentale",
+            "type": "textarea",
+            "required_if": "documentale"
+          },
+          {
+            "id": "tipo_diniego",
+            "type": "select",
+            "options": [
+              "diniego_espresso",
+              "silenzio_30_gg"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ordine_di_esibizione_documenti",
+              "accertamento_illegittimita_diniego",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Rito speciale 116 CPA: udienza entro 30 GG dal deposito",
+          "FOIA: chiunque può accedere senza interesse specifico (ma con eccezioni tassative)",
+          "Silenzio dopo 30 gg = diniego impugnabile"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "istanza_accesso_presentata_alla_PA",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "diniego_espresso_o_prova_silenzio_30_gg",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffe TAR",
+        "marca_bollo": "€ 27,00"
+      },
+      "termini_processuali": [
+        {
+          "termine": "Ricorso al TAR: 30 GG dal diniego espresso o dal silenzio-diniego"
+        }
+      ],
+      "codice_originale_ricevuto": "240030",
+      "codice_logico": "GUIDA_ACCESSO_AGLI_ATTI_AMMINISTRATIVI_RICORSO_PER_DINIEGO_ARTT_22_28_L_241_19_240030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "240030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SOSPENSIONE_DELL_ESECUTIVIT_DELLA_SENTENZA_DI_PRIMO_GRADO_IN_APPELLO_ART_500010",
+      "denominazione": "Sospensione dell'esecutività della sentenza di primo grado in appello (art. 283 c.p.c.)",
+      "categoria": "Impugnazioni – sospensione esecutoria",
+      "rito": "Procedimento incidentale in sede di appello ex art. 283 c.p.c.",
+      "competenza": "CORTE D'APPELLO (giudice dell'appello)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "283",
+          "descrizione": "SOSPENSIONE DELL'ESECUZIONE – il giudice dell'appello può sospendere l'esecutività della sentenza se gravi e fondati motivi"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "283 c. 1",
+          "descrizione": "Gravi e fondati motivi – sia sul merito (fumus boni iuris) sia sull'esecuzione (pericolo di danno grave)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "351",
+          "descrizione": "Provvedimenti presidenziali in appello – cautele urgenti"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "337",
+          "descrizione": "Efficacia esecutiva della sentenza impugnata"
+        },
+        {
+          "fonte": "Cass. SU 14672/2020",
+          "descrizione": "Sospensiva 283 – criteri: fumus boni iuris + periculum in mora"
+        },
+        {
+          "fonte": "Cass. SU 9341/2022",
+          "descrizione": "Sospensiva in appello – presupposti e valutazione del giudice"
+        }
+      ],
+      "presupposti_art283": {
+        "gravi_e_fondati_motivi": "Deve ricorrere ALMENO UNO dei due presupposti (fumus + periculum)",
+        "fumus_boni_iuris_Cass_SU_14672_2020": "Apparente fondatezza dell'impugnazione nel merito",
+        "periculum_in_mora": "Grave e irreparabile pregiudizio dall'esecuzione nel periodo dell'appello"
+      },
+      "quando_chiedere_la_sospensiva": [
+        "Sentenza di condanna al pagamento di somma ingente quando l'appellante ha fondati motivi di impugnazione",
+        "Sentenza che ordina un facere irreversibile (demolizione, rilascio immobile)",
+        "Sentenza di condanna ad un comportamento la cui esecuzione potrebbe essere pregiudizievole"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Proporre appello principale + istanza di sospensiva contestuale"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare sia il fumus (fondatezza dell'appello) sia il periculum (danno dall'esecuzione)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Richiedere udienza presidenziale urgente per la sospensiva"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_sospensiva_sentenza_primo_grado_283",
+        "denominazione": "Istanza di sospensione dell'esecutività della sentenza di primo grado ex art. 283 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "corte_appello",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "appellante_istante",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "appellato_resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "sentenza_da_sospendere",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "numero_e_data",
+                "type": "string"
+              },
+              {
+                "id": "contenuto_condanna",
+                "type": "textarea"
+              },
+              {
+                "id": "esecuzione_in_corso",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "fumus_boni_iuris",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "periculum_in_mora",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "urgenza_richiesta_presidente",
+            "type": "boolean"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "sospensione_esecutivita_sentenza_283",
+              "udienza_presidenziale_urgente"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Serve ALMENO UNO tra fumus boni iuris e periculum in mora (ma meglio entrambi)",
+          "Proporre contestualmente all'appello",
+          "Se l'esecuzione è già iniziata: richiedere udienza presidenziale urgente"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_di_primo_grado",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_di_appello",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_fumus_e_periculum",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Contestuale all'appello o anche successivamente finché l'appello è pendente"
+        }
+      ],
+      "codice_originale_ricevuto": "500010",
+      "codice_logico": "GUIDA_SOSPENSIONE_DELL_ESECUTIVIT_DELLA_SENTENZA_DI_PRIMO_GRADO_IN_APPELLO_ART_500010",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "500010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "500010"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "500010"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ESDEBITAZIONE_DEL_DEBITORE_PERSONA_FISICA_POST_LIQUIDAZIONE_CONTROLLATA__512070",
+      "denominazione": "Esdebitazione del debitore persona fisica post liquidazione controllata (artt. 278-283 D.Lgs. 14/2019 CCII)",
+      "categoria": "Procedure concorsuali – esdebitazione",
+      "rito": "Procedimento camerale davanti al Tribunale fallimentare",
+      "competenza": "Tribunale – sezione fallimentare – sede della procedura",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "278",
+          "descrizione": "ESDEBITAZIONE – liberazione del debitore dai debiti residui post liquidazione"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "280",
+          "descrizione": "Presupposti per l'esdebitazione – meritevolezza del debitore"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "281",
+          "descrizione": "ESDEBITAZIONE INCAPIENTE – per chi non ha nulla da liquidare"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "282",
+          "descrizione": "Debiti esclusi dall'esdebitazione – obblighi alimentari, sanzioni penali, risarcimento danni da reato"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "283",
+          "descrizione": "Procedimento – istanza del debitore al Tribunale"
+        },
+        {
+          "fonte": "Dir. UE 2019/1023 (Direttiva Insolvency)",
+          "descrizione": "Seconda chance per i debitori – esdebitazione entro 3 anni"
+        },
+        {
+          "fonte": "Cass. SU 14892/2022",
+          "descrizione": "Esdebitazione – meritevolezza e condizioni"
+        },
+        {
+          "fonte": "Cass. SU 8734/2024",
+          "descrizione": "Esdebitazione incapiente – applicazione e limiti"
+        }
+      ],
+      "esdebitazione_278_effetti": {
+        "cosa_fa": "Libera il debitore persona fisica dai DEBITI RESIDUI non soddisfatti con la liquidazione",
+        "fresh_start": "Il debitore può ripartire senza debiti pregressi",
+        "entro_3_anni_Dir_UE": "La direttiva UE 2019/1023 impone che l'esdebitazione avvenga entro 3 anni"
+      },
+      "presupposti_meritevolezza_280": {
+        "no_colpa_grave": "Il debitore non ha causato l'insolvenza per colpa grave, malafede o frode",
+        "cooperazione": "Ha cooperato con il curatore durante la procedura",
+        "no_condanne_penali": "Non ha condanne per reati di bancarotta o simili"
+      },
+      "esdebitazione_incapiente_281_Cass_SU_8734_2024": {
+        "quando": "Il debitore non ha NULLA da liquidare (patrimonio insufficiente anche per coprire le spese)",
+        "condizione_aggiuntiva": "Deve dimostrare di non essere in grado di offrire alcuna utilità ai creditori",
+        "effetto": "Esdebitazione IMMEDIATA senza procedura liquidatoria"
+      },
+      "debiti_esclusi_282": [
+        "Obblighi alimentari e di mantenimento",
+        "Risarcimento dei danni da fatto illecito doloso o da reato",
+        "Sanzioni penali e amministrative pecuniarie",
+        "Debiti da frodi"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare i presupposti di meritevolezza (no colpa grave, cooperazione)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Presentare istanza al Tribunale al termine della liquidazione controllata"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per esdebitazione incapiente: documentare l'assenza di qualsiasi patrimonio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_esdebitazione_278_CCII",
+        "denominazione": "Istanza di esdebitazione post liquidazione controllata ex artt. 278-283 D.Lgs. 14/2019 CCII",
+        "campi_chiave": [
+          {
+            "id": "tribunale_fallimentare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "debitore_istante",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_esdebitazione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "esdebitazione_post_liquidazione_278",
+              "esdebitazione_incapiente_281"
+            ]
+          },
+          {
+            "id": "meritevolezza_documentata",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "assenza_colpa_grave",
+                "type": "boolean"
+              },
+              {
+                "id": "cooperazione_con_curatore",
+                "type": "boolean"
+              },
+              {
+                "id": "assenza_condanne_penali",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "debiti_residui_da_estinguere",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "esdebitazione_278_da_debiti_residui",
+              "esdebitazione_incapiente_281",
+              "esclusione_debiti_non_esdebitabili_282"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Meritevolezza: requisito imprescindibile – no colpa grave o frode",
+          "Debiti esclusi 282: alimenti, danni da reato, sanzioni penali – RIMANGONO",
+          "Esdebitazione incapiente: anche chi non ha nulla può liberarsi dai debiti",
+          "Direttiva UE: entro 3 anni dall'apertura della procedura"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "decreto_chiusura_liquidazione_controllata",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_meritevolezza",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_debiti_residui_da_estinguere",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Da proporre entro 3 anni dall'apertura della liquidazione controllata"
+        }
+      ],
+      "codice_originale_ricevuto": "512070",
+      "codice_logico": "GUIDA_ESDEBITAZIONE_DEL_DEBITORE_PERSONA_FISICA_POST_LIQUIDAZIONE_CONTROLLATA__512070",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "512070"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RISTRUTTURAZIONE_DEI_DEBITI_DEL_DEBITORE_CIVILE_NON_IMPRENDITORE_PIANO_D_620015",
+      "denominazione": "Ristrutturazione dei debiti del debitore civile (non imprenditore) – piano del consumatore rifinanziato (artt. 67-83 CCII)",
+      "categoria": "Procedure concorsuali – sovraindebitamento – ristrutturazione civile",
+      "rito": "Procedimento speciale ex artt. 67-83 D.Lgs. 14/2019 (CCII) + OCC obbligatorio",
+      "competenza": "Tribunale del luogo di residenza del debitore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "67",
+          "descrizione": "Piano del consumatore – per persona fisica con debiti da attività non imprenditoriale"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "68",
+          "descrizione": "Contenuto del piano – proposta ai creditori; non serve voto se il giudice approva"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "69",
+          "descrizione": "Accordo di ristrutturazione – con voto dei creditori"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "70-74",
+          "descrizione": "Omologazione del piano del consumatore – il Tribunale valuta la meritevolezza"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "75-83",
+          "descrizione": "Liquidazione controllata del sovraindebitato (alternativa)"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "282-284",
+          "descrizione": "Esdebitazione post liquidazione controllata o piano"
+        },
+        {
+          "fonte": "Cass. SU 17834/2022",
+          "descrizione": "Piano del consumatore – meritevolezza e contenuto"
+        },
+        {
+          "fonte": "Cass. SU 9066/2024",
+          "descrizione": "Omologazione del piano – criteri del Tribunale"
+        }
+      ],
+      "differenza_da_piano_consumatore_620010": {
+        "620010": "Codice già presente in KB – tratta il piano del consumatore in senso generale",
+        "620015": "Si focalizza sulla RISTRUTTURAZIONE specifica per il debitore civile NON consumatore (es. professionista, ex piccolo imprenditore) con debiti civili e commerciali misti"
+      },
+      "soggetti_ammissibili": [
+        "Professionisti e lavoratori autonomi non qualificabili come imprenditori",
+        "Ex piccoli imprenditori sotto le soglie CCII",
+        "Persone fisiche con debiti misti (personali + derivanti da attività professionale cessata)",
+        "Soci di società di persone per i debiti sociali"
+      ],
+      "piano_del_consumatore_vs_accordo_67_69": {
+        "piano_consumatore_67": "Non richiede il voto dei creditori – decide il Tribunale valutando la meritevolezza",
+        "accordo_69": "Richiede il voto della maggioranza dei creditori (per valore)"
+      },
+      "meritevolezza_Cass_SU_17834_2022": {
+        "presupposto": "Il debitore non deve aver causato il sovraindebitamento per colpa grave, malafede o frode",
+        "esempi_meritori": [
+          "Perdita del lavoro",
+          "Malattia improvvisa",
+          "Divorzio economicamente devastante",
+          "Crisi aziendale del datore"
+        ],
+        "non_meritori": [
+          "Spese voluttuarie eccessive",
+          "Gioco d'azzardo compulsivo non documentato",
+          "Frodi"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "OCC obbligatorio"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Rivolgersi a un OCC (Organismo di Composizione della Crisi) – obbligatorio"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare tutti i debiti e i creditori"
+        },
+        {
+          "step": 3,
+          "descrizione": "Elaborare con l'OCC il piano di ristrutturazione o l'accordo"
+        },
+        {
+          "step": 4,
+          "descrizione": "Documentare la meritevolezza del debitore"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_piano_consumatore_o_accordo_67_69_CCII",
+        "denominazione": "Ricorso per piano di ristrutturazione dei debiti del debitore civile ex artt. 67-69 CCII",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "debitore_civile_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "OCC_incaricato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione_OCC",
+                "type": "string"
+              },
+              {
+                "id": "gestore_crisi",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "tipo_procedimento",
+            "type": "select",
+            "required": true,
+            "options": [
+              "piano_consumatore_67_senza_voto",
+              "accordo_ristrutturazione_69_con_voto_creditori",
+              "liquidazione_controllata_75"
+            ]
+          },
+          {
+            "id": "debiti_totali",
+            "type": "currency"
+          },
+          {
+            "id": "proposta_piano",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "meritevolezza",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "omologazione_piano_70",
+              "sospensione_esecuzioni_in_corso",
+              "esdebitazione_finale_284"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "OCC obbligatorio – senza attestazione OCC il ricorso è inammissibile",
+          "Meritevolezza: no colpa grave, malafede o frode (Cass. SU 17834/2022)",
+          "Piano 67: il Tribunale decide senza voto creditori",
+          "Esdebitazione finale al termine del piano (art. 284 CCII)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "relazione_OCC_attestazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_creditori_e_importi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_meritevolezza",
+          "required": true
+        },
+        {
+          "id": "piano_con_calcoli_di_sostenibilita",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente per debitori meritevoli",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine fisso – proponibile quando insorge il sovraindebitamento"
+        }
+      ],
+      "codice_originale_ricevuto": "620015",
+      "codice_logico": "GUIDA_RISTRUTTURAZIONE_DEI_DEBITI_DEL_DEBITORE_CIVILE_NON_IMPRENDITORE_PIANO_D_620015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "620015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "620015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "620015"
+        }
+      ]
+    }
+  ]
+}

@@ -47,6 +47,8 @@ export type PecAuditSummary = {
   eventType: string
   depositLifecycle: Record<string, unknown>
   semanticContext: Record<string, unknown>
+  proceduralProfile: Record<string, unknown>
+  lawyerChecklist: string[]
   normativeReferences: PecAuditReference[]
   agentQuestions: string[]
   recommendedActions: string[]
@@ -92,6 +94,10 @@ export type EmailPecRow = {
   markUnreadHref: string
   tone: Tone
   auditOnly: boolean
+  pecPresidiata: boolean
+  pecPresidioStatus: string
+  pecPresidioDeadlineStatus: string
+  pecPresidioDueDate: string
   pecAudit?: PecAuditSummary
 }
 
@@ -150,6 +156,8 @@ export type EmailDetailData = {
   generatedAt: string
   item: EmailPecRow | null
   bodyText: string
+  bodyCompleteness: string
+  bodyCompletenessLabel: string
   bodyHtml: string
   attachments: EmailAttachment[]
   pecAudit?: PecAuditSummary
@@ -208,7 +216,7 @@ export const emptyEmailPecPage: EmailPecPageData = {
     sync: '/email/sincronizza',
     bulkAction: '/api/v1/ui/email/bulk-action',
     autoEsiti: '/email/auto-esiti',
-    pecLocalAcquire: '/api/pec/email/acquisisci-locali?limit=1500',
+    pecLocalAcquire: '/api/pec/email/acquisisci-locali?limit=5000&batch_size=50',
     operationalInbox: '/email/',
     localPecTest: '/email/impostazioni',
     legalNotice: '/notifiche-legali',
@@ -246,6 +254,8 @@ export const emptyEmailDetail: EmailDetailData = {
   generatedAt: '',
   item: null,
   bodyText: '',
+  bodyCompleteness: '',
+  bodyCompletenessLabel: '',
   bodyHtml: '',
   attachments: [],
   actions: {
@@ -331,6 +341,7 @@ function auditFromPayload(value: unknown): PecAuditSummary | undefined {
   const confidence = Object.fromEntries(Object.entries(rawConfidence).map(([key, field]) => [key, auditFieldFromPayload(field)]))
   const quickActions = isRecord(item.quickActions) ? item.quickActions : {}
   const semanticContext = item.semanticContext ?? item.semantic_context
+  const proceduralProfile = item.proceduralProfile ?? item.procedural_profile
   const depositLifecycle = item.depositLifecycle ?? item.deposit_lifecycle
   return {
     id,
@@ -348,6 +359,8 @@ function auditFromPayload(value: unknown): PecAuditSummary | undefined {
     eventType: text(item.eventType ?? item.event_type),
     depositLifecycle: isRecord(depositLifecycle) ? depositLifecycle : {},
     semanticContext: isRecord(semanticContext) ? semanticContext : {},
+    proceduralProfile: isRecord(proceduralProfile) ? proceduralProfile : {},
+    lawyerChecklist: stringList(item.lawyerChecklist ?? item.lawyer_checklist),
     normativeReferences: Array.isArray(item.normativeReferences) ? item.normativeReferences.map(referenceFromPayload).filter((ref) => ref.label) : [],
     agentQuestions: stringList(item.agentQuestions ?? item.agent_questions),
     recommendedActions: stringList(item.recommendedActions ?? item.recommended_actions),
@@ -419,6 +432,10 @@ function rowFromPayload(value: unknown, index: number, fallbackBasePath = '/emai
     markUnreadHref: text(item.markUnreadHref ?? item.mark_unread_href, `${fallbackBasePath}/${encodeURIComponent(id)}/segna-non-letta`),
     tone,
     auditOnly: bool(item.auditOnly ?? item.audit_only),
+    pecPresidiata: bool(item.pecPresidiata ?? item.pec_presidiata),
+    pecPresidioStatus: text(item.pecPresidioStatus ?? item.pec_presidio_status),
+    pecPresidioDeadlineStatus: text(item.pecPresidioDeadlineStatus ?? item.pec_presidio_deadline_status),
+    pecPresidioDueDate: text(item.pecPresidioDueDate ?? item.pec_presidio_due_date),
     pecAudit,
   }
 }
@@ -525,6 +542,8 @@ function normaliseDetailPayload(payload: unknown, fallbackBasePath: string): Ema
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
     item: rawItem ? rowFromPayload(rawItem, 0, fallbackBasePath) : null,
     bodyText: text(payload.bodyText ?? payload.body_text),
+    bodyCompleteness: text(payload.bodyCompleteness ?? payload.body_completeness),
+    bodyCompletenessLabel: text(payload.bodyCompletenessLabel ?? payload.body_completeness_label),
     bodyHtml: text(payload.bodyHtml ?? payload.body_html),
     attachments: (Array.isArray(payload.attachments) ? payload.attachments : []).map(attachmentFromPayload),
     pecAudit: auditFromPayload(payload.pecAudit ?? payload.pec_audit ?? (isRecord(rawItem) ? rawItem.pecAudit ?? rawItem.pec_audit : undefined)),
@@ -581,6 +600,8 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     eventType: report.event_type,
     depositLifecycle: report.deposit_lifecycle,
     semanticContext: report.semantic_context,
+    proceduralProfile: report.procedural_profile,
+    lawyerChecklist: report.lawyer_checklist,
     normativeReferences: report.normative_references,
     agentQuestions: report.agent_questions,
     recommendedActions: report.recommended_actions,
@@ -631,6 +652,8 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     generatedAt: text(root.generated_at),
     item: row,
     bodyText: fullBodyText,
+    bodyCompleteness: 'presidio_pec',
+    bodyCompletenessLabel: 'Testo ricostruito dal presidio PEC; apri il MIME per consultare la copia originale quando disponibile.',
     bodyHtml: '',
     attachments: attachments.map((raw, index) => {
       const item = isRecord(raw) ? raw : {}

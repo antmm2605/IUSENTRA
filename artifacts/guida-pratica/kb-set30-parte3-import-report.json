@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (19).zip::kb_set30_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set30_p3.json",
+  "sha256": "1AA0457FB24E6C38CF12FF66BC7A0DFD97E67D30FC0C779956CA2DA9B8585B7F",
+  "changed": false,
+  "macro_area_id": "SET30_PARTE3",
+  "denominazione": "Trentesimo set - PARTE 3 di 8",
+  "codici_materia_originali": [
+    "143095",
+    "145015",
+    "150095",
+    "150100",
+    "154020"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_ASSICURAZIONE_SULLA_VITA_CONTROVERSIE_TRA_EREDI_BENEFICIARI_143095",
+    "GUIDA_LOCAZIONE_ABITATIVA_4_4_SFRATTO_PER_MOROSIT_E_INTIMAZIONE_DI_LICENZA_L_4_145015",
+    "GUIDA_RESPONSABILIT_DEGLI_AMMINISTRATORI_VERSO_I_CREDITORI_SOCIALI_ARTT_2394_2_150095",
+    "GUIDA_RESPONSABILIT_DELLA_SOCIET_CAPOGRUPPO_PER_DIREZIONE_E_COORDINAMENTO_ABUS_150100",
+    "GUIDA_SOCIET_DI_PERSONE_RECESSO_DEL_SOCIO_SCIOGLIMENTO_E_LIQUIDAZIONE_ARTT_227_154020"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "143095",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_ASSICURAZIONE_SULLA_VITA_CONTROVERSIE_TRA_EREDI_BENEFICIARI_143095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "145015",
+      "codice_integrato": "GUIDA_LOCAZIONE_ABITATIVA_4_4_SFRATTO_PER_MOROSIT_E_INTIMAZIONE_DI_LICENZA_L_4_145015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150095",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEGLI_AMMINISTRATORI_VERSO_I_CREDITORI_SOCIALI_ARTT_2394_2_150095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150100",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_SOCIET_CAPOGRUPPO_PER_DIREZIONE_E_COORDINAMENTO_ABUS_150100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154020",
+      "codice_integrato": "GUIDA_SOCIET_DI_PERSONE_RECESSO_DEL_SOCIO_SCIOGLIMENTO_E_LIQUIDAZIONE_ARTT_227_154020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

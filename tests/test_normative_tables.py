@@ -1,3 +1,5 @@
+from datetime import date
+
 from pct.normative_tables import GestioneTabelleNormative
 
 
@@ -153,3 +155,26 @@ def test_mediazione_odm_table_espone_scaglioni_dm150_e_fonte_ufficiale(tmp_path)
         source["code"] == "dm_150_2023_mediazione" and "23G00163" in source["url"]
         for source in table["sources"]
     )
+
+
+def test_tassi_usura_2026_q1_q2_usano_decreti_gu_ufficiali(tmp_path):
+    gestore = GestioneTabelleNormative(str(tmp_path / "tabelle_normative.json"))
+
+    table = gestore.get_table("tasso_usura")
+    rows = gestore.rows("tasso_usura")
+    q1 = next(row for row in rows if row["quarter"] == "2026-Q1" and row["category"] == "credito_personale")
+    q2 = next(row for row in rows if row["quarter"] == "2026-Q2" and row["category"] == "credito_personale")
+
+    assert q1["tegm"] == 11.46
+    assert q1["soglia"] == 18.325
+    assert q1["source_code"] == "mef_tassi_usura_2026_q1"
+    assert q2["tegm"] == 11.32
+    assert q2["soglia"] == 18.15
+    assert q2["source_code"] == "mef_tassi_usura_2026_q2"
+    assert any(source["code"] == "mef_tassi_usura_2026_q1" and "25A07045" in source["url"] for source in table["sources"])
+    assert any(source["code"] == "mef_tassi_usura_2026_q2" and "26A01653" in source["url"] for source in table["sources"])
+    assert gestore.usura_soglia_per_categoria("credito_personale", date(2026, 2, 1))["quarter"] == "2026-Q1"
+    assert gestore.usura_soglia_per_categoria("credito_personale", date(2026, 4, 15))["quarter"] == "2026-Q2"
+    alias = gestore.usura_soglia_per_categoria("carte_credito_revolving", date(2026, 4, 15))
+    assert alias["category"] == "credito_revolving"
+    assert alias["soglia"] == 24.07

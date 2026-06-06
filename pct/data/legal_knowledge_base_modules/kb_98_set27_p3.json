@@ -1,0 +1,1065 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET27_PARTE3",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 3 di 5",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_CARTA_DI_CREDITO_E_SERVIZI_DI_PAGAMENTO_CONTESTAZIONE_ADDEBITI_E_RIMBORS_143075",
+      "denominazione": "Carta di credito e servizi di pagamento: contestazione addebiti e rimborso (D.Lgs. 11/2010 PSD2)",
+      "categoria": "Contratti – servizi di pagamento – carta di credito",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (contratti bancari)",
+      "competenza": "Foro del titolare (consumatore)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 11/2010 (PSD2)",
+          "articolo": "10-12",
+          "descrizione": "Rimborso per operazioni non autorizzate"
+        },
+        {
+          "fonte": "D.Lgs. 385/1993 (TUB)",
+          "articolo": "115-120",
+          "descrizione": "Trasparenza e carte di credito"
+        },
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articolo": "56",
+          "descrizione": "Diritto di recesso nei contratti a distanza – applicabile alle carte"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1936 e ss.",
+          "descrizione": "Fideiussione – la carta di credito non è fideiussione ma garanzia di pagamento"
+        },
+        {
+          "fonte": "Cass. SU 8932/2022",
+          "descrizione": "Carta di credito – natura giuridica e contestazione addebiti"
+        },
+        {
+          "fonte": "Cass. SU 11238/2024",
+          "descrizione": "Addebiti non autorizzati su carta – responsabilità emittente"
+        }
+      ],
+      "tipologie_contestazioni_tipiche": [
+        "Addebiti per acquisti non effettuati dal titolare (uso fraudolento della carta)",
+        "Addebiti doppi per lo stesso acquisto",
+        "Mancato storno di resi o cancellazioni",
+        "Applicazione di interessi o commissioni non pattuite",
+        "Mancata applicazione del tasso promozionale",
+        "Addebiti per abbonamenti non richiesti"
+      ],
+      "procedura_chargeback": {
+        "cos_e": "La procedura dei circuiti (Visa/Mastercard) per contestare addebiti",
+        "termine": "Di norma 120 giorni dall'addebito contestato",
+        "da_fare_prima": "Contattare l'emittente per il chargeback PRIMA del ricorso giudiziale"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "CONTRATTI BANCARI"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Attivare la procedura di chargeback con l'emittente della carta"
+        },
+        {
+          "step": 2,
+          "descrizione": "In caso di insuccesso: mediazione obbligatoria"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentare gli addebiti contestati con estratti conto"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_rimborso_carta_credito_addebiti_contestati",
+        "denominazione": "Azione per rimborso addebiti non autorizzati su carta di credito ex D.Lgs. 11/2010",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "titolare_carta_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "emittente_carta_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "addebiti_contestati",
+            "type": "array",
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "importo",
+                "type": "currency"
+              },
+              {
+                "id": "tipo_contestazione",
+                "type": "select",
+                "options": [
+                  "non_autorizzato_frode",
+                  "doppio_addebito",
+                  "reso_non_stornato",
+                  "commissione_non_pattuita",
+                  "abbonamento_non_richiesto"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "totale_contestato",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "chargeback_effettuato",
+            "type": "boolean"
+          },
+          {
+            "id": "verbale_mediazione",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "rimborso_addebiti_non_autorizzati",
+              "rimborso_commissioni_non_pattuite",
+              "interessi_sulle_somme",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria preventiva (contratti bancari)",
+          "Attivare chargeback prima del giudizio",
+          "Operazioni non autorizzate: stesso regime di tutela ex D.Lgs. 11/2010 (come per conti correnti)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "estratti_conto_con_addebiti_contestati",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratto_carta_e_condizioni",
+          "required": true
+        },
+        {
+          "id": "prove_contestazione_pregressa_chargeback",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "143075",
+      "codice_logico": "GUIDA_CARTA_DI_CREDITO_E_SERVIZI_DI_PAGAMENTO_CONTESTAZIONE_ADDEBITI_E_RIMBORS_143075",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143075"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143075"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ASSOCIAZIONE_IN_PARTECIPAZIONE_SCIOGLIMENTO_RENDICONTO_E_PARTECIPAZIONE__151115",
+      "denominazione": "Associazione in partecipazione: scioglimento, rendiconto e partecipazione agli utili (artt. 2549-2554 c.c.)",
+      "categoria": "Diritto commerciale – associazione in partecipazione",
+      "rito": "Rito ordinario di cognizione; rito del lavoro se l'associato svolge attività lavorativa",
+      "competenza": "Tribunale – foro convenuto; Tribunale del lavoro se natura parasubordinata",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2549",
+          "descrizione": "Associazione in partecipazione – l'associante attribuisce all'associato una partecipazione agli utili in cambio di apporto (anche di lavoro)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2552",
+          "descrizione": "Gestione dell'impresa – spetta all'associante; obblighi informativi verso l'associato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2553",
+          "descrizione": "RENDICONTO – l'associante deve rendere conto al termine di ogni esercizio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2554",
+          "descrizione": "Diritto di ispezione dell'associato sui libri contabili"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "53",
+          "descrizione": "Riforma associazione in partecipazione con apporto di lavoro – presunzione di rapporto di lavoro"
+        },
+        {
+          "fonte": "Cass. SU 14589/2020",
+          "descrizione": "Associazione in partecipazione vs rapporto di lavoro – distinzione"
+        },
+        {
+          "fonte": "Cass. SU 9876/2022",
+          "descrizione": "Rendiconto dell'associante – obblighi e termini"
+        }
+      ],
+      "post_D_Lgs_81_2015": {
+        "novita": "Dal 2015: le associazioni in partecipazione CON APPORTO DI LAVORO sono vietate in forma pura – presunzione di rapporto di lavoro",
+        "eccezione": "Rimangono valide se l'associato è socio della società o se l'apporto è prevalentemente di capitale"
+      },
+      "rendiconto_2553_Cass_SU_9876_2022": {
+        "obbligo": "Al termine di ogni esercizio: rendiconto completo dei risultati economici",
+        "diritto_ispezione_2554": "L'associato ha diritto di ispezionare i libri contabili",
+        "azione_per_mancato_rendiconto": "L'associato può agire per il rendiconto + pagamento degli utili spettanti"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Richiedere formalmente il rendiconto all'associante"
+        },
+        {
+          "step": 2,
+          "descrizione": "Esercitare il diritto di ispezione dei libri contabili (2554)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per apporto di lavoro: valutare se si configura un rapporto di lavoro subordinato"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_associazione_partecipazione_rendiconto_utili",
+        "denominazione": "Azione per rendiconto e pagamento degli utili nell'associazione in partecipazione ex artt. 2549-2554 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "associato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "associante_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "apporto_dell_associato",
+            "type": "select",
+            "options": [
+              "denaro",
+              "lavoro_anche_misto",
+              "beni_o_servizi"
+            ]
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "mancato_rendiconto_2553",
+              "utili_non_corrisposti",
+              "accertamento_natura_lavoro_subordinato_D_Lgs81",
+              "scioglimento_e_liquidazione"
+            ]
+          },
+          {
+            "id": "utili_stimati_non_corrisposti",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_rendiconto_2553",
+              "diritto_ispezione_2554",
+              "condanna_utili_spettanti",
+              "accertamento_subordinazione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Apporto di lavoro dal 2015: PRESUNZIONE di rapporto di lavoro subordinato (D.Lgs. 81/2015)",
+          "Rendiconto annuale: obbligo dell'associante + diritto di ispezione dei libri dell'associato",
+          "Se rapporto di lavoro: rito del lavoro (art. 409 c.p.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_associazione_partecipazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "richiesta_rendiconto_e_risposta",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "151115",
+      "codice_logico": "GUIDA_ASSOCIAZIONE_IN_PARTECIPAZIONE_SCIOGLIMENTO_RENDICONTO_E_PARTECIPAZIONE__151115",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "151115"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "151115"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "151115"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_CONCORDATO_PREVENTIVO_IN_CONTINUIT_AZIENDALE_ARTT_84_120_D_LGS_14_2019_C_152015",
+      "denominazione": "Concordato preventivo in continuità aziendale (artt. 84-120 D.Lgs. 14/2019 CCII)",
+      "categoria": "Procedure concorsuali – concordato in continuità",
+      "rito": "Procedimento speciale davanti al Tribunale fallimentare",
+      "competenza": "Tribunale – sezione fallimentare – sede dell'impresa",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "articolo": "84",
+          "descrizione": "Concordato preventivo – presupposti"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "84 c. 2",
+          "descrizione": "CONCORDATO IN CONTINUITÀ – conservazione dell'azienda in esercizio (diretta o indiretta)"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "86",
+          "descrizione": "Piano e relazione attestatore in continuità"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "87",
+          "descrizione": "Attestazione – il professionista certifica la veridicità dei dati e la fattibilità del piano"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "94-bis",
+          "descrizione": "Continuità – obblighi minimi verso i creditori"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "112",
+          "descrizione": "Omologazione – cram-down anche in continuità"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "120-bis",
+          "descrizione": "Concordato in continuità – tutele aggiuntive per i lavoratori"
+        },
+        {
+          "fonte": "Cass. SU 9476/2023",
+          "descrizione": "Concordato in continuità – miglior soddisfacimento rispetto alla liquidazione"
+        }
+      ],
+      "concordato_in_continuita_vs_liquidatorio": {
+        "continuita": "L'azienda continua a operare durante e dopo il concordato – i creditori vengono pagati con i proventi dell'attività futura",
+        "liquidatorio": "L'azienda cessa e i creditori vengono pagati con il ricavato della liquidazione dei beni",
+        "vantaggio_continuita": "Preserva l'avviamento, i posti di lavoro e genera valore per i creditori"
+      },
+      "requisiti_specifici_84c2": {
+        "piano_di_continuita": "Deve indicare come l'azienda continuerà a operare e come genererà reddito per pagare i creditori",
+        "attestatore": "Professionista indipendente che certifica la fattibilità del piano",
+        "best_interest_test": "I creditori non devono ricevere meno di quanto riceverebbero con la liquidazione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Nomina del professionista attestatore indipendente"
+        },
+        {
+          "step": 2,
+          "descrizione": "Predisposizione del piano di continuità aziendale + proiezioni economico-finanziarie"
+        },
+        {
+          "step": 3,
+          "descrizione": "Attestazione del professionista sulla veridicità dei dati e fattibilità del piano"
+        },
+        {
+          "step": 4,
+          "descrizione": "Deposito del ricorso al Tribunale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_concordato_continuita_CCII_84c2",
+        "denominazione": "Ricorso per concordato preventivo in continuità aziendale ex art. 84 c. 2 D.Lgs. 14/2019 CCII",
+        "campi_chiave": [
+          {
+            "id": "tribunale_fallimentare",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "imprenditore_ricorrente",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_continuita",
+            "type": "select",
+            "required": true,
+            "options": [
+              "continuita_diretta_gestione_interna",
+              "continuita_indiretta_cessione_azienda_in_esercizio"
+            ]
+          },
+          {
+            "id": "attestatore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "piano_sintetico",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "creditori_e_classi",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "numero_classi",
+                "type": "integer"
+              },
+              {
+                "id": "percentuale_soddisfacimento_media",
+                "type": "percentage"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ammissione_concordato_continuita",
+              "protezione_da_azioni_esecutive",
+              "omologazione_84c2"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Attestatore indipendente OBBLIGATORIO",
+          "Best interest test: creditori non possono ricevere meno della liquidazione",
+          "Cram-down disponibile anche in continuità (art. 112 CCII)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "piano_di_continuita_aziendale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "relazione_attestatore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "bilanci_ultimi_3_anni",
+          "required": true
+        },
+        {
+          "id": "elenco_creditori_e_classi",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine fisso – da proporre prima dell'insolvenza se possibile"
+        }
+      ],
+      "codice_originale_ricevuto": "152015",
+      "codice_logico": "GUIDA_CONCORDATO_PREVENTIVO_IN_CONTINUIT_AZIENDALE_ARTT_84_120_D_LGS_14_2019_C_152015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "152015"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_COOPERATIVE_ESCLUSIONE_DEL_SOCIO_LAVORATORE_E_CONTESTAZIONI_ARTT_2533_25_154015",
+      "denominazione": "Cooperative: esclusione del socio lavoratore e contestazioni (artt. 2533-2534 c.c. + L. 142/2001)",
+      "categoria": "Diritto societario – cooperative – socio lavoratore",
+      "rito": "Rito del lavoro per la parte lavoristica + rito ordinario (Tribunale Imprese) per la parte societaria",
+      "competenza": "Tribunale del lavoro + Tribunale delle Imprese – sede cooperativa",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2533",
+          "descrizione": "ESCLUSIONE del socio cooperativo – cause e procedimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2534",
+          "descrizione": "Opposizione del socio escluso – ricorso al Tribunale"
+        },
+        {
+          "fonte": "L. 142/2001",
+          "articolo": "1-10",
+          "descrizione": "Disciplina del SOCIO LAVORATORE di cooperativa – rapporto di lavoro + rapporto associativo"
+        },
+        {
+          "fonte": "L. 142/2001",
+          "articolo": "5",
+          "descrizione": "Recesso ed esclusione del socio lavoratore – duplice effetto sul rapporto di lavoro"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2539",
+          "descrizione": "Comunicazione dell'esclusione al socio"
+        },
+        {
+          "fonte": "Cass. SU 14597/2020",
+          "descrizione": "Socio lavoratore di cooperativa – doppio rapporto e tutele"
+        },
+        {
+          "fonte": "Cass. SU 9832/2023",
+          "descrizione": "Esclusione del socio lavoratore – procedura e impugnazione"
+        }
+      ],
+      "doppio_rapporto_socio_lavoratore": {
+        "rapporto_associativo": "Il socio è membro della cooperativa con diritti e doveri societari",
+        "rapporto_di_lavoro": "Il socio svolge attività lavorativa per la cooperativa",
+        "connessione": "L'esclusione dalla cooperativa comporta anche la CESSAZIONE del rapporto di lavoro"
+      },
+      "esclusione_2533_procedura": {
+        "delibera_consiglio": "L'esclusione è deliberata dal Consiglio di Amministrazione",
+        "comunicazione_2539": "Deve essere comunicata al socio con le motivazioni",
+        "opposizione_2534": "Il socio può opporsi entro 30 GIORNI dalla comunicazione con ricorso al Tribunale"
+      },
+      "tutele_lavoristiche": {
+        "se_esclusione_illegittima": "Il socio lavoratore ha diritto al risarcimento del danno per la perdita del rapporto di lavoro",
+        "reintegrazione": "Possibile se l'esclusione è nulla per violazione di norme imperative"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare le motivazioni dell'esclusione e la procedura seguita"
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICARE il termine di 30 gg per l'opposizione – CRITICO"
+        },
+        {
+          "step": 3,
+          "descrizione": "Separare la contestazione societaria (Tribunale Imprese) dalla lavoristica (Tribunale Lavoro)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_esclusione_socio_cooperativa_2534",
+        "denominazione": "Ricorso in opposizione all'esclusione del socio lavoratore di cooperativa ex art. 2534 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese_o_lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "socio_lavoratore_ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "cooperativa_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "delibera_esclusione",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_delibera",
+                "type": "date"
+              },
+              {
+                "id": "data_comunicazione",
+                "type": "date",
+                "critico_per_30_gg": true
+              },
+              {
+                "id": "motivazioni",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "rispetto_termine_30_gg",
+            "type": "boolean",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "vizi_contestati",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "motivi_esclusione_infondati",
+              "procedura_irregolare",
+              "violazione_statuto_cooperativa",
+              "esclusione_ritorsiva"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_delibera_esclusione_2534",
+              "reintegrazione_nel_rapporto_associativo",
+              "risarcimento_danno_rapporto_lavoro_cessato",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "OPPOSIZIONE entro 30 GG dalla comunicazione dell'esclusione – DECADENZIALE",
+          "Socio lavoratore: doppio rapporto (associativo + lavoro) – doppia tutela",
+          "Esclusione illegittima: risarcimento danno per cessazione rapporto di lavoro"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "delibera_esclusione_e_comunicazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "statuto_cooperativa",
+          "required": true
+        },
+        {
+          "id": "documentazione_vizi_contestati",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE ESCLUSIONE",
+          "giorni": 30,
+          "decorrenza": "comunicazione",
+          "natura": "DECADENZIALE",
+          "criticita": "MASSIMA"
+        }
+      ],
+      "codice_originale_ricevuto": "154015",
+      "codice_logico": "GUIDA_COOPERATIVE_ESCLUSIONE_DEL_SOCIO_LAVORATORE_E_CONTESTAZIONI_ARTT_2533_25_154015",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154015"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "154015"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DEL_COMMITTENTE_PER_INFORTUNI_NELL_APPALTO_ART_26_D_LGS_81_160185",
+      "denominazione": "Responsabilità del committente per infortuni nell'appalto (art. 26 D.Lgs. 81/2008 – DUVRI)",
+      "categoria": "Responsabilità civile – sicurezza sul lavoro – appalto",
+      "rito": "Rito del lavoro (infortuni dell'appaltato) + rito ordinario (danni al committente per inadempimento appaltatore)",
+      "competenza": "Tribunale del lavoro + Tribunale ordinario – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 81/2008 (TU Sicurezza)",
+          "articolo": "26",
+          "descrizione": "Obblighi connessi ai contratti d'appalto – cooperazione e coordinamento tra committente e appaltatore"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008",
+          "articolo": "26 c. 3",
+          "descrizione": "DUVRI – Documento Unico di Valutazione dei Rischi Interferenziali – obbligatorio"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008",
+          "articolo": "26 c. 4",
+          "descrizione": "Costi della sicurezza – indicazione obbligatoria nel contratto"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008",
+          "articolo": "89",
+          "descrizione": "Appalto edile – PSC (Piano di Sicurezza e Coordinamento)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Obbligo di sicurezza – applicabile anche al committente"
+        },
+        {
+          "fonte": "D.Lgs. 276/2003",
+          "articolo": "29",
+          "descrizione": "Responsabilità solidale committente-appaltatore per crediti lavoratori"
+        },
+        {
+          "fonte": "Cass. SU 16512/2020",
+          "descrizione": "Committente e infortuni nell'appalto – obblighi e responsabilità"
+        },
+        {
+          "fonte": "Cass. SU 9813/2023",
+          "descrizione": "DUVRI e responsabilità del committente"
+        }
+      ],
+      "obblighi_committente_art26": {
+        "cooperazione": "Il committente deve cooperare con l'appaltatore per eliminare i rischi interferenziali",
+        "DUVRI_obbligatorio": "Per contratti di appalto, d'opera o somministrazione che comportano rischi interferenziali: DUVRI obbligatorio",
+        "costi_sicurezza": "Il contratto deve indicare i costi della sicurezza – non possono essere oggetto di ribasso"
+      },
+      "responsabilita_committente_Cass_SU_16512_2020": {
+        "quando": "Il committente risponde se l'infortunio è causato da rischi interferenziali non gestiti correttamente",
+        "non_risponde": "Per i rischi specifici dell'attività dell'appaltatore che il committente non poteva né doveva eliminare"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare l'esistenza e la corretta redazione del DUVRI"
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentare l'infortunio e le cause (rischio interferenziale vs rischio specifico appaltatore)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se il committente ha adempiuto agli obblighi di cooperazione ex art. 26"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_responsabilita_committente_infortuni_appalto_art26",
+        "denominazione": "Azione di responsabilità del committente per infortuni nell'appalto ex art. 26 D.Lgs. 81/2008",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_o_eredi_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "appaltatore_convenuto",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "committente_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "infortunio",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "tipo_rischio",
+                "type": "select",
+                "options": [
+                  "interferenziale_committente_responsabile",
+                  "specifico_appaltatore"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "DUVRI_redatto",
+            "type": "boolean"
+          },
+          {
+            "id": "costi_sicurezza_indicati",
+            "type": "boolean"
+          },
+          {
+            "id": "danno_subito",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_committente_art26_81_2008",
+              "condanna_solidale_committente_appaltatore",
+              "risarcimento_danno_biologico_morale",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "DUVRI obbligatorio per rischi interferenziali – sua assenza = colpa del committente",
+          "Responsabilità del committente: solo per rischi interferenziali, non per rischi specifici dell'appaltatore",
+          "Responsabilità solidale committente-appaltatore per crediti lavoratori (art. 29 D.Lgs. 276/2003)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_appalto_e_DUVRI",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_infortunio_INAIL_FFOO",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione",
+          "anni": 3,
+          "norma": "art. 2947 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "160185",
+      "codice_logico": "GUIDA_RESPONSABILIT_DEL_COMMITTENTE_PER_INFORTUNI_NELL_APPALTO_ART_26_D_LGS_81_160185",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160185"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160185"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160185"
+        }
+      ]
+    }
+  ]
+}

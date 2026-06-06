@@ -177,6 +177,21 @@ def _drop_inherited_scaffold_for_curated_override(previous: dict[str, Any], path
     return cleaned
 
 
+def _source_record(path: Path, meta: dict[str, str], item: dict[str, Any]) -> dict[str, Any]:
+    record = deepcopy(item)
+    for internal_key in ("_source_records", "_source_files"):
+        record.pop(internal_key, None)
+    return {
+        "file": path.name,
+        "macro_area_id": meta.get("macro_area_id", ""),
+        "denominazione_macro": meta.get("denominazione", ""),
+        "registro": meta.get("registro", ""),
+        "codice": normalize_codice_materia(record.get("codice") or record.get("codice_logico")),
+        "denominazione": _text(record.get("denominazione")),
+        "record": record,
+    }
+
+
 @dataclass(frozen=True)
 class GuidaPraticaCoverage:
     level: str
@@ -203,9 +218,11 @@ class GuidaPraticaService:
         data_dir = Path(__file__).resolve().parents[1] / "data"
         self.kb_path = Path(kb_path) if kb_path else data_dir / "legal_knowledge_base.full.json"
         self._kb = self._load_kb(self.kb_path)
-        # Se il file full non esiste ancora, carica il KB storico + i moduli separati.
-        if not self._kb.get("codici_materia") and kb_path is None:
-            self._kb = self._load_kb_modules(data_dir)
+        # Il file full non deve bloccare i moduli successivi: ogni set versionato
+        # resta parte del KB operativo, del RAG e dell'audit anche quando esiste
+        # `legal_knowledge_base.full.json`.
+        if kb_path is None:
+            self._kb = self._merge_kb_payloads(self._kb, self._load_kb_modules(data_dir))
         self._kb_index = self._build_kb_index(self._kb)
         self._catalog_records = list(catalog_records) if catalog_records is not None else self._load_catalog_records()
         self._official_catalog_index = {
@@ -305,11 +322,17 @@ class GuidaPraticaService:
                 row.setdefault("_macro_area_id", meta["macro_area_id"])
                 row.setdefault("_macro_area_denominazione", meta["denominazione"])
                 row.setdefault("_registro", meta["registro"])
+                row.setdefault("_source_records", [_source_record(path, meta, item)])
                 if codice in by_code:
                     previous = by_code[codice]
                     previous = _drop_inherited_scaffold_for_curated_override(previous, path, row)
+                    source_records = [
+                        *_as_list(previous.get("_source_records")),
+                        _source_record(path, meta, item),
+                    ]
                     row = _deep_merge(previous, row)
                     row["_source_files"] = _unique_by_json([*(previous.get("_source_files") or [previous.get("_source_file")]), path.name])
+                    row["_source_records"] = _unique_by_json(source_records)
                     row["_source_file"] = path.name
                     duplicates.setdefault(codice, []).append(path.name)
                 else:
@@ -325,6 +348,75 @@ class GuidaPraticaService:
         }
         combined["n_codici"] = len(combined["codici_materia"])
         return combined
+
+    @staticmethod
+    def _merge_kb_payloads(base: dict[str, Any], modules: dict[str, Any]) -> dict[str, Any]:
+        base_items = _as_list(base.get("codici_materia"))
+        module_items = _as_list(modules.get("codici_materia"))
+        if not base_items:
+            return deepcopy(modules) if module_items else {"codici_materia": []}
+        if not module_items:
+            return deepcopy(base)
+
+        by_code: dict[str, dict[str, Any]] = {}
+        duplicates: dict[str, list[str]] = {}
+
+        def _add_item(item: dict[str, Any], *, source_label: str) -> None:
+            codice = normalize_codice_materia(item.get("codice") or item.get("codice_logico"))
+            if not codice:
+                return
+            row = deepcopy(item)
+            row.setdefault("codice", codice)
+            row.setdefault("_source_file", source_label)
+            row.setdefault("_source_files", [source_label])
+            row.setdefault(
+                "_source_records",
+                [
+                    {
+                        "file": source_label,
+                        "macro_area_id": _text(row.get("_macro_area_id")),
+                        "denominazione_macro": _text(row.get("_macro_area_denominazione") or row.get("categoria")),
+                        "registro": _text(row.get("_registro") or row.get("registro_sicid")),
+                        "codice": codice,
+                        "denominazione": _text(row.get("denominazione")),
+                        "record": deepcopy({key: value for key, value in row.items() if key not in {"_source_records", "_source_files"}}),
+                    }
+                ],
+            )
+            if codice not in by_code:
+                by_code[codice] = row
+                return
+            previous = by_code[codice]
+            source_records = _unique_by_json([*_as_list(previous.get("_source_records")), *_as_list(row.get("_source_records"))])
+            source_files = _unique_by_json([*_as_list(previous.get("_source_files")), *_as_list(row.get("_source_files"))])
+            merged = _deep_merge(previous, row)
+            merged["_source_records"] = source_records
+            merged["_source_files"] = source_files
+            merged["_source_file"] = _text(row.get("_source_file"), _text(previous.get("_source_file")))
+            duplicates.setdefault(codice, []).extend([item for item in source_files if item not in duplicates.get(codice, [])])
+            by_code[codice] = merged
+
+        for item in base_items:
+            if isinstance(item, dict):
+                _add_item(item, source_label=_text(item.get("_source_file"), "legal_knowledge_base.full.json"))
+        for item in module_items:
+            if isinstance(item, dict):
+                _add_item(item, source_label=_text(item.get("_source_file"), "modulo_kb"))
+
+        out = deepcopy(base)
+        out["codici_materia"] = [by_code[codice] for codice in sorted(by_code)]
+        out["moduli"] = _unique_by_json([*_as_list(base.get("moduli")), *_as_list(modules.get("moduli"))])
+        merged_duplicates = _as_dict(base.get("duplicates_merged"))
+        for codice, files in _as_dict(modules.get("duplicates_merged")).items():
+            merged_duplicates.setdefault(codice, [])
+            merged_duplicates[codice] = _unique_by_json([*merged_duplicates[codice], *_as_list(files)])
+        for codice, files in duplicates.items():
+            merged_duplicates.setdefault(codice, [])
+            merged_duplicates[codice] = _unique_by_json([*merged_duplicates[codice], *files])
+        out["duplicates_merged"] = merged_duplicates
+        out["version"] = _text(base.get("version"), "full") + "+moduli"
+        out["n_codici"] = len(out["codici_materia"])
+        return out
 
     @staticmethod
     def _catalog_row_from_kb_item(codice: str, item: dict[str, Any]) -> dict[str, Any]:
@@ -977,6 +1069,23 @@ class GuidaPraticaService:
         }
         out["kb_version"] = _text(self._kb.get("version"))
         out["ultimo_aggiornamento"] = _text(self._kb.get("ultimo_aggiornamento") or self._kb.get("data_generazione"))
+        source_records = [
+            item for item in _as_list(out.get("_source_records")) if isinstance(item, dict)
+        ]
+        if source_records:
+            out["varianti_sorgente_guida"] = [
+                {
+                    "file": _text(item.get("file")),
+                    "macro_area": _text(item.get("denominazione_macro") or item.get("macro_area_id")),
+                    "denominazione": _text(item.get("denominazione")),
+                    "campi_preservati": sorted(
+                        key
+                        for key, value in _as_dict(item.get("record")).items()
+                        if not key.startswith("_") and _text(value)
+                    )[:80],
+                }
+                for item in source_records[:12]
+            ]
         if isinstance(out.get("normativa"), list):
             out["normativa"] = {"riferimenti_primari": deepcopy(out.get("normativa") or []), "riferimenti_secondari": []}
         elif not isinstance(out.get("normativa"), dict):

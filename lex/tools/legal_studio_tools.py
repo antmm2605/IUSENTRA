@@ -7,6 +7,8 @@ fascicoli, agenda, scadenze, economico, telematico, normativa, redazione.
 from __future__ import annotations
 
 from datetime import date, timedelta
+import os
+from pathlib import Path
 from typing import Any
 
 
@@ -39,6 +41,43 @@ def _format_data(d: Any) -> str:
         except Exception:
             continue
     return text
+
+
+def _normative_manager():
+    helpers = _safe_import("web.helpers")
+    if helpers is not None:
+        getter = getattr(helpers, "get_normative_tables", None)
+        if getter is not None:
+            try:
+                return getter()
+            except Exception:
+                pass
+    mod = _safe_import("pct.normative_tables")
+    if mod is None:
+        return None
+    manager_cls = getattr(mod, "GestioneTabelleNormative", None)
+    if manager_cls is None:
+        return None
+    candidates = [
+        os.environ.get("NORMATIVE_TABLES_DB"),
+        os.environ.get("PCT_NORMATIVE_TABLES_DB"),
+        os.environ.get("IUSENTRA_NORMATIVE_TABLES_DB"),
+        str(Path("data") / "intelligence" / "tabelle_normative.json"),
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            return manager_cls(str(candidate))
+        except Exception:
+            continue
+    return None
+
+
+def _normative_match(payload: dict[str, Any], query: str) -> bool:
+    tokens = [token for token in str(query or "").lower().replace("-", " ").split() if len(token) >= 2][:8]
+    haystack = " ".join(str(value or "") for value in payload.values()).lower()
+    return bool(tokens) and all(token in haystack for token in tokens)
 
 
 # ------------------------------------------------------------------ #
@@ -516,14 +555,60 @@ def search_normativa(query: str, *, limit: int = 5) -> dict[str, Any]:
     if not query:
         return {"ok": False, "errore": "query mancante", "risultati": []}
     try:
-        mod = _safe_import("pct.normative_tables")
-        if mod is None:
+        manager = _normative_manager()
+        if manager is None:
             return {"ok": True, "risultati": [], "fonte": "database normativo non disponibile"}
-        fn = getattr(mod, "search_normativa", None) or getattr(mod, "cerca_norma", None)
-        if fn is None:
-            return {"ok": True, "risultati": [], "fonte": "funzione di ricerca non disponibile"}
-        risultati = fn(query, limit=limit)
-        return {"ok": True, "risultati": list(risultati or []), "query": query}
+        snapshot = manager.snapshot()
+        risultati: list[dict[str, Any]] = []
+        for table in list(snapshot.get("tabelle") or []):
+            if not isinstance(table, dict):
+                continue
+            sample_rows: list[dict[str, Any]] = []
+            try:
+                sample_rows = list(manager.rows(str(table.get("id") or "")) or [])[:3]
+            except Exception:
+                sample_rows = []
+            payload = {
+                "tipo": "tabella_normativa",
+                "id": table.get("id"),
+                "titolo": table.get("title"),
+                "categoria": table.get("category"),
+                "descrizione": table.get("description"),
+                "stato": table.get("sync_status"),
+                "ultimo_aggiornamento": table.get("last_synced_at"),
+                "avviso": table.get("last_warning"),
+                "fonti": table.get("sources") or [],
+                "righe_campione": sample_rows,
+            }
+            if _normative_match(payload, query):
+                risultati.append(payload)
+        try:
+            references = list(manager.catalogo_riferimenti_normativi() or [])
+        except Exception:
+            references = list(snapshot.get("riferimenti_normativi") or [])
+        for row in references:
+            if not isinstance(row, dict):
+                continue
+            payload = {
+                "tipo": "riferimento_normativo",
+                "id": row.get("reference_code"),
+                "titolo": row.get("title"),
+                "articolo": row.get("article"),
+                "descrizione": row.get("description"),
+                "url": row.get("url"),
+                "aree": row.get("areas") or [],
+                "tipologie": row.get("tipologie_labels") or [],
+                "motori": row.get("motori") or [],
+                "redattori": row.get("redattori") or [],
+            }
+            if _normative_match(payload, query):
+                risultati.append(payload)
+        return {
+            "ok": True,
+            "risultati": risultati[: max(1, int(limit or 1))],
+            "query": query,
+            "fonte": "DB normativa IUSENTRA tenant-aware",
+        }
     except Exception as exc:
         return {"ok": False, "errore": str(exc), "risultati": []}
 
@@ -794,14 +879,13 @@ def lookup_normativa_table(codice_norma: str) -> dict[str, Any]:
     if not codice_norma:
         return {"ok": False, "errore": "codice_norma mancante"}
     try:
-        mod = _safe_import("pct.normative_tables")
-        if mod is None:
-            return {"ok": False, "errore": "modulo normative_tables non disponibile"}
-        fn = getattr(mod, "lookup_norma", None) or getattr(mod, "get_norma", None)
-        if fn is None:
-            return {"ok": True, "testo": None, "nota": "lookup non disponibile"}
-        risultato = fn(codice_norma)
-        return {"ok": True, "codice": codice_norma, "testo": risultato}
+        result = search_normativa(codice_norma, limit=8)
+        return {
+            "ok": bool(result.get("ok")),
+            "codice": codice_norma,
+            "risultati": result.get("risultati") or [],
+            "fonte": result.get("fonte") or "DB normativa IUSENTRA",
+        }
     except Exception as exc:
         return {"ok": False, "errore": str(exc)}
 

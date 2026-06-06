@@ -1,0 +1,167 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "name": "readiness 8080",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "stato": "pronto",
+        "timestamp": "2026-06-06T19:33:05.870190",
+        "versione": "2.249.22"
+      }
+    },
+    {
+      "name": "login eseguito",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/admin/"
+    },
+    {
+      "name": "form impersona presente",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/admin/studi/antonella-mammola"
+    },
+    {
+      "name": "impersonificazione studio",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/"
+    },
+    {
+      "name": "pec disponibili",
+      "ok": true,
+      "detail": {
+        "count": 259
+      }
+    },
+    {
+      "name": "dettaglio PEC candidato",
+      "ok": true,
+      "detail": {
+        "subjects": [
+          "POSTA CERTIFICATA: 32",
+          "POSTA CERTIFICATA: 31",
+          "POSTA CERTIFICATA: 28",
+          "POSTA CERTIFICATA: 28",
+          "POSTA CERTIFICATA: 24",
+          "POSTA CERTIFICATA: Blocco dell'Archivio di Sicurezza: spazio esaurito",
+          "POSTA CERTIFICATA: 23",
+          "POSTA CERTIFICATA: 20"
+        ]
+      }
+    },
+    {
+      "name": "body completo piu ampio",
+      "ok": true,
+      "detail": {
+        "id": "25491ff612ae4ac5854d17912c206025",
+        "subject": "POSTA CERTIFICATA: 32",
+        "body_len": 2784,
+        "preview_len": 121,
+        "attachments": [
+          "daticert.xml",
+          "postacert.eml",
+          "smime.p7s"
+        ],
+        "snippet": "Email ricevuta originale\nOggetto: POSTA CERTIFICATA: 32\nDa: \"Per conto di: giuseppe.montagnese94@pec.it\" <posta-certificata@pec.aruba.it>\nA: roberto.montagnese@coapalmi.legalmail.it\nData: Mon, 01 Jun 2026 18:58:05 +0200\n\n-- Messaggio di posta certificata --\n\nIl giorno 01/06/2026 alle ore 18:58:05 (+0200) il messaggio con oggetto\n\"32\" è stato inviato da \"giuseppe.montagnese94@pec.it\" ed indirizzato a:\n- roberto.montagnese@coapalmi.legalmail.it\nIl messaggio originale è incluso in allegato.\nIdentif",
+        "metrics": {
+          "innerWidth": 1440,
+          "scrollWidth": 1440,
+          "bodyScrollWidth": 1440,
+          "fullDetailCount": 1,
+          "previewCount": 0,
+          "bodyChars": 2784
+        }
+      }
+    },
+    {
+      "name": "contiene struttura completa",
+      "ok": true,
+      "detail": "Email ricevuta originale\nOggetto: POSTA CERTIFICATA: 32\nDa: \"Per conto di: giuseppe.montagnese94@pec.it\" <posta-certificata@pec.aruba.it>\nA: roberto.montagnese@coapalmi.legalmail.it\nData: Mon, 01 Jun 2026 18:58:05 +0200\n\n-- Messaggio di posta certificata --\n\nIl giorno 01/06/2026 alle ore 18:58:05 (+0200) il messaggio con oggetto\n\"32\" è stato inviato da \"giuseppe.montagnese94@pec.it\" ed indirizzato a:\n- roberto.montagnese@coapalmi.legalmail.it\nIl messaggio originale è incluso in allegato.\nIdentificativo messaggio: jpec1312.20260601185805.42885.404.1.1@pec.aruba.it\n\n\n-----------------------------------------------------------------------------------------\n\n-- Certified mail message --\n\nOn 01/06/2026 at 18:58:05 (+0200) the message with subject\n\"32\" was sent by \"giuseppe.montagnese94@pec.it\" "
+    },
+    {
+      "name": "ui messaggio completo visibile",
+      "ok": true,
+      "detail": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nEmail PEC\nPEC\nNotifiche legali\nL.53\nEmail ordinaria\nSMTP\nMessaggi\nNuovo SMS/WA\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\nsab 06 giu\nNuovo\nEMAIL PEC\nCasella PEC dello studio\n\nPosta certificata, mes"
+    },
+    {
+      "name": "ui contiene lettura estesa",
+      "ok": true,
+      "detail": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nEmail PEC\nPEC\nNotifiche legali\nL.53\nEmail ordinaria\nSMTP\nMessaggi\nNuovo SMS/WA\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\nsab 06 giu\nNuovo\nEMAIL PEC\nCasella PEC dello studio\n\nPosta certificata, messaggi PST, allegati, esiti PCT e comunicazioni di cancelleria in una vista professionale unica.\n\nApri casella\nImpostazioni\nAuto-esiti\nAggiorna\nComponi PEC\nTotali\n313\nmessaggi archiviati\nIn arrivo\n259\nricevute in casella\nNon lette\n254\nda lavorare\nInviate\n50\nPEC inviate dallo studio\nCestino\n3\nspostate localmente\nPST/PCT\n54\nmessaggi telematici\nAllegati\n1347\nfile recuperati\nCollegate\n49\nauto-esiti registrati\nIn arrivo\n259\nInviati\n50\nCestino\n3\nFiltri\nDati PEC aggiornati\nLe azioni sono tracciate e separate tra PEC ed email ordinaria.\nAvviso automatico PEC\n5 comunicazioni richiedono presidio: filtra le PEC da lavorare, acquisisce i MIME locali e aggiorna allegati, firme, scadenze e fascicolo quando"
+    },
+    {
+      "name": "blocco completo principale",
+      "ok": true,
+      "detail": {
+        "innerWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "fullDetailCount": 1,
+        "previewCount": 0,
+        "bodyChars": 2784
+      }
+    },
+    {
+      "name": "nessun overflow orizzontale",
+      "ok": true,
+      "detail": {
+        "innerWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "fullDetailCount": 1,
+        "previewCount": 0,
+        "bodyChars": 2784
+      }
+    },
+    {
+      "name": "screenshot salvato",
+      "ok": true,
+      "detail": "artifacts\\react-migration\\email-pec-complete-message-2.249.22.png"
+    },
+    {
+      "name": "console pulita",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "page errors assenti",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "detail": {
+    "id": "25491ff612ae4ac5854d17912c206025",
+    "subject": "POSTA CERTIFICATA: 32",
+    "body_len": 2784,
+    "preview_len": 121,
+    "attachments": [
+      "daticert.xml",
+      "postacert.eml",
+      "smime.p7s"
+    ],
+    "snippet": "Email ricevuta originale\nOggetto: POSTA CERTIFICATA: 32\nDa: \"Per conto di: giuseppe.montagnese94@pec.it\" <posta-certificata@pec.aruba.it>\nA: roberto.montagnese@coapalmi.legalmail.it\nData: Mon, 01 Jun 2026 18:58:05 +0200\n\n-- Messaggio di posta certificata --\n\nIl giorno 01/06/2026 alle ore 18:58:05 (+0200) il messaggio con oggetto\n\"32\" è stato inviato da \"giuseppe.montagnese94@pec.it\" ed indirizzato a:\n- roberto.montagnese@coapalmi.legalmail.it\nIl messaggio originale è incluso in allegato.\nIdentif",
+    "metrics": {
+      "innerWidth": 1440,
+      "scrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "fullDetailCount": 1,
+      "previewCount": 0,
+      "bodyChars": 2784
+    }
+  },
+  "console_errors": [],
+  "page_errors": [],
+  "failed_requests": [
+    {
+      "url": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:8080/api/v1/ui/dashboard",
+      "failure": "net::ERR_ABORTED"
+    }
+  ]
+}

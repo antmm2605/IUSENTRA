@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p6.json",
+  "sha256": "C4A25B3769764C50B2642B0D53C1FD8C73859EE4688573EE254A3DC787D87858",
+  "changed": true,
+  "macro_area_id": "SET32_PARTE6",
+  "denominazione": "PARTE 6 di 8",
+  "codici_materia_originali": [
+    "190040",
+    "199020",
+    "220250",
+    "220255",
+    "220260"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TITOLO_ESECUTIVO_EUROPEO_E_PROCEDURA_EUROPEA_PER_CREDITI_NON_CONTESTATI__190040",
+    "GUIDA_EXEQUATUR_DI_LODO_ARBITRALE_STRANIERO_E_RICONOSCIMENTO_IN_ITALIA_ARTT_83_199020",
+    "GUIDA_INFORTUNI_SUL_LAVORO_AZIONE_CIVILE_DEL_LAVORATORE_E_RIVALSA_INAIL_VERSO__220250",
+    "GUIDA_CONTRATTO_DI_LAVORO_A_TEMPO_PARZIALE_PART_TIME_CONTROVERSIE_TRASFORMAZIO_220255",
+    "GUIDA_PENSIONE_ANTICIPATA_CONTROVERSIE_CON_INPS_SU_REQUISITI_FINESTRE_E_BLOCCO_220260"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190040",
+      "codice_integrato": "GUIDA_TITOLO_ESECUTIVO_EUROPEO_E_PROCEDURA_EUROPEA_PER_CREDITI_NON_CONTESTATI__190040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199020",
+      "codice_integrato": "GUIDA_EXEQUATUR_DI_LODO_ARBITRALE_STRANIERO_E_RICONOSCIMENTO_IN_ITALIA_ARTT_83_199020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220250",
+      "codice_integrato": "GUIDA_INFORTUNI_SUL_LAVORO_AZIONE_CIVILE_DEL_LAVORATORE_E_RIVALSA_INAIL_VERSO__220250",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220255",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_LAVORO_A_TEMPO_PARZIALE_PART_TIME_CONTROVERSIE_TRASFORMAZIO_220255",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220260",
+      "codice_integrato": "GUIDA_PENSIONE_ANTICIPATA_CONTROVERSIE_CON_INPS_SU_REQUISITI_FINESTRE_E_BLOCCO_220260",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

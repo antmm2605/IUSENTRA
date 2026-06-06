@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (18).zip::kb_set27_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p5.json",
+  "sha256": "67B54ACB5338D5E865A0EFE40B76BB2869037737922FBB9D32F5B5199A52001B",
+  "changed": false,
+  "macro_area_id": "SET27_PARTE5",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 5 di 5",
+  "codici_materia_originali": [
+    "240025",
+    "240030",
+    "500010",
+    "512070",
+    "620015"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMPUGNAZIONE_DEL_SILENZIO_INADEMPIMENTO_DELLA_P_A_ART_31_D_LGS_104_2010__240025",
+    "GUIDA_ACCESSO_AGLI_ATTI_AMMINISTRATIVI_RICORSO_PER_DINIEGO_ARTT_22_28_L_241_19_240030",
+    "GUIDA_SOSPENSIONE_DELL_ESECUTIVIT_DELLA_SENTENZA_DI_PRIMO_GRADO_IN_APPELLO_ART_500010",
+    "GUIDA_ESDEBITAZIONE_DEL_DEBITORE_PERSONA_FISICA_POST_LIQUIDAZIONE_CONTROLLATA__512070",
+    "GUIDA_RISTRUTTURAZIONE_DEI_DEBITI_DEL_DEBITORE_CIVILE_NON_IMPRENDITORE_PIANO_D_620015"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240025",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DEL_SILENZIO_INADEMPIMENTO_DELLA_P_A_ART_31_D_LGS_104_2010__240025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240030",
+      "codice_integrato": "GUIDA_ACCESSO_AGLI_ATTI_AMMINISTRATIVI_RICORSO_PER_DINIEGO_ARTT_22_28_L_241_19_240030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500010",
+      "codice_integrato": "GUIDA_SOSPENSIONE_DELL_ESECUTIVIT_DELLA_SENTENZA_DI_PRIMO_GRADO_IN_APPELLO_ART_500010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512070",
+      "codice_integrato": "GUIDA_ESDEBITAZIONE_DEL_DEBITORE_PERSONA_FISICA_POST_LIQUIDAZIONE_CONTROLLATA__512070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620015",
+      "codice_integrato": "GUIDA_RISTRUTTURAZIONE_DEI_DEBITI_DEL_DEBITORE_CIVILE_NON_IMPRENDITORE_PIANO_D_620015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

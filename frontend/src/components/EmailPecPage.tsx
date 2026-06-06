@@ -284,6 +284,7 @@ function isInsideQuery(item: EmailPecRow, query: string): boolean {
 }
 
 function isPecOperationalWarning(item: EmailPecRow): boolean {
+  if (item.pecPresidiata) return false
   const auditWarning = Boolean(item.pecAudit && item.pecAudit.qualityTone !== 'success')
   const status = item.pctStatus || ''
   const pctWarning = Boolean(status && (status.includes('RIFIUT') || status.includes('ERRORE') || status.includes('WARN')))
@@ -347,6 +348,22 @@ function ConfidenceChip({ label, field }: { label: string; field?: PecAuditField
       </TooltipContent>
     </Tooltip>
   )
+}
+
+type MailActionPayload = {
+  ok?: boolean
+  messaggio?: string
+  message?: string
+  errore?: string
+  sync_errore?: string
+  warning?: boolean
+  nuove?: number
+  allegati_salvati?: number
+  run_id?: string
+  has_more?: boolean
+  cursor_index?: number
+  total_emails?: number
+  batch_size?: number
 }
 
 function PecAuditBadges({ audit }: { audit?: PecAuditSummary }) {
@@ -421,6 +438,98 @@ function PecDepositLifecycle({ audit }: { audit?: PecAuditSummary }) {
   )
 }
 
+function profileValue(audit: PecAuditSummary | undefined, key: string): string {
+  return text(record(audit?.proceduralProfile)[key])
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => text(item)).filter(Boolean) : []
+}
+
+function recordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.map((item) => record(item)).filter((item) => Object.keys(item).length > 0) : []
+}
+
+function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSummary; compact?: boolean }) {
+  if (!audit) return null
+  const profile = record(audit.proceduralProfile)
+  const remote = record(profile.remote_hearing ?? profile.remoteHearing)
+  const facts = [
+    ['Ufficio', profileValue(audit, 'ufficio')],
+    ['Giudice', profileValue(audit, 'giudice')],
+    ['RG', profileValue(audit, 'numero_rg')],
+    ['Evento', profileValue(audit, 'tipo_evento') || profileValue(audit, 'oggetto_evento')],
+    ['Udienza', profileValue(audit, 'udienza_data_ora')],
+    ['Modalità', profileValue(audit, 'modalita_udienza')],
+  ].filter(([, value]) => value)
+  const links = recordArray(remote.links)
+  const times = stringArray(remote.times)
+  const pdfPending = stringArray(remote.pdf_pending ?? remote.pdfPending)
+  const pdfSources = stringArray(remote.pdf_sources ?? remote.pdfSources)
+  const warnings = stringArray(remote.warnings)
+  const checklist = (audit.lawyerChecklist.length ? audit.lawyerChecklist : stringArray(profile.checklist_avvocato)).slice(0, compact ? 3 : 5)
+  if (!facts.length && !Object.keys(remote).length && !checklist.length) return null
+  const mode = text(remote.mode) || profileValue(audit, 'modalita_udienza')
+  const remoteDetected = Boolean(remote.detected || remote.pdf_required || remote.pdfRequired || links.length || mode)
+  return (
+    <section className={`iu-pec-procedural-profile${compact ? ' is-compact' : ''}`} aria-label="Profilo processuale PEC">
+      <header>
+        <span>Profilo processuale</span>
+        <strong>{profileValue(audit, 'fase_pratica') || 'Evento da presidiare'}</strong>
+      </header>
+      {facts.length ? (
+        <div className="iu-pec-profile-facts">
+          {facts.map(([label, value]) => (
+            <span key={`${label}-${value}`}><b>{label}</b>{value}</span>
+          ))}
+        </div>
+      ) : null}
+      {remoteDetected ? (
+        <div className="iu-pec-remote-hearing">
+          <div>
+            <Clock3 size={14} />
+            <span>
+              <b>{mode ? `Udienza ${mode}` : 'Udienza da remoto'}</b>
+              {times.length ? ` - ${times[0]}` : profileValue(audit, 'udienza_data_ora') ? ` - ${profileValue(audit, 'udienza_data_ora')}` : ''}
+            </span>
+          </div>
+          {links.length ? (
+            <div className="iu-pec-remote-links">
+              {links.slice(0, 3).map((item) => {
+                const url = text(item.url)
+                if (!url) return null
+                const exact = item.exact === true || item.exact_match === true || item.exactMatch === true
+                const integrity = text(item.integrity)
+                return (
+                  <span key={url}>
+                    <a href={url} target="_blank" rel="noreferrer">{url}</a>
+                    <small>{exact || integrity === 'exact' ? 'Link verificato identico alla fonte letta.' : 'Link da verificare aprendo il PDF originale.'}</small>
+                  </span>
+                )
+              })}
+            </div>
+          ) : (
+            <p>
+              <Paperclip size={14} />
+              {pdfPending.length
+                ? `Leggere/OCR il PDF per il link: ${pdfPending.slice(0, 3).join(', ')}.`
+                : pdfSources.length
+                  ? `Verificare nel PDF letto le istruzioni di collegamento: ${pdfSources.slice(0, 3).join(', ')}.`
+                  : 'Verificare negli allegati PDF il link di collegamento e le istruzioni di accesso.'}
+            </p>
+          )}
+          {warnings.slice(0, 2).map((warning) => <small key={warning}>{warning}</small>)}
+        </div>
+      ) : null}
+      {checklist.length ? (
+        <ul className="iu-pec-lawyer-checklist">
+          {checklist.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      ) : null}
+    </section>
+  )
+}
+
 function PecAuditInlineNotice({
   audit,
   onAction,
@@ -461,6 +570,7 @@ function PecAuditInlineNotice({
             <PecAuditBadges audit={audit} />
           </div>
         </header>
+        <PecProceduralProfile audit={audit} />
         <div className="iu-pec-audit-grid">
           <article>
             <h3>Campi estratti</h3>
@@ -471,6 +581,8 @@ function PecAuditInlineNotice({
               <ConfidenceChip label="Ricevuta" field={fieldConfidence(audit, 'tipo_ricevuta')} />
               <ConfidenceChip label="Protocollo" field={fieldConfidence(audit, 'protocollo')} />
               <ConfidenceChip label="Contesto" field={fieldConfidence(audit, 'contesto_legale')} />
+              <ConfidenceChip label="Udienza" field={fieldConfidence(audit, 'orario_udienza')} />
+              <ConfidenceChip label="Modalità" field={fieldConfidence(audit, 'modalita_udienza')} />
             </div>
             <small>Le percentuali indicano la qualità dell'estrazione automatica, non una decisione legale conclusiva.</small>
           </article>
@@ -563,6 +675,7 @@ function PecAuditSidebarPanel({
             </div>
           </div>
           <PecDepositLifecycle audit={audit} />
+          <PecProceduralProfile audit={audit} compact />
           <div className="iu-pec-sidebar-confidence" aria-label="Confidence campi PEC">
             <ConfidenceChip label="Mittente" field={fieldConfidence(audit, 'mittente')} />
             <ConfidenceChip label="Invio" field={fieldConfidence(audit, 'data_invio')} />
@@ -570,6 +683,8 @@ function PecAuditSidebarPanel({
             <ConfidenceChip label="Ricevuta" field={fieldConfidence(audit, 'tipo_ricevuta')} />
             <ConfidenceChip label="Protocollo" field={fieldConfidence(audit, 'protocollo')} />
             <ConfidenceChip label="Contesto" field={fieldConfidence(audit, 'contesto_legale')} />
+            <ConfidenceChip label="Udienza" field={fieldConfidence(audit, 'orario_udienza')} />
+            <ConfidenceChip label="Modalità" field={fieldConfidence(audit, 'modalita_udienza')} />
           </div>
           <small>Le percentuali indicano la qualità dell'estrazione automatica, non una decisione legale conclusiva.</small>
           <p className="iu-pec-sidebar-outcome">{auditOutcomeText(audit)} <b>Azione suggerita:</b> {auditSuggestedAction(audit)}</p>
@@ -814,7 +929,7 @@ function PecSaveMatterDialog({
   )
 }
 
-async function postMailAction(url: string, label: string): Promise<string> {
+async function postMailActionPayload(url: string, label: string): Promise<MailActionPayload> {
   if (!url) throw new Error(`${label}: percorso operativo non configurato`)
   const response = await fetch(url, {
     method: 'POST',
@@ -823,18 +938,14 @@ async function postMailAction(url: string, label: string): Promise<string> {
   })
   if (!response.ok) throw new Error(`${label}: operazione non completata`)
   const contentType = response.headers.get('content-type') || ''
-  if (!contentType.includes('application/json')) return `${label}: operazione eseguita.`
-  const payload = await response.json() as {
-    ok?: boolean
-    messaggio?: string
-    message?: string
-    errore?: string
-    sync_errore?: string
-    warning?: boolean
-    nuove?: number
-    allegati_salvati?: number
-  }
+  if (!contentType.includes('application/json')) return { ok: true, message: `${label}: operazione eseguita.` }
+  const payload = await response.json() as MailActionPayload
   if (payload.ok === false) throw new Error(payload.errore || `${label}: errore operativo`)
+  return payload
+}
+
+async function postMailAction(url: string, label: string): Promise<string> {
+  const payload = await postMailActionPayload(url, label)
   if (payload.warning && payload.sync_errore) {
     return `${payload.messaggio || payload.message || `${label}: completata con avvisi.`} ${payload.sync_errore}`
   }
@@ -919,6 +1030,7 @@ function EmailListRow({
         <span className="iu-mail-preview">{item.preview || 'Nessuna anteprima disponibile.'}</span>
         <span className="iu-mail-tags">
           {item.auditOnly ? <Badge tone="info"><ShieldCheck size={12} /> Audit PEC</Badge> : includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
+          {includeTelematic && item.pecPresidiata ? <Badge tone="success"><CheckCircle2 size={12} /> Presidiata</Badge> : null}
           {includeTelematic && item.pctStatus ? <Badge tone={item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') ? 'danger' : 'warning'}>{item.pctStatus}</Badge> : null}
           {includeTelematic ? <PecAuditBadges audit={item.pecAudit} /> : null}
           {item.attachmentCount ? <em><Paperclip size={12} /> {item.attachmentCount}</em> : null}
@@ -943,21 +1055,35 @@ function EmailFullDetail({
   }
   if (!detail?.item) return null
   const bodyText = detail.bodyText || detail.item.preview
+  const hasHtmlVersion = Boolean(detail.bodyHtml)
+  const bodyState = detail.bodyCompleteness || ''
+  const hasOriginal = bodyState === 'originale_acquisito'
+  const title = hasOriginal ? 'Messaggio completo' : bodyState === 'presidio_pec' ? 'Testo del presidio PEC' : 'Testo disponibile'
+  const stateLabel = detail.bodyCompletenessLabel || (
+    hasOriginal
+      ? 'EML originale acquisito.'
+      : 'Acquisisci il MIME originale per vedere la PEC completa.'
+  )
   return (
-    <div className="iu-mail-full-detail" aria-label="Messaggio completo">
+    <div className="iu-mail-full-detail" aria-label={title}>
       <header>
-        <strong>Messaggio completo</strong>
+        <div>
+          <strong>{title}</strong>
+          <small>{stateLabel}</small>
+        </div>
         <span>{detail.attachments.length} allegati</span>
       </header>
-      {detail.bodyHtml ? (
-        <iframe
-          title="Corpo HTML email"
-          sandbox=""
-          srcDoc={detail.bodyHtml}
-        />
-      ) : (
-        <pre>{bodyText || 'Nessun testo disponibile per questo messaggio.'}</pre>
-      )}
+      <pre>{bodyText || 'Nessun testo disponibile per questo messaggio.'}</pre>
+      {hasHtmlVersion ? (
+        <details className="iu-mail-html-version">
+          <summary>Versione grafica originale</summary>
+          <iframe
+            title="Versione grafica email"
+            sandbox=""
+            srcDoc={detail.bodyHtml}
+          />
+        </details>
+      ) : null}
       {detail.attachments.length ? (
         <div className="iu-mail-attachments">
           {detail.attachments.map((attachment) => (
@@ -1013,6 +1139,7 @@ function EmailPreview({
         <div className="iu-mail-preview-status">
           {item.unread ? <Badge tone="primary">Non letta</Badge> : <Badge tone="success">Letta</Badge>}
           {copy.includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
+          {copy.includeTelematic && item.pecPresidiata ? <Badge tone="success"><CheckCircle2 size={12} /> Presidiata</Badge> : null}
           {copy.includeTelematic ? <PecAuditBadges audit={detail?.pecAudit ?? item.pecAudit} /> : null}
         </div>
       </header>
@@ -1032,7 +1159,9 @@ function EmailPreview({
           </div>
         </div>
       ) : null}
-      <p className="iu-mail-body-preview">{item.preview || 'Nessuna anteprima testuale disponibile. Apri la vista completa per leggere HTML e allegati.'}</p>
+      {!detail?.item ? (
+        <p className="iu-mail-body-preview">{item.preview || 'Caricamento del messaggio completo in corso.'}</p>
+      ) : null}
       {copy.includeTelematic ? <PecAuditInlineNotice audit={detail?.pecAudit ?? item.pecAudit} onAction={onAction} /> : null}
       <footer>
         <Button variant="primary" href={item.detailHref}><Eye size={15} /> Apri</Button>
@@ -1062,9 +1191,9 @@ function PecInspector({
   selectedAudit?: PecAuditSummary
   onAction: (url: string, label: string) => void
 }) {
-  const pstWaiting = rows.filter((item) => item.isPst && !item.pctStatus).slice(0, 4)
-  const pctAlerts = rows.filter((item) => item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))).slice(0, 4)
-  const auditAlerts = rows.filter((item) => item.pecAudit && item.pecAudit.qualityTone !== 'success').slice(0, 4)
+  const pstWaiting = rows.filter((item) => item.isPst && !item.pctStatus && !item.pecPresidiata).slice(0, 4)
+  const pctAlerts = rows.filter((item) => !item.pecPresidiata && item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))).slice(0, 4)
+  const auditAlerts = rows.filter((item) => !item.pecPresidiata && item.pecAudit && item.pecAudit.qualityTone !== 'success').slice(0, 4)
   return (
     <aside className="iu-mail-inspector">
       <Panel title="Cabina PEC" subtitle="Controlli utili per studio legale" icon={<ShieldCheck size={17} />}>
@@ -1414,7 +1543,33 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
     }
     setPresidioWorking(true)
     setStatusLine('Presidio PEC in corso: acquisisco i MIME locali e aggiorno allegati, firme e scadenze disponibili.')
-    postMailAction(data.actions.pecLocalAcquire, 'Presidio PEC')
+    const runAllBlocks = async () => {
+      let runId = ''
+      let message = ''
+      let hasMore = true
+      let rounds = 0
+      while (hasMore && rounds < 240) {
+        const separator = data.actions.pecLocalAcquire.includes('?') ? '&' : '?'
+        const url = runId ? `${data.actions.pecLocalAcquire}${separator}run_id=${encodeURIComponent(runId)}` : data.actions.pecLocalAcquire
+        const payload = await postMailActionPayload(url, 'Presidio PEC')
+        rounds += 1
+        runId = payload.run_id || runId
+        hasMore = payload.has_more === true
+        const done = Number(payload.cursor_index || 0)
+        const total = Number(payload.total_emails || 0)
+        message = payload.messaggio || payload.message || 'Presidio PEC aggiornato.'
+        if (hasMore && total) {
+          setStatusLine(`${message} Avanzamento ${done}/${total}.`)
+        } else {
+          setStatusLine(message)
+        }
+      }
+      if (hasMore) {
+        throw new Error('Presidio PEC sospeso: raggiunto il limite di sicurezza dei blocchi, rilancia il controllo per proseguire.')
+      }
+      return message || 'Presidio PEC completato.'
+    }
+    runAllBlocks()
       .then((message) => {
         setStatusLine(message)
         setOnlyWarnings(true)

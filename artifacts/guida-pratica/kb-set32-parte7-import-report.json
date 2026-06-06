@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p7.json",
+  "sha256": "6DDBF00DA246A2A5E6998BA2C957841CE12326D04E7C5709657C5A816C9FE0FA",
+  "changed": true,
+  "macro_area_id": "SET32_PARTE7",
+  "denominazione": "PARTE 7 di 8",
+  "codici_materia_originali": [
+    "220265",
+    "220270",
+    "240060",
+    "240065",
+    "412010"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DISTACCO_DEL_LAVORATORE_CONDIZIONI_DI_LEGITTIMIT_CONSENSO_E_CONTROVERSIE_220265",
+    "GUIDA_DEMANSIONAMENTO_E_MODIFICA_UNILATERALE_DELLE_MANSIONI_ART_2103_C_C_RIFOR_220270",
+    "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_E_LACUALE_RINNOVO_DECADENZA_E_CONTROVERS_240060",
+    "GUIDA_LEGGE_PINTO_INDENNIZZO_PER_IRRAGIONEVOLE_DURATA_DEL_PROCESSO_L_89_2001_240065",
+    "GUIDA_IMPUGNAZIONE_DEL_RICONOSCIMENTO_DI_PATERNIT_DA_PARTE_DI_TERZI_INTERESSAT_412010"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220265",
+      "codice_integrato": "GUIDA_DISTACCO_DEL_LAVORATORE_CONDIZIONI_DI_LEGITTIMIT_CONSENSO_E_CONTROVERSIE_220265",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220270",
+      "codice_integrato": "GUIDA_DEMANSIONAMENTO_E_MODIFICA_UNILATERALE_DELLE_MANSIONI_ART_2103_C_C_RIFOR_220270",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240060",
+      "codice_integrato": "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_E_LACUALE_RINNOVO_DECADENZA_E_CONTROVERS_240060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240065",
+      "codice_integrato": "GUIDA_LEGGE_PINTO_INDENNIZZO_PER_IRRAGIONEVOLE_DURATA_DEL_PROCESSO_L_89_2001_240065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "412010",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DEL_RICONOSCIMENTO_DI_PATERNIT_DA_PARTE_DI_TERZI_INTERESSAT_412010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

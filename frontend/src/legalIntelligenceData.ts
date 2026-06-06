@@ -63,6 +63,27 @@ export type LegalAutofetchSource = {
   sourceName: string
   status: string
   reason: string
+  deliveryStatus: string
+  deliveryStatusLabel: string
+  deliveryTone: LegalTone
+  deliveryRegistry: string
+  authority: string
+  sourceHref: string
+  lawyerUse: string
+  practicePhase: string
+  expectedOutput: string
+  professionalContext: string
+  activationAction: string
+  lexTestQuestion: string
+  lawyerAction: string
+  systemAction: string
+  publicationStatusLabel: string
+  destinations: string[]
+  legalMaterials: string[]
+  articlesAndCodes: string[]
+  decreesAndRules: string[]
+  caseLawAndHearings: string[]
+  researchSteps: string[]
   rawDocuments: number
   normalizedDocuments: number
   reviewPending: number
@@ -92,6 +113,15 @@ export type LegalAutofetchQueue = {
   skipped: number
 }
 
+export type LegalAutofetchLawyerReadiness = {
+  status: string
+  operationalSources: number
+  actionRequiredSources: number
+  lexTestableSources: number
+  sourcesWithCaseLaw: number
+  sourcesWithDecrees: number
+}
+
 export type LegalAutofetchMonitor = {
   generatedAt: string
   sourcesTotal: number
@@ -100,6 +130,7 @@ export type LegalAutofetchMonitor = {
   qualityQuestions: string[]
   readiness: LegalAutofetchReadiness
   queue: LegalAutofetchQueue
+  lawyerReadiness: LegalAutofetchLawyerReadiness
   sources: LegalAutofetchSource[]
 }
 
@@ -143,6 +174,14 @@ export const emptyLegalIntelligencePage: LegalIntelligencePageData = {
       failed: 0,
       timeout: 0,
       skipped: 0,
+    },
+    lawyerReadiness: {
+      status: '',
+      operationalSources: 0,
+      actionRequiredSources: 0,
+      lexTestableSources: 0,
+      sourcesWithCaseLaw: 0,
+      sourcesWithDecrees: 0,
     },
     sources: [],
   },
@@ -253,8 +292,29 @@ function normaliseAutofetchSource(input: unknown): LegalAutofetchSource {
   return {
     sourceCode: text(item.source_code) || text(item.sourceCode) || text(item.id) || 'fonte',
     sourceName: display(item.source_name) || display(item.sourceName) || display(item.label) || 'Fonte',
-    status: display(item.status) || 'da verificare',
+    status: display(item.status) || 'controllo sistema',
     reason: display(item.reason),
+    deliveryStatus: display(item.delivery_status ?? item.deliveryStatus),
+    deliveryStatusLabel: display(item.delivery_status_label ?? item.deliveryStatusLabel),
+    deliveryTone: tone(item.delivery_tone ?? item.deliveryTone),
+    deliveryRegistry: display(item.delivery_registry ?? item.deliveryRegistry),
+    authority: display(item.authority),
+    sourceHref: safeHref(item.source_href ?? item.sourceHref),
+    lawyerUse: display(item.lawyer_use ?? item.lawyerUse),
+    practicePhase: display(item.practice_phase ?? item.practicePhase),
+    expectedOutput: display(item.expected_output ?? item.expectedOutput),
+    professionalContext: display(item.professional_context ?? item.professionalContext),
+    activationAction: display(item.activation_action ?? item.activationAction),
+    lexTestQuestion: display(item.lex_test_question ?? item.lexTestQuestion),
+    lawyerAction: display(item.lawyer_action ?? item.lawyerAction),
+    systemAction: display(item.system_action ?? item.systemAction),
+    publicationStatusLabel: display(item.publication_status_label ?? item.publicationStatusLabel),
+    destinations: textList(item.destinations),
+    legalMaterials: textList(item.legal_materials ?? item.legalMaterials),
+    articlesAndCodes: textList(item.articles_and_codes ?? item.articlesAndCodes),
+    decreesAndRules: textList(item.decrees_and_rules ?? item.decreesAndRules),
+    caseLawAndHearings: textList(item.case_law_and_hearings ?? item.caseLawAndHearings),
+    researchSteps: textList(item.research_steps ?? item.researchSteps),
     rawDocuments: integer(item.raw_documents ?? item.rawDocuments),
     normalizedDocuments: integer(item.normalized_documents ?? item.normalizedDocuments),
     reviewPending: integer(item.review_pending ?? item.reviewPending),
@@ -270,6 +330,7 @@ function normaliseAutofetchMonitor(input: unknown): LegalAutofetchMonitor {
   const item = asRecord(input)
   const readiness = asRecord(item.readiness)
   const queue = asRecord(item.queue)
+  const lawyerReadiness = asRecord(item.lawyer_readiness ?? item.lawyerReadiness)
   return {
     generatedAt: display(item.generated_at ?? item.generatedAt),
     sourcesTotal: integer(item.sources_total ?? item.sourcesTotal),
@@ -292,6 +353,14 @@ function normaliseAutofetchMonitor(input: unknown): LegalAutofetchMonitor {
       failed: integer(queue.failed),
       timeout: integer(queue.timeout),
       skipped: integer(queue.skipped),
+    },
+    lawyerReadiness: {
+      status: display(lawyerReadiness.status),
+      operationalSources: integer(lawyerReadiness.operational_sources ?? lawyerReadiness.operationalSources),
+      actionRequiredSources: integer(lawyerReadiness.action_required_sources ?? lawyerReadiness.actionRequiredSources),
+      lexTestableSources: integer(lawyerReadiness.lex_testable_sources ?? lawyerReadiness.lexTestableSources),
+      sourcesWithCaseLaw: integer(lawyerReadiness.sources_with_case_law ?? lawyerReadiness.sourcesWithCaseLaw),
+      sourcesWithDecrees: integer(lawyerReadiness.sources_with_decrees ?? lawyerReadiness.sourcesWithDecrees),
     },
     sources: list(item.sources).map(normaliseAutofetchSource).filter((source) => source.sourceCode),
   }

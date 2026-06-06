@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
+import os
 import re
 from typing import Any
 
@@ -551,6 +552,21 @@ class OperationalKnowledgeTools:
             return self._unavailable("pec_control_tower", "PEC Control Tower non ancora disponibile per questo studio.")
         try:
             payload = repo.answer_question(question, limit=limit)
+            if not list(payload.get("items") or []):
+                backfill = self._backfill_pec_control_tower(context, repo)
+                if backfill:
+                    if int(backfill.get("processed") or 0) or int(backfill.get("ingested") or 0):
+                        payload = repo.answer_question(question, limit=limit)
+                    payload["runtime_backfill"] = backfill
+                    if not list(payload.get("items") or []):
+                        gaps = list(payload.get("coverage_gaps") or [])
+                        gaps.append(
+                            "Archivio PEC reale controllato prima della risposta: "
+                            f"{backfill.get('relevant', 0)} elementi PEC pertinenti, "
+                            f"{backfill.get('processed', 0)} MIME letti, "
+                            f"{backfill.get('skipped_missing_mime', 0)} senza MIME leggibile."
+                        )
+                        payload["coverage_gaps"] = list(dict.fromkeys(str(item) for item in gaps if str(item or "").strip()))
         except Exception as exc:
             return self._unavailable("pec_control_tower", f"PEC Control Tower non interrogabile: {exc}")
         result = self._plain_result("pec_control_tower", context, [payload], "pec_control_answer")
@@ -634,6 +650,90 @@ class OperationalKnowledgeTools:
             return self._unavailable("template_atti", f"Template atti non interrogabili: {exc}")
         return self._filter_text_rows("template_atti", context, rows, query, limit, decision, "template_atto")
 
+    def search_template_atti_sources(self, query: str, context: OperationalQueryContext, *, limit: int = 12) -> OperationalToolResult:
+        decision = self._decision("template_atti_fonti_ufficiali", context)
+        if not decision.allowed:
+            return self._blocked("template_atti_fonti_ufficiali", decision)
+        try:
+            from pct.template_atti_legal_sources import template_atti_sources_for_model
+            from pct.template_atti_unified_catalog import iter_all_templates
+
+            terms = _terms(query)
+            scored_rows: list[tuple[int, dict[str, Any]]] = []
+            for item in iter_all_templates(refresh=False):
+                payload = {
+                    "codice": clean_spaces(item.get("codice")),
+                    "titolo": clean_spaces(item.get("titolo") or item.get("name")),
+                    "area": " ".join(
+                        clean_spaces(item.get(key))
+                        for key in ("area", "materia", "macro_area", "canale_deposito", "processo_area", "cartabia_profile")
+                        if clean_spaces(item.get(key))
+                    ),
+                }
+                for source in template_atti_sources_for_model(
+                    model_code=payload["codice"],
+                    model_name=payload["titolo"],
+                    area=payload["area"],
+                ):
+                    haystack = " ".join(
+                        clean_spaces(value)
+                        for value in (
+                            payload["codice"],
+                            payload["titolo"],
+                            payload["area"],
+                            source.get("id"),
+                            source.get("title"),
+                            source.get("source_title"),
+                            source.get("article"),
+                            source.get("reason_for_application"),
+                            source.get("coverage_role"),
+                            source.get("source_type"),
+                        )
+                    ).casefold()
+                    exact_code = payload["codice"].casefold() == clean_spaces(query).casefold()
+                    score = 100 if exact_code else sum(1 for term in terms if term in haystack)
+                    if terms and score <= 0:
+                        continue
+                    scored_rows.append(
+                        (
+                            score,
+                            {
+                                "id": f"{payload['codice']}::{source.get('id')}",
+                                "template_code": payload["codice"],
+                                "template_title": payload["titolo"],
+                                "title": source.get("title"),
+                                "source_title": source.get("source_title"),
+                                "article": source.get("article"),
+                                "official_url": source.get("official_url"),
+                                "coverage_role": source.get("coverage_role"),
+                                "source_type": source.get("source_type"),
+                                "scope": source.get("scope"),
+                                "reason": source.get("reason_for_application"),
+                                "last_verified_at": source.get("last_verified_at"),
+                                "verification_status": source.get("verification_status"),
+                                "deprecated": bool(source.get("deprecated")),
+                                "score": score,
+                                "action_url": f"/template-atti/compila/{payload['codice']}",
+                            },
+                        )
+                    )
+            scored_rows.sort(key=lambda item: (-item[0], str(item[1].get("template_code") or ""), str(item[1].get("id") or "")))
+            rows = []
+            seen: set[str] = set()
+            for _, row in scored_rows:
+                key = clean_spaces(row.get("id")).casefold()
+                if key and key in seen:
+                    continue
+                seen.add(key)
+                rows.append(row)
+            result = self._plain_result("template_atti_fonti_ufficiali", context, rows[: max(1, int(limit or 1)) * 12], "fonte_template")
+            result.permission = decision
+            if not rows:
+                result.coverage_gaps.append("Nessuna fonte ufficiale Template Atti trovata per la domanda.")
+            return result
+        except Exception as exc:
+            return self._unavailable("template_atti_fonti_ufficiali", f"Fonti Template Atti non interrogabili: {exc}")
+
     def get_editor_ai_status(self, context: OperationalQueryContext) -> OperationalToolResult:
         decision = self._decision("editor_ai", context)
         if not decision.allowed:
@@ -666,6 +766,81 @@ class OperationalKnowledgeTools:
         }
         return self._plain_result("editor_ai", context, [row], "editor_ai")
 
+    def _legal_intelligence_normative_items(self, manager: Any, query: str, *, limit: int = 12) -> list[dict[str, Any]]:
+        normative_tables = getattr(manager, "normative_tables", None)
+        if normative_tables is None:
+            return []
+        rows_fn = getattr(normative_tables, "rows", None)
+        snapshot_fn = getattr(normative_tables, "snapshot", None)
+        catalog_fn = getattr(normative_tables, "catalogo_riferimenti_normativi", None)
+        try:
+            snapshot = snapshot_fn() if callable(snapshot_fn) else {}
+        except Exception:
+            snapshot = {}
+        items: list[dict[str, Any]] = []
+        for table in list((snapshot if isinstance(snapshot, dict) else {}).get("tabelle") or []):
+            if not isinstance(table, dict):
+                continue
+            table_id = clean_spaces(table.get("id"))
+            sample_rows: list[dict[str, Any]] = []
+            if callable(rows_fn) and table_id:
+                try:
+                    sample_rows = [serialize_generic(row) for row in list(rows_fn(table_id) or [])[:3]]
+                except Exception:
+                    sample_rows = []
+            sources = list(table.get("sources") or [])
+            item = {
+                "kind": "tabella_normativa",
+                "id": table_id,
+                "titolo": clean_spaces(table.get("title") or table_id),
+                "categoria": clean_spaces(table.get("category")),
+                "descrizione": clean_spaces(table.get("description")),
+                "stato": clean_spaces(table.get("sync_status")),
+                "ultimo_aggiornamento": clean_spaces(table.get("last_synced_at")),
+                "avviso": clean_spaces(table.get("last_warning")),
+                "fonti": [
+                    {
+                        "codice": clean_spaces(source.get("code")),
+                        "titolo": clean_spaces(source.get("title")),
+                        "url": clean_spaces(source.get("url")),
+                    }
+                    for source in sources
+                    if isinstance(source, dict)
+                ],
+                "righe_campione": sample_rows,
+                "uso_operativo": _normative_operational_use(table),
+                "controlli_lex": _normative_lex_checks(table),
+            }
+            if _row_matches(item, query):
+                items.append(item)
+        try:
+            references = list(catalog_fn() or []) if callable(catalog_fn) else list((snapshot if isinstance(snapshot, dict) else {}).get("riferimenti_normativi") or [])
+        except Exception:
+            references = list((snapshot if isinstance(snapshot, dict) else {}).get("riferimenti_normativi") or [])
+        for ref in references:
+            if not isinstance(ref, dict):
+                continue
+            item = {
+                "kind": "riferimento_normativo",
+                "id": clean_spaces(ref.get("reference_code") or ref.get("id")),
+                "titolo": clean_spaces(ref.get("title")),
+                "articolo": clean_spaces(ref.get("article")),
+                "descrizione": clean_spaces(ref.get("description")),
+                "url": clean_spaces(ref.get("url")),
+                "aree": list(ref.get("areas") or []),
+                "tipologie": list(ref.get("tipologie_labels") or []),
+                "motori": list(ref.get("motori") or []),
+                "redattori": list(ref.get("redattori") or []),
+                "uso_operativo": "collegare norma, modello, motore di calcolo, scadenziario e strategia del fascicolo",
+                "controlli_lex": [
+                    "verificare testo vigente e fonte prima di citare in atto",
+                    "controllare se il riferimento genera scadenze, costi, prove o modelli da produrre",
+                ],
+            }
+            if _row_matches(item, query):
+                items.append(item)
+        return items[: max(1, int(limit or 1))]
+
     def get_legal_intelligence_items(self, query: str, context: OperationalQueryContext, *, limit: int = 12) -> OperationalToolResult:
         decision = self._decision("legal_intelligence", context)
         if not decision.allowed:
@@ -676,6 +851,7 @@ class OperationalKnowledgeTools:
             fonti = list(_call(manager, "catalogo_fonti") or [])[:limit]
             rows = [{"kind": "alert", **serialize_generic(item)} for item in alerts]
             rows.extend({"kind": "fonte", **serialize_generic(item)} for item in fonti)
+            rows.extend(self._legal_intelligence_normative_items(manager, query, limit=limit))
         except Exception as exc:
             return self._unavailable("legal_intelligence", f"Legal intelligence non disponibile: {exc}")
         return self._plain_result("legal_intelligence", context, rows[:limit], "legal_intelligence")
@@ -710,10 +886,29 @@ class OperationalKnowledgeTools:
             rows = list(((payload.get("data") or {}).get("passages")) or [])
             rows = _filter_specific_official_source_passages(query, rows)
         except Exception as exc:
-            return self._unavailable("fonti_ufficiali", f"Fonti ufficiali non disponibili: {exc}")
+            rows = []
+            engine_error = clean_spaces(str(exc))
+        else:
+            engine_error = ""
+        source_delivery_rows: list[dict[str, Any]] = []
+        if not rows:
+            source_delivery_rows = _source_delivery_rows_for_query(query, limit=limit)
+            rows = source_delivery_rows
+        elif _query_needs_source_delivery_profile(query):
+            source_delivery_rows = _source_delivery_rows_for_query(query, limit=limit)
+            if source_delivery_rows:
+                rows = [*source_delivery_rows, *rows]
         result = self._plain_result("fonti_ufficiali", context, rows, "fonte_ufficiale")
         if not rows:
             result.coverage_gaps.append("Nessuna fonte ufficiale citabile trovata nell'indice locale configurato.")
+        elif engine_error:
+            result.coverage_gaps.append(
+                "Indice locale fonti ufficiali non disponibile; ho usato il catalogo operativo delle fonti già censite."
+            )
+        if rows and any(clean_spaces(row.get("kind")) == "centro_fonti_operativo" for row in rows):
+            result.coverage_gaps.append(
+                "Alcune fonti sono catalogate o governate ma possono richiedere acquisizione del documento prima della citazione in atto."
+            )
         return result
 
     def search_free_public_web(self, query: str, context: OperationalQueryContext, *, limit: int = 4) -> OperationalToolResult:
@@ -976,6 +1171,29 @@ class OperationalKnowledgeTools:
             )
         except Exception:
             return None
+
+    def _backfill_pec_control_tower(self, context: OperationalQueryContext, repo: Any) -> dict[str, Any]:
+        enabled = str(os.getenv("IUSENTRA_PEC_CONTROL_AUTO_BACKFILL", "1") or "1").strip().lower()
+        if enabled in {"0", "false", "no", "off"}:
+            return {}
+        backfill = getattr(repo, "backfill_from_email_archive", None)
+        if not callable(backfill):
+            return {}
+        try:
+            limit = max(1, min(int(os.getenv("IUSENTRA_PEC_CONTROL_AUTO_BACKFILL_LIMIT", "250") or "250"), 5000))
+        except ValueError:
+            limit = 250
+        try:
+            max_seconds = max(1.0, min(float(os.getenv("IUSENTRA_PEC_CONTROL_AUTO_BACKFILL_SECONDS", "6") or "6"), 30.0))
+        except ValueError:
+            max_seconds = 6.0
+        manager = self._safe_manager("email_pec", lambda: self._email_manager("email_pec", context))
+        if manager is None:
+            return {"ok": False, "errors": [{"email_id": "email_pec", "errore": "Casella PEC locale non disponibile."}]}
+        try:
+            return dict(backfill(manager, limit=limit, actor="lex-ai", max_seconds=max_seconds))
+        except Exception as exc:
+            return {"ok": False, "errors": [{"email_id": "pec-control-tower", "errore": str(exc)[:180]}]}
 
     def _list_email_messages(
         self,
@@ -1650,6 +1868,197 @@ def _row_matches(payload: dict[str, Any], query: str) -> bool:
     return not terms or all(term in haystack for term in terms)
 
 
+def _source_delivery_rows_for_query(query: str, *, limit: int = 12) -> list[dict[str, Any]]:
+    try:
+        from scripts.audit_legal_source_delivery import build_audit
+    except Exception:
+        return []
+    try:
+        audit = build_audit()
+    except Exception:
+        return []
+    terms = _terms(query)
+    query_text = clean_spaces(query).lower()
+    scored: list[tuple[int, dict[str, Any]]] = []
+    for row in list(audit.get("sources") or []):
+        if not isinstance(row, dict):
+            continue
+        payload = {
+            "kind": "centro_fonti_operativo",
+            "id": f"centro_fonti::{clean_spaces(row.get('registry'))}::{clean_spaces(row.get('source_id'))}",
+            "title": clean_spaces(row.get("title") or row.get("source_id")),
+            "source_id": clean_spaces(row.get("source_id")),
+            "registry": clean_spaces(row.get("registry")),
+            "authority": clean_spaces(row.get("authority")),
+            "official_url": clean_spaces(row.get("url")),
+            "delivery_status": clean_spaces(row.get("delivery_status")),
+            "state": _source_delivery_status_label(row.get("delivery_status")),
+            "lawyer_use": clean_spaces(row.get("lawyer_use")),
+            "practice_phase": clean_spaces(row.get("practice_phase")),
+            "expected_output": clean_spaces(row.get("expected_output")),
+            "professional_context": clean_spaces(row.get("professional_context")),
+            "activation_action": clean_spaces(row.get("activation_action")),
+            "lex_test_question": clean_spaces(row.get("lex_test_question")),
+            "gap_reason": clean_spaces(row.get("gap_reason")),
+            "destinations": list(row.get("destinations") or []),
+            "topics": list(row.get("topics") or []),
+            "legal_materials": list(row.get("legal_materials") or []),
+            "articles_and_codes": list(row.get("articles_and_codes") or []),
+            "decrees_and_rules": list(row.get("decrees_and_rules") or []),
+            "case_law_and_hearings": list(row.get("case_law_and_hearings") or []),
+            "research_steps": list(row.get("research_steps") or []),
+            "action_url": "/ricerca-legale",
+        }
+        haystack = clean_spaces(" ".join(str(value) for value in payload.values())).lower()
+        score = 0
+        if not terms:
+            score = 1
+        else:
+            score = sum(3 if term in clean_spaces(payload.get("title")).lower() else 1 for term in terms if term in haystack)
+        if score <= 0:
+            continue
+        if payload["delivery_status"] == "operativa_controllabile":
+            score += 4
+        elif payload["delivery_status"] == "da_attivare_controllabile":
+            score += 2
+        if "fonti ufficiali" in query_text and payload["delivery_status"] == "contesto_non_ufficiale":
+            score -= 60
+        score += _source_delivery_specific_boost(query_text, payload)
+        scored.append((score, payload))
+    scored.sort(key=lambda item: (-item[0], str(item[1].get("title") or "")))
+    return [row for _, row in scored[: max(1, int(limit or 1))]]
+
+
+def _source_delivery_specific_boost(query_text: str, payload: dict[str, Any]) -> int:
+    source_id = clean_spaces(payload.get("source_id")).lower()
+    registry = clean_spaces(payload.get("registry")).lower()
+    title = clean_spaces(payload.get("title")).lower()
+    identity = f"{source_id} {registry} {title}"
+    boost = 0
+    exact_sources = (
+        ("codice civile", ("codice_civile",)),
+        ("codice penale", ("codice_penale",)),
+        ("procedura civile", ("codice_procedura_civile", "cpc")),
+        ("procedura penale", ("codice_procedura_penale", "cpp")),
+        ("codice amministrativo", ("codice_processo_amministrativo", "cpa")),
+        ("processo amministrativo", ("codice_processo_amministrativo", "cpa")),
+    )
+    for phrase, source_tokens in exact_sources:
+        if phrase in query_text and any(token in source_id for token in source_tokens):
+            boost += 90
+    if "fonti ufficiali" in query_text and "civile" in query_text:
+        if source_id in {"codice_civile", "normattiva_codice_civile"}:
+            boost += 90
+        elif source_id in {"codice_procedura_civile", "normattiva_cpc"}:
+            boost += 45
+    if "fonti ufficiali" in query_text and "penale" in query_text:
+        if source_id in {"codice_penale", "normattiva_codice_penale"}:
+            boost += 90
+        elif source_id in {"codice_procedura_penale", "normattiva_cpp"}:
+            boost += 45
+    if any(token in query_text for token in ("decreto legislativo", "decreti legislativi", "d.lgs", "legge", "leggi")):
+        if any(token in identity for token in ("normattiva", "gazzetta", "codice_", "codice ")):
+            boost += 14
+    if any(token in query_text for token in ("decreto", "decreti", "ordinanza", "ordinanze")):
+        if any(token in identity for token in ("decreti", "ordinanze", "cassazione", "openga")):
+            boost += 18
+    if any(token in query_text for token in ("sentenza", "sentenze", "giurisprudenza")):
+        if any(token in identity for token in ("sentenze", "cassazione", "giurisprudenza", "openga", "corte")):
+            boost += 22
+    if any(token in query_text for token in ("udienza", "udienze", "calendario")):
+        if any(token in identity for token in ("udienze", "calendario", "openga")):
+            boost += 22
+    if source_id in {"fonti_ufficiali", "template_atti_fonti_ufficiali"}:
+        boost -= 18
+    return boost
+
+
+def _query_needs_source_delivery_profile(query: str) -> bool:
+    text = clean_spaces(query).lower()
+    return any(
+        token in text
+        for token in (
+            "fonti ufficiali",
+            "centro fonti",
+            "articoli",
+            "articolo",
+            "codice",
+            "codici",
+            "codice civile",
+            "codice penale",
+            "procedura civile",
+            "procedura penale",
+            "codice amministrativo",
+            "processo amministrativo",
+            "decreto legislativo",
+            "decreti legislativi",
+            "d.lgs",
+            "decreto ministeriale",
+            "decreti ministeriali",
+            "decreti",
+            "sentenza",
+            "sentenze",
+            "ordinanza",
+            "ordinanze",
+            "udienza",
+            "udienze",
+            "giurisprudenza",
+            "provvedimenti",
+            "regole tecniche",
+        )
+    )
+
+
+def _source_delivery_status_label(status: Any) -> str:
+    value = clean_spaces(status)
+    return {
+        "operativa_controllabile": "operativa e controllabile",
+        "da_attivare_controllabile": "da attivare",
+        "gap": "buco reale da chiudere",
+        "contesto_non_ufficiale": "contesto non ufficiale",
+    }.get(value, value.replace("_", " ") or "da verificare")
+
+
+def _normative_operational_use(row: dict[str, Any]) -> str:
+    haystack = clean_spaces(
+        " ".join(str(row.get(key) or "") for key in ("id", "title", "category", "description"))
+    ).lower()
+    if "contributo_unificato" in haystack:
+        return "calcolare contributo unificato, anticipazioni, valore causa, esenzioni e prova pagamento"
+    if "tariffario" in haystack or "compensi" in haystack:
+        return "preparare preventivo, incarico, compenso, fasi, liquidazione e controllo deontologico/equo compenso"
+    if "interesse" in haystack or "mora" in haystack or "tasso" in haystack or "istat" in haystack:
+        return "calcolare interessi, mora, usura, rivalutazioni, domanda economica e decorrenza"
+    if "pignoramento" in haystack or "assegno_sociale" in haystack:
+        return "valutare esecuzione presso terzi, quota pignorabile, minimo vitale e prova del credito"
+    if "mediazione" in haystack:
+        return "verificare condizione di procedibilità, organismo, costi, inviti, verbale ed effetti sui termini"
+    if "appalti" in haystack or "anac" in haystack:
+        return "controllare soglie, rito, autorità competente, atti di gara e documenti da produrre"
+    return "supportare strategia, modello, fonte, costo, prova o scadenza della pratica"
+
+
+def _normative_lex_checks(row: dict[str, Any]) -> list[str]:
+    haystack = clean_spaces(
+        " ".join(str(row.get(key) or "") for key in ("id", "title", "category", "description"))
+    ).lower()
+    checks = [
+        "identificare fonte primaria o autorità competente prima dell'uso in atto",
+        "collegare il dato a fascicolo, modello, scadenziario, prova e prossima azione",
+    ]
+    if "verifica_richiesta" in clean_spaces(row.get("sync_status")).lower():
+        checks.append("segnalare all'avvocato che la tabella richiede verifica fonte prima dell'uso definitivo")
+    if "tariffario" in haystack or "compensi" in haystack:
+        checks.append("controllare mandato, preventivo, fasi svolte, valore e presidio deontologico")
+    if "interesse" in haystack or "mora" in haystack or "tasso" in haystack:
+        checks.append("controllare capitale, periodo, decorrenza, domanda e documenti di prova")
+    if "pignoramento" in haystack:
+        checks.append("controllare natura credito, art. 545 c.p.c., conto di accredito e limiti speciali")
+    if "mediazione" in haystack:
+        checks.append("controllare materia obbligatoria, invito, termine, organismo e verbale")
+    return checks[:6]
+
+
 _OFFICIAL_LOOKUP_RE = re.compile(
     r"\b(?:r\.?\s*g\.?|rg)?\s*(?P<number>\d{2,7})\s*/\s*(?P<year>(?:19|20)\d{2})\b",
     re.IGNORECASE,
@@ -1849,6 +2258,20 @@ def _date_in_range(value: date | None, start: date, end: date) -> bool:
 
 
 def current_week_range() -> tuple[date, date]:
-    today = date.today()
+    today = _reference_today()
     start = today - timedelta(days=today.weekday())
     return start, start + timedelta(days=6)
+
+
+def current_reference_date() -> date:
+    return _reference_today()
+
+
+def _reference_today() -> date:
+    value = clean_spaces(os.getenv("IUSENTRA_LEX_REFERENCE_DATE"))
+    if value:
+        try:
+            return date.fromisoformat(value[:10])
+        except ValueError:
+            pass
+    return date.today()

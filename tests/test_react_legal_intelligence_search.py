@@ -11,12 +11,26 @@ class _Rows:
         return []
 
 
+class _NormativeTables:
+    def __init__(self, rows_by_table=None, references=None):
+        self.rows_by_table = {key: list(value or []) for key, value in dict(rows_by_table or {}).items()}
+        self.references = list(references or [])
+
+    def rows(self, table_id):
+        return list(self.rows_by_table.get(table_id, []))
+
+    def catalogo_riferimenti_normativi(self):
+        return list(self.references)
+
+
 class _Manager:
-    def __init__(self, *, mediazione_rows=None):
+    def __init__(self, *, mediazione_rows=None, normative_tables=None, normative_rows=None, normative_references=None):
         self.mediazione_rows = list(mediazione_rows or [])
+        self.normative_snapshot = dict(normative_tables or {})
+        self.normative_tables = _NormativeTables(normative_rows, normative_references)
 
     def build_dashboard_snapshot(self, **kwargs):
-        return {"headline": {}, "source_rows": []}
+        return {"headline": {}, "source_rows": [], "normative_tables": self.normative_snapshot}
 
     def mediazione_registry_snapshot(self, **kwargs):
         rows = list(self.mediazione_rows)
@@ -153,12 +167,335 @@ def test_ricerca_legale_espone_monitor_acquisizione_fonti_reali(tmp_path):
     assert monitor["sources_ready"] == 1
     assert monitor["sources_not_ready"] == 1
     assert any(question.startswith("La fonte risulta censita") for question in monitor["quality_questions"])
+    readiness = monitor["lawyer_readiness"]
+    assert readiness["operational_sources"] == 2
+    assert readiness["lex_testable_sources"] == 2
+    assert readiness["sources_with_decrees"] == 2
+    cassazione = next(source for source in monitor["sources"] if source["source_code"] == "cassazione")
+    assert cassazione["delivery_status_label"] == "operativa e controllabile"
+    assert "strategia processuale" in cassazione["lawyer_use"]
+    assert cassazione["practice_phase"] == "strategia, udienza, provvedimento e precedente"
+    assert cassazione["lex_test_question"].startswith("Quali provvedimenti")
+    assert cassazione["source_href"].startswith("https://www.cortedicassazione.it/")
+    assert cassazione["legal_materials"]
+    assert cassazione["articles_and_codes"]
+    assert cassazione["decrees_and_rules"]
+    assert cassazione["case_law_and_hearings"]
+    assert cassazione["research_steps"]
     sections = {section["id"]: section for section in payload["sections"]}
     assert "acquisizione_fonti" in sections
     assert "domande_qualita_fonti" in sections
     fonti = sections["fonti"]
     assert any(item["label"] == "Corte di Cassazione" and item["tone"] == "success" for item in fonti["items"])
+    assert any("Serve per: strategia processuale" in item["note"] for item in fonti["items"])
     assert any(metric["id"] == "fonti_pronte" and metric["value"] == 1 for metric in payload["metrics"])
+    assert any(metric["id"] == "fonti_con_domanda_lex" and metric["value"] == 2 for metric in payload["metrics"])
+
+
+def test_ricerca_legale_espone_fonti_web_template_atti():
+    payload = _payload(_Repository(), page="ricerca-legale")
+
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "ricerche_web_modelli" in sections
+    assert any(metric["id"] == "fonti_modelli" and metric["value"] > 0 for metric in payload["metrics"])
+    assert any(record["id"].startswith("template-atti-source:") for record in payload["records"])
+    dm_217 = next(record for record in payload["records"] if record["id"] == "template-atti-source:normattiva_dm_217_2023_giustizia_telematica")
+    assert dm_217["sourceKind"] == "fonte secondaria collegata"
+    assert "Modelli collegati per prefisso" in " ".join(dm_217["keyPoints"])
+    assert dm_217["sourceHref"].startswith("https://www.normattiva.it/")
+
+
+def test_ricerca_legale_espone_fonti_web_guida_pratica_e_rag():
+    payload = _payload(_Repository(), page="ricerca-legale")
+
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "ricerche_web_guida_pratica" in sections
+    assert any(metric["id"] == "fonti_guida_pratica" and metric["value"] > 0 for metric in payload["metrics"])
+    source_ids = {record["id"] for record in payload["records"]}
+    assert "guida-pratica-source:cassazione_sentenzeweb" in source_ids
+    assert "guida-pratica-source:pst_udienze_da_remoto_2023" in source_ids
+    assert "guida-pratica-source:normattiva_whistleblowing_24_2023" in source_ids
+    guida_section = sections["ricerche_web_guida_pratica"]
+    assert any(item["label"] == "Sentenze e giurisprudenza" and item["value"] > 0 for item in guida_section["items"])
+    assert any(item["label"] == "Udienze e decreti" and item["value"] > 0 for item in guida_section["items"])
+
+
+def test_ricerca_legale_espone_centro_fonti_ufficiali_lex():
+    payload = _payload(_Repository(), page="ricerca-legale")
+
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "centro_fonti_ufficiali_lex" in sections
+    assert any(metric["id"] == "centro_fonti_ufficiali" and metric["value"] >= 400 for metric in payload["metrics"])
+    assert any(metric["id"] == "fonti_da_attivare" and metric["value"] >= 1 for metric in payload["metrics"])
+    assert any(record["id"] == "source-delivery:lex_official_config:agenzia_entrate" for record in payload["records"])
+    agenzia = next(record for record in payload["records"] if record["id"] == "source-delivery:lex_official_config:agenzia_entrate")
+    assert agenzia["sourceKind"] == "fonte ufficiale governata"
+    assert agenzia["sourceHref"].startswith("https://www.agenziaentrate.gov.it/")
+    assert any("Uso per l'avvocato" in item for item in agenzia["keyPoints"])
+    assert any("Articoli e codici" in item and "D.Lgs. 546/1992" in item for item in agenzia["keyPoints"])
+    assert any("Decreti e regole tecniche" in item and "D.M. 163/2013" in item for item in agenzia["keyPoints"])
+    assert any("Sentenze, udienze e provvedimenti" in item for item in agenzia["keyPoints"])
+    assert any("testo vigente" in item.lower() for item in agenzia["operationalChecks"])
+
+
+def test_ricerca_legale_cerca_centro_fonti_senza_fallback_live(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("il Centro Fonti censito deve rispondere senza ricerca pubblica live")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    payload = _payload(_Repository(), page="ricerca-legale", query={"q": "Agenzia Entrate provvedimenti"})
+
+    assert any(record["id"] == "source-delivery:lex_official_config:agenzia_entrate" for record in payload["records"])
+    record = next(record for record in payload["records"] if record["id"] == "source-delivery:lex_official_config:agenzia_entrate")
+    assert record["registryKind"] == "centro_fonti_ufficiali_lex"
+    assert record["stateLabel"] == "operativa e controllabile"
+    assert any("provvedimenti o prassi fiscali" in item.lower() for item in record["operationalChecks"])
+
+
+def test_ricerca_legale_espone_db_normativa_operativo():
+    normative_snapshot = {
+        "totali": 2,
+        "sincronizzate": 1,
+        "verifica_richiesta": 1,
+        "riferimenti_normativi_totali": 1,
+        "tabelle": [
+            {
+                "id": "interesse_legale",
+                "title": "Interessi legali",
+                "category": "tassi",
+                "description": "Saggi di interesse legale articolati per periodo di validità.",
+                "sync_status": "sincronizzata",
+                "last_synced_at": "2026-04-16T05:45:51",
+                "sources": [
+                    {
+                        "code": "interesse_legale_2026",
+                        "title": "Gazzetta Ufficiale - saggio interessi legali 2026",
+                        "url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=25A06705",
+                    }
+                ],
+                "watch_source_ids": ["gazzetta_ufficiale"],
+            },
+            {
+                "id": "tariffario_forense_scaglioni",
+                "title": "Tariffario forense - scaglioni e tabelle",
+                "category": "tariffario_forense",
+                "description": "Parametri forensi per preventivo, compenso e fasi.",
+                "sync_status": "verifica_richiesta",
+                "last_synced_at": "2026-04-16T05:45:51",
+                "last_warning": "Verificare D.M. 55/2014 e D.M. 147/2022.",
+                "sources": [
+                    {
+                        "code": "dm_55_2014_parametri",
+                        "title": "D.M. 55/2014 - parametri forensi",
+                        "url": "https://www.normattiva.it/",
+                    }
+                ],
+                "watch_source_ids": ["normattiva"],
+            },
+        ],
+        "riferimenti_normativi": [
+            {
+                "reference_code": "dm_55_parametri_compensi",
+                "title": "Parametri forensi",
+                "article": "D.M. 55/2014 aggiornato dal D.M. 147/2022",
+                "description": "Fonte per preventivo, compensi e liquidazione giudiziale.",
+                "url": "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?atto.codiceRedazionale=22G00157",
+                "areas": ["Compensi"],
+                "tipologie_labels": ["Preventivo e compenso"],
+                "motori": ["Motore preventivo"],
+                "redattori": ["Redattore preventivo"],
+            }
+        ],
+    }
+    manager = _Manager(
+        normative_tables=normative_snapshot,
+        normative_rows={
+            "interesse_legale": [
+                {"start": "2026-01-01", "end": "2026-12-31", "rate": 1.6, "label": "Interesse legale 2026"}
+            ],
+            "tariffario_forense_scaglioni": [
+                {"table_label": "Tabella 1 - Giudice di Pace", "phase_label": "Studio", "base_amount": 68.0}
+            ],
+        },
+        normative_references=normative_snapshot["riferimenti_normativi"],
+    )
+
+    payload = _payload(_Repository(), page="ricerca-legale", manager=manager)
+
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "db_normativa" in sections
+    assert any(item["label"] == "Tabelle operative" and item["value"] == 2 for item in sections["db_normativa"]["items"])
+    assert any(metric["id"] == "db_normativa" and metric["value"] == 2 for metric in payload["metrics"])
+    source_ids = {record["id"] for record in payload["records"]}
+    assert "normative-table:interesse_legale" in source_ids
+    assert "normative-reference:dm_55_parametri_compensi" in source_ids
+    interesse = next(record for record in payload["records"] if record["id"] == "normative-table:interesse_legale")
+    assert interesse["sourceKind"] == "tabella normativa operativa"
+    assert "Uso operativo" in " ".join(interesse["keyPoints"])
+    assert any("capitale" in check or "decorrenza" in check for check in interesse["operationalChecks"])
+
+
+def test_ricerca_legale_cerca_db_normativa_senza_fallback_live(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("il DB normativa operativo deve rispondere senza fallback live quando contiene la tabella")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    normative_snapshot = {
+        "totali": 1,
+        "sincronizzate": 1,
+        "verifica_richiesta": 0,
+        "riferimenti_normativi_totali": 0,
+        "tabelle": [
+            {
+                "id": "interesse_legale",
+                "title": "Interessi legali",
+                "category": "tassi",
+                "description": "Saggi di interesse legale articolati per periodo di validità.",
+                "sync_status": "sincronizzata",
+                "last_synced_at": "2026-04-16T05:45:51",
+                "sources": [
+                    {
+                        "code": "interesse_legale_2026",
+                        "title": "Gazzetta Ufficiale - saggio interessi legali 2026",
+                        "url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=25A06705",
+                    }
+                ],
+                "watch_source_ids": ["gazzetta_ufficiale"],
+            }
+        ],
+        "riferimenti_normativi": [],
+    }
+    manager = _Manager(
+        normative_tables=normative_snapshot,
+        normative_rows={
+            "interesse_legale": [
+                {"start": "2026-01-01", "end": "2026-12-31", "rate": 1.6, "label": "Interesse legale 2026"}
+            ]
+        },
+    )
+
+    payload = _payload(_Repository(), page="ricerca-legale", query={"q": "interesse legale 2026"}, manager=manager)
+
+    assert payload["contracts"]["external_fetch"] is False
+    assert any(record["id"] == "normative-table:interesse_legale" for record in payload["records"])
+    record = next(record for record in payload["records"] if record["id"] == "normative-table:interesse_legale")
+    assert "Interesse legale 2026" in record["sourceExcerpt"]
+    assert record["registryKind"] == "db_normativa"
+
+
+def test_ricerca_legale_cerca_fonti_guida_pratica_per_giurisprudenza_udienze_e_decreti(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("le fonti Guida/RAG indicizzate devono rispondere senza fallback live")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    whistleblowing = _payload(_Repository(), page="ricerca-legale", query={"q": "whistleblowing D.Lgs. 24 2023 ANAC"})
+    udienza = _payload(_Repository(), page="ricerca-legale", query={"q": "udienza 127-ter note scritte"})
+    cassazione = _payload(_Repository(), page="ricerca-legale", query={"q": "Cassazione SentenzeWeb giurisprudenza"})
+
+    assert any(record["id"] == "guida-pratica-source:normattiva_whistleblowing_24_2023" for record in whistleblowing["records"])
+    assert any(record["id"] == "guida-pratica-source:anac_whistleblowing" for record in whistleblowing["records"])
+    assert any(record["id"] == "guida-pratica-source:ministero_giustizia_127ter_2023" for record in udienza["records"])
+    assert any(record["id"] == "guida-pratica-source:pst_udienze_da_remoto_2023" for record in udienza["records"])
+    assert any(record["id"] == "guida-pratica-source:cassazione_sentenzeweb" for record in cassazione["records"])
+    assert any(record["sourceKind"] == "fonte giurisprudenziale" for record in cassazione["records"])
+
+
+def test_ricerca_legale_cerca_fonti_template_atti_per_decreto_attuativo():
+    payload = _payload(_Repository(), page="ricerca-legale", query={"q": "D.M. 217 2023 deposito telematico"})
+
+    source_ids = {record["id"] for record in payload["records"]}
+    assert "template-atti-source:normattiva_dm_217_2023_giustizia_telematica" in source_ids
+    assert any(record["sourceKind"] == "fonte secondaria collegata" for record in payload["records"])
+
+
+def test_ricerca_legale_cerca_fonti_template_atti_per_attestazione_sentenza(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("le fonti specifiche su attestazione sentenza devono evitare la ricerca pubblica live")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    payload = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "attestazione conformità sentenza termine breve notifica"},
+    )
+
+    source_ids = {record["id"] for record in payload["records"]}
+    assert "template-atti-source:normattiva_dl_179_2012_art_16_decies_attestazione" in source_ids
+    assert "template-atti-source:disp_att_cpc_art_196_undecies_attestazione" in source_ids
+    assert "template-atti-source:pst_dgsia_2024_art_27_attestazione_conformita" in source_ids
+    assert "template-atti-source:normattiva_cpc_art_285_325_326_sentenza_termine_breve" in source_ids
+    assert payload["contracts"]["external_fetch"] is False
+
+
+def test_ricerca_legale_cerca_banche_dati_giurisprudenziali_ufficiali(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("le banche dati giurisprudenziali ufficiali censite devono evitare fallback live")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    cassazione = _payload(_Repository(), page="ricerca-legale", query={"q": "Cassazione SentenzeWeb giurisprudenza"})
+    cedu = _payload(_Repository(), page="ricerca-legale", query={"q": "HUDOC CEDU equo processo"})
+    ue = _payload(_Repository(), page="ricerca-legale", query={"q": "CURIA CGUE EUR-Lex giurisprudenza UE"})
+
+    assert any(record["id"] == "template-atti-source:corte_cassazione_sentenzeweb" for record in cassazione["records"])
+    assert any(record["id"] == "template-atti-source:hudoc_cedu_giurisprudenza" for record in cedu["records"])
+    assert any(record["id"] == "template-atti-source:curia_cgue_giurisprudenza_ue" for record in ue["records"])
+    assert any(record["id"] == "template-atti-source:eurlex_legislazione_giurisprudenza_ue" for record in ue["records"])
+    assert all(payload["contracts"]["external_fetch"] is False for payload in (cassazione, cedu, ue))
+
+
+def test_ricerca_legale_fonte_modello_ufficiale_non_chiama_fallback_pubblico(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("la fonte ufficiale modello deve evitare la ricerca pubblica live")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    payload = _payload(_Repository(), page="ricerca-legale", query={"q": "D.M. 217 2023 deposito telematico"})
+
+    assert any(
+        record["id"] == "template-atti-source:normattiva_dm_217_2023_giustizia_telematica"
+        for record in payload["records"]
+    )
+    assert payload["contracts"]["external_fetch"] is False
+
+
+def test_ricerca_legale_fonte_modello_ufficiale_non_scansiona_archivi_pesanti(monkeypatch):
+    def _unexpected_archive_search(*args, **kwargs):
+        raise AssertionError("la fonte ufficiale modello deve evitare la scansione foreground degli archivi estesi")
+
+    monkeypatch.setattr(bridge, "_official_archive_records", _unexpected_archive_search)
+
+    payload = _payload(_Repository(), page="ricerca-legale", query={"q": "D.M. 217 2023 deposito telematico"})
+
+    assert any(
+        record["id"] == "template-atti-source:normattiva_dm_217_2023_giustizia_telematica"
+        for record in payload["records"]
+    )
+
+
+def test_ricerca_legale_fonte_modello_esatta_non_scansiona_repository_tenant():
+    repository = _Repository(
+        search_rows=[
+            {
+                "id": "row-lenta",
+                "title": "Archivio interno non necessario",
+                "excerpt": "La fonte modello specifica deve bastare per il D.M. 217.",
+                "source_code": "archivio",
+            }
+        ]
+    )
+
+    payload = _payload(repository, page="ricerca-legale", query={"q": "D.M. 217 2023 deposito telematico"})
+
+    assert repository.search_queries == []
+    assert any(
+        record["id"] == "template-atti-source:normattiva_dm_217_2023_giustizia_telematica"
+        for record in payload["records"]
+    )
 
 
 def test_ricerca_legale_interroga_repository_e_mantiene_estratti(monkeypatch):

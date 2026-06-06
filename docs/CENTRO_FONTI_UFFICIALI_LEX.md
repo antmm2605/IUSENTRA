@@ -127,6 +127,64 @@ python tools\lex_sources_sync.py --run-all --export-jsonl
 
 Normattiva e Gazzetta Ufficiale sono abilitate. Le altre fonti sono dichiarate ma disattivate finche' non vengono configurati URL, feed o connettori ufficiali.
 
+## Audit di consegna verso avvocato, Ricerca Legale e Lex
+
+Il controllo di copertura del Centro Fonti non si limita a verificare se una
+fonte esiste. Deve stabilire se quella fonte arriva davvero al lavoro
+dell'avvocato: Ricerca Legale, Lex AI/RAG Legal, Guida Pratica, Scadenziario,
+Template Atti/editor, DB normativa o motore aggiornamenti.
+
+Comando:
+
+```powershell
+python scripts\audit_legal_source_delivery.py
+```
+
+Output:
+
+```text
+artifacts\legal-sources\legal-source-delivery-audit-2026-06-06.json
+artifacts\legal-sources\legal-source-delivery-audit-2026-06-06.csv
+artifacts\legal-sources\legal-source-delivery-audit-2026-06-06.md
+```
+
+Ogni riga dell'audit deve indicare:
+
+- stato di consegna (`operativa_controllabile`, `da_attivare_controllabile`, `gap`, `contesto_non_ufficiale`);
+- URL o canale ufficiale, autorità, destinazione prodotto e azione richiesta;
+- uso concreto per l'avvocato e domanda Lex di prova;
+- materiali giuridici da controllare;
+- articoli e codici pertinenti;
+- decreti, D.Lgs., D.M., regolamenti o regole tecniche;
+- sentenze, ordinanze, decreti, provvedimenti, verbali o udienze rilevanti;
+- sequenza di ricerca e limite professionale prima della citazione in atto.
+
+## Monitor aggiornamenti utilizzabile dall'avvocato
+
+Il motore aggiornamenti legali deve usare lo stesso audit anche quando mostra lo
+stato delle fonti acquisite. La scheda di una fonte non è sufficiente se espone
+solo "pronta" o "da verificare": deve spiegare a cosa serve nella pratica, quale
+azione manca, quale materiale giuridico va controllato e quale domanda Lex deve
+saper sostenere.
+
+Nel payload React `autofetchMonitor.sources[*]` ogni fonte monitorata deve
+includere almeno:
+
+- `lawyer_use`, `practice_phase`, `expected_output` e `activation_action`;
+- `source_href`, `authority` e stato Centro Fonti;
+- `legal_materials`, `articles_and_codes`, `decrees_and_rules`,
+  `case_law_and_hearings` e `research_steps`;
+- `lex_test_question`, usata dalla UI per avviare una ricerca di controllo.
+
+La pagina Ricerca Legale deve visualizzare questi dati nel blocco "Fonti da
+presidiare", così l'avvocato vede subito se la fonte è pronta per redigere,
+notificare, depositare, eccepire, provare o decidere la strategia della pratica.
+
+Ricerca Legale pubblica queste righe come `source-delivery:*`. Lex deve usare
+gli stessi campi quando l'avvocato chiede fonti ufficiali, codice civile,
+codice penale, procedura, decreti legislativi, decreti ministeriali, sentenze,
+udienze o provvedimenti.
+
 ## SQLite
 
 Schemi governati:

@@ -19,6 +19,7 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+from time import monotonic
 import uuid
 import zipfile
 from typing import Any
@@ -558,6 +559,90 @@ class PecControlTowerRepository:
             )
         self._sync_json_managers(communication_id, actor=actor)
         return {"ok": True, "duplicate": False, "data": self.get_communication(communication_id)}
+
+    def backfill_from_email_archive(
+        self,
+        email_manager: Any,
+        *,
+        limit: int = 1500,
+        actor: str = "pec-control-tower-backfill",
+        max_seconds: float = 0.0,
+    ) -> dict[str, Any]:
+        """Alimenta la Control Tower dai MIME PEC gia' salvati nella casella locale."""
+
+        max_items = max(1, int(limit or 1500))
+        started_at = monotonic()
+        report: dict[str, Any] = {
+            "ok": True,
+            "scanned": 0,
+            "relevant": 0,
+            "processed": 0,
+            "ingested": 0,
+            "duplicates": 0,
+            "skipped_not_pec": 0,
+            "skipped_missing_mime": 0,
+            "limit_reached": False,
+            "time_budget_reached": False,
+            "categories": {},
+            "sample_ids": [],
+            "errors": [],
+        }
+        try:
+            rows = sorted(_email_archive_rows(email_manager), key=_email_archive_sort_key, reverse=True)
+        except Exception as exc:
+            report["ok"] = False
+            report["errors"].append({"email_id": "archive", "errore": f"Archivio PEC non leggibile: {exc}"[:180]})
+            return report
+
+        for email_obj in rows:
+            if max_seconds and monotonic() - started_at >= float(max_seconds):
+                report["time_budget_reached"] = True
+                break
+            report["scanned"] += 1
+            email_id = _email_archive_id(email_obj)
+            if not email_relevant_for_pec_control(email_obj):
+                report["skipped_not_pec"] += 1
+                continue
+            report["relevant"] += 1
+            if report["processed"] >= max_items:
+                report["limit_reached"] = True
+                break
+            raw_mime = _read_email_archive_mime(email_manager, email_obj)
+            if not raw_mime:
+                raw_mime = _reconstruct_email_archive_mime(email_manager, email_obj)
+            if not raw_mime:
+                report["skipped_missing_mime"] += 1
+                continue
+            report["processed"] += 1
+            try:
+                result = self.ingest_eml(
+                    raw_mime,
+                    account_email=_email_archive_account(email_obj),
+                    folder=_clean(getattr(email_obj, "cartella", "") or "INBOX"),
+                    actor=actor,
+                )
+            except Exception as exc:
+                report["errors"].append({"email_id": email_id, "errore": str(exc)[:180]})
+                continue
+            communication = result.get("data") if isinstance(result.get("data"), dict) else {}
+            category = _clean(communication.get("legal_category"))
+            if category:
+                categories = report["categories"]
+                categories[category] = int(categories.get(category) or 0) + 1
+            if result.get("duplicate"):
+                report["duplicates"] += 1
+            else:
+                report["ingested"] += 1
+            if len(report["sample_ids"]) < 20 and communication.get("id"):
+                report["sample_ids"].append(
+                    {
+                        "email_id": email_id,
+                        "communication_id": communication["id"],
+                        "category": category,
+                        "subject": _clean(communication.get("subject"))[:160],
+                    }
+                )
+        return report
 
     def find_by_mime_sha256(self, mime_sha256: str) -> dict[str, Any] | None:
         with self._connect() as con:
@@ -1429,12 +1514,25 @@ class PecControlTowerRepository:
                 from pct.scadenziario import GestioneScadenziario, TipoTermine
 
                 manager = GestioneScadenziario(db_path=str(self.scadenziario_db_path))
-                if not any(getattr(row, "external_uid", "") == deadline["id"] for row in manager.tutte(solo_aperte=False)):
+                due_date = str(deadline["due_at"])[:10]
+                matter_id = deadline.get("matter_id") or communication.get("fascicolo_id") or ""
+                already_synced = False
+                for row in manager.tutte(solo_aperte=False):
+                    if getattr(row, "external_uid", "") == deadline["id"]:
+                        already_synced = True
+                        break
+                    same_day = str(getattr(row, "data_scadenza", "") or "")[:10] == due_date
+                    same_matter = not matter_id or not str(getattr(row, "id_fascicolo", "") or "") or str(getattr(row, "id_fascicolo", "") or "") == matter_id
+                    pec_audit_marker = "PEC_AUDIT:" in str(getattr(row, "note", "") or "") or str(getattr(row, "deadline_profile_code", "") or "") == "PEC_AUTO_PRESIDIO"
+                    if same_day and (same_matter or pec_audit_marker) and pec_audit_marker:
+                        already_synced = True
+                        break
+                if not already_synced:
                     manager.nuova(
                         titolo=deadline["title"],
                         tipo=TipoTermine.ADEMPIMENTO,
-                        data_scadenza=str(deadline["due_at"])[:10],
-                        id_fascicolo=deadline.get("matter_id") or communication.get("fascicolo_id") or "",
+                        data_scadenza=due_date,
+                        id_fascicolo=matter_id,
                         descrizione="Bozza da confermare generata da presidio PEC Control Tower.",
                         note="Termine operativo non definitivo: conferma professionale obbligatoria.",
                         perentorio=False,
@@ -1451,7 +1549,20 @@ class PecControlTowerRepository:
                 from pct.agenda import Agenda, TipoAppuntamento
 
                 agenda = Agenda(db_path=str(self.agenda_db_path))
-                if not any(getattr(row, "external_uid", "") == deadline["id"] for row in agenda.tutti()):
+                due_date = str(deadline["due_at"])[:10]
+                matter_id = deadline.get("matter_id") or communication.get("fascicolo_id") or ""
+                already_synced = False
+                for row in agenda.tutti():
+                    if getattr(row, "external_uid", "") == deadline["id"]:
+                        already_synced = True
+                        break
+                    same_day = str(getattr(row, "data_ora", "") or "")[:10] == due_date
+                    same_matter = not matter_id or not str(getattr(row, "procedimento", "") or "") or str(getattr(row, "procedimento", "") or "") == matter_id
+                    pec_audit_marker = str(getattr(row, "external_uid", "") or "").startswith("PEC_AUDIT:")
+                    if same_day and (same_matter or pec_audit_marker) and pec_audit_marker:
+                        already_synced = True
+                        break
+                if not already_synced:
                     agenda.aggiungi(
                         titolo=deadline["title"],
                         tipo=TipoAppuntamento.SCADENZA,
@@ -2271,6 +2382,151 @@ def _ics_dt(value: datetime) -> str:
 
 def _ics_escape(value: Any) -> str:
     return _clean(value).replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;")
+
+
+def email_relevant_for_pec_control(email_obj: Any) -> bool:
+    """Riconosce le righe della casella locale che possono generare eventi PEC giuridici."""
+
+    attachments = " ".join(
+        str((item or {}).get("nome") or (item or {}).get("nome_file") or (item or {}).get("filename") or "")
+        for item in list(getattr(email_obj, "allegati", []) or [])
+        if isinstance(item, dict)
+    ).lower()
+    text = " ".join(
+        str(value or "")
+        for value in (
+            getattr(email_obj, "oggetto", ""),
+            getattr(email_obj, "mittente", ""),
+            getattr(email_obj, "mittente_nome", ""),
+            getattr(email_obj, "destinatari", ""),
+            getattr(email_obj, "corpo_testo", ""),
+            getattr(email_obj, "corpo_html", ""),
+            getattr(email_obj, "stato_pct", ""),
+            getattr(email_obj, "eml_file", ""),
+            attachments,
+        )
+    ).lower()
+    return bool(
+        getattr(email_obj, "e_pst", False)
+        or "posta certificata" in text
+        or "giustiziacert" in text
+        or "ptel.giustizia" in text
+        or "deposito telematico" in text
+        or "daticert" in text
+        or "postacert" in text
+        or "ricevuta di accettazione" in text
+        or "avvenuta consegna" in text
+        or "mancata consegna" in text
+        or "pec" in text
+    )
+
+
+def _email_archive_rows(email_manager: Any) -> list[Any]:
+    if hasattr(email_manager, "_carica"):
+        data = email_manager._carica()  # noqa: SLF001 - import tenant-aware della casella locale esistente
+        if isinstance(data, dict):
+            return list(data.values())
+        return list(data or [])
+    if hasattr(email_manager, "tutte"):
+        try:
+            return list(email_manager.tutte(con_allegati=True))
+        except TypeError:
+            return list(email_manager.tutte())
+    rows = getattr(email_manager, "rows", None)
+    if rows is not None:
+        return list(rows.values()) if isinstance(rows, dict) else list(rows)
+    return []
+
+
+def _email_archive_sort_key(email_obj: Any) -> datetime:
+    parsed = _parse_dt(getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", ""))
+    return parsed or datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _email_archive_id(email_obj: Any) -> str:
+    return _clean(getattr(email_obj, "id", "") or getattr(email_obj, "message_id", "") or "email")
+
+
+def _email_archive_account(email_obj: Any) -> str:
+    return _clean(getattr(email_obj, "destinatari", "") or getattr(email_obj, "mittente", "") or "casella PEC locale")[:240]
+
+
+def _read_email_archive_mime(email_manager: Any, email_obj: Any) -> bytes:
+    reader = getattr(email_manager, "leggi_eml_originale", None)
+    if not callable(reader):
+        return b""
+    try:
+        raw = reader(email_obj)
+    except Exception:
+        return b""
+    return bytes(raw or b"")
+
+
+def _reconstruct_email_archive_mime(email_manager: Any, email_obj: Any) -> bytes:
+    """Ricostruisce un MIME minimo solo quando l'originale manca ma gli allegati sono salvati."""
+
+    attachments: list[tuple[str, str, bytes]] = []
+    for index, info in enumerate(list(getattr(email_obj, "allegati", []) or [])):
+        if not isinstance(info, dict):
+            continue
+        reader = getattr(email_manager, "leggi_allegato", None)
+        if not callable(reader):
+            continue
+        try:
+            raw = reader(email_obj, index)
+        except Exception:
+            raw = None
+        if not raw:
+            continue
+        filename = _clean(info.get("nome") or info.get("nome_file") or info.get("filename") or f"allegato-{index + 1}.bin")
+        content_type = _clean(info.get("mime") or info.get("content_type") or "")
+        attachments.append((filename, content_type, bytes(raw)))
+
+    body = _clean(getattr(email_obj, "corpo_testo", "") or re.sub(r"<[^>]+>", " ", str(getattr(email_obj, "corpo_html", "") or "")))
+    if not body and not attachments:
+        return b""
+    msg = EmailMessage()
+    msg["Subject"] = _clean(getattr(email_obj, "oggetto", "") or "PEC archiviata")
+    msg["From"] = _clean(getattr(email_obj, "mittente", "") or "casella-pec-locale@iusentra.local")
+    msg["To"] = _clean(getattr(email_obj, "destinatari", "") or "studio@iusentra.local")
+    message_id = _clean(getattr(email_obj, "message_id", ""))
+    if message_id:
+        msg["Message-ID"] = message_id if message_id.startswith("<") else f"<{message_id}>"
+    msg["Date"] = _email_archive_rfc822_date(getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", ""))
+    msg["X-IUSENTRA-Source"] = "casella-pec-locale-ricostruita"
+    msg.set_content(body or "PEC archiviata localmente con allegati disponibili.", subtype="plain", charset="utf-8")
+    for filename, content_type, raw in attachments:
+        maintype, subtype = _attachment_mime_parts(filename, content_type)
+        msg.add_attachment(raw, maintype=maintype, subtype=subtype, filename=filename)
+    return msg.as_bytes(policy=email_policy)
+
+
+def _email_archive_rfc822_date(value: Any) -> str:
+    parsed = _parse_dt(value)
+    if parsed is None:
+        parsed = datetime.now(timezone.utc)
+    return parsed.astimezone(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %z")
+
+
+def _attachment_mime_parts(filename: str, content_type: str) -> tuple[str, str]:
+    lower_type = _lower(content_type)
+    if "/" in lower_type:
+        maintype, subtype = lower_type.split("/", 1)
+        if maintype == "message":
+            return "application", "octet-stream"
+        return maintype or "application", subtype or "octet-stream"
+    lower_name = _lower(filename)
+    if lower_name.endswith(".xml"):
+        return "application", "xml"
+    if lower_name.endswith(".txt"):
+        return "text", "plain"
+    if lower_name.endswith(".eml"):
+        return "application", "octet-stream"
+    if lower_name.endswith(".pdf"):
+        return "application", "pdf"
+    if lower_name.endswith(".zip"):
+        return "application", "zip"
+    return "application", "octet-stream"
 
 
 def _load_json_rows(path: Path) -> list[Any]:

@@ -2,7 +2,7 @@
   "source": "C:\\Users\\antmm\\Downloads\\files (16).zip::kb_set25_p2.json",
   "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set25_p2.json",
   "sha256": "7BBD61894D68543CAA64FFCB5E683A245EEAAF4FAD52840B702E082A7772C70C",
-  "changed": true,
+  "changed": false,
   "macro_area_id": "SET25_PARTE2",
   "denominazione": "Venticinquesimo set - 30 nuovi codici - PARTE 2 di 6",
   "codici_materia_originali": [

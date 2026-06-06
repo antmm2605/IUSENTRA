@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (19).zip::kb_set30_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set30_p4.json",
+  "sha256": "672C76ABE588FCD505CF52775B14F3A2215DF45D0D8797A6068C1C87D65EAAC3",
+  "changed": false,
+  "macro_area_id": "SET30_PARTE4",
+  "denominazione": "Trentesimo set - PARTE 4 di 8",
+  "codici_materia_originali": [
+    "155025",
+    "156005",
+    "160210",
+    "160215",
+    "160220"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ORGANO_DI_CONTROLLO_DELLA_S_R_L_NOMINA_REVOCA_E_RESPONSABILIT_ARTT_2477__155025",
+    "GUIDA_SOCIET_IRREGOLARE_RESPONSABILIT_SOLIDALE_DEI_SOCI_VERSO_I_TERZI_ARTT_229_156005",
+    "GUIDA_MALATTIA_PROFESSIONALE_DA_ESPOSIZIONE_AD_AMIANTO_RESPONSABILIT_DEL_DATOR_160210",
+    "GUIDA_RESPONSABILIT_DELL_ORGANIZZATORE_DI_VIAGGI_E_PACCHETTI_TURISTICI_D_LGS_6_160215",
+    "GUIDA_RESPONSABILIT_DEL_MEDICO_DI_MEDICINA_GENERALE_PER_OMESSA_DIAGNOSI_E_RITA_160220"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "155025",
+      "codice_integrato": "GUIDA_ORGANO_DI_CONTROLLO_DELLA_S_R_L_NOMINA_REVOCA_E_RESPONSABILIT_ARTT_2477__155025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156005",
+      "codice_integrato": "GUIDA_SOCIET_IRREGOLARE_RESPONSABILIT_SOLIDALE_DEI_SOCI_VERSO_I_TERZI_ARTT_229_156005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160210",
+      "codice_integrato": "GUIDA_MALATTIA_PROFESSIONALE_DA_ESPOSIZIONE_AD_AMIANTO_RESPONSABILIT_DEL_DATOR_160210",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160215",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELL_ORGANIZZATORE_DI_VIAGGI_E_PACCHETTI_TURISTICI_D_LGS_6_160215",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160220",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_MEDICO_DI_MEDICINA_GENERALE_PER_OMESSA_DIAGNOSI_E_RITA_160220",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

@@ -1140,6 +1140,8 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         payload = dettaglio_json.get_json()
         assert payload["item"]["subject"] == "PEC con allegato RG 1025/2024"
         assert payload["bodyText"] == "Contiene una ricevuta allegata."
+        assert payload["bodyCompleteness"] == "testo_disponibile"
+        assert "MIME originale" in payload["bodyCompletenessLabel"]
         assert payload["attachments"][0]["viewHref"] == "/email/messaggio/MAIL-ATT-1/allegato/0"
         assert payload["attachments"][0]["previewHref"] == "/email/messaggio/MAIL-ATT-1/allegato/0"
         assert payload["attachments"][0]["downloadHref"] == "/email/messaggio/MAIL-ATT-1/allegato/0?download=1"
@@ -1206,7 +1208,9 @@ def test_email_dettaglio_recupera_allegati_da_eml_originale(tmp_path):
     inner["From"] = "tribunale.palmi@civile.ptel.giustiziacert.it"
     inner["To"] = "studio@example.pec.it"
     inner["Subject"] = "Comunicazione originale RG 98/2026"
-    inner.set_content("Comunicazione di cancelleria con esito telematico.")
+    broken_notice = "L'esito è positivo ai sensi dell’art. 16.".encode("utf-8").decode("latin-1")
+    inner.set_content(f"Comunicazione di cancelleria con esito telematico. {broken_notice}")
+    inner.add_alternative("<p>La comunicazione &egrave; inclusa negli allegati.</p>", subtype="html")
 
     xml_bytes = b"<EsitoAtto><Stato>ACCETTATO</Stato></EsitoAtto>"
     outer = EmailMessage()
@@ -1257,6 +1261,17 @@ def test_email_dettaglio_recupera_allegati_da_eml_originale(tmp_path):
         assert [item["available"] for item in payload["attachments"]] == [True, True]
         assert payload["attachments"][0]["viewHref"] == "/email/messaggio/MAIL-ATT-EML/allegato/0"
         assert payload["attachments"][1]["downloadHref"] == "/email/messaggio/MAIL-ATT-EML/allegato/1?download=1"
+        assert payload["bodyCompleteness"] == "originale_acquisito"
+        assert "EML originale acquisito" in payload["bodyCompletenessLabel"]
+        assert "Email ricevuta originale" in payload["bodyText"]
+        assert "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 98/2026" in payload["bodyText"]
+        assert "Messaggio allegato: postacert.eml" in payload["bodyText"]
+        assert "Comunicazione originale RG 98/2026" in payload["bodyText"]
+        assert "L'esito è positivo ai sensi dell’art. 16." in payload["bodyText"]
+        assert "La comunicazione è inclusa negli allegati." in payload["bodyText"]
+        assert "&egrave;" not in payload["bodyText"]
+        assert "Allegato testuale: EsitoAtto.xml" in payload["bodyText"]
+        assert "<EsitoAtto><Stato>ACCETTATO</Stato></EsitoAtto>" in payload["bodyText"]
 
         postacert = client.get("/email/messaggio/MAIL-ATT-EML/allegato/0")
         assert postacert.status_code == 200

@@ -30,7 +30,7 @@ from zoneinfo import ZoneInfo
 from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_workflow import classifica_pec_legale
 
-SCHEMA_VERSION = "2026-05-21.pec-audit-pipeline.v2"
+SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v3"
 DEADLINE_POLICY_VERSION = "2026-06-03.procedural-dates-v1"
 DEFAULT_TENANT_ID = "default"
 ROME_TZ = ZoneInfo("Europe/Rome")
@@ -182,6 +182,50 @@ CREATE TABLE IF NOT EXISTS pec_digest_runs (
     UNIQUE (tenant_id, digest_date)
 );
 
+CREATE TABLE IF NOT EXISTS pec_local_acquire_runs (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'running',
+    started_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    finished_at TEXT NOT NULL DEFAULT '',
+    cursor_index INTEGER NOT NULL DEFAULT 0,
+    total_emails INTEGER NOT NULL DEFAULT 0,
+    batch_size INTEGER NOT NULL DEFAULT 50,
+    acquired INTEGER NOT NULL DEFAULT 0,
+    duplicates INTEGER NOT NULL DEFAULT 0,
+    skipped_missing_mime INTEGER NOT NULL DEFAULT 0,
+    skipped_not_pec INTEGER NOT NULL DEFAULT 0,
+    queued_repairs INTEGER NOT NULL DEFAULT 0,
+    deadline_created INTEGER NOT NULL DEFAULT 0,
+    deadline_already_exists INTEGER NOT NULL DEFAULT 0,
+    deadline_expired INTEGER NOT NULL DEFAULT 0,
+    deadline_not_ready INTEGER NOT NULL DEFAULT 0,
+    deadline_errors INTEGER NOT NULL DEFAULT 0,
+    agenda_linked INTEGER NOT NULL DEFAULT 0,
+    errors INTEGER NOT NULL DEFAULT 0,
+    payload_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS pec_local_acquire_items (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    email_id TEXT NOT NULL DEFAULT '',
+    message_id TEXT NOT NULL DEFAULT '',
+    subject TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL,
+    deadline_status TEXT NOT NULL DEFAULT '',
+    due_date TEXT NOT NULL DEFAULT '',
+    deadline_id TEXT NOT NULL DEFAULT '',
+    agenda_id TEXT NOT NULL DEFAULT '',
+    detail_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(run_id) REFERENCES pec_local_acquire_runs(id),
+    UNIQUE (tenant_id, run_id, email_id)
+);
+
 CREATE TABLE IF NOT EXISTS pec_audit_log (
     id TEXT PRIMARY KEY,
     tenant_id TEXT NOT NULL,
@@ -211,6 +255,11 @@ CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, 
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
 CREATE INDEX IF NOT EXISTS idx_pec_jobs_due ON pec_jobs(status, available_at, priority);
+CREATE INDEX IF NOT EXISTS idx_pec_local_runs_status ON pec_local_acquire_runs(tenant_id, status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_run ON pec_local_acquire_items(tenant_id, run_id, status);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_email ON pec_local_acquire_items(tenant_id, email_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_message ON pec_local_acquire_items(tenant_id, message_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_deadline ON pec_local_acquire_items(tenant_id, deadline_status, due_date);
 CREATE INDEX IF NOT EXISTS idx_pec_audit_resource ON pec_audit_log(resource_type, resource_id);
 """
 
@@ -548,6 +597,501 @@ def extract_rg_candidates(text: str) -> list[str]:
                 seen.add(value)
                 values.append(value)
     return values
+
+
+def _first_profile_value(text: str, patterns: Iterable[str], *, limit: int = 180) -> str:
+    for pattern in patterns:
+        match = re.search(pattern, text or "", flags=re.I | re.M)
+        if match:
+            value = match.group(1) if match.groups() else match.group(0)
+            return clean_text(value, limit).strip(" .;:-")
+    return ""
+
+
+def _profile_lines_value(text: str, label: str, *, limit: int = 180) -> str:
+    return _first_profile_value(text, (rf"^\s*{re.escape(label)}\s*:\s*(.+?)\s*$",), limit=limit)
+
+
+PROFILE_INLINE_LABELS = (
+    "Sez/Coll.",
+    "Tipo procedimento",
+    "Numero di Ruolo generale",
+    "Numero Ruolo",
+    "Giudice",
+    "Attore Principale",
+    "Convenuto Principale",
+    "Ricorr. principale",
+    "Resist. principale",
+    "Oggetto",
+    "Descrizione",
+    "Note",
+    "Registrato da",
+    "CodiceUG",
+    "CodiceFiscaleDestinatario",
+)
+
+
+def _profile_value(text: str, labels: str | Iterable[str], *, limit: int = 180) -> str:
+    label_values = (labels,) if isinstance(labels, str) else tuple(labels)
+    for label in label_values:
+        lookahead = "|".join(re.escape(item) for item in PROFILE_INLINE_LABELS if item != label)
+        match = re.search(
+            rf"\b{re.escape(label)}\s*:\s*(.+?)(?=\s+(?:{lookahead})\s*:|\s+Notificato\s+alla\s+PEC|\s+--|$)",
+            text or "",
+            flags=re.I | re.S,
+        )
+        if match:
+            return clean_text(match.group(1), limit).strip(" .;:-")
+        line_value = _profile_lines_value(text, label, limit=limit)
+        if line_value:
+            return line_value
+    return ""
+
+
+def _hearing_datetime_from_text(text: str) -> str:
+    patterns = (
+        r"\bFISSAT[AO]?\s+UDIENZA[^\n]{0,160}?\bIL\s+(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}[:.]\d{2})",
+        r"\bUDIENZA[^\n]{0,160}?\bIL\s+(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}[:.]\d{2})",
+        r"\bUDIENZA[^\n]{0,160}?\b(\d{1,2}/\d{1,2}/\d{4})\s+(?:ore\s+)?(\d{1,2}[:.]\d{2})",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text or "", flags=re.I)
+        if match:
+            if len(match.groups()) == 2:
+                return clean_text(f"{match.group(1)} {match.group(2).replace('.', ':')}", 80)
+            return clean_text(match.group(1).replace(".", ":"), 80)
+    return ""
+
+
+def build_pec_procedural_profile(
+    *,
+    subject: str = "",
+    body_text: str = "",
+    xml_texts: dict[str, str] | None = None,
+    rg_candidates: list[str] | None = None,
+    sent_date: str = "",
+    delivery_date: str = "",
+    event_type: str = "",
+    semantic_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Estrae una scheda operativa da EML/XML per ragionamento da studio legale."""
+
+    sources = xml_texts or {}
+    xml_joined = "\n".join(str(value or "") for value in sources.values())
+    haystack = "\n".join([subject or "", body_text or "", xml_joined])
+    haystack = haystack.replace("<![CDATA[", " ").replace("]]>", " ")
+    readable = re.sub(r"<[^>]+>", " ", haystack)
+    rg_values = list(rg_candidates or extract_rg_candidates(readable))
+    office = _first_profile_value(
+        readable,
+        (
+            r"^\s*((?:GIUDICE DI PACE|TRIBUNALE|CORTE D['’]APPELLO|CORTE DI CASSAZIONE|PROCURA|TAR|CONSIGLIO DI STATO)\s+(?:di|DI)\s+[^\n.]+)\.?\s*$",
+            r"\bUfficio(?:\s+giudiziario)?\s*[:\-]\s*([^\n]+)",
+            r"\bCancelleria\s+(?:del|della|di)\s+([^\n]+)",
+        ),
+    )
+    if not office:
+        context = semantic_context or {}
+        office = clean_text(context.get("office_hint") or "", 160)
+
+    profile = {
+        "ufficio": office,
+        "cancelleria": _first_profile_value(
+            readable,
+            (
+                r"\bcancelliere\s+([A-ZÀ-Ü][A-ZÀ-Ü'’.\s-]{2,})\s+ha\s+provveduto",
+                r"\bRegistrato\s+da\s+([A-ZÀ-Ü][A-ZÀ-Ü'’.\s-]{2,})",
+            ),
+        ),
+        "registrato_da": _profile_value(readable, "Registrato da"),
+        "sezione": _profile_value(readable, ("Sezione", "Sez/Coll.")),
+        "tipo_procedimento": _profile_value(readable, "Tipo procedimento", limit=240),
+        "numero_rg": _profile_value(readable, ("Numero di Ruolo generale", "Numero Ruolo")) or (rg_values[0] if rg_values else ""),
+        "giudice": _profile_value(readable, "Giudice"),
+        "attore_principale": _profile_value(readable, ("Attore Principale", "Ricorr. principale"), limit=240),
+        "convenuto_principale": _profile_value(readable, ("Convenuto Principale", "Resist. principale"), limit=240),
+        "data_evento": _profile_value(readable, "Data Evento"),
+        "tipo_evento": _profile_value(readable, "Tipo Evento", limit=240),
+        "oggetto_evento": _profile_value(readable, "Oggetto", limit=280) or subject,
+        "descrizione_evento": _profile_value(readable, "Descrizione", limit=320),
+        "notificato_il": _first_profile_value(
+            readable,
+            (
+                r"Notificato\s+alla\s+PEC\s*/\s*in\s+cancelleria\s+il\s+(.+?)(?:\s+Registrato\s+da|\s+--|\n|$)",
+                r"\bin\s+data\s+(\d{1,2}/\d{1,2}/\d{4}\s+alle\s+ore\s+\d{1,2}:\d{2})",
+            ),
+            limit=120,
+        ),
+        "codice_ufficio": xml_tag_value(xml_joined, ("CodiceUG", "codiceUG", "Ufficio")),
+        "codice_fiscale_destinatario": xml_tag_value(xml_joined, ("CodiceFiscaleDestinatario", "codiceFiscaleDestinatario")),
+        "data_invio": sent_date,
+        "data_consegna": delivery_date,
+        "evento_pec": event_type,
+        "documenti_letti": sorted(str(name) for name in sources.keys() if str(name or "").strip()),
+    }
+    lower = readable.lower()
+    hearing_datetime = _hearing_datetime_from_text(readable)
+    if hearing_datetime:
+        profile["udienza_data_ora"] = hearing_datetime
+    if "audiovisiv" in lower or "strumenti audiovisivi" in lower:
+        profile["modalita_udienza"] = "strumenti audiovisivi"
+    elif any(needle in lower for needle in ("udienza da remoto", "videoconferenza", "aula virtuale", "stanza virtuale")):
+        profile["modalita_udienza"] = "da remoto"
+    practice_phase = ""
+    if "sentenza" in lower:
+        practice_phase = "provvedimento/sentenza da leggere e notificare o presidiare"
+    elif "deposito" in lower:
+        practice_phase = "deposito telematico da completare o monitorare"
+    elif "notificazione" in lower or "notifica" in lower:
+        practice_phase = "notifica/comunicazione che può generare termini"
+    elif "udienza" in lower:
+        practice_phase = "udienza o rinvio da calendarizzare"
+    profile["fase_pratica"] = practice_phase
+
+    essentials = []
+    if profile["ufficio"]:
+        essentials.append(f"Ufficio: {profile['ufficio']}")
+    if profile["giudice"]:
+        essentials.append(f"Giudice: {profile['giudice']}")
+    if profile["numero_rg"]:
+        essentials.append(f"RG: {profile['numero_rg']}")
+    if profile["tipo_evento"] or profile["oggetto_evento"]:
+        essentials.append(f"Evento: {profile['tipo_evento'] or profile['oggetto_evento']}")
+    if profile.get("udienza_data_ora"):
+        essentials.append(f"Udienza: {profile['udienza_data_ora']}")
+    if profile.get("modalita_udienza"):
+        essentials.append(f"Modalità udienza: {profile['modalita_udienza']}")
+    if profile["notificato_il"] or delivery_date or sent_date:
+        essentials.append(f"Ora da presidiare: {profile['notificato_il'] or delivery_date or sent_date}")
+    profile["sintesi_operativa"] = essentials
+
+    checklist = [
+        "Collegare la PEC al fascicolo corretto usando RG, ufficio, parti e oggetto.",
+        "Leggere gli allegati indicati nel messaggio originale prima di calcolare termini o inviare comunicazioni.",
+        "Verificare se l'evento fa decorrere un termine processuale e registrarlo come bozza da confermare.",
+        "Controllare se serve produrre un atto, una notifica, un deposito o una comunicazione al cliente.",
+        "Conservare MIME, daticert/postacert, allegati e hash come prova della comunicazione.",
+    ]
+    if "sentenza" in lower:
+        checklist.extend(
+            [
+                "Leggere la sentenza o il provvedimento allegato e annotare esito, motivazione decisiva e termini successivi.",
+                "Verificare attestazione di conformità, notifica della sentenza e prova completa se lo studio decide di notificare.",
+            ]
+        )
+    if "procura" in lower:
+        checklist.append("Verificare procura alle liti e coerenza con l'atto depositato o notificato.")
+    if profile.get("udienza_data_ora") or profile.get("modalita_udienza"):
+        checklist.extend(
+            [
+                "Registrare l'udienza in agenda con data, ora, giudice, fascicolo, parti e modalità di partecipazione.",
+                "Se l'udienza è con strumenti audiovisivi, leggere l'allegato PDF per recuperare link, ID riunione e istruzioni di accesso.",
+            ]
+        )
+    profile["checklist_avvocato"] = list(dict.fromkeys(checklist))
+
+    questions = [
+        "Quale atto o provvedimento è arrivato e quale allegato devo leggere per primo?",
+        "Questa PEC apre un termine processuale, un adempimento di cancelleria o solo un presidio informativo?",
+        "A quale fascicolo va collegata la comunicazione e con quale confidenza?",
+        "Quali documenti mancano per chiudere prova, deposito o notifica?",
+        "Quale azione devo fare adesso: agenda, scadenza, task, notifica, deposito, comunicazione cliente o nulla?",
+    ]
+    if profile["giudice"]:
+        questions.append("Il giudice indicato incide su udienza, fase decisoria o strategia del fascicolo?")
+    if "sentenza" in lower:
+        questions.append("Quali termini decorrono dalla sentenza e cosa devo preparare per eventuale notifica o impugnazione?")
+    if profile.get("udienza_data_ora") or profile.get("modalita_udienza"):
+        questions.append("L'udienza va svolta in presenza o con strumenti audiovisivi, e dove si trova il link di collegamento?")
+    profile["domande_lex"] = list(dict.fromkeys(questions))
+
+    return {key: value for key, value in profile.items() if value not in ("", [], {})}
+
+
+REMOTE_HEARING_KEYWORDS = (
+    "audiovisiv",
+    "strumenti audiovisivi",
+    "udienza da remoto",
+    "udienza audiovisiva",
+    "udienza telematica",
+    "trattazione da remoto",
+    "videoconferenza",
+    "aula virtuale",
+    "stanza virtuale",
+    "collegamento audiovisivo",
+    "collegamento da remoto",
+    "collegarsi",
+    "link per la connessione",
+    "link di collegamento",
+    "microsoft teams",
+    "teams.microsoft",
+    "zoom.us",
+    "webex",
+    "meet.google",
+    "meeting id",
+    "id riunione",
+    "codice accesso",
+)
+
+
+def _attachment_name(item: dict[str, Any]) -> str:
+    return clean_text(item.get("filename") or item.get("name") or "", 240)
+
+
+def _attachment_content_type(item: dict[str, Any]) -> str:
+    return clean_text(item.get("content_type") or item.get("mime") or "", 160).lower()
+
+
+def _is_pdf_attachment(item: dict[str, Any]) -> bool:
+    name = _attachment_name(item).lower()
+    content_type = _attachment_content_type(item)
+    return (
+        content_type.startswith("application/pdf")
+        or name.endswith((".pdf", ".pdf.p7m", ".pdf.zip"))
+    )
+
+
+def _attachment_ocr_text(item: dict[str, Any]) -> str:
+    return clean_text(item.get("ocr_text") or item.get("text") or "", 20000)
+
+
+def _preserved_url_value(value: Any) -> str:
+    text = str(value or "").replace("\x00", "").strip()
+    return re.sub(r"[\r\n\t ]+", "", text)
+
+
+def _normalise_extracted_url(raw_url: str) -> tuple[str, bool, str]:
+    url = _preserved_url_value(raw_url)
+    exact = url == raw_url.strip()
+    note = ""
+    if url.startswith("www."):
+        url = f"https://{url}"
+        exact = False
+        note = "aggiunto schema https a URL iniziato con www"
+    for trailing in (".", ",", ";"):
+        if url.endswith(trailing):
+            url = url[:-1]
+            exact = False
+            note = "rimossa punteggiatura finale non parte del link"
+    pairs = (("(", ")"), ("[", "]"), ("{", "}"))
+    changed = True
+    while changed and url:
+        changed = False
+        for opening, closing in pairs:
+            if url.endswith(closing) and url.count(closing) > url.count(opening):
+                url = url[:-1]
+                exact = False
+                note = "rimossa parentesi finale esterna al link"
+                changed = True
+    return url, exact, note
+
+
+def _extract_remote_hearing_links(text: str) -> list[dict[str, Any]]:
+    values: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for match in re.finditer(r"\b(?:https?://|www\.)[^\s<>'\"]+", text or "", flags=re.I):
+        raw_url = match.group(0)
+        value, exact, note = _normalise_extracted_url(raw_url)
+        normalised = value.lower()
+        if value and normalised not in seen:
+            seen.add(normalised)
+            values.append(
+                {
+                    "url": value,
+                    "raw_url": raw_url,
+                    "exact": exact,
+                    "integrity": "exact" if exact else "normalizzato_da_verificare",
+                    "normalization_note": note,
+                }
+            )
+    return values[:8]
+
+
+def _extract_remote_hearing_times(text: str) -> list[str]:
+    values: list[str] = []
+    seen: set[str] = set()
+    patterns = (
+        r"\b(?:udienza|discussione|collegamento|connessione|videoconferenza|audiovisiv)[^\n]{0,180}?\b(?:il\s+)?(\d{1,2}[/-]\d{1,2}[/-]\d{4})\s+(\d{1,2}[:.]\d{2})",
+        r"\b(?:udienza|collegamento|connessione|videoconferenza)[^\n]{0,140}?\b(?:il\s+)?(\d{1,2}[/-]\d{1,2}[/-]\d{4})[^\n]{0,100}?\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})",
+        r"\b(?:udienza|collegamento|connessione|videoconferenza)[^\n]{0,140}?\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})",
+        r"\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})[^\n]{0,100}?\b(?:udienza|collegamento|connessione|videoconferenza)",
+    )
+    for pattern in patterns:
+        for match in re.finditer(pattern, text or "", flags=re.I):
+            groups = [part.replace(".", ":") for part in match.groups() if part]
+            value = " ore ".join(groups) if len(groups) == 2 else groups[0] if groups else ""
+            value = clean_text(value, 80)
+            normalised = value.lower()
+            if value and normalised not in seen:
+                seen.add(normalised)
+                values.append(value)
+    return values[:5]
+
+
+def _extract_remote_hearing_access_lines(text: str) -> list[str]:
+    values: list[str] = []
+    seen: set[str] = set()
+    for raw_line in re.split(r"[\r\n]+", text or ""):
+        line = clean_text(raw_line, 240)
+        if not line:
+            continue
+        lower = line.lower()
+        if any(
+            needle in lower
+            for needle in (
+                "id riunione",
+                "meeting id",
+                "id meeting",
+                "codice accesso",
+                "passcode",
+                "password",
+                "stanza virtuale",
+                "aula virtuale",
+                "link",
+                "teams",
+                "zoom",
+                "webex",
+            )
+        ):
+            normalised = lower
+            if normalised not in seen:
+                seen.add(normalised)
+                values.append(line)
+    return values[:8]
+
+
+def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[str, Any]]) -> dict[str, Any]:
+    """Individua udienze remote/audiovisive e link contenuti anche nei PDF letti via OCR."""
+
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+    parsed_profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    sources: list[dict[str, Any]] = [
+        {"name": "Oggetto PEC", "type": "oggetto", "text": clean_text(headers.get("subject") or "", 2000)},
+        {"name": "Corpo PEC", "type": "corpo", "text": clean_text(body.get("text") or body.get("html") or "", 20000)},
+        {
+            "name": "Profilo Comunicazione.xml",
+            "type": "profilo",
+            "text": clean_text(
+                " ".join(
+                    str(parsed_profile.get(key) or "")
+                    for key in (
+                        "oggetto_evento",
+                        "descrizione_evento",
+                        "udienza_data_ora",
+                        "modalita_udienza",
+                        "notificato_il",
+                    )
+                ),
+                4000,
+            ),
+        },
+    ]
+    for item in attachments:
+        name = _attachment_name(item) or "Allegato"
+        text = _attachment_ocr_text(item)
+        if text:
+            sources.append({"name": name, "type": "pdf" if _is_pdf_attachment(item) else "allegato", "text": text})
+
+    all_text = "\n".join(str(source.get("text") or "") for source in sources)
+    lower_all = all_text.lower()
+    remote_detected = any(keyword in lower_all for keyword in REMOTE_HEARING_KEYWORDS)
+    link_sources: list[dict[str, str]] = []
+    seen_links: set[str] = set()
+    times: list[str] = []
+    access_lines: list[str] = []
+    source_names: list[str] = []
+    for source in sources:
+        source_text = str(source.get("text") or "")
+        source_lower = source_text.lower()
+        if any(keyword in source_lower for keyword in REMOTE_HEARING_KEYWORDS):
+            source_name = str(source.get("name") or "")
+            if source_name and source_name not in source_names:
+                source_names.append(source_name)
+        for link in _extract_remote_hearing_links(source_text):
+            link_record = dict(link)
+            url = str(link_record.get("url") or "")
+            key = url.lower()
+            if key not in seen_links:
+                seen_links.add(key)
+                link_record["source"] = str(source.get("name") or "testo PEC")
+                link_record["exact_match"] = bool(link_record.get("exact"))
+                link_sources.append(link_record)
+        for value in _extract_remote_hearing_times(source_text):
+            if value not in times:
+                times.append(value)
+        for line in _extract_remote_hearing_access_lines(source_text):
+            if line not in access_lines:
+                access_lines.append(line)
+
+    pdf_attachments = [item for item in attachments if _is_pdf_attachment(item)]
+    pdf_without_text = [
+        _attachment_name(item) or "PDF allegato"
+        for item in pdf_attachments
+        if not _attachment_ocr_text(item)
+    ]
+    pdf_with_text = [
+        _attachment_name(item) or "PDF allegato"
+        for item in pdf_attachments
+        if _attachment_ocr_text(item)
+    ]
+    body_says_link_in_attachment = bool(
+        re.search(
+            r"\b(?:link|collegamento|connessione|stanza|aula|riunione)\b[^\n]{0,140}\b(?:allegat[oaie]|pdf|documento)",
+            all_text,
+            flags=re.I,
+        )
+    )
+    has_hearing_word = "udienza" in lower_all or "comparizione" in lower_all
+    pdf_required = bool((remote_detected or body_says_link_in_attachment or has_hearing_word) and pdf_attachments and not link_sources)
+    mode = ""
+    if "audiovisiv" in lower_all:
+        mode = "audiovisiva"
+    elif "videoconferenza" in lower_all or "teams" in lower_all or "zoom" in lower_all or "webex" in lower_all:
+        mode = "videoconferenza"
+    elif remote_detected:
+        mode = "da remoto"
+    checklist: list[str] = []
+    questions: list[str] = []
+    warnings: list[str] = []
+    if remote_detected or pdf_required or link_sources:
+        checklist.extend(
+            [
+                "Leggere il PDF dell'udienza e verificare link, ora, stanza virtuale, ID riunione e codice di accesso.",
+                "Inserire in agenda l'udienza con link di collegamento, orario in ora italiana e promemoria operativo.",
+                "Avvisare avvocato e cliente sulle modalità di collegamento e conservare il PDF come prova organizzativa.",
+            ]
+        )
+        questions.extend(
+            [
+                "Il link dell'udienza audiovisiva è nel corpo PEC o in un PDF allegato?",
+                "Qual è l'orario esatto dell'udienza in ora italiana e quale piattaforma va usata?",
+                "Chi deve partecipare e quali documenti o istruzioni vanno preparati prima del collegamento?",
+            ]
+        )
+    if pdf_required:
+        warnings.append("Il messaggio richiama un'udienza remota o un collegamento, ma il link non è ancora stato estratto: leggere/OCR il PDF allegato.")
+        checklist.insert(0, "Aprire o acquisire con OCR il PDF allegato perché può contenere il link di collegamento all'udienza.")
+    if link_sources:
+        checklist.append("Verificare il link estratto prima di comunicarlo o usarlo per l'accesso all'udienza.")
+    profile = {
+        "detected": bool(remote_detected or link_sources),
+        "mode": mode,
+        "links": link_sources,
+        "times": times,
+        "access_info": access_lines,
+        "sources": source_names,
+        "pdf_sources": pdf_with_text,
+        "pdf_pending": pdf_without_text,
+        "pdf_required": pdf_required,
+        "warnings": warnings,
+        "checklist": list(dict.fromkeys(checklist)),
+        "questions": list(dict.fromkeys(questions)),
+        "numero_rg": parsed_profile.get("numero_rg") or "",
+        "giudice": parsed_profile.get("giudice") or "",
+        "ufficio": parsed_profile.get("ufficio") or "",
+    }
+    return {key: value for key, value in profile.items() if value not in ("", [], {})}
 
 
 LEGAL_CONTEXT_RULES: tuple[dict[str, Any], ...] = (
@@ -948,6 +1492,40 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
             text = estrai_testo(item.data, name)
         except Exception:
             text = ""
+    elif lower.endswith(".zip") or item.content_type in {"application/zip", "application/x-zip-compressed"}:
+        parts: list[str] = []
+        try:
+            with zipfile.ZipFile(io.BytesIO(item.data)) as archive:
+                for entry in archive.infolist()[:30]:
+                    entry_name = entry.filename
+                    entry_lower = entry_name.lower()
+                    if entry.is_dir() or entry.file_size > 12_000_000:
+                        continue
+                    if not entry_lower.endswith((".pdf", ".txt", ".xml", ".csv", ".eml")):
+                        continue
+                    payload = archive.read(entry)
+                    entry_text = ""
+                    if entry_lower.endswith((".txt", ".xml", ".csv")):
+                        entry_text = payload.decode("utf-8", errors="replace")
+                    elif entry_lower.endswith(".eml"):
+                        try:
+                            nested = message_from_bytes(payload)
+                            plain, html, _attachments = extract_message_parts(nested)
+                            entry_text = plain or clean_text(re.sub(r"<[^>]+>", " ", html))
+                        except Exception:
+                            entry_text = payload.decode("utf-8", errors="replace")
+                    elif entry_lower.endswith(".pdf"):
+                        try:
+                            from pct.ocr import estrai_testo
+
+                            entry_text = estrai_testo(payload, entry_name)
+                        except Exception:
+                            entry_text = ""
+                    if entry_text:
+                        parts.append(f"[{entry_name}]\n{entry_text}")
+        except Exception:
+            parts = []
+        text = "\n\n".join(parts)
     if not text:
         decoded = item.data.decode("utf-8", errors="ignore")
         printable = sum(1 for char in decoded if char.isprintable() or char.isspace())
@@ -1049,6 +1627,22 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         ],
         message_id=message_id,
     )
+    procedural_profile = build_pec_procedural_profile(
+        subject=subject,
+        body_text=body_all,
+        xml_texts=xml_texts,
+        rg_candidates=rg_values,
+        sent_date=sent_date,
+        delivery_date=delivery_date,
+        event_type=str(legal_context.get("event_hint") or legal_workflow.get("event_type") or ""),
+        semantic_context=legal_context,
+    )
+    office_value = procedural_profile.get("ufficio") or ""
+    judge_value = procedural_profile.get("giudice") or ""
+    event_value = procedural_profile.get("tipo_evento") or procedural_profile.get("oggetto_evento") or ""
+    notice_time_value = procedural_profile.get("notificato_il") or delivery_date or sent_date
+    hearing_time_value = procedural_profile.get("udienza_data_ora") or ""
+    hearing_mode_value = procedural_profile.get("modalita_udienza") or ""
     fields = {
         "mittente": field_result(
             {"name": sender_name, "email": sender},
@@ -1092,6 +1686,42 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
             "Contesto processuale rilevato nel testo PEC" if legal_context else "Nessun contesto processuale forte rilevato",
             legal_context.get("features") or [] if legal_context else [],
         ),
+        "ufficio_giudiziario": field_result(
+            office_value,
+            0.86 if office_value else 0.2,
+            "Ufficio/cancelleria estratto da testo o XML della comunicazione" if office_value else "Ufficio non riconosciuto nei dati disponibili",
+            ["profilo_processuale", "eml/xml"] if office_value else [],
+        ),
+        "giudice": field_result(
+            judge_value,
+            0.86 if judge_value else 0.2,
+            "Giudice estratto dalla comunicazione di cancelleria" if judge_value else "Giudice non indicato o non riconosciuto",
+            ["profilo_processuale", "comunicazione.xml"] if judge_value else [],
+        ),
+        "evento_processuale": field_result(
+            event_value,
+            0.84 if event_value else 0.2,
+            "Evento processuale estratto dal messaggio o dalla Comunicazione.xml" if event_value else "Evento processuale non riconosciuto",
+            ["profilo_processuale", "xml:Oggetto/Tipo Evento"] if event_value else [],
+        ),
+        "orario_notifica": field_result(
+            notice_time_value,
+            0.86 if notice_time_value else 0.2,
+            "Orario da presidiare letto da notifica/certificazione PEC" if notice_time_value else "Orario non riconosciuto",
+            ["profilo_processuale", "daticert/header"] if notice_time_value else [],
+        ),
+        "orario_udienza": field_result(
+            hearing_time_value,
+            0.9 if hearing_time_value else 0.2,
+            "Data e ora udienza estratte dalla comunicazione di cancelleria" if hearing_time_value else "Data e ora udienza non riconosciute",
+            ["profilo_processuale", "comunicazione.xml"] if hearing_time_value else [],
+        ),
+        "modalita_udienza": field_result(
+            hearing_mode_value,
+            0.9 if hearing_mode_value else 0.2,
+            "Modalità dell'udienza riconosciuta dalla comunicazione" if hearing_mode_value else "Modalità udienza non riconosciuta",
+            ["profilo_processuale", "comunicazione.xml"] if hearing_mode_value else [],
+        ),
     }
     return {
         "schema": "iusentra.pec.parsed.v2",
@@ -1107,6 +1737,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         "fields": fields,
         "semantic_context": legal_context,
         "legal_workflow": legal_workflow,
+        "procedural_profile": procedural_profile,
         "rg_candidates": rg_values,
         "body": {
             "text": clean_text(text_body, 20000),
@@ -1661,6 +2292,52 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                     "detail": f"{item.get('filename')}: esito {item.get('signature_status')}.",
                 }
             )
+    procedural_profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    remote_hearing = build_remote_hearing_profile(parsed, attachments)
+    if remote_hearing:
+        procedural_profile = dict(procedural_profile)
+        procedural_profile["remote_hearing"] = remote_hearing
+        checklist = [str(item) for item in list(procedural_profile.get("checklist_avvocato") or []) if str(item or "").strip()]
+        questions = [str(item) for item in list(procedural_profile.get("domande_lex") or []) if str(item or "").strip()]
+        remote_checklist = [str(item) for item in list(remote_hearing.get("checklist") or []) if str(item or "").strip()]
+        remote_questions = [str(item) for item in list(remote_hearing.get("questions") or []) if str(item or "").strip()]
+        procedural_profile["checklist_avvocato"] = list(dict.fromkeys([*remote_checklist, *checklist]))
+        procedural_profile["domande_lex"] = list(dict.fromkeys([*remote_questions, *questions]))
+        if remote_hearing.get("detected") or remote_hearing.get("pdf_required"):
+            sintesi = [str(item) for item in list(procedural_profile.get("sintesi_operativa") or []) if str(item or "").strip()]
+            mode = str(remote_hearing.get("mode") or "da remoto")
+            links = remote_hearing.get("links") if isinstance(remote_hearing.get("links"), list) else []
+            times = remote_hearing.get("times") if isinstance(remote_hearing.get("times"), list) else []
+            if links:
+                first_link = links[0] if isinstance(links[0], dict) else {}
+                sintesi.append(f"Udienza {mode}: link rilevato in {first_link.get('source') or 'allegato/testo PEC'}.")
+            elif remote_hearing.get("pdf_required"):
+                pending = ", ".join(str(item) for item in list(remote_hearing.get("pdf_pending") or remote_hearing.get("pdf_sources") or [])[:3])
+                sintesi.append(f"Udienza {mode}: leggere il PDF per recuperare il link di collegamento{f' ({pending})' if pending else ''}.")
+            if times:
+                sintesi.append(f"Orario udienza/collegamento: {times[0]}.")
+            procedural_profile["sintesi_operativa"] = list(dict.fromkeys(sintesi))
+        if remote_hearing.get("pdf_required"):
+            issues.append(
+                {
+                    "code": "remote_hearing_pdf_link_required",
+                    "severity": "warning",
+                    "blocking": False,
+                    "title": "Link udienza da leggere nel PDF",
+                    "detail": "La PEC richiama un'udienza da remoto/audiovisiva, ma il link non è ancora stato estratto: acquisire o leggere il PDF allegato prima di chiudere il presidio.",
+                }
+            )
+        elif remote_hearing.get("links"):
+            first = remote_hearing["links"][0] if isinstance(remote_hearing["links"][0], dict) else {}
+            issues.append(
+                {
+                    "code": "remote_hearing_link_detected",
+                    "severity": "info",
+                    "blocking": False,
+                    "title": "Udienza da remoto riconosciuta",
+                    "detail": f"Link o istruzioni di collegamento rilevati in {first.get('source') or 'testo PEC/allegato'}: verificare e riportare in agenda.",
+                }
+            )
     severity = "ok"
     if any(item["severity"] == "warning" for item in issues):
         severity = "warning"
@@ -1672,6 +2349,8 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         issues=issues,
         deposit_lifecycle=deposit_lifecycle,
     )
+    lawyer_checklist = [str(item) for item in list(procedural_profile.get("checklist_avvocato") or []) if str(item or "").strip()]
+    procedural_questions = [str(item) for item in list(procedural_profile.get("domande_lex") or []) if str(item or "").strip()]
     return {
         "event_type": event_type,
         "required": required,
@@ -1680,8 +2359,12 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         "deposit_lifecycle": deposit_lifecycle,
         "semantic_context": semantic_context,
         "legal_workflow": legal_workflow,
+        "procedural_profile": procedural_profile,
+        "remote_hearing": remote_hearing,
+        "lawyer_checklist": lawyer_checklist,
         "normative_references": semantic_context.get("normative_references") or [],
         "agent_questions": [
+            *procedural_questions,
             *(semantic_context.get("agent_questions") or []),
             *(
                 [
@@ -1694,6 +2377,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
             ),
         ],
         "recommended_actions": [
+            *lawyer_checklist[:5],
             *(semantic_context.get("recommended_actions") or []),
             *([legal_workflow.get("azione_proposta")] if legal_workflow.get("azione_proposta") else []),
             *(
@@ -1720,6 +2404,21 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
 
 def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any]:
     return dict(row) if row is not None else {}
+
+
+def _json_loads(value: Any) -> Any:
+    if isinstance(value, (dict, list)):
+        return value
+    try:
+        return json.loads(str(value or "{}"))
+    except Exception:
+        return {}
+
+
+def _local_acquire_item_from_row(row: sqlite3.Row) -> dict[str, Any]:
+    payload = dict(row)
+    payload["detail"] = _json_loads(payload.pop("detail_json", "{}"))
+    return payload
 
 
 def _lookup_text(obj: Any, *names: str) -> str:
@@ -2566,7 +3265,14 @@ class PecAuditRepository:
         payload["candidates"] = json.loads(payload.pop("candidates_json") or "[]")
         return payload
 
-    def list_messages(self, *, limit: int = 100, folder: str = "", q: str = "") -> list[dict[str, Any]]:
+    def list_messages(
+        self,
+        *,
+        limit: int = 100,
+        folder: str = "",
+        q: str = "",
+        include_details: bool = True,
+    ) -> list[dict[str, Any]]:
         query = "SELECT * FROM pec_messages WHERE tenant_id=?"
         params: list[Any] = [self.tenant_id]
         if folder:
@@ -2583,8 +3289,12 @@ class PecAuditRepository:
                 item = _row_to_dict(row)
                 item.pop("original_mime", None)
                 item["metadata"] = json.loads(item.pop("metadata_json") or "{}")
-                item["validation_report"] = self.latest_report(conn, item["id"])
-                item["fascicolo_link"] = self.latest_link(conn, item["id"])
+                if include_details:
+                    item["validation_report"] = self.latest_report(conn, item["id"])
+                    item["fascicolo_link"] = self.latest_link(conn, item["id"])
+                else:
+                    item["validation_report"] = {}
+                    item["fascicolo_link"] = {}
                 rows.append(item)
         return rows
 
@@ -2625,43 +3335,65 @@ class PecAuditRepository:
                 return None
         return self.get_message_detail(str(row["id"]))
 
-    def summaries_by_header_message_ids(self, headers: Iterable[str]) -> dict[str, dict[str, Any]]:
-        values = [str(item or "").strip() for item in headers if str(item or "").strip()]
+    def summaries_by_header_message_ids(
+        self,
+        headers: Iterable[str],
+        *,
+        include_details: bool = True,
+    ) -> dict[str, dict[str, Any]]:
+        seen_values: set[str] = set()
+        values: list[str] = []
+        for item in headers:
+            value = str(item or "").strip()
+            if value and value not in seen_values:
+                seen_values.add(value)
+                values.append(value)
         if not values:
             return {}
-        placeholders = ",".join("?" for _ in values)
         result: dict[str, dict[str, Any]] = {}
         with self.connect() as conn:
-            rows = conn.execute(
-                f"""
-                SELECT id, message_id_header, quality_status, signature_status, linked_fascicolo_id,
-                       linked_fascicolo_score, received_at
-                FROM pec_messages
-                WHERE tenant_id=? AND message_id_header IN ({placeholders})
-                ORDER BY received_at DESC
-                """,
-                (self.tenant_id, *values),
-            ).fetchall()
-            for row in rows:
-                header = str(row["message_id_header"] or "")
-                if header in result:
-                    continue
-                parsed_row = self.latest_parsed_row(conn, str(row["id"]))
-                parsed = json.loads(parsed_row["parsed_json"]) if parsed_row else {}
-                report = self.latest_report(conn, str(row["id"]))
-                link = self.latest_link(conn, str(row["id"]))
-                attachments = self.attachment_rows(conn, str(row["id"]), str(parsed_row["id"] if parsed_row else ""))
-                result[header] = {
-                    "id": row["id"],
-                    "quality_status": row["quality_status"],
-                    "signature_status": row["signature_status"],
-                    "linked_fascicolo_id": row["linked_fascicolo_id"],
-                    "linked_fascicolo_score": row["linked_fascicolo_score"],
-                    "fields": (parsed.get("fields") or {}),
-                    "validation_report": report,
-                    "fascicolo_link": link,
-                    "attachments": attachments,
-                }
+            for offset in range(0, len(values), 900):
+                chunk = values[offset : offset + 900]
+                placeholders = ",".join("?" for _ in chunk)
+                rows = conn.execute(
+                    f"""
+                    SELECT id, message_id_header, quality_status, signature_status, linked_fascicolo_id,
+                           linked_fascicolo_score, received_at
+                    FROM pec_messages
+                    WHERE tenant_id=? AND message_id_header IN ({placeholders})
+                    ORDER BY received_at DESC
+                    """,
+                    (self.tenant_id, *chunk),
+                ).fetchall()
+                for row in rows:
+                    header = str(row["message_id_header"] or "")
+                    if header in result:
+                        continue
+                    summary = {
+                        "id": row["id"],
+                        "message_id_header": header,
+                        "quality_status": row["quality_status"],
+                        "signature_status": row["signature_status"],
+                        "linked_fascicolo_id": row["linked_fascicolo_id"],
+                        "linked_fascicolo_score": row["linked_fascicolo_score"],
+                        "received_at": row["received_at"],
+                        "fields": {},
+                        "validation_report": {},
+                        "fascicolo_link": {},
+                        "attachments": [],
+                    }
+                    if include_details:
+                        parsed_row = self.latest_parsed_row(conn, str(row["id"]))
+                        parsed = json.loads(parsed_row["parsed_json"]) if parsed_row else {}
+                        summary["fields"] = parsed.get("fields") or {}
+                        summary["validation_report"] = self.latest_report(conn, str(row["id"]))
+                        summary["fascicolo_link"] = self.latest_link(conn, str(row["id"]))
+                        summary["attachments"] = self.attachment_rows(
+                            conn,
+                            str(row["id"]),
+                            str(parsed_row["id"] if parsed_row else ""),
+                        )
+                    result[header] = summary
         return result
 
     def ids_by_header_message_ids(self, headers: Iterable[str]) -> dict[str, str]:
@@ -3203,6 +3935,224 @@ class PecAuditRepository:
         except Exception:
             return {}
         return result
+
+    def get_local_acquire_run(self, run_id: str) -> dict[str, Any]:
+        clean_id = clean_text(run_id)
+        if not clean_id:
+            return {}
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM pec_local_acquire_runs WHERE tenant_id=? AND id=?",
+                (self.tenant_id, clean_id),
+            ).fetchone()
+        return _row_to_dict(row)
+
+    def start_local_acquire_run(self, *, total_emails: int, batch_size: int, actor: str = "pec-api") -> dict[str, Any]:
+        run_id = f"plar_{uuid.uuid4().hex[:24]}"
+        now = iso_now()
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO pec_local_acquire_runs
+                (id, tenant_id, status, started_at, updated_at, cursor_index, total_emails, batch_size)
+                VALUES (?,?,?,?,?,?,?,?)
+                """,
+                (run_id, self.tenant_id, "running", now, now, 0, int(total_emails or 0), int(batch_size or 50)),
+            )
+            self.append_audit(
+                conn,
+                action="pec.local_acquire.started",
+                resource_type="pec_local_acquire_run",
+                resource_id=run_id,
+                payload={"total_emails": int(total_emails or 0), "batch_size": int(batch_size or 50)},
+                actor=actor,
+            )
+        return self.get_local_acquire_run(run_id)
+
+    def update_local_acquire_run(
+        self,
+        run_id: str,
+        *,
+        cursor_index: int,
+        total_emails: int,
+        batch_size: int,
+        deltas: dict[str, int] | None = None,
+        status: str = "running",
+        payload: dict[str, Any] | None = None,
+        actor: str = "pec-api",
+    ) -> dict[str, Any]:
+        allowed = {
+            "acquired",
+            "duplicates",
+            "skipped_missing_mime",
+            "skipped_not_pec",
+            "queued_repairs",
+            "deadline_created",
+            "deadline_already_exists",
+            "deadline_expired",
+            "deadline_not_ready",
+            "deadline_errors",
+            "agenda_linked",
+            "errors",
+        }
+        clean_id = clean_text(run_id)
+        now = iso_now()
+        status = clean_text(status) or "running"
+        finished_at = now if status in {"completed", "failed", "cancelled"} else ""
+        payload_json = canonical_json(payload or {})
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT id FROM pec_local_acquire_runs WHERE tenant_id=? AND id=?",
+                (self.tenant_id, clean_id),
+            ).fetchone()
+            if row is None:
+                conn.execute(
+                    """
+                    INSERT INTO pec_local_acquire_runs
+                    (id, tenant_id, status, started_at, updated_at, cursor_index, total_emails, batch_size, payload_json)
+                    VALUES (?,?,?,?,?,?,?,?,?)
+                    """,
+                    (clean_id, self.tenant_id, "running", now, now, 0, int(total_emails or 0), int(batch_size or 50), "{}"),
+                )
+            assignments = [
+                "status=?",
+                "updated_at=?",
+                "finished_at=CASE WHEN ?<>'' THEN ? ELSE finished_at END",
+                "cursor_index=?",
+                "total_emails=?",
+                "batch_size=?",
+                "payload_json=?",
+            ]
+            args: list[Any] = [status, now, finished_at, finished_at, int(cursor_index or 0), int(total_emails or 0), int(batch_size or 50), payload_json]
+            for key, value in (deltas or {}).items():
+                if key not in allowed:
+                    continue
+                assignments.append(f"{key}={key}+?")
+                args.append(int(value or 0))
+            args.extend([self.tenant_id, clean_id])
+            conn.execute(
+                f"UPDATE pec_local_acquire_runs SET {', '.join(assignments)} WHERE tenant_id=? AND id=?",
+                args,
+            )
+            self.append_audit(
+                conn,
+                action="pec.local_acquire.updated" if status == "running" else f"pec.local_acquire.{status}",
+                resource_type="pec_local_acquire_run",
+                resource_id=clean_id,
+                payload={"cursor_index": cursor_index, "total_emails": total_emails, "deltas": deltas or {}, "status": status},
+                actor=actor,
+            )
+        return self.get_local_acquire_run(clean_id)
+
+    def record_local_acquire_item(
+        self,
+        run_id: str,
+        *,
+        email_id: str,
+        message_id: str = "",
+        subject: str = "",
+        status: str,
+        deadline_status: str = "",
+        due_date: str = "",
+        deadline_id: str = "",
+        agenda_id: str = "",
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        now = iso_now()
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO pec_local_acquire_items
+                (id, tenant_id, run_id, email_id, message_id, subject, status, deadline_status,
+                 due_date, deadline_id, agenda_id, detail_json, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(tenant_id, run_id, email_id) DO UPDATE SET
+                    message_id=excluded.message_id,
+                    subject=excluded.subject,
+                    status=excluded.status,
+                    deadline_status=excluded.deadline_status,
+                    due_date=excluded.due_date,
+                    deadline_id=excluded.deadline_id,
+                    agenda_id=excluded.agenda_id,
+                    detail_json=excluded.detail_json,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    f"plai_{uuid.uuid4().hex[:24]}",
+                    self.tenant_id,
+                    clean_text(run_id),
+                    clean_text(email_id),
+                    clean_text(message_id),
+                    clean_text(subject, 240),
+                    clean_text(status) or "processed",
+                    clean_text(deadline_status),
+                    clean_text(due_date),
+                    clean_text(deadline_id),
+                    clean_text(agenda_id),
+                    canonical_json(detail or {}),
+                    now,
+                    now,
+                ),
+            )
+
+    def local_acquire_presidio_index(self, *, limit: int = 10000) -> dict[str, dict[str, dict[str, Any]]]:
+        terminal_statuses = {
+            "processed",
+            "ingested",
+            "duplicate",
+            "missing_mime",
+            "deadline_created",
+            "deadline_already_exists",
+            "deadline_expired",
+            "deadline_not_ready",
+            "already_presided",
+        }
+        by_email_id: dict[str, dict[str, Any]] = {}
+        by_message_id: dict[str, dict[str, Any]] = {}
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM pec_local_acquire_items
+                WHERE tenant_id=?
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (self.tenant_id, max(1, int(limit or 10000))),
+            ).fetchall()
+        for row in rows:
+            item = _local_acquire_item_from_row(row)
+            status = clean_text(item.get("status"))
+            deadline_status = clean_text(item.get("deadline_status"))
+            if status not in terminal_statuses and not deadline_status:
+                continue
+            email_id = clean_text(item.get("email_id"))
+            message_id = clean_text(item.get("message_id"))
+            if email_id and email_id not in by_email_id:
+                by_email_id[email_id] = item
+            if message_id and message_id not in by_message_id:
+                by_message_id[message_id] = item
+        return {"by_email_id": by_email_id, "by_message_id": by_message_id}
+
+    def local_acquire_run_report(self, run_id: str, *, limit: int = 100) -> dict[str, Any]:
+        run = self.get_local_acquire_run(run_id)
+        if not run:
+            return {}
+        with self.connect() as conn:
+            items = [
+                _local_acquire_item_from_row(row)
+                for row in conn.execute(
+                    """
+                    SELECT * FROM pec_local_acquire_items
+                    WHERE tenant_id=? AND run_id=?
+                    ORDER BY updated_at DESC LIMIT ?
+                    """,
+                    (self.tenant_id, clean_text(run_id), max(1, int(limit or 100))),
+                ).fetchall()
+            ]
+        payload = dict(run)
+        payload["payload"] = _json_loads(payload.pop("payload_json", "{}"))
+        payload["items"] = items
+        return payload
 
     def schedule_deadline_from_payload(
         self,

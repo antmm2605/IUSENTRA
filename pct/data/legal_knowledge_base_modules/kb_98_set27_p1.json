@@ -1,0 +1,952 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET27_PARTE1",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 1 di 5",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_DIVORZIO_PER_SOPRAVVENIENZE_ART_9_L_898_197_111070",
+      "denominazione": "Modifica delle condizioni di divorzio per sopravvenienze (art. 9 L. 898/1970)",
+      "categoria": "Persone e famiglia – divorzio – revisione",
+      "rito": "Rito unificato 473-bis c.p.c. (Cartabia)",
+      "competenza": "Tribunale sezione famiglia del luogo di residenza del figlio minore o del convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "9",
+          "descrizione": "Revisione delle condizioni del divorzio – modifica dei provvedimenti relativi all'affidamento e al mantenimento per sopravvenienze"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.30 e ss.",
+          "descrizione": "Rito Cartabia per la modifica"
+        },
+        {
+          "fonte": "Cass. SU 18827/2020",
+          "descrizione": "Sopravvenienza rilevante – cambiamento stabile e significativo della situazione economica"
+        },
+        {
+          "fonte": "Cass. SU 11476/2022",
+          "descrizione": "Assegno divorzile: revisione per sopravvenienza della autosufficienza del beneficiario"
+        }
+      ],
+      "sopravvenienze_rilevanti": [
+        "Variazione significativa del reddito di uno dei coniugi (aumento o diminuzione stabile)",
+        "Nuova convivenza stabile o matrimonio del coniuge che percepisce l'assegno",
+        "Raggiungimento dell'autosufficienza economica del coniuge beneficiario",
+        "Cambio di collocamento dei figli minori"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la sopravvenienza stabile e significativa"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere documentazione economica aggiornata di entrambi i coniugi"
+        },
+        {
+          "step": 3,
+          "descrizione": "Aggiornare il piano genitoriale se cambiano le condizioni dei figli"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_modifica_condizioni_divorzio_art9_L898",
+        "denominazione": "Ricorso per modifica delle condizioni del divorzio ex art. 9 L. 898/1970",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "provvedimento_da_modificare",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "sentenza_divorzio",
+                "type": "string"
+              },
+              {
+                "id": "condizioni_da_modificare",
+                "type": "select_multi",
+                "options": [
+                  "assegno_divorzile",
+                  "affidamento_figli",
+                  "mantenimento_figli",
+                  "assegnazione_casa_familiare"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sopravvenienza_documentata",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "modifica_assegno_divorzile",
+              "modifica_affidamento_figli",
+              "modifica_mantenimento_figli",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Serve sopravvenienza STABILE e SIGNIFICATIVA – non variazioni temporanee",
+          "Nuova convivenza del beneficiario: può far cessare l'assegno divorzile",
+          "Piano genitoriale obbligatorio se modifica affidamento figli"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_divorzio_da_modificare",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sopravvenienza",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_economica_aggiornata",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine – proponibile al ricorrere della sopravvenienza"
+        }
+      ],
+      "codice_originale_ricevuto": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_DIVORZIO_PER_SOPRAVVENIENZE_ART_9_L_898_197_111070",
+      "codice_logico": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_DIVORZIO_PER_SOPRAVVENIENZE_ART_9_L_898_197_111070",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111070"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_REVISIONE_E_CESSAZIONE_DELL_ASSEGNO_DIVORZILE_ARTT_5_9_L_898_1970_111080",
+      "denominazione": "Revisione e cessazione dell'assegno divorzile (artt. 5-9 L. 898/1970)",
+      "categoria": "Persone e famiglia – divorzio – assegno",
+      "rito": "Rito unificato 473-bis c.p.c. + procedimento camerale",
+      "competenza": "Tribunale sezione famiglia del luogo di residenza dei coniugi",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "5",
+          "descrizione": "Assegno divorzile – criteri (assistenziale + compensativo + perequativo)"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "9",
+          "descrizione": "Revisione delle condizioni – modifica o cessazione dell'assegno"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "5 c. 10",
+          "descrizione": "Cessazione dell'assegno – per il nuovo matrimonio del beneficiario"
+        },
+        {
+          "fonte": "Cass. SU 18287/2018",
+          "descrizione": "Assegno divorzile – funzione composita: assistenziale + compensativa + perequativa"
+        },
+        {
+          "fonte": "Cass. SU 32198/2021",
+          "descrizione": "Criteri applicativi: contributo al ménage familiare + sacrifici professionali"
+        },
+        {
+          "fonte": "Cass. SU 11476/2022",
+          "descrizione": "Revisione per autosufficienza raggiunta del beneficiario"
+        }
+      ],
+      "cause_cessazione_automatica_5c10": [
+        "NUOVO MATRIMONIO del beneficiario → cessazione automatica",
+        "MORTE di uno dei coniugi"
+      ],
+      "cause_revisione_9": [
+        "Raggiungimento dell'autosufficienza economica del beneficiario (reddito proprio)",
+        "Nuovo reddito stabile del beneficiario (lavoro, eredità, convivenza stabile)",
+        "Variazione significativa del reddito dell'obbligato"
+      ],
+      "convivenza_stabile": {
+        "effetto": "Non fa cessare automaticamente l'assegno ma può portare alla revisione",
+        "giurisprudenza": "Il giudice valuta se la convivenza ha alleviato il bisogno del beneficiario"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Documentare la causa di revisione o cessazione"
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccogliere documentazione reddituale aggiornata"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per nuovo matrimonio: estratto atto di matrimonio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_revisione_cessazione_assegno_divorzile",
+        "denominazione": "Ricorso per revisione o cessazione dell'assegno divorzile ex artt. 5-9 L. 898/1970",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "richiedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "beneficiario_resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "assegno_attuale",
+            "type": "currency"
+          },
+          {
+            "id": "causa",
+            "type": "select",
+            "required": true,
+            "options": [
+              "nuovo_matrimonio_beneficiario_5c10",
+              "autosufficienza_raggiunta_9",
+              "convivenza_stabile_beneficiario",
+              "variazione_significativa_reddito_obbligato",
+              "nuovo_reddito_beneficiario"
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "cessazione_assegno",
+              "riduzione_assegno",
+              "sospensione_cautelare_assegno"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Nuovo matrimonio → CESSAZIONE AUTOMATICA dell'assegno (art. 5 c. 10)",
+          "Convivenza stabile: non cessazione automatica ma può portare a revisione",
+          "Obbligato: può richiedere sospensione cautelare dell'assegno durante il giudizio"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_divorzio_con_assegno",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_causa_revisione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_reddituale_aggiornata",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine – proponibile al ricorrere della causa"
+        }
+      ],
+      "codice_originale_ricevuto": "GUIDA_REVISIONE_E_CESSAZIONE_DELL_ASSEGNO_DIVORZILE_ARTT_5_9_L_898_1970_111080",
+      "codice_logico": "GUIDA_REVISIONE_E_CESSAZIONE_DELL_ASSEGNO_DIVORZILE_ARTT_5_9_L_898_1970_111080",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "111080"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AMMONIMENTO_QUESTORE_VIOLENZA_DOMESTICA_411603",
+      "denominazione": "Ammonimento del questore per atti persecutori e violenza domestica (D.L. 93/2013 art. 8 + c.p. 612-bis)",
+      "categoria": "Persone e famiglia – violenza domestica – ammonimento",
+      "rito": "Procedimento amministrativo davanti al Questore; contestuale ricorso al Giudice civile",
+      "competenza": "Questore + Tribunale sezione famiglia per l'ordine di protezione 342-bis",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.L. 93/2013 conv. L. 119/2013",
+          "articolo": "8",
+          "descrizione": "AMMONIMENTO – il Questore può ammonire chi pone atti persecutori o maltrattamenti in famiglia"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "612-bis",
+          "descrizione": "Stalking – reato penale procedibile a querela o d'ufficio se ammonimento"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "572",
+          "descrizione": "Maltrattamenti in famiglia"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "387-bis",
+          "descrizione": "Violazione dell'ordine di allontanamento"
+        },
+        {
+          "fonte": "D.L. 93/2013",
+          "articolo": "3",
+          "descrizione": "Misure urgenti in materia di sicurezza per violenza di genere"
+        },
+        {
+          "fonte": "Cass. SU 18578/2020",
+          "descrizione": "Ammonimento – natura e effetti sulla procedibilità"
+        },
+        {
+          "fonte": "Cass. SU 9645/2023",
+          "descrizione": "Ammonimento e procedibilità d'ufficio post-ammonimento"
+        }
+      ],
+      "ammonimento_art8_D_L_93_2013": {
+        "chi_chiede": "La vittima con richiesta al Questore (non è denuncia-querela penale)",
+        "effetto_principale": "Il Questore ammonisce l'autore a cessare i comportamenti",
+        "effetto_sulla_procedibilita_Cass_SU_18578_2020": "Post-ammonimento: il reato di stalking (612-bis) diventa procedibile D'UFFICIO (non serve più la querela)",
+        "effetto_aggravante": "La recidiva post-ammonimento è circostanza aggravante"
+      },
+      "sinergia_ammonimento_e_ordine_protezione": {
+        "ammonimento": "Strumento PREVENTIVO – rapido e senza contraddittorio (Questore)",
+        "ordine_protezione_342bis": "Strumento CIVILE – Tribunale + inaudita altera parte + allontanamento",
+        "denuncia_penale": "Strumento PENALE – querela o denuncia per 572/612-bis",
+        "strategia_ottimale": "Richiedere tutti e tre contemporaneamente per massima protezione"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Presentare richiesta di ammonimento al Questore (modulo o lettera)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Contestualmente: ricorso per ordine di protezione al Tribunale (art. 342-bis)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Valutare denuncia-querela penale per stalking o maltrattamenti"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_ammonimento_questore_art8_DL93",
+        "denominazione": "Istanza di ammonimento al Questore ex art. 8 D.L. 93/2013 + ricorso contestuale per ordine di protezione",
+        "campi_chiave": [
+          {
+            "id": "questore_competente",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "richiedente_vittima",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "autore_comportamenti",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_comportamenti",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "atti_persecutori_612bis_stalking",
+              "maltrattamenti_in_famiglia_572",
+              "violenza_di_genere",
+              "minacce_reiterate"
+            ]
+          },
+          {
+            "id": "descrizione_fatti",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "contestuale_ricorso_342bis",
+            "type": "boolean",
+            "consigliato": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "ammonimento_questore_art8",
+              "effetto_procedibilita_ufficio_post_ammonimento",
+              "contestuale_ordine_protezione_342bis"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Post-ammonimento: 612-bis diventa PROCEDIBILE D'UFFICIO (no querela necessaria)",
+          "Richiedere contemporaneamente: ammonimento + ordine protezione 342-bis + querela penale",
+          "L'ammonimento è gratuito e rapido – nessun avvocato obbligatorio"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_atti_persecutori",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "referti_medici_o_psicologici",
+          "required": false,
+          "consigliato": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Nessuno – procedimento amministrativo gratuito",
+        "marca_bollo_forfettaria": 0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine – proponibile in qualunque momento"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411603"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411603"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411603"
+        }
+      ],
+      "codice_originale_ricevuto": "411603",
+      "codice_logico": "GUIDA_AMMONIMENTO_QUESTORE_VIOLENZA_DOMESTICA_411603",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "111602",
+        "411002",
+        "411603",
+        "B02023"
+      ],
+      "nota_integrazione_iusentra": "Il codice 411603 è ufficiale nel catalogo locale per attuazione dei provvedimenti sull'affidamento; la scheda ricevuta riguarda ammonimento del questore, atti persecutori e violenza domestica. Resta guida interna e non sostituisce il codice ministeriale del deposito."
+    },
+    {
+      "codice": "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_DEL_MINORE_IN_CONFLITTO_DI_INTERESSI_CON_I__411604",
+      "denominazione": "Nomina del curatore speciale del minore in conflitto di interessi con i genitori (art. 78 c.p.c. + art. 321 c.c.)",
+      "categoria": "Persone e famiglia – tutela del minore – curatore speciale",
+      "rito": "Procedimento camerale davanti al GIUDICE TUTELARE o Tribunale sezione famiglia",
+      "competenza": "Giudice Tutelare del luogo di residenza del minore; Tribunale per procedimenti già pendenti",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "78",
+          "descrizione": "Curatore speciale – nomina quando manca o è assente il rappresentante legale o vi è conflitto di interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "321",
+          "descrizione": "Nomina del curatore speciale per atti specifici dove il genitore ha conflitto di interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-quater",
+          "descrizione": "Minore privo di adeguata rappresentanza nel procedimento di separazione/divorzio"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.8",
+          "descrizione": "Ascolto del minore e nomina del curatore speciale nei procedimenti di famiglia (Cartabia)"
+        },
+        {
+          "fonte": "Cass. SU 11399/2021",
+          "descrizione": "Curatore speciale del minore – quando è obbligatoria la nomina"
+        },
+        {
+          "fonte": "Cass. SU 7476/2023",
+          "descrizione": "Conflitto di interessi genitore-figlio – nomina automatica del curatore"
+        }
+      ],
+      "quando_si_nomina_il_curatore": [
+        "Conflitto di interessi tra genitore e figlio in un atto o procedimento specifico",
+        "Assenza di entrambi i genitori (nominato il tutore) per atti urgenti",
+        "Procedimento di separazione/divorzio contenzioso – il minore ha interesse autonomo",
+        "Accettazione eredità con conflitto di interessi",
+        "Procedimenti giudiziari dove il genitore è controparte del figlio"
+      ],
+      "nomina_automatica_post_Cartabia_473bis8": {
+        "quando": "In tutti i procedimenti di famiglia dove emerge un conflitto di interessi",
+        "chi_nomina": "Il Tribunale d'ufficio o su istanza",
+        "chi_e_il_curatore": "Di preferenza un avvocato specializzato in diritto di famiglia"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Identificare il conflitto di interessi specifico (atto o procedimento)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Presentare ricorso al GT o al Tribunale famiglia"
+        },
+        {
+          "step": 3,
+          "descrizione": "Proporre eventualmente un nominativo per il curatore"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_nomina_curatore_speciale_minore_78_321",
+        "denominazione": "Istanza di nomina del curatore speciale del minore ex art. 78 c.p.c. + art. 321 c.c.",
+        "campi_chiave": [
+          {
+            "id": "giudice_tutelare_o_tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "richiedente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "genitore_non_in_conflitto",
+                  "PM",
+                  "terzo_interessato"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "minore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_conflitto",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "conflitto_genitore_figlio_in_atto_specifico_321",
+              "procedimento_famiglia_contenzioso_473bis8",
+              "accettazione_eredita_con_conflitto",
+              "assenza_entrambi_genitori"
+            ]
+          },
+          {
+            "id": "curatore_proposto",
+            "type": "object_persona"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "nomina_curatore_speciale_78_321",
+              "autorizzazione_atto_in_conflitto_321"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Post-Cartabia (473-bis.8): il Tribunale nomina d'ufficio il curatore se emerge conflitto",
+          "Il curatore rappresenta il minore SOLO per l'atto o procedimento specifico",
+          "GT per atti straordinari; Tribunale famiglia per procedimenti in corso"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documentazione_conflitto_di_interessi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_di_nascita_minore",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Nessun termine fisso"
+        }
+      ],
+      "codice_originale_ricevuto": "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_DEL_MINORE_IN_CONFLITTO_DI_INTERESSI_CON_I__411604",
+      "codice_logico": "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_DEL_MINORE_IN_CONFLITTO_DI_INTERESSI_CON_I__411604",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411604"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411604"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "411604"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARIO_NON_PAGATO_TURNI_E_VIOLAZIONI_D_LGS_66_20_220190",
+      "denominazione": "Orario di lavoro: straordinario non pagato, turni e violazioni (D.Lgs. 66/2003)",
+      "categoria": "Lavoro – orario di lavoro",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "3",
+          "descrizione": "Orario normale di lavoro – 40 ore settimanali"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "4",
+          "descrizione": "Durata massima dell'orario di lavoro – 48 ore settimanali (media su 4 mesi)"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "5",
+          "descrizione": "Lavoro STRAORDINARIO – limite di 8 ore a settimana; maggiorazione contrattuale"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "7",
+          "descrizione": "Riposo giornaliero – 11 ore consecutive ogni 24 ore"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "9",
+          "descrizione": "Riposo settimanale – 24 ore consecutive ogni 7 giorni"
+        },
+        {
+          "fonte": "D.Lgs. 66/2003",
+          "articolo": "36 c. 3",
+          "descrizione": "MAGGIORAZIONE per lo straordinario – determinata dal CCNL"
+        },
+        {
+          "fonte": "Cass. SU 14489/2020",
+          "descrizione": "Straordinario – prova del lavoro effettivamente svolto"
+        },
+        {
+          "fonte": "Cass. SU 9231/2023",
+          "descrizione": "Violazione riposo giornaliero – risarcimento del danno"
+        }
+      ],
+      "limiti_orario_D_Lgs_66_2003": {
+        "orario_normale": "40 ore settimanali",
+        "massimo_assoluto": "48 ore settimanali (media su 4 mesi – o 6 con accordo collettivo)",
+        "straordinario": "Max 8 ore/settimana; max 250 ore/anno",
+        "riposo_giornaliero": "Almeno 11 ore consecutive ogni 24 – INDEROGABILE",
+        "riposo_settimanale": "Almeno 24 ore consecutive ogni 7 giorni"
+      },
+      "maggiorazione_straordinario": {
+        "determinazione": "Dal CCNL di categoria – di norma dal 15% al 50% in più sulla retribuzione ordinaria",
+        "notturno": "Maggiorazione aggiuntiva per lavoro notturno (CCNL + D.Lgs. 66/2003 art. 6)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Ricostruire le ore di lavoro effettivamente svolte (registri presenze, badge, email)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Confrontare con le ore pagate e le maggiorazioni applicate"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare il differenziale con le maggiorazioni CCNL applicabili"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_straordinario_non_pagato_D_Lgs_66_2003",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per straordinario non pagato e violazioni orario di lavoro ex D.Lgs. 66/2003",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_violazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "straordinario_non_pagato_o_non_maggiorato",
+              "superamento_48_ore_settimanali",
+              "violazione_riposo_giornaliero_11_ore",
+              "violazione_riposo_settimanale_24_ore",
+              "lavoro_notturno_non_maggiorato"
+            ]
+          },
+          {
+            "id": "periodo_contestato",
+            "type": "string"
+          },
+          {
+            "id": "ore_straordinario_non_pagate",
+            "type": "integer"
+          },
+          {
+            "id": "importo_differenziale_richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_straordinario_con_maggiorazione_CCNL",
+              "risarcimento_violazione_riposo",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Prova delle ore svolte: badge, email, registri – fondamentale (Cass. SU 14489/2020)",
+          "Maggiorazione: determinata dal CCNL di categoria applicabile",
+          "Violazione riposo giornaliero 11 ore: risarcimento del danno (Cass. SU 9231/2023)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "prove_ore_lavorate_badge_email_registri",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_periodo_contestato",
+          "required": true
+        },
+        {
+          "id": "CCNL_applicato_per_maggiorazioni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARIO_NON_PAGATO_TURNI_E_VIOLAZIONI_D_LGS_66_20_220190",
+      "codice_logico": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARIO_NON_PAGATO_TURNI_E_VIOLAZIONI_D_LGS_66_20_220190",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220190"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220190"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220190"
+        }
+      ]
+    }
+  ]
+}

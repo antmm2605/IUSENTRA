@@ -1,0 +1,61 @@
+{
+  "source": "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p1.json",
+  "sha256": "82C668689EF95E84C1980F6CA518FEC90BBE7186FF58D8F8158BADD7FB69E626",
+  "changed": false,
+  "macro_area_id": "SET27_PARTE1",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 1 di 5",
+  "codici_materia_originali": [
+    "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_DIVORZIO_PER_SOPRAVVENIENZE_ART_9_L_898_197_111070",
+    "GUIDA_REVISIONE_E_CESSAZIONE_DELL_ASSEGNO_DIVORZILE_ARTT_5_9_L_898_1970_111080",
+    "411603",
+    "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_DEL_MINORE_IN_CONFLITTO_DI_INTERESSI_CON_I__411604",
+    "GUIDA_ORARIO_DI_LAVORO_STRAORDINARIO_NON_PAGATO_TURNI_E_VIOLAZIONI_D_LGS_66_20_220190"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_DIVORZIO_PER_SOPRAVVENIENZE_ART_9_L_898_197_111070",
+    "GUIDA_REVISIONE_E_CESSAZIONE_DELL_ASSEGNO_DIVORZILE_ARTT_5_9_L_898_1970_111080",
+    "GUIDA_AMMONIMENTO_QUESTORE_VIOLENZA_DOMESTICA_411603",
+    "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_DEL_MINORE_IN_CONFLITTO_DI_INTERESSI_CON_I__411604",
+    "GUIDA_ORARIO_DI_LAVORO_STRAORDINARIO_NON_PAGATO_TURNI_E_VIOLAZIONI_D_LGS_66_20_220190"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_DIVORZIO_PER_SOPRAVVENIENZE_ART_9_L_898_197_111070",
+      "codice_integrato": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_DIVORZIO_PER_SOPRAVVENIENZE_ART_9_L_898_197_111070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "GUIDA_REVISIONE_E_CESSAZIONE_DELL_ASSEGNO_DIVORZILE_ARTT_5_9_L_898_1970_111080",
+      "codice_integrato": "GUIDA_REVISIONE_E_CESSAZIONE_DELL_ASSEGNO_DIVORZILE_ARTT_5_9_L_898_1970_111080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "411603",
+      "codice_integrato": "GUIDA_AMMONIMENTO_QUESTORE_VIOLENZA_DOMESTICA_411603",
+      "codici_ufficiali_correlati_da_valutare": [
+        "111602",
+        "411002",
+        "411603",
+        "B02023"
+      ],
+      "reason": "Il codice 411603 è ufficiale nel catalogo locale per attuazione dei provvedimenti sull'affidamento; la scheda ricevuta riguarda ammonimento del questore, atti persecutori e violenza domestica. Resta guida interna e non sostituisce il codice ministeriale del deposito."
+    },
+    {
+      "codice_originale": "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_DEL_MINORE_IN_CONFLITTO_DI_INTERESSI_CON_I__411604",
+      "codice_integrato": "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_DEL_MINORE_IN_CONFLITTO_DI_INTERESSI_CON_I__411604",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARIO_NON_PAGATO_TURNI_E_VIOLAZIONI_D_LGS_66_20_220190",
+      "codice_integrato": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARIO_NON_PAGATO_TURNI_E_VIOLAZIONI_D_LGS_66_20_220190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

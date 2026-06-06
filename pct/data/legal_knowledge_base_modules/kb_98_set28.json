@@ -1,0 +1,1193 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "SET28_5CODICI",
+  "denominazione": "Ventottesimo set - 5 nuovi codici",
+  "data_generazione": "2026-06-04",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_SCIOGLIMENTO_DELLA_COMUNIONE_LEGALE_TRA_CONIUGI_E_DIVISIONE_DEI_BENI_ART_130145",
+      "denominazione": "Scioglimento della comunione legale tra coniugi e divisione dei beni (artt. 159-230-bis c.c.)",
+      "categoria": "Persone e famiglia – regime patrimoniale – comunione legale",
+      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali per gli immobili)",
+      "competenza": "Tribunale sezione famiglia o Tribunale ordinario a seconda dell'oggetto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "159",
+          "descrizione": "Regime patrimoniale – comunione legale come regime legale in assenza di accordo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "177",
+          "descrizione": "Oggetto della comunione legale – acquisti e attività comuni durante il matrimonio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "179",
+          "descrizione": "Beni personali esclusi dalla comunione legale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "191",
+          "descrizione": "SCIOGLIMENTO della comunione legale – cause: separazione, divorzio, morte, accordo, fallimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "192-196",
+          "descrizione": "Rimborsi e restituzioni tra coniugi alla divisione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "210",
+          "descrizione": "Separazione convenzionale dei beni – accordo notarile"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "230-bis",
+          "descrizione": "Impresa familiare – diritti del familiare che lavora"
+        },
+        {
+          "fonte": "Cass. SU 13604/2021",
+          "descrizione": "Comunione legale – caduta in comunione di quote societarie"
+        },
+        {
+          "fonte": "Cass. SU 9867/2023",
+          "descrizione": "Rimborsi tra coniugi alla scioglimento della comunione"
+        }
+      ],
+      "oggetto_della_comunione_legale_177": {
+        "cadono_in_comunione": [
+          "Acquisti compiuti da entrambi o da uno dei coniugi durante il matrimonio",
+          "Aziende gestite da entrambi",
+          "Utili e incrementi delle aziende gestite da entrambi"
+        ],
+        "NON_cadono_in_comunione_179": [
+          "Beni posseduti prima del matrimonio",
+          "Beni ricevuti per donazione o successione",
+          "Beni personali (uso strettamente personale)",
+          "Beni acquistati con il ricavato di beni personali"
+        ]
+      },
+      "scioglimento_191": {
+        "cause": [
+          "Separazione personale (con accordo o sentenza)",
+          "Divorzio",
+          "Morte di un coniuge",
+          "Accordo tra coniugi in regime di separazione dei beni",
+          "Dichiarazione di assenza o morte presunta"
+        ],
+        "effetti": "Le quote diventano 1/2 ciascuno + si procede alla divisione"
+      },
+      "rimborsi_192_Cass_SU_9867_2023": {
+        "rimborsi_alla_comunione": "Il coniuge che ha usato denaro comune per beni personali deve rimborsare la comunione",
+        "rimborsi_dalla_comunione": "Il coniuge che ha usato denaro personale per beni comuni ha diritto al rimborso"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "materia": "DIRITTI REALI per gli immobili in comunione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Inventariare tutti i beni in comunione legale (immobili, conti, quote societarie)"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verificare i beni personali esclusi dalla comunione (art. 179)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare i rimborsi reciproci (art. 192)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Mediazione obbligatoria se vi sono immobili"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_divisione_comunione_legale_191_196",
+        "denominazione": "Azione per divisione dei beni della comunione legale sciolta ex artt. 191-196 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coniuge_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "coniuge_convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "causa_scioglimento",
+            "type": "select",
+            "required": true,
+            "options": [
+              "separazione_personale_191",
+              "divorzio",
+              "accordo_separazione_beni_210",
+              "morte_coniuge"
+            ]
+          },
+          {
+            "id": "beni_in_comunione",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "immobile",
+                  "conto_corrente",
+                  "quote_societarie",
+                  "azienda",
+                  "altro"
+                ]
+              },
+              {
+                "id": "valore",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "rimborsi_reciproci",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "rimborso_a_favore_coniuge_1",
+                "type": "currency"
+              },
+              {
+                "id": "rimborso_a_favore_coniuge_2",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "scioglimento_e_divisione_comunione_legale",
+              "attribuzione_beni_in_natura_o_vendita",
+              "condanna_rimborsi_reciproci_192",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Beni personali art. 179: NON cadono in comunione – verificare accuratamente",
+          "Quote societarie: cadono in comunione (Cass. SU 13604/2021)",
+          "Rimborsi reciproci: vanno calcolati prima della divisione",
+          "Mediazione obbligatoria se vi sono immobili"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "inventario_beni_in_comunione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_scioglimento_sentenza_o_accordo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atti_di_acquisto_beni_con_data",
+          "required": true
+        },
+        {
+          "id": "verbale_mediazione_se_immobili",
+          "required_if": "immobili",
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Imprescrittibile – proponibile in qualunque momento dopo lo scioglimento"
+        }
+      ],
+      "codice_originale_ricevuto": "130145",
+      "codice_logico": "GUIDA_SCIOGLIMENTO_DELLA_COMUNIONE_LEGALE_TRA_CONIUGI_E_DIVISIONE_DEI_BENI_ART_130145",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130145"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130145"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130145"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_AFFITTO_D_AZIENDA_INADEMPIMENTO_RESTITUZIONE_E_INDENNIT_DI_AVVIAMENTO_AR_143080",
+      "denominazione": "Affitto d'azienda: inadempimento, restituzione e indennità di avviamento (art. 2562 c.c.)",
+      "categoria": "Contratti – affitto d'azienda",
+      "rito": "Rito ordinario di cognizione; mediazione obbligatoria se immobile incluso",
+      "competenza": "Tribunale – foro convenuto o luogo di esecuzione",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2562",
+          "descrizione": "Affitto d'azienda – si applicano le norme sull'affitto con le modifiche degli artt. 2563 e ss."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2561",
+          "descrizione": "Usufruttuario dell'azienda – obblighi di conservazione e gestione (applicabili all'affittuario per rinvio)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2558",
+          "descrizione": "Successione nei contratti – l'affittuario subentra nei contratti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2559-2560",
+          "descrizione": "Crediti e debiti dell'azienda affittata"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "34 e ss.",
+          "descrizione": "Indennità di avviamento – applicabile all'affitto d'azienda in certi casi"
+        },
+        {
+          "fonte": "Cass. SU 14673/2021",
+          "descrizione": "Affitto d'azienda – restituzione e stato dell'azienda alla fine"
+        },
+        {
+          "fonte": "Cass. SU 9845/2023",
+          "descrizione": "Differenza di valore azienda alla restituzione – calcolo"
+        }
+      ],
+      "obblighi_affittuario_2561": {
+        "gestione_produttiva": "L'affittuario deve gestire l'azienda senza modificarne la destinazione",
+        "conservazione": "Deve mantenere l'efficienza dell'organizzazione e degli impianti",
+        "inventario_iniziale": "Obbligatorio all'inizio e alla fine – per il confronto"
+      },
+      "restituzione_alla_scadenza_Cass_SU_14673_2021": {
+        "stato": "L'azienda deve essere restituita nello stesso stato (tenuto conto della normale usura)",
+        "differenza_di_valore": "Se vi è una differenza di valore positiva: l'affittuario ha diritto a un'indennità; se negativa: il concedente ha diritto al risarcimento",
+        "calcolo_Cass_SU_9845_2023": "Confronto tra inventario iniziale e finale – valori aggiornati"
+      },
+      "indennita_di_avviamento": {
+        "quando": "Se l'affitto riguarda un'azienda con accesso al pubblico e scade per volontà del concedente",
+        "applicazione_L392": "In certi casi: analogia con la locazione commerciale – indennità di avviamento"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Se vi è un immobile incluso: mediazione obbligatoria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare il contratto di affitto d'azienda + inventario iniziale"
+        },
+        {
+          "step": 2,
+          "descrizione": "Redigere perizia di stima dell'azienda al momento della restituzione"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolare la differenza di valore tra inventario iniziale e finale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_affitto_azienda_inadempimento_restituzione_2562",
+        "denominazione": "Azione per inadempimento/restituzione dell'affitto d'azienda ex art. 2562 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "concedente_vs_affittuario",
+                  "affittuario_vs_concedente"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto_affitto_azienda",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date"
+              },
+              {
+                "id": "data_fine",
+                "type": "date"
+              },
+              {
+                "id": "canone_mensile",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "mancato_pagamento_canone",
+              "deterioramento_azienda_alla_restituzione",
+              "mancata_restituzione",
+              "modifica_destinazione_aziendale",
+              "differenza_valore_inventari"
+            ]
+          },
+          {
+            "id": "valore_azienda_inventario_iniziale",
+            "type": "currency"
+          },
+          {
+            "id": "valore_azienda_inventario_finale",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_canoni_insoluti",
+              "condanna_restituzione_azienda",
+              "risarcimento_deterioramento_differenza_valore",
+              "indennita_avviamento_se_dovuta",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Inventario iniziale e finale FONDAMENTALI per il calcolo della differenza di valore",
+          "L'affittuario deve gestire mantenendo la destinazione e l'efficienza (art. 2561)",
+          "Indennità avviamento: valutare se applicabile per analogia con L. 392/1978"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_affitto_azienda",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "inventario_iniziale_firmato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "inventario_finale_o_perizia_attuale",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione ordinaria",
+          "anni": 10
+        }
+      ],
+      "codice_originale_ricevuto": "143080",
+      "codice_logico": "GUIDA_AFFITTO_D_AZIENDA_INADEMPIMENTO_RESTITUZIONE_E_INDENNIT_DI_AVVIAMENTO_AR_143080",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143080"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143080"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RIDUZIONE_E_AUMENTO_DEL_CAPITALE_NELLE_S_R_L_CONTESTAZIONI_E_TUTELA_DEI__150090",
+      "denominazione": "Riduzione e aumento del capitale nelle S.r.l. – contestazioni e tutela dei soci (artt. 2480-2482-ter c.c.)",
+      "categoria": "Diritto societario – S.r.l. – capitale sociale",
+      "rito": "Rito ordinario – Tribunale delle Imprese",
+      "competenza": "Tribunale delle Imprese – sede della società",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2480",
+          "descrizione": "Riduzione del capitale per esuberanza – facoltativa; rimborso ai soci o liberazione versamenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2481",
+          "descrizione": "AUMENTO DEL CAPITALE – con esclusione del diritto di opzione se l'atto lo consente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2481-bis",
+          "descrizione": "Aumento del capitale mediante conferimenti – esecuzione e termine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2482",
+          "descrizione": "RIDUZIONE PER PERDITE – obbligatoria se le perdite superano il terzo del capitale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2482-bis",
+          "descrizione": "Riduzione e ricostituzione del capitale sotto il minimo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2482-ter",
+          "descrizione": "SCIOGLIMENTO – se le perdite riducono il capitale sotto il minimo legale (€10.000) e non si ricostituisce"
+        },
+        {
+          "fonte": "Cass. SU 14897/2021",
+          "descrizione": "Riduzione capitale per perdite – obblighi degli amministratori"
+        },
+        {
+          "fonte": "Cass. SU 9432/2023",
+          "descrizione": "Aumento capitale con esclusione opzione – legittimità e tutela soci"
+        }
+      ],
+      "riduzione_obbligatoria_2482": {
+        "quando": "Le perdite superano il TERZO del capitale sociale",
+        "obbligo_amministratori": "Convocare immediatamente l'assemblea e deliberare la riduzione",
+        "omissione": "Gli amministratori rispondono per i danni causati dall'omissione"
+      },
+      "scioglimento_2482ter": {
+        "quando": "Le perdite riducono il capitale SOTTO il minimo legale (€10.000)",
+        "rimedi": "L'assemblea deve deliberare: (1) ricapitalizzazione + (2) o trasformazione + (3) o scioglimento",
+        "termine": "Senza indugio – pena responsabilità degli amministratori"
+      },
+      "aumento_con_esclusione_opzione_2481_Cass_SU_9432_2023": {
+        "regola": "L'atto costitutivo può consentire l'aumento con esclusione o limitazione dell'opzione dei soci",
+        "tutela_socio": "Il socio escluso dall'opzione può agire per annullamento se l'esclusione è abusiva"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare la delibera di riduzione/aumento del capitale + verbale assemblea"
+        },
+        {
+          "step": 2,
+          "descrizione": "Per riduzione obbligatoria: verificare se gli amministratori hanno adempiuto tempestivamente"
+        },
+        {
+          "step": 3,
+          "descrizione": "Per aumento con esclusione opzione: verificare la legittimità dell'esclusione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_capitale_sociale_srl_2480_2482ter",
+        "denominazione": "Azione per contestazione riduzione/aumento del capitale S.r.l. ex artt. 2480-2482-ter c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_imprese",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "socio_leso",
+                  "creditore_vs_riduzione",
+                  "curatore_fallimentare"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "srl_convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "contestazione_riduzione_per_perdite_2482",
+              "opposizione_creditori_a_riduzione_2482",
+              "impugnazione_aumento_con_esclusione_opzione_2481",
+              "accertamento_scioglimento_per_mancata_ricapitalizzazione_2482ter",
+              "responsabilita_amministratori_per_omissione_2482"
+            ]
+          },
+          {
+            "id": "delibera_contestata",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "oggetto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_delibera_aumento_o_riduzione",
+              "opposizione_creditori_a_riduzione",
+              "accertamento_scioglimento_2482ter",
+              "responsabilita_amministratori_omissione",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Perdite > 1/3 del capitale: obbligo IMMEDIATO degli amministratori di convocare assemblea",
+          "Sotto il minimo legale: ricapitalizzazione o scioglimento (2482-ter) – senza indugio",
+          "Competenza TRIBUNALE DELLE IMPRESE",
+          "Aumento con esclusione opzione: possibile solo se previsto dall'atto costitutivo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "delibera_assemblea_e_verbale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "bilancio_con_le_perdite",
+          "required": true
+        },
+        {
+          "id": "statuto_societario",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa Tribunale Imprese",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Impugnazione delibera: 90 GG (annullabilità) o imprescrittibile (nullità)"
+        }
+      ],
+      "codice_originale_ricevuto": "150090",
+      "codice_logico": "GUIDA_RIDUZIONE_E_AUMENTO_DEL_CAPITALE_NELLE_S_R_L_CONTESTAZIONI_E_TUTELA_DEI__150090",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150090"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "150090"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILIT_DEL_COMUNE_PER_BUCHE_STRADALI_E_MANUTENZIONE_DELLA_SEDE_ST_160200",
+      "denominazione": "Responsabilità del Comune per buche stradali e manutenzione della sede stradale (artt. 2051-2043 c.c. + C.d.S.)",
+      "categoria": "Responsabilità civile – insidie stradali – PA",
+      "rito": "Rito ordinario di cognizione; GdP per valori bassi",
+      "competenza": "Tribunale del luogo del fatto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2051",
+          "descrizione": "Responsabilità da cose in custodia – applicabile al Comune custode delle strade"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "RC aquiliana – in subordine se 2051 non applicabile"
+        },
+        {
+          "fonte": "D.Lgs. 285/1992 (C.d.S.)",
+          "articolo": "14",
+          "descrizione": "Obblighi dell'ente proprietario della strada – manutenzione e segnaletica"
+        },
+        {
+          "fonte": "Cass. SU 20943/2022",
+          "descrizione": "Art. 2051 – no prova dell'insidia; il danneggiato prova solo nesso causale"
+        },
+        {
+          "fonte": "Cass. SU 15893/2024",
+          "descrizione": "Buca stradale – responsabilità PA senza prova dell'insidia"
+        },
+        {
+          "fonte": "Cass. SU 21045/2024",
+          "descrizione": "Comportamento incauto del pedone/ciclista – caso fortuito parziale"
+        },
+        {
+          "fonte": "Cass. SU 6298/2023",
+          "descrizione": "Estensione della rete stradale – quando la PA si libera da responsabilità"
+        }
+      ],
+      "art_2051_applicabile_alla_PA_post_Cass_SU_20943_2022": {
+        "principio": "Dopo Cass. SU 20943/2022: il danneggiato NON deve più provare l'insidia o la trabocchetto – basta dimostrare (1) la buca/anomalia, (2) il danno, (3) il nesso causale",
+        "caso_fortuito_rimasto": "La PA si libera solo provando il CASO FORTUITO (es. buca formata poche ore prima, impossibilità oggettiva di rilevare il pericolo)"
+      },
+      "estensione_rete_stradale_Cass_SU_6298_2023": {
+        "quando_PA_e_esente": "Strade comunali di grande estensione: la PA può liberarsi provando che era impossibile sorvegliare tutta la rete",
+        "quando_non_e_esente": "Strade urbane centrali frequentate: presunzione più forte di responsabilità"
+      },
+      "casi_tipici": [
+        "Caduta per buca su marciapiede o carreggiata",
+        "Caduta su pavimentazione dissestata",
+        "Incidente per fondo scivoloso non segnalato",
+        "Danno da tombino sporgente o avvallato",
+        "Caduta per ghiaccio non trattato"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "FOTOGRAFARE IMMEDIATAMENTE la buca/anomalia prima che venga riparata"
+        },
+        {
+          "step": 2,
+          "descrizione": "Verbale delle FFOO se possibile (rilievo sul posto)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Documentazione sanitaria immediata (PS, medico)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Segnalazione scritta al Comune (data certa – prova della conoscenza)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "azione_responsabilita_comune_buca_stradale_2051",
+        "denominazione": "Azione di responsabilità del Comune per buca stradale ex art. 2051 c.c.",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "comune_o_ente_proprietario_convenuto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "comune",
+                  "provincia",
+                  "ANAS",
+                  "regione",
+                  "altro_ente"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "fatto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo_preciso",
+                "type": "address"
+              },
+              {
+                "id": "tipo_anomalia",
+                "type": "select",
+                "options": [
+                  "buca_carreggiata",
+                  "marciapiede_dissestato",
+                  "tombino_sporgente",
+                  "pavimentazione_scivolosa",
+                  "ghiaccio_non_trattato",
+                  "altro"
+                ]
+              },
+              {
+                "id": "fotografie_immediate",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "verbale_FFOO",
+                "type": "boolean",
+                "consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "danni_subiti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "danno_biologico",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale",
+                "type": "currency"
+              },
+              {
+                "id": "spese_mediche",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_comune_2051",
+              "risarcimento_danno_biologico",
+              "rimborso_spese_mediche",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "POST Cass. SU 20943/2022: NO prova dell'insidia – basta nesso causale",
+          "FOTOGRAFARE SUBITO la buca (il Comune riparerà rapidamente)",
+          "Comportamento incauto del danneggiato: riduce il risarcimento (concorso colpa)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "fotografie_anomalia_stradale_con_data",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_PS_e_medico",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_FFOO_se_disponibile",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "In base al valore",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE",
+          "anni": 5,
+          "norma": "art. 2947 c.c.",
+          "criticita": "ALTA"
+        }
+      ],
+      "codice_originale_ricevuto": "160200",
+      "codice_logico": "GUIDA_RESPONSABILIT_DEL_COMUNE_PER_BUCHE_STRADALI_E_MANUTENZIONE_DELLA_SEDE_ST_160200",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160200"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160200"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160200"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_LAVORO_A_CHIAMATA_INTERMITTENTE_DIRITTI_DEL_LAVORATORE_E_INDENNIT_DI_DIS_220195",
+      "denominazione": "Lavoro a chiamata (intermittente): diritti del lavoratore e indennità di disponibilità (D.Lgs. 81/2015 artt. 13-18)",
+      "categoria": "Lavoro – tipologie contrattuali – lavoro intermittente",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro – foro sede di lavoro",
+      "uffici_destinatari": [
+        "SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "13",
+          "descrizione": "Contratto di lavoro intermittente (a chiamata) – definizione e casi di ammissibilità"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "14",
+          "descrizione": "Forma scritta obbligatoria del contratto intermittente"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "15",
+          "descrizione": "Comunicazione preventiva obbligatoria al centro per l'impiego prima della chiamata"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "16",
+          "descrizione": "TRATTAMENTO ECONOMICO E NORMATIVO – proporzionale alle ore effettivamente lavorate"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "17",
+          "descrizione": "INDENNITÀ DI DISPONIBILITÀ – se il lavoratore è obbligato a rispondere alle chiamate"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "18",
+          "descrizione": "Limiti di utilizzo – max 400 giorni di chiamata in 3 anni (salvo eccezioni)"
+        },
+        {
+          "fonte": "Cass. SU 14782/2020",
+          "descrizione": "Lavoro intermittente irregolare – conversione in rapporto ordinario"
+        },
+        {
+          "fonte": "Cass. SU 9654/2023",
+          "descrizione": "Indennità di disponibilità – calcolo e diritto"
+        }
+      ],
+      "lavoro_intermittente_quando_ammesso_13": {
+        "per_esigenze_discontinue": "Per attività con carattere discontinuo o intermittente elencate nel D.M. 23/10/2004",
+        "per_fascia_di_eta": "Con lavoratori over 55 o under 24 anni"
+      },
+      "comunicazione_preventiva_obbligatoria_15": {
+        "obbligo": "Il datore DEVE comunicare all'INPS/centro per l'impiego prima di ogni chiamata",
+        "mancata_comunicazione": "Sanzione amministrativa + possibile irregolarità del contratto"
+      },
+      "indennita_disponibilita_17_Cass_SU_9654_2023": {
+        "quando_spetta": "SOLO se il lavoratore si obbliga a rispondere alle chiamate (disponibilità garantita)",
+        "importo": "Determinato dal CCNL – di norma il 20% della retribuzione oraria"
+      },
+      "limite_400_giorni_18": {
+        "regola": "Max 400 giorni di effettivo lavoro in 3 anni (per qualsiasi datore)",
+        "superamento": "Il rapporto si CONVERTE in rapporto a tempo pieno e indeterminato"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verificare se il contratto intermittente è stato stipulato nelle condizioni di ammissibilità"
+        },
+        {
+          "step": 2,
+          "descrizione": "Conteggiare i giorni di effettivo lavoro (se >400 in 3 anni → conversione)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verificare se vi è una clausola di disponibilità e il pagamento dell'indennità"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_lavoro_intermittente_diritti_D_Lgs_81_2015",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per diritti del lavoratore intermittente ex D.Lgs. 81/2015",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_controversia",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "mancato_pagamento_indennita_disponibilita_17",
+              "superamento_400_giorni_conversione_18",
+              "lavoro_intermittente_in_assenza_requisiti_13",
+              "mancata_comunicazione_preventiva_15",
+              "trattamento_inferiore_proporzionale_16"
+            ]
+          },
+          {
+            "id": "giorni_lavoro_effettivo_3_anni",
+            "type": "integer"
+          },
+          {
+            "id": "indennita_disponibilita_non_pagata",
+            "type": "currency"
+          },
+          {
+            "id": "domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "conversione_rapporto_tempo_pieno_indeterminato_se_400_gg",
+              "condanna_indennita_disponibilita_17",
+              "differenze_trattamento_proporzionale_16",
+              "spese_di_lite"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Superamento 400 giorni in 3 anni: CONVERSIONE automatica a tempo pieno e indeterminato",
+          "Indennità disponibilità (17): solo se il lavoratore si è obbligato a rispondere alle chiamate",
+          "Comunicazione preventiva INPS: obbligo del datore prima di ogni chiamata"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_lavoro_intermittente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "registro_chiamate_e_giorni_effettivi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per reddito sotto soglia",
+        "marca_bollo_forfettaria": 27.0
+      },
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione in costanza rapporto",
+          "anni": 5
+        }
+      ],
+      "codice_originale_ricevuto": "220195",
+      "codice_logico": "GUIDA_LAVORO_A_CHIAMATA_INTERMITTENTE_DIRITTI_DEL_LAVORATORE_E_INDENNIT_DI_DIS_220195",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220195"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220195"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220195"
+        }
+      ]
+    }
+  ]
+}

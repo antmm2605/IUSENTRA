@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (20).zip::kb_set31_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set31_p6.json",
+  "sha256": "01C93F378F06BB32AEABDB24D63255BAA432F72FD78F8311584848181E0E7375",
+  "changed": false,
+  "macro_area_id": "SET31_PARTE6",
+  "denominazione": "Trentunesimo set - PARTE 6 di 6",
+  "codici_materia_originali": [
+    "512100",
+    "512105",
+    "512110",
+    "512115",
+    "512120"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IRPEF_ACCERTAMENTO_SINTETICO_E_REDDITOMETRO_CONTESTAZIONE_ART_38_DPR_600_512100",
+    "GUIDA_IVA_ACCERTAMENTO_INDUTTIVO_DA_ISA_STUDI_DI_SETTORE_CONTESTAZIONE_DPR_633_512105",
+    "GUIDA_IMPOSTA_DI_REGISTRO_RIQUALIFICAZIONE_DI_CONTRATTI_E_AVVISO_DI_LIQUIDAZIO_512110",
+    "GUIDA_TARI_TASSA_RIFIUTI_ACCERTAMENTO_DEL_COMUNE_E_CONTESTAZIONE_L_147_2013_AR_512115",
+    "GUIDA_PLUSVALENZE_IMMOBILIARI_IRPEF_SULLA_CESSIONE_ENTRO_5_ANNI_DALL_ACQUISTO__512120"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512100",
+      "codice_integrato": "GUIDA_IRPEF_ACCERTAMENTO_SINTETICO_E_REDDITOMETRO_CONTESTAZIONE_ART_38_DPR_600_512100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512105",
+      "codice_integrato": "GUIDA_IVA_ACCERTAMENTO_INDUTTIVO_DA_ISA_STUDI_DI_SETTORE_CONTESTAZIONE_DPR_633_512105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512110",
+      "codice_integrato": "GUIDA_IMPOSTA_DI_REGISTRO_RIQUALIFICAZIONE_DI_CONTRATTI_E_AVVISO_DI_LIQUIDAZIO_512110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512115",
+      "codice_integrato": "GUIDA_TARI_TASSA_RIFIUTI_ACCERTAMENTO_DEL_COMUNE_E_CONTESTAZIONE_L_147_2013_AR_512115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512120",
+      "codice_integrato": "GUIDA_PLUSVALENZE_IMMOBILIARI_IRPEF_SULLA_CESSIONE_ENTRO_5_ANNI_DALL_ACQUISTO__512120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

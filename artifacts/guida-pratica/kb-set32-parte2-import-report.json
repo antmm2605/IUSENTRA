@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p2.json",
+  "sha256": "3475E9E519CE1C8255D189C777472F24F1A3E5962B8F7C2898DC4B1D4A231E56",
+  "changed": true,
+  "macro_area_id": "SET32_PARTE2",
+  "denominazione": "Trentaduesimo set - PARTE 2 di 8",
+  "codici_materia_originali": [
+    "130175",
+    "130180",
+    "130185",
+    "140095",
+    "141080"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ACCESSIONE_COSTRUZIONE_SU_SUOLO_ALTRUI_INDENNIT_E_RIPETIZIONE_ARTT_934_9_130175",
+    "GUIDA_REGOLAMENTO_DEI_CONFINI_E_APPOSIZIONE_DEI_TERMINI_ARTT_950_951_C_C_130180",
+    "GUIDA_AZIONE_DI_MANUTENZIONE_DEL_POSSESSO_E_SPOGLIO_ARTT_1168_1170_C_C_130185",
+    "GUIDA_CONTRATTO_DI_COMODATO_TERMINE_RESTITUZIONE_ANTICIPATA_E_RIMBORSO_SPESE_A_140095",
+    "GUIDA_TRASPORTO_FERROVIARIO_DI_PERSONE_RITARDI_CANCELLAZIONI_E_DIRITTI_DEI_PAS_141080"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130175",
+      "codice_integrato": "GUIDA_ACCESSIONE_COSTRUZIONE_SU_SUOLO_ALTRUI_INDENNIT_E_RIPETIZIONE_ARTT_934_9_130175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130180",
+      "codice_integrato": "GUIDA_REGOLAMENTO_DEI_CONFINI_E_APPOSIZIONE_DEI_TERMINI_ARTT_950_951_C_C_130180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130185",
+      "codice_integrato": "GUIDA_AZIONE_DI_MANUTENZIONE_DEL_POSSESSO_E_SPOGLIO_ARTT_1168_1170_C_C_130185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140095",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_COMODATO_TERMINE_RESTITUZIONE_ANTICIPATA_E_RIMBORSO_SPESE_A_140095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141080",
+      "codice_integrato": "GUIDA_TRASPORTO_FERROVIARIO_DI_PERSONE_RITARDI_CANCELLAZIONI_E_DIRITTI_DEI_PAS_141080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

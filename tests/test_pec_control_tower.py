@@ -9,6 +9,8 @@ from types import SimpleNamespace
 
 from flask import Flask, g
 
+from lex.operational_knowledge.models import OperationalQueryContext
+from lex.operational_knowledge.tools import OperationalKnowledgeTools
 from pct.pec_control_tower import PecControlTowerRepository, build_synthetic_pec_eml
 from web.blueprints.pec_control_tower_api import pec_control_tower_api
 
@@ -46,6 +48,41 @@ def _sample_court_pec() -> bytes:
     )
 
 
+def _sample_pa_pec() -> bytes:
+    return build_synthetic_pec_eml(
+        subject="Comune di Milano - richiesta documenti protocollo PA entro 10 giorni",
+        body="Il Comune di Milano richiede integrazione documentale entro 10 giorni per RG 1234/2026.",
+        sender="protocollo@comune.milano.pec.it",
+        dt=datetime.now(timezone.utc),
+        attachments={"richiesta-pa.pdf.txt": "Richiesta di integrazione documentale con termine espresso."},
+    )
+
+
+class _FakeEmailArchive:
+    def __init__(self, messages: dict[str, bytes]):
+        self._messages = dict(messages)
+        self._rows = {
+            key: SimpleNamespace(
+                id=key,
+                cartella="INBOX",
+                mittente="posta-certificata@pec.test",
+                destinatari="studio@example.pec.it",
+                oggetto=f"POSTA CERTIFICATA: {key}",
+                corpo_testo="PEC archiviata localmente per backfill Control Tower.",
+                allegati=[{"nome": "daticert.xml"}],
+                message_id=f"<{key}@pec.test>",
+                data="2026-06-06T09:00:00+02:00",
+            )
+            for key in self._messages
+        }
+
+    def _carica(self):
+        return self._rows
+
+    def leggi_eml_originale(self, email_obj):
+        return self._messages.get(email_obj.id)
+
+
 def test_pec_control_tower_repository_tracks_event_deadline_task_and_audit(tmp_path):
     repo = PecControlTowerRepository(
         tmp_path / "pec_control_tower.sqlite",
@@ -80,6 +117,51 @@ def test_pec_control_tower_repository_tracks_event_deadline_task_and_audit(tmp_p
         "legal_rule_versions",
         "audit_events",
     }.issubset(tables)
+
+
+def test_lex_backfills_pec_control_tower_from_local_email_archive(tmp_path):
+    repo = PecControlTowerRepository(
+        tmp_path / "pec_control_tower.sqlite",
+        tenant_id="tenant-test",
+        fascicoli_rows=_fascicoli_rows(),
+    )
+    archive = _FakeEmailArchive({"pa-risposta": _sample_pa_pec()})
+    tools = OperationalKnowledgeTools(repositories={"pec_control_tower": repo, "email_pec": archive})
+    context = OperationalQueryContext(
+        tenant_id="tenant-test",
+        user_id="user-test",
+        username="Avvocato Test",
+        user=_User(),
+        permissions={"ai.usa", "messaggi.leggi", "fascicoli.leggi"},
+        tenant_context_available=True,
+    )
+
+    result = tools.answer_pec_control_question("Quali comunicazioni PA richiedono risposta?", context)
+
+    assert result.ok is True
+    payload = result.data[0]
+    assert payload["runtime_backfill"]["ingested"] == 1
+    assert payload["items"]
+    assert payload["items"][0]["legal_category"] == "ATTO_AMMINISTRATIVO_PA"
+    assert repo.list_deadlines(limit=10)
+
+
+def test_pec_control_tower_backfill_keeps_tenants_separated(tmp_path):
+    shared_db = tmp_path / "pec_control_tower.sqlite"
+    repo_a = PecControlTowerRepository(shared_db, tenant_id="studio-a")
+    repo_b = PecControlTowerRepository(shared_db, tenant_id="studio-b")
+
+    report_a = repo_a.backfill_from_email_archive(_FakeEmailArchive({"pa-a": _sample_pa_pec()}), actor="pytest-a")
+    report_b = repo_b.backfill_from_email_archive(_FakeEmailArchive({"court-b": _sample_court_pec()}), actor="pytest-b")
+
+    assert report_a["ingested"] == 1
+    assert report_b["ingested"] == 1
+    rows_a = repo_a.list_communications(limit=10)
+    rows_b = repo_b.list_communications(limit=10)
+    assert {row["legal_category"] for row in rows_a} == {"ATTO_AMMINISTRATIVO_PA"}
+    assert {row["legal_category"] for row in rows_b} == {"PROVVEDIMENTO_GIUDIZIARIO"}
+    assert all(row["tenant_id"] == "studio-a" for row in rows_a)
+    assert all(row["tenant_id"] == "studio-b" for row in rows_b)
 
 
 def test_pec_control_tower_generation_script_answers_lex_matrix(tmp_path):
@@ -123,6 +205,10 @@ def test_pec_control_tower_api_ingest_list_and_confirm_deadline(tmp_path, monkey
         return str(paths[key])
 
     monkeypatch.setattr("web.blueprints.pec_control_tower_api.tenant_data_path", fake_tenant_data_path)
+    monkeypatch.setattr(
+        "web.blueprints.pec_control_tower_api.GestioneEmailRicevute",
+        lambda _path: _FakeEmailArchive({"pa-risposta": _sample_pa_pec()}),
+    )
 
     @app.before_request
     def _auth():
@@ -146,6 +232,10 @@ def test_pec_control_tower_api_ingest_list_and_confirm_deadline(tmp_path, monkey
         listing = client.get("/api/communications")
         assert listing.status_code == 200
         assert listing.get_json()["count"] == 1
+
+        backfill = client.post("/api/pec/backfill-locali")
+        assert backfill.status_code == 200
+        assert backfill.get_json()["backfill"]["ingested"] == 1
 
         deadlines = client.get("/api/deadlines")
         assert deadlines.status_code == 200

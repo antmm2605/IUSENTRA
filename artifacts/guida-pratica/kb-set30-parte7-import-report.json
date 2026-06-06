@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (19).zip::kb_set30_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set30_p7.json",
+  "sha256": "7DD088AEE3307AECEF8F3C8FA65792EE7730035AFD036B2548668C1F42223AE6",
+  "changed": false,
+  "macro_area_id": "SET30_PARTE7",
+  "denominazione": "Trentesimo set - PARTE 7 di 8",
+  "codici_materia_originali": [
+    "240040",
+    "240045",
+    "411605",
+    "510015",
+    "511040"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMPUGNAZIONE_DELL_AGGIUDICAZIONE_IN_APPALTO_PUBBLICO_D_LGS_36_2023_ARTT__240040",
+    "GUIDA_SCIA_COMMERCIALE_E_AUTORIZZAZIONE_AMMINISTRATIVA_DINIEGO_DECADENZA_E_CON_240045",
+    "GUIDA_UNIONE_CIVILE_E_CONVIVENZA_DI_FATTO_DIRITTI_SCIOGLIMENTO_E_CONTROVERSIE__411605",
+    "GUIDA_SOSPENSIONE_DELL_ESECUZIONE_IMMOBILIARE_PER_ACCORDO_TRA_LE_PARTI_ART_624_510015",
+    "GUIDA_VENDITA_FORZATA_IMMOBILIARE_CANCELLAZIONE_DELLE_ISCRIZIONI_IPOTECARIE_PO_511040"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240040",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DELL_AGGIUDICAZIONE_IN_APPALTO_PUBBLICO_D_LGS_36_2023_ARTT__240040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240045",
+      "codice_integrato": "GUIDA_SCIA_COMMERCIALE_E_AUTORIZZAZIONE_AMMINISTRATIVA_DINIEGO_DECADENZA_E_CON_240045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "411605",
+      "codice_integrato": "GUIDA_UNIONE_CIVILE_E_CONVIVENZA_DI_FATTO_DIRITTI_SCIOGLIMENTO_E_CONTROVERSIE__411605",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510015",
+      "codice_integrato": "GUIDA_SOSPENSIONE_DELL_ESECUZIONE_IMMOBILIARE_PER_ACCORDO_TRA_LE_PARTI_ART_624_510015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "511040",
+      "codice_integrato": "GUIDA_VENDITA_FORZATA_IMMOBILIARE_CANCELLAZIONE_DELLE_ISCRIZIONI_IPOTECARIE_PO_511040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

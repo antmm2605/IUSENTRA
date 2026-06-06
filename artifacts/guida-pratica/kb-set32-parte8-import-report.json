@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (21).zip::kb_set32_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set32_p8.json",
+  "sha256": "1DA33C9C89789359EE407E011D2E5264057A076794A3302827A41A0575B7A8B7",
+  "changed": true,
+  "macro_area_id": "SET32_PARTE8",
+  "denominazione": "PARTE 8 di 8",
+  "codici_materia_originali": [
+    "510020",
+    "511045",
+    "512125",
+    "512130",
+    "512135"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_IN_SOMMA_DI_DENARO_SOSTITUZIONE_DEL_BENE_PI_510020",
+    "GUIDA_ASSEGNAZIONE_DELLA_CASA_CONIUGALE_IN_SEPARAZIONE_E_DIVORZIO_ART_337_SEXI_511045",
+    "GUIDA_ACCERTAMENTO_DA_OPERAZIONI_SOGGETTIVAMENTE_INESISTENTI_FATTURE_FALSE_IVA_512125",
+    "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_PENDENTI_E_CONDONI_FISCALI_L_19_512130",
+    "GUIDA_IVIE_E_IVAFE_IMPOSTA_SU_IMMOBILI_E_ATTIVIT_FINANZIARIE_ALL_ESTERO_ACCERT_512135"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510020",
+      "codice_integrato": "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_IN_SOMMA_DI_DENARO_SOSTITUZIONE_DEL_BENE_PI_510020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "511045",
+      "codice_integrato": "GUIDA_ASSEGNAZIONE_DELLA_CASA_CONIUGALE_IN_SEPARAZIONE_E_DIVORZIO_ART_337_SEXI_511045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512125",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_DA_OPERAZIONI_SOGGETTIVAMENTE_INESISTENTI_FATTURE_FALSE_IVA_512125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512130",
+      "codice_integrato": "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_PENDENTI_E_CONDONI_FISCALI_L_19_512130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512135",
+      "codice_integrato": "GUIDA_IVIE_E_IVAFE_IMPOSTA_SU_IMMOBILI_E_ATTIVIT_FINANZIARIE_ALL_ESTERO_ACCERT_512135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -134,7 +134,7 @@
 .iu-li-acquisition__cards {
   display: grid;
   gap: var(--iu-od-space-2);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
 }
 
 .iu-li-acquisition__card {
@@ -236,6 +236,14 @@
   min-width: 0;
 }
 
+.iu-li-acquisition__source-title {
+  align-items: start;
+  display: flex;
+  gap: var(--iu-od-space-2);
+  justify-content: space-between;
+  min-width: 0;
+}
+
 .iu-li-acquisition__source strong {
   color: var(--iu-od-text);
   line-height: 1.25;
@@ -243,9 +251,41 @@
   overflow-wrap: anywhere;
 }
 
+.iu-li-acquisition__source b {
+  color: var(--iu-od-text);
+  font-weight: 800;
+}
+
 .iu-li-acquisition__source em {
   font-size: var(--iu-od-source-meta-size);
   font-style: normal;
+}
+
+.iu-li-acquisition__source-points {
+  display: grid;
+  gap: 0.3rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.iu-li-acquisition__source-points li {
+  color: var(--iu-od-text);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  padding-left: 0.8rem;
+  position: relative;
+}
+
+.iu-li-acquisition__source-points li::before {
+  background: var(--iu-od-focus);
+  border-radius: 999px;
+  content: "";
+  height: 0.32rem;
+  left: 0;
+  position: absolute;
+  top: 0.45rem;
+  width: 0.32rem;
 }
 
 .iu-li-acquisition__checks ul {

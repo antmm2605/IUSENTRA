@@ -9,6 +9,7 @@ from typing import Any, Callable
 
 from flask import Blueprint, Response, g, jsonify, request
 
+from pct.email_client import GestioneEmailRicevute
 from pct.pec_control_tower import PecControlTowerRepository, build_synthetic_pec_eml
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -67,6 +68,10 @@ def _repo() -> PecControlTowerRepository:
     )
 
 
+def _email_manager() -> GestioneEmailRicevute:
+    return GestioneEmailRicevute(_runtime_path("EMAIL_CASELLA_DB", "./email/casella.json"))
+
+
 def _json_success(payload: dict[str, Any], status: int = 200):
     return redacted_json_response({"ok": True, **payload}, status)
 
@@ -119,6 +124,30 @@ def pec_control_ingest():
             actor=_actor(),
         )
         return _json_success({"data": result.get("data"), "duplicate": bool(result.get("duplicate"))}, 201 if not result.get("duplicate") else 200)
+    except TenantDataPathError:
+        return _json_error(403, "Dati dello studio non disponibili per questa richiesta.")
+
+
+@pec_control_tower_api.post("/pec/backfill-locali")
+@_richiedi_auth
+def pec_control_backfill_local_emails():
+    try:
+        try:
+            limit = max(1, min(int(request.args.get("limit", "1500") or 1500), 5000))
+        except ValueError:
+            limit = 1500
+        try:
+            max_seconds = max(0.0, min(float(request.args.get("max_seconds", "0") or 0), 300.0))
+        except ValueError:
+            max_seconds = 0.0
+        report = _repo().backfill_from_email_archive(_email_manager(), limit=limit, actor=_actor(), max_seconds=max_seconds)
+        message = (
+            "PEC Control Tower aggiornata dalla casella locale: "
+            f"{report.get('ingested', 0)} nuovi eventi, "
+            f"{report.get('duplicates', 0)} già presenti, "
+            f"{report.get('skipped_missing_mime', 0)} senza MIME leggibile."
+        )
+        return _json_success({"message": message, "messaggio": message, "backfill": report})
     except TenantDataPathError:
         return _json_error(403, "Dati dello studio non disponibili per questa richiesta.")
 

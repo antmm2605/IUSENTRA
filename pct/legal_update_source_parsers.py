@@ -46,6 +46,141 @@ CASSAZIONE_DETAIL_URL_MARKERS = (
     "/it/su_dettaglio.page",
 )
 
+NORMATTIVA_CODE_PROFILES: dict[str, dict[str, Any]] = {
+    "codice_civile": {
+        "act_title": "Codice civile",
+        "act_label": "Regio decreto 16 marzo 1942, n. 262",
+        "redaction_code": "042U0262",
+        "gu": "Gazzetta Ufficiale n. 79 del 4 aprile 1942",
+        "effective": "19 aprile 1942",
+        "consolidated_url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1942/03/16/262/CONSOLIDATED",
+        "detail_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=vigente",
+        "updated_note": "Normattiva espone il testo vigente e il versionamento dell'atto.",
+        "materials": [
+            "persone, famiglia, successioni, proprieta, obbligazioni, contratti, lavoro e tutela dei diritti",
+            "responsabilita contrattuale ed extracontrattuale, mora, prescrizione, prove documentali e garanzie",
+            "regole sostanziali da collegare a modelli civili, fascicoli, scadenze e strategia di causa",
+        ],
+        "article_blocks": [
+            "articoli 1173 e seguenti sulle obbligazioni",
+            "articoli 1218, 1219 e 1223 sul risarcimento e sulla mora",
+            "articoli 1321 e seguenti sui contratti",
+            "articoli 2043 e seguenti sulla responsabilita civile",
+            "articoli 2697 e seguenti sull'onere della prova",
+        ],
+    },
+    "codice_procedura_civile": {
+        "act_title": "Codice di procedura civile",
+        "act_label": "Regio decreto 28 ottobre 1940, n. 1443",
+        "redaction_code": "040U1443",
+        "gu": "Gazzetta Ufficiale n. 253 del 28 ottobre 1940",
+        "effective": "21 aprile 1942",
+        "consolidated_url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1940/10/28/1443/CONSOLIDATED",
+        "detail_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
+        "updated_note": "Normattiva espone il testo vigente e gli aggiornamenti del rito civile.",
+        "materials": [
+            "competenza, atti introduttivi, notificazioni, termini, prove, impugnazioni ed esecuzione",
+            "decreto ingiuntivo, opposizioni, cautelari, udienze, note scritte e procedimento telematico",
+            "regole processuali da collegare a agenda, scadenziario, task, PEC, prove e editor atti",
+        ],
+        "article_blocks": [
+            "articoli 125, 163, 167 e 183 sugli atti e sul rito ordinario",
+            "articoli 137 e seguenti sulle notificazioni",
+            "articoli 281-decies e seguenti sul rito semplificato",
+            "articoli 633 e seguenti sul procedimento monitorio",
+            "articoli 325, 326 e 327 sui termini di impugnazione",
+        ],
+    },
+    "codice_penale": {
+        "act_title": "Codice penale",
+        "act_label": "Regio decreto 19 ottobre 1930, n. 1398",
+        "redaction_code": "030U1398",
+        "gu": "Gazzetta Ufficiale n. 251 del 26 ottobre 1930",
+        "effective": "1 luglio 1931",
+        "consolidated_url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1930/10/19/1398/CONSOLIDATED",
+        "detail_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=030U1398&atto.dataPubblicazioneGazzetta=1930-10-26&tipoDettaglio=vigente",
+        "updated_note": "Normattiva espone il testo vigente del codice penale e le modifiche successive.",
+        "materials": [
+            "reati, pene, circostanze, cause di non punibilita, prescrizione, confisca e responsabilita penale",
+            "reati contro persona, patrimonio, famiglia, fede pubblica, pubblica amministrazione e sicurezza",
+            "norme sostanziali da collegare a difesa penale, querela, prova, udienze e strategia",
+        ],
+        "article_blocks": [
+            "articoli 40 e 41 sul nesso causale",
+            "articoli 42 e 43 sull'elemento soggettivo",
+            "articolo 131-bis sulla particolare tenuita del fatto",
+            "articoli 157 e seguenti sulla prescrizione",
+            "articoli 640 e 644 su truffa e usura",
+        ],
+    },
+    "codice_procedura_penale": {
+        "act_title": "Codice di procedura penale",
+        "act_label": "D.P.R. 22 settembre 1988, n. 447",
+        "redaction_code": "088G0492",
+        "gu": "Gazzetta Ufficiale n. 250 del 24 ottobre 1988, supplemento ordinario",
+        "effective": "24 ottobre 1989",
+        "consolidated_url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/1988/09/22/447/CONSOLIDATED",
+        "detail_url": "https://www.normattiva.it/eli/id/1988/10/24/088G0492/CONSOLIDATED",
+        "updated_note": "Normattiva espone il testo vigente del codice di rito penale.",
+        "materials": [
+            "notizia di reato, indagini, misure cautelari, udienza preliminare, dibattimento, impugnazioni ed esecuzione",
+            "depositi penali, notificazioni, termini, nullita, prove, riti alternativi e impugnazioni",
+            "regole processuali da collegare a PDP, fascicolo penale, scadenze, udienze e atti difensivi",
+        ],
+        "article_blocks": [
+            "articoli 178 e seguenti sulle nullita",
+            "articoli 291 e seguenti sulle misure cautelari",
+            "articoli 415-bis e 429 su avviso conclusione indagini e decreto che dispone il giudizio",
+            "articoli 438 e seguenti sui riti alternativi",
+            "articoli 581 e seguenti sulle impugnazioni",
+        ],
+    },
+    "codice_processo_amministrativo": {
+        "act_title": "Codice del processo amministrativo",
+        "act_label": "D.Lgs. 2 luglio 2010, n. 104",
+        "redaction_code": "010G0127",
+        "gu": "Gazzetta Ufficiale n. 156 del 7 luglio 2010, supplemento ordinario",
+        "effective": "16 settembre 2010",
+        "consolidated_url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2010/07/02/104/CONSOLIDATED",
+        "detail_url": "https://www.normattiva.it/eli/id/2010/07/07/010G0127",
+        "updated_note": "Normattiva espone il codice del processo amministrativo e i relativi allegati.",
+        "materials": [
+            "giurisdizione, competenza, termini di ricorso, cautelare, rito appalti, ottemperanza e impugnazioni",
+            "PAT, deposito telematico amministrativo, udienze, decreti, ordinanze e sentenze TAR/Consiglio di Stato",
+            "regole processuali da collegare a OpenGA, scadenziario, fascicoli e strategia amministrativa",
+        ],
+        "article_blocks": [
+            "articoli 29, 30 e 31 sulle azioni",
+            "articolo 41 sulla notificazione del ricorso",
+            "articoli 55 e seguenti sulla tutela cautelare",
+            "articolo 73 su memorie e repliche",
+            "articoli 119 e 120 sul rito abbreviato e appalti",
+        ],
+    },
+    "codice_strada": {
+        "act_title": "Codice della strada",
+        "act_label": "D.Lgs. 30 aprile 1992, n. 285",
+        "redaction_code": "092G0306",
+        "gu": "Gazzetta Ufficiale n. 114 del 18 maggio 1992, supplemento ordinario",
+        "effective": "1 gennaio 1993",
+        "consolidated_url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1992/04/30/285/CONSOLIDATED",
+        "detail_url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1992/04/30/285/CONSOLIDATED",
+        "updated_note": "Normattiva espone il nuovo codice della strada e gli aggiornamenti vigenti.",
+        "materials": [
+            "circolazione, sanzioni amministrative, patente, responsabilita da sinistro, verbali e opposizioni",
+            "ricorsi prefettizi, giudice di pace, termini, prove fotografiche, notifica verbale e decurtazione punti",
+            "norme da collegare a modelli di opposizione, scadenziario, fascicolo e strategia probatoria",
+        ],
+        "article_blocks": [
+            "articoli 11 e 12 sui servizi e organi di polizia stradale",
+            "articoli 142, 186, 187 e 193 su velocita, ebbrezza, stupefacenti e assicurazione",
+            "articolo 201 sulla notificazione delle violazioni",
+            "articolo 203 sul ricorso al prefetto",
+            "articolo 204-bis sul ricorso al giudice di pace",
+        ],
+    },
+}
+
 
 def fetch_source_documents(source: dict[str, Any], *, request_get: RequestGet) -> list[dict[str, Any]]:
     listing_url = _source_listing_url(source)
@@ -57,7 +192,9 @@ def fetch_source_documents(source: dict[str, Any], *, request_get: RequestGet) -
 
     source_code = _clean_spaces(source.get("code")).lower()
 
-    if source_code == GAZZETTA_SOURCE_CODE:
+    if capability.item_strategy == "normattiva_code_index":
+        docs = _extract_normattiva_code_index(source, listing_url, text)
+    elif source_code == GAZZETTA_SOURCE_CODE:
         docs = _extract_gazzetta_items(source, listing_url, text)
     elif source_code == INPS_MESSAGGI_SOURCE_CODE:
         docs = _extract_inps_circolari_messaggi_api(source, listing_url, text, tipo="Messaggio")
@@ -95,6 +232,109 @@ def fetch_source_documents(source: dict[str, Any], *, request_get: RequestGet) -
         row["http_status"] = http_status
         row["fetch_status"] = "fetched" if http_status < 400 else "error"
     return docs
+
+
+def _extract_normattiva_code_index(source: dict[str, Any], base_url: str, content: str) -> list[dict[str, Any]]:
+    code = _clean_spaces(source.get("code")).lower()
+    profile = NORMATTIVA_CODE_PROFILES.get(code)
+    if not profile:
+        return []
+    page_text = _text_from_html_content(content)
+    page_excerpt = _normattiva_code_page_excerpt(page_text, profile)
+    consolidated_url = _normalize_document_url(_clean_spaces(profile.get("consolidated_url") or base_url))
+    detail_url = _normalize_document_url(_clean_spaces(profile.get("detail_url") or consolidated_url))
+    official_context = _clean_spaces(
+        " ".join(
+            part
+            for part in (
+                f"{profile['act_title']} - {profile['act_label']}.",
+                f"Codice redazionale Normattiva {profile['redaction_code']}.",
+                f"Pubblicazione: {profile['gu']}.",
+                f"Entrata in vigore: {profile['effective']}.",
+                profile.get("updated_note"),
+                f"Fonte ufficiale consultata: {consolidated_url}.",
+                page_excerpt,
+            )
+            if part
+        )
+    )
+    operational_context = _clean_spaces(
+        " ".join(
+            [
+                "Uso IUSENTRA: la fonte alimenta Ricerca Legale, Lex/RAG, DB normativa, modelli, scadenziario e controlli redazionali.",
+                "Materiali giuridici: " + "; ".join(profile.get("materials") or []),
+                "Articoli e blocchi da presidiare: " + "; ".join(profile.get("article_blocks") or []),
+                "Controllo automatico: il sistema conserva atto, pubblicazione, URL ufficiale, hash e testo operativo; il singolo modello richiama poi gli articoli pertinenti.",
+            ]
+        )
+    )
+    docs = [
+        {
+            "external_id": _sha256(f"{code}|{profile['redaction_code']}|atto"),
+            "source_url": consolidated_url,
+            "title": f"{profile['act_title']} - {profile['act_label']} (testo vigente Normattiva)",
+            "published_at": _normattiva_profile_publication_date(profile),
+            "raw_html": content[:20000],
+            "raw_text": _clean_spaces(f"{official_context} {operational_context}"),
+            "body_short": _truncate(_clean_spaces(f"{official_context} {operational_context}")),
+            "attachments_json": [
+                {"title": "Scheda Normattiva consolidata", "url": consolidated_url, "attachment_type": "html"},
+                {"title": "Dettaglio atto Normattiva", "url": detail_url, "attachment_type": "html"},
+            ],
+        }
+    ]
+    for index, block in enumerate(profile.get("article_blocks") or [], start=1):
+        body = _clean_spaces(
+            " ".join(
+                [
+                    f"{profile['act_title']} - presidio operativo {index}.",
+                    f"Fonte: {profile['act_label']} su Normattiva, codice redazionale {profile['redaction_code']}.",
+                    f"Blocco articoli: {block}.",
+                    "Destinazione: modelli, Lex/RAG, Ricerca Legale, scadenziario e checklist pratica quando il fascicolo richiama questa materia.",
+                    "Contesto: " + "; ".join(profile.get("materials") or []),
+                ]
+            )
+        )
+        docs.append(
+            {
+                "external_id": _sha256(f"{code}|{profile['redaction_code']}|block|{index}|{block}"),
+                "source_url": consolidated_url,
+                "title": f"{profile['act_title']} - {block}",
+                "published_at": _normattiva_profile_publication_date(profile),
+                "raw_html": "",
+                "raw_text": body,
+                "body_short": _truncate(body),
+                "attachments_json": [
+                    {"title": "Fonte ufficiale Normattiva", "url": consolidated_url, "attachment_type": "html"}
+                ],
+            }
+        )
+    return docs
+
+
+def _normattiva_profile_publication_date(profile: dict[str, Any]) -> str:
+    redaction = _clean_spaces(profile.get("redaction_code"))
+    known = {
+        "042U0262": "1942-04-04",
+        "040U1443": "1940-10-28",
+        "030U1398": "1930-10-26",
+        "088G0492": "1988-10-24",
+        "010G0127": "2010-07-07",
+        "092G0306": "1992-05-18",
+    }
+    return known.get(redaction, "")
+
+
+def _normattiva_code_page_excerpt(page_text: str, profile: dict[str, Any]) -> str:
+    text = _clean_spaces(page_text)
+    if not text:
+        return ""
+    title = _clean_spaces(profile.get("act_title")).lower()
+    act = _clean_spaces(profile.get("act_label")).lower()
+    if title not in text.lower() and act.split(",")[0] not in text.lower():
+        return ""
+    filtered = re.sub(r"\b(Home|Il progetto|Obiettivo|Privacy|Cookie|Accessibilita)\b", " ", text, flags=re.I)
+    return _truncate(filtered, limit=900)
 
 
 def _request(url: str, *, request_get: RequestGet):

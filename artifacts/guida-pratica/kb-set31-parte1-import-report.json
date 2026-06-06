@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (20).zip::kb_set31_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set31_p1.json",
+  "sha256": "C69C2DA6B59060867CE6B9A5A006C9FDBA7AC2EC559F5FEE12BCF1884460675F",
+  "changed": false,
+  "macro_area_id": "SET31_PARTE1",
+  "denominazione": "Trentunesimo set - 30 nuovi codici - PARTE 1 di 6",
+  "codici_materia_originali": [
+    "111090",
+    "130170",
+    "131005",
+    "140090",
+    "141070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_REVISIONE_DELL_ASSEGNO_DI_MANTENIMENTO_NELLA_SEPARAZIONE_PER_SOPRAVVENIE_111090",
+    "GUIDA_COMUNIONE_ORDINARIA_SCIOGLIMENTO_E_DIVISIONE_GIUDIZIALE_ARTT_1111_1116_C_130170",
+    "GUIDA_COMUNIONE_FORZOSA_DEL_MURO_SOPRAELEVAZIONE_E_LUCI_ARTT_874_884_C_C_131005",
+    "GUIDA_CONTRATTO_DI_APPALTO_DI_SERVIZI_INFORMATICI_IT_OUTSOURCING_INADEMPIMENTO_140090",
+    "GUIDA_RESPONSABILIT_DEL_VETTORE_MARITTIMO_PER_DANNI_ALLE_MERCI_E_AI_PASSEGGERI_141070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "111090",
+      "codice_integrato": "GUIDA_REVISIONE_DELL_ASSEGNO_DI_MANTENIMENTO_NELLA_SEPARAZIONE_PER_SOPRAVVENIE_111090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130170",
+      "codice_integrato": "GUIDA_COMUNIONE_ORDINARIA_SCIOGLIMENTO_E_DIVISIONE_GIUDIZIALE_ARTT_1111_1116_C_130170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "131005",
+      "codice_integrato": "GUIDA_COMUNIONE_FORZOSA_DEL_MURO_SOPRAELEVAZIONE_E_LUCI_ARTT_874_884_C_C_131005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140090",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_APPALTO_DI_SERVIZI_INFORMATICI_IT_OUTSOURCING_INADEMPIMENTO_140090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141070",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_VETTORE_MARITTIMO_PER_DANNI_ALLE_MERCI_E_AI_PASSEGGERI_141070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

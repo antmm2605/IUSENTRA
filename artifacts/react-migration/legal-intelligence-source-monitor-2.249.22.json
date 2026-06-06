@@ -1,0 +1,79 @@
+{
+  "ok": false,
+  "checks": [
+    {
+      "name": "readiness 8080",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "stato": "pronto",
+        "timestamp": "2026-06-06T19:03:57.495883",
+        "versione": "2.249.22"
+      }
+    },
+    {
+      "name": "login eseguito",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/admin/"
+    },
+    {
+      "name": "form impersona presente",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/admin/studi/antonella-mammola"
+    },
+    {
+      "name": "impersonificazione studio",
+      "ok": true,
+      "detail": "http://127.0.0.1:8080/"
+    },
+    {
+      "name": "titolo ricerca legale",
+      "ok": true,
+      "detail": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTU"
+    },
+    {
+      "name": "blocco fonti da presidiare",
+      "ok": true,
+      "detail": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nStudio\nParcelle e Fatture\nPreventivi e Incarichi\nCompensi Forensi\nDocumenti\nRedazione Atti\nStatistiche\nRicerca Legale\nLegal Skills\nRegia Agentica\nArchivio Giurisprudenza\nStrumenti Forensi\nStrumenti Operativi\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\nsab 06 giu\nNuovo\nRicerca Legale\n\nRicerca su archivio giuridico, fonti ufficiali e schede contestualizzate.\n\nLex Chat AI\nArchivio giurisprudenza\nRicerca\nfonti e norme\nNews\naggiornamenti\nMediazione\nregistro\nFonti e acquisizioni\n\nStato reale delle fonti: documenti letti, testo disponibile, coda, errori e ragioni di pronto o da verificare.\n\nFonti pronte\n30\nCon documenti letti, testo o schede pubblicate.\nStato\nDa verificare\n10\nManca acquisizione, "
+    },
+    {
+      "name": "uso avvocato visibile",
+      "ok": true,
+      "detail": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nStudio\nParcelle e Fatture\nPreventivi e Incarichi\nCompensi Forensi\nDocumenti\nRedazione Atti\nStatistiche\nRicerca Legale\nLegal Skills\nRegia Agentica\nArchivio Giurisprudenza\nStrumenti Forensi\nStrumenti Operativi\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\nsab 06 giu\nNuovo\nRicerca Legale\n\nRicerca su archivio giuridico, fonti ufficiali e schede contestualizzate.\n\nLex Chat AI\nArchivio giurisprudenza\nRicerca\nfonti e norme\nNews\naggiornamenti\nMediazione\nregistro\nFonti e acquisizioni\n\nStato reale delle fonti: documenti letti, testo disponibile, coda, errori e ragioni di pronto o da verificare.\n\nFonti pronte\n30\nCon documenti letti, testo o schede pubblicate.\nStato\nDa verificare\n10\nManca acquisizione, testo, OCR o ultimo controllo.\nStato\nDomande Lex\n46\nFonti con domanda di prova collegata al lavoro dell’avvocato.\nStato\nCoda\n6\nControlli in attesa o in corso.\nStato\nErrori\n0\nControlli falliti o scaduti da riprendere.\nStato\nFonti da presidiare\nGestisci fonti\nGazzetta Ufficiale\noperativa e controllabile\nServe per: inquadramento giuridico, norma vigente, rito e termine applicabile\nFase: inquadramento e controllo fonte\nAcquisizione: 356 letti · 356 con testo · 10 pubblicati · 291 da verificare\nDa fa"
+    },
+    {
+      "name": "domanda Lex visibile",
+      "ok": true,
+      "detail": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nStudio\nParcelle e Fatture\nPreventivi e Incarichi\nCompensi Forensi\nDocumenti\nRedazione Atti\nStatistiche\nRicerca Legale\nLegal Skills\nRegia Agentica\nArchivio Giurisprudenza\nStrumenti Forensi\nStrumenti Operativi\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\nsab 06 giu\nNuovo\nRicerca Legale\n\nRicerca su archivio giuridico, fonti ufficiali e schede contestualizzate.\n\nLex Chat AI\nArchivio giurisprudenza\nRicerca\nfonti e norme\nNews\naggiornamenti\nMediazione\nregistro\nFonti e acquisizioni\n\nStato reale delle fonti: documenti letti, testo disponibile, coda, errori e ragioni di pronto o da verificare.\n\nFonti pronte\n30\nCon documenti letti, testo o schede pubblicate.\nStato\nDa verificare\n10\nManca acquisizione, testo, OCR o ultimo controllo.\nStato\nDomande Lex\n46\nFonti con domanda di prova collegata al lavoro dell’avvocato.\nStato\nCoda\n6\nControlli in attesa o in corso.\nStato\nErrori\n0\nControlli falliti o scaduti da riprendere.\nStato\nFonti da presidiare\nGestisci fonti\nGazzetta Ufficiale\noperativa e controllabile\nServe per: inquadramento giuridico, norma vigente, rito e termine applicabile\nFase: inquadramento e controllo fonte\nAcquisizione: 356 letti · 356 con testo · 10 pubblicati · 291 da verificare\nDa fa"
+    },
+    {
+      "name": "materiali giuridici visibili",
+      "ok": true,
+      "detail": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nStudio\nParcelle e Fatture\nPreventivi e Incarichi\nCompensi Forensi\nDocumenti\nRedazione Atti\nStatistiche\nRicerca Legale\nLegal Skills\nRegia Agentica\nArchivio Giurisprudenza\nStrumenti Forensi\nStrumenti Operativi\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nAssistenza\nsab 06 giu\nNuovo\nRicerca Legale\n\nRicerca su archivio giuridico, fonti ufficiali e schede contestualizzate.\n\nLex Chat AI\nArchivio giurisprudenza\nRicerca\nfonti e norme\nNews\naggiornamenti\nMediazione\nregistro\nFonti e acquisizioni\n\nStato reale delle fonti: documenti letti, testo disponibile, coda, errori e ragioni di pronto o da verificare.\n\nFonti pronte\n30\nCon documenti letti, testo o schede pubblicate.\nStato\nDa verificare\n10\nManca acquisizione, testo, OCR o ultimo controllo.\nStato\nDomande Lex\n46\nFonti con domanda di prova collegata al lavoro dell’avvocato.\nStato\nCoda\n6\nControlli in attesa o in corso.\nStato\nErrori\n0\nControlli falliti o scaduti da riprendere.\nStato\nFonti da presidiare\nGestisci fonti\nGazzetta Ufficiale\noperativa e controllabile\nServe per: inquadramento giuridico, norma vigente, rito e termine applicabile\nFase: inquadramento e controllo fonte\nAcquisizione: 356 letti · 356 con testo · 10 pubblicati · 291 da verificare\nDa fare: Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.\nArticoli pertinenti di codice civile, procedura civile, penale, procedura penale, processo amministrativo, tributario o norma speciale\nD.Lgs., decreto-legge, D.M., regolamento, specifica tecnica o regime transitorio collegato alla materia\nSentenze, ordinanze, decreti, provvedimenti, verbali o udienze che incidono su strategia, prova, termine o precedente\n"
+    },
+    {
+      "name": "testi tecnici vietati assenti",
+      "ok": false,
+      "detail": [
+        "webhook",
+        "null"
+      ]
+    }
+  ],
+  "console_errors": [],
+  "page_errors": [],
+  "failed_requests": [
+    {
+      "url": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:8080/api/v1/ui/dashboard",
+      "failure": "net::ERR_ABORTED"
+    }
+  ]
+}

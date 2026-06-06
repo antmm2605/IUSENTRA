@@ -11,6 +11,7 @@ from pct.normative_tables import (
     FONTI_OPERATIVE,
     GestioneTabelleNormative,
     InterestPeriod,
+    _normalize_usura_category,
 )
 from pct.tariffario import (
     ComplessitaStimata,
@@ -1096,7 +1097,8 @@ class GestioneStrumentiLegali:
     def verifica_soglia_usura(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         """Verifica se un tasso applicato supera la soglia antiusura (L. 108/1996)."""
         tasso_applicato = _safe_float(payload.get("usura_tasso"))
-        categoria = _clean_text(payload.get("usura_categoria") or "credito_personale")
+        categoria_input = _clean_text(payload.get("usura_categoria") or "credito_personale")
+        categoria = _normalize_usura_category(categoria_input)
         data_operazione = _parse_date(payload.get("usura_data")) or _today()
 
         if tasso_applicato < 0:
@@ -1104,14 +1106,20 @@ class GestioneStrumentiLegali:
 
         soglia_data = self.norme.usura_soglia_per_categoria(categoria, data_operazione)
         categorie_disponibili = self.norme.usura_categorie()
-        sources = self._sources_for_codes("legge_108_1996_usura", "bancaditalia_tassi_usura", "mef_decreto_usura")
+        sources = self._sources_for_codes(
+            "legge_108_1996_usura",
+            "bancaditalia_tassi_usura",
+            "mef_decreto_usura",
+            "mef_tassi_usura_2026_q1",
+            "mef_tassi_usura_2026_q2",
+        )
         warnings: List[str] = []
         notes: List[str] = []
 
         if not soglia_data:
             categorie_labels = [f"{c['category']} — {c['label']}" for c in categorie_disponibili]
             raise ValueError(
-                f"Categoria '{categoria}' non trovata nella tabella usura. "
+                f"Categoria '{categoria_input}' non trovata nella tabella usura. "
                 f"Categorie disponibili: {', '.join(categorie_labels[:5])}."
             )
 
@@ -1125,6 +1133,10 @@ class GestioneStrumentiLegali:
         esito = "USURARIO" if supera_soglia else "REGOLARE"
         esito_classe = "danger" if supera_soglia else "success"
 
+        if categoria_input != categoria:
+            notes.append(
+                f"Categoria selezionata '{categoria_input}' ricondotta alla categoria ufficiale '{categoria}'."
+            )
         notes.append(
             f"TEGM {quarter}: {tegm:.2f}%. Soglia = {tegm:.2f}% × 1,25 + 4 = {soglia:.2f}%."
         )
@@ -1163,6 +1175,7 @@ class GestioneStrumentiLegali:
         return {
             "tasso_applicato": tasso_applicato,
             "categoria": categoria,
+            "categoria_input": categoria_input,
             "categoria_label": categoria_label,
             "tegm": tegm,
             "soglia": soglia,
@@ -1207,6 +1220,22 @@ class GestioneStrumentiLegali:
             base = r.get("base", "")
             calcolato = 0.0
             base_usata = 0.0
+            if r.get("status") == "da_definire":
+                warnings.append(
+                    f"{label}: importo da definire nella fonte ufficiale; non viene applicato automaticamente."
+                )
+                result_rows.append({
+                    "tipo": tipo,
+                    "label": label,
+                    "base": base,
+                    "aliquota": aliquota,
+                    "minimo": minimo,
+                    "base_usata": 0.0,
+                    "calcolato": 0.0,
+                    "note": note_row,
+                    "status": "da_definire",
+                })
+                continue
 
             if tipo == "soggettivo" and reddito > 0:
                 base_usata = reddito

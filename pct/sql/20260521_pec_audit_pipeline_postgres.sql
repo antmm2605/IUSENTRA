@@ -128,6 +128,49 @@ CREATE TABLE IF NOT EXISTS pec_digest_runs (
     UNIQUE (tenant_id, digest_date)
 );
 
+CREATE TABLE IF NOT EXISTS pec_local_acquire_runs (
+    id text PRIMARY KEY,
+    tenant_id text NOT NULL,
+    status text NOT NULL DEFAULT 'running',
+    started_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    finished_at timestamptz,
+    cursor_index integer NOT NULL DEFAULT 0,
+    total_emails integer NOT NULL DEFAULT 0,
+    batch_size integer NOT NULL DEFAULT 50,
+    acquired integer NOT NULL DEFAULT 0,
+    duplicates integer NOT NULL DEFAULT 0,
+    skipped_missing_mime integer NOT NULL DEFAULT 0,
+    skipped_not_pec integer NOT NULL DEFAULT 0,
+    queued_repairs integer NOT NULL DEFAULT 0,
+    deadline_created integer NOT NULL DEFAULT 0,
+    deadline_already_exists integer NOT NULL DEFAULT 0,
+    deadline_expired integer NOT NULL DEFAULT 0,
+    deadline_not_ready integer NOT NULL DEFAULT 0,
+    deadline_errors integer NOT NULL DEFAULT 0,
+    agenda_linked integer NOT NULL DEFAULT 0,
+    errors integer NOT NULL DEFAULT 0,
+    payload_json jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE TABLE IF NOT EXISTS pec_local_acquire_items (
+    id text PRIMARY KEY,
+    tenant_id text NOT NULL,
+    run_id text NOT NULL REFERENCES pec_local_acquire_runs(id),
+    email_id text NOT NULL DEFAULT '',
+    message_id text NOT NULL DEFAULT '',
+    subject text NOT NULL DEFAULT '',
+    status text NOT NULL,
+    deadline_status text NOT NULL DEFAULT '',
+    due_date date,
+    deadline_id text NOT NULL DEFAULT '',
+    agenda_id text NOT NULL DEFAULT '',
+    detail_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    UNIQUE (tenant_id, run_id, email_id)
+);
+
 CREATE TABLE IF NOT EXISTS pec_audit_log (
     id text PRIMARY KEY,
     tenant_id text NOT NULL,
@@ -161,4 +204,9 @@ FOR EACH ROW EXECUTE FUNCTION pec_audit_log_append_only();
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
 CREATE INDEX IF NOT EXISTS idx_pec_jobs_due ON pec_jobs(status, available_at, priority);
+CREATE INDEX IF NOT EXISTS idx_pec_local_runs_status ON pec_local_acquire_runs(tenant_id, status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_run ON pec_local_acquire_items(tenant_id, run_id, status);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_email ON pec_local_acquire_items(tenant_id, email_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_message ON pec_local_acquire_items(tenant_id, message_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_deadline ON pec_local_acquire_items(tenant_id, deadline_status, due_date);
 CREATE INDEX IF NOT EXISTS idx_pec_audit_resource ON pec_audit_log(resource_type, resource_id);

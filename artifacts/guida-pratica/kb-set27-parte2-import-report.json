@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (18).zip::kb_set27_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set27_p2.json",
+  "sha256": "151012C725D71F95A4630F1681AEBE925CF971038C3753F8B6630A93CBF0B9F7",
+  "changed": false,
+  "macro_area_id": "SET27_PARTE2",
+  "denominazione": "Ventisettesimo set - 25 nuovi codici - PARTE 2 di 5",
+  "codici_materia_originali": [
+    "130135",
+    "130140",
+    "140080",
+    "141055",
+    "143070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIT_ESPROPRIATIVA_E_OPPOSIZIONE__130135",
+    "GUIDA_DENUNCIA_DI_NUOVA_OPERA_E_DANNO_TEMUTO_AZIONE_POSSESSORIA_ANTICIPATORIA__130140",
+    "GUIDA_FIDEIUSSIONE_ESCUSSIONE_REGRESSO_E_NULLIT_DELLA_FIDEIUSSIONE_OMNIBUS_ART_140080",
+    "GUIDA_CONTRATTO_DI_SPEDIZIONE_RESPONSABILIT_DELLO_SPEDIZIONIERE_E_PERDITA_DELL_141055",
+    "GUIDA_MUTUO_TRA_PRIVATI_RESTITUZIONE_INTERESSI_E_INTERESSI_USURARI_ARTT_1813_1_143070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130135",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIT_ESPROPRIATIVA_E_OPPOSIZIONE__130135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130140",
+      "codice_integrato": "GUIDA_DENUNCIA_DI_NUOVA_OPERA_E_DANNO_TEMUTO_AZIONE_POSSESSORIA_ANTICIPATORIA__130140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140080",
+      "codice_integrato": "GUIDA_FIDEIUSSIONE_ESCUSSIONE_REGRESSO_E_NULLIT_DELLA_FIDEIUSSIONE_OMNIBUS_ART_140080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141055",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_SPEDIZIONE_RESPONSABILIT_DELLO_SPEDIZIONIERE_E_PERDITA_DELL_141055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143070",
+      "codice_integrato": "GUIDA_MUTUO_TRA_PRIVATI_RESTITUZIONE_INTERESSI_E_INTERESSI_USURARI_ARTT_1813_1_143070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

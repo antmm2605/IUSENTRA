@@ -60,6 +60,7 @@ export function sanitizeDisplayText(value: string): string {
     .replace(/\bsnapshot\b/gi, 'rilevazione')
     .replace(/\bserver-side\b/gi, 'lato applicazione')
     .replace(/\bjson_api\b/gi, 'azioni protette')
+    .replace(/\bREST\s+API\b/gi, 'servizi integrati')
     .replace(/\bAPI\b/g, 'servizio')
     .replace(/\bbackend\b/gi, 'controlli operativi')
     .replace(/\bfrontend\b/gi, 'pagina')
@@ -71,12 +72,15 @@ export function sanitizeDisplayText(value: string): string {
     .replace(/\bendpoint\b/gi, 'comando')
     .replace(/\bbridge\b/gi, 'collegamento')
     .replace(/\bprovider\b/gi, 'fornitore')
+    .replace(/\bwebhooks\b/gi, 'notifiche automatiche')
     .replace(/\bwebhook\b/gi, 'notifica automatica')
+    .replace(/\bREST\b/gi, 'servizi integrati')
     .replace(/\bcache\b/gi, 'elenco locale')
     .replace(/\bRBAC\b/g, 'permessi')
     .replace(/\bCMS\b/g, 'contenuti')
     .replace(/\bKPI\b/g, 'indicatori')
     .replace(/\bdemo\b/gi, 'da verificare')
+    .replace(/\bnullita\b/gi, 'nullità')
     .replace(/\b(undefined|null|todo|sample)\b/gi, 'non indicato')
 }
 

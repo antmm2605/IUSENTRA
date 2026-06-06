@@ -19,6 +19,11 @@ def test_documenti_ai_frontend_componenti_e_contratti():
     assert 'href="#documenti-ai"' not in fascicoli
     assert "Indicizzazione Lex" in fascicoli
     assert "Lex può leggere i documenti del fascicolo." in fascicoli
+    assert 'context="fascicolo-dettaglio"' in fascicoli
+    assert 'context="fascicolo-quadro"' in fascicoli
+    assert 'contextType="case"' in fascicoli
+    assert "caseId={f.id || id}" in fascicoli
+    assert "activeContext={{ context_type: 'case', case_id: f.id || id, client_id: clientId }}" in fascicoli
     assert "Documenti da verificare" in fascicoli
     assert "lexIndexing" in fascicoli_data
     assert "warnings: string[]" in fascicoli_data

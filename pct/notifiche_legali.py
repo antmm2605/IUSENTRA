@@ -125,8 +125,18 @@ NOTIFICATION_CASE_DIRECTIVES: dict[str, dict[str, Any]] = {
     },
     "sentenza_termine_breve": {
         "label": "Sentenza o termine breve",
-        "template_id": "relata_sentenza_termine_breve",
-        "required_fields": ("provvedimento.tipo", "provvedimento.numero", "provvedimento.anno", "provvedimento.data_deposito"),
+        "template_id": "relata_sentenza_attestazione_conformita",
+        "required_fields": (
+            "avvocato.full_name",
+            "avvocato.codice_fiscale",
+            "avvocato.foro",
+            "procedimento.ufficio",
+            "procedimento.sezione",
+            "procedimento.numero_rg",
+            "procedimento.anno_rg",
+            "provvedimento.tipo",
+            "provvedimento.data_deposito",
+        ),
         "proceeding_required": True,
         "note": "Per la notifica finalizzata alla decorrenza dei termini di impugnazione.",
     },
@@ -268,6 +278,11 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
         "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni.",
     },
     {
+        "id": "dl179_art16decies",
+        "label": "D.L. 18 ottobre 2012, n. 179, art. 16-decies",
+        "rule": "Potere di attestazione di conformità delle copie informatiche estratte dal fascicolo informatico e dai registri telematici.",
+    },
+    {
         "id": "dl179_art16septies",
         "label": "D.L. 18 ottobre 2012, n. 179, art. 16-septies",
         "rule": "Regole temporali delle notifiche telematiche, lette con Corte cost. 75/2019.",
@@ -338,6 +353,16 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
         "rule": "Modo di notificazione della sentenza ai fini processuali.",
     },
     {
+        "id": "cpc_325",
+        "label": "Art. 325 c.p.c.",
+        "rule": "Termini brevi per le impugnazioni.",
+    },
+    {
+        "id": "cpc_326",
+        "label": "Art. 326 c.p.c.",
+        "rule": "Decorrenza dei termini brevi dalla notificazione della sentenza.",
+    },
+    {
         "id": "cpc_330",
         "label": "Art. 330 c.p.c.",
         "rule": "Luogo della notificazione dell'impugnazione secondo difensore, domicilio eletto o residenza dichiarata.",
@@ -396,11 +421,16 @@ CASE_DIRECTIVE_LEGAL_SOURCES: dict[str, tuple[str, ...]] = {
     "sentenza_termine_breve": (
         "l53_art3bis",
         "l53_art3ter",
+        "dl179_art16decies",
         "dm44_art18",
         "cpc_170",
         "cpc_285",
+        "cpc_325",
+        "cpc_326",
         "cpc_330",
         "dgsia_2024_art26",
+        "dgsia_2024_art27",
+        "disp_att_cpc_196undecies",
     ),
     "decreto_ingiuntivo": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_643", "dgsia_2024_art26"),
     "titolo_esecutivo_precetto": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_480", "dgsia_2024_art26"),
@@ -636,6 +666,8 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Avvocato", "label": "Foro", "token": "{{ avvocato.foro }}"},
     {"group": "Avvocato", "label": "PEC notificante", "token": "{{ avvocato.pec }}"},
     {"group": "Avvocato", "label": "Studio", "token": "{{ avvocato.studio }}"},
+    {"group": "Avvocato", "label": "Firma avvocato in calce", "token": "{{ avvocato.firma_in_calce }}"},
+    {"group": "Avvocato", "label": "Dicitura firma digitale", "token": "{{ avvocato.firma_digitale_dicitura }}"},
     {"group": "Assistito", "label": "Parte assistita", "token": "{{ cliente.nome_denominazione }}"},
     {"group": "Assistito", "label": "C.F. / P. IVA assistito", "token": "{{ cliente.codice_fiscale_piva }}"},
     {"group": "Procedimento", "label": "Ufficio giudiziario", "token": "{{ procedimento.ufficio }}"},
@@ -657,7 +689,9 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Notifica", "label": "Oggetto PEC L. 53", "token": "{{ notifica.oggetto_pec }}"},
     {"group": "Provvedimento", "label": "Tipo provvedimento", "token": "{{ provvedimento.tipo }}"},
     {"group": "Provvedimento", "label": "Numero provvedimento", "token": "{{ provvedimento.numero }}"},
+    {"group": "Provvedimento", "label": "Anno provvedimento", "token": "{{ provvedimento.anno }}"},
     {"group": "Provvedimento", "label": "Data provvedimento", "token": "{{ provvedimento.data }}"},
+    {"group": "Provvedimento", "label": "Data deposito / pubblicazione", "token": "{{ provvedimento.data_deposito }}"},
 )
 
 _OPERATIONAL_TEMPLATE_FIELDS = {
@@ -1633,8 +1667,8 @@ def template_preview_text(template: dict[str, Any]) -> str:
         "",
         "{{ notifica.luogo }}, {{ notifica.data }}",
         "",
-        "Avv. {{ avvocato.full_name }}",
-        "Documento informatico separato sottoscritto con firma digitale.",
+        "{{ avvocato.firma_in_calce }}",
+        "{{ avvocato.firma_digitale_dicitura }}",
     ])
     return "\n".join(lines).strip()
 
@@ -2310,9 +2344,35 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
     role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario"))
     source_key = normalise_public_register(_first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario"))
     documents = _documents(payload)
+    case_id = notification_case_from_payload(payload)
     avvocato_nome = text(_first(payload, "avvocato.nome", "avvocato_nome"))
     avvocato_cognome = text(_first(payload, "avvocato.cognome", "avvocato_cognome"))
     avvocato_full = text(" ".join(part for part in (avvocato_nome, avvocato_cognome) if part), avvocato_nome)
+    firma_in_calce = text(
+        _first(
+            payload,
+            "avvocato.firma_in_calce",
+            "avvocato_firma_in_calce",
+            "firma_avvocato",
+            fallback=f"Avv. {avvocato_full}" if avvocato_full else "",
+        )
+    )
+    firma_digitale_dicitura = text(
+        _first(
+            payload,
+            "avvocato.firma_digitale_dicitura",
+            "firma_digitale_dicitura",
+            fallback="Firmato digitalmente",
+        )
+    )
+    provvedimento_tipo = text(
+        _first(
+            payload,
+            "provvedimento.tipo",
+            "provvedimento_tipo",
+            fallback="Sentenza" if case_id == "sentenza_termine_breve" else "",
+        )
+    )
 
     context = {
         "catalog_version": template_catalog_version(),
@@ -2330,6 +2390,8 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             "studio": text(_first(payload, "avvocato.studio", "studio_indirizzo")),
             "studio_citta": studio_citta,
             "fonte_pec": register_label(_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente", fallback="reginde")),
+            "firma_in_calce": firma_in_calce,
+            "firma_digitale_dicitura": firma_digitale_dicitura,
         },
         "cliente": {
             "tipo": text(_first(payload, "cliente.tipo", "assistito_tipo")),
@@ -2361,6 +2423,7 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
         "documenti": documents,
         "notifica": {
             "tipo": text(_first(payload, "notifica.tipo", "tipo_notifica", fallback="pec_l53_1994")),
+            "caso": case_id,
             "oggetto_pec": LEGAL_NOTIFICATION_SUBJECT,
             "luogo": notifica_luogo,
             "data": notifica_data,
@@ -2371,7 +2434,7 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             "note": text(_first(payload, "notifica.note", "note")),
         },
         "provvedimento": {
-            "tipo": text(_first(payload, "provvedimento.tipo", "provvedimento_tipo")),
+            "tipo": provvedimento_tipo,
             "numero": text(_first(payload, "provvedimento.numero", "provvedimento_numero")),
             "anno": text(_first(payload, "provvedimento.anno", "provvedimento_anno")),
             "ufficio_origine": text(_first(payload, "provvedimento.ufficio_origine", "provvedimento_ufficio_origine")),
@@ -2526,11 +2589,76 @@ def _validate_proceeding(context: dict[str, Any], blockers: list[str]) -> None:
             blockers.append(message)
 
 
+def _sentence_case_label(value: Any, fallback: str = "Sentenza") -> str:
+    raw = text(value, fallback)
+    return raw[:1].upper() + raw[1:] if raw else fallback
+
+
+def _rg_reference(proceeding: dict[str, Any]) -> str:
+    number = text(proceeding.get("numero_rg"))
+    year = text(proceeding.get("anno_rg"))
+    if number and year:
+        return f"{number}/{year}"
+    return number or year
+
+
+def _sentence_office_intro(office: str) -> str:
+    clean = text(office)
+    if not clean:
+        return "dall'ufficio giudiziario indicato nel fascicolo"
+    lower = clean.lower()
+    if lower.startswith(("corte", "sezione")):
+        return f"dalla {clean}"
+    if lower.startswith(("ufficio", "autorità")):
+        return f"dall'{clean}"
+    return f"dal {clean}"
+
+
+def _is_sentence_attestation_document(document: dict[str, Any], context: dict[str, Any]) -> bool:
+    template = context.get("template") or {}
+    haystack = " ".join(
+        text(value).lower()
+        for value in (
+            context.get("notifica", {}).get("caso"),
+            context.get("provvedimento", {}).get("tipo"),
+            template.get("id"),
+            template.get("label"),
+            document.get("nome_file"),
+            document.get("descrizione"),
+        )
+    )
+    return "sentenza_termine_breve" in haystack or "sentenza" in haystack
+
+
+def _sentence_attestation_text(document: dict[str, Any], context: dict[str, Any]) -> str:
+    proceeding = context["procedimento"]
+    provision = context["provvedimento"]
+    office = text(provision.get("ufficio_origine") or proceeding.get("ufficio"))
+    section = text(proceeding.get("sezione"))
+    date_label = text(
+        provision.get("data_deposito")
+        or provision.get("data")
+        or document.get("data_documento")
+        or document.get("data_comunicazione_cancelleria")
+    )
+    section_part = f" Sez. {section}" if section else ""
+    date_part = f" in data {date_label}" if date_label else ""
+    rg = _rg_reference(proceeding)
+    rg_part = f" R.G. n. {rg}" if rg else ""
+    return (
+        f"{_sentence_case_label(provision.get('tipo'))}, emessa {_sentence_office_intro(office)}"
+        f"{section_part}{date_part} è conforme alla copia informatica presente nel fascicolo "
+        f"informatico del relativo procedimento{rg_part} dal quale è estratta."
+    )
+
+
 def _document_attestation_text(document: dict[str, Any], context: dict[str, Any]) -> str:
     origin = document["origine"]
     name = document["nome_file"]
     description = document["descrizione"]
     proceeding = context["procedimento"]
+    if origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria"} and _is_sentence_attestation_document(document, context):
+        return _sentence_attestation_text(document, context)
     if origin == "copia_fascicolo_informatico":
         return (
             f"Attesto che il file {name}, contenente {description}, è copia informatica conforme "
@@ -2575,6 +2703,8 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
     context = _build_context(payload)
     attested_documents = [document for document in context["documenti"] if document["necessita_attestazione"]]
     documents = context["documenti"]
+    sentence_documents = [document for document in documents if _is_sentence_attestation_document(document, context)]
+    single_sentence_attestation = len(documents) == 1 and bool(sentence_documents)
     missing: list[str] = []
     if not context["avvocato"]["full_name"]:
         missing.append("avvocato.nome")
@@ -2588,42 +2718,60 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
         missing.append("procedimento.anno_rg")
     if not documents:
         missing.append("documenti")
-    doc_lines = []
-    for index, document in enumerate(documents, 1):
-        date_label = _format_italian_date(document.get("data_documento") or document.get("data_comunicazione_cancelleria"))
-        suffix = f", in data {date_label}" if date_label else ""
-        doc_lines.append(
-            f"{index}. {document['descrizione'] or document['nome_file']} ({document['nome_file']}){suffix};"
+    if sentence_documents:
+        for path in ("procedimento.ufficio", "procedimento.sezione"):
+            if not text(_context_lookup(context, path)):
+                missing.append(path)
+        sentence_date = text(
+            context["provvedimento"].get("data_deposito")
+            or context["provvedimento"].get("data")
+            or sentence_documents[0].get("data_documento")
+            or sentence_documents[0].get("data_comunicazione_cancelleria")
         )
-    if attested_documents:
-        conformity_text = (
-            "sono conformi alle copie informatiche presenti nel fascicolo informatico "
-            f"del relativo procedimento R.G. n. {context['procedimento']['numero_rg']}/{context['procedimento']['anno_rg']} "
-            "dal quale sono estratte."
-        )
+        if not sentence_date:
+            missing.append("provvedimento.data_deposito")
+    doc_lines: list[str] = []
+    if single_sentence_attestation:
+        doc_lines.append(_sentence_attestation_text(sentence_documents[0], context))
+        conformity_text = ""
+        copy_intro = "ai sensi di legge, che la copia informatica:"
     else:
-        conformity_text = (
-            "sono documenti informatici indicati dal fascicolo; non risultano origini che richiedano "
-            "attestazione automatica di conformità."
-        )
+        for index, document in enumerate(documents, 1):
+            date_label = _format_italian_date(document.get("data_documento") or document.get("data_comunicazione_cancelleria"))
+            suffix = f", in data {date_label}" if date_label else ""
+            doc_lines.append(
+                f"{index}. {document['descrizione'] or document['nome_file']} ({document['nome_file']}){suffix};"
+            )
+        if attested_documents:
+            conformity_text = (
+                "sono conformi alle copie informatiche presenti nel fascicolo informatico "
+                f"del relativo procedimento R.G. n. {context['procedimento']['numero_rg']}/{context['procedimento']['anno_rg']} "
+                "dal quale sono estratte."
+            )
+        else:
+            conformity_text = (
+                "sono documenti informatici indicati dal fascicolo; non risultano origini che richiedano "
+                "attestazione automatica di conformità."
+            )
+        copy_intro = "ai sensi di legge, che le copie informatiche:" if len(documents) != 1 else "ai sensi di legge, che la copia informatica:"
     lines = [
         "ATTESTAZIONE DI CONFORMITÀ",
         "",
         (
             f"Il sottoscritto Avv. {context['avvocato']['full_name']} "
-            f"C.F. {context['avvocato']['codice_fiscale']}, del Foro di {context['avvocato']['foro']},"
+            f"C. F. {context['avvocato']['codice_fiscale']}, del Foro di {context['avvocato']['foro']},"
         ),
         "",
-        "attesta",
+        "Attesta",
         "",
-        "ai sensi di legge, che le copie informatiche:",
+        copy_intro,
         *doc_lines,
         conformity_text,
         "",
         f"{context['notifica']['luogo']}, {context['notifica']['data']}".strip(", "),
         "",
-        f"Avv. {context['avvocato']['full_name']}",
-        "Firmato digitalmente",
+        context["avvocato"]["firma_in_calce"],
+        context["avvocato"]["firma_digitale_dicitura"],
     ]
     blocks = _attestation_blocks(context)
     if blocks:
@@ -2631,7 +2779,7 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
     return {
         "schema": "iusentra.attestazione_conformita.v1",
         "ok": not missing,
-        "missing_fields": missing,
+        "missing_fields": list(dict.fromkeys(missing)),
         "title": "Attestazione di conformità",
         "text": "\n".join(line for line in lines if line is not None).strip() + "\n",
         "documenti": [
@@ -2650,10 +2798,14 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
             "cliente": context["cliente"],
             "procedimento": context["procedimento"],
             "destinatario": context["destinatario"],
+            "provvedimento": context["provvedimento"],
+            "notifica": context["notifica"],
         },
         "normativa": [
             "art. 196-undecies disp. att. c.p.c.",
+            "D.L. 179/2012, art. 16-decies",
             "L. 53/1994, art. 3-bis",
+            "artt. 285, 325 e 326 c.p.c.",
             "Provvedimento DGSIA 7 agosto 2024, art. 27",
         ],
     }
@@ -3127,7 +3279,7 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
     if manual_attestation:
         attestations.append(manual_attestation)
     if attestations:
-        lines.extend(["", "ATTESTAZIONE DI CONFORMITA", ""])
+        lines.extend(["", "ATTESTAZIONE DI CONFORMITÀ", ""])
         for block in attestations:
             lines.extend([block, ""])
 
@@ -3136,8 +3288,8 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
     lines.extend([
         f"{context['notifica']['luogo']}, {context['notifica']['data']}".strip(", "),
         "",
-        f"Avv. {context['avvocato']['full_name']}",
-        "Documento informatico separato sottoscritto con firma digitale.",
+        context["avvocato"]["firma_in_calce"],
+        context["avvocato"]["firma_digitale_dicitura"],
     ])
     return "\n".join(lines).strip() + "\n"
 

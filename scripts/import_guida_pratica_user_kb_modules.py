@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from pct.guida_pratica.service import normalize_codice_materia  # noqa: E402
-from pct.guida_pratica.web_enrichment import SOURCE_LIBRARY  # noqa: E402
+from pct.guida_pratica.web_enrichment import SOURCE_LIBRARY, VERIFIED_ON, web_sources_for_guidance  # noqa: E402
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry  # noqa: E402
 
 
@@ -84,6 +84,16 @@ CONVERSION_RULES: dict[str, ConversionRule] = {
         ("220070", "220071", "220072", "220999"),
         "Il codice 220050 è ufficiale nel catalogo locale per retribuzione; la scheda ricevuta riguarda mobbing/straining e danni al lavoratore, quindi resta guida interna per non alterare il deposito.",
     ),
+    "220120": ConversionRule(
+        "GUIDA_APPRENDISTATO_RISOLUZIONE_CONVERSIONE_220120",
+        ("220011", "221011", "222011", "220120", "221120", "222120"),
+        "Il codice 220120 è ufficiale nel catalogo locale per dimissioni; la scheda ricevuta riguarda apprendistato, risoluzione e conversione del rapporto. Resta guida interna e propone i codici ufficiali apprendistato/dimissioni da valutare nel fascicolo.",
+    ),
+    "411603": ConversionRule(
+        "GUIDA_AMMONIMENTO_QUESTORE_VIOLENZA_DOMESTICA_411603",
+        ("111602", "411002", "411603", "B02023"),
+        "Il codice 411603 è ufficiale nel catalogo locale per attuazione dei provvedimenti sull'affidamento; la scheda ricevuta riguarda ammonimento del questore, atti persecutori e violenza domestica. Resta guida interna e non sostituisce il codice ministeriale del deposito.",
+    ),
     "140030": ConversionRule(
         "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
         ("140051", "140052", "010009", "140999"),
@@ -144,11 +154,42 @@ CONVERSION_RULES: dict[str, ConversionRule] = {
         ("140999", "140031", "140041"),
         "Il codice 140035 è ufficiale nel catalogo locale per agenzia; la scheda ricevuta riguarda annullamento del contratto per dolo, errore o violenza e resta guida interna per non alterare il deposito.",
     ),
+    "143105": ConversionRule(
+        "GUIDA_CONTRATTO_SUBFORNITURA_ABUSO_DIPENDENZA_ECONOMICA_143105",
+        ("140021", "140022", "140999"),
+        "Il codice 143105 è ufficiale nel catalogo locale per noleggio; la scheda ricevuta riguarda subfornitura e abuso di dipendenza economica. Resta guida interna non depositabile per non sostituire il modello ufficiale già presente.",
+    ),
+    "112001": ConversionRule(
+        "GUIDA_FONDO_PATRIMONIALE_REVOCATORIA_112001",
+        ("111214", "411640", "411679", "102002"),
+        "Il codice 112001 è ufficiale nel catalogo locale come voce deprecata diversa; la scheda ricevuta riguarda fondo patrimoniale, opponibilità ai creditori e revocatoria. Resta guida interna e propone i codici ufficiali fondo patrimoniale/revocatoria da valutare nel fascicolo.",
+    ),
 }
 
 WEB_SOURCE_LIBRARY = SOURCE_LIBRARY
 
 WEB_SOURCE_RULES: tuple[tuple[set[str], tuple[str, ...]], ...] = (
+    ({"112001"}, ("normattiva_cc", "normattiva_cpc")),
+    ({"120075"}, ("normattiva_l_47_2017_minori_stranieri", "normattiva_d_lgs_142_2015_accoglienza", "ministero_lavoro_minori_stranieri", "tribunale_minorenni_competenza")),
+    ({"121022", "413130"}, ("normattiva_l_184_1983_adozione", "commissione_adozioni_internazionali", "tribunale_minorenni_competenza")),
+    ({"413135"}, ("normattiva_dpr_396_2000_stato_civile", "normattiva_l_164_1982_rettificazione_sesso", "normattiva_l_218_1995")),
+    ({"141080"}, ("eurlex_reg_2021_782_rail", "art_passeggeri_ferroviari")),
+    ({"143115"}, ("normattiva_codice_assicurazioni", "ivass_arbitro_assicurativo", "normattiva_negoziazione_assistita")),
+    ({"143120"}, ("normattiva_tuf", "consob_acf")),
+    ({"145025"}, ("normattiva_locazioni_392", "normattiva_locazioni_431")),
+    ({"152025"}, ("normattiva_d_lgs_14_2019", "unioncamere_composizione_negoziata")),
+    ({"160250"}, ("eurlex_gdpr", "normattiva_privacy_196_2003", "garante_privacy_gdpr")),
+    ({"160255"}, ("normattiva_l_219_2017", "normattiva_sanitaria")),
+    ({"160260", "220250"}, ("normattiva_sicurezza_81_2008", "ministero_lavoro_dlgs_81_2008", "normattiva_tu_inail", "inail_infortunio_malattia_professionale")),
+    ({"190040"}, ("eurlex_reg_805_2004_titolo_esecutivo_europeo", "eurlex_reg_1896_2006_ingiunzione_europea", "ejustice_ingiunzione_europea")),
+    ({"199020"}, ("uncitral_new_york_convention", "normattiva_cpc")),
+    ({"220255", "220265", "220270"}, ("normattiva_d_lgs_81_2015_lavoro", "normattiva_d_lgs_276_2003", "normattiva_lavoro_300", "normattiva_lavoro_604")),
+    ({"220260"}, ("normattiva_l_335_1995_pensioni", "normattiva_dl_201_2011", "inps_ricorsi_amministrativi")),
+    ({"240060"}, ("normattiva_codice_navigazione_327_1942", "normattiva_d_lgs_59_2010", "normattiva_l_241_1990", "normattiva_cpa_104_2010", "giustizia_amministrativa_provvedimenti")),
+    ({"240065"}, ("normattiva_l_89_2001_pinto", "hudoc_cedu", "corte_costituzionale_pronunce", "cassazione_sentenzeweb")),
+    ({"512125"}, ("normattiva_dpr_633_1972", "normattiva_dpr_600_1973")),
+    ({"512130"}, ("normattiva_l_197_2022", "normattiva_l_130_2022", "agenzia_entrate_definizione_liti_197_2022", "giustizia_tributaria_banca_dati")),
+    ({"512135"}, ("normattiva_dl_201_2011", "agenzia_entrate_ivie_ivafe_quadro_w", "normattiva_tuir_917_1986")),
     ({"130070", "121005", "140030", "142005", "160040", "130013", "143005", "140005"}, ("normattiva_mediazione",)),
     ({"140030", "142005", "143005", "160040", "140005"}, ("normattiva_negoziazione_assistita",)),
     ({"170001", "170002"}, ("normattiva_cpi",)),
@@ -249,14 +290,20 @@ def _count_terms(payload: dict[str, Any]) -> int:
 
 def _convert_item(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None, str | None]:
     row = deepcopy(item)
-    original_code = normalize_codice_materia(row.get("codice") or row.get("codice_logico") or row.get("codice_materia"))
+    original_code = normalize_codice_materia(
+        row.get("codice_originale_ricevuto") or row.get("codice") or row.get("codice_logico") or row.get("codice_materia")
+    )
     if not original_code:
         return row, None, None
     rule = CONVERSION_RULES.get(original_code)
     if not rule and not codice_oggetto_pst_entry(original_code):
-        slug = re.sub(r"[^A-Z0-9]+", "_", str(row.get("denominazione") or original_code).upper()).strip("_")[:72]
+        if original_code.startswith("GUIDA_"):
+            alias = original_code
+        else:
+            slug = re.sub(r"[^A-Z0-9]+", "_", str(row.get("denominazione") or original_code).upper()).strip("_")[:72]
+            alias = f"GUIDA_{slug}_{original_code}"
         rule = ConversionRule(
-            f"GUIDA_{slug}_{original_code}",
+            alias,
             tuple(str(code) for code in row.get("codici_ufficiali_correlati_da_valutare") or ()),
             "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile.",
         )
@@ -284,7 +331,7 @@ def _convert_item(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] 
 
 def _source_entry(key: str, *, original_code: str) -> dict[str, str]:
     source = dict(WEB_SOURCE_LIBRARY[key])
-    source["verificato_il"] = "2026-05-24"
+    source["verificato_il"] = VERIFIED_ON
     source["metodo"] = "ricerca web su fonte ufficiale"
     source["codice_originale_guida"] = original_code
     return source
@@ -313,7 +360,7 @@ def _attach_web_sources(item: dict[str, Any]) -> None:
         return
     existing = item.get("fonti_verifica_web") if isinstance(item.get("fonti_verifica_web"), list) else []
     by_url = {str(source.get("url")): dict(source) for source in existing if isinstance(source, dict)}
-    for source in _web_sources_for_item(original_code):
+    for source in [*_web_sources_for_item(original_code), *web_sources_for_guidance(item)]:
         by_url.setdefault(source["url"], source)
     item["fonti_verifica_web"] = list(by_url.values())
 
@@ -328,7 +375,9 @@ def _convert_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str,
     for item in converted.get("codici_materia") or []:
         if not isinstance(item, dict):
             continue
-        original_code = normalize_codice_materia(item.get("codice") or item.get("codice_logico") or item.get("codice_materia"))
+        original_code = normalize_codice_materia(
+            item.get("codice_originale_ricevuto") or item.get("codice") or item.get("codice_logico") or item.get("codice_materia")
+        )
         if original_code:
             original_codes.append(original_code)
         new_item, conversion, official_code = _convert_item(item)
@@ -370,10 +419,23 @@ def _write_if_changed(path: Path, payload: dict[str, Any]) -> bool:
 
 def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, artifacts_dir: Path = DEFAULT_ARTIFACTS_DIR) -> dict[str, Any]:
     files: list[dict[str, Any]] = []
+    duplicates_skipped: list[dict[str, str]] = []
+    seen_hashes: dict[str, str] = {}
     official_kept: list[str] = []
     aliases: list[str] = []
     total_terms = 0
     for source_name, data in _source_files(paths):
+        digest = _sha256(data)
+        if digest in seen_hashes:
+            duplicates_skipped.append(
+                {
+                    "source": source_name,
+                    "duplicate_of": seen_hashes[digest],
+                    "sha256": digest,
+                }
+            )
+            continue
+        seen_hashes[digest] = source_name
         payload = _read_json_bytes(data)
         converted, report = _convert_payload(payload)
         destination = modules_dir / _target_name(source_name)
@@ -381,7 +443,7 @@ def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, ar
         file_report = {
             "source": source_name,
             "destination": str(destination.relative_to(ROOT)),
-            "sha256": _sha256(data),
+            "sha256": digest,
             "changed": changed,
             **report,
         }
@@ -400,6 +462,7 @@ def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, ar
         "generated_at": _utc_now(),
         "sources": [str(path) for path in paths],
         "files": files,
+        "duplicates_skipped": duplicates_skipped,
         "records_received": sum(len(file["codici_materia_originali"]) for file in files),
         "records_integrated": sum(len(file["codici_materia_integrati"]) for file in files),
         "official_depositable_kept": sorted(set(official_kept)),

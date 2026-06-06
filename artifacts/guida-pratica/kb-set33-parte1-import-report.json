@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p1.json",
+  "sha256": "FE10E9EC6CC3A1B1E2732BEFFEE237DF40CF3AD35253DC9B72868F5CECEFDC68",
+  "changed": true,
+  "macro_area_id": "SET33_PARTE1",
+  "denominazione": "Trentatreesimo set - 40 nuovi codici - PARTE 1 di 8",
+  "codici_materia_originali": [
+    "112005",
+    "113015",
+    "121025",
+    "413140",
+    "415005"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_REGIME_DI_SEPARAZIONE_DEI_BENI_TRA_CONIUGI_SCELTA_EFFETTI_E_CONTROVERSIE_112005",
+    "GUIDA_NEGOZIAZIONE_ASSISTITA_PER_SEPARAZIONE_E_DIVORZIO_CONSENSUALE_D_L_132_20_113015",
+    "GUIDA_CONTESTAZIONE_DELLO_STATUS_DI_FIGLIO_LEGITTIMO_AZIONE_DI_CONTESTAZIONE_A_121025",
+    "GUIDA_SCOMPARSA_E_MORTE_PRESUNTA_DICHIARAZIONE_GIUDIZIALE_E_EFFETTI_ARTT_48_73_413140",
+    "GUIDA_INVALIDIT_E_ANNULLABILIT_DEL_TESTAMENTO_VIZI_DI_FORMA_E_DI_VOLONT_ARTT_6_415005"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "112005",
+      "codice_integrato": "GUIDA_REGIME_DI_SEPARAZIONE_DEI_BENI_TRA_CONIUGI_SCELTA_EFFETTI_E_CONTROVERSIE_112005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "113015",
+      "codice_integrato": "GUIDA_NEGOZIAZIONE_ASSISTITA_PER_SEPARAZIONE_E_DIVORZIO_CONSENSUALE_D_L_132_20_113015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "121025",
+      "codice_integrato": "GUIDA_CONTESTAZIONE_DELLO_STATUS_DI_FIGLIO_LEGITTIMO_AZIONE_DI_CONTESTAZIONE_A_121025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413140",
+      "codice_integrato": "GUIDA_SCOMPARSA_E_MORTE_PRESUNTA_DICHIARAZIONE_GIUDIZIALE_E_EFFETTI_ARTT_48_73_413140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415005",
+      "codice_integrato": "GUIDA_INVALIDIT_E_ANNULLABILIT_DEL_TESTAMENTO_VIZI_DI_FORMA_E_DI_VOLONT_ARTT_6_415005",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

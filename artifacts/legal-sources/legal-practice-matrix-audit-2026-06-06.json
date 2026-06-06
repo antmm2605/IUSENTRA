@@ -1,0 +1,1616 @@
+{
+  "audit_date": "2026-06-06",
+  "matrix_version": "2026-06-06",
+  "product_destinations": [
+    "Ricerca Legale",
+    "Lex AI/RAG Legal",
+    "Guida Pratica",
+    "Scadenziario",
+    "Template Atti/editor",
+    "DB normativa"
+  ],
+  "summary": {
+    "cards": 25,
+    "references": 90,
+    "covered_cards": 25,
+    "covered_references": 90,
+    "issues": 0,
+    "coverage_percent": 100.0,
+    "declared_coverage_status": "100%",
+    "practice_areas": 25,
+    "authorities": 29
+  },
+  "areas": {
+    "Ambiente": 1,
+    "Amministrativo": 1,
+    "Bancario e finanziario": 1,
+    "Civile": 1,
+    "Civile esecutivo": 1,
+    "Codice della strada": 1,
+    "Consumatori e comunicazioni": 1,
+    "Contabile e Corte dei conti": 1,
+    "Crisi d'impresa": 1,
+    "Deontologia e professione forense": 1,
+    "Edilizia, urbanistica ed espropri": 1,
+    "Famiglia, persone e minori": 1,
+    "Immigrazione, asilo e cittadinanza": 1,
+    "Lavoro e previdenza": 1,
+    "Locazioni e condominio": 1,
+    "Penale": 1,
+    "Privacy e dati personali": 1,
+    "Proprietà industriale e diritto d'autore": 1,
+    "Pubblico impiego e concorsi": 1,
+    "Responsabilità sanitaria, assicurativa e sinistri": 1,
+    "Scolastico": 1,
+    "Societario, impresa, 231 e mercati": 1,
+    "Telematico, PEC e registri pubblici": 1,
+    "Tributario": 1,
+    "UE, CEDU e costituzionale": 1
+  },
+  "authorities": {
+    "AGCM": 1,
+    "AGCOM": 1,
+    "AgID": 1,
+    "Agenzia delle Entrate": 1,
+    "Agenzia per la rappresentanza negoziale delle pubbliche amministrazioni": 1,
+    "Banca d'Italia": 1,
+    "CONSOB": 1,
+    "Consiglio Nazionale Forense / Gazzetta Ufficiale": 1,
+    "Corte costituzionale": 1,
+    "Corte dei conti": 1,
+    "Corte di giustizia dell'Unione europea": 1,
+    "Corte europea dei diritti dell'uomo": 1,
+    "Dipartimento Funzione Pubblica": 1,
+    "EUR-Lex": 1,
+    "Garante per la protezione dei dati personali": 1,
+    "Giustizia Amministrativa": 3,
+    "INI-PEC/InfoCamere": 1,
+    "INPS": 1,
+    "IndicePA": 1,
+    "Ministero dell'Ambiente e della Sicurezza Energetica": 1,
+    "Ministero dell'Interno": 1,
+    "Ministero dell'Interno - Dipartimento Libertà civili e immigrazione": 1,
+    "Ministero dell'Istruzione e del Merito": 1,
+    "Ministero della Giustizia - DGSIA": 1,
+    "Ministero della Giustizia - PST": 1,
+    "Ministero delle Imprese e del Made in Italy - UIBM": 1,
+    "Normattiva": 60,
+    "Registro Imprese / InfoCamere": 1,
+    "SIAE": 1
+  },
+  "cards": [
+    {
+      "id": "civile_obbligazioni_contratti_responsabilita",
+      "area": "Civile",
+      "title": "Civile ordinario, obbligazioni, contratti e responsabilità",
+      "official_sources": 3,
+      "nominal_references": 5,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "civile_notifiche_monitorio_esecuzioni",
+      "area": "Civile esecutivo",
+      "title": "Notifiche, decreto ingiuntivo, opposizioni ed esecuzioni",
+      "official_sources": 3,
+      "nominal_references": 7,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "lavoro_previdenza_inps_inail",
+      "area": "Lavoro e previdenza",
+      "title": "Contenzioso lavoro, previdenza, assistenza, INPS e INAIL",
+      "official_sources": 4,
+      "nominal_references": 6,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "famiglia_persone_minori",
+      "area": "Famiglia, persone e minori",
+      "title": "Separazione, divorzio, affidamento, mantenimento, minori e protezione persone",
+      "official_sources": 4,
+      "nominal_references": 8,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "penale_difesa_rito_pdp",
+      "area": "Penale",
+      "title": "Difesa penale, indagini, udienze, riti alternativi, impugnazioni e PDP",
+      "official_sources": 4,
+      "nominal_references": 8,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "amministrativo_tar_cds_appalti",
+      "area": "Amministrativo",
+      "title": "TAR, Consiglio di Stato, appalti, accesso atti, cautelari e PAT",
+      "official_sources": 4,
+      "nominal_references": 10,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "tributario_ptt_agenzia_entrate",
+      "area": "Tributario",
+      "title": "Contenzioso tributario, Agenzia Entrate, PTT/SIGIT e riscossione",
+      "official_sources": 3,
+      "nominal_references": 4,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "bancario_finanziario_usura_abf",
+      "area": "Bancario e finanziario",
+      "title": "Banche, finanziamenti, usura, anatocismo, ABF e vigilanza",
+      "official_sources": 3,
+      "nominal_references": 6,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "consumatori_agcm_agcom_conciliaweb",
+      "area": "Consumatori e comunicazioni",
+      "title": "Consumo, AGCM, AGCOM, Corecom e ConciliaWeb",
+      "official_sources": 3,
+      "nominal_references": 3,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "privacy_garante_gdpr",
+      "area": "Privacy e dati personali",
+      "title": "Privacy, GDPR, Garante, data breach, accesso e prove digitali",
+      "official_sources": 3,
+      "nominal_references": 4,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "crisi_impresa_concorsuale",
+      "area": "Crisi d'impresa",
+      "title": "Crisi d'impresa, insolvenza, procedure concorsuali e composizione negoziata",
+      "official_sources": 3,
+      "nominal_references": 3,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "locazioni_condominio_sfratto",
+      "area": "Locazioni e condominio",
+      "title": "Locazioni, sfratti, condominio e impugnazioni delibere",
+      "official_sources": 3,
+      "nominal_references": 7,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "responsabilita_sanitaria_assicurativa_sinistri",
+      "area": "Responsabilità sanitaria, assicurativa e sinistri",
+      "title": "Responsabilità sanitaria, assicurazioni, RCA e risarcimento danni",
+      "official_sources": 3,
+      "nominal_references": 4,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "immigrazione_cittadinanza_protezione",
+      "area": "Immigrazione, asilo e cittadinanza",
+      "title": "Permessi, espulsioni, protezione internazionale, cittadinanza, ricongiungimento e decreto flussi",
+      "official_sources": 6,
+      "nominal_references": 7,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 5,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "deontologia_mandato_compensi",
+      "area": "Deontologia e professione forense",
+      "title": "Mandato, compensi, equo compenso, preventivi e codice deontologico",
+      "official_sources": 3,
+      "nominal_references": 5,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "telematico_pec_pst_registri",
+      "area": "Telematico, PEC e registri pubblici",
+      "title": "PST/PCT, PEC, PDP, PAT, PTT, INI-PEC, IPA e INAD",
+      "official_sources": 5,
+      "nominal_references": 11,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "ue_cedu_costituzionale",
+      "area": "UE, CEDU e costituzionale",
+      "title": "Diritto UE, CEDU, Corte costituzionale, CGUE e HUDOC",
+      "official_sources": 4,
+      "nominal_references": 4,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "codice_strada_sanzioni_sinistri",
+      "area": "Codice della strada",
+      "title": "Sanzioni stradali, ricorsi, patente, RCA e sinistri",
+      "official_sources": 3,
+      "nominal_references": 3,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "scolastico_docenti_alunni_concorsi",
+      "area": "Scolastico",
+      "title": "Scuola, docenti, sostegno, graduatorie, alunni e provvedimenti MIM/USR",
+      "official_sources": 5,
+      "nominal_references": 8,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 4,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "pubblico_impiego_concorsi_mobilita",
+      "area": "Pubblico impiego e concorsi",
+      "title": "Concorsi pubblici, inPA, pubblico impiego, mobilità, progressioni e disciplinare",
+      "official_sources": 4,
+      "nominal_references": 7,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 4,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "edilizia_urbanistica_espropri",
+      "area": "Edilizia, urbanistica ed espropri",
+      "title": "Titoli edilizi, abusi, sanatorie, vincoli urbanistici, paesaggio ed espropriazione",
+      "official_sources": 4,
+      "nominal_references": 5,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 4,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "ambiente_autorizzazioni_rifiuti",
+      "area": "Ambiente",
+      "title": "Ambiente, rifiuti, bonifiche, VIA, VAS, AIA, acque, emissioni e danno ambientale",
+      "official_sources": 4,
+      "nominal_references": 4,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "contabile_corte_conti_erariale",
+      "area": "Contabile e Corte dei conti",
+      "title": "Responsabilità erariale, giudizi contabili, pensioni pubbliche e conti giudiziali",
+      "official_sources": 3,
+      "nominal_references": 2,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 3,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "societario_impresa_231_mercati",
+      "area": "Societario, impresa, 231 e mercati",
+      "title": "Società, Registro Imprese, responsabilità 231, governance, bilanci, mercati e vigilanza",
+      "official_sources": 4,
+      "nominal_references": 5,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 4,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "proprieta_industriale_autore",
+      "area": "Proprietà industriale e diritto d'autore",
+      "title": "Marchi, brevetti, disegni, modelli, contraffazione, concorrenza sleale e diritto d'autore",
+      "official_sources": 4,
+      "nominal_references": 4,
+      "articles_and_codes": 2,
+      "decrees_and_rules": 2,
+      "case_law_and_hearings": 2,
+      "acts_to_prepare": 2,
+      "deadlines_tasks": 2,
+      "lex_questions": 3,
+      "research_queries": 4,
+      "covered": true,
+      "issues": []
+    }
+  ],
+  "references": [
+    {
+      "id": "rd_1942_262_codice_civile",
+      "label": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "civile_obbligazioni_contratti_responsabilita",
+        "famiglia_persone_minori",
+        "bancario_finanziario_usura_abf",
+        "locazioni_condominio_sfratto",
+        "responsabilita_sanitaria_assicurativa_sinistri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1942/03/16/262/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "rd_1940_1443_codice_procedura_civile",
+      "label": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "civile_obbligazioni_contratti_responsabilita",
+        "civile_notifiche_monitorio_esecuzioni",
+        "lavoro_previdenza_inps_inail",
+        "famiglia_persone_minori",
+        "locazioni_condominio_sfratto",
+        "codice_strada_sanzioni_sinistri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1940/10/28/1443/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_149_2022_riforma_civile",
+      "label": "D.Lgs. 10 ottobre 2022, n. 149 - Riforma processo civile",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "civile_obbligazioni_contratti_responsabilita",
+        "famiglia_persone_minori",
+        "locazioni_condominio_sfratto"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17&tipoDettaglio=vigente",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_164_2024_correttivo_civile",
+      "label": "D.Lgs. 31 ottobre 2024, n. 164 - Correttivo processo civile",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "civile_obbligazioni_contratti_responsabilita",
+        "famiglia_persone_minori",
+        "civile_notifiche_monitorio_esecuzioni"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=24G00183&atto.dataPubblicazioneGazzetta=2024-11-11&tipoDettaglio=vigente",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_53_1994_notifiche_avvocati",
+      "label": "L. 21 gennaio 1994, n. 53 - Notificazioni in proprio",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "civile_notifiche_monitorio_esecuzioni",
+        "telematico_pec_pst_registri",
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=094G0076&atto.dataPubblicazioneGazzetta=1994-01-26&tipoDettaglio=vigente",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_115_2002_spese_giustizia",
+      "label": "D.P.R. 30 maggio 2002, n. 115 - Spese di giustizia",
+      "authority": "Normattiva",
+      "kind": "testo unico",
+      "practice_ids": [
+        "civile_notifiche_monitorio_esecuzioni",
+        "amministrativo_tar_cds_appalti",
+        "tributario_ptt_agenzia_entrate",
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115!vig=",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_28_2010_mediazione",
+      "label": "D.Lgs. 4 marzo 2010, n. 28 - Mediazione civile e commerciale",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "locazioni_condominio_sfratto",
+        "civile_obbligazioni_contratti_responsabilita"
+      ],
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28!vig=",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dm_150_2023_mediazione",
+      "label": "D.M. 24 ottobre 2023, n. 150 - Organismi e indennità mediazione",
+      "authority": "Normattiva",
+      "kind": "decreto ministeriale",
+      "practice_ids": [
+        "locazioni_condominio_sfratto",
+        "deontologia_mandato_compensi"
+      ],
+      "url": "https://www.normattiva.it/eli/id/2023/10/31/23G00163/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dm_44_2011_pct",
+      "label": "D.M. 21 febbraio 2011, n. 44 - Processo telematico",
+      "authority": "Normattiva",
+      "kind": "decreto ministeriale",
+      "practice_ids": [
+        "telematico_pec_pst_registri",
+        "civile_notifiche_monitorio_esecuzioni"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO/2011/02/21/44/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dm_217_2023_telematico",
+      "label": "D.M. 29 dicembre 2023, n. 217 - Regolamento processo telematico",
+      "authority": "Normattiva",
+      "kind": "decreto ministeriale",
+      "practice_ids": [
+        "telematico_pec_pst_registri",
+        "civile_notifiche_monitorio_esecuzioni",
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO/2023/12/29/217/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dgsia_specifiche_2024",
+      "label": "Specifiche tecniche DGSIA/PST 2024",
+      "authority": "Ministero della Giustizia - DGSIA",
+      "kind": "regola tecnica",
+      "practice_ids": [
+        "telematico_pec_pst_registri",
+        "civile_notifiche_monitorio_esecuzioni",
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://pst.giustizia.it/PST/it/documentation.page",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "rd_1930_1398_codice_penale",
+      "label": "R.D. 19 ottobre 1930, n. 1398 - Codice penale",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1930/10/19/1398/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_1988_447_codice_procedura_penale",
+      "label": "D.P.R. 22 settembre 1988, n. 447 - Codice di procedura penale",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/1988/09/22/447/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_150_2022_cartabia_penale",
+      "label": "D.Lgs. 10 ottobre 2022, n. 150 - Riforma Cartabia penale",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.normattiva.it/eli/id/2022/10/17/22G00159/ORIGINAL",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_31_2024_correttivo_penale",
+      "label": "D.Lgs. 19 marzo 2024, n. 31 - Correttivo Cartabia penale",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2024/03/19/31/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "pdp_penale_pst",
+      "label": "PDP Penale - Portale deposito atti penali",
+      "authority": "Ministero della Giustizia - PST",
+      "kind": "portale ufficiale",
+      "practice_ids": [
+        "penale_difesa_rito_pdp",
+        "telematico_pec_pst_registri"
+      ],
+      "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC2786",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_2010_104_cpa",
+      "label": "D.Lgs. 2 luglio 2010, n. 104 - Codice processo amministrativo",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2010/07/02/104/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpcm_40_2016_pat",
+      "label": "D.P.C.M. 16 febbraio 2016, n. 40 - PAT/SIGA",
+      "authority": "Normattiva",
+      "kind": "regola tecnica",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti",
+        "telematico_pec_pst_registri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DEL_CONSIGLIO_DEI_MINISTRI/2016/02/16/40/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_36_2023_contratti_pubblici",
+      "label": "D.Lgs. 31 marzo 2023, n. 36 - Codice contratti pubblici",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2023/03/31/36/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "openga_ricorsi_pervenuti",
+      "label": "OpenGA - Ricorsi pervenuti",
+      "authority": "Giustizia Amministrativa",
+      "kind": "ricorsi",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://openga.giustizia-amministrativa.it/dataset/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "openga_calendario_udienze",
+      "label": "OpenGA - Calendario udienze",
+      "authority": "Giustizia Amministrativa",
+      "kind": "udienze",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://openga.giustizia-amministrativa.it/dataset/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "openga_decreti_ordinanze_sentenze",
+      "label": "OpenGA - Decreti, ordinanze e sentenze",
+      "authority": "Giustizia Amministrativa",
+      "kind": "provvedimenti e sentenze",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://openga.giustizia-amministrativa.it/dataset/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_546_1992_processo_tributario",
+      "label": "D.Lgs. 31 dicembre 1992, n. 546 - Processo tributario",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "tributario_ptt_agenzia_entrate"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1992/12/31/546/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dm_163_2013_ptt",
+      "label": "D.M. 23 dicembre 2013, n. 163 - Processo tributario telematico",
+      "authority": "Normattiva",
+      "kind": "decreto ministeriale",
+      "practice_ids": [
+        "tributario_ptt_agenzia_entrate",
+        "telematico_pec_pst_registri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO/2013/12/23/163/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "agenzia_entrate_provvedimenti_prassi",
+      "label": "Agenzia Entrate - Provvedimenti, circolari, risoluzioni e interpelli",
+      "authority": "Agenzia delle Entrate",
+      "kind": "autorità e prassi",
+      "practice_ids": [
+        "tributario_ptt_agenzia_entrate"
+      ],
+      "url": "https://www.agenziaentrate.gov.it/portale/web/guest/provvedimenti",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_300_1970_statuto_lavoratori",
+      "label": "L. 20 maggio 1970, n. 300 - Statuto dei lavoratori",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "lavoro_previdenza_inps_inail"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1970/05/20/300/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_604_1966_licenziamenti",
+      "label": "L. 15 luglio 1966, n. 604 - Licenziamenti individuali",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "lavoro_previdenza_inps_inail"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1966/07/15/604/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_23_2015_tutele_crescenti",
+      "label": "D.Lgs. 4 marzo 2015, n. 23 - Contratto a tutele crescenti",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "lavoro_previdenza_inps_inail"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2015/03/04/23/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "inps_circolari_sentenze",
+      "label": "INPS - Circolari, messaggi e sentenze",
+      "authority": "INPS",
+      "kind": "ente e giurisprudenza",
+      "practice_ids": [
+        "lavoro_previdenza_inps_inail"
+      ],
+      "url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa.html",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_898_1970_divorzio",
+      "label": "L. 1 dicembre 1970, n. 898 - Divorzio",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "famiglia_persone_minori"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1970/12/01/898/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_184_1983_adozione_affidamento",
+      "label": "L. 4 maggio 1983, n. 184 - Adozione e affidamento minori",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "famiglia_persone_minori"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1983/05/04/184/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_230_2021_assegno_unico",
+      "label": "D.Lgs. 21 dicembre 2021, n. 230 - Assegno unico universale",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "famiglia_persone_minori"
+      ],
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:DECRETO.LEGISLATIVO:2021-12-21;230!vig=",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_14_2019_codice_crisi",
+      "label": "D.Lgs. 12 gennaio 2019, n. 14 - Codice crisi d'impresa",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "crisi_impresa_concorsuale"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2019/01/12/14/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_431_1998_locazioni_abitativo",
+      "label": "L. 9 dicembre 1998, n. 431 - Locazioni abitative",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "locazioni_condominio_sfratto"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1998/12/09/431/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_392_1978_locazioni",
+      "label": "L. 27 luglio 1978, n. 392 - Disciplina locazioni",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "locazioni_condominio_sfratto"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1978/07/27/392/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_24_2017_gelli_bianco",
+      "label": "L. 8 marzo 2017, n. 24 - Responsabilità sanitaria",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "responsabilita_sanitaria_assicurativa_sinistri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/2017/03/08/24/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_209_2005_assicurazioni",
+      "label": "D.Lgs. 7 settembre 2005, n. 209 - Codice assicurazioni private",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "responsabilita_sanitaria_assicurativa_sinistri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2005/09/07/209/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_385_1993_tub",
+      "label": "D.Lgs. 1 settembre 1993, n. 385 - Testo unico bancario",
+      "authority": "Normattiva",
+      "kind": "testo unico",
+      "practice_ids": [
+        "bancario_finanziario_usura_abf"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1993/09/01/385/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_108_1996_usura",
+      "label": "L. 7 marzo 1996, n. 108 - Usura",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "bancario_finanziario_usura_abf"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1996/03/07/108/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "banca_italia_tegm_abf",
+      "label": "Banca d'Italia - TEGM, normativa vigilanza e ABF",
+      "authority": "Banca d'Italia",
+      "kind": "autorità e decisioni",
+      "practice_ids": [
+        "bancario_finanziario_usura_abf"
+      ],
+      "url": "https://www.bancaditalia.it/compiti/vigilanza/normativa/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_206_2005_codice_consumo",
+      "label": "D.Lgs. 6 settembre 2005, n. 206 - Codice del consumo",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "consumatori_agcm_agcom_conciliaweb"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2005/09/06/206/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "agcm_bollettino_provvedimenti",
+      "label": "AGCM - Bollettino settimanale e provvedimenti",
+      "authority": "AGCM",
+      "kind": "autorità e provvedimenti",
+      "practice_ids": [
+        "consumatori_agcm_agcom_conciliaweb"
+      ],
+      "url": "https://www.agcm.it/pubblicazioni/bollettino-settimanale",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "agcom_conciliaweb_provvedimenti",
+      "label": "AGCOM - Provvedimenti e ConciliaWeb",
+      "authority": "AGCOM",
+      "kind": "autorità, udienze e provvedimenti",
+      "practice_ids": [
+        "consumatori_agcm_agcom_conciliaweb"
+      ],
+      "url": "https://www.agcom.it/provvedimenti",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "gdpr_2016_679_eurlex",
+      "label": "Regolamento UE 2016/679 - GDPR",
+      "authority": "EUR-Lex",
+      "kind": "normativa UE",
+      "practice_ids": [
+        "privacy_garante_gdpr",
+        "ue_cedu_costituzionale"
+      ],
+      "url": "https://eur-lex.europa.eu/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_196_2003_codice_privacy",
+      "label": "D.Lgs. 30 giugno 2003, n. 196 - Codice privacy",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "privacy_garante_gdpr"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2003/06/30/196/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "garante_privacy_provvedimenti",
+      "label": "Garante Privacy - Provvedimenti, linee guida e newsletter",
+      "authority": "Garante per la protezione dei dati personali",
+      "kind": "autorità e provvedimenti",
+      "practice_ids": [
+        "privacy_garante_gdpr"
+      ],
+      "url": "https://www.garanteprivacy.it/normativa-e-provvedimenti",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "hudoc_cedu_giurisprudenza",
+      "label": "HUDOC - Corte europea dei diritti dell'uomo",
+      "authority": "Corte europea dei diritti dell'uomo",
+      "kind": "sentenze CEDU",
+      "practice_ids": [
+        "immigrazione_cittadinanza_protezione",
+        "ue_cedu_costituzionale"
+      ],
+      "url": "https://hudoc.echr.coe.int/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "corte_costituzionale_pronunce",
+      "label": "Corte costituzionale - Pronunce",
+      "authority": "Corte costituzionale",
+      "kind": "sentenze e ordinanze",
+      "practice_ids": [
+        "famiglia_persone_minori",
+        "ue_cedu_costituzionale"
+      ],
+      "url": "https://www.cortecostituzionale.it/actionPronuncia.do",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "curia_cgue_pronunce",
+      "label": "Curia - Corte di giustizia UE",
+      "authority": "Corte di giustizia dell'Unione europea",
+      "kind": "sentenze UE",
+      "practice_ids": [
+        "ue_cedu_costituzionale",
+        "privacy_garante_gdpr"
+      ],
+      "url": "https://curia.europa.eu/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_247_2012_ordinamento_forense",
+      "label": "L. 31 dicembre 2012, n. 247 - Ordinamento forense",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "deontologia_mandato_compensi"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/2012/12/31/247/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dm_55_2014_parametri_forensi",
+      "label": "D.M. 10 marzo 2014, n. 55 - Parametri forensi",
+      "authority": "Normattiva",
+      "kind": "decreto ministeriale",
+      "practice_ids": [
+        "deontologia_mandato_compensi"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO/2014/03/10/55/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_49_2023_equo_compenso",
+      "label": "L. 21 aprile 2023, n. 49 - Equo compenso",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "deontologia_mandato_compensi"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/2023/04/21/49/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "cnf_codice_deontologico_2026",
+      "label": "Codice deontologico forense - delibere CNF pubblicate in Gazzetta Ufficiale",
+      "authority": "Consiglio Nazionale Forense / Gazzetta Ufficiale",
+      "kind": "deontologia",
+      "practice_ids": [
+        "deontologia_mandato_compensi"
+      ],
+      "url": "https://www.gazzettaufficiale.it/eli/gu/2026/02/05/29/sg",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_285_1992_codice_strada",
+      "label": "D.Lgs. 30 aprile 1992, n. 285 - Codice della strada",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "codice_strada_sanzioni_sinistri",
+        "responsabilita_sanitaria_assicurativa_sinistri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1992/04/30/285/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "inipec_registro_pec",
+      "label": "INI-PEC - Registro imprese e professionisti",
+      "authority": "INI-PEC/InfoCamere",
+      "kind": "registro pubblico",
+      "practice_ids": [
+        "telematico_pec_pst_registri",
+        "crisi_impresa_concorsuale"
+      ],
+      "url": "https://www.inipec.gov.it/cerca-pec",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "ipa_indice_pa",
+      "label": "IndicePA - Indice dei domicili digitali PA",
+      "authority": "IndicePA",
+      "kind": "registro pubblico",
+      "practice_ids": [
+        "telematico_pec_pst_registri",
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.indicepa.gov.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "inad_domicili_digitali",
+      "label": "INAD - Indice nazionale domicili digitali",
+      "authority": "AgID",
+      "kind": "registro pubblico",
+      "practice_ids": [
+        "telematico_pec_pst_registri",
+        "codice_strada_sanzioni_sinistri"
+      ],
+      "url": "https://domiciliodigitale.gov.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_297_1994_testo_unico_scuola",
+      "label": "D.Lgs. 16 aprile 1994, n. 297 - Testo unico scuola",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=094G0291&atto.dataPubblicazioneGazzetta=1994-05-19&tipoDettaglio=vigente",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_275_1999_autonomia_scolastica",
+      "label": "D.P.R. 8 marzo 1999, n. 275 - Autonomia scolastica",
+      "authority": "Normattiva",
+      "kind": "regolamento",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=099G0339&atto.dataPubblicazioneGazzetta=1999-08-10&tipoDettaglio=multivigenza",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_107_2015_buona_scuola",
+      "label": "L. 13 luglio 2015, n. 107 - Sistema nazionale istruzione",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.normattiva.it/eli/id/2015/07/15/15G00122/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_66_2017_inclusione_scolastica",
+      "label": "D.Lgs. 13 aprile 2017, n. 66 - Inclusione scolastica",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=17G00074&atto.dataPubblicazioneGazzetta=2017-05-16&tipoDettaglio=singolavigenza",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "mim_atti_normativa_graduatorie",
+      "label": "MIM - Atti, normativa, reclutamento docenti e graduatorie",
+      "authority": "Ministero dell'Istruzione e del Merito",
+      "kind": "autorità competente",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.mim.gov.it/web/guest/normativa",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_241_1990_procedimento_accesso",
+      "label": "L. 7 agosto 1990, n. 241 - Procedimento e accesso amministrativo",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti",
+        "scolastico_docenti_alunni_concorsi",
+        "pubblico_impiego_concorsi_mobilita",
+        "edilizia_urbanistica_espropri",
+        "ambiente_autorizzazioni_rifiuti"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=090G0294&atto.dataPubblicazioneGazzetta=1990-08-18&tipoDettaglio=vigente",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_165_2001_pubblico_impiego",
+      "label": "D.Lgs. 30 marzo 2001, n. 165 - Pubblico impiego",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "pubblico_impiego_concorsi_mobilita",
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2001/03/30/165/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_487_1994_concorsi_pubblici",
+      "label": "D.P.R. 9 maggio 1994, n. 487 - Accesso agli impieghi pubblici",
+      "authority": "Normattiva",
+      "kind": "regolamento",
+      "practice_ids": [
+        "pubblico_impiego_concorsi_mobilita"
+      ],
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.presidente.repubblica:1994-05-09;487!vig=",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_82_2023_riforma_concorsi",
+      "label": "D.P.R. 16 giugno 2023, n. 82 - Riforma concorsi pubblici",
+      "authority": "Normattiva",
+      "kind": "regolamento",
+      "practice_ids": [
+        "pubblico_impiego_concorsi_mobilita"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=23G00093&atto.dataPubblicazioneGazzetta=2023-06-29&tipoDettaglio=vigente",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_150_2009_performance_pubblico_impiego",
+      "label": "D.Lgs. 27 ottobre 2009, n. 150 - Performance e merito PA",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "pubblico_impiego_concorsi_mobilita"
+      ],
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2009;150=",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "inpa_portale_reclutamento",
+      "label": "Portale inPA - Reclutamento pubblico",
+      "authority": "Dipartimento Funzione Pubblica",
+      "kind": "portale ufficiale",
+      "practice_ids": [
+        "pubblico_impiego_concorsi_mobilita",
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.inpa.gov.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "aran_ccnl_pubblico_impiego",
+      "label": "ARAN - CCNL pubblico impiego",
+      "authority": "Agenzia per la rappresentanza negoziale delle pubbliche amministrazioni",
+      "kind": "contrattazione collettiva pubblica",
+      "practice_ids": [
+        "pubblico_impiego_concorsi_mobilita",
+        "lavoro_previdenza_inps_inail"
+      ],
+      "url": "https://www.aranagenzia.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_380_2001_testo_unico_edilizia",
+      "label": "D.P.R. 6 giugno 2001, n. 380 - Testo unico edilizia",
+      "authority": "Normattiva",
+      "kind": "testo unico",
+      "practice_ids": [
+        "edilizia_urbanistica_espropri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/2001/06/06/380/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_327_2001_espropriazione",
+      "label": "D.P.R. 8 giugno 2001, n. 327 - Espropriazione per pubblica utilità",
+      "authority": "Normattiva",
+      "kind": "testo unico",
+      "practice_ids": [
+        "edilizia_urbanistica_espropri"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=001G0372&atto.dataPubblicazioneGazzetta=2001-08-16&tipoDettaglio=multivigenza",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_42_2004_beni_paesaggio",
+      "label": "D.Lgs. 22 gennaio 2004, n. 42 - Beni culturali e paesaggio",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "edilizia_urbanistica_espropri",
+        "ambiente_autorizzazioni_rifiuti"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2004/01/22/42/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_152_2006_codice_ambiente",
+      "label": "D.Lgs. 3 aprile 2006, n. 152 - Codice dell'ambiente",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "ambiente_autorizzazioni_rifiuti",
+        "edilizia_urbanistica_espropri"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2006/04/03/152/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "mase_valutazioni_autorizzazioni_ambientali",
+      "label": "MASE - Valutazioni e autorizzazioni ambientali",
+      "authority": "Ministero dell'Ambiente e della Sicurezza Energetica",
+      "kind": "autorità competente",
+      "practice_ids": [
+        "ambiente_autorizzazioni_rifiuti"
+      ],
+      "url": "https://www.mase.gov.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_174_2016_giustizia_contabile",
+      "label": "D.Lgs. 26 agosto 2016, n. 174 - Codice giustizia contabile",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "contabile_corte_conti_erariale"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=16G00187&atto.dataPubblicazioneGazzetta=2016-09-07&tipoDettaglio=multivigenza",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "corte_conti_giurisprudenza_udienze",
+      "label": "Corte dei conti - Giurisprudenza, sezioni giurisdizionali e calendari udienze",
+      "authority": "Corte dei conti",
+      "kind": "giurisprudenza e udienze",
+      "practice_ids": [
+        "contabile_corte_conti_erariale"
+      ],
+      "url": "https://www.corteconti.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_231_2001_responsabilita_enti",
+      "label": "D.Lgs. 8 giugno 2001, n. 231 - Responsabilità enti",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "societario_impresa_231_mercati"
+      ],
+      "url": "https://www.normattiva.it/eli/id/2001/06/19/001G0293/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_58_1998_tuf",
+      "label": "D.Lgs. 24 febbraio 1998, n. 58 - Testo unico finanza",
+      "authority": "Normattiva",
+      "kind": "testo unico",
+      "practice_ids": [
+        "societario_impresa_231_mercati",
+        "bancario_finanziario_usura_abf"
+      ],
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998;058=",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "registro_imprese_visure_bilanci",
+      "label": "Registro Imprese - visure, bilanci e pratiche camerali",
+      "authority": "Registro Imprese / InfoCamere",
+      "kind": "registro pubblico",
+      "practice_ids": [
+        "societario_impresa_231_mercati",
+        "crisi_impresa_concorsuale",
+        "telematico_pec_pst_registri"
+      ],
+      "url": "https://www.registroimprese.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "consob_provvedimenti_regolamenti",
+      "label": "CONSOB - Regolamenti, provvedimenti e vigilanza mercati",
+      "authority": "CONSOB",
+      "kind": "autorità indipendente",
+      "practice_ids": [
+        "societario_impresa_231_mercati",
+        "bancario_finanziario_usura_abf"
+      ],
+      "url": "https://www.consob.it/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_30_2005_codice_proprieta_industriale",
+      "label": "D.Lgs. 10 febbraio 2005, n. 30 - Codice proprietà industriale",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "proprieta_industriale_autore"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=005G0055&atto.dataPubblicazioneGazzetta=2005-03-04&tipoDettaglio=originario",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_633_1941_diritto_autore",
+      "label": "L. 22 aprile 1941, n. 633 - Diritto d'autore",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "proprieta_industriale_autore"
+      ],
+      "url": "https://www.normattiva.it/eli/id/1941/07/16/041U0633/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "mimit_uibm_brevetti_marchi",
+      "label": "MIMIT/UIBM - Brevetti, marchi, disegni e modelli",
+      "authority": "Ministero delle Imprese e del Made in Italy - UIBM",
+      "kind": "autorità competente",
+      "practice_ids": [
+        "proprieta_industriale_autore",
+        "societario_impresa_231_mercati"
+      ],
+      "url": "https://www.mimit.gov.it/it/impresa/competitivita-e-nuove-imprese/proprieta-industriale/marchi-e-disegni",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "siae_diritto_autore_servizi",
+      "label": "SIAE - servizi diritto d'autore e gestione collettiva",
+      "authority": "SIAE",
+      "kind": "ente pubblico economico",
+      "practice_ids": [
+        "proprieta_industriale_autore"
+      ],
+      "url": "https://www.siae.it/it/autori-ed-editori/diritto-autore/",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_286_1998_testo_unico_immigrazione",
+      "label": "D.Lgs. 25 luglio 1998, n. 286 - Testo unico immigrazione",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "immigrazione_cittadinanza_protezione"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=098G0348&atto.dataPubblicazioneGazzetta=1998-08-18&currentPage=1",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dpr_394_1999_regolamento_immigrazione",
+      "label": "D.P.R. 31 agosto 1999, n. 394 - Regolamento immigrazione",
+      "authority": "Normattiva",
+      "kind": "regolamento",
+      "practice_ids": [
+        "immigrazione_cittadinanza_protezione"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/1999/08/31/394/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "dlgs_25_2008_protezione_internazionale",
+      "label": "D.Lgs. 28 gennaio 2008, n. 25 - Protezione internazionale",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "immigrazione_cittadinanza_protezione"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2008/01/28/25/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "legge_91_1992_cittadinanza",
+      "label": "L. 5 febbraio 1992, n. 91 - Cittadinanza",
+      "authority": "Normattiva",
+      "kind": "legislazione",
+      "practice_ids": [
+        "immigrazione_cittadinanza_protezione"
+      ],
+      "url": "https://www.normattiva.it/eli/stato/LEGGE/1992/02/05/91/CONSOLIDATED",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "ministero_interno_immigrazione_asilo_cittadinanza",
+      "label": "Ministero Interno - Immigrazione, asilo e cittadinanza",
+      "authority": "Ministero dell'Interno",
+      "kind": "autorità competente",
+      "practice_ids": [
+        "immigrazione_cittadinanza_protezione"
+      ],
+      "url": "https://www.interno.gov.it/it/temi/immigrazione-e-asilo",
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "commissione_nazionale_diritto_asilo",
+      "label": "Commissione nazionale per il diritto di asilo",
+      "authority": "Ministero dell'Interno - Dipartimento Libertà civili e immigrazione",
+      "kind": "autorità competente",
+      "practice_ids": [
+        "immigrazione_cittadinanza_protezione"
+      ],
+      "url": "https://libertaciviliimmigrazione.dlci.interno.gov.it/commissione-nazionale-il-diritto-di-asilo",
+      "covered": true,
+      "issues": []
+    }
+  ],
+  "issues": []
+}

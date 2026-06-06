@@ -128,6 +128,10 @@ Aggiornamento 3 giugno 2026: i pacchetti `files (10).zip` e `files (11).zip` son
 
 Audit voce per voce aggiornato al 3 giugno 2026: 33 moduli utente controllati, 153 schede, 3.424 righe di audit, 2.619 voci presenti nei file ricevuti, 0 perdite tra materiale utente, KB completo, servizio/API, UI Guida Pratica e Lex, 0 valori scalar sostituiti nel servizio. Report correnti: `artifacts/guida-pratica/guida-pratica-user-material-field-audit.json` e `artifacts/guida-pratica/guida-pratica-user-material-field-audit.csv`.
 
+Aggiornamento 6 giugno 2026: il pacchetto `files (22).zip` e' stato importato come set33 in otto moduli `kb_98_set33_p1.json` - `kb_98_set33_p8.json`. Ha prodotto 40 schede ricevute e integrate, 42 termini processuali grezzi, fonti web operative per ogni scheda e nessuna contaminazione del codice ufficiale di deposito: tutte le voci sono guide interne non depositabili quando il codice ricevuto non coincide con il catalogo PST/XSD locale.
+
+Audit set33 aggiornato al 6 giugno 2026: 406 record controllati, 9.080 righe di audit, 6.377 voci presenti nei materiali utente, 0 perdite tra materiale utente, KB completo, servizio/API, UI Guida Pratica e Lex, 0 valori scalar sostituiti nel servizio. Lo scadenziario e' stato rigenerato con 3.567 termini Guida Pratica e 1.119 template calcolabili. Report: `artifacts/guida-pratica/import-user-kb-2026-06-07-set33.json`, `artifacts/guida-pratica/termini-processuali-import-2026-06-07-set33.json`, `artifacts/guida-pratica/guida-pratica-user-material-field-audit-2026-06-07-set33.json` e `artifacts/guida-pratica/guida-pratica-audit-2026-06-07-set33.json`.
+
 Schede ricevute con codice numerico non coerente con la descrizione ministeriale locale e quindi convertite in guide interne non depositabili:
 
 - `GUIDA_ONORARI_PROFESSIONALI_L794`, ricevuta come `141001`;

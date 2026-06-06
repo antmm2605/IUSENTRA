@@ -1,24 +1,24 @@
 {
   "summary": {
     "audit_date": "2026-06-06",
-    "total_sources": 402,
-    "official_sources": 357,
-    "operational_sources": 343,
-    "activation_pending_sources": 14,
+    "total_sources": 403,
+    "official_sources": 358,
+    "operational_sources": 358,
+    "activation_pending_sources": 0,
     "context_sources": 45,
     "gaps": 0,
     "official_gaps": 0,
-    "sources_with_legal_materials": 402,
-    "sources_with_articles_and_codes": 402,
-    "sources_with_decrees_and_rules": 402,
-    "sources_with_case_law_and_hearings": 402,
-    "sources_with_research_steps": 402,
+    "sources_with_legal_materials": 403,
+    "sources_with_articles_and_codes": 403,
+    "sources_with_decrees_and_rules": 403,
+    "sources_with_case_law_and_hearings": 403,
+    "sources_with_research_steps": 403,
     "registries": {
       "guida_pratica_sources": 107,
       "legal_source_engine": 8,
       "legal_update_sources": 33,
       "lex_official_config": 22,
-      "lex_operational_sources": 44,
+      "lex_operational_sources": 45,
       "normative_db_sources": 57,
       "research_source_policy": 13,
       "template_atti_sources": 118
@@ -176,7 +176,7 @@
       "official": true,
       "authority": "AGCM",
       "url": "https://www.agcm.it/competenze/tutela-del-consumatore",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "authority",
       "topics": [
@@ -187,12 +187,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "consumatori, pratiche scorrette, clausole vessatorie e provvedimenti AGCM",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Come devo usare AGCM nella pratica, quali documenti produce e quali limiti devo dichiarare?",
       "practice_phase": "consumatori, comunicazioni e autorità",
       "expected_output": "reclamo, conciliazione, provvedimento temporaneo, segnalazione e documento probatorio",
@@ -358,7 +359,7 @@
       "official": true,
       "authority": "AGCOM",
       "url": "https://www.agcom.it/provvedimenti",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "authority",
       "topics": [
@@ -367,12 +368,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "comunicazioni, ConciliaWeb, Corecom, provvedimenti temporanei e tutela utenti",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Come devo usare AGCOM nella pratica, quali documenti produce e quali limiti devo dichiarare?",
       "practice_phase": "consumatori, comunicazioni e autorità",
       "expected_output": "reclamo, conciliazione, provvedimento temporaneo, segnalazione e documento probatorio",
@@ -1212,7 +1214,7 @@
       "official": true,
       "authority": "ANAC",
       "url": "https://www.anticorruzione.it/",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "authority",
       "topics": [
@@ -1223,12 +1225,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "appalti, accesso atti, rito, documenti di gara e autorità competente",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Come devo usare ANAC nella pratica, quali documenti produce e quali limiti devo dichiarare?",
       "practice_phase": "appalti, accesso atti e rito amministrativo",
       "expected_output": "bando, provvedimento, accesso, parere, termine impugnazione e fonte autorità",
@@ -2079,7 +2082,7 @@
       "official": true,
       "authority": "Banca d'Italia",
       "url": "https://www.bancaditalia.it/compiti/vigilanza/normativa/",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "authority",
       "topics": [
@@ -2087,12 +2090,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "causa bancaria, soglie, interessi, eccezioni e consulenza tecnica",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Quale soglia, tasso o disposizione Banca d'Italia devo usare per valutare il rischio bancario della pratica?",
       "practice_phase": "bancario, usura, interessi e consulenza tecnica",
       "expected_output": "soglia, trimestre, categoria, contratto, conteggio, prova contabile e quesito tecnico",
@@ -3561,7 +3565,7 @@
       "official": true,
       "authority": "Consiglio Nazionale Forense",
       "url": "https://www.consiglionazionaleforense.it/",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "fonte_forense",
       "topics": [
@@ -3570,12 +3574,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "mandato, compenso, informazione al cliente e presidio deontologico",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Quale presidio deontologico o di compenso devo controllare su Consiglio Nazionale Forense prima di procedere?",
       "practice_phase": "mandato, compenso e presidio deontologico",
       "expected_output": "informativa cliente, preventivo, controllo equo compenso, conflitto e tracciamento revisione",
@@ -4397,7 +4402,7 @@
       "title": "Codice civile",
       "official": true,
       "authority": "Codice civile",
-      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262",
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1942/03/16/262/CONSOLIDATED",
       "enabled": true,
       "connector": "html",
       "category": "normativa",
@@ -4520,7 +4525,7 @@
       "title": "Codice penale",
       "official": true,
       "authority": "Codice penale",
-      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398",
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1930/10/19/1398/CONSOLIDATED",
       "enabled": true,
       "connector": "html",
       "category": "normativa",
@@ -4584,7 +4589,7 @@
       "title": "Codice di procedura civile",
       "official": true,
       "authority": "Codice di procedura civile",
-      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443",
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1940/10/28/1443/CONSOLIDATED",
       "enabled": true,
       "connector": "html",
       "category": "normativa",
@@ -4652,7 +4657,7 @@
       "title": "Codice di procedura penale",
       "official": true,
       "authority": "Codice di procedura penale",
-      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447",
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/1988/09/22/447/CONSOLIDATED",
       "enabled": true,
       "connector": "html",
       "category": "normativa",
@@ -4730,7 +4735,7 @@
       "title": "Codice del processo amministrativo",
       "official": true,
       "authority": "Codice del processo amministrativo",
-      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104",
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2010/07/02/104/CONSOLIDATED",
       "enabled": true,
       "connector": "html",
       "category": "normativa",
@@ -4804,7 +4809,7 @@
       "title": "Codice della strada",
       "official": true,
       "authority": "Codice della strada",
-      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285",
+      "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1992/04/30/285/CONSOLIDATED",
       "enabled": true,
       "connector": "html",
       "category": "normativa",
@@ -4869,7 +4874,7 @@
       "official": true,
       "authority": "Codici fondamentali Normattiva",
       "url": "https://www.normattiva.it/",
-      "enabled": false,
+      "enabled": true,
       "connector": "normattiva_collection",
       "category": "normativa_codici",
       "topics": [
@@ -4886,12 +4891,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "notifica, deposito telematico, prova, destinatari e fascicolo",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Quale destinatario, prova o regola telematica devo verificare usando Codici fondamentali Normattiva prima di notificare o depositare?",
       "practice_phase": "notifica, deposito telematico e prova",
       "expected_output": "destinatario corretto, canale, relata, ricevute, busta/deposito, prova completa e scadenza collegata",
@@ -10092,10 +10098,10 @@
       "destinations": [
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "adapter nativo controllabile ma feature flag Legal Source Engine non attivo",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "diritti fondamentali, CEDU, equo processo e strategia sovranazionale",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Come devo usare HUDOC / Corte Europea dei Diritti dell'Uomo nella pratica, quali documenti produce e quali limiti devo dichiarare?",
       "practice_phase": "inquadramento e controllo fonte",
       "expected_output": "norma vigente, decreto attuativo, documento collegato, limite e prossima attività",
@@ -10138,7 +10144,8 @@
       "notes": [
         "supporta ricerca=True",
         "versioni=False",
-        "autenticazione richiesta=False"
+        "autenticazione richiesta=False",
+        "Adapter ufficiale censito: la rete resta governata da configurazione runtime, ma la scheda fonte è pubblicabile in Ricerca Legale e Lex/RAG."
       ]
     },
     {
@@ -10299,7 +10306,7 @@
       "official": true,
       "authority": "INAD",
       "url": "https://domiciliodigitale.gov.it/dgit/home/public/#!/home",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "registro_pubblico",
       "topics": [
@@ -10308,12 +10315,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "domicilio digitale persone fisiche, comunicazioni PA e notifiche",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Come devo usare INAD nella pratica, quali documenti produce e quali limiti devo dichiarare?",
       "practice_phase": "consumatori, comunicazioni e autorità",
       "expected_output": "reclamo, conciliazione, provvedimento temporaneo, segnalazione e documento probatorio",
@@ -10365,7 +10373,7 @@
       "official": true,
       "authority": "INAIL",
       "url": "https://www.inail.it/portale/it/atti-e-documenti.html",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "ente",
       "topics": [
@@ -10374,12 +10382,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "infortuni, malattie professionali, termini amministrativi e istruzioni operative",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Come devo usare INAIL nella pratica, quali documenti produce e quali limiti devo dichiarare?",
       "practice_phase": "lavoro, previdenza e infortuni",
       "expected_output": "domanda amministrativa, ricorso, circolare/messaggio, documenti sanitari o contributivi e termini",
@@ -10709,7 +10718,7 @@
       "official": true,
       "authority": "INPS",
       "url": "https://www.inps.it/it/it/inps-comunica/atti.html",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "ente",
       "topics": [
@@ -10718,12 +10727,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "contenzioso lavoro/previdenza, termini amministrativi e istruzioni operative",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Quali circolari, messaggi o istruzioni INPS incidono sui termini e sui documenti della pratica?",
       "practice_phase": "lavoro, previdenza e infortuni",
       "expected_output": "domanda amministrativa, ricorso, circolare/messaggio, documenti sanitari o contributivi e termini",
@@ -12135,10 +12145,10 @@
       "destinations": [
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "adapter nativo controllabile ma feature flag Legal Source Engine non attivo",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "inquadramento giuridico, norma vigente, rito e termine applicabile",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Come devo usare Banche dati regionali di normativa nella pratica, quali documenti produce e quali limiti devo dichiarare?",
       "practice_phase": "inquadramento e controllo fonte",
       "expected_output": "norma vigente, decreto attuativo, documento collegato, limite e prossima attività",
@@ -12170,7 +12180,81 @@
       "notes": [
         "supporta ricerca=True",
         "versioni=True",
-        "autenticazione richiesta=False"
+        "autenticazione richiesta=False",
+        "Adapter ufficiale censito: la rete resta governata da configurazione runtime, ma la scheda fonte è pubblicabile in Ricerca Legale e Lex/RAG."
+      ]
+    },
+    {
+      "registry": "lex_operational_sources",
+      "source_id": "matrice_pratica_legale",
+      "title": "Matrice pratica legale e riferimenti nominali",
+      "official": true,
+      "authority": "Studio/Tenant",
+      "url": "",
+      "enabled": true,
+      "connector": "pct.legal_practice_research_matrix",
+      "category": "fonti_pubbliche",
+      "topics": [
+        "matrice_pratica",
+        "fonti_pubbliche",
+        "Audit 2026-06-06: 18/18 schede materia e 59/59 riferimenti nominali con norme, decreti, regole tecniche, sentenze, udienze, atti, scadenze e domande Lex. Nessuna scheda va dichiarata coperta se il gate torna rosso.",
+        "search_legal_practice_matrix"
+      ],
+      "destinations": [
+        "Lex AI/RAG Legal"
+      ],
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
+      "lawyer_use": "strategia processuale, precedenti, udienze, provvedimenti ed esito pratica",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
+      "lex_test_question": "Quali provvedimenti o precedenti da Matrice pratica legale e riferimenti nominali sono pertinenti alla strategia e all'esito della pratica?",
+      "practice_phase": "strategia, udienza, provvedimento e precedente",
+      "expected_output": "precedenti pertinenti, provvedimenti, udienze, esito, ragione decisiva e rischio di orientamento contrario",
+      "professional_context": "Matrice pratica legale e riferimenti nominali deve portare casi e provvedimenti utili alla strategia, non massime isolate senza collegamento al fatto e all'esito.",
+      "legal_materials": [
+        "Norma primaria vigente o testo coordinato applicabile alla pratica",
+        "Fonte secondaria, attuativa, tecnica o di autorità quando incide su rito, termini, prova o documento da produrre",
+        "Prassi, circolari, provvedimenti o istruzioni dell'autorità competente se pertinenti",
+        "Regole tecniche ministeriali, specifiche del portale competente e tracciati di deposito/notifica",
+        "Ricevute PEC, accettazione, consegna, esito deposito, busta, allegati e attestazioni di conformità",
+        "Precedenti pertinenti con fatto, principio, esito e orientamento contrario",
+        "Norma applicata dal giudice e questione decisiva del provvedimento",
+        "Documenti del fascicolo, PEC, agenda, scadenziario, prove, verbali, atti prodotti e cronologia dello studio"
+      ],
+      "articles_and_codes": [
+        "Articoli pertinenti di codice civile, procedura civile, penale, procedura penale, processo amministrativo, tributario o norma speciale",
+        "Disposizioni c.p.c. e disp. att. c.p.c. su deposito, notifiche, fascicolo informatico e attestazioni",
+        "Per PAT/PTT: codice processo amministrativo, D.Lgs. 546/1992 e norme telematiche del rito competente",
+        "Articoli citati nella decisione e norme processuali su ammissibilità, rito, prova e impugnazione",
+        "Norme e articoli richiamati dai documenti interni, da verificare sempre su fonte ufficiale prima della citazione"
+      ],
+      "decrees_and_rules": [
+        "D.Lgs., decreto-legge, D.M., regolamento, specifica tecnica o regime transitorio collegato alla materia",
+        "D.M. 44/2011, D.M. 217/2023, specifiche PST/DGSIA e provvedimenti tecnici collegati",
+        "Per PTT: D.M. 163/2013 e specifiche tecniche MEF/SIGIT quando pertinenti",
+        "Per PAT: D.P.C.M. 40/2016 e regole tecnico-operative SIGA quando pertinenti",
+        "Decreti o norme speciali applicate dalla decisione, inclusi correttivi e transitori"
+      ],
+      "case_law_and_hearings": [
+        "Sentenze, ordinanze, decreti, provvedimenti, verbali o udienze che incidono su strategia, prova, termine o precedente",
+        "Provvedimenti su nullità, improcedibilità, perfezionamento della notifica e prova del deposito",
+        "Udienze, rinvii, verbali e decreti del giudice che generano termini o adempimenti telematici",
+        "Sentenze, ordinanze, decreti, pareri, provvedimenti pubblicati, RG, ECLI, ricorsi pendenti/definiti e calendario udienze",
+        "Verbali e udienze rilevanti quando spiegano istruttoria, rinvii, riserve, termini o attività decisive",
+        "Udienze, provvedimenti, sentenze ed esiti del fascicolo caricati nel tenant dello studio"
+      ],
+      "research_steps": [
+        "Verificare testo vigente, data di pubblicazione e autorità competente prima di citare o usare la fonte",
+        "Collegare la fonte a fascicolo, modello, scadenza, prova o domanda Lex prima di dichiararla coperta",
+        "Registrare limite, fonte sostituita/abrogata o necessità di revisione dell'avvocato quando presenti",
+        "Verificare canale, destinatario digitale, formato allegati, firma, ricevute e prova completa prima di chiudere il task",
+        "Estrarre ragione decisiva, domanda accolta o rigettata, prove valutate e passaggio replicabile nella pratica dello studio",
+        "Mantenere isolamento tenant e distinguere prova interna da fonte ufficiale esterna"
+      ],
+      "notes": [
+        "tenant_keys=",
+        "permessi=",
+        "sensibile=False"
       ]
     },
     {
@@ -12418,7 +12502,7 @@
       "official": true,
       "authority": "Ministero della Giustizia",
       "url": "https://www.giustizia.it/giustizia/it/mg_form_view.page?uid=G_MAP",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "fonte_istituzionale",
       "topics": [
@@ -12427,12 +12511,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "notifica, deposito telematico, prova, destinatari e fascicolo",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Quale destinatario, prova o regola telematica devo verificare usando Ministero della Giustizia prima di notificare o depositare?",
       "practice_phase": "notifica, deposito telematico e prova",
       "expected_output": "destinatario corretto, canale, relata, ricevute, busta/deposito, prova completa e scadenza collegata",
@@ -22025,7 +22110,7 @@
       "official": true,
       "authority": "PDP Penale",
       "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC2786",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "processo_telematico",
       "topics": [
@@ -22034,12 +22119,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "notifica, deposito telematico, prova, destinatari e fascicolo",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Quale destinatario, prova o regola telematica devo verificare usando PDP Penale prima di notificare o depositare?",
       "practice_phase": "notifica, deposito telematico e prova",
       "expected_output": "destinatario corretto, canale, relata, ricevute, busta/deposito, prova completa e scadenza collegata",
@@ -22607,7 +22693,7 @@
       "official": true,
       "authority": "Portale Servizi Telematici / PCT",
       "url": "https://pst.giustizia.it/PST/it/services.page",
-      "enabled": false,
+      "enabled": true,
       "connector": "static_urls",
       "category": "processo_telematico",
       "topics": [
@@ -22617,12 +22703,13 @@
       ],
       "destinations": [
         "Aggiornamenti legali",
+        "Lex AI/RAG Legal",
         "Ricerca Legale"
       ],
-      "delivery_status": "da_attivare_controllabile",
-      "gap_reason": "fonte ufficiale visibile in Ricerca Legale ma non ancora acquisita automaticamente",
+      "delivery_status": "operativa_controllabile",
+      "gap_reason": "",
       "lawyer_use": "notifica, deposito telematico, prova, destinatari e fascicolo",
-      "activation_action": "Attivare acquisizione governata per la fonte, eseguire run a blocchi, esportare indice RAG e validare una domanda Lex prima dell'uso professionale.",
+      "activation_action": "Mantenere la fonte nel monitor aggiornamenti, verificare ultimo run e usare i record in Ricerca Legale/Lex prima di redigere o depositare.",
       "lex_test_question": "Quale destinatario, prova o regola telematica devo verificare usando Portale Servizi Telematici / PCT prima di notificare o depositare?",
       "practice_phase": "notifica, deposito telematico e prova",
       "expected_output": "destinatario corretto, canale, relata, ricevute, busta/deposito, prova completa e scadenza collegata",

@@ -172,7 +172,7 @@ def test_ricerca_legale_espone_monitor_acquisizione_fonti_reali(tmp_path):
     assert readiness["lex_testable_sources"] == 2
     assert readiness["sources_with_decrees"] == 2
     cassazione = next(source for source in monitor["sources"] if source["source_code"] == "cassazione")
-    assert cassazione["delivery_status_label"] == "operativa e controllabile"
+    assert cassazione["delivery_status_label"] == "pronta, sincronizzata e pubblicata"
     assert "strategia processuale" in cassazione["lawyer_use"]
     assert cassazione["practice_phase"] == "strategia, udienza, provvedimento e precedente"
     assert cassazione["lex_test_question"].startswith("Quali provvedimenti")
@@ -226,7 +226,8 @@ def test_ricerca_legale_espone_centro_fonti_ufficiali_lex():
     sections = {section["id"]: section for section in payload["sections"]}
     assert "centro_fonti_ufficiali_lex" in sections
     assert any(metric["id"] == "centro_fonti_ufficiali" and metric["value"] >= 400 for metric in payload["metrics"])
-    assert any(metric["id"] == "fonti_da_attivare" and metric["value"] >= 1 for metric in payload["metrics"])
+    assert any(metric["id"] == "matrice_pratiche_legali" and metric["value"] >= 25 for metric in payload["metrics"])
+    assert any(metric["id"] == "riferimenti_nominali_pratiche" and metric["value"] >= 90 for metric in payload["metrics"])
     assert any(record["id"] == "source-delivery:lex_official_config:agenzia_entrate" for record in payload["records"])
     agenzia = next(record for record in payload["records"] if record["id"] == "source-delivery:lex_official_config:agenzia_entrate")
     assert agenzia["sourceKind"] == "fonte ufficiale governata"
@@ -249,8 +250,69 @@ def test_ricerca_legale_cerca_centro_fonti_senza_fallback_live(monkeypatch):
     assert any(record["id"] == "source-delivery:lex_official_config:agenzia_entrate" for record in payload["records"])
     record = next(record for record in payload["records"] if record["id"] == "source-delivery:lex_official_config:agenzia_entrate")
     assert record["registryKind"] == "centro_fonti_ufficiali_lex"
-    assert record["stateLabel"] == "operativa e controllabile"
+    assert record["stateLabel"] == "pronta, sincronizzata e pubblicata"
     assert any("provvedimenti o prassi fiscali" in item.lower() for item in record["operationalChecks"])
+
+
+def test_ricerca_legale_cerca_matrice_pratica_e_riferimenti_nominali_senza_fallback(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("la matrice pratica auditata deve rispondere senza ricerca pubblica live")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    amministrativo = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "ricorso TAR calendario udienze decreti sentenze"},
+    )
+    lavoro = _payload(_Repository(), page="ricerca-legale", query={"q": "licenziamento rito lavoro"})
+    penale = _payload(_Repository(), page="ricerca-legale", query={"q": "PDP penale Cartabia"})
+    notifiche = _payload(_Repository(), page="ricerca-legale", query={"q": "notifica PEC L. 53"})
+    scolastico = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "sostegno scolastico PEI graduatoria docente ricorso TAR MIM"},
+    )
+    pubblico = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "concorso pubblico inPA graduatoria D.Lgs. 165 DPR 487"},
+    )
+    ambiente = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "VIA AIA rifiuti D.Lgs. 152 MASE ricorso TAR"},
+    )
+    immigrazione = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "protezione internazionale cittadinanza permesso soggiorno Ministero Interno"},
+    )
+
+    assert "practice-research:amministrativo_tar_cds_appalti" in {record["id"] for record in amministrativo["records"]}
+    assert "practice-reference:openga_calendario_udienze" in {record["id"] for record in amministrativo["records"]}
+    assert "practice-reference:openga_decreti_ordinanze_sentenze" in {record["id"] for record in amministrativo["records"]}
+    assert "practice-reference:legge_300_1970_statuto_lavoratori" in {record["id"] for record in lavoro["records"]}
+    assert "practice-reference:legge_604_1966_licenziamenti" in {record["id"] for record in lavoro["records"]}
+    assert "practice-reference:dlgs_150_2022_cartabia_penale" in {record["id"] for record in penale["records"]}
+    assert "practice-reference:pdp_penale_pst" in {record["id"] for record in penale["records"]}
+    assert "practice-reference:legge_53_1994_notifiche_avvocati" in {record["id"] for record in notifiche["records"]}
+    assert "practice-research:scolastico_docenti_alunni_concorsi" in {record["id"] for record in scolastico["records"]}
+    assert "practice-reference:dlgs_297_1994_testo_unico_scuola" in {record["id"] for record in scolastico["records"]}
+    assert "practice-reference:dlgs_66_2017_inclusione_scolastica" in {record["id"] for record in scolastico["records"]}
+    assert "practice-research:pubblico_impiego_concorsi_mobilita" in {record["id"] for record in pubblico["records"]}
+    assert "practice-reference:inpa_portale_reclutamento" in {record["id"] for record in pubblico["records"]}
+    assert "practice-reference:dpr_487_1994_concorsi_pubblici" in {record["id"] for record in pubblico["records"]}
+    assert "practice-research:ambiente_autorizzazioni_rifiuti" in {record["id"] for record in ambiente["records"]}
+    assert "practice-reference:dlgs_152_2006_codice_ambiente" in {record["id"] for record in ambiente["records"]}
+    assert "practice-reference:mase_valutazioni_autorizzazioni_ambientali" in {record["id"] for record in ambiente["records"]}
+    assert "practice-research:immigrazione_cittadinanza_protezione" in {record["id"] for record in immigrazione["records"]}
+    assert "practice-reference:dlgs_286_1998_testo_unico_immigrazione" in {record["id"] for record in immigrazione["records"]}
+    assert "practice-reference:dlgs_25_2008_protezione_internazionale" in {record["id"] for record in immigrazione["records"]}
+    assert all(
+        payload["contracts"]["external_fetch"] is False
+        for payload in (amministrativo, lavoro, penale, notifiche, scolastico, pubblico, ambiente, immigrazione)
+    )
 
 
 def test_ricerca_legale_espone_db_normativa_operativo():

@@ -17,14 +17,53 @@ punti durante compattazioni o riprese di sessione.
   deve produrre, scadenze o task derivati, domande Lex di prova, scheda visibile
   e cercabile in Ricerca Legale, collegamento a Lex AI/RAG Legal, Guida Pratica,
   Scadenziario o Template Atti/editor quando previsto, e test reale. Se manca
-  anche uno di questi passaggi, la voce resta "fonte da completare" e non puo'
-  essere conteggiata come coperta.
-- L'audit finale richiesto dall'utente e' 100% sul perimetro IUSENTRA coperto:
-  nessuna soglia inferiore e nessuna copertura generica per categorie. Ogni
-  record della matrice deve nominare leggi, decreti legislativi, decreti
-  ministeriali, codici, portali ufficiali, sentenze, udienze, provvedimenti o
-  autorita' competenti, con percorso verso UI/RAG/Lex/test. Dopo ogni
-  compattazione o ripresa questa sezione va riletta prima di continuare.
+  anche uno di questi passaggi, la voce e' solo un blocco interno di audit da
+  chiudere: Codex deve completarla e non puo' conteggiarla, consegnarla o
+  scaricarla sull'avvocato.
+- L'audit finale richiesto dall'utente e' 100% della copertura dichiarata e
+  pubblicata nel prodotto: nessuna soglia inferiore, nessuna copertura generica
+  per categorie e nessuna voce dichiarata pronta se manca anche un solo
+  passaggio. Ogni record della matrice deve nominare leggi, decreti legislativi,
+  decreti ministeriali, codici, portali ufficiali, sentenze, udienze,
+  provvedimenti o autorita' competenti, con percorso verso UI/RAG/Lex/test. Dopo
+  ogni compattazione o ripresa questa sezione va riletta prima di continuare.
+- Regola di responsabilita' operativa confermata dall'utente il 6 giugno 2026:
+  qualsiasi cosa manchi non va chiesta all'utente come compito da fare; Codex
+  deve cercarla, documentarla, collegarla, renderla visibile e testarla. Se una
+  fonte, norma, decreto, sentenza, udienza, provvedimento, atto, campo o
+  collegamento RAG/UI non c'e', Codex lo deve trovare e sistemare. La voce puo'
+  restare temporaneamente non coperta solo durante il lavoro, come evidenza di
+  audit interna; non e' una soluzione finale. Il lavoro si chiude solo quando la
+  voce e' completa, documentata, collegata, visibile e testata.
+- Vietato usare il lessico UI per nascondere un gate rosso: se un gate non
+  permette "pronta, sincronizzata e pubblicata", Codex deve risolvere fonte,
+  testo, collegamento, RAG/Lex e test fino a gate verde. Cambiare etichetta,
+  microcopy o stato senza completare il contenuto e' una scorciatoia non
+  autorizzata.
+- Formula operativa non ambigua: finche' il gate non restituisce 100% con zero
+  mancanze, la copertura non esiste. Se il gate e' sotto 100% o segnala una sola
+  mancanza, Codex deve completare la fonte o il collegamento, non correggere
+  solo l'etichetta visibile.
+- Regola di completezza pratica confermata il 6 giugno 2026: non basta
+  agganciare fonti. Ogni scheda deve portare l'avvocato fino alla gestione della
+  pratica con norme vigenti, regole tecniche o attuative, giurisprudenza,
+  udienze, decreti, ordinanze, provvedimenti, atti da produrre, notifiche,
+  depositi, prove, scadenze/task, domande Lex da superare e visualizzazione in
+  Ricerca Legale, Lex AI/RAG Legal, Guida Pratica, Scadenziario, Template
+  Atti/editor o fascicolo quando pertinente. Il gate corretto e' l'opposto delle
+  vecchie "fonti da attivare": zero fonti sospese, zero buchi ufficiali, zero
+  passaggi non alimentati e tutte le destinazioni prodotto raggiunte. Una voce
+  che non soddisfa questa catena va completata da Codex, non spostata
+  sull'avvocato e non mascherata con microcopy.
+- Estensione obbligatoria della matrice pratica: la copertura deve includere
+  civile, amministrativo, penale, tributario, lavoro/previdenza, famiglia,
+  scolastico, pubblico impiego e concorsi, edilizia/urbanistica/espropri,
+  ambiente, contabile/Corte dei conti, societario/impresa/231/mercati,
+  proprietà industriale, diritto d'autore e le altre materie utili allo studio
+  che emergono dalle fonti o dai fascicoli. Per ogni materia il percorso di
+  audit e' sempre: fonte ufficiale o autorità competente -> riferimenti
+  nominali -> passaggi pratici -> UI/RAG/Lex/scadenziario/template -> test
+  reale -> audit 100%.
 - Dopo ogni compattazione o ripresa della sessione, Codex deve rileggere questo
   file prima di modificare codice, fonti, dati o UI. La ripresa deve partire dal
   confronto tra "Fatto", "In corso" e "Da chiudere", senza ridurre il perimetro
@@ -284,10 +323,13 @@ punti durante compattazioni o riprese di sessione.
 - Editor Template Atti: il pannello Fonti mostra anche il ruolo `Fonte
   secondaria collegata`, oltre a fonti specifiche, telematiche, deontologiche,
   ordinamento forense, autorità e basi comuni non sufficienti.
-- Guida Pratica e Scadenziario: i set utente 25-29/28/29 sono integrati senza
-  collisioni sui codici ufficiali; audit materiali utente 256 record, 5745 righe
-  e zero campi persi verso software, UI o Lex; scadenziario aggiornato con 87
-  termini e 12 template calcolabili.
+- Guida Pratica e Scadenziario: i set utente fino a `files (22).zip` / set33
+  sono integrati senza collisioni sui codici ufficiali. Il set33 ha prodotto 8
+  moduli versionati, 40 guide interne non depositabili, 42 termini grezzi,
+  fonti web operative per ogni scheda, audit voce per voce con 406 record, 9080
+  righe, 6377 voci presenti e zero campi persi verso KB, servizio/API, UI o Lex.
+  Lo scadenziario e' stato rigenerato con 3567 termini Guida Pratica e 1119
+  template calcolabili; il bootstrap resta basato sui moduli versionati.
 - Lex fascicolo attivo: la sintesi del fascicolo legge anche agenda, udienze,
   provvedimenti, verbali, sentenze, esiti e scadenze successive realmente
   presenti nelle sorgenti operative, senza inventare esiti mancanti.
@@ -306,14 +348,22 @@ punti durante compattazioni o riprese di sessione.
 - Centro Fonti Ufficiali Lex: `scripts/audit_legal_source_delivery.py` attraversa
   configurazione fonti, Legal Source Engine, policy ricerca, motore
   aggiornamenti, Template Atti, Guida Pratica, DB normativa e sorgenti operative
-  Lex. L'audit 6 giugno 2026 produce JSON/CSV/Markdown con 402 fonti censite,
-  357 ufficiali, 343 operative, 14 da attivare e 0 buchi ufficiali; ogni riga
-  include materiali giuridici, articoli/codici, D.Lgs./D.M./regole tecniche,
-  sentenze/udienze/provvedimenti e sequenza di ricerca.
+  Lex. L'audit 6 giugno 2026 produce JSON/CSV/Markdown con 403 fonti censite,
+  358 ufficiali, 358 operative, 0 fonti sospese/da attivare e 0 buchi ufficiali;
+  ogni riga include materiali giuridici, articoli/codici, D.Lgs./D.M./regole
+  tecniche, sentenze/udienze/provvedimenti e sequenza di ricerca.
 - Ricerca Legale e Lex: i record `source-delivery:*` espongono il pacchetto
   giuridico minimo nella UI e Lex lo usa nelle domande su fonti ufficiali,
   codice civile, codice penale, decreti legislativi, decreti ministeriali,
   sentenze e udienze, con test reale dedicato.
+- Matrice pratica legale: `pct/legal_practice_research_matrix.py` espone 25
+  materie e 90 riferimenti nominali ufficiali, inclusi civile, amministrativo,
+  penale, tributario, lavoro/previdenza, famiglia, scolastico, pubblico impiego,
+  edilizia/urbanistica/espropri, ambiente, contabile, societario/impresa/231,
+  proprieta' industriale, diritto d'autore e immigrazione/cittadinanza. Il gate
+  `scripts/audit_legal_practice_matrix.py --fail-on-incomplete` restituisce
+  copertura 100%, zero issue; Ricerca Legale e Lex cercano questi record senza
+  fallback web live.
 - Motore aggiornamenti legali: il monitor `autofetchMonitor` non espone più
   soltanto contatori tecnici. Ogni fonte monitorata viene arricchita con l'audit
   Centro Fonti: uso per l'avvocato, fase pratica, output atteso, azione da fare,

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p4.json",
+  "sha256": "30BD2538CC9F03C1D922A5E8EA16BF484556399747EB47758D2037FF6D28998C",
+  "changed": true,
+  "macro_area_id": "SET33_PARTE4",
+  "denominazione": "PARTE 4 di 8",
+  "codici_materia_originali": [
+    "150120",
+    "160275",
+    "160280",
+    "160285",
+    "160290"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ASSOCIAZIONI_NON_RICONOSCIUTE_E_FONDAZIONI_RESPONSABILIT_CONTROVERSIE_E__150120",
+    "GUIDA_CULPA_IN_CONTRAHENDO_RESPONSABILIT_DA_ROTTURA_ARBITRARIA_DELLE_TRATTATIV_160275",
+    "GUIDA_DOLO_NELLA_CONCLUSIONE_DEL_CONTRATTO_ANNULLAMENTO_E_RISARCIMENTO_ARTT_14_160280",
+    "GUIDA_FIDUCIA_IMMOBILIARE_INADEMPIMENTO_DEL_FIDUCIARIO_E_AZIONE_DI_RITRASFERIM_160285",
+    "GUIDA_RESPONSABILIT_PER_DANNI_CAUSATI_DA_ANIMALI_SELVATICI_E_FAUNA_PROTETTA_AR_160290"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150120",
+      "codice_integrato": "GUIDA_ASSOCIAZIONI_NON_RICONOSCIUTE_E_FONDAZIONI_RESPONSABILIT_CONTROVERSIE_E__150120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160275",
+      "codice_integrato": "GUIDA_CULPA_IN_CONTRAHENDO_RESPONSABILIT_DA_ROTTURA_ARBITRARIA_DELLE_TRATTATIV_160275",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160280",
+      "codice_integrato": "GUIDA_DOLO_NELLA_CONCLUSIONE_DEL_CONTRATTO_ANNULLAMENTO_E_RISARCIMENTO_ARTT_14_160280",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160285",
+      "codice_integrato": "GUIDA_FIDUCIA_IMMOBILIARE_INADEMPIMENTO_DEL_FIDUCIARIO_E_AZIONE_DI_RITRASFERIM_160285",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160290",
+      "codice_integrato": "GUIDA_RESPONSABILIT_PER_DANNI_CAUSATI_DA_ANIMALI_SELVATICI_E_FAUNA_PROTETTA_AR_160290",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

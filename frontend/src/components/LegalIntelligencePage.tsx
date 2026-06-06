@@ -213,7 +213,9 @@ function sourceProgress(source: LegalAutofetchSource) {
     source.reviewPublished ? `${source.reviewPublished.toLocaleString('it-IT')} pubblicati` : '',
     source.reviewPending ? `${source.reviewPending.toLocaleString('it-IT')} in revisione sistema` : '',
   ].filter(Boolean)
-  return parts.length ? parts.join(' · ') : source.reason || 'Fonte censita, in attesa di acquisizione.'
+  return parts.length
+    ? parts.join(' · ')
+    : source.systemAction || source.reason || 'Fonte non coperta: completare acquisizione ufficiale prima della pubblicazione.'
 }
 function sourceLegalPreview(source: LegalAutofetchSource) {
   return [

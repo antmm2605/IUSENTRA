@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.249.23 - 2026-06-06
+
+- Integrato `files (22).zip` nella Guida Pratica come set33: 8 moduli versionati, 40 schede ricevute e integrate, 42 termini processuali grezzi, fonti web operative per ogni scheda e nessuna contaminazione dei codici ufficiali PST/XSD.
+- Rigenerato lo scadenziario Guida Pratica: 3.567 termini importati, 1.119 template calcolabili, report JSON/CSV dedicati e test set33 su moduli, servizio, Lex e audit voce per voce.
+- Estesa la matrice pratica legale a 25 materie e 90 riferimenti nominali ufficiali, con civile, amministrativo, penale, tributario, lavoro/previdenza, famiglia, scolastico, pubblico impiego, ambiente, edilizia/urbanistica, contabile, societario/231, proprietà industriale, diritto d'autore e immigrazione.
+- Collegata la matrice pratica a Ricerca Legale e Lex: le ricerche su TAR/udienze, licenziamento, notifica PEC, PEI/sostegno, concorsi inPA, ambiente e immigrazione trovano schede pratiche e riferimenti nominali senza fallback web live.
+- Rafforzato il ranking Ricerca Legale/Lex per mantenere insieme norma numerata e contesto operativo collegato, ad esempio D.Lgs. 165/2001, D.P.R. 487/1994 e portale inPA.
+- Aggiornato il Centro Fonti Ufficiali Lex: audit severo verde con 403 fonti censite, 358 ufficiali, 358 operative, 0 fonti sospese e 0 buchi ufficiali.
+
 ## 2.249.22 - 2026-06-06
 
 - Esteso il presidio PEC alle udienze con strumenti audiovisivi/remoto: `Comunicazione.xml` inline, PDF diretti e PDF compressi in ZIP alimentano profilo processuale, OCR, link, orario, giudice, parti, agenda/task e Lex/RAG; il link viene marcato utilizzabile solo se identico al valore letto dalla fonte.

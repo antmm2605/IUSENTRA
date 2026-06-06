@@ -103,6 +103,7 @@ class OperationalKnowledgeService:
             return [
                 self.tools.search_legal_sources(entity_query or question, context, limit=3),
                 self.tools.get_legal_intelligence_items(entity_query or question, context, limit=3),
+                self.tools.search_legal_practice_matrix(entity_query or question, context, limit=3),
             ]
 
         if route.intent == "studio_context_overview":
@@ -240,6 +241,7 @@ class OperationalKnowledgeService:
             results = [
                 self.tools.search_template_atti(entity_query or question, context, limit=self.settings.max_results),
                 self.tools.search_template_atti_sources(entity_query or question, context, limit=self.settings.max_results),
+                self.tools.search_legal_practice_matrix(entity_query or question, context, limit=self.settings.max_results),
                 self.tools.get_editor_ai_status(context),
             ]
             if fascicolo_id:
@@ -258,6 +260,7 @@ class OperationalKnowledgeService:
                 self.tools.get_update_intelligence_items(entity_query or question, context, limit=6),
                 self.tools.search_legal_sources(entity_query or question, context, limit=6),
                 self.tools.search_template_atti_sources(entity_query or question, context, limit=6),
+                self.tools.search_legal_practice_matrix(entity_query or question, context, limit=6),
             ]
             if _should_integrate_free_web_articles(question):
                 web_query = _free_web_article_query(question, results)

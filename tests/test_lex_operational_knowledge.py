@@ -735,6 +735,105 @@ def test_lex_operational_knowledge_include_db_normativa_operativo():
     assert any("testo vigente" in check for check in reference["controlli_lex"])
 
 
+def test_lex_operational_knowledge_cerca_matrice_pratica_legale():
+    tools = OperationalKnowledgeTools()
+    user = _User(_all_permissions())
+    context = OperationalQueryContext(
+        tenant_id="tenant-a",
+        user_id=user.id,
+        user=user,
+        permissions=_all_permissions(),
+    )
+
+    amministrativo = tools.search_legal_practice_matrix(
+        "ricorso TAR calendario udienze decreti sentenze",
+        context,
+        limit=10,
+    )
+    penale = tools.search_legal_practice_matrix("PDP penale Cartabia", context, limit=10)
+    lavoro = tools.search_legal_practice_matrix("licenziamento rito lavoro", context, limit=10)
+    scolastico = tools.search_legal_practice_matrix(
+        "sostegno scolastico PEI graduatoria docente ricorso TAR MIM",
+        context,
+        limit=10,
+    )
+    pubblico = tools.search_legal_practice_matrix(
+        "concorso pubblico inPA graduatoria D.Lgs. 165 DPR 487",
+        context,
+        limit=10,
+    )
+    immigrazione = tools.search_legal_practice_matrix(
+        "protezione internazionale cittadinanza permesso soggiorno Ministero Interno",
+        context,
+        limit=10,
+    )
+
+    assert amministrativo.ok
+    assert penale.ok
+    assert lavoro.ok
+    assert scolastico.ok
+    assert pubblico.ok
+    assert immigrazione.ok
+    amministrativo_ids = {item["id"] for item in amministrativo.data}
+    penale_ids = {item["id"] for item in penale.data}
+    lavoro_ids = {item["id"] for item in lavoro.data}
+    scolastico_ids = {item["id"] for item in scolastico.data}
+    pubblico_ids = {item["id"] for item in pubblico.data}
+    immigrazione_ids = {item["id"] for item in immigrazione.data}
+    assert "amministrativo_tar_cds_appalti" in amministrativo_ids
+    assert "openga_calendario_udienze" in amministrativo_ids
+    assert "openga_decreti_ordinanze_sentenze" in amministrativo_ids
+    assert "penale_difesa_rito_pdp" in penale_ids
+    assert "dlgs_150_2022_cartabia_penale" in penale_ids
+    assert "pdp_penale_pst" in penale_ids
+    assert "lavoro_previdenza_inps_inail" in lavoro_ids
+    assert "legge_300_1970_statuto_lavoratori" in lavoro_ids
+    assert "legge_604_1966_licenziamenti" in lavoro_ids
+    assert "scolastico_docenti_alunni_concorsi" in scolastico_ids
+    assert "dlgs_297_1994_testo_unico_scuola" in scolastico_ids
+    assert "dlgs_66_2017_inclusione_scolastica" in scolastico_ids
+    assert "pubblico_impiego_concorsi_mobilita" in pubblico_ids
+    assert "inpa_portale_reclutamento" in pubblico_ids
+    assert "dpr_487_1994_concorsi_pubblici" in pubblico_ids
+    assert "immigrazione_cittadinanza_protezione" in immigrazione_ids
+    assert "dlgs_286_1998_testo_unico_immigrazione" in immigrazione_ids
+    assert "dlgs_25_2008_protezione_internazionale" in immigrazione_ids
+    assert all(item.get("action_url") == "/ricerca-legale" for item in amministrativo.data)
+
+
+def test_lex_tools_dispatcher_cerca_matrice_pratica_legale():
+    from lex.tools.legal_studio_tools import dispatch_tool, list_tools
+
+    tools = {item["name"] for item in list_tools()}
+    assert "search_pratica_legale" in tools
+
+    result = dispatch_tool(name="search_pratica_legale", query="notifica PEC L. 53", limit=8)
+
+    assert result["ok"] is True
+    ids = {item["id"] for item in result["risultati"]}
+    assert "civile_notifiche_monitorio_esecuzioni" in ids
+    assert "legge_53_1994_notifiche_avvocati" in ids
+    assert any("relata" in " ".join(item.get("atti_da_produrre", [])).lower() for item in result["risultati"])
+
+    scolastico = dispatch_tool(
+        name="search_pratica_legale",
+        query="PEI sostegno scolastico graduatoria MIM",
+        limit=8,
+    )
+    scolastico_ids = {item["id"] for item in scolastico["risultati"]}
+    assert "scolastico_docenti_alunni_concorsi" in scolastico_ids
+    assert "dlgs_66_2017_inclusione_scolastica" in scolastico_ids
+
+    immigrazione = dispatch_tool(
+        name="search_pratica_legale",
+        query="protezione internazionale cittadinanza Ministero Interno",
+        limit=8,
+    )
+    immigrazione_ids = {item["id"] for item in immigrazione["risultati"]}
+    assert "immigrazione_cittadinanza_protezione" in immigrazione_ids
+    assert "legge_91_1992_cittadinanza" in immigrazione_ids
+
+
 def test_lex_fonti_ufficiali_risponde_con_codici_decreti_sentenz_udienze():
     service, user = _service(repositories=_base_repositories())
 

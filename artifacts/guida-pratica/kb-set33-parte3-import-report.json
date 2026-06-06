@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p3.json",
+  "sha256": "BB663B97882DC6C415DD550B31E09E0CAFED83E802DA2B9603879F4F7B18BE4A",
+  "changed": true,
+  "macro_area_id": "SET33_PARTE3",
+  "denominazione": "PARTE 3 di 8",
+  "codici_materia_originali": [
+    "141100",
+    "141105",
+    "143130",
+    "145030",
+    "150115"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LEASING_MOBILIARE_INADEMPIMENTO_DELL_UTILIZZATORE_RESTITUZIONE_E_TUTELE__141100",
+    "GUIDA_NOLEGGIO_A_LUNGO_TERMINE_NLT_DI_AUTOVEICOLI_INADEMPIMENTO_RECESSO_ANTICI_141105",
+    "GUIDA_CREDITO_AL_CONSUMO_CONTESTAZIONE_DEL_TAEG_CLAUSOLE_ABUSIVE_E_DIRITTO_DI__143130",
+    "GUIDA_DEPOSITO_CAUZIONALE_NELLA_LOCAZIONE_RESTITUZIONE_UTILIZZO_E_CONTROVERSIE_145030",
+    "GUIDA_CONSORZI_TRA_IMPRESE_CONTROVERSIE_SCIOGLIMENTO_E_RESPONSABILIT_DEI_CONSO_150115"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "141100",
+      "codice_integrato": "GUIDA_LEASING_MOBILIARE_INADEMPIMENTO_DELL_UTILIZZATORE_RESTITUZIONE_E_TUTELE__141100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141105",
+      "codice_integrato": "GUIDA_NOLEGGIO_A_LUNGO_TERMINE_NLT_DI_AUTOVEICOLI_INADEMPIMENTO_RECESSO_ANTICI_141105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143130",
+      "codice_integrato": "GUIDA_CREDITO_AL_CONSUMO_CONTESTAZIONE_DEL_TAEG_CLAUSOLE_ABUSIVE_E_DIRITTO_DI__143130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "145030",
+      "codice_integrato": "GUIDA_DEPOSITO_CAUZIONALE_NELLA_LOCAZIONE_RESTITUZIONE_UTILIZZO_E_CONTROVERSIE_145030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150115",
+      "codice_integrato": "GUIDA_CONSORZI_TRA_IMPRESE_CONTROVERSIE_SCIOGLIMENTO_E_RESPONSABILIT_DEI_CONSO_150115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

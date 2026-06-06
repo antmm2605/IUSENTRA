@@ -4,17 +4,49 @@
 
 La v4 caricata dall'utente è stata applicata e completata sul catalogo ufficiale presente in repository, che contiene 1.018 record validi. I moduli TOP9 set2, set3, set4, set5, set6, set7, set8 e set9 sono stati integrati mantenendo separati codici ufficiali e schede interne.
 
-## Numeri finali
+## Numeri finali aggiornati al set33
 
-- Moduli KB caricati: 36.
-- Codici unificati nel KB full: 1.101.
+- Moduli KB caricati: 104.
+- Codici unificati nel KB full: 1.220.
 - Record ufficiali nel catalogo PST/XSD: 1.018.
 - Guide ufficiali curate: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Copertura finale: `{"curata": 1101}`.
-- Schede interne o alias non depositabili: 83.
-- Schede arricchite con fonti ufficiali web e presidi operativi integrativi: 1.101.
+- Copertura finale: `{"curata": 1220}`.
+- Schede interne o alias non depositabili: 202.
+- Schede arricchite con fonti ufficiali web e presidi operativi integrativi: 1.220.
 - Contaminazioni del codice deposito ufficiale rilevate dall'audit: 0.
+- Termini Guida Pratica importati nello scadenziario: 3.567.
+- Template scadenziario calcolabili da Guida Pratica: 1.119.
+
+## Aggiornamento set33 - files (22).zip
+
+Il pacchetto `files (22).zip` e' stato importato come otto moduli versionati:
+`kb_98_set33_p1.json`, `kb_98_set33_p2.json`, `kb_98_set33_p3.json`,
+`kb_98_set33_p4.json`, `kb_98_set33_p5.json`, `kb_98_set33_p6.json`,
+`kb_98_set33_p7.json` e `kb_98_set33_p8.json`.
+
+Risultato:
+
+- 40 schede ricevute e integrate;
+- 42 termini processuali grezzi estratti;
+- 40 guide interne non depositabili perche' i codici ricevuti non coincidono
+  con il catalogo PST/XSD locale;
+- nessun codice ufficiale di deposito sostituito o contaminato;
+- fonti web operative presenti in ogni scheda;
+- Lex e UI leggono le schede tramite `GuidaPraticaService`,
+  `GuidaPraticaSource` e pannello React;
+- scadenziario rigenerato con 3.567 termini e 1.119 template calcolabili.
+
+Report:
+
+- `artifacts/guida-pratica/import-user-kb-2026-06-07-set33.json`;
+- `artifacts/guida-pratica/kb-set33-structural-validation-report.json`;
+- `artifacts/guida-pratica/termini-processuali-import-2026-06-07-set33.json`;
+- `artifacts/guida-pratica/termini-processuali-import-2026-06-07-set33.csv`;
+- `artifacts/guida-pratica/guida-pratica-user-material-field-audit-2026-06-07-set33.json`;
+- `artifacts/guida-pratica/guida-pratica-user-material-field-audit-2026-06-07-set33.csv`;
+- `artifacts/guida-pratica/guida-pratica-audit-2026-06-07-set33.json`;
+- `artifacts/guida-pratica/codici-ufficiali-senza-guida-curata-2026-06-07-set33.csv`.
 
 ## Curation Codex del completamento automatico
 

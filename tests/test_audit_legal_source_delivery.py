@@ -9,14 +9,15 @@ def _source(audit, source_id, registry):
     )
 
 
-def test_audit_legal_source_delivery_distingue_fonti_operative_da_attivare_e_buchi():
+def test_audit_legal_source_delivery_chiude_fonti_operative_senza_sospesi_o_buchi():
     audit = build_audit()
     summary = audit["summary"]
 
     assert summary["total_sources"] >= 400
     assert summary["operational_sources"] >= 300
-    assert summary["activation_pending_sources"] >= 1
-    assert summary["official_gaps"] <= 10
+    assert summary["activation_pending_sources"] == 0
+    assert summary["gaps"] == 0
+    assert summary["official_gaps"] == 0
     assert summary["sources_with_legal_materials"] == summary["total_sources"]
     assert summary["sources_with_articles_and_codes"] == summary["total_sources"]
     assert summary["sources_with_decrees_and_rules"] == summary["total_sources"]

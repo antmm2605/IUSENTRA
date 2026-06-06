@@ -359,6 +359,24 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         ),
     ),
     _src(
+        "matrice_pratica_legale",
+        "Matrice pratica legale e riferimenti nominali",
+        "matrice_pratica",
+        "fonti_pubbliche",
+        tenant_keys=(),
+        permissions=(),
+        repository_module="pct.legal_practice_research_matrix",
+        api_surface="/ricerca-legale",
+        tools=("search_legal_practice_matrix",),
+        sensitive=False,
+        official_public_source=True,
+        notes=(
+            "Audit 2026-06-06: 18/18 schede materia e 59/59 riferimenti nominali "
+            "con norme, decreti, regole tecniche, sentenze, udienze, atti, scadenze "
+            "e domande Lex. Nessuna scheda va dichiarata coperta se il gate torna rosso."
+        ),
+    ),
+    _src(
         "editor_ai",
         "Editor atti con Lex",
         "editor_ai",

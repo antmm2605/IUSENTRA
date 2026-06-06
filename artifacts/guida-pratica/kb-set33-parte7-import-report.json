@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p7.json",
+  "sha256": "AC2B75402AAD4432431CE7A69710240ADD20766D847D12988F223F12364EC06F",
+  "changed": true,
+  "macro_area_id": "SET33_PARTE7",
+  "denominazione": "PARTE 7 di 8",
+  "codici_materia_originali": [
+    "240075",
+    "511050",
+    "512140",
+    "512145",
+    "512150"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ACCESSO_GENERALIZZATO_FOIA_RICORSO_AL_TAR_PER_DINIEGO_E_RIESAME_D_LGS_33_240075",
+    "GUIDA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_IMMOBILIARE_CONTESTAZIONE_DEL_511050",
+    "GUIDA_IRAP_ACCERTAMENTO_CONTESTAZIONE_E_RIMBORSO_PER_LAVORATORI_AUTONOMI_E_PRO_512140",
+    "GUIDA_IVA_INTRACOMUNITARIA_ACCERTAMENTO_PER_OPERAZIONI_CON_PAESI_UE_E_CONTESTA_512145",
+    "GUIDA_IMPOSTA_IPOTECARIA_E_CATASTALE_ACCERTAMENTO_ESENZIONI_E_CONTESTAZIONE_D__512150"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240075",
+      "codice_integrato": "GUIDA_ACCESSO_GENERALIZZATO_FOIA_RICORSO_AL_TAR_PER_DINIEGO_E_RIESAME_D_LGS_33_240075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "511050",
+      "codice_integrato": "GUIDA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_IMMOBILIARE_CONTESTAZIONE_DEL_511050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512140",
+      "codice_integrato": "GUIDA_IRAP_ACCERTAMENTO_CONTESTAZIONE_E_RIMBORSO_PER_LAVORATORI_AUTONOMI_E_PRO_512140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512145",
+      "codice_integrato": "GUIDA_IVA_INTRACOMUNITARIA_ACCERTAMENTO_PER_OPERAZIONI_CON_PAESI_UE_E_CONTESTA_512145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512150",
+      "codice_integrato": "GUIDA_IMPOSTA_IPOTECARIA_E_CATASTALE_ACCERTAMENTO_ESENZIONI_E_CONTESTAZIONE_D__512150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

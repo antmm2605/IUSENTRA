@@ -1,0 +1,1236 @@
+{
+  "ok": true,
+  "coverage": {
+    "curata": 1220
+  },
+  "catalog_size": 1220,
+  "official_catalog_size": 1018,
+  "missing_required": [],
+  "official_coverage": {
+    "total_official_codes": 1018,
+    "official_codes_curated": 1018,
+    "official_codes_without_curated_guidance": 0,
+    "official_without_curated_guidance_details": [],
+    "official_missing_from_service": []
+  },
+  "deposit_code_coherence": {
+    "ok": true,
+    "incoherent": [],
+    "aliases_or_internal_count": 202,
+    "aliases_or_internal": [
+      {
+        "codice": "100002",
+        "denominazione": "Opposizione a decreto ingiuntivo (art. 645 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "111006",
+        "denominazione": "Affidamento e mantenimento dei figli nati fuori dal matrimonio",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "120010",
+        "denominazione": "Petizione di eredità (art. 533 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "120030",
+        "denominazione": "Azione di riduzione per lesione della quota di legittima",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "121003",
+        "denominazione": "Divisione di comunione ereditaria (divisione giudiziale)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "130033",
+        "denominazione": "Accertamento dell'acquisto della proprietà per usucapione",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "143001",
+        "denominazione": "Responsabilità professionale dell'avvocato",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "143002",
+        "denominazione": "Responsabilità professionale del personale sanitario e della struttura sanitaria (Legge Gelli-Bianco)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "170006",
+        "denominazione": "Concorrenza sleale (art. 2598 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "413071",
+        "denominazione": "Apertura della tutela ordinaria (interdizione di maggiorenne)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "510001_O",
+        "denominazione": "Espropriazione mobiliare presso il debitore (pre L. 80/2005)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "510002_O",
+        "denominazione": "Espropriazione mobiliare presso terzi (pre L. 80/2005)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "610001_O",
+        "denominazione": "Espropriazione immobiliare (pre L. 80/2005)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_AUTO_492BIS",
+        "denominazione": "Ricerca telematica beni - pignoramento via UNEP (art. 492-bis c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_AVVISO_ASTE_VENDITA",
+        "denominazione": "Avviso di vendita / pubblicità della vendita esecutiva",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_CONSEGNA_001",
+        "denominazione": "Esecuzione per consegna o rilascio (art. 605-611 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_CONVERSIONE_495",
+        "denominazione": "Conversione del pignoramento (art. 495 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_DISTRIBUZIONE",
+        "denominazione": "Distribuzione del ricavato e progetto di distribuzione",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_ESTINZIONE_629",
+        "denominazione": "Estinzione del processo esecutivo (artt. 629-632 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_IMM_001",
+        "denominazione": "Pignoramento immobiliare",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_INTERVENTO_499",
+        "denominazione": "Intervento dei creditori (artt. 498-500, 525-526, 564, 566 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_MOB_001",
+        "denominazione": "Pignoramento mobiliare presso il debitore",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_OBBLIGHI_001",
+        "denominazione": "Esecuzione forzata degli obblighi di fare e di non fare (art. 612-614 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_RIDUZIONE_496",
+        "denominazione": "Riduzione del pignoramento (art. 496 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_SOSPENSIONE_624",
+        "denominazione": "Sospensione dell'esecuzione (art. 624 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_TERZI_001",
+        "denominazione": "Pignoramento presso terzi",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ACCERTAMENTO_DEL_RAPPORTO_DI_LAVORO_SUBORDINATO_FALSO_AUTONOMO_COLLABORA_220035",
+        "denominazione": "Accertamento del rapporto di lavoro subordinato – falso autonomo/collaborazione (art. 2094 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ACCERTAMENTO_GIUDIZIALE_DELLA_SUBORDINAZIONE_FINTO_LAVORO_AUTONOMO_ARTT__220165",
+        "denominazione": "Accertamento giudiziale della subordinazione – finto lavoro autonomo (artt. 2094-2096 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_ART_696_C_P_C_E_CONSULENZA_TECNICA_PREVE_190025",
+        "denominazione": "Accertamento tecnico preventivo (art. 696 c.p.c.) e consulenza tecnica preventiva ai fini della conciliazione (art. 696-bis c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+        "denominazione": "Adozione di maggiorenne (artt. 291-314 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ADS_MODIFICA_REVOCA_413062",
+        "denominazione": "Modifica o revoca del decreto di nomina dell'amministratore di sostegno",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_APERTURA_E_GESTIONE_ARTT_404_413_C_C_413080",
+        "denominazione": "Amministrazione di sostegno: apertura e gestione (artt. 404-413 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ANNULLAMENTO_CONTRATTO_VIZI_CONSENSO_140035",
+        "denominazione": "Annullamento del contratto per dolo, errore o violenza (artt. 1427-1440 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_SU_ISTANZA_DEL_CRED_101010",
+        "denominazione": "Apertura della liquidazione giudiziale (ex fallimento) su istanza del creditore (D.Lgs. 14/2019 CCII)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_APERTURA_DEL_PROCEDIMENTO_DI_INTERDIZIONE_E_INABILITAZIONE_ARTT_414_432__410001",
+        "denominazione": "Apertura del procedimento di interdizione e inabilitazione (artt. 414-432 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_APPALTO_PUBBLICO_CONTESTAZIONI_DELL_APPALTATORE_RECESSO_REVISIONE_PREZZI_143030",
+        "denominazione": "Appalto pubblico – contestazioni dell'appaltatore: recesso, revisione prezzi, riserve (D.Lgs. 36/2023)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+        "denominazione": "Risoluzione contratto di appalto per vizi/difformità + garanzia (artt. 1667-1669 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+        "denominazione": "Risoluzione contratto di assicurazione e azione per indennizzo (artt. 1882-1932 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AUTORIZZAZIONE_GIUDIZIALE_ALLA_VENDITA_O_AD_ATTI_STRAORDINARI_SU_BENI_DI_413095",
+        "denominazione": "Autorizzazione giudiziale alla vendita o ad atti straordinari su beni di minori o incapaci (art. 374 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_CONFESSORIA_DI_SERVIT_ART_1079_C_C_TUTELA_DEL_TITOLARE_DI_SERVIT__130100",
+        "denominazione": "Azione confessoria di servitù (art. 1079 c.c.) – tutela del titolare di servitù osteggiata",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_CUMULATA_PER_MOBBING_SISTEMICO_STRAINING_DEMANSIONAMENTO_PROGRESS_160090",
+        "denominazione": "Azione cumulata per mobbing sistemico + straining + demansionamento progressivo (art. 2087 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_DI_CLASSE_ART_840_BIS_C_P_C_E_AZIONE_INIBITORIA_COLLETTIVA_180020",
+        "denominazione": "Azione di classe (art. 840-bis c.p.c.) e azione inibitoria collettiva",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_DI_REGOLAMENTO_DI_CONFINI_IMMOBILIARI_COMPLEMENTO_E_PROCEDURE_ACC_130020",
+        "denominazione": "Azione di regolamento di confini immobiliari – complemento e procedure accessorie (art. 950 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_DI_RIDUZIONE_PER_LESIONE_DELLA_QUOTA_DI_LEGITTIMA_ARTT_553_564_C__120050",
+        "denominazione": "Azione di riduzione per lesione della quota di legittima (artt. 553-564 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_DI_SIMULAZIONE_CONTRATTUALE_ARTT_1414_1417_C_C_102010",
+        "denominazione": "Azione di simulazione contrattuale (artt. 1414-1417 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_INIBITORIA_COLLETTIVA_CONTRO_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEI_C_180035",
+        "denominazione": "Azione inibitoria collettiva contro clausole abusive nei contratti dei consumatori (art. 37 Cod. Consumo + D.Lgs. 206/2005)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031",
+        "denominazione": "Azione negatoria di servitù (art. 949 c.c.) o azioni possessorie (artt. 1168-1170 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_AZIONE_REVOCATORIA_NEL_CONTESTO_DELLA_LIQUIDAZIONE_GIUDIZIALE_ARTT_163_1_512065",
+        "denominazione": "Azione revocatoria nel contesto della liquidazione giudiziale (artt. 163-176 D.Lgs. 14/2019 CCII)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CESSIONE_DI_RAMO_D_AZIENDA_CONTESTAZIONI_DEI_LAVORATORI_TRASFERITI_ART_2_220015",
+        "denominazione": "Cessione di ramo d'azienda - contestazioni dei lavoratori trasferiti (art. 2112 c.c. + art. 47 L. 428/1990)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_COLLAZIONE_EREDITARIA_121005",
+        "denominazione": "Collazione ereditaria (art. 737 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_COLLAZIONE_EREDITARIA_ARTT_737_751_C_C_CONFERIMENTO_DI_DONAZIONI_E_ANTIC_121010",
+        "denominazione": "Collazione ereditaria (artt. 737-751 c.c.) – conferimento di donazioni e anticipazioni nel patrimonio ereditario",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_COMODATO_RISOLUZIONE_RILASCIO_ANTICIPATO_E_INDENNIT_ARTT_1803_1812_C_C_140050",
+        "denominazione": "Comodato: risoluzione, rilascio anticipato e indennità (artt. 1803-1812 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_COMPRAVENDITA_IMMOBILIARE_INADEMPIMENTO_DEL_PROMISSARIO_ACQUIRENTE_E_CAP_142010",
+        "denominazione": "Compravendita immobiliare: inadempimento del promissario acquirente e caparra confirmatoria (art. 1385 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE",
+        "denominazione": "Risoluzione del contratto di compravendita immobiliare per inadempimento",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONCORDATO_PREVENTIVO_OPPOSIZIONE_DEL_CREDITORE_E_CONTESTAZIONI_ARTT_90__152010",
+        "denominazione": "Concordato preventivo – opposizione del creditore e contestazioni (artt. 90-116 D.Lgs. 14/2019 CCII)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONCORRENZA_SLEALE_NON_CONFUSORIA_DENIGRAZIONE_APPROPRIAZIONE_PREGI_E_AT_170030",
+        "denominazione": "Concorrenza sleale non confusoria – denigrazione, appropriazione pregi e atti contrari a correttezza (art. 2598 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONDOMINIO_IMPUGNAZIONE_DELIBERA_ASSEMBLEARE_ART_1137_C_C_130115",
+        "denominazione": "Condominio: impugnazione delibera assembleare (art. 1137 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONDOMINIO_RIPARTIZIONE_DELLE_SPESE_E_CONTROVERSIE_SUL_RENDICONTO_ARTT_1_130120",
+        "denominazione": "Condominio: ripartizione delle spese e controversie sul rendiconto (artt. 1123-1126 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001",
+        "denominazione": "Tutela del consumatore - clausole vessatorie e nullità contrattuali (D.Lgs. 206/2005 Codice del Consumo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONTRAFFAZIONE_DI_MARCHIO_E_CONCORRENZA_SLEALE_CONFUSORIA_ARTT_20_28_COD_170020",
+        "denominazione": "Contraffazione di marchio e concorrenza sleale confusoria (artt. 20-28 Cod. PI + 2598 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONTRATTO_DI_CONTO_CORRENTE_BANCARIO_CONTESTAZIONE_DEL_SALDO_ANATOCISMO__143055",
+        "denominazione": "Contratto di conto corrente bancario: contestazione del saldo, anatocismo e commissioni (artt. 1823-1833 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONTRATTO_DI_MANDATO_REVOCA_RINUNCIA_E_RESPONSABILIT_DEL_MANDATARIO_ARTT_141040",
+        "denominazione": "Contratto di mandato: revoca, rinuncia e responsabilità del mandatario (artt. 1709-1730 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONTRATTO_DI_NOLEGGIO_RESPONSABILIT_PER_DANNI_AL_VEICOLO_NOLEGGIATO_E_CO_143050",
+        "denominazione": "Contratto di noleggio: responsabilità per danni al veicolo noleggiato e controversie (artt. 1571 e ss. c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_CONTRATTO_D_OPERA_INTELLETTUALE_RESPONSABILIT_PROFESSIONALE_ARTT_2229_22_143020",
+        "denominazione": "Contratto d'opera intellettuale - responsabilità professionale (artt. 2229-2238 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DANNO_DA_CADUTA_SU_SUOLO_PUBBLICO_BUCA_STRADALE_ART_2051_C_C_COSE_IN_CUS_160015",
+        "denominazione": "Danno da caduta su suolo pubblico / buca stradale (art. 2051 c.c. – cose in custodia P.A.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DANNO_DA_IMMISSIONI_MOLESTE_RUMORE_FUMI_ODORI_VIBRAZIONI_ART_844_C_C_160170",
+        "denominazione": "Danno da immissioni moleste: rumore, fumi, odori, vibrazioni (art. 844 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DANNO_DA_TRATTAMENTO_ILLECITO_DI_DATI_PERSONALI_GDPR_D_LGS_196_2003_CODI_180030",
+        "denominazione": "Danno da trattamento illecito di dati personali (GDPR + D.Lgs. 196/2003 Codice Privacy)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DECADENZA_LIMITAZIONE_DELLA_RESPONSABILIT_GENITORIALE_E_AFFIDAMENTO_FAMI_113001",
+        "denominazione": "Decadenza/limitazione della responsabilità genitoriale e affidamento familiare (artt. 330-336 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DECRETO_INGIUNTIVO_SU_TITOLO_DI_CREDITO_CAMBIALE_E_ASSEGNO_PROTESTATO_AR_191020",
+        "denominazione": "Decreto ingiuntivo su titolo di credito – cambiale e assegno protestato (artt. 641-642 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030",
+        "denominazione": "Demansionamento / dequalificazione professionale (art. 2103 c.c. - lato passivo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DICHIARAZIONE_DI_ESECUTIVIT_DEL_LODO_ARBITRALE_ART_825_C_P_C_E_IMPUGNAZI_191025",
+        "denominazione": "Dichiarazione di esecutività del lodo arbitrale (art. 825 c.p.c.) e impugnazione del lodo",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DICHIARAZIONE_GIUDIZIALE_DI_PATERNIT_MATERNIT_FUORI_MATRIMONIO_ART_269_C_120040",
+        "denominazione": "Dichiarazione giudiziale di paternità/maternità fuori matrimonio (art. 269 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005",
+        "denominazione": "Difetto di conformità nella vendita di beni di consumo (artt. 128-135 Cod. Consumo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DIMISSIONI_PER_GIUSTA_CAUSA_E_DIRITTI_DEL_LAVORATORE_ART_2119_C_C_MOBBIN_220095",
+        "denominazione": "Dimissioni per giusta causa e diritti del lavoratore (art. 2119 c.c.) + mobbing come causa delle dimissioni",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DIRITTO_DI_SUPERFICIE_ACQUISTO_COSTITUZIONE_CONTROVERSIE_ED_ESTINZIONE_A_130125",
+        "denominazione": "Diritto di superficie: acquisto, costituzione, controversie ed estinzione (artt. 952-956 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DISCONOSCIMENTO_DI_PATERNIT_ARTT_235_244_C_C_E_RETTIFICAZIONE_DELLO_STAT_412005",
+        "denominazione": "Disconoscimento di paternità (artt. 235-244 c.c.) e rettificazione dello stato civile",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DISCRIMINAZIONE_SUL_LAVORO_PER_ET_RELIGIONE_DISABILIT_ORIENTAMENTO_SESSU_220085",
+        "denominazione": "Discriminazione sul lavoro per età, religione, disabilità, orientamento sessuale (D.Lgs. 216/2003 + D.Lgs. 215/2003)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
+        "denominazione": "Distanze legali tra costruzioni (artt. 873 e ss. c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DISTANZE_LEGALI_TRA_COSTRUZIONI_E_VIOLAZIONE_DELLE_NORME_URBANISTICHE_AR_130025",
+        "denominazione": "Distanze legali tra costruzioni e violazione delle norme urbanistiche (art. 873 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DISTRIBUZIONE_E_PIANO_DI_RIPARTO_NELL_ESECUZIONE_IMMOBILIARE_ARTT_596_59_512030",
+        "denominazione": "Distribuzione e piano di riparto nell'esecuzione immobiliare (artt. 596-598 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+        "denominazione": "Divisione giudiziale di comunione ordinaria (artt. 1111-1116 c.c. + 784-791 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DIVISIONE_GIUDIZIALE_DELL_EREDIT_ARTT_713_768_C_C_E_SCIOGLIMENTO_COMUNIO_413005",
+        "denominazione": "Divisione giudiziale dell'eredità (artt. 713-768 c.c.) e scioglimento comunione ereditaria",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DIVORZIO_CONGIUNTO_E_CESSAZIONE_DEGLI_EFFETTI_CIVILI_DEL_MATRIMONIO_ART__111050",
+        "denominazione": "Divorzio congiunto e cessazione degli effetti civili del matrimonio (art. 473-bis.49 c.p.c. + L. 898/1970)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_EREDITA_GIACENTE_413021",
+        "denominazione": "Eredità giacente (art. 528 c.c.) - nomina curatore e amministrazione",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
+        "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+        "denominazione": "Esecuzione di obblighi di fare e di non fare (artt. 612-614 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ESPROPRIAZIONE_FORZATA_PRESSO_TERZI_CONTROVERSIE_ARTT_548_554_C_P_C_512010",
+        "denominazione": "Espropriazione forzata presso terzi - controversie (artt. 548-554 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ESPROPRIAZIONE_MOBILIARE_PRESSO_IL_DEBITORE_PIGNORAMENTO_E_VENDITA_ARTT__510005",
+        "denominazione": "Espropriazione mobiliare presso il debitore – pignoramento e vendita (artt. 513-542 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ESPROPRIAZIONE_PRESSO_TERZI_DICHIARAZIONE_DEL_TERZO_E_CONTESTAZIONI_ARTT_510010",
+        "denominazione": "Espropriazione presso terzi: dichiarazione del terzo e contestazioni (artt. 547-549 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ESPULSIONE_ESCLUSIONE_DEL_SOCIO_DA_S_R_L_PER_GIUSTA_CAUSA_ART_2473_BIS_C_150020",
+        "denominazione": "Espulsione/esclusione del socio da S.r.l. per giusta causa (art. 2473-bis c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_FUSIONE_E_SCISSIONE_SOCIETARIA_IMPUGNAZIONE_DELIBERA_E_RESPONSABILIT_ART_150040",
+        "denominazione": "Fusione e scissione societaria: impugnazione delibera e responsabilità (artt. 2501-2505 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+        "denominazione": "Garanzia per i vizi della cosa venduta (artt. 1490-1495 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMMISSIONI_INTOLLERABILI_130012",
+        "denominazione": "Immissioni intollerabili (art. 844 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMPUGNAZIONE_DELIBERA_ASSEMBLEARE_DI_S_P_A_NULLIT_E_ANNULLABILIT_ARTT_23_150060",
+        "denominazione": "Impugnazione delibera assembleare di S.p.A. – nullità e annullabilità (artt. 2377-2379 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001",
+        "denominazione": "Impugnazione di delibere assembleari di S.r.l. o S.p.a. (artt. 2377-2379 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMPUGNAZIONE_DELLA_SANZIONE_ACCESSORIA_SOSPENSIONE_PATENTE_CONFISCA_ECC__240020",
+        "denominazione": "Impugnazione della sanzione accessoria (sospensione patente, confisca, ecc.) – art. 204-bis C.d.S.",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMPUGNAZIONE_TESTAMENTO_120020",
+        "denominazione": "Impugnazione del testamento (nullità, annullabilità)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_INDENNIZZO_PER_DANNI_DA_VACCINAZIONE_OBBLIGATORIA_O_RACCOMANDATA_L_210_1_160110",
+        "denominazione": "Indennizzo per danni da vaccinazione obbligatoria o raccomandata (L. 210/1992)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_INFORTUNIO_SUL_LAVORO_E_MALATTIA_PROFESSIONALE_AZIONE_CIVILE_DEL_LAVORAT_220090",
+        "denominazione": "Infortunio sul lavoro e malattia professionale – azione civile del lavoratore verso il datore (art. 2087 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_INIBITORIA_PER_PRATICHE_COMMERCIALI_SCORRETTE_D_LGS_206_2005_ARTT_18_27__180010",
+        "denominazione": "Inibitoria per pratiche commerciali scorrette (D.Lgs. 206/2005 artt. 18-27-ter)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_INVENZIONI_DEL_DIPENDENTE_E_DIRITTO_AL_BREVETTO_ARTT_64_65_D_LGS_30_2005_220155",
+        "denominazione": "Invenzioni del dipendente e diritto al brevetto (artt. 64-65 D.Lgs. 30/2005 Cod. PI)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ISTANZA_URGENTE_DI_PROTEZIONE_PROVVISORIA_NEL_PROCEDIMENTO_DI_AMMINISTRA_413115",
+        "denominazione": "Istanza urgente di protezione provvisoria nel procedimento di Amministrazione di Sostegno (art. 405 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LAVORO_A_TERMINE_ILLEGITTIMO_CONVERSIONE_A_TEMPO_INDETERMINATO_D_LGS_81__220080",
+        "denominazione": "Lavoro a termine illegittimo - conversione a tempo indeterminato (D.Lgs. 81/2015 artt. 19-29)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LEGATO_TESTAMENTARIO_AZIONE_PER_L_ADEMPIMENTO_CONTESTAZIONE_E_RINUNCIA_A_121015",
+        "denominazione": "Legato testamentario: azione per l'adempimento, contestazione e rinuncia (artt. 649-673 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LICENZIAMENTO_DISCIPLINARE_220003",
+        "denominazione": "Impugnazione del licenziamento disciplinare",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LICENZIAMENTO_GMO_220005",
+        "denominazione": "Licenziamento per giustificato motivo oggettivo (GMO economico/organizzativo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LIQUIDAZIONE_DELLA_S_R_L_OBBLIGHI_DEI_LIQUIDATORI_RESPONSABILIT_E_CONTRO_155020",
+        "denominazione": "Liquidazione della S.r.l.: obblighi dei liquidatori, responsabilità e controversie (artt. 2484-2496 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LIQUIDAZIONE_GIUDIZIALE_DEL_COMPENSO_DEL_PROFESSIONISTA_ART_14_D_LGS_150_413090",
+        "denominazione": "Liquidazione giudiziale del compenso del professionista (art. 14 D.Lgs. 150/2011)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LOCAZIONE_ABITATIVA_A_USO_TRANSITORIO_E_PER_STUDENTI_UNIVERSITARI_L_431__140070",
+        "denominazione": "Locazione abitativa a uso transitorio e per studenti universitari (L. 431/1998 artt. 5-6)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LOCAZIONE_COMMERCIALE_SFRATTO_PER_MOROSIT_DINIEGO_DI_RINNOVO_E_INDENNIT__145010",
+        "denominazione": "Locazione commerciale – sfratto per morosità, diniego di rinnovo e indennità di avviamento (L. 392/1978)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LOCAZIONE_PER_FINALIT_TURISTICHE_E_AFFITTI_BREVI_L_431_1998_ART_4_D_L_50_140075",
+        "denominazione": "Locazione per finalità turistiche e affitti brevi (L. 431/1998 art. 4 + D.L. 50/2017)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_LUCI_E_VEDUTE_TRA_FONDI_CONTIGUI_APERTURA_DISTANZE_E_TUTELA_ARTT_900_907_130055",
+        "denominazione": "Luci e vedute tra fondi contigui – apertura, distanze e tutela (artt. 900-907 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_MEDIAZIONE_IMMOBILIARE_DIRITTO_ALLA_PROVVIGIONE_DEL_MEDIATORE_ARTT_1754__141025",
+        "denominazione": "Mediazione immobiliare: diritto alla provvigione del mediatore (artt. 1754-1765 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+        "denominazione": "Mobbing e straining - danni al lavoratore da condotte vessatorie",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_MODIFICA_DELLE_CONDIZIONI_DI_SEPARAZIONE_O_DIVORZIO_PER_SOPRAVVENIENZE_A_111030",
+        "denominazione": "Modifica delle condizioni di separazione o divorzio per sopravvenienze (art. 337-quinquies c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_MUTUO_FONDIARIO_E_IPOTECARIO_CONTROVERSIE_USURA_E_RISOLUZIONE_ARTT_1813__143060",
+        "denominazione": "Mutuo fondiario e ipotecario: controversie, usura e risoluzione (artt. 1813-1822 c.c. + TUB artt. 38-42)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_NOMINA_DEL_TUTORE_DEL_MINORE_PRIVO_DI_GENITORI_O_IN_CONFLITTO_DI_INTERES_410010",
+        "denominazione": "Nomina del tutore del minore privo di genitori o in conflitto di interessi (artt. 343-395 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+        "denominazione": "Nullità clausole bancarie / anatocismo / usura / azione restitutoria",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_NULLIT_DI_CLAUSOLE_ABUSIVE_NEI_CONTRATTI_DEL_CONSUMATORE_ARTT_33_38_COD__140040",
+        "denominazione": "Nullità di clausole abusive nei contratti del consumatore (artt. 33-38 Cod. Consumo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ONORARI_PROFESSIONALI_L794",
+        "denominazione": "Procedimento sommario per onorari professionali ex L. 794/1942 (art. 14 D.Lgs. 150/2011)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_AL_PROCEDIMENTO_ESPROPRIATIVO_PER_PUBBLICA_UTILIT_D_P_R_327__512040",
+        "denominazione": "Opposizione al procedimento espropriativo per pubblica utilità (D.P.R. 327/2001 - Testo Unico Espropri)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_A_CARTELLA_DI_PAGAMENTO_INTIMAZIONE_DI_PAGAMENTO_AGENZIA_ENT_512005",
+        "denominazione": "Opposizione a cartella di pagamento / intimazione di pagamento Agenzia Entrate Riscossione",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_A_ORDINANZA_INGIUNZIONE_PER_SANZIONE_AMMINISTRATIVA_ARTT_22__240010",
+        "denominazione": "Opposizione a ordinanza-ingiunzione per sanzione amministrativa (artt. 22-23 L. 689/1981)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001",
+        "denominazione": "Opposizione alla cartella di pagamento esattoriale",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_PRECETTO_199001",
+        "denominazione": "Opposizione a precetto (art. 615 c. 1 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001",
+        "denominazione": "Opposizione a sanzione amministrativa (L. 689/1981)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ORARIO_DI_LAVORO_STRAORDINARI_NON_RETRIBUITI_FERIE_E_RIPOSI_NON_GODUTI_220025",
+        "denominazione": "Orario di lavoro, straordinari non retribuiti, ferie e riposi non goduti",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PERDITA_DI_CHANCE_AZIONE_RISARCITORIA_PER_MANCATA_OPPORTUNIT_TEORIA_GENE_160035",
+        "denominazione": "Perdita di chance – azione risarcitoria per mancata opportunità (teoria generale)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PETIZIONE_DI_EREDIT_ART_533_C_C_AZIONE_DELL_EREDE_PER_LA_RESTITUZIONE_DE_130005",
+        "denominazione": "Petizione di eredità (art. 533 c.c.) – azione dell'erede per la restituzione dei beni ereditari",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001",
+        "denominazione": "Petizione di stato / reclamo di stato familiare (artt. 239-249 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PIANO_DEL_CONSUMATORE_ACCORDO_DI_COMPOSIZIONE_DELLA_CRISI_DA_SOVRAINDEBI_620010",
+        "denominazione": "Piano del consumatore / accordo di composizione della crisi da sovraindebitamento (D.Lgs. 14/2019 CCII)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PIGNORAMENTO_DI_QUOTA_DI_S_R_L_E_VENDITA_FORZATA_ART_2471_C_C_511030",
+        "denominazione": "Pignoramento di quota di S.r.l. e vendita forzata (art. 2471 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002",
+        "denominazione": "Risoluzione del contratto preliminare di compravendita immobiliare + esecuzione specifica ex art. 2932 c.c.",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PROCEDIMENTO_DI_ADOTTABILIT_E_STATO_DI_ABBANDONO_DEL_MINORE_L_184_1983_A_414010",
+        "denominazione": "Procedimento di adottabilità e stato di abbandono del minore (L. 184/1983 artt. 8-21)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PROVVEDIMENTO_D_URGENZA_ATIPICO_INIBITORIA_CAUTELARE_ART_700_C_P_C_190015",
+        "denominazione": "Provvedimento d'urgenza atipico – inibitoria cautelare (art. 700 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RC_DA_CIRCOLAZIONE_VEICOLI_SCONTRO_TRA_VEICOLI_ART_2054_C_C_REGIME_ORDIN_160001",
+        "denominazione": "RC da circolazione veicoli – scontro tra veicoli (art. 2054 c.c.) – regime ordinario",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RECESSO_SOCIO_SRL_150003",
+        "denominazione": "Recesso del socio di S.r.l. e liquidazione della quota (artt. 2473 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_REGIME_DELLE_ACQUE_NEI_RAPPORTI_DI_VICINATO_SCOLO_GRONDA_ACQUE_PIOVANE_A_130080",
+        "denominazione": "Regime delle acque nei rapporti di vicinato - scolo, gronda, acque piovane (artt. 913-921 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_REGOLAMENTO_CONFINI_130032",
+        "denominazione": "Azione di regolamento dei confini (art. 950 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_REGOLAMENTO_DI_CONFINI_TRA_FONDI_CONTIGUI_ART_950_C_C_130060",
+        "denominazione": "Regolamento di confini tra fondi contigui (art. 950 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESCISSIONE_DEL_CONTRATTO_PER_LESIONE_ULTRA_DIMIDIUM_ART_1448_C_C_140025",
+        "denominazione": "Rescissione del contratto per lesione ultra dimidium (art. 1448 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+        "denominazione": "Responsabilità da cose in custodia (art. 2051 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+        "denominazione": "Responsabilità medico-sanitaria (L. 24/2017 Gelli-Bianco)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
+        "denominazione": "Responsabilità professionale del notaio o del commercialista",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DA_CIRCOLAZIONE_STRADALE_SINISTRO_CON_VEICOLO_NON_ASSICURA_160030",
+        "denominazione": "Responsabilità da circolazione stradale - sinistro con veicolo non assicurato/non identificato (Fondo di Garanzia Vittime della Strada)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DA_COSE_IN_CUSTODIA_PRIVATA_CADUTE_SU_AREE_PRIVATE_APERTE__160025",
+        "denominazione": "Responsabilità da cose in custodia privata – cadute su aree private aperte al pubblico (art. 2051 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DA_ILLECITO_ANTITRUST_E_ABUSO_DI_POSIZIONE_DOMINANTE_ARTT__160100",
+        "denominazione": "Responsabilità da illecito antitrust e abuso di posizione dominante (artt. 101-102 TFUE + L. 287/1990)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DA_INFILTRAZIONI_DI_ACQUA_TRA_IMMOBILI_E_DANNI_CONDOMINIAL_160005",
+        "denominazione": "Responsabilità da infiltrazioni di acqua tra immobili e danni condominiali (art. 2051 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_COD_CONS_160050",
+        "denominazione": "Responsabilità da prodotto difettoso (D.Lgs. 206/2005 artt. 114-127 Cod. Consumo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DA_PRODOTTO_DIFETTOSO_D_LGS_206_2005_ARTT_114_127_D_P_R_22_160003",
+        "denominazione": "Responsabilità da prodotto difettoso (D.Lgs. 206/2005 artt. 114-127 + D.P.R. 224/1988)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DEGLI_AMMINISTRATORI_DI_S_R_L_VERSO_LA_SOCIET_E_I_CREDITOR_154010",
+        "denominazione": "Responsabilità degli amministratori di S.r.l. verso la società e i creditori (artt. 2476-2476-bis c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DELLA_BANCA_PER_OPERAZIONI_NON_AUTORIZZATE_FRODI_INFORMATI_160175",
+        "denominazione": "Responsabilità della banca per operazioni non autorizzate, frodi informatiche e phishing (D.Lgs. 11/2010)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DELLA_PUBBLICA_AMMINISTRAZIONE_PER_FATTO_ILLECITO_ART_2043_160060",
+        "denominazione": "Responsabilità della Pubblica Amministrazione per fatto illecito (art. 2043 c.c. + D.Lgs. 104/2010)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DEL_PREPONENTE_PER_FATTO_DEL_DIPENDENTE_PREPOSTO_ART_2049__160011",
+        "denominazione": "Responsabilità del preponente per fatto del dipendente/preposto (art. 2049 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_DEL_PROPRIETARIO_O_DETENTORE_DI_ANIMALI_ART_2052_C_C_160130",
+        "denominazione": "Responsabilità del proprietario o detentore di animali (art. 2052 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_SANITARIA_DA_INFEZIONE_NOSOCOMIALE_L_24_2017_GELLI_BIANCO_160165",
+        "denominazione": "Responsabilità sanitaria da infezione nosocomiale (L. 24/2017 Gelli-Bianco)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILIT_SANITARIA_PER_ERRATA_PRESCRIZIONE_O_SOMMINISTRAZIONE_DI_FA_160120",
+        "denominazione": "Responsabilità sanitaria per errata prescrizione o somministrazione di farmaci (L. 24/2017 Gelli-Bianco)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_REVOCA_DELLA_SEPARAZIONE_PERSONALE_E_RICONCILIAZIONE_CONIUGALE_ART_157_C_113010",
+        "denominazione": "Revoca della separazione personale e riconciliazione coniugale (art. 157 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007",
+        "denominazione": "Riconoscimento giudiziale della paternità o della maternità",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISARCIMENTO_DANNI_DA_SINISTRO_STRADALE_PEDONE_O_CICLISTA_INVESTITO_DA_V_144010",
+        "denominazione": "Risarcimento danni da sinistro stradale - pedone o ciclista investito da veicolo (art. 2054 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_APPALTO_140001",
+        "denominazione": "Risoluzione del contratto di appalto",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_FACTORING_E_CESSIONE_DI_CREDITI_L_52_1991_ARTT__143015",
+        "denominazione": "Risoluzione contratto di factoring e cessione di crediti (L. 52/1991 + artt. 1260-1267 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_LEASING_FINANZIARIO_PER_INADEMPIMENTO_141005",
+        "denominazione": "Risoluzione contratto di leasing finanziario per inadempimento",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_MUTUO_PER_INADEMPIMENTO_E_RECUPERO_DEL_CAPITALE_143025",
+        "denominazione": "Risoluzione contratto di mutuo per inadempimento e recupero del capitale (artt. 1813-1822 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_SOMMINISTRAZIONE_PER_INADEMPIMENTO_ARTT_1559_15_141010",
+        "denominazione": "Risoluzione contratto di somministrazione per inadempimento (artt. 1559-1570 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_CONTRATTO_DI_TRASPORTO_E_RESPONSABILIT_DEL_VETTORE_PER_PERDI_143010",
+        "denominazione": "Risoluzione contratto di trasporto e responsabilità del vettore per perdita/avaria (artt. 1693-1702 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+        "denominazione": "Risoluzione contratto di mutuo + decadenza dal beneficio del termine (art. 1186 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_PER_ECCESSIVA_ONEROSIT_SOPRAVVENUTA_ART_1467_C_C_140020",
+        "denominazione": "Risoluzione per eccessiva onerosità sopravvenuta (art. 1467 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_SOCIET_DI_PERSONE_ARTT_2272_2312_C_C_155005",
+        "denominazione": "Scioglimento e liquidazione di società di persone (artt. 2272-2312 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SCIOGLIMENTO_E_LIQUIDAZIONE_DI_S_R_L_ARTT_2484_2496_C_C_154001",
+        "denominazione": "Scioglimento e liquidazione di S.r.l. (artt. 2484-2496 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+        "denominazione": "Scioglimento giudiziale della società di persone (artt. 2272 e ss. c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SEPARAZIONE_CONSENSUALE_E_OMOLOGAZIONE_ART_158_C_C_473_BIS_51_C_P_C_111040",
+        "denominazione": "Separazione consensuale e omologazione (art. 158 c.c. + 473-bis.51 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SEQUESTRO_CONSERVATIVO_ANTE_CAUSAM_E_IN_CORSO_DI_CAUSA_ART_671_C_P_C_190010",
+        "denominazione": "Sequestro conservativo ante causam e in corso di causa (art. 671 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SEQUESTRO_GIUDIZIARIO_DI_BENI_CONTROVERSI_ART_670_C_P_C_190020",
+        "denominazione": "Sequestro giudiziario di beni controversi (art. 670 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SERVITU_PREDIALI_130013",
+        "denominazione": "Servitù prediali - costituzione, accertamento, modifiche (artt. 1027-1099 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_ILLECITA_E_CONSEGUENZE_PER_IL_LAVORATORE_ARTT_220175",
+        "denominazione": "Somministrazione di lavoro illecita e conseguenze per il lavoratore (artt. 30-40 D.Lgs. 276/2003)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_S_P_A_DIRITTI_DEGLI_AZIONISTI_DI_MINORANZA_ISPEZIONE_DENUNCIA_AL_TRIBUNA_150075",
+        "denominazione": "S.p.A.: diritti degli azionisti di minoranza – ispezione, denuncia al tribunale e recesso (artt. 2408-2409 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TFR_CALCOLO_CONTESTATO_LIQUIDAZIONE_E_RICHIESTA_DI_PAGAMENTO_ART_2120_C__220160",
+        "denominazione": "TFR: calcolo contestato, liquidazione e richiesta di pagamento (art. 2120 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TIROCINIO_E_STAGE_IRREGOLARIT_TRASFORMAZIONE_IN_RAPPORTO_DI_LAVORO_E_CON_220170",
+        "denominazione": "Tirocinio e stage: irregolarità, trasformazione in rapporto di lavoro e controversie (D.M. 142/1998 + L. 92/2012)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TRASFERIMENTO_DI_PARTECIPAZIONI_IN_S_R_L_E_CLAUSOLE_DI_PRELAZIONE_GRADIM_150030",
+        "denominazione": "Trasferimento di partecipazioni in S.r.l. e clausole di prelazione/gradimento (art. 2469 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TUTELA_DELLA_DITTA_DEL_NOME_COMMERCIALE_E_DELL_INSEGNA_ARTT_2563_2567_C__170040",
+        "denominazione": "Tutela della ditta, del nome commerciale e dell'insegna (artt. 2563-2567 c.c. + artt. 22-24 Cod. PI)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+        "denominazione": "Procedimenti di tutela del maggiore d'età con grave handicap (interdizione/inabilitazione - controversie)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TUTELA_MINORI_ORDINARIA",
+        "denominazione": "Apertura della tutela ordinaria - minori (per genitori deceduti, decaduti o impossibilitati)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_USUCAPIONE_ABBREVIATA_DECENNALE_ART_1159_C_C_E_USUCAPIONE_DI_BENI_MOBILI_130095",
+        "denominazione": "Usucapione abbreviata decennale (art. 1159 c.c.) e usucapione di beni mobili (art. 1161 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_VIOLAZIONE_DEL_DIRITTO_D_AUTORE_E_RISARCIMENTO_DEL_DANNO_L_633_1941_170025",
+        "denominazione": "Violazione del diritto d'autore e risarcimento del danno (L. 633/1941)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011",
+        "denominazione": "Risarcimento danni da violazione di marchio o brevetto",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_VIZI_E_DIFETTI_NELL_APPALTO_PRIVATO_RESPONSABILIT_DELL_APPALTATORE_ARTT__140045",
+        "denominazione": "Vizi e difetti nell'appalto privato – responsabilità dell'appaltatore (artt. 1655-1670 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+        "denominazione": "Volontaria giurisdizione su minori - autorizzazioni atti rappresentanti legali",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_CONTRATTI_FLESSIBILI",
+        "denominazione": "Contratti a termine, somministrazione, apprendistato (D.Lgs. 81/2015)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_DIFF_001",
+        "denominazione": "Differenze retributive e rivendicazione crediti di lavoro",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_INFORTUNI_001",
+        "denominazione": "Infortuni sul lavoro e malattie professionali - prestazioni INAIL",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_INVCIV_001",
+        "denominazione": "Invalidità civile, cecità, sordità - prestazioni assistenziali (L. 118/1971, L. 18/1980)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_LIC_001",
+        "denominazione": "Impugnazione di licenziamento individuale (art. 18 St.Lav. / Jobs Act)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_LIC_COLLETTIVO",
+        "denominazione": "Licenziamenti collettivi (L. 223/1991)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_MOBBING_001",
+        "denominazione": "Mobbing, straining, demansionamento e danni da illegittima condotta del datore",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_PREVID_001",
+        "denominazione": "Prestazioni INPS - pensioni e indennità (previdenza obbligatoria)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_PUBBLICO_IMPIEGO",
+        "denominazione": "Pubblico impiego privatizzato (controversie ex art. 63 D.Lgs. 165/2001)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_QUALIFICA_001",
+        "denominazione": "Accertamento natura del rapporto di lavoro / rivendicazione qualifica",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_REPRESSIONE_DISCRIM",
+        "denominazione": "Repressione condotte discriminatorie (D.Lgs. 198/2006, D.Lgs. 215/2003)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_SCIOPERO_ART28",
+        "denominazione": "Repressione condotta antisindacale (art. 28 L. 300/1970)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_TENTATIVO_CONCILIAZIONE",
+        "denominazione": "Tentativo facoltativo/obbligatorio di conciliazione e procedura ITL",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_TRASF_AZIENDA",
+        "denominazione": "Trasferimento d'azienda (art. 2112 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      }
+    ]
+  },
+  "partial_count": 0
+}

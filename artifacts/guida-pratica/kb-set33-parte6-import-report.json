@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p6.json",
+  "sha256": "A26B3AE34BCF584CD4B439C89EDBC35C6FB6E8215276EA8232AD8C018C48756A",
+  "changed": true,
+  "macro_area_id": "SET33_PARTE6",
+  "denominazione": "PARTE 6 di 8",
+  "codici_materia_originali": [
+    "220285",
+    "220290",
+    "220295",
+    "220300",
+    "240070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LAVORO_AGILE_SMART_WORKING_DIRITTI_DEL_LAVORATORE_RECESSO_E_CONTROVERSIE_220285",
+    "GUIDA_RISOLUZIONE_CONSENSUALE_DEL_RAPPORTO_DI_LAVORO_E_INCENTIVI_ALL_ESODO_ART_220290",
+    "GUIDA_LAVORO_IN_COOPERATIVE_ACCERTAMENTO_DELLA_NATURA_DEL_RAPPORTO_E_TUTELE_L__220295",
+    "GUIDA_PREVIDENZA_COMPLEMENTARE_CONTROVERSIE_SU_FONDI_PENSIONE_TRASFERIMENTO_E__220300",
+    "GUIDA_AUTORIZZAZIONI_PAESAGGISTICHE_IMPUGNAZIONE_DEL_DINIEGO_E_TUTELA_DEL_PATR_240070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220285",
+      "codice_integrato": "GUIDA_LAVORO_AGILE_SMART_WORKING_DIRITTI_DEL_LAVORATORE_RECESSO_E_CONTROVERSIE_220285",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220290",
+      "codice_integrato": "GUIDA_RISOLUZIONE_CONSENSUALE_DEL_RAPPORTO_DI_LAVORO_E_INCENTIVI_ALL_ESODO_ART_220290",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220295",
+      "codice_integrato": "GUIDA_LAVORO_IN_COOPERATIVE_ACCERTAMENTO_DELLA_NATURA_DEL_RAPPORTO_E_TUTELE_L__220295",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220300",
+      "codice_integrato": "GUIDA_PREVIDENZA_COMPLEMENTARE_CONTROVERSIE_SU_FONDI_PENSIONE_TRASFERIMENTO_E__220300",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240070",
+      "codice_integrato": "GUIDA_AUTORIZZAZIONI_PAESAGGISTICHE_IMPUGNAZIONE_DEL_DINIEGO_E_TUTELA_DEL_PATR_240070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

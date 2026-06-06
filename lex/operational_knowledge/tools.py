@@ -734,6 +734,20 @@ class OperationalKnowledgeTools:
         except Exception as exc:
             return self._unavailable("template_atti_fonti_ufficiali", f"Fonti Template Atti non interrogabili: {exc}")
 
+    def search_legal_practice_matrix(self, query: str, context: OperationalQueryContext, *, limit: int = 12) -> OperationalToolResult:
+        decision = self._decision("matrice_pratica_legale", context)
+        if not decision.allowed:
+            return self._blocked("matrice_pratica_legale", decision)
+        try:
+            rows = _legal_practice_matrix_rows_for_query(query, limit=limit)
+        except Exception as exc:
+            return self._unavailable("matrice_pratica_legale", f"Matrice pratica legale non interrogabile: {exc}")
+        result = self._plain_result("matrice_pratica_legale", context, rows, "matrice_pratica")
+        result.permission = decision
+        if not rows:
+            result.coverage_gaps.append("Nessuna scheda pratica legale trovata per la domanda.")
+        return result
+
     def get_editor_ai_status(self, context: OperationalQueryContext) -> OperationalToolResult:
         decision = self._decision("editor_ai", context)
         if not decision.allowed:
@@ -1927,6 +1941,139 @@ def _source_delivery_rows_for_query(query: str, *, limit: int = 12) -> list[dict
         scored.append((score, payload))
     scored.sort(key=lambda item: (-item[0], str(item[1].get("title") or "")))
     return [row for _, row in scored[: max(1, int(limit or 1))]]
+
+
+def _legal_practice_matrix_rows_for_query(query: str, *, limit: int = 12) -> list[dict[str, Any]]:
+    try:
+        from pct.legal_practice_research_matrix import (
+            LEGAL_NOMINAL_REFERENCE_LIBRARY,
+            LEGAL_PRACTICE_RESEARCH_MATRIX,
+        )
+    except Exception:
+        return []
+
+    practice_titles = {
+        clean_spaces(item.get("id")): clean_spaces(item.get("title"))
+        for item in LEGAL_PRACTICE_RESEARCH_MATRIX
+        if isinstance(item, dict)
+    }
+    terms = _terms(query)
+    rows: list[tuple[int, dict[str, Any]]] = []
+    for item in LEGAL_PRACTICE_RESEARCH_MATRIX:
+        if not isinstance(item, dict):
+            continue
+        payload = {
+            "kind": "scheda_pratica_legale",
+            "id": clean_spaces(item.get("id")),
+            "title": clean_spaces(item.get("title")),
+            "area": clean_spaces(item.get("area")),
+            "scope": clean_spaces(item.get("scope")),
+            "official_sources": list(item.get("official_sources") or []),
+            "articles_and_codes": list(item.get("articles_and_codes") or []),
+            "decrees_and_rules": list(item.get("decrees_and_rules") or []),
+            "case_law_and_hearings": list(item.get("case_law_and_hearings") or []),
+            "acts_to_prepare": list(item.get("acts_to_prepare") or []),
+            "deadlines_tasks": list(item.get("deadlines_tasks") or []),
+            "lex_questions": list(item.get("lex_questions") or []),
+            "research_queries": list(item.get("research_queries") or []),
+            "action_url": "/ricerca-legale",
+        }
+        score = _practice_query_score(payload, terms)
+        if score > 0:
+            rows.append((score + 6, payload))
+    for item in LEGAL_NOMINAL_REFERENCE_LIBRARY:
+        if not isinstance(item, dict):
+            continue
+        linked_practices = [
+            practice_titles.get(clean_spaces(practice_id), clean_spaces(practice_id))
+            for practice_id in list(item.get("practice_ids") or [])
+        ]
+        payload = {
+            "kind": "riferimento_nominale_legale",
+            "id": clean_spaces(item.get("id")),
+            "title": clean_spaces(item.get("label")),
+            "authority": clean_spaces(item.get("authority")),
+            "source_type": clean_spaces(item.get("kind")),
+            "official_url": clean_spaces(item.get("url")),
+            "articles": clean_spaces(item.get("articles")),
+            "use": clean_spaces(item.get("use")),
+            "linked_practices": [item for item in linked_practices if item],
+            "action_url": "/ricerca-legale",
+        }
+        score = _practice_query_score(payload, terms)
+        if score > 0:
+            rows.append((score + 3, payload))
+    rows.sort(key=lambda item: (-item[0], str(item[1].get("title") or "")))
+    output: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for _, row in rows:
+        key = f"{row.get('kind')}::{row.get('id')}"
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(row)
+        if len(output) >= max(1, int(limit or 1)):
+            break
+    return output
+
+
+def _practice_query_score(payload: dict[str, Any], terms: list[str]) -> int:
+    def field_text(*names: str) -> str:
+        return clean_spaces(" ".join(str(payload.get(name) or "") for name in names)).lower()
+
+    title = field_text("title", "titolo")
+    articles = field_text("articles", "articoli", "norme_articoli")
+    use = field_text("use", "uso_operativo", "scope", "perimetro")
+    practice_links = field_text("linked_practices", "pratiche_collegate")
+    operative = field_text(
+        "decrees_and_rules",
+        "decreti_regole",
+        "case_law_and_hearings",
+        "sentenze_udienze_provvedimenti",
+        "acts_to_prepare",
+        "atti_da_produrre",
+        "deadlines_tasks",
+        "scadenze_task",
+        "lex_questions",
+        "domande_lex",
+        "research_queries",
+        "ricerche_tracciate",
+    )
+    haystack = clean_spaces(
+        " ".join(str(value) for value in payload.values())
+    ).lower()
+    if not terms:
+        return 1
+    score = 0
+    for term in terms:
+        if term in title:
+            score += 8
+        if term in articles:
+            score += 6
+        if term in use:
+            score += 5
+        if term in practice_links:
+            score += 5
+        if term in operative:
+            score += 3
+        if term in haystack:
+            score += 1
+    kind = clean_spaces(payload.get("kind") or payload.get("tipo")).lower()
+    if "riferimento_nominale_legale" in kind and score > 0:
+        score += 8
+    identity = field_text("id", "title", "titolo", "articles", "articoli", "use", "uso_operativo")
+    query = " ".join(terms)
+    boosts = (
+        (("licenziamento",), ("legge_300_1970_statuto_lavoratori", "legge_604_1966_licenziamenti", "dlgs_23_2015_tutele_crescenti")),
+        (("pei", "sostegno", "graduatoria", "mim", "docente"), ("dlgs_66_2017_inclusione_scolastica", "dlgs_297_1994_testo_unico_scuola", "mim_atti_normativa_graduatorie")),
+        (("tar", "udienze", "decreti", "sentenze"), ("openga_calendario_udienze", "openga_decreti_ordinanze_sentenze")),
+        (("foia", "accesso", "riesame"), ("dlgs_33_2013_accesso_civico", "anac_accesso_civico")),
+        (("cartella", "esattoriale", "riscossione"), ("dpr_602_1973_riscossione", "agenzia_entrate_riscossione")),
+    )
+    for query_terms, reference_ids in boosts:
+        if any(term in query for term in query_terms) and any(ref_id in identity for ref_id in reference_ids):
+            score += 14
+    return score
 
 
 def _source_delivery_specific_boost(query_text: str, payload: dict[str, Any]) -> int:

@@ -1,0 +1,503 @@
+{
+  "generated_at": "2026-06-06T22:12:53Z",
+  "sources": [
+    "C:\\Users\\antmm\\Downloads\\files (22).zip"
+  ],
+  "files": [
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p1.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p1.json",
+      "sha256": "FE10E9EC6CC3A1B1E2732BEFFEE237DF40CF3AD35253DC9B72868F5CECEFDC68",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE1",
+      "denominazione": "Trentatreesimo set - 40 nuovi codici - PARTE 1 di 8",
+      "codici_materia_originali": [
+        "112005",
+        "113015",
+        "121025",
+        "413140",
+        "415005"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_REGIME_DI_SEPARAZIONE_DEI_BENI_TRA_CONIUGI_SCELTA_EFFETTI_E_CONTROVERSIE_112005",
+        "GUIDA_NEGOZIAZIONE_ASSISTITA_PER_SEPARAZIONE_E_DIVORZIO_CONSENSUALE_D_L_132_20_113015",
+        "GUIDA_CONTESTAZIONE_DELLO_STATUS_DI_FIGLIO_LEGITTIMO_AZIONE_DI_CONTESTAZIONE_A_121025",
+        "GUIDA_SCOMPARSA_E_MORTE_PRESUNTA_DICHIARAZIONE_GIUDIZIALE_E_EFFETTI_ARTT_48_73_413140",
+        "GUIDA_INVALIDIT_E_ANNULLABILIT_DEL_TESTAMENTO_VIZI_DI_FORMA_E_DI_VOLONT_ARTT_6_415005"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "112005",
+          "codice_integrato": "GUIDA_REGIME_DI_SEPARAZIONE_DEI_BENI_TRA_CONIUGI_SCELTA_EFFETTI_E_CONTROVERSIE_112005",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "113015",
+          "codice_integrato": "GUIDA_NEGOZIAZIONE_ASSISTITA_PER_SEPARAZIONE_E_DIVORZIO_CONSENSUALE_D_L_132_20_113015",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "121025",
+          "codice_integrato": "GUIDA_CONTESTAZIONE_DELLO_STATUS_DI_FIGLIO_LEGITTIMO_AZIONE_DI_CONTESTAZIONE_A_121025",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "413140",
+          "codice_integrato": "GUIDA_SCOMPARSA_E_MORTE_PRESUNTA_DICHIARAZIONE_GIUDIZIALE_E_EFFETTI_ARTT_48_73_413140",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "415005",
+          "codice_integrato": "GUIDA_INVALIDIT_E_ANNULLABILIT_DEL_TESTAMENTO_VIZI_DI_FORMA_E_DI_VOLONT_ARTT_6_415005",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 6
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p2.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p2.json",
+      "sha256": "0E6F97352764AE3DA51813BBAEE4F2E390A5EA26656C1CEC13267DEBFB470A6C",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE2",
+      "denominazione": "PARTE 2 di 8",
+      "codici_materia_originali": [
+        "120080",
+        "120085",
+        "130190",
+        "130200",
+        "140100"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_PETIZIONE_DI_EREDIT_E_AZIONE_DI_ACCERTAMENTO_DELLA_QUALIT_DI_EREDE_ARTT__120080",
+        "GUIDA_COLLAZIONE_EREDITARIA_E_IMPUTAZIONE_DELLE_DONAZIONI_ARTT_737_752_C_C_120085",
+        "GUIDA_APERTURA_DI_VEDUTE_E_LUCI_NEI_MURI_DISCIPLINA_E_CONTROVERSIE_TRA_VICINI__130190",
+        "GUIDA_DIRITTO_DI_RITENZIONE_PRESUPPOSTI_ESERCIZIO_E_OPPOSIZIONE_ART_2756_C_C_1_130200",
+        "GUIDA_PATTO_DI_PREFERENZA_E_PRELAZIONE_VOLONTARIA_VIOLAZIONE_E_RISCATTO_ARTT_1_140100"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "120080",
+          "codice_integrato": "GUIDA_PETIZIONE_DI_EREDIT_E_AZIONE_DI_ACCERTAMENTO_DELLA_QUALIT_DI_EREDE_ARTT__120080",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "120085",
+          "codice_integrato": "GUIDA_COLLAZIONE_EREDITARIA_E_IMPUTAZIONE_DELLE_DONAZIONI_ARTT_737_752_C_C_120085",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "130190",
+          "codice_integrato": "GUIDA_APERTURA_DI_VEDUTE_E_LUCI_NEI_MURI_DISCIPLINA_E_CONTROVERSIE_TRA_VICINI__130190",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "130200",
+          "codice_integrato": "GUIDA_DIRITTO_DI_RITENZIONE_PRESUPPOSTI_ESERCIZIO_E_OPPOSIZIONE_ART_2756_C_C_1_130200",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "140100",
+          "codice_integrato": "GUIDA_PATTO_DI_PREFERENZA_E_PRELAZIONE_VOLONTARIA_VIOLAZIONE_E_RISCATTO_ARTT_1_140100",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p3.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p3.json",
+      "sha256": "BB663B97882DC6C415DD550B31E09E0CAFED83E802DA2B9603879F4F7B18BE4A",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE3",
+      "denominazione": "PARTE 3 di 8",
+      "codici_materia_originali": [
+        "141100",
+        "141105",
+        "143130",
+        "145030",
+        "150115"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_LEASING_MOBILIARE_INADEMPIMENTO_DELL_UTILIZZATORE_RESTITUZIONE_E_TUTELE__141100",
+        "GUIDA_NOLEGGIO_A_LUNGO_TERMINE_NLT_DI_AUTOVEICOLI_INADEMPIMENTO_RECESSO_ANTICI_141105",
+        "GUIDA_CREDITO_AL_CONSUMO_CONTESTAZIONE_DEL_TAEG_CLAUSOLE_ABUSIVE_E_DIRITTO_DI__143130",
+        "GUIDA_DEPOSITO_CAUZIONALE_NELLA_LOCAZIONE_RESTITUZIONE_UTILIZZO_E_CONTROVERSIE_145030",
+        "GUIDA_CONSORZI_TRA_IMPRESE_CONTROVERSIE_SCIOGLIMENTO_E_RESPONSABILIT_DEI_CONSO_150115"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "141100",
+          "codice_integrato": "GUIDA_LEASING_MOBILIARE_INADEMPIMENTO_DELL_UTILIZZATORE_RESTITUZIONE_E_TUTELE__141100",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "141105",
+          "codice_integrato": "GUIDA_NOLEGGIO_A_LUNGO_TERMINE_NLT_DI_AUTOVEICOLI_INADEMPIMENTO_RECESSO_ANTICI_141105",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "143130",
+          "codice_integrato": "GUIDA_CREDITO_AL_CONSUMO_CONTESTAZIONE_DEL_TAEG_CLAUSOLE_ABUSIVE_E_DIRITTO_DI__143130",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "145030",
+          "codice_integrato": "GUIDA_DEPOSITO_CAUZIONALE_NELLA_LOCAZIONE_RESTITUZIONE_UTILIZZO_E_CONTROVERSIE_145030",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "150115",
+          "codice_integrato": "GUIDA_CONSORZI_TRA_IMPRESE_CONTROVERSIE_SCIOGLIMENTO_E_RESPONSABILIT_DEI_CONSO_150115",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p4.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p4.json",
+      "sha256": "30BD2538CC9F03C1D922A5E8EA16BF484556399747EB47758D2037FF6D28998C",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE4",
+      "denominazione": "PARTE 4 di 8",
+      "codici_materia_originali": [
+        "150120",
+        "160275",
+        "160280",
+        "160285",
+        "160290"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_ASSOCIAZIONI_NON_RICONOSCIUTE_E_FONDAZIONI_RESPONSABILIT_CONTROVERSIE_E__150120",
+        "GUIDA_CULPA_IN_CONTRAHENDO_RESPONSABILIT_DA_ROTTURA_ARBITRARIA_DELLE_TRATTATIV_160275",
+        "GUIDA_DOLO_NELLA_CONCLUSIONE_DEL_CONTRATTO_ANNULLAMENTO_E_RISARCIMENTO_ARTT_14_160280",
+        "GUIDA_FIDUCIA_IMMOBILIARE_INADEMPIMENTO_DEL_FIDUCIARIO_E_AZIONE_DI_RITRASFERIM_160285",
+        "GUIDA_RESPONSABILIT_PER_DANNI_CAUSATI_DA_ANIMALI_SELVATICI_E_FAUNA_PROTETTA_AR_160290"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "150120",
+          "codice_integrato": "GUIDA_ASSOCIAZIONI_NON_RICONOSCIUTE_E_FONDAZIONI_RESPONSABILIT_CONTROVERSIE_E__150120",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "160275",
+          "codice_integrato": "GUIDA_CULPA_IN_CONTRAHENDO_RESPONSABILIT_DA_ROTTURA_ARBITRARIA_DELLE_TRATTATIV_160275",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "160280",
+          "codice_integrato": "GUIDA_DOLO_NELLA_CONCLUSIONE_DEL_CONTRATTO_ANNULLAMENTO_E_RISARCIMENTO_ARTT_14_160280",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "160285",
+          "codice_integrato": "GUIDA_FIDUCIA_IMMOBILIARE_INADEMPIMENTO_DEL_FIDUCIARIO_E_AZIONE_DI_RITRASFERIM_160285",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "160290",
+          "codice_integrato": "GUIDA_RESPONSABILIT_PER_DANNI_CAUSATI_DA_ANIMALI_SELVATICI_E_FAUNA_PROTETTA_AR_160290",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p5.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p5.json",
+      "sha256": "630C8C84BEB8D97DE511CB97B58FB96903563D30C92C764CCD379F2559086BB4",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE5",
+      "denominazione": "PARTE 5 di 8",
+      "codici_materia_originali": [
+        "160295",
+        "190045",
+        "190050",
+        "220275",
+        "220280"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_RITARDI_DI_PAGAMENTO_DELLA_PUBBLICA_AMMINISTRAZIONE_INTERESSI_MORATORI_E_160295",
+        "GUIDA_OPPOSIZIONE_AL_PIGNORAMENTO_DI_BENI_DICHIARATI_IMPIGNORABILI_O_PARZIALME_190045",
+        "GUIDA_OPPOSIZIONE_DI_TERZO_NEL_PROCESSO_ESECUTIVO_RIVENDICA_E_ACCERTAMENTO_DEL_190050",
+        "GUIDA_CONTRATTAZIONE_COLLETTIVA_DI_SECONDO_LIVELLO_E_ACCORDI_AZIENDALI_TUTELE__220275",
+        "GUIDA_CONTRATTO_DI_APPRENDISTATO_TIPOLOGIE_DIRITTI_DELL_APPRENDISTA_E_CONTROVE_220280"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "160295",
+          "codice_integrato": "GUIDA_RITARDI_DI_PAGAMENTO_DELLA_PUBBLICA_AMMINISTRAZIONE_INTERESSI_MORATORI_E_160295",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "190045",
+          "codice_integrato": "GUIDA_OPPOSIZIONE_AL_PIGNORAMENTO_DI_BENI_DICHIARATI_IMPIGNORABILI_O_PARZIALME_190045",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "190050",
+          "codice_integrato": "GUIDA_OPPOSIZIONE_DI_TERZO_NEL_PROCESSO_ESECUTIVO_RIVENDICA_E_ACCERTAMENTO_DEL_190050",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220275",
+          "codice_integrato": "GUIDA_CONTRATTAZIONE_COLLETTIVA_DI_SECONDO_LIVELLO_E_ACCORDI_AZIENDALI_TUTELE__220275",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220280",
+          "codice_integrato": "GUIDA_CONTRATTO_DI_APPRENDISTATO_TIPOLOGIE_DIRITTI_DELL_APPRENDISTA_E_CONTROVE_220280",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p6.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p6.json",
+      "sha256": "A26B3AE34BCF584CD4B439C89EDBC35C6FB6E8215276EA8232AD8C018C48756A",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE6",
+      "denominazione": "PARTE 6 di 8",
+      "codici_materia_originali": [
+        "220285",
+        "220290",
+        "220295",
+        "220300",
+        "240070"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_LAVORO_AGILE_SMART_WORKING_DIRITTI_DEL_LAVORATORE_RECESSO_E_CONTROVERSIE_220285",
+        "GUIDA_RISOLUZIONE_CONSENSUALE_DEL_RAPPORTO_DI_LAVORO_E_INCENTIVI_ALL_ESODO_ART_220290",
+        "GUIDA_LAVORO_IN_COOPERATIVE_ACCERTAMENTO_DELLA_NATURA_DEL_RAPPORTO_E_TUTELE_L__220295",
+        "GUIDA_PREVIDENZA_COMPLEMENTARE_CONTROVERSIE_SU_FONDI_PENSIONE_TRASFERIMENTO_E__220300",
+        "GUIDA_AUTORIZZAZIONI_PAESAGGISTICHE_IMPUGNAZIONE_DEL_DINIEGO_E_TUTELA_DEL_PATR_240070"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "220285",
+          "codice_integrato": "GUIDA_LAVORO_AGILE_SMART_WORKING_DIRITTI_DEL_LAVORATORE_RECESSO_E_CONTROVERSIE_220285",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220290",
+          "codice_integrato": "GUIDA_RISOLUZIONE_CONSENSUALE_DEL_RAPPORTO_DI_LAVORO_E_INCENTIVI_ALL_ESODO_ART_220290",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220295",
+          "codice_integrato": "GUIDA_LAVORO_IN_COOPERATIVE_ACCERTAMENTO_DELLA_NATURA_DEL_RAPPORTO_E_TUTELE_L__220295",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "220300",
+          "codice_integrato": "GUIDA_PREVIDENZA_COMPLEMENTARE_CONTROVERSIE_SU_FONDI_PENSIONE_TRASFERIMENTO_E__220300",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "240070",
+          "codice_integrato": "GUIDA_AUTORIZZAZIONI_PAESAGGISTICHE_IMPUGNAZIONE_DEL_DINIEGO_E_TUTELA_DEL_PATR_240070",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p7.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p7.json",
+      "sha256": "AC2B75402AAD4432431CE7A69710240ADD20766D847D12988F223F12364EC06F",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE7",
+      "denominazione": "PARTE 7 di 8",
+      "codici_materia_originali": [
+        "240075",
+        "511050",
+        "512140",
+        "512145",
+        "512150"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_ACCESSO_GENERALIZZATO_FOIA_RICORSO_AL_TAR_PER_DINIEGO_E_RIESAME_D_LGS_33_240075",
+        "GUIDA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_IMMOBILIARE_CONTESTAZIONE_DEL_511050",
+        "GUIDA_IRAP_ACCERTAMENTO_CONTESTAZIONE_E_RIMBORSO_PER_LAVORATORI_AUTONOMI_E_PRO_512140",
+        "GUIDA_IVA_INTRACOMUNITARIA_ACCERTAMENTO_PER_OPERAZIONI_CON_PAESI_UE_E_CONTESTA_512145",
+        "GUIDA_IMPOSTA_IPOTECARIA_E_CATASTALE_ACCERTAMENTO_ESENZIONI_E_CONTESTAZIONE_D__512150"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "240075",
+          "codice_integrato": "GUIDA_ACCESSO_GENERALIZZATO_FOIA_RICORSO_AL_TAR_PER_DINIEGO_E_RIESAME_D_LGS_33_240075",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "511050",
+          "codice_integrato": "GUIDA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_IMMOBILIARE_CONTESTAZIONE_DEL_511050",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512140",
+          "codice_integrato": "GUIDA_IRAP_ACCERTAMENTO_CONTESTAZIONE_E_RIMBORSO_PER_LAVORATORI_AUTONOMI_E_PRO_512140",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512145",
+          "codice_integrato": "GUIDA_IVA_INTRACOMUNITARIA_ACCERTAMENTO_PER_OPERAZIONI_CON_PAESI_UE_E_CONTESTA_512145",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512150",
+          "codice_integrato": "GUIDA_IMPOSTA_IPOTECARIA_E_CATASTALE_ACCERTAMENTO_ESENZIONI_E_CONTESTAZIONE_D__512150",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 5
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p8.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p8.json",
+      "sha256": "CBB5CD2F31AA9CE738E1574A8E93B818773CDBB67DA25132251A1708D1CCA320",
+      "changed": true,
+      "macro_area_id": "SET33_PARTE8",
+      "denominazione": "PARTE 8 di 8",
+      "codici_materia_originali": [
+        "512155",
+        "512160",
+        "512165",
+        "420001",
+        "510030"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_ACCERTAMENTO_DA_INDAGINI_FINANZIARIE_CONTESTAZIONE_E_PROVA_CONTRARIA_ART_512155",
+        "GUIDA_CARTELLA_ESATTORIALE_PRESCRIZIONE_CONTESTAZIONE_E_SOSPENSIONE_DELLA_RISC_512160",
+        "GUIDA_DICHIARAZIONE_DEI_REDDITI_ERRORI_RAVVEDIMENTO_OPEROSO_E_RIMBORSO_DELLE_I_512165",
+        "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_PRESUPPOSTI_SOGGETT_420001",
+        "GUIDA_ESECUZIONE_FORZATA_SU_BENI_IN_COMPROPRIET_BENI_INDIVISI_PRESUPPOSTI_E_PR_510030"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "512155",
+          "codice_integrato": "GUIDA_ACCERTAMENTO_DA_INDAGINI_FINANZIARIE_CONTESTAZIONE_E_PROVA_CONTRARIA_ART_512155",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512160",
+          "codice_integrato": "GUIDA_CARTELLA_ESATTORIALE_PRESCRIZIONE_CONTESTAZIONE_E_SOSPENSIONE_DELLA_RISC_512160",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "512165",
+          "codice_integrato": "GUIDA_DICHIARAZIONE_DEI_REDDITI_ERRORI_RAVVEDIMENTO_OPEROSO_E_RIMBORSO_DELLE_I_512165",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "420001",
+          "codice_integrato": "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_PRESUPPOSTI_SOGGETT_420001",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        },
+        {
+          "codice_originale": "510030",
+          "codice_integrato": "GUIDA_ESECUZIONE_FORZATA_SU_BENI_IN_COMPROPRIET_BENI_INDIVISI_PRESUPPOSTI_E_PR_510030",
+          "codici_ufficiali_correlati_da_valutare": [],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 6
+    }
+  ],
+  "duplicates_skipped": [],
+  "records_received": 40,
+  "records_integrated": 40,
+  "official_depositable_kept": [],
+  "internal_non_depositable_aliases": [
+    "GUIDA_ACCERTAMENTO_DA_INDAGINI_FINANZIARIE_CONTESTAZIONE_E_PROVA_CONTRARIA_ART_512155",
+    "GUIDA_ACCESSO_GENERALIZZATO_FOIA_RICORSO_AL_TAR_PER_DINIEGO_E_RIESAME_D_LGS_33_240075",
+    "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_PRESUPPOSTI_SOGGETT_420001",
+    "GUIDA_APERTURA_DI_VEDUTE_E_LUCI_NEI_MURI_DISCIPLINA_E_CONTROVERSIE_TRA_VICINI__130190",
+    "GUIDA_ASSOCIAZIONI_NON_RICONOSCIUTE_E_FONDAZIONI_RESPONSABILIT_CONTROVERSIE_E__150120",
+    "GUIDA_AUTORIZZAZIONI_PAESAGGISTICHE_IMPUGNAZIONE_DEL_DINIEGO_E_TUTELA_DEL_PATR_240070",
+    "GUIDA_CARTELLA_ESATTORIALE_PRESCRIZIONE_CONTESTAZIONE_E_SOSPENSIONE_DELLA_RISC_512160",
+    "GUIDA_COLLAZIONE_EREDITARIA_E_IMPUTAZIONE_DELLE_DONAZIONI_ARTT_737_752_C_C_120085",
+    "GUIDA_CONSORZI_TRA_IMPRESE_CONTROVERSIE_SCIOGLIMENTO_E_RESPONSABILIT_DEI_CONSO_150115",
+    "GUIDA_CONTESTAZIONE_DELLO_STATUS_DI_FIGLIO_LEGITTIMO_AZIONE_DI_CONTESTAZIONE_A_121025",
+    "GUIDA_CONTRATTAZIONE_COLLETTIVA_DI_SECONDO_LIVELLO_E_ACCORDI_AZIENDALI_TUTELE__220275",
+    "GUIDA_CONTRATTO_DI_APPRENDISTATO_TIPOLOGIE_DIRITTI_DELL_APPRENDISTA_E_CONTROVE_220280",
+    "GUIDA_CREDITO_AL_CONSUMO_CONTESTAZIONE_DEL_TAEG_CLAUSOLE_ABUSIVE_E_DIRITTO_DI__143130",
+    "GUIDA_CULPA_IN_CONTRAHENDO_RESPONSABILIT_DA_ROTTURA_ARBITRARIA_DELLE_TRATTATIV_160275",
+    "GUIDA_DEPOSITO_CAUZIONALE_NELLA_LOCAZIONE_RESTITUZIONE_UTILIZZO_E_CONTROVERSIE_145030",
+    "GUIDA_DICHIARAZIONE_DEI_REDDITI_ERRORI_RAVVEDIMENTO_OPEROSO_E_RIMBORSO_DELLE_I_512165",
+    "GUIDA_DIRITTO_DI_RITENZIONE_PRESUPPOSTI_ESERCIZIO_E_OPPOSIZIONE_ART_2756_C_C_1_130200",
+    "GUIDA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_IMMOBILIARE_CONTESTAZIONE_DEL_511050",
+    "GUIDA_DOLO_NELLA_CONCLUSIONE_DEL_CONTRATTO_ANNULLAMENTO_E_RISARCIMENTO_ARTT_14_160280",
+    "GUIDA_ESECUZIONE_FORZATA_SU_BENI_IN_COMPROPRIET_BENI_INDIVISI_PRESUPPOSTI_E_PR_510030",
+    "GUIDA_FIDUCIA_IMMOBILIARE_INADEMPIMENTO_DEL_FIDUCIARIO_E_AZIONE_DI_RITRASFERIM_160285",
+    "GUIDA_IMPOSTA_IPOTECARIA_E_CATASTALE_ACCERTAMENTO_ESENZIONI_E_CONTESTAZIONE_D__512150",
+    "GUIDA_INVALIDIT_E_ANNULLABILIT_DEL_TESTAMENTO_VIZI_DI_FORMA_E_DI_VOLONT_ARTT_6_415005",
+    "GUIDA_IRAP_ACCERTAMENTO_CONTESTAZIONE_E_RIMBORSO_PER_LAVORATORI_AUTONOMI_E_PRO_512140",
+    "GUIDA_IVA_INTRACOMUNITARIA_ACCERTAMENTO_PER_OPERAZIONI_CON_PAESI_UE_E_CONTESTA_512145",
+    "GUIDA_LAVORO_AGILE_SMART_WORKING_DIRITTI_DEL_LAVORATORE_RECESSO_E_CONTROVERSIE_220285",
+    "GUIDA_LAVORO_IN_COOPERATIVE_ACCERTAMENTO_DELLA_NATURA_DEL_RAPPORTO_E_TUTELE_L__220295",
+    "GUIDA_LEASING_MOBILIARE_INADEMPIMENTO_DELL_UTILIZZATORE_RESTITUZIONE_E_TUTELE__141100",
+    "GUIDA_NEGOZIAZIONE_ASSISTITA_PER_SEPARAZIONE_E_DIVORZIO_CONSENSUALE_D_L_132_20_113015",
+    "GUIDA_NOLEGGIO_A_LUNGO_TERMINE_NLT_DI_AUTOVEICOLI_INADEMPIMENTO_RECESSO_ANTICI_141105",
+    "GUIDA_OPPOSIZIONE_AL_PIGNORAMENTO_DI_BENI_DICHIARATI_IMPIGNORABILI_O_PARZIALME_190045",
+    "GUIDA_OPPOSIZIONE_DI_TERZO_NEL_PROCESSO_ESECUTIVO_RIVENDICA_E_ACCERTAMENTO_DEL_190050",
+    "GUIDA_PATTO_DI_PREFERENZA_E_PRELAZIONE_VOLONTARIA_VIOLAZIONE_E_RISCATTO_ARTT_1_140100",
+    "GUIDA_PETIZIONE_DI_EREDIT_E_AZIONE_DI_ACCERTAMENTO_DELLA_QUALIT_DI_EREDE_ARTT__120080",
+    "GUIDA_PREVIDENZA_COMPLEMENTARE_CONTROVERSIE_SU_FONDI_PENSIONE_TRASFERIMENTO_E__220300",
+    "GUIDA_REGIME_DI_SEPARAZIONE_DEI_BENI_TRA_CONIUGI_SCELTA_EFFETTI_E_CONTROVERSIE_112005",
+    "GUIDA_RESPONSABILIT_PER_DANNI_CAUSATI_DA_ANIMALI_SELVATICI_E_FAUNA_PROTETTA_AR_160290",
+    "GUIDA_RISOLUZIONE_CONSENSUALE_DEL_RAPPORTO_DI_LAVORO_E_INCENTIVI_ALL_ESODO_ART_220290",
+    "GUIDA_RITARDI_DI_PAGAMENTO_DELLA_PUBBLICA_AMMINISTRAZIONE_INTERESSI_MORATORI_E_160295",
+    "GUIDA_SCOMPARSA_E_MORTE_PRESUNTA_DICHIARAZIONE_GIUDIZIALE_E_EFFETTI_ARTT_48_73_413140"
+  ],
+  "termini_processuali_raw": 42
+}

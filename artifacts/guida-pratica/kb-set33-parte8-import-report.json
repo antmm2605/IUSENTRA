@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p8.json",
+  "sha256": "CBB5CD2F31AA9CE738E1574A8E93B818773CDBB67DA25132251A1708D1CCA320",
+  "changed": true,
+  "macro_area_id": "SET33_PARTE8",
+  "denominazione": "PARTE 8 di 8",
+  "codici_materia_originali": [
+    "512155",
+    "512160",
+    "512165",
+    "420001",
+    "510030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ACCERTAMENTO_DA_INDAGINI_FINANZIARIE_CONTESTAZIONE_E_PROVA_CONTRARIA_ART_512155",
+    "GUIDA_CARTELLA_ESATTORIALE_PRESCRIZIONE_CONTESTAZIONE_E_SOSPENSIONE_DELLA_RISC_512160",
+    "GUIDA_DICHIARAZIONE_DEI_REDDITI_ERRORI_RAVVEDIMENTO_OPEROSO_E_RIMBORSO_DELLE_I_512165",
+    "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_PRESUPPOSTI_SOGGETT_420001",
+    "GUIDA_ESECUZIONE_FORZATA_SU_BENI_IN_COMPROPRIET_BENI_INDIVISI_PRESUPPOSTI_E_PR_510030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512155",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_DA_INDAGINI_FINANZIARIE_CONTESTAZIONE_E_PROVA_CONTRARIA_ART_512155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512160",
+      "codice_integrato": "GUIDA_CARTELLA_ESATTORIALE_PRESCRIZIONE_CONTESTAZIONE_E_SOSPENSIONE_DELLA_RISC_512160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512165",
+      "codice_integrato": "GUIDA_DICHIARAZIONE_DEI_REDDITI_ERRORI_RAVVEDIMENTO_OPEROSO_E_RIMBORSO_DELLE_I_512165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "420001",
+      "codice_integrato": "GUIDA_APERTURA_DELLA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_PRESUPPOSTI_SOGGETT_420001",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510030",
+      "codice_integrato": "GUIDA_ESECUZIONE_FORZATA_SU_BENI_IN_COMPROPRIET_BENI_INDIVISI_PRESUPPOSTI_E_PR_510030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

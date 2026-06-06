@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (22).zip::kb_set33_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set33_p2.json",
+  "sha256": "0E6F97352764AE3DA51813BBAEE4F2E390A5EA26656C1CEC13267DEBFB470A6C",
+  "changed": true,
+  "macro_area_id": "SET33_PARTE2",
+  "denominazione": "PARTE 2 di 8",
+  "codici_materia_originali": [
+    "120080",
+    "120085",
+    "130190",
+    "130200",
+    "140100"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PETIZIONE_DI_EREDIT_E_AZIONE_DI_ACCERTAMENTO_DELLA_QUALIT_DI_EREDE_ARTT__120080",
+    "GUIDA_COLLAZIONE_EREDITARIA_E_IMPUTAZIONE_DELLE_DONAZIONI_ARTT_737_752_C_C_120085",
+    "GUIDA_APERTURA_DI_VEDUTE_E_LUCI_NEI_MURI_DISCIPLINA_E_CONTROVERSIE_TRA_VICINI__130190",
+    "GUIDA_DIRITTO_DI_RITENZIONE_PRESUPPOSTI_ESERCIZIO_E_OPPOSIZIONE_ART_2756_C_C_1_130200",
+    "GUIDA_PATTO_DI_PREFERENZA_E_PRELAZIONE_VOLONTARIA_VIOLAZIONE_E_RISCATTO_ARTT_1_140100"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "120080",
+      "codice_integrato": "GUIDA_PETIZIONE_DI_EREDIT_E_AZIONE_DI_ACCERTAMENTO_DELLA_QUALIT_DI_EREDE_ARTT__120080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "120085",
+      "codice_integrato": "GUIDA_COLLAZIONE_EREDITARIA_E_IMPUTAZIONE_DELLE_DONAZIONI_ARTT_737_752_C_C_120085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130190",
+      "codice_integrato": "GUIDA_APERTURA_DI_VEDUTE_E_LUCI_NEI_MURI_DISCIPLINA_E_CONTROVERSIE_TRA_VICINI__130190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130200",
+      "codice_integrato": "GUIDA_DIRITTO_DI_RITENZIONE_PRESUPPOSTI_ESERCIZIO_E_OPPOSIZIONE_ART_2756_C_C_1_130200",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140100",
+      "codice_integrato": "GUIDA_PATTO_DI_PREFERENZA_E_PRELAZIONE_VOLONTARIA_VIOLAZIONE_E_RISCATTO_ARTT_1_140100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

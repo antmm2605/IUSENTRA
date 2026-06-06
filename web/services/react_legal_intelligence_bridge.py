@@ -637,14 +637,22 @@ def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query
     reference_number = _legal_reference_number(search_query)
     if not reference_number:
         return True
+    record_id = _text(record.get("id"))
     requested_source = _requested_reference_source(search_query)
     if requested_source:
         record_source = _record_reference_source(record)
-        record_id = _text(record.get("id"))
         if record_id.startswith("guida-pratica-source:"):
             record_source = requested_source
         if record_source and record_source != requested_source:
             return False
+    if record_id.startswith(("practice-research:", "practice-reference:")):
+        tokens = _context_tokens(search_query)
+        if tokens:
+            haystack = _record_search_haystack(record)
+            matched = [token for token in tokens if token in haystack]
+            required = min(3, max(1, (len(tokens) + 1) // 2))
+            if len(matched) >= required:
+                return True
     haystack = " ".join(
         [
             *(
@@ -683,6 +691,8 @@ def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_qu
 def _record_dedupe_key(record: Mapping[str, Any]) -> str:
     record_id = _text(record.get("id"))
     if record_id.startswith("template-atti-source:"):
+        return record_id
+    if record_id.startswith(("source-delivery:", "practice-research:", "practice-reference:")):
         return record_id
     if record_id.startswith("normative-table:") or record_id.startswith("normative-reference:"):
         return record_id
@@ -813,7 +823,7 @@ def _record_query_rank(record: Mapping[str, Any], search_query: str) -> tuple[in
 
 
 def _sort_records_for_query(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
-    if not search_query or not _looks_like_exact_legal_reference(search_query):
+    if not search_query:
         return records
     return sorted(records, key=lambda record: _record_query_rank(record, search_query), reverse=True)
 
@@ -2124,9 +2134,9 @@ def _normative_db_items(records: list[dict[str, Any]], snapshot: Mapping[str, An
         ),
         _item(
             "db_normativa_verifica",
-            "Da verificare",
+            "Controllo fonte",
             int(normative_snapshot.get("verifica_richiesta") or 0),
-            "Tabelle che richiedono controllo fonte prima dell'uso definitivo.",
+            "Tabelle non coperte finché fonte, data e valore vigente non sono riallineati.",
             "warning" if int(normative_snapshot.get("verifica_richiesta") or 0) else "success",
         ),
         _item(
@@ -2773,6 +2783,8 @@ def _is_governed_registry_record(record: Mapping[str, Any]) -> bool:
             "normative-table:",
             "normative-reference:",
             "source-delivery:",
+            "practice-research:",
+            "practice-reference:",
         )
     )
 
@@ -3128,19 +3140,19 @@ def _enrich_autofetch_monitor_for_lawyer(
                 or (
                     "Fonte acquisita o indicizzata: il sistema la espone in Ricerca Legale e la collega a Lex/RAG quando la pratica la richiama."
                     if has_documents or status == "operativa_controllabile"
-                    else "Acquisizione automatica da completare nel motore fonti: nessun controllo è scaricato all'avvocato."
+                    else "Fonte non coperta: completare acquisizione ufficiale, testo e collegamento Lex/RAG prima della pubblicazione."
                 ),
                 "publication_status_label": (
                     "pubblicata" if _positive_int(source.get("review_published"), 0)
                     else "indicizzata" if _positive_int(source.get("normalized_documents"), 0)
                     else "acquisita" if _positive_int(source.get("raw_documents"), 0)
-                    else "da acquisire dal sistema"
+                    else "non pubblicata"
                 ),
                 "lawyer_action": activation_action
                 or (
                     "Fonte pronta nel sistema: usare la scheda per pratica, fascicolo, modello o domanda Lex."
                     if has_documents or status == "operativa_controllabile"
-                    else "Acquisizione automatica in carico al sistema."
+                    else "Non dichiarare coperta finché acquisizione, testo e collegamento Lex/RAG non sono completati."
                 ),
             }
         )
@@ -3199,7 +3211,7 @@ def _autofetch_source_items(monitor: Mapping[str, Any]) -> list[dict[str, Any]]:
                 f"autofetch_{index}_{_text(row.get('source_code')) or 'fonte'}",
                 label,
                 status.replace("_", " "),
-                count_note or "Acquisizione automatica non ancora completata dal sistema.",
+                count_note or "Fonte non coperta: completare acquisizione ufficiale, testo e collegamento Lex/RAG.",
                 _autofetch_tone(status),
             )
         )

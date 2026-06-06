@@ -630,6 +630,134 @@ def search_giurisprudenza(query: str, *, organo: str = "", limit: int = 5) -> di
         return {"ok": False, "errore": str(exc), "risultati": []}
 
 
+def search_pratica_legale(query: str, *, limit: int = 8) -> dict[str, Any]:
+    """Ricerca nella matrice pratica legale con fonti nominali ufficiali."""
+    if not query:
+        return {"ok": False, "errore": "query mancante", "risultati": []}
+    try:
+        from pct.legal_practice_research_matrix import (
+            LEGAL_NOMINAL_REFERENCE_LIBRARY,
+            LEGAL_PRACTICE_RESEARCH_MATRIX,
+        )
+    except Exception as exc:
+        return {"ok": False, "errore": str(exc), "risultati": []}
+
+    tokens = [token for token in str(query or "").lower().replace("-", " ").split() if len(token) >= 2][:8]
+    practice_titles = {
+        str(item.get("id") or ""): str(item.get("title") or "")
+        for item in LEGAL_PRACTICE_RESEARCH_MATRIX
+        if isinstance(item, dict)
+    }
+
+    def score(payload: dict[str, Any]) -> int:
+        def field_text(*names: str) -> str:
+            return " ".join(str(payload.get(name) or "") for name in names).lower()
+
+        haystack = " ".join(str(value or "") for value in payload.values()).lower()
+        title = field_text("titolo", "title")
+        articles = field_text("articoli", "norme_articoli")
+        use = field_text("uso_operativo", "use", "perimetro", "scope")
+        practice_links = field_text("pratiche_collegate", "linked_practices")
+        operative = field_text(
+            "decreti_regole",
+            "sentenze_udienze_provvedimenti",
+            "atti_da_produrre",
+            "scadenze_task",
+            "domande_lex",
+            "ricerche_tracciate",
+        )
+        if not tokens:
+            return 1
+        value = 0
+        for token in tokens:
+            if token in title:
+                value += 8
+            if token in articles:
+                value += 6
+            if token in use:
+                value += 5
+            if token in practice_links:
+                value += 5
+            if token in operative:
+                value += 3
+            if token in haystack:
+                value += 1
+        kind = field_text("tipo")
+        if "riferimento_nominale_legale" in kind and value > 0:
+            value += 8
+        identity = field_text("id", "titolo", "title", "articoli", "uso_operativo")
+        query_text = " ".join(tokens)
+        boosts = (
+            (("licenziamento",), ("legge_300_1970_statuto_lavoratori", "legge_604_1966_licenziamenti", "dlgs_23_2015_tutele_crescenti")),
+            (("pei", "sostegno", "graduatoria", "mim", "docente"), ("dlgs_66_2017_inclusione_scolastica", "dlgs_297_1994_testo_unico_scuola", "mim_atti_normativa_graduatorie")),
+            (("tar", "udienze", "decreti", "sentenze"), ("openga_calendario_udienze", "openga_decreti_ordinanze_sentenze")),
+            (("foia", "accesso", "riesame"), ("dlgs_33_2013_accesso_civico", "anac_accesso_civico")),
+            (("cartella", "esattoriale", "riscossione"), ("dpr_602_1973_riscossione", "agenzia_entrate_riscossione")),
+        )
+        for query_terms, reference_ids in boosts:
+            if any(token in query_text for token in query_terms) and any(ref_id in identity for ref_id in reference_ids):
+                value += 14
+        return value
+
+    scored: list[tuple[int, dict[str, Any]]] = []
+    for item in LEGAL_PRACTICE_RESEARCH_MATRIX:
+        if not isinstance(item, dict):
+            continue
+        payload = {
+            "tipo": "scheda_pratica_legale",
+            "id": item.get("id"),
+            "titolo": item.get("title"),
+            "area": item.get("area"),
+            "perimetro": item.get("scope"),
+            "fonti_ufficiali": item.get("official_sources") or [],
+            "norme_articoli": item.get("articles_and_codes") or [],
+            "decreti_regole": item.get("decrees_and_rules") or [],
+            "sentenze_udienze_provvedimenti": item.get("case_law_and_hearings") or [],
+            "atti_da_produrre": item.get("acts_to_prepare") or [],
+            "scadenze_task": item.get("deadlines_tasks") or [],
+            "domande_lex": item.get("lex_questions") or [],
+            "ricerche_tracciate": item.get("research_queries") or [],
+        }
+        value = score(payload)
+        if value > 0:
+            scored.append((value + 6, payload))
+    for item in LEGAL_NOMINAL_REFERENCE_LIBRARY:
+        if not isinstance(item, dict):
+            continue
+        practice_ids = [str(value or "") for value in item.get("practice_ids") or []]
+        payload = {
+            "tipo": "riferimento_nominale_legale",
+            "id": item.get("id"),
+            "titolo": item.get("label"),
+            "autorita": item.get("authority"),
+            "tipo_fonte": item.get("kind"),
+            "url_ufficiale": item.get("url"),
+            "articoli": item.get("articles"),
+            "uso_operativo": item.get("use"),
+            "pratiche_collegate": [practice_titles.get(practice_id, practice_id) for practice_id in practice_ids],
+        }
+        value = score(payload)
+        if value > 0:
+            scored.append((value + 3, payload))
+    scored.sort(key=lambda row: (-row[0], str(row[1].get("titolo") or "")))
+    risultati: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for _, payload in scored:
+        key = f"{payload.get('tipo')}::{payload.get('id')}"
+        if key in seen:
+            continue
+        seen.add(key)
+        risultati.append(payload)
+        if len(risultati) >= max(1, int(limit or 1)):
+            break
+    return {
+        "ok": True,
+        "query": query,
+        "risultati": risultati,
+        "fonte": "Matrice pratica legale IUSENTRA auditata al 100%",
+    }
+
+
 # ------------------------------------------------------------------ #
 # 11. Config studio                                                     #
 # ------------------------------------------------------------------ #
@@ -909,6 +1037,7 @@ _TOOL_REGISTRY: list[dict[str, str]] = [
     {"name": "get_pec_status", "label": "Stato PEC studio", "area": "pec"},
     {"name": "search_normativa", "label": "Ricerca normativa", "area": "normativa"},
     {"name": "search_giurisprudenza", "label": "Ricerca giurisprudenza", "area": "giurisprudenza"},
+    {"name": "search_pratica_legale", "label": "Matrice pratica legale", "area": "normativa"},
     {"name": "get_studio_config", "label": "Config studio", "area": "studio"},
     {"name": "check_firma_validity", "label": "Verifica firma digitale", "area": "firma"},
     {"name": "get_fascicoli_attivi", "label": "Fascicoli attivi", "area": "fascicoli"},
@@ -949,6 +1078,7 @@ def dispatch_tool(name: str, **kwargs: Any) -> dict[str, Any]:
         "get_pec_status": get_pec_status,
         "search_normativa": search_normativa,
         "search_giurisprudenza": search_giurisprudenza,
+        "search_pratica_legale": search_pratica_legale,
         "get_studio_config": get_studio_config,
         "check_firma_validity": check_firma_validity,
         "get_fascicoli_attivi": get_fascicoli_attivi,
@@ -1001,5 +1131,6 @@ __all__ = [
     "lookup_normativa_table",
     "search_giurisprudenza",
     "search_normativa",
+    "search_pratica_legale",
     "suggest_next_actions",
 ]

@@ -4284,3 +4284,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest -q tests\test_security_headers.py tests\test_local_ai.py::test_api_local_ai_status_and_fascicolo_ai tests\test_local_ai.py::test_api_local_ai_bootstrap_aggiorna_cache_runtime_chat --tb=short` | OK | Hotfix CodeQL 2.249.18: CSP verificata con source token esatti e fallback AI locale senza esposizione dell'oggetto eccezione. |
 | `python scripts\react-migration\local_real_workflow_audit.py` | OK | Hotfix 2.249.18: audit reale locale verde su `127.0.0.1:8080`; su schermo Windows virtuale `x=-1920`, `width=3840` il marker del controllo PC è stato digitato fisicamente nella finestra cliente. |
 | `git diff --check` | OK | Nessun errore whitespace; restano solo warning CRLF storici su file JSON/CSV della Guida Pratica. |
+
+## PEC Control Tower e Lex AI 2.249.19 - 2026-06-06
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\test_pec_control_tower.py --runtime-root .tmp\pec-control-tower-final-git` | OK | Script generativo reale: 7 PEC sintetiche ingerite, 6 scadenze, 5 notifiche, audit HMAC integro e 10/10 domande operative Lex corrette su PEC, notifiche, ricevute, termini, cancelleria, PA, prove e rischio decadenza. |
+| `python -m pytest tests\test_pec_control_tower.py -q`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 3/3 test PEC Control Tower e 4/4 UTF-8 passati dopo l'integrazione Lex/API. |
+| `python -m py_compile pct\pec_control_tower.py web\blueprints\pec_control_tower_api.py lex\operational_knowledge\tools.py lex\operational_knowledge\query_router.py lex\operational_knowledge\service.py lex\operational_knowledge\response_composer.py scripts\test_pec_control_tower.py` | OK | Sintassi confermata sui moduli repository, API, routing Lex, composizione risposte e script di test. |
+| `python tools\sync_packaging_files.py --check`; `git diff --check` | OK | Packaging sincronizzato; nessun errore whitespace, solo avvisi CRLF storici sui report React. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Hotfix post-push del gate GitHub `Lint + syntax`: `docs/openapi.yaml` riallineato alla versione `2.249.19` dopo l'estensione API PEC Control Tower. |

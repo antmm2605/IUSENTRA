@@ -61,9 +61,12 @@ def _repo_root() -> Path:
 
 
 def _registry_default() -> str:
+    data_root = os.environ.get("PCT_DATA_ROOT")
     return (
         os.environ.get("TENANTS_REGISTRY")
         or os.environ.get("IUSENTRA_TENANTS_REGISTRY")
+        or os.environ.get("PCT_TENANTS_REGISTRY")
+        or (str(Path(data_root) / "tenants.json") if data_root else "")
         or str(_repo_root() / "data" / "tenants.json")
     )
 

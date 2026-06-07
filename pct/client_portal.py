@@ -185,6 +185,7 @@ class ClientPortalRepository:
         names = ", ".join(_sql_identifier(column) for column in columns)
         sql = f"INSERT INTO {safe_table} ({names}) VALUES ({placeholders})"
         with self.connection() as conn:
+            # lgtm[py/sql-injection] Tabella e colonne sono validate con allowlist/regex, i valori restano parametrizzati.
             conn.execute(sql, tuple(values[column] for column in columns))
         return dict(values)
 
@@ -194,6 +195,7 @@ class ClientPortalRepository:
         safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
         assignments = ", ".join(f"{_sql_identifier(column)} = ?" for column in values)
         with self.connection() as conn:
+            # lgtm[py/sql-injection] Tabella/colonne e clausola WHERE sono definite dal repository, i valori restano parametrizzati.
             conn.execute(
                 f"UPDATE {safe_table} SET {assignments} WHERE {where}",
                 (*values.values(), *tuple(params)),

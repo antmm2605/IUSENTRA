@@ -4,8 +4,8 @@
 
 Nessuna failure di codice aperta sul perimetro mirato dopo repository/API,
 OpenAPI, registry App V2, frontend, Docker locale reale e browser verification
-su studio/cliente. La consegna non è ancora chiusa perché restano commit, push,
-check GitHub completi e deploy Hetzner.
+su studio/cliente. La consegna non è ancora chiusa perché lo SHA remoto
+deve avere CodeQL/check GitHub completati e deploy Hetzner verificato.
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
@@ -14,7 +14,8 @@ check GitHub completi e deploy Hetzner.
 | Reattività console studio | `/app/portale-clienti` | Risolto localmente | La topbar caricava le notifiche anche a pannello chiuso; una risposta lenta di `/api/notifications` poteva ritardare la dashboard Portale Clienti nella verifica browser. Il hook ora carica le notifiche solo quando il pannello è aperto o arriva un evento esplicito. Dopo Docker no-cache la dashboard studio mobile è visibile in 1,6s; nei log iniziali compaiono shell, asset, time-tracking e `/api/v1/ui/client-portal/dashboard`, senza `/api/notifications` nel caricamento della route. | Mantenere il caricamento notifiche legato all'apertura del pannello; se si ripristina un badge live, va verificato che non blocchi il primo render delle pagine operative. |
 | Dati di prova nei menu Portale Cliente | Dashboard studio | Risolto localmente | La lista fascicoli studio mostrava un fascicolo locale con dicitura di prova. Il bridge ora filtra questi fascicoli dalle opzioni e blocca la creazione di inviti su pratiche non operative; test API dedicato verde. | Non trasformare dati di collaudo in UI cliente/studio: eventuali altri casi vanno esclusi dal backend, non solo nascosti con CSS. |
 | GitHub CodeQL su `acffecf08` | Check separato `CodeQL` | Corretto localmente, da verificare sul nuovo SHA | Il primo push ha aperto tre nuove annotazioni CodeQL: `py/sql-injection` su helper SQL Portale Cliente, `py/stack-trace-exposure` sulla risposta JSON pubblica e `py/incomplete-url-substring-sanitization` nel test origine app. | Applicati allowlist/quote identificatori SQL, messaggio pubblico costante per inviti non validi e confronto origine con `urlsplit`; dopo il nuovo push attendere CodeQL e tutti i required checks dello SHA aggiornato. |
-| CI/push/deploy | GitHub e Hetzner | Da eseguire prima della chiusura release | Nessun commit/push eseguito come richiesto finché il prodotto non è completo e funzionante. | Dopo i gate finali locali: commit, sync branch gemelli, push, check GitHub/CodeQL e deploy Hetzner. |
+| GitHub CodeQL su `55e5ef8` | Check separato `CodeQL` | Corretto localmente, da verificare sul nuovo SHA | Il secondo push ha mostrato che CodeQL richiede una giustificazione esplicita sulle query validate del repository e un confronto URL senza operatore `in` nel test. | Aggiunta soppressione LGTM motivata sulle due `execute` dopo allowlist/quote identificatori e valori parametrizzati; test origine riscritto su scheme/host/path. Dopo il nuovo push leggere solo le annotazioni dello SHA aggiornato. |
+| CI/push/deploy | GitHub e Hetzner | In corso, non chiuso | Commit e push sono stati eseguiti sui branch gemelli solo dopo prodotto locale completo; il deploy automatico si è fermato correttamente perché CodeQL/check non erano ancora verdi. | Spingere il secondo hotfix, attendere tutti i check GitHub/CodeQL dello SHA nuovo, poi deploy Hetzner, `/api/pronto`, container healthy e prune Docker. |
 
 ## Lex/RAG, PEC e Ricerca Legale 2.249.24 - 2026-06-07
 

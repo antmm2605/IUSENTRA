@@ -20,6 +20,9 @@ from pct.pec_pipeline import (
     AttachmentPayload,
     PecAuditRepository,
     _extract_remote_hearing_links,
+    _remote_hearing_deadline_extra,
+    _remote_hearing_note_lines,
+    _remote_hearing_updates_for_existing,
     build_pec_procedural_profile,
     build_validation_report,
     detect_pec_legal_context,
@@ -723,14 +726,15 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     assert scadenze[0].remote_hearing_source == "13744017s.pdf.zip"
     assert scadenze[0].remote_hearing_verified is True
     assert "Link udienza audiovisiva" in scadenze[0].note
-    agenda_items = Agenda(str(agenda_db)).tutti()
+    agenda = Agenda(str(agenda_db))
+    agenda_items = agenda.tutti()
     assert len(agenda_items) == 1
     assert exact_link in agenda_items[0].note
     assert agenda_items[0].luogo == "Udienza da remoto"
 
 
 def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agenda(tmp_path):
-    from pct.agenda import Agenda
+    from pct.agenda import Agenda, TipoAppuntamento
     from pct.scadenziario import GestioneScadenziario
 
     exact_link = "https://teams.microsoft.com/l/meetup-join/torino-3950?context=%7B%22Tid%22%3A%22abc%22%7D"
@@ -776,10 +780,77 @@ def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agend
     assert scadenze[0].remote_hearing_pdf_required is False
     assert "Link udienza audiovisiva: da acquisire" not in scadenze[0].note
     assert exact_link in scadenze[0].note
-    agenda_items = Agenda(str(agenda_db)).tutti()
+    agenda = Agenda(str(agenda_db))
+    agenda_items = agenda.tutti()
     assert len(agenda_items) == 1
     assert exact_link in agenda_items[0].note
     assert agenda_items[0].luogo == "Udienza da remoto"
+
+    agenda.aggiungi(
+        titolo=f"Presidio PEC - {scadenze[0].titolo}",
+        tipo=TipoAppuntamento.SCADENZA,
+        data_ora="2027-01-13T09:00:00",
+        durata_minuti=30,
+        luogo="Agenda studio",
+        allow_overlap=True,
+        note=f"PEC_AUDIT:{ingest['id']}\nLink udienza audiovisiva: da acquisire dal PDF allegato.",
+        external_source_url=f"/api/pec/messages/{ingest['id']}",
+    )
+
+    enriched = repo.enrich_deadlines_with_remote_hearing_links(actor="pytest")
+
+    assert enriched["agenda_updated"] >= 1
+    synced_items = [item for item in Agenda(str(agenda_db)).tutti() if ingest["id"] in item.note or item.external_source_url.endswith(ingest["id"])]
+    assert len(synced_items) >= 2
+    assert all(exact_link in item.note for item in synced_items)
+    assert all("da acquisire" not in item.note.lower() for item in synced_items)
+    assert all(item.luogo == "Udienza da remoto" for item in synced_items)
+
+
+def test_remote_hearing_existing_deadline_note_replaces_pdf_pending_marker():
+    exact_link = "https://teams.microsoft.com/l/meetup-join/torino-3950?context=%7B%22Tid%22%3A%22abc%22%7D"
+    report = build_validation_report(
+        {
+            "headers": {"subject": "POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV"},
+            "body": {"text": "FISSATA UDIENZA DI DISCUSSIONE IL 13/01/2027 11:00 con strumenti audiovisivi"},
+        },
+        [
+            {
+                "filename": "20200029s.pdf.zip",
+                "content_type": "application/zip",
+                "classification": "daticert",
+                "ocr_text": f"Link PDF cliccabile: {exact_link}",
+            }
+        ],
+    )
+    proposal = report["deadline_proposal"]
+    existing = SimpleNamespace(
+        note=(
+            "PEC_AUDIT:pec_d7fae2948d6434cc67254b37\n"
+            "Udienza da remoto: audiovisiva\n"
+            "Orario collegamento: 13/01/2027 ore 11:00\n"
+            "Link udienza audiovisiva: da acquisire dal PDF allegato.\n"
+            "Fonte: pipeline PEC audit-grade."
+        ),
+        remote_hearing_pdf_required=True,
+        remote_hearing_url="",
+        remote_hearing_source="",
+        remote_hearing_verified=False,
+        remote_hearing_integrity="",
+        tipo="ADEMPIMENTO",
+    )
+
+    updates = _remote_hearing_updates_for_existing(
+        existing,
+        _remote_hearing_deadline_extra(report, proposal),
+        _remote_hearing_note_lines(report, proposal),
+    )
+
+    assert updates["remote_hearing_url"] == exact_link
+    assert updates["remote_hearing_pdf_required"] is False
+    assert exact_link in updates["note"]
+    assert "da acquisire" not in updates["note"].lower()
+    assert updates["note"].count("Link udienza audiovisiva:") == 1
 
 
 def test_refresh_validation_reports_repairs_clickable_pdf_link_for_existing_remote_hearing(tmp_path):

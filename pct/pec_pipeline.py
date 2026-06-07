@@ -1572,9 +1572,16 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
             cleaned_lines.append(line)
         current_note = "\n".join(cleaned_lines).strip()
         updates["note"] = current_note
-    missing_lines = [line for line in note_lines if line and line not in current_note]
-    if missing_lines:
-        updates["note"] = "\n".join(part for part in (current_note.strip(), *missing_lines) if part)
+    if extra.get("remote_hearing_url"):
+        cleaned_note = _strip_remote_note_lines(current_note)
+        rebuilt_note = "\n".join(part for part in (cleaned_note, *note_lines) if part).strip()
+        if rebuilt_note != current_note.strip():
+            updates["note"] = rebuilt_note
+            current_note = rebuilt_note
+    else:
+        missing_lines = [line for line in note_lines if line and line not in current_note]
+        if missing_lines:
+            updates["note"] = "\n".join(part for part in (current_note.strip(), *missing_lines) if part)
     if extra.get("remote_hearing_detected") and _enum_text(getattr(existing, "tipo", "")) != "UDIENZA":
         updates["tipo"] = "UDIENZA"
     return updates
@@ -4778,11 +4785,13 @@ class PecAuditRepository:
 
             agenda = self._agenda_manager()
             event_uid = f"PEC_AUDIT:{message_id}:deadline"
+            source_url = f"/api/pec/messages/{message_id}"
             remote_lines = _remote_hearing_note_lines(report, proposal)
             remote_extra = _remote_hearing_deadline_extra(report, proposal)
             description = "\n".join(
                 part
                 for part in (
+                    f"PEC_AUDIT:{message_id}",
                     clean_text(proposal.get("reason")) or "Presidio operativo generato dalla PEC.",
                     *remote_lines,
                     f"Fascicolo: {linked_fascicolo_id}" if linked_fascicolo_id else "",
@@ -4823,12 +4832,27 @@ class PecAuditRepository:
                             appuntamento = agenda.modifica(agenda_id, procedimento=linked_fascicolo_id)
                         except Exception:
                             pass
+                    related_updated = self._sync_related_pec_agenda_entries(
+                        agenda,
+                        primary_id=agenda_id,
+                        message_id=message_id,
+                        event_uid=event_uid,
+                        source_url=source_url,
+                        deadline_id=deadline_id,
+                        title=f"Presidio PEC - {title}"[:120],
+                        data_ora=data_ora,
+                        durata_minuti=30,
+                        luogo="Udienza da remoto" if remote_extra.get("remote_hearing_url") else "Agenda studio",
+                        note=agenda._note_da_evento_importato(event, provider="pec_audit", source_url=source_url),
+                        linked_fascicolo_id=linked_fascicolo_id,
+                    )
                     return {
                         "ok": True,
                         "message": "Scadenza PEC collegata anche all'agenda.",
                         "agenda_id": agenda_id,
                         "agenda_outcome": str(last_report.get("outcome") or ""),
                         "agenda_href": f"/agenda/{agenda_id}" if agenda_id else "/agenda",
+                        "related_agenda_updated": related_updated,
                     }
             return {
                 "ok": False,
@@ -4837,6 +4861,63 @@ class PecAuditRepository:
             }
         except Exception as exc:
             return {"ok": False, "message": f"Agenda non aggiornata: {exc}"}
+
+    def _sync_related_pec_agenda_entries(
+        self,
+        agenda: Any,
+        *,
+        primary_id: str,
+        message_id: str,
+        event_uid: str,
+        source_url: str,
+        deadline_id: str,
+        title: str,
+        data_ora: str,
+        durata_minuti: int,
+        luogo: str,
+        note: str,
+        linked_fascicolo_id: str,
+    ) -> int:
+        marker = f"PEC_AUDIT:{message_id}"
+        updated = 0
+        for app in agenda.tutti():
+            app_id = str(getattr(app, "id", "") or "")
+            if app_id and app_id == primary_id:
+                continue
+            app_note = str(getattr(app, "note", "") or "")
+            app_source = str(getattr(app, "external_source_url", "") or "")
+            app_uid = str(getattr(app, "external_uid", "") or "")
+            app_title = str(getattr(app, "titolo", "") or "")
+            same_pec = (
+                app_uid == event_uid
+                or app_source == source_url
+                or marker in app_note
+                or (deadline_id and f"Scadenza: {deadline_id}" in app_note)
+                or (title and app_title == title)
+            )
+            if not same_pec:
+                continue
+            updates: dict[str, Any] = {
+                "titolo": title,
+                "data_ora": data_ora,
+                "durata_minuti": durata_minuti,
+                "luogo": luogo,
+                "note": note,
+                "external_uid": event_uid,
+                "external_provider": "pec_audit",
+                "external_source_url": source_url,
+                "external_profile_id": "pec_scadenziario",
+                "reminder_minuti": 1440,
+            }
+            if linked_fascicolo_id:
+                updates["procedimento"] = linked_fascicolo_id
+            if any(getattr(app, key, None) != value for key, value in updates.items()):
+                try:
+                    agenda.modifica(app_id, **updates)
+                    updated += 1
+                except Exception:
+                    continue
+        return updated
 
     def _validation_report_from_parsed(self, parsed: dict[str, Any]) -> dict[str, Any]:
         attachments: list[dict[str, Any]] = []
@@ -4972,6 +5053,7 @@ class PecAuditRepository:
         manager = self._scadenziario_manager()
         checked = 0
         updated = 0
+        agenda_updated = 0
         skipped = 0
         errors: list[str] = []
         for scadenza in manager.tutte(solo_aperte=False):
@@ -4994,11 +5076,23 @@ class PecAuditRepository:
                 remote_note_lines = _remote_hearing_note_lines(report, proposal)
                 updates = _remote_hearing_updates_for_existing(scadenza, remote_extra, remote_note_lines)
                 if not updates:
+                    if remote_extra.get("remote_hearing_detected") or remote_extra.get("remote_hearing_url"):
+                        agenda_result = self._sync_pec_deadline_to_agenda(
+                            message_id=message_id,
+                            title=str(getattr(scadenza, "titolo", "") or "PEC"),
+                            target_date=str(getattr(scadenza, "operational_due_at", "") or getattr(scadenza, "data_scadenza", "") or ""),
+                            proposal=proposal,
+                            report=report,
+                            linked_fascicolo_id=str(getattr(scadenza, "id_fascicolo", "") or ""),
+                            deadline_id=str(getattr(scadenza, "id", "") or ""),
+                            actor=actor,
+                        )
+                        agenda_updated += int(agenda_result.get("related_agenda_updated") or 0)
                     skipped += 1
                     continue
                 scadenza = manager.aggiorna(str(getattr(scadenza, "id", "")), **updates)
                 updated += 1
-                self._sync_pec_deadline_to_agenda(
+                agenda_result = self._sync_pec_deadline_to_agenda(
                     message_id=message_id,
                     title=str(getattr(scadenza, "titolo", "") or "PEC"),
                     target_date=str(getattr(scadenza, "operational_due_at", "") or getattr(scadenza, "data_scadenza", "") or ""),
@@ -5008,12 +5102,14 @@ class PecAuditRepository:
                     deadline_id=str(getattr(scadenza, "id", "") or ""),
                     actor=actor,
                 )
+                agenda_updated += int(agenda_result.get("related_agenda_updated") or 0)
             except Exception as exc:
                 errors.append(f"{message_id or getattr(scadenza, 'id', '') or 'scadenza'}: {exc}")
         return {
             "ok": not errors,
             "checked": checked,
             "updated": updated,
+            "agenda_updated": agenda_updated,
             "skipped": skipped,
             "errors": errors[:20],
         }

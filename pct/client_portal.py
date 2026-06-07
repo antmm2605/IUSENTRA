@@ -44,6 +44,56 @@ CLIENT_PORTAL_TABLES = (
 )
 CLIENT_PORTAL_TABLE_SET = frozenset(CLIENT_PORTAL_TABLES)
 CLIENT_PORTAL_IDENTIFIER_RE = re.compile(r"\A[a-z][a-z0-9_]*\Z")
+CLIENT_PORTAL_TABLE_SQL = {table: f'"{table}"' for table in CLIENT_PORTAL_TABLES}
+CLIENT_PORTAL_COLUMNS: dict[str, tuple[str, ...]] = {
+    "client_portal_profiles": ("id", "tenant_id", "client_id", "display_name", "email", "phone", "fiscal_code", "identity_expires_at", "preferences_json", "created_at", "updated_at"),
+    "client_portal_matters": ("id", "tenant_id", "client_id", "fascicolo_id", "title", "status", "progress", "next_action", "opened_at", "closed_at", "data_json", "created_at", "updated_at"),
+    "client_portal_invites": ("id", "tenant_id", "client_id", "matter_id", "token_hash", "status", "expires_at", "accepted_at", "revoked_at", "created_at", "created_by", "last_sent_at", "channel", "notes", "metadata_json"),
+    "client_portal_steps": ("id", "tenant_id", "matter_id", "position", "title", "status", "due_at", "visible_to_client", "payload_json", "created_at"),
+    "client_portal_document_requests": ("id", "tenant_id", "matter_id", "title", "description", "required", "status", "due_at", "accepted_types_json", "created_at"),
+    "client_portal_documents": ("id", "tenant_id", "matter_id", "request_id", "client_id", "filename", "stored_name", "content_type", "size_bytes", "sha256", "status", "uploaded_at", "reviewed_at", "review_note"),
+    "client_portal_signature_requests": ("id", "tenant_id", "matter_id", "document_id", "title", "description", "status", "due_at", "created_at", "completed_at", "evidence_json"),
+    "client_portal_consents": ("id", "tenant_id", "client_id", "matter_id", "consent_key", "version", "accepted", "accepted_at", "payload_json"),
+    "client_portal_messages": ("id", "tenant_id", "matter_id", "sender_type", "sender_id", "body", "attachment_document_id", "created_at", "read_at"),
+    "client_portal_appointments": ("id", "tenant_id", "matter_id", "title", "starts_at", "ends_at", "status", "location", "video_url", "created_at", "updated_at"),
+    "client_portal_notifications": ("id", "tenant_id", "client_id", "matter_id", "title", "body", "kind", "priority", "href", "read_at", "created_at", "payload_json"),
+    "client_portal_questionnaires": ("id", "tenant_id", "matter_id", "title", "status", "questions_json", "responses_json", "created_at", "submitted_at"),
+    "client_portal_surveys": ("id", "tenant_id", "matter_id", "rating", "comment", "submitted_at", "payload_json"),
+    "client_portal_evidence_packs": ("id", "tenant_id", "matter_id", "status", "summary_json", "created_at", "created_by"),
+    "client_portal_settings": ("tenant_id", "settings_json", "updated_at", "updated_by"),
+    "client_portal_push_subscriptions": ("id", "tenant_id", "client_id", "endpoint_hash", "subscription_json", "status", "created_at", "updated_at"),
+    "client_portal_audit_events": ("id", "tenant_id", "actor_type", "actor_id", "action", "resource_type", "resource_id", "created_at", "details_json"),
+}
+CLIENT_PORTAL_COLUMN_SQL = {
+    column: f'"{column}"'
+    for columns in CLIENT_PORTAL_COLUMNS.values()
+    for column in columns
+}
+CLIENT_PORTAL_WHERE_SQL = {
+    "": "",
+    "tenant_id = ?": '"tenant_id" = ?',
+    "id = ?": '"id" = ?',
+    "id = ? AND tenant_id = ?": '"id" = ? AND "tenant_id" = ?',
+    "tenant_id = ? AND id = ?": '"tenant_id" = ? AND "id" = ?',
+    "tenant_id = ? AND client_id = ?": '"tenant_id" = ? AND "client_id" = ?',
+    "matter_id = ?": '"matter_id" = ?',
+    "client_id = ?": '"client_id" = ?',
+    "client_id = ? AND matter_id = ?": '"client_id" = ? AND "matter_id" = ?',
+    "matter_id = ? AND accepted = 1": '"matter_id" = ? AND "accepted" = 1',
+    "matter_id = ? AND status <> ?": '"matter_id" = ? AND "status" <> ?',
+    "status = ?": '"status" = ?',
+}
+CLIENT_PORTAL_ORDER_SQL = {
+    "created_at DESC": '"created_at" DESC',
+    "created_at ASC": '"created_at" ASC',
+    "updated_at DESC": '"updated_at" DESC',
+    "position ASC": '"position" ASC',
+    "uploaded_at DESC": '"uploaded_at" DESC',
+    "consent_key ASC": '"consent_key" ASC',
+    "starts_at ASC": '"starts_at" ASC',
+    "display_name ASC": '"display_name" ASC',
+    "submitted_at DESC": '"submitted_at" DESC',
+}
 
 DEFAULT_CLIENT_PORTAL_SETTINGS = {
     "enabled": True,
@@ -122,20 +172,36 @@ def _sql_identifier(identifier: str, *, allowed: frozenset[str] | None = None) -
     return f'"{name}"'
 
 
+def _sql_table(table: str) -> str:
+    sql = CLIENT_PORTAL_TABLE_SQL.get(str(table or ""))
+    if not sql:
+        raise ClientPortalError("Tabella dati non valida.")
+    return sql
+
+
+def _sql_columns(table: str, values: dict[str, Any]) -> tuple[str, ...]:
+    allowed = CLIENT_PORTAL_COLUMNS.get(str(table or ""))
+    if not allowed:
+        raise ClientPortalError("Tabella dati non valida.")
+    if any(column not in allowed for column in values):
+        raise ClientPortalError("Colonna dati non valida.")
+    return tuple(column for column in allowed if column in values)
+
+
+def _sql_where_clause(where: str) -> str:
+    key = str(where or "").strip()
+    sql = CLIENT_PORTAL_WHERE_SQL.get(key)
+    if sql is None:
+        raise ClientPortalError("Filtro dati non valido.")
+    return sql
+
+
 def _sql_order_clause(order: str) -> str:
-    clauses: list[str] = []
-    for raw_part in str(order or "created_at DESC").split(","):
-        tokens = raw_part.strip().split()
-        if not tokens:
-            continue
-        column = _sql_identifier(tokens[0])
-        direction = "ASC"
-        if len(tokens) > 1:
-            direction = tokens[1].upper()
-        if len(tokens) > 2 or direction not in {"ASC", "DESC"}:
-            raise ClientPortalError("Ordinamento dati non valido.")
-        clauses.append(f"{column} {direction}")
-    return ", ".join(clauses) or '"created_at" DESC'
+    key = str(order or "created_at DESC").strip()
+    sql = CLIENT_PORTAL_ORDER_SQL.get(key)
+    if sql is None:
+        raise ClientPortalError("Ordinamento dati non valido.")
+    return sql
 
 
 class ClientPortalRepository:
@@ -179,33 +245,33 @@ class ClientPortalRepository:
         return [_row_dict(row) for row in rows]
 
     def _insert(self, table: str, values: dict[str, Any]) -> dict[str, Any]:
-        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
-        columns = list(values)
+        safe_table = _sql_table(table)
+        columns = _sql_columns(table, values)
         placeholders = ", ".join("?" for _ in columns)
-        names = ", ".join(_sql_identifier(column) for column in columns)
+        names = ", ".join(CLIENT_PORTAL_COLUMN_SQL[column] for column in columns)
         sql = f"INSERT INTO {safe_table} ({names}) VALUES ({placeholders})"
         with self.connection() as conn:
-            # lgtm[py/sql-injection] Tabella e colonne sono validate con allowlist/regex, i valori restano parametrizzati.
             conn.execute(sql, tuple(values[column] for column in columns))
         return dict(values)
 
     def _update(self, table: str, values: dict[str, Any], where: str, params: Iterable[Any]) -> None:
         if not values:
             return
-        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
-        assignments = ", ".join(f"{_sql_identifier(column)} = ?" for column in values)
+        safe_table = _sql_table(table)
+        columns = _sql_columns(table, values)
+        assignments = ", ".join(f"{CLIENT_PORTAL_COLUMN_SQL[column]} = ?" for column in columns)
+        safe_where = _sql_where_clause(where)
         with self.connection() as conn:
-            # lgtm[py/sql-injection] Tabella/colonne e clausola WHERE sono definite dal repository, i valori restano parametrizzati.
             conn.execute(
-                f"UPDATE {safe_table} SET {assignments} WHERE {where}",
-                (*values.values(), *tuple(params)),
+                f"UPDATE {safe_table} SET {assignments} WHERE {safe_where}",
+                (*(values[column] for column in columns), *tuple(params)),
             )
 
     def _count(self, table: str, tenant_id: str, extra_where: str = "", params: Iterable[Any] = ()) -> int:
-        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
-        where = "tenant_id = ?"
+        safe_table = _sql_table(table)
+        where = '"tenant_id" = ?'
         if extra_where:
-            where += f" AND {extra_where}"
+            where += f" AND {_sql_where_clause(extra_where)}"
         row = self._fetchone(f"SELECT COUNT(*) AS total FROM {safe_table} WHERE {where}", (tenant_id, *tuple(params)))
         return int(row.get("total") or 0)
 
@@ -726,11 +792,11 @@ class ClientPortalRepository:
         return record
 
     def _list(self, table: str, tenant_id: str, where: str = "", params: Iterable[Any] = (), order: str = "created_at DESC", limit: int = 200) -> list[dict[str, Any]]:
-        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
+        safe_table = _sql_table(table)
         safe_order = _sql_order_clause(order)
-        clause = "tenant_id = ?"
+        clause = '"tenant_id" = ?'
         if where:
-            clause += f" AND {where}"
+            clause += f" AND {_sql_where_clause(where)}"
         return self._fetchall(
             f"SELECT * FROM {safe_table} WHERE {clause} ORDER BY {safe_order} LIMIT ?",
             (tenant_id, *tuple(params), int(limit)),

@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+
+echo "[git pre-push] Controllo packaging, OpenAPI e whitespace..."
+python tools/sync_packaging_files.py --check
+python scripts/react-migration/generate_api_contracts.py --check
+git diff --check

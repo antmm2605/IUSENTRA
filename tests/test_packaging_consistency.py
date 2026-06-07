@@ -156,3 +156,11 @@ def test_ci_include_packaging_check_coverage_ed_e2e_smoke():
     assert "tests/e2e/test_ai_pipeline_full.py" in nightly_text
     assert "tests/e2e/test_tenant_migration_full.py" in nightly_text
     assert "tests/e2e/test_operational_crash_day.py" in nightly_text
+
+
+def test_hook_pre_push_blocca_openapi_non_allineato():
+    hook_text = (REPO_ROOT / ".githooks" / "pre-push").read_text(encoding="utf-8")
+
+    assert "python tools/sync_packaging_files.py --check" in hook_text
+    assert "python scripts/react-migration/generate_api_contracts.py --check" in hook_text
+    assert "git diff --check" in hook_text

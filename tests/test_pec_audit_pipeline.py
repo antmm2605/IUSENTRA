@@ -116,6 +116,92 @@ def test_pec_pipeline_deduplicates_by_message_id_and_mime_hash(tmp_path):
     assert repo.list_messages(limit=10)[0]["id"] == first["id"]
 
 
+def test_pec_pipeline_recovers_stale_default_tenant_duplicate(tmp_path):
+    db_path = tmp_path / "pec_audit.sqlite"
+    _label, raw_mime = synthetic_pec_messages()[0]
+    repo_default = PecAuditRepository(db_path, tenant_id="default")
+    first = repo_default.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="1")
+
+    repo_studio = PecAuditRepository(db_path, tenant_id="studio-legale-giuseppe-montagnese")
+    duplicate = repo_studio.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="2")
+
+    assert duplicate["duplicate"] is True
+    assert duplicate["id"] == first["id"]
+    with sqlite3.connect(db_path) as conn:
+        tenant_id = conn.execute("SELECT tenant_id FROM pec_messages WHERE id=?", (first["id"],)).fetchone()[0]
+    assert tenant_id == "studio-legale-giuseppe-montagnese"
+    with repo_studio.connect() as conn:
+        assert repo_studio.get_message_row(conn, first["id"])["id"] == first["id"]
+
+
+def test_pec_operational_audit_counts_latest_local_presidio_with_stale_message_tenant(tmp_path):
+    from pct.email_client import CartellaEmail
+    from scripts.audit_pec_operational_chain import audit_studio
+
+    paths = {
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
+        "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
+        "NOTIFICATIONS_DB": str(tmp_path / "notifications" / "notifications.db"),
+    }
+    for value in paths.values():
+        Path(value).parent.mkdir(parents=True, exist_ok=True)
+    GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"]).aggiungi(
+        EmailRicevuta(
+            id="MAIL-STORICA",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@example.test",
+            destinatari="studio@example.pec.it",
+            oggetto="POSTA CERTIFICATA: comunicazione di cancelleria",
+            corpo_testo="Messaggio di posta certificata con comunicazione di cancelleria.",
+            message_id="<mail-storica@example.test>",
+            origine="PEC",
+        )
+    )
+    repo = PecAuditRepository(tmp_path / "email" / "pec_audit.sqlite", tenant_id="studio-legale-giuseppe-montagnese")
+    run = repo.start_local_acquire_run(total_emails=1, batch_size=1, actor="pytest")
+    repo.record_local_acquire_item(
+        str(run["id"]),
+        email_id="MAIL-STORICA",
+        message_id="pec_storica",
+        subject="POSTA CERTIFICATA: comunicazione di cancelleria",
+        status="ingested",
+    )
+    with sqlite3.connect(repo.db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO pec_messages
+            (id, tenant_id, account_email, folder, imap_uid, message_id_header, mime_sha256, mime_size,
+             original_mime, received_at, ingested_at, retention_until, metadata_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                "pec_storica",
+                "default",
+                "studio@example.pec.it",
+                "INBOX",
+                "1",
+                "<mail-storica@example.test>",
+                "0" * 64,
+                1,
+                sqlite3.Binary(b"x"),
+                "2026-06-01T10:00:00Z",
+                "2026-06-01T10:00:00Z",
+                "2036-06-01",
+                "{}",
+            ),
+        )
+
+    audit = audit_studio(paths)
+
+    assert audit["ok"] is True
+    assert audit["pec_control"]["latest_local_status"]["by_email"]["ingested"] == 1
+
+
 def test_pec_audit_header_summaries_support_lightweight_mode(tmp_path, monkeypatch):
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     ingest_synthetic_dataset(repo)

@@ -204,10 +204,8 @@ def _audit_pec_db(path: Path) -> dict[str, Any]:
                 """
                 SELECT email_id, message_id, status, deadline_status, updated_at
                 FROM pec_local_acquire_items
-                WHERE tenant_id=?
-                ORDER BY updated_at DESC
-                """,
-                (str(conn.execute("SELECT tenant_id FROM pec_messages LIMIT 1").fetchone()[0] or "") if report["messages"] else "",),
+                ORDER BY updated_at DESC, rowid DESC
+                """
             ).fetchall()
         except sqlite3.Error:
             local_rows = []

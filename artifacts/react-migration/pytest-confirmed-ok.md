@@ -1,5 +1,13 @@
 # Pytest shard confermati OK
 
+## PEC presidio tenant storico 2.249.29 - 2026-06-07
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_pec_audit_pipeline.py -q` | OK | 34/34 passati: PEC già presenti nel DB dello studio con `tenant_id=default` vengono riconosciute come duplicati utili, normalizzate al tenant corrente e l'audit conta il presidio reale invece di tornare a `0/1143`. |
+| `python -m ruff check pct/pec_pipeline.py scripts/audit_pec_operational_chain.py scripts/presidia_pec_local_archive.py tests/test_pec_audit_pipeline.py` | OK | Lint mirato verde su pipeline PEC, presidio produzione, audit operativo e regressioni. |
+| `python -m py_compile pct/pec_pipeline.py scripts/audit_pec_operational_chain.py scripts/presidia_pec_local_archive.py tests/test_pec_audit_pipeline.py` | OK | Sintassi confermata dopo il fix sui duplicati storici e sul conteggio dell'ultimo presidio. |
+
 ## PEC, udienze audiovisive e catena operativa 2.249.28 - 2026-06-07
 
 | Comando / verifica | Esito | Nota |

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.249.29 - 2026-06-07
+
+- Corretto il presidio PEC su archivi storici dello stesso studio: se una PEC era già salvata nel DB tenant con `tenant_id` storico `default`, il nuovo presidio la riconosce come duplicato utile, normalizza il messaggio allo studio corrente e non produce più errori `UNIQUE constraint failed`.
+- Corretto l'audit operativo PEC: l'ultimo stato di presidio viene calcolato sulle righe effettive del DB dello studio, senza dipendere dal primo `tenant_id` trovato in `pec_messages`; il gate ora conta correttamente PEC ingerite, duplicate e processate.
+- Aggiunti test di regressione per il caso reale di produzione: duplicato storico `default` recuperato dallo studio Montagnese e audit catena PEC che non torna più a `0/1143` quando il presidio è stato registrato.
+
 ## 2.249.28 - 2026-06-07
 
 - Rafforzato il presidio PEC locale: lo script `scripts/presidia_pec_local_archive.py` riprende le PEC dello studio, usa il MIME originale quando disponibile oppure ricostruisce il messaggio locale, poi alimenta PEC Audit, PEC Control Tower, scadenziario, agenda e notifiche.

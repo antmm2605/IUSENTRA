@@ -3272,6 +3272,38 @@ class PecAuditRepository:
                     actor=actor,
                 )
                 return {"id": existing_id, "duplicate": True, "mime_sha256": mime_hash}
+            stale_existing = conn.execute(
+                """
+                SELECT id, tenant_id FROM pec_messages
+                WHERE id=? OR mime_sha256=?
+                   OR (message_id_header<>'' AND message_id_header=? AND account_email=?)
+                ORDER BY CASE WHEN tenant_id=? THEN 0 ELSE 1 END
+                LIMIT 1
+                """,
+                (message_pk, mime_hash, message_id_header, account_email, self.tenant_id),
+            ).fetchone()
+            if stale_existing:
+                existing_id = str(stale_existing["id"] or "")
+                previous_tenant = str(stale_existing["tenant_id"] or "")
+                if existing_id and previous_tenant and previous_tenant != self.tenant_id:
+                    conn.execute(
+                        "UPDATE pec_messages SET tenant_id=? WHERE id=? AND tenant_id=?",
+                        (self.tenant_id, existing_id, previous_tenant),
+                    )
+                self.append_audit(
+                    conn,
+                    action="pec.mime.duplicate",
+                    resource_type="pec_message",
+                    resource_id=existing_id,
+                    payload={
+                        "mime_sha256": mime_hash,
+                        "message_id_header": message_id_header,
+                        "folder": folder,
+                        "tenant_normalized_from": previous_tenant if previous_tenant != self.tenant_id else "",
+                    },
+                    actor=actor,
+                )
+                return {"id": existing_id, "duplicate": True, "mime_sha256": mime_hash}
             metadata = {
                 "headers": {
                     "subject": decode_header_value(msg.get("Subject", "")),
@@ -4083,9 +4115,10 @@ class PecAuditRepository:
                     f"""
                     SELECT id, message_id_header
                     FROM pec_messages
-                    WHERE tenant_id=? AND message_id_header IN ({placeholders})
+                    WHERE message_id_header IN ({placeholders})
+                    ORDER BY CASE WHEN tenant_id=? THEN 0 ELSE 1 END
                     """,
-                    (self.tenant_id, *chunk),
+                    (*chunk, self.tenant_id),
                 ).fetchall()
                 for row in rows:
                     header = str(row["message_id_header"] or "")

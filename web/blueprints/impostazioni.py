@@ -66,6 +66,46 @@ def _safe_mapping(value):
     return value if isinstance(value, dict) else {}
 
 
+_PUBLIC_BOOTSTRAP_STATUSES = {
+    "ready",
+    "available",
+    "ok",
+    "success",
+    "prepared",
+    "warning",
+    "error",
+    "missing",
+    "unavailable",
+    "unsupported",
+}
+
+_UNSAFE_PUBLIC_TEXT_MARKERS = (
+    "traceback",
+    "exception",
+    "stack trace",
+    'file "',
+    " line ",
+    "errno",
+)
+
+
+def _safe_public_text(value, *, max_length: int = 120) -> str:
+    if not isinstance(value, str):
+        return ""
+    text = " ".join(value.split())
+    if not text:
+        return ""
+    lowered = text.lower()
+    if any(marker in lowered for marker in _UNSAFE_PUBLIC_TEXT_MARKERS):
+        return ""
+    return text[:max_length]
+
+
+def _safe_public_status(value) -> str:
+    status = _safe_public_text(value, max_length=32).lower()
+    return status if status in _PUBLIC_BOOTSTRAP_STATUSES else "warning"
+
+
 def _safe_local_ai_status_payload(snapshot):
     data = _safe_mapping(snapshot)
     runtime = _safe_mapping(data.get("runtime"))
@@ -131,17 +171,23 @@ def _safe_local_ai_status_payload(snapshot):
     }
 
 
-def _safe_local_ai_bootstrap_result(result):
-    data = _safe_mapping(result)
-    status = str(data.get("status") or "warning")
+def _safe_local_ai_bootstrap_result(status_payload):
+    data = _safe_mapping(status_payload)
+    runtime = _safe_mapping(data.get("runtime"))
+    resolved_models = _safe_mapping(data.get("resolved_models"))
+    status = _safe_public_status(runtime.get("status"))
     safe = {
         "status": status,
-        "hardware_profile": data.get("hardware_profile") or "",
-        "chat_model": data.get("chat_model") or "",
-        "embed_model": data.get("embed_model") or "",
+        "hardware_profile": _safe_public_text(runtime.get("hardware_profile"), max_length=80),
+        "chat_model": _safe_public_text(runtime.get("chat_model") or resolved_models.get("chat"), max_length=80),
+        "embed_model": _safe_public_text(runtime.get("embed_model") or resolved_models.get("embed"), max_length=80),
     }
-    if status in {"error", "missing", "unavailable"}:
+    if status in {"ready", "available", "ok", "success", "prepared"}:
+        safe["message"] = "Preparazione AI locale completata."
+    elif status in {"error", "missing", "unavailable", "unsupported"}:
         safe["message"] = "Preparazione AI locale non completata. Verifica il servizio locale e riprova."
+    else:
+        safe["message"] = "Preparazione AI locale avviata. Controlla lo stato prima di usarla."
     return safe
 
 
@@ -156,7 +202,7 @@ def _salva_snapshot_sql_impostazioni(cfg, extra_sections: dict | None = None) ->
             return 0
         return save_settings_config_snapshot(studio_db, cfg, extra_sections=extra_sections)
     except Exception as exc:
-        current_app.logger.warning("Snapshot SQL impostazioni non aggiornato: %s", exc)
+        current_app.logger.warning("Snapshot SQL impostazioni non aggiornato: %s", type(exc).__name__)
         return 0
 
 
@@ -638,11 +684,12 @@ def api_local_ai_bootstrap():
     try:
         data = request.get_json(silent=True) or {}
         service = get_local_ai_service()
-        result = service.bootstrap_runtime(force=bool(data.get("force")))
+        service.bootstrap_runtime(force=bool(data.get("force")))
         refresh_live_ollama_runtime()
+        status_payload = _safe_local_ai_status_payload(service.health_snapshot())
         return jsonify({
-            "result": _safe_local_ai_bootstrap_result(result),
-            "status_payload": _safe_local_ai_status_payload(service.health_snapshot()),
+            "result": _safe_local_ai_bootstrap_result(status_payload),
+            "status_payload": status_payload,
         })
     except Exception:
         current_app.logger.warning("Errore api_local_ai_bootstrap")

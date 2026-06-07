@@ -9,6 +9,7 @@ from email import policy
 from email.message import EmailMessage
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 
 from flask import Flask, g
 
@@ -301,12 +302,18 @@ def test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link(tmp_p
     remote = report["procedural_profile"]["remote_hearing"]
 
     assert worker["failed"] == 0
-    assert detail["status"] in {"validated", "link_candidates", "linked"}
+    assert detail["message"]["status"] in {"validated", "link_candidates", "linked"}
     assert remote["links"][0]["url"] == exact_link
     assert remote["links"][0]["raw_url"] == exact_link
     assert remote["links"][0]["exact_match"] is True
     assert remote["links"][0]["source"] == "13744017s.pdf.zip"
-    assert any(item["filename"] == "13744017s.pdf.zip" and "teams.microsoft.com" in item["ocr_text"] for item in detail["attachments"])
+    parsed_link = urlsplit(remote["links"][0]["url"])
+    assert parsed_link.scheme == "https"
+    assert parsed_link.netloc == "teams.microsoft.com"
+    assert any(
+        item["filename"] == "13744017s.pdf.zip" and "meetup-join" in item["ocr_text"]
+        for item in detail["attachments"]
+    )
 
 
 def test_giudice_di_pace_notice_generates_non_blocking_validation_and_agent_questions(tmp_path):

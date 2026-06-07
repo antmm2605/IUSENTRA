@@ -1026,9 +1026,13 @@ def _preserved_url_value(value: Any) -> str:
 
 
 def _normalise_extracted_url(raw_url: str) -> tuple[str, bool, str]:
+    raw_value = str(raw_url or "").strip()
     url = _preserved_url_value(raw_url)
-    exact = url == raw_url.strip()
+    whitespace_compacted = re.sub(r"[\r\n\t ]+", "", raw_value)
+    exact = url == raw_value or (bool(raw_value) and whitespace_compacted == url)
     note = ""
+    if exact and url != raw_value:
+        note = "rimossi spazi OCR interni al link"
     if url.startswith("www."):
         url = f"https://{url}"
         exact = False
@@ -1036,8 +1040,8 @@ def _normalise_extracted_url(raw_url: str) -> tuple[str, bool, str]:
     for trailing in (".", ",", ";"):
         if url.endswith(trailing):
             url = url[:-1]
-            exact = False
-            note = "rimossa punteggiatura finale non parte del link"
+            punctuation_note = "rimossa punteggiatura finale non parte del link"
+            note = f"{note}; {punctuation_note}" if note else punctuation_note
     pairs = (("(", ")"), ("[", "]"), ("{", "}"))
     changed = True
     while changed and url:
@@ -1045,10 +1049,89 @@ def _normalise_extracted_url(raw_url: str) -> tuple[str, bool, str]:
         for opening, closing in pairs:
             if url.endswith(closing) and url.count(closing) > url.count(opening):
                 url = url[:-1]
-                exact = False
-                note = "rimossa parentesi finale esterna al link"
+                parenthesis_note = "rimossa parentesi finale esterna al link"
+                note = f"{note}; {parenthesis_note}" if note else parenthesis_note
                 changed = True
     return url, exact, note
+
+
+_URL_MATCH_RE = re.compile(r"\b(?:https?://|www\.)[^\s<>'\"]+", flags=re.I)
+_URL_OCR_CONTINUATION_RE = re.compile(r"[A-Za-z0-9%_~:/?#@!$&()*+,;=.-]+")
+
+
+def _url_candidate_host(value: str) -> str:
+    candidate = value if re.match(r"^[a-z][a-z0-9+.-]*://", value, flags=re.I) else f"https://{value}"
+    try:
+        return (urlsplit(candidate).hostname or "").lower().lstrip(".")
+    except Exception:
+        return ""
+
+
+def _is_remote_hearing_platform_host(host: str) -> bool:
+    if any(_url_host_matches(host, domain) for domain in REMOTE_HEARING_ALLOWED_DOMAINS):
+        return True
+    return any(keyword in host for keyword in REMOTE_HEARING_ALLOWED_HOST_KEYWORDS)
+
+
+def _should_join_ocr_url_chunk(current_url: str, next_chunk: str) -> bool:
+    current = _preserved_url_value(current_url)
+    chunk = str(next_chunk or "").strip()
+    if not current or not chunk:
+        return False
+    host = _url_candidate_host(current)
+    if not _is_remote_hearing_platform_host(host):
+        return False
+    if current.endswith((".", ",", ";")):
+        return False
+    lower_chunk = chunk.lower()
+    if current.endswith(("-", "/", "=", "%", "?", "&", "_", ":", ".")):
+        return True
+    if lower_chunk.startswith(
+        (
+            "join/",
+            "ead.",
+            "thread",
+            "v2",
+            "context",
+            "type=",
+            "deeplinkid=",
+            "directdl=",
+            "mslaunch=",
+            "enablemobilepage=",
+            "suppressprompt=",
+            "anon=",
+            "%2f",
+            "19%3a",
+        )
+    ):
+        return True
+    if any(token in lower_chunk for token in ("/", "=", "%", "&", "?", ".v2")):
+        return True
+    if re.fullmatch(r"[0-9a-f]{4,}(?:-[0-9a-f]{2,})*", lower_chunk, flags=re.I):
+        return True
+    return False
+
+
+def _iter_url_candidates(text: str):
+    source = str(text or "")
+    for match in _URL_MATCH_RE.finditer(source):
+        raw_url = match.group(0)
+        end = match.end()
+        cursor = end
+        while cursor < len(source):
+            whitespace = re.match(r"[\s\r\n]+", source[cursor:])
+            if not whitespace:
+                break
+            chunk_start = cursor + len(whitespace.group(0))
+            chunk_match = _URL_OCR_CONTINUATION_RE.match(source[chunk_start:])
+            if not chunk_match:
+                break
+            chunk = chunk_match.group(0)
+            if not _should_join_ocr_url_chunk(raw_url, chunk):
+                break
+            cursor = chunk_start + len(chunk)
+            raw_url = source[match.start() : cursor]
+        yield match.start(), cursor, raw_url
 
 
 def _url_host_matches(host: str, domain: str) -> bool:
@@ -1101,10 +1184,9 @@ def _is_remote_hearing_url(url: str, *, context: str = "") -> tuple[bool, str]:
 def _extract_remote_hearing_links(text: str) -> list[dict[str, Any]]:
     values: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for match in re.finditer(r"\b(?:https?://|www\.)[^\s<>'\"]+", text or "", flags=re.I):
-        raw_url = match.group(0)
+    for start, end, raw_url in _iter_url_candidates(text or ""):
         value, exact, note = _normalise_extracted_url(raw_url)
-        context = _remote_hearing_url_context(str(text or ""), match.start(), match.end())
+        context = _remote_hearing_url_context(str(text or ""), start, end)
         accepted, classification_reason = _is_remote_hearing_url(value, context=context)
         if not accepted:
             continue

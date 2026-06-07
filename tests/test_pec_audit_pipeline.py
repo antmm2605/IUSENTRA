@@ -382,6 +382,31 @@ def test_remote_hearing_extracts_full_teams_launcher_url_without_truncation():
     assert links[0]["integrity"] == "exact"
 
 
+def test_remote_hearing_rebuilds_teams_url_split_by_pdf_ocr_spaces():
+    expected_link = (
+        "https://teams.microsoft.com/l/meetup-join/"
+        "19%3ameeting_ZmFiOGJmMzgtNDI1OS00YTI0LTkzZmEtNDhjZTZhNTc0NzNi%40thread.v2/0"
+        "?context=%7b%22Tid%22%3a%22792bc8b1-9088-4858-b830-2aad443e9f3f%22"
+        "%2c%22Oid%22%3a%228df10bb4-001b-4015-9737-15476113e02a%22%7d"
+    )
+    text = (
+        "udienza in modalità da remoto mediante collegamento delle parti al link: "
+        "https://teams.microsoft.com/l/meetup- join/"
+        "19%3ameeting_ZmFiOGJmMzgtNDI1OS00YTI0LTkzZmEtNDhjZTZhNTc0NzNi%40thr "
+        "ead.v2/0?context=%7b%22Tid%22%3a%22792bc8b1-9088-4858-b830- "
+        "2aad443e9f3f%22%2c%22Oid%22%3a%228df10bb4-001b-4015-9737- "
+        "15476113e02a%22%7d. Manda al ricorrente di notificare ricorso."
+    )
+
+    links = _extract_remote_hearing_links(text)
+
+    assert [item["url"] for item in links] == [expected_link]
+    assert links[0]["exact"] is True
+    assert links[0]["integrity"] == "exact"
+    assert "rimossi spazi OCR interni al link" in links[0]["normalization_note"]
+    assert "rimossa punteggiatura finale" in links[0]["normalization_note"]
+
+
 def test_remote_hearing_report_excludes_technical_signature_and_invoice_urls():
     text = """
     Udienza da remoto con strumenti audiovisivi.

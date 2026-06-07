@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.249.32 - 2026-06-07
+
+- Corretto il parser dei link udienza letti da OCR PDF: i collegamenti Teams/Webex/Meet spezzati da spazi di impaginazione o OCR, come `meetup- join` e `thr ead.v2`, vengono ricostruiti nello stesso URL completo prima di alimentare report PEC, scadenziario e agenda.
+- La verifica del link resta positiva quando la normalizzazione rimuove solo spazi OCR interni o punteggiatura finale esterna alla frase, senza cambiare dominio, percorso o parametri del collegamento.
+
 ## 2.249.31 - 2026-06-07
 
 - Corretto il presidio delle udienze audiovisive lette da allegati PDF compressi: se un vecchio OCR aveva salvato il contenuto binario dello ZIP (`PK...`) come testo, il refresh PEC lo riconosce come incompleto, rilegge il PDF interno e ricostruisce report, scadenziario e agenda con il link reale.

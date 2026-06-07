@@ -163,4 +163,6 @@ def test_hook_pre_push_blocca_openapi_non_allineato():
 
     assert "python tools/sync_packaging_files.py --check" in hook_text
     assert "python scripts/react-migration/generate_api_contracts.py --check" in hook_text
+    assert "python scripts/react-migration/generate_app_v2_page_registry.py --check" in hook_text
+    assert "python scripts/react-migration/generate_app_v2_test_docs.py --check" in hook_text
     assert "git diff --check" in hook_text

@@ -157,7 +157,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_ocr_worker.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_official_sources_registry.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_official_web_gazzetta.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| Backend domain | Frontend/UI | tests/test_packaging_consistency.py | tenant | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_packaging_consistency.py | tenant, contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_pdf_deadline_import.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_portali_telematici_matrix.py | 401 anonimo | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_post_acceptance_obligations.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -305,7 +305,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | API contract | tests/test_react_condivisioni.py | 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_preventivo_wizard_console.py | 401 anonimo, feature flag, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_privacy_registry_sources.py | feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
-| Frontend React | API contract | tests/test_react_scadenziario_additions.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Frontend React | API contract | tests/test_react_scadenziario_additions.py | 401 anonimo, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_tariffario_console.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_timesheet.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | Frontend static gate | frontend/package.json | contratti React, App V2 frontend, UI coverage fase 9, typecheck e build | nessun Vitest/Jest/RTL coverage; nessun VRT attivo | censito |
@@ -436,7 +436,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Mandato/economico | Frontend/UI | tests/test_tariffario_catalogo_coverage.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Mandato/economico | RBAC | tests/test_preventivi_wizard.py | feature flag, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Mandato/economico | RBAC | tests/test_tariffario_routes.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Scadenze | Tenant isolation | tests/test_scadenziario.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Scadenze | Tenant isolation | tests/test_scadenziario.py | 401 anonimo, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | API contract | tests/test_backend_security_phase5.py | 401 anonimo, tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Security | Security | tests/test_security_headers.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_uffici_giudiziari_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |

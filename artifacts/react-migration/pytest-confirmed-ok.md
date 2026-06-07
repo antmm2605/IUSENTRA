@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## PEC, udienze audiovisive e catena operativa 2.249.28 - 2026-06-07
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/pec_pipeline.py web/blueprints/pec_pipeline_api.py scripts/audit_pec_operational_chain.py scripts/presidia_pec_local_archive.py scripts/repair_pec_deadlines.py scripts/backfill_pec_remote_hearing_links.py scripts/audit_pec_remote_hearing_deadlines.py` | OK | Sintassi confermata su pipeline PEC, API, audit operativo, presidio locale massivo, repair scadenze e backfill udienze remote. |
+| `python -m pytest tests/test_pec_audit_pipeline.py -q` | OK | 32/32 passati: link tecnici esclusi, sentenza/127-ter non promossa a udienza audiovisiva, refresh report, ricostruzione MIME locale, scadenziario, agenda, notifiche e audit catena PEC. |
+| `python -m pytest tests/test_push_notifications.py tests/test_scadenziario.py tests/test_react_scadenziario_additions.py -q` | OK | 74/74 passati: notifiche Web Push/interne, scadenziario e contratti React scadenziario dopo il presidio PEC. |
+| `python -m ruff check pct/pec_pipeline.py web/blueprints/pec_pipeline_api.py scripts/presidia_pec_local_archive.py scripts/audit_pec_operational_chain.py scripts/repair_pec_deadlines.py scripts/backfill_pec_remote_hearing_links.py scripts/audit_pec_remote_hearing_deadlines.py tests/test_pec_audit_pipeline.py` | OK | Lint mirato verde dopo pulizia variabili e query SQL predefinite negli script. |
+| `python tools/sync_packaging_files.py --check`; `git diff --check` | OK | Packaging sincronizzato e whitespace senza errori; resta solo warning CRLF informativo su `docs/openapi.yaml`. |
+
 ## Lex/RAG, PEC e Ricerca Legale 2.249.24 - 2026-06-07
 
 | Comando / verifica | Esito | Nota |

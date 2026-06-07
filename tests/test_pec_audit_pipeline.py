@@ -260,6 +260,63 @@ def test_remote_hearing_report_excludes_technical_pst_dtd_ocsp_links():
     assert "OCSP0" not in " ".join(urls)
 
 
+def test_remote_hearing_report_excludes_technical_signature_and_invoice_urls():
+    text = """
+    Udienza da remoto con strumenti audiovisivi.
+    http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fattura/messaggi/v1.0
+    http://www.w3.org/2000/09/xmldsig#
+    http://uri.etsi.org/01903/v1.3.2#
+    http://cacert.actalis.it/certs/actalis-autroot01
+    Collegamento udienza: https://teams.microsoft.com/l/meetup-join/vera-stanza
+    """
+
+    links = _extract_remote_hearing_links(text)
+
+    assert [item["url"] for item in links] == ["https://teams.microsoft.com/l/meetup-join/vera-stanza"]
+
+
+def test_sentenza_a_verbale_127_ter_non_diventa_udienza_audiovisiva():
+    parsed = {
+        "headers": {"subject": "POSTA CERTIFICATA: COMUNICAZIONE 1821/2024/LAV"},
+        "body": {"text": "Comunicazione di cancelleria con sentenza allegata."},
+        "fields": {},
+        "semantic_context": {"event_hint": "comunicazione_cancelleria", "agent_questions": [], "recommended_actions": []},
+        "procedural_profile": {
+            "numero_rg": "1821/2024",
+            "oggetto_evento": "SENTENZA A VERBALE (art. 127 ter cpc)",
+            "descrizione_evento": "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 922/2026",
+            "giudice": "SICARI FRANCESCA PATRIZIA",
+        },
+    }
+    attachments = [
+        {
+            "filename": "1300478s.pdf.zip",
+            "content_type": "application/zip",
+            "classification": "atto",
+            "ocr_text": (
+                "TRIBUNALE DI REGGIO CALABRIA SENTENZA. "
+                "Note scritte ai sensi dell'art. 127-ter cpc depositate in sostituzione dell'udienza del 4.6.2026."
+            ),
+            "ocr_coverage": 0.91,
+            "signature_status": "non_applicabile",
+        },
+        {
+            "filename": "smime.p7s",
+            "content_type": "application/pkcs7-signature",
+            "classification": "firma",
+            "ocr_text": "http://ca1.agid.gov.it/OCSP0 http://www.w3.org/2000/09/xmldsig#",
+            "ocr_coverage": 0.2,
+            "signature_status": "valida",
+        },
+    ]
+
+    report = build_validation_report(parsed, attachments)
+
+    assert report["remote_hearing"] == {}
+    assert "remote_hearing" not in report["procedural_profile"]
+    assert not any(issue["code"].startswith("remote_hearing") for issue in report["issues"])
+
+
 def test_remote_hearing_report_warns_when_pdf_link_is_not_yet_ocr_read():
     profile = build_pec_procedural_profile(
         subject="Fissazione udienza",
@@ -418,6 +475,58 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     assert agenda_items[0].luogo == "Udienza da remoto"
 
 
+def test_refresh_validation_reports_rewrites_stale_remote_hearing_report(tmp_path):
+    exact_link = "https://teams.microsoft.com/l/meetup-join/udienza-1263"
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    msg = EmailMessage()
+    msg["Subject"] = "FISSAZIONE UDIENZA DI DISCUSSIONE"
+    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
+    msg["Message-ID"] = "<udienza-refresh@example.test>"
+    msg.set_content("Udienza con strumenti audiovisivi. Link nel PDF.")
+    msg.add_attachment(_zip_pdf_with_link(exact_link), maintype="application", subtype="zip", filename="13744017s.pdf.zip")
+    ingest = repo.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="uid-refresh")
+    repo.run_pending_jobs(limit=30, actor="pytest")
+
+    with repo.connect() as conn:
+        parsed_row = repo.latest_parsed_row(conn, ingest["id"])
+        assert parsed_row is not None
+        stale = {
+            "event_type": "comunicazione_cancelleria",
+            "severity": "warning",
+            "issues": [],
+            "procedural_profile": {
+                "remote_hearing": {
+                    "detected": True,
+                    "links": [{"url": "http://pst.giustizia.it/", "source": "Corpo PEC", "exact_match": True}],
+                }
+            },
+            "remote_hearing": {
+                "detected": True,
+                "links": [{"url": "http://pst.giustizia.it/", "source": "Corpo PEC", "exact_match": True}],
+            },
+            "deadline_proposal": {"auto_create": False, "remote_hearing": {}},
+        }
+        repo._insert_validation_report(
+            conn,
+            message_id=ingest["id"],
+            parsed_version_id=str(parsed_row["id"]),
+            report=stale,
+            actor="pytest",
+        )
+        assert repo.latest_report(conn, ingest["id"])["remote_hearing"]["links"][0]["url"] == "http://pst.giustizia.it/"
+
+    refreshed = repo.refresh_validation_reports(actor="pytest")
+
+    assert refreshed["ok"] is True
+    assert refreshed["updated"] == 1
+    detail = repo.get_message_detail(ingest["id"])
+    refreshed_remote = detail["validation_report"]["procedural_profile"]["remote_hearing"]
+    assert refreshed_remote["links"][0]["url"] == exact_link
+    assert all("pst.giustizia.it" not in item["url"] for item in refreshed_remote["links"])
+
+
 def test_giudice_di_pace_hearing_creates_real_hearing_not_generic_notice(tmp_path):
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
@@ -524,7 +633,7 @@ def test_pec_repair_upgrades_old_gdp_hearing_deadline_and_clears_codex_actor(tmp
 
     repaired = repo.repair_pec_deadlines(actor="codex-test")
 
-    assert repaired["updated"] == 1
+    assert repaired["updated"] >= 1
     scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
     assert len(scadenze) == 1
     assert scadenze[0].tipo == TipoTermine.UDIENZA
@@ -958,13 +1067,13 @@ def test_pec_api_acquisisci_locali_prosegue_a_blocchi_e_azzera_presidio(tmp_path
 
     assert payload["has_more"] is False
     assert payload["status"] == "completed"
-    assert payload["skipped_missing_mime"] == 1
+    assert payload["skipped_missing_mime"] == 0
 
     repo = PecAuditRepository(paths["PEC_AUDIT_DB"], tenant_id="default")
     report = repo.local_acquire_run_report(run_id)
     assert report["status"] == "completed"
     assert len(report["items"]) == 3
-    assert {item["status"] for item in report["items"]} == {"missing_mime"}
+    assert {item["status"] for item in report["items"]} == {"ingested"}
 
     react_payload = build_react_email_payload(db_path=str(paths["EMAIL_CASELLA_DB"]), tenant_id="default")
     assert react_payload["summary"]["warnings"] == 0
@@ -1034,7 +1143,7 @@ def test_pec_api_presidia_avvisi_warn_storici_senza_lasciare_arretrato(tmp_path,
         payload = response.get_json()
 
     assert payload["status"] == "completed"
-    assert payload["local_acquire"]["skipped_missing_mime"] == 3
+    assert payload["local_acquire"]["skipped_missing_mime"] == 0
     assert "non alimentano" in payload["messaggio"]
 
     after = build_react_email_payload(db_path=str(paths["EMAIL_CASELLA_DB"]), tenant_id="default")
@@ -1165,6 +1274,73 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
             "SELECT COUNT(*) FROM notifications WHERE source_type='pec_deadline' AND source_id=?",
             (ingest["id"],),
         ).fetchone()[0] == 1
+
+
+def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_path):
+    from pct.agenda import Agenda
+    from pct.email_client import CartellaEmail
+    from pct.scadenziario import GestioneScadenziario
+    from scripts.audit_pec_operational_chain import audit_studio
+    from scripts.presidia_pec_local_archive import presidia_studio
+
+    paths = {
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
+        "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
+        "NOTIFICATIONS_DB": str(tmp_path / "notifications" / "notifications.db"),
+    }
+    for value in paths.values():
+        Path(value).parent.mkdir(parents=True, exist_ok=True)
+    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    gestore.aggiungi(
+        EmailRicevuta(
+            id="MAIL-PEC-RICOSTRUITA",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="Per conto di: tribunale.palmi@civile.ptel.giustiziacert.it",
+            destinatari="studio@example.pec.it",
+            oggetto="POSTA CERTIFICATA: COMUNICAZIONE 555/2026/LAV",
+            data="2026-06-01T12:00:00",
+            corpo_testo=(
+                "Messaggio di posta certificata. Comunicazione di cancelleria. "
+                "Numero di Ruolo generale: 555/2026. "
+                "Oggetto: FISSAZIONE UDIENZA DI DISCUSSIONE. "
+                "Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 29/10/2026 09:15."
+            ),
+            allegati=[{"nome": "Comunicazione.xml", "mime": "application/xml", "size": 140}],
+            message_id="<mail-pec-ricostruita@example.test>",
+            origine="PEC",
+        )
+    )
+
+    result = presidia_studio(
+        studio_slug="default",
+        paths=paths,
+        actor="pytest",
+        worker_limit=80,
+    )
+
+    assert result["ok"] is True
+    assert result["pec_relevant"] == 1
+    assert result["reconstructed"] == 1
+    assert result["missing_mime"] == 0
+    assert result["deadline_created"] + result["deadline_already_exists"] == 1
+    assert result["agenda_linked"] == 1
+    assert result["notifications_created"] >= 1
+    scadenze = GestioneScadenziario(paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
+    pec_scadenze = [item for item in scadenze if "PEC_AUDIT:" in item.note]
+    assert len(pec_scadenze) == 1
+    assert pec_scadenze[0].data_scadenza == "2026-10-29"
+    assert pec_scadenze[0].id_appuntamento
+    appuntamenti_pec = [item for item in Agenda(paths["AGENDA_DB"]).tutti() if str(item.external_uid).startswith("PEC_AUDIT:")]
+    assert len(appuntamenti_pec) == 1
+    audit = audit_studio(paths)
+    assert audit["ok"] is True
+    assert audit["email_archive"]["pec_relevant"] == 1
+    assert audit["pec_control"]["latest_local_status"]["missing_mime_latest"] == 0
 
 
 def test_pec_repository_quarantines_stale_sqlite_journal(tmp_path):

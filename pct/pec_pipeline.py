@@ -841,6 +841,14 @@ REMOTE_HEARING_BLOCKED_DOMAINS = (
     "processotelematico.giustizia.it",
     "ca1.agid.gov.it",
     "agid.gov.it",
+    "actalis.it",
+    "cacert.actalis.it",
+    "ocsp07.actalis.it",
+    "w3.org",
+    "uri.etsi.org",
+    "fatturapa.gov.it",
+    "agenziaentrate.gov.it",
+    "ivaservizi.agenziaentrate.gov.it",
     "normattiva.it",
     "gazzettaufficiale.it",
 )
@@ -859,6 +867,12 @@ REMOTE_HEARING_BLOCKED_PATH_PARTS = (
     "schema",
     "schemi",
     "download",
+    "xmldsig",
+    "signedproperties",
+    "xmlenc",
+    "certificat",
+    "fattura",
+    "messaggi/v",
 )
 
 REMOTE_HEARING_ALLOWED_DOMAINS = (
@@ -918,6 +932,26 @@ REMOTE_HEARING_LINK_CONTEXT_KEYWORDS = (
     "webex",
 )
 
+REMOTE_HEARING_NEGATIVE_CONTEXT_KEYWORDS = (
+    "sentenza a verbale",
+    "art. 127 ter",
+    "art. 127-ter",
+    "127 ter cpc",
+    "127-ter cpc",
+    "note scritte",
+    "trattazione scritta",
+    "sostituzione dell'udienza",
+    "sostituzione udienza",
+    "depositate in sostituzione",
+    "fattura elettronica",
+    "fatturapa",
+    "xml signature",
+    "xmldsig",
+    "signedproperties",
+    "ocsp",
+    "crl",
+)
+
 
 def _attachment_name(item: dict[str, Any]) -> str:
     return clean_text(item.get("filename") or item.get("name") or "", 240)
@@ -938,6 +972,52 @@ def _is_pdf_attachment(item: dict[str, Any]) -> bool:
 
 def _attachment_ocr_text(item: dict[str, Any]) -> str:
     return clean_text(item.get("ocr_text") or item.get("text") or "", 20000)
+
+
+def _is_remote_hearing_technical_attachment(item: dict[str, Any]) -> bool:
+    name = _attachment_name(item).lower()
+    content_type = _attachment_content_type(item)
+    classification = clean_text(item.get("classification") or "", 80).lower()
+    if classification in {"firma", "daticert", "postacert", "ricevute"}:
+        return True
+    if name.endswith((".p7s", ".cer", ".crt", ".crl")):
+        return True
+    if content_type in {
+        "application/pkcs7-signature",
+        "application/pkcs7-mime",
+        "application/x-pkcs7-signature",
+    } and not name.endswith((".pdf.p7m", ".pdf")):
+        return True
+    return False
+
+
+def _remote_hearing_negative_context(text: str) -> bool:
+    lower = clean_text(text, 12000).lower()
+    if not lower:
+        return False
+    return any(keyword in lower for keyword in REMOTE_HEARING_NEGATIVE_CONTEXT_KEYWORDS)
+
+
+def _remote_hearing_positive_context(text: str) -> bool:
+    lower = clean_text(text, 12000).lower()
+    if not lower:
+        return False
+    if _remote_hearing_negative_context(lower) and not any(
+        keyword in lower
+        for keyword in (
+            "strumenti audiovisivi",
+            "udienza da remoto",
+            "udienza audiovisiva",
+            "videoconferenza",
+            "stanza virtuale",
+            "aula virtuale",
+            "teams.microsoft",
+            "zoom.us",
+            "webex",
+        )
+    ):
+        return False
+    return any(keyword in lower for keyword in REMOTE_HEARING_KEYWORDS)
 
 
 def _preserved_url_value(value: Any) -> str:
@@ -999,6 +1079,8 @@ def _is_remote_hearing_url(url: str, *, context: str = "") -> tuple[bool, str]:
     path = f"{parsed.path or ''}?{parsed.query or ''}".lower()
     if not host:
         return False, "host_assente"
+    if host.startswith(("ocsp", "crl")) or ".ocsp" in host or ".crl" in host:
+        return False, "servizio_certificati_non_link_udienza"
     if any(_url_host_matches(host, domain) for domain in REMOTE_HEARING_BLOCKED_DOMAINS):
         return False, "fonte_tecnica_o_istituzionale_non_link_udienza"
     if any(part in host or part in path for part in REMOTE_HEARING_BLOCKED_PATH_PARTS):
@@ -1126,6 +1208,8 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
         },
     ]
     for item in attachments:
+        if _is_remote_hearing_technical_attachment(item):
+            continue
         name = _attachment_name(item) or "Allegato"
         text = _attachment_ocr_text(item)
         if text:
@@ -1133,7 +1217,7 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
 
     all_text = "\n".join(str(source.get("text") or "") for source in sources)
     lower_all = all_text.lower()
-    remote_detected = any(keyword in lower_all for keyword in REMOTE_HEARING_KEYWORDS)
+    remote_detected = _remote_hearing_positive_context(all_text)
     link_sources: list[dict[str, str]] = []
     seen_links: set[str] = set()
     times: list[str] = []
@@ -1141,8 +1225,7 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
     source_names: list[str] = []
     for source in sources:
         source_text = str(source.get("text") or "")
-        source_lower = source_text.lower()
-        if any(keyword in source_lower for keyword in REMOTE_HEARING_KEYWORDS):
+        if _remote_hearing_positive_context(source_text):
             source_name = str(source.get("name") or "")
             if source_name and source_name not in source_names:
                 source_names.append(source_name)
@@ -1180,8 +1263,7 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
             flags=re.I,
         )
     )
-    has_hearing_word = "udienza" in lower_all or "comparizione" in lower_all
-    pdf_required = bool((remote_detected or body_says_link_in_attachment or has_hearing_word) and pdf_attachments and not link_sources)
+    pdf_required = bool((remote_detected or (body_says_link_in_attachment and "udienza" in lower_all)) and pdf_attachments and not link_sources)
     mode = ""
     if "audiovisiv" in lower_all:
         mode = "audiovisiva"
@@ -1212,6 +1294,8 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
         checklist.insert(0, "Aprire o acquisire con OCR il PDF allegato perché può contenere il link di collegamento all'udienza.")
     if link_sources:
         checklist.append("Verificare il link estratto prima di comunicarlo o usarlo per l'accesso all'udienza.")
+    if not (remote_detected or pdf_required or link_sources):
+        return {}
     profile = {
         "detected": bool(remote_detected or link_sources),
         "mode": mode,
@@ -1318,6 +1402,47 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
     updates: dict[str, Any] = {}
     current_url = str(getattr(existing, "remote_hearing_url", "") or "").strip()
     current_source = str(getattr(existing, "remote_hearing_source", "") or "").strip()
+    current_note = str(getattr(existing, "note", "") or "")
+
+    def _strip_remote_note_lines(note: str) -> str:
+        cleaned: list[str] = []
+        for line in str(note or "").splitlines():
+            marker = line.strip()
+            if marker.startswith(
+                (
+                    "Udienza da remoto:",
+                    "Orario collegamento:",
+                    "Link udienza audiovisiva:",
+                    "Fonte link udienza:",
+                    "Verifica link udienza:",
+                    "Istruzioni accesso udienza:",
+                )
+            ):
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned).strip()
+
+    if not extra.get("remote_hearing_detected"):
+        stale_keys = {
+            "remote_hearing_detected": False,
+            "remote_hearing_mode": "",
+            "remote_hearing_url": "",
+            "remote_hearing_source": "",
+            "remote_hearing_verified": False,
+            "remote_hearing_integrity": "",
+            "remote_hearing_time": "",
+            "remote_hearing_access_info": "",
+            "remote_hearing_pdf_required": False,
+        }
+        for key, value in stale_keys.items():
+            current_value = getattr(existing, key, False if isinstance(value, bool) else "")
+            if current_value != value and str(current_value or "").strip():
+                updates[key] = value
+        cleaned_note = _strip_remote_note_lines(current_note)
+        if cleaned_note != current_note.strip():
+            updates["note"] = cleaned_note
+        return updates
+
     if current_url and not _is_remote_hearing_url(current_url, context=current_source)[0]:
         updates.update(
             {
@@ -1336,7 +1461,6 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
             continue
         if not str(getattr(existing, key, "") or "").strip():
             updates[key] = value
-    current_note = str(getattr(existing, "note", "") or "")
     if current_url and "Link udienza audiovisiva:" in current_note and not _is_remote_hearing_url(current_url, context=current_source)[0]:
         cleaned_lines: list[str] = []
         skip_link_meta = False
@@ -3277,6 +3401,47 @@ class PecAuditRepository:
             (message_id,),
         ).fetchone()
 
+    def _insert_validation_report(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        message_id: str,
+        parsed_version_id: str,
+        report: dict[str, Any],
+        actor: str,
+        action: str = "pec.validation.reported",
+    ) -> dict[str, Any]:
+        report_id = uuid.uuid4().hex
+        report_hash = sha256_json(report)
+        conn.execute(
+            """
+            INSERT INTO pec_validation_reports
+            (id, message_id, parsed_version_id, event_type, report_json, report_sha256, severity, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                report_id,
+                message_id,
+                parsed_version_id,
+                report["event_type"],
+                canonical_json(report),
+                report_hash,
+                report["severity"],
+                iso_now(),
+            ),
+        )
+        quality = "verde" if report["severity"] == "ok" else "giallo" if report["severity"] == "warning" else "rosso"
+        conn.execute("UPDATE pec_messages SET quality_status=?, status=? WHERE id=?", (quality, "validated", message_id))
+        self.append_audit(
+            conn,
+            action=action,
+            resource_type="pec_validation_report",
+            resource_id=report_id,
+            payload={"message_id": message_id, "report_sha256": report_hash, "severity": report["severity"]},
+            actor=actor,
+        )
+        return {"message_id": message_id, "report_id": report_id, "severity": report["severity"], "report_sha256": report_hash}
+
     def parse_and_store(self, message_id: str, *, actor: str = "pec-parser") -> dict[str, Any]:
         with self.connect() as conn:
             row = self.get_message_row(conn, message_id)
@@ -3440,21 +3605,61 @@ class PecAuditRepository:
             parsed = json.loads(parsed_row["parsed_json"])
             attachments = self.attachment_rows(conn, message_id, parsed_row["id"])
             report = build_validation_report(parsed, attachments)
-            report_id = uuid.uuid4().hex
-            report_hash = sha256_json(report)
-            conn.execute(
-                """
-                INSERT INTO pec_validation_reports
-                (id, message_id, parsed_version_id, event_type, report_json, report_sha256, severity, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (report_id, message_id, parsed_row["id"], report["event_type"], canonical_json(report), report_hash, report["severity"], iso_now()),
+            result = self._insert_validation_report(
+                conn,
+                message_id=message_id,
+                parsed_version_id=str(parsed_row["id"]),
+                report=report,
+                actor=actor,
             )
-            quality = "verde" if report["severity"] == "ok" else "giallo" if report["severity"] == "warning" else "rosso"
-            conn.execute("UPDATE pec_messages SET quality_status=?, status=? WHERE id=?", (quality, "validated", message_id))
-            self.append_audit(conn, action="pec.validation.reported", resource_type="pec_validation_report", resource_id=report_id, payload={"message_id": message_id, "report_sha256": report_hash, "severity": report["severity"]}, actor=actor)
             self.enqueue_job(conn, "link", message_id=message_id, priority=45, actor=actor)
-        return {"message_id": message_id, "report_id": report_id, "severity": report["severity"], "report_sha256": report_hash}
+        return result
+
+    def refresh_validation_reports(self, *, actor: str = "pec-maintenance", limit: int = 0) -> dict[str, Any]:
+        """Rigenera i report PEC già acquisiti con le regole correnti.
+
+        Serve quando cambiano classificazione giuridica, estrazione OCR o filtri
+        dei link: la UI e Lex devono leggere l'ultimo report corretto, non un
+        JSON storico ormai superato.
+        """
+
+        checked = 0
+        updated = 0
+        errors: list[str] = []
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id FROM pec_messages
+                WHERE tenant_id=?
+                ORDER BY received_at DESC, ingested_at DESC
+                """,
+                (self.tenant_id,),
+            ).fetchall()
+            for row in rows:
+                if limit and checked >= int(limit):
+                    break
+                message_id = str(row["id"] or "")
+                checked += 1
+                try:
+                    parsed_row = self.latest_parsed_row(conn, message_id)
+                    if parsed_row is None:
+                        errors.append(f"{message_id}: JSON PEC non ancora disponibile.")
+                        continue
+                    parsed = json.loads(parsed_row["parsed_json"])
+                    attachments = self.attachment_rows(conn, message_id, str(parsed_row["id"]))
+                    report = build_validation_report(parsed, attachments)
+                    self._insert_validation_report(
+                        conn,
+                        message_id=message_id,
+                        parsed_version_id=str(parsed_row["id"]),
+                        report=report,
+                        actor=actor,
+                        action="pec.validation.refreshed",
+                    )
+                    updated += 1
+                except Exception as exc:
+                    errors.append(f"{message_id}: {exc}")
+        return {"ok": not errors, "checked": checked, "updated": updated, "errors": errors[:20]}
 
     def _fascicoli_candidates(self, parsed: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         if not self.fascicoli_db_path:
@@ -3704,7 +3909,7 @@ class PecAuditRepository:
             """
             SELECT * FROM pec_validation_reports
             WHERE message_id=?
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, rowid DESC
             LIMIT 1
             """,
             (message_id,),
@@ -4451,8 +4656,30 @@ class PecAuditRepository:
 
     @staticmethod
     def _message_id_from_deadline_note(note: str) -> str:
-        match = re.search(r"\bPEC_AUDIT:([A-Za-z0-9_.@<>_-]+)", str(note or ""))
-        return match.group(1).strip() if match else ""
+        values = PecAuditRepository._message_ids_from_deadline_note(note)
+        return values[0] if values else ""
+
+    @staticmethod
+    def _message_ids_from_deadline_note(note: str) -> list[str]:
+        values: list[str] = []
+        seen: set[str] = set()
+        for match in re.finditer(r"\bPEC_AUDIT:([A-Za-z0-9_.@<>_-]+)", str(note or "")):
+            value = match.group(1).strip()
+            if value and value not in seen:
+                seen.add(value)
+                values.append(value)
+        return values
+
+    def _detail_for_deadline_note(self, note: str) -> tuple[str, dict[str, Any]]:
+        missing: list[str] = []
+        for message_id in self._message_ids_from_deadline_note(note):
+            try:
+                return message_id, self.get_message_detail(message_id)
+            except KeyError:
+                missing.append(message_id)
+        if missing:
+            raise KeyError(f"PEC non trovate: {', '.join(missing[:5])}")
+        raise KeyError("Nessun riferimento PEC nella scadenza.")
 
     def enrich_deadlines_with_remote_hearing_links(self, *, actor: str = "pec-maintenance", limit: int = 0) -> dict[str, Any]:
         if not self.scadenziario_db_path:
@@ -4465,12 +4692,12 @@ class PecAuditRepository:
         for scadenza in manager.tutte(solo_aperte=False):
             if limit and checked >= int(limit):
                 break
-            message_id = self._message_id_from_deadline_note(str(getattr(scadenza, "note", "") or ""))
-            if not message_id:
+            note = str(getattr(scadenza, "note", "") or "")
+            if "PEC_AUDIT:" not in note:
                 continue
             checked += 1
             try:
-                detail = self.get_message_detail(message_id)
+                message_id, detail = self._detail_for_deadline_note(note)
                 report = detail.get("validation_report") if isinstance(detail.get("validation_report"), dict) else {}
                 proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
                 remote_extra = _remote_hearing_deadline_extra(report, proposal)
@@ -4514,12 +4741,12 @@ class PecAuditRepository:
         for scadenza in list(manager.tutte(solo_aperte=False)):
             if limit and checked >= int(limit):
                 break
-            message_id = self._message_id_from_deadline_note(str(getattr(scadenza, "note", "") or ""))
-            if not message_id:
+            note = str(getattr(scadenza, "note", "") or "")
+            if "PEC_AUDIT:" not in note:
                 continue
             checked += 1
             try:
-                detail = self.get_message_detail(message_id)
+                message_id, detail = self._detail_for_deadline_note(note)
                 parsed = detail.get("parsed") if isinstance(detail.get("parsed"), dict) else {}
                 attachments = detail.get("attachments") if isinstance(detail.get("attachments"), list) else []
                 report = build_validation_report(parsed, attachments)

@@ -52,7 +52,9 @@ def run_repair(*, registry: Path, tenant: str = "", limit: int = 0, actor: str =
                 scadenziario_db_path=paths["SCADENZIARIO_DB"],
                 agenda_db_path=paths["AGENDA_DB"],
             )
+            refresh = repo.refresh_validation_reports(actor=actor, limit=0)
             result = repo.repair_pec_deadlines(actor=actor, limit=limit)
+            result["refresh_reports"] = refresh
         payload["studios"][studio.slug] = result
         payload["ok"] = bool(payload["ok"] and result.get("ok", False))
         for key in ("checked", "updated", "deleted", "skipped"):

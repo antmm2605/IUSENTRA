@@ -9,7 +9,7 @@ from typing import Any, Callable
 from flask import Blueprint, Response, g, jsonify, request
 
 from pct.email_client import GestioneEmailRicevute
-from pct.pec_control_tower import PecControlTowerRepository
+from pct.pec_control_tower import PecControlTowerRepository, _reconstruct_email_archive_mime
 from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset, parse_pec_message
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -205,13 +205,13 @@ def pec_acquire_legacy_email(email_id: str):
         email_obj = gestore.get(email_id)
         if not email_obj:
             return _json_error(404)
-        raw_mime = gestore.leggi_eml_originale(email_obj)
+        raw_mime, mime_source = _read_or_reconstruct_local_mime(gestore, email_obj)
         if not raw_mime:
             return _json_success(
                 {
                     "ok": False,
-                    "message": "MIME originale non disponibile: esegui la sincronizzazione PEC completa e riprova.",
-                    "messaggio": "MIME originale non disponibile: esegui la sincronizzazione PEC completa e riprova.",
+                    "message": "MIME o allegati locali non disponibili: esegui la sincronizzazione PEC completa e riprova.",
+                    "messaggio": "MIME o allegati locali non disponibili: esegui la sincronizzazione PEC completa e riprova.",
                     "requires_sync": True,
                 },
                 409,
@@ -262,6 +262,7 @@ def pec_acquire_legacy_email(email_id: str):
                 "messaggio": message,
                 "email_id": email_id,
                 "pec_message_id": message_id,
+                "mime_source": mime_source,
                 "duplicate": bool(result.get("duplicate")),
                 "ingest": result,
                 "deadline": deadline,
@@ -306,6 +307,19 @@ def _email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
         or "postacert" in text
         or any(marker in status_pct for marker in ("WARN", "RIFIUT", "ERRORE", "ACCETT", "CONSEGN", "CONTROLL", "DEPOSIT"))
     )
+
+
+def _read_or_reconstruct_local_mime(gestore: GestioneEmailRicevute, email_obj: Any) -> tuple[bytes, str]:
+    raw_mime = gestore.leggi_eml_originale(email_obj)
+    if raw_mime:
+        return bytes(raw_mime), "originale"
+    try:
+        reconstructed = _reconstruct_email_archive_mime(gestore, email_obj)
+    except Exception:
+        reconstructed = b""
+    if reconstructed:
+        return bytes(reconstructed), "ricostruito"
+    return b"", ""
 
 
 def _schedule_deadline_with_local_mime(
@@ -509,7 +523,7 @@ def _pec_acquire_local_emails_chunked():
             subject = str(getattr(email_obj, "oggetto", "") or "")[:240]
             header = str(getattr(email_obj, "message_id", "") or "").strip()
             existing_message_id = existing_by_header.get(header)
-            raw_mime = gestore.leggi_eml_originale(email_obj)
+            raw_mime, mime_source = _read_or_reconstruct_local_mime(gestore, email_obj)
             if existing_message_id:
                 acquired += 1
                 duplicates += 1
@@ -563,7 +577,7 @@ def _pec_acquire_local_emails_chunked():
                     message_id=message_id,
                     subject=subject,
                     status="duplicate" if result.get("duplicate") else "ingested",
-                    detail={"mime_sha256": result.get("mime_sha256") or ""},
+                    detail={"mime_sha256": result.get("mime_sha256") or "", "mime_source": mime_source},
                 )
                 if force_repairs:
                     try:

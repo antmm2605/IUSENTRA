@@ -94,7 +94,7 @@ def audit_tenant(scadenziario_db: Path) -> dict[str, Any]:
                 totals["samples_pdf_pending"].append(_deadline_sample(scadenza))
         url = str(getattr(scadenza, "remote_hearing_url", "") or "")
         if url:
-            if _is_remote_hearing_url(url, ""):
+            if _is_remote_hearing_url(url, context=""):
                 totals["remote_hearing_valid_links"] += 1
                 if len(totals["samples_valid_links"]) < 5:
                     totals["samples_valid_links"].append(_deadline_sample(scadenza))

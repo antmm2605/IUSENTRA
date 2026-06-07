@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.249.28 - 2026-06-07
+
+- Rafforzato il presidio PEC locale: lo script `scripts/presidia_pec_local_archive.py` riprende le PEC dello studio, usa il MIME originale quando disponibile oppure ricostruisce il messaggio locale, poi alimenta PEC Audit, PEC Control Tower, scadenziario, agenda e notifiche.
+- Reso severo l'audit operativo `scripts/audit_pec_operational_chain.py`: controlla PEC rilevanti, ultimi stati di presidio per email, scadenze PEC, agenda, notifiche, link udienza validi e falsi positivi 127-ter.
+- Corretto il profilo udienza audiovisiva: sentenze a verbale/trattazione scritta 127-ter non espongono più campi udienza remota e i link tecnici di firme, XML, OCSP, CRL, FatturaPA e DTD non vengono pubblicati come collegamenti all'udienza.
+- Rigenerazione report PEC resa affidabile anche quando più report sono creati nello stesso secondo: l'ultimo report viene scelto per riga effettiva e non per timestamp ambiguo.
+- Estesi i test reali della catena PEC: ricostruzione locale senza EML, scadenziario, agenda, notifiche, link udienza da PDF/OCR, bonifica report e rimozione falsi positivi.
+
 ## 2.249.27 - 2026-06-07
 
 - Corretto il presidio PEC delle udienze audiovisive: i link tecnici o istituzionali letti nei MIME/XML/certificati (`pst.giustizia.it`, `Comunicazione.dtd`, OCSP/CRL) non vengono più classificati come link udienza.

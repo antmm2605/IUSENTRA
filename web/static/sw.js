@@ -4,6 +4,9 @@
  */
 
 const DEFAULT_HREF = '/app-v2';
+const NOTIFICATION_ICON = '/static/icons/icon-192.png';
+const NOTIFICATION_BADGE = '/static/icons/badge-96.png';
+const SW_VERSION = '2026-06-07-mobile-push-v3';
 
 function safeHref(value) {
   const href = typeof value === 'string' ? value.trim() : '';
@@ -45,11 +48,15 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(self.registration.showNotification(title, {
     body,
-    icon: '/static/icons/icon.svg',
-    badge: '/static/icons/icon.svg',
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_BADGE,
     tag: notificationId || `iusentra-${priority}`,
-    data: { href, notificationId },
+    data: { href, notificationId, version: SW_VERSION },
+    renotify: true,
     requireInteraction: priority === 'urgent',
+    silent: false,
+    timestamp: Date.now(),
+    vibrate: priority === 'urgent' ? [160, 80, 160] : [120],
   }));
 });
 

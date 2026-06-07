@@ -44,6 +44,7 @@ function firstClientId(list: Values[]): string {
 
 const initialPushStatus: PushDeviceStatus = {
   supported: false,
+  enabled: true,
   configured: false,
   active: false,
   permission: 'unsupported',
@@ -58,7 +59,8 @@ function pushTone(status: PushDeviceStatus): 'success' | 'warning' | 'neutral' |
 
 function pushLabel(status: PushDeviceStatus): string {
   if (!status.supported) return 'Non supportato'
-  if (!status.configured) return 'Server da configurare'
+  if (status.enabled === false) return 'Non attive'
+  if (!status.configured) return 'Da configurare'
   if (status.permission === 'denied') return 'Bloccato dal dispositivo'
   return status.active ? 'Attivo' : 'Disattivo'
 }
@@ -104,10 +106,10 @@ export function NotificationsSettingsPanel({
 
   const selected = useMemo(() => clients.find((client) => text(client.id) === clientId), [clientId, clients])
   const actionPayload = { id_cliente: clientId, numero: selected?.numero || '', testo: message }
-  const serverNotConfigured = pushStatus.supported && !pushStatus.configured
+  const serverNotConfigured = pushStatus.supported && pushStatus.enabled !== false && !pushStatus.configured
   const pushDeviceMessage = serverNotConfigured
     ? canConfigureServer
-      ? 'Sistema notifiche non ancora configurato sul server.'
+      ? 'Sistema notifiche non ancora configurato.'
       : "Le notifiche su dispositivo non sono ancora state abilitate dall'amministratore."
     : pushStatus.message
 
@@ -152,7 +154,7 @@ export function NotificationsSettingsPanel({
           <Smartphone aria-hidden="true" />
           <div>
             <strong>Notifiche su questo dispositivo</strong>
-            <span>Ricevi avvisi importanti anche quando il gestionale non e' aperto.</span>
+            <span>Ricevi avvisi importanti anche quando il gestionale non è aperto.</span>
           </div>
           <IusStatusBadge tone={pushTone(pushStatus)}>{pushLabel(pushStatus)}</IusStatusBadge>
         </header>
@@ -163,14 +165,14 @@ export function NotificationsSettingsPanel({
           </p>
           <p>
             <b>iPhone e iPad</b>
-            <span>Su iPhone/iPad puo' essere necessario aggiungere IUSENTRA alla schermata Home e aprirla dall'icona installata.</span>
+            <span>Su iPhone/iPad può essere necessario aggiungere IUSENTRA alla schermata Home e aprirla dall'icona installata.</span>
           </p>
         </div>
         {serverNotConfigured && canConfigureServer ? (
           <div className="iu-notify-admin-note" role="note">
-            <strong>Configurazione server richiesta</strong>
-            <span>Sul server eseguire: <code>bash deploy/hetzner/configure_web_push.sh</code></span>
-            <span>Poi eseguire deploy/riavvio e verificare lo stato Web Push.</span>
+            <strong>Configurazione richiesta</strong>
+            <span>Le chiavi notifiche non risultano complete nell'ambiente attivo.</span>
+            <span>Dopo il riallineamento, aggiorna questa pagina e attiva il dispositivo.</span>
           </div>
         ) : null}
         <div className="iu-notify-actions">
@@ -180,7 +182,7 @@ export function NotificationsSettingsPanel({
             onClick={() => void runPush('activate')}
           >
             <BellRing data-icon="inline-start" />
-            {pushBusy === 'activate' ? 'Attivazione...' : 'Attiva notifiche su questo dispositivo'}
+            {pushStatus.active ? 'Notifiche attive su questo dispositivo' : pushBusy === 'activate' ? 'Attivazione...' : 'Attiva notifiche su questo dispositivo'}
           </Button>
           <Button
             type="button"

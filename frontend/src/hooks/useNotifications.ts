@@ -31,18 +31,23 @@ export function useNotifications(open: boolean) {
   }, [])
 
   useEffect(() => {
-    if (open && data === null && !loading && !error) load()
-  }, [data, error, load, loading, open])
+    load()
+  }, [load])
 
   useEffect(() => {
     if (open) load()
   }, [load, open])
 
   useEffect(() => {
-    if (!open) return undefined
-    const timer = window.setInterval(load, 60000)
+    const timer = window.setInterval(load, open ? 30000 : 60000)
     return () => window.clearInterval(timer)
   }, [load, open])
+
+  useEffect(() => {
+    const handleNotificationsUpdated = () => load()
+    window.addEventListener('iusentra:notifications-updated', handleNotificationsUpdated)
+    return () => window.removeEventListener('iusentra:notifications-updated', handleNotificationsUpdated)
+  }, [load])
 
   return { data, loading, error, reload: load, markRead, markAllRead }
 }

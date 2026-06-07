@@ -63,7 +63,7 @@ export type TopbarTodayPayload = {
 
 export type TopbarNotification = {
   id: string
-  type: 'deadline' | 'hearing' | 'task' | 'communication' | 'filing' | 'invoice' | 'document'
+  type: 'deadline' | 'hearing' | 'task' | 'communication' | 'filing' | 'invoice' | 'document' | 'test' | 'operational'
   title: string
   message: string
   createdAt: string

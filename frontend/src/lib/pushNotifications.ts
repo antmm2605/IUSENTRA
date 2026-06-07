@@ -5,6 +5,7 @@ export type PushPermission = NotificationPermission | 'unsupported'
 
 export type PushDeviceStatus = {
   supported: boolean
+  enabled?: boolean
   configured: boolean
   active: boolean
   permission: PushPermission
@@ -17,10 +18,14 @@ export type PushActionResult = {
   message: string
   active?: boolean
   sent?: number
+  attempted?: number
+  disabled?: number
+  notificationId?: string
 }
 
 type PublicKeyPayload = {
   ok: boolean
+  enabled?: boolean
   configured?: boolean
   publicKey?: string
   message?: string
@@ -47,6 +52,22 @@ const fallbackAction: PushActionResult = {
   message: 'Operazione non completata.',
 }
 
+const SERVICE_WORKER_URL = '/sw.js?iusentra_sw=20260607_mobile_push_v3'
+const SERVICE_WORKER_OPTIONS: RegistrationOptions = {
+  scope: '/',
+  updateViaCache: 'none',
+}
+
+type ExtendedNotificationOptions = NotificationOptions & {
+  renotify?: boolean
+  timestamp?: number
+  vibrate?: number[]
+}
+
+function notifyTopbarChanged(): void {
+  window.dispatchEvent(new CustomEvent('iusentra:notifications-updated'))
+}
+
 export function browserSupportsPush(): boolean {
   return typeof window !== 'undefined'
     && 'serviceWorker' in navigator
@@ -71,17 +92,41 @@ function urlBase64ToArrayBuffer(value: string): ArrayBuffer {
   return buffer
 }
 
+function arrayBufferToUrlBase64(value: ArrayBuffer | null): string {
+  if (!value) return ''
+  const bytes = new Uint8Array(value)
+  let binary = ''
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte) })
+  return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function subscriptionUsesPublicKey(subscription: PushSubscription, publicKey: string): boolean {
+  const options = subscription.options as PushSubscriptionOptionsInit & { applicationServerKey?: BufferSource | null }
+  const current = options.applicationServerKey
+  if (!current) return true
+  const currentBuffer = current instanceof ArrayBuffer
+    ? current
+    : current.buffer.slice(current.byteOffset, current.byteOffset + current.byteLength)
+  return arrayBufferToUrlBase64(currentBuffer) === publicKey.replace(/=+$/g, '')
+}
+
 async function publicKey(): Promise<PublicKeyPayload> {
   return apiJson<PublicKeyPayload>('/api/push/public-key', fallbackPublicKey)
 }
 
 async function existingRegistration(): Promise<ServiceWorkerRegistration | undefined> {
   if (!browserSupportsPush()) return undefined
-  return navigator.serviceWorker.getRegistration('/')
+  return ensureRegistration()
 }
 
 async function ensureRegistration(): Promise<ServiceWorkerRegistration> {
-  return navigator.serviceWorker.register('/sw.js', { scope: '/' })
+  const registration = await navigator.serviceWorker.register(SERVICE_WORKER_URL, SERVICE_WORKER_OPTIONS)
+  try {
+    await registration.update()
+  } catch {
+    // L'aggiornamento del service worker non deve bloccare l'attivazione push.
+  }
+  return registration
 }
 
 function subscriptionPayload(subscription: PushSubscription): Record<string, unknown> {
@@ -93,11 +138,73 @@ function subscriptionPayload(subscription: PushSubscription): Record<string, unk
   }
 }
 
+async function syncServerSubscription(subscription: PushSubscription): Promise<PushActionResult> {
+  return apiPostJson<PushActionResult>(
+    '/api/push/subscribe',
+    subscriptionPayload(subscription),
+    fallbackAction,
+  )
+}
+
+async function showLocalTestNotification(result: PushActionResult): Promise<PushActionResult> {
+  if (!result.ok || !Number(result.sent || 0) || !browserSupportsPush() || Notification.permission !== 'granted') {
+    return result
+  }
+  try {
+    const registration = await ensureRegistration()
+    const notificationOptions: ExtendedNotificationOptions = {
+      body: 'Notifica di test pronta nel gestionale.',
+      icon: '/static/icons/icon-192.png',
+      badge: '/static/icons/badge-96.png',
+      tag: result.notificationId || 'iusentra-test-device',
+      data: {
+        href: '/notifiche',
+        notificationId: result.notificationId || '',
+        source: 'device-test',
+      },
+      renotify: true,
+      requireInteraction: false,
+      silent: false,
+      timestamp: Date.now(),
+      vibrate: [120],
+    }
+    await registration.showNotification('IUSENTRA', notificationOptions)
+    return {
+      ...result,
+      message: 'Notifica di test inviata e mostrata su questo dispositivo.',
+    }
+  } catch {
+    return {
+      ...result,
+      message: 'Il server ha inviato il push, ma il dispositivo non ha mostrato la notifica locale: controlla le notifiche di Chrome/Android per app.iusentra.it.',
+    }
+  }
+}
+
+async function currentSubscription(publicKeyValue: string, options: { create: boolean }): Promise<PushSubscription | null> {
+  const { create } = options
+  const registration = create ? await ensureRegistration() : await existingRegistration()
+  if (!registration) return null
+  let subscription = await registration.pushManager.getSubscription()
+  if (subscription && !subscriptionUsesPublicKey(subscription, publicKeyValue)) {
+    await subscription.unsubscribe()
+    subscription = null
+  }
+  if (!subscription && create) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToArrayBuffer(publicKeyValue),
+    })
+  }
+  return subscription
+}
+
 export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
   const enabled = await isFeatureFlagEnabled('routes.appV2.notifications.mobilePush')
   if (!enabled) {
     return {
       supported: browserSupportsPush(),
+      enabled: false,
       configured: false,
       active: false,
       permission: currentPermission(),
@@ -107,6 +214,7 @@ export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
   if (!browserSupportsPush()) {
     return {
       supported: false,
+      enabled: true,
       configured: false,
       active: false,
       permission: 'unsupported',
@@ -114,15 +222,20 @@ export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
     }
   }
   const key = await publicKey()
-  const registration = await existingRegistration()
-  const subscription = registration ? await registration.pushManager.getSubscription() : null
   const configured = Boolean(key.ok && key.configured && key.publicKey)
   const permission = currentPermission()
+  const subscription = configured && key.publicKey
+    ? await currentSubscription(key.publicKey, { create: false })
+    : null
+  const sync = subscription ? await syncServerSubscription(subscription) : null
+  const serverActive = Boolean(sync?.ok && sync.active !== false)
   let message = key.message || fallbackPublicKey.message || ''
   if (!configured) {
     message = 'Sistema notifiche non ancora configurato sul server.'
-  } else if (subscription) {
+  } else if (serverActive) {
     message = 'Notifiche attive su questo dispositivo.'
+  } else if (subscription) {
+    message = sync?.message || 'Dispositivo rilevato, ma registrazione server non confermata: premi Attiva notifiche.'
   } else if (permission === 'denied') {
     message = 'Le notifiche sono bloccate nelle impostazioni del browser o del dispositivo.'
   } else {
@@ -130,8 +243,9 @@ export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
   }
   return {
     supported: true,
+    enabled: key.enabled !== false,
     configured,
-    active: Boolean(subscription),
+    active: serverActive,
     permission,
     message,
     diagnostics: key.diagnostics,
@@ -154,19 +268,9 @@ export async function activatePushNotifications(): Promise<PushActionResult> {
   if (permission !== 'granted') {
     return { ok: false, message: 'Autorizzazione notifiche non concessa.' }
   }
-  const registration = await ensureRegistration()
-  let subscription = await registration.pushManager.getSubscription()
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToArrayBuffer(key.publicKey),
-    })
-  }
-  return apiPostJson<PushActionResult>(
-    '/api/push/subscribe',
-    subscriptionPayload(subscription),
-    fallbackAction,
-  )
+  const subscription = await currentSubscription(key.publicKey, { create: true })
+  if (!subscription) return { ok: false, active: false, message: 'Subscription dispositivo non disponibile.' }
+  return syncServerSubscription(subscription)
 }
 
 export async function deactivatePushNotifications(): Promise<PushActionResult> {
@@ -187,9 +291,22 @@ export async function deactivatePushNotifications(): Promise<PushActionResult> {
   return response
 }
 
-export function sendPushTest(): Promise<PushActionResult> {
-  return isFeatureFlagEnabled('routes.appV2.notifications.mobilePush').then((enabled) => {
-    if (!enabled) return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
-    return apiPostJson<PushActionResult>('/api/push/test', {}, fallbackAction)
-  })
+export async function sendPushTest(): Promise<PushActionResult> {
+  const enabled = await isFeatureFlagEnabled('routes.appV2.notifications.mobilePush')
+  if (!enabled) return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
+  if (browserSupportsPush()) {
+    const key = await publicKey()
+    if (key.ok && key.publicKey) {
+      const subscription = await currentSubscription(key.publicKey, { create: false })
+      if (subscription) {
+        const sync = await syncServerSubscription(subscription)
+        if (!sync.ok || sync.active === false) {
+          return { ok: false, active: false, message: sync.message || 'Dispositivo non registrato sul server.' }
+        }
+      }
+    }
+  }
+  const response = await apiPostJson<PushActionResult>('/api/push/test', {}, fallbackAction)
+  if (response.ok) notifyTopbarChanged()
+  return showLocalTestNotification(response)
 }

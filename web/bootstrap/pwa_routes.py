@@ -22,7 +22,7 @@ def register_pwa_routes(app: Flask) -> None:
             mimetype="application/javascript",
         )
         response.headers["Service-Worker-Allowed"] = "/"
-        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         return response
 
     @app.route("/manifest.webmanifest")

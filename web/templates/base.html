@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IUSENTRA">
-  <link rel="apple-touch-icon" href="/static/icons/icon.svg">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <!-- Anti-FOUC: applica il tema salvato PRIMA che il browser renderizzi -->
   <script>(function(){var t=localStorage.getItem('pct-theme');if(t)document.documentElement.setAttribute('data-bs-theme',t);})();</script>
   <!-- Font Inter -->
@@ -1335,7 +1335,8 @@ function toggleTema() {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js?iusentra_sw={{ app_version }}', { scope: '/', updateViaCache: 'none' })
+      .then((registration) => registration.update().catch(() => {}))
       .catch(() => {}); // silenzioso: non blocca l'app
   });
 }

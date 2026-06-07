@@ -188,7 +188,7 @@ def unsubscribe():
 def test_push():
     try:
         tenant_id, user_id = _context()
-        _record, summary = build_notification_service().create_test_notification(
+        record, summary = build_notification_service().create_test_notification(
             tenant_id=tenant_id,
             user_id=user_id,
         )
@@ -206,6 +206,7 @@ def test_push():
                 "attempted": summary.attempted,
                 "sent": summary.sent,
                 "disabled": summary.disabled,
+                "notificationId": record.id,
             }
         )
     except NotificationServiceError as exc:

@@ -71,7 +71,14 @@
   }
 
   async function ensurePushRegistration() {
-    return navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    return navigator.serviceWorker.register("/sw.js?iusentra_sw=20260607_mobile_push_v3", {
+      scope: "/",
+      updateViaCache: "none",
+    }).then(function (registration) {
+      return registration.update().catch(function () {}).then(function () {
+        return registration;
+      });
+    });
   }
 
   function subscriptionPayload(subscription) {

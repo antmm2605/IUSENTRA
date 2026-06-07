@@ -307,10 +307,16 @@ def test_api_test_push_mockato_invia_payload_non_sensibile(tmp_path, monkeypatch
         _login(client)
         client.post("/api/push/subscribe", json=_subscription_payload())
         response = client.post("/api/push/test", json={})
+        notifications = client.get("/api/notifications").get_json()
 
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["sent"] == 1
+    assert payload["notificationId"]
+    assert any(
+        item["id"] == payload["notificationId"] and item["type"] == "test"
+        for item in notifications["items"]
+    )
     assert sent_payloads[0]["title"] == "IUSENTRA"
     serialized = json.dumps(sent_payloads[0], ensure_ascii=False)
     for forbidden in ("Mario Rossi", "RSSMRA80A01H501U", "RG 123/2026", "EUR 1.000,00"):

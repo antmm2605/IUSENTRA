@@ -17,6 +17,7 @@ export function TopBarNotifications({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const { data, loading, error, markRead, markAllRead } = useNotifications(open)
+  const items = Array.isArray(data?.items) ? data.items : []
   const unread = data?.unreadCount ?? 0
   const matchAnyKey = useCallback(() => true, [])
   const handleEscape = useCallback((event: KeyboardEvent) => {
@@ -38,14 +39,14 @@ export function TopBarNotifications({
               <strong>Notifiche</strong>
               <small>{unread ? `${unread} da leggere` : 'Tutto letto'}</small>
             </span>
-            <button type="button" className="iu-panel-ghost" onClick={() => void markAllRead()} disabled={!data?.items.length}>
+            <button type="button" className="iu-panel-ghost" onClick={() => void markAllRead()} disabled={!items.length || loading}>
               <CheckCheck size={15} /> Segna tutte come lette
             </button>
           </header>
           {loading ? <p className="iu-panel-state"><Loader2 className="iu-spin" size={16} /> Caricamento notifiche...</p> : null}
           {error ? <p className="iu-panel-state is-error">{error}</p> : null}
           <div className="iu-panel-list">
-            {data?.items.length ? data.items.map((item) => (
+            {items.length ? items.map((item) => (
               <div className={`iu-notification is-${item.priority} ${item.read ? 'is-read' : ''}`} key={item.id}>
                 {item.href ? (
                   <a href={item.href} onClick={onClose}>
@@ -64,7 +65,7 @@ export function TopBarNotifications({
                   </button>
                 ) : null}
               </div>
-            )) : !loading ? <p className="iu-panel-state">Nessuna notifica operativa.</p> : null}
+            )) : !loading && !error ? <p className="iu-panel-state">Nessuna notifica operativa.</p> : null}
           </div>
         </div>
       ) : null}

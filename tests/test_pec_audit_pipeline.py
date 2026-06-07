@@ -543,6 +543,48 @@ def test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link(tmp_p
     )
 
 
+def test_refresh_validation_reports_repairs_stale_binary_zip_ocr_for_remote_hearing(tmp_path):
+    exact_link = "https://teams.microsoft.com/l/meetup-join/udienza-1263?context=%7B%22Tid%22%3A%22123%22%7D&anon=true"
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    msg = EmailMessage()
+    msg["Subject"] = "FISSAZIONE UDIENZA DI DISCUSSIONE"
+    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
+    msg["Message-ID"] = "<udienza-stale-zip-ocr@example.test>"
+    msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Il link è nel PDF allegato.")
+    msg.add_attachment(_zip_pdf_with_link(exact_link), maintype="application", subtype="zip", filename="13744017s.pdf.zip")
+    ingest = repo.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="uid-stale-zip")
+    repo.run_pending_jobs(limit=30, actor="pytest")
+
+    with repo.connect() as conn:
+        parsed_row = repo.latest_parsed_row(conn, ingest["id"])
+        assert parsed_row is not None
+        conn.execute(
+            """
+            UPDATE pec_attachments
+            SET ocr_text=?, ocr_coverage=?
+            WHERE message_id=? AND filename=?
+            """,
+            ("PK\x03\x04 testo binario zip 13744017s.pdf non leggibile " * 20, 0.92, ingest["id"], "13744017s.pdf.zip"),
+        )
+        assert len(repo._stale_zip_ocr_rows(conn, ingest["id"], str(parsed_row["id"]))) == 1
+
+    queued = repo.enqueue_missing_operational_jobs(ingest["id"], actor="pytest")
+    refreshed = repo.refresh_validation_reports(actor="pytest")
+    detail = repo.get_message_detail(ingest["id"])
+    remote = detail["validation_report"]["procedural_profile"]["remote_hearing"]
+    zip_row = next(item for item in detail["attachments"] if item["filename"] == "13744017s.pdf.zip")
+
+    assert queued["stage"] == "ocr_stale_zip"
+    assert refreshed["ok"] is True
+    assert remote["links"][0]["url"] == exact_link
+    assert remote["links"][0]["source"] == "13744017s.pdf.zip"
+    assert remote["links"][0]["exact_match"] is True
+    assert not zip_row["ocr_text"].startswith("PK")
+    assert exact_link in zip_row["ocr_text"]
+
+
 def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
@@ -754,6 +796,34 @@ def test_pec_repair_and_backfill_report_missing_reference_without_unbound_local(
     combined = "\n".join([*repaired["errors"], *backfilled["errors"]])
     assert "cannot access local variable" not in combined
     assert "pec_mancante" in combined
+
+
+def test_pec_repair_and_backfill_skip_email_only_audit_reference(tmp_path):
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+    )
+    GestioneScadenziario(str(scadenziario_db)).nuova(
+        titolo="Scadenza con riferimento email legacy",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2026-10-01",
+        note="PEC_AUDIT:email:03c7d9aef123\nTermine legale conclusivo: no",
+        deadline_profile_code="PEC_AUTO_PRESIDIO",
+    )
+
+    repaired = repo.repair_pec_deadlines(actor="pytest")
+    backfilled = repo.enrich_deadlines_with_remote_hearing_links(actor="pytest")
+
+    assert repaired["ok"] is True
+    assert backfilled["ok"] is True
+    assert repaired["skipped"] == 1
+    assert backfilled["skipped"] == 1
+    assert repaired["errors"] == []
+    assert backfilled["errors"] == []
 
 
 def test_pec_repair_upgrades_old_gdp_hearing_deadline_and_clears_codex_actor(tmp_path):

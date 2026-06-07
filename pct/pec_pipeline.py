@@ -1867,10 +1867,31 @@ def classify_attachment(item: AttachmentPayload, message_context: str = "") -> t
     return "altro", 0.62, "classificazione residuale per formato non specifico"
 
 
+_ZIP_ATTACHMENT_TYPES = {"application/zip", "application/x-zip-compressed"}
+
+
+def _is_zip_attachment(filename: str, content_type: str = "") -> bool:
+    return str(filename or "").lower().endswith(".zip") or str(content_type or "").lower() in _ZIP_ATTACHMENT_TYPES
+
+
+def _looks_like_raw_zip_text(text: str) -> bool:
+    sample = str(text or "").lstrip("\ufeff \t\r\n")
+    if not sample.startswith("PK"):
+        return False
+    head = sample[:1200]
+    return len(sample) > 200 or any(marker in head for marker in ("\x00", "\x03", "\x04", "\x14", ".pdf", "[Content_Types]"))
+
+
+def _is_stale_zip_ocr_text(filename: str, content_type: str, ocr_text: str) -> bool:
+    return _is_zip_attachment(filename, content_type) and _looks_like_raw_zip_text(ocr_text)
+
+
 def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
     name = item.filename
     lower = name.lower()
     text = ""
+    allow_binary_fallback = True
+    is_zip = _is_zip_attachment(name, item.content_type)
     if item.content_type.startswith("text/") or lower.endswith((".txt", ".xml", ".csv")):
         text = item.data.decode("utf-8", errors="replace")
     elif lower.endswith(".eml") or item.content_type == "message/rfc822":
@@ -1887,7 +1908,8 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
             text = estrai_testo(item.data, name)
         except Exception:
             text = ""
-    elif lower.endswith(".zip") or item.content_type in {"application/zip", "application/x-zip-compressed"}:
+    elif is_zip:
+        allow_binary_fallback = False
         parts: list[str] = []
         try:
             with zipfile.ZipFile(io.BytesIO(item.data)) as archive:
@@ -1921,7 +1943,7 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
         except Exception:
             parts = []
         text = "\n\n".join(parts)
-    if not text:
+    if not text and allow_binary_fallback:
         decoded = item.data.decode("utf-8", errors="ignore")
         printable = sum(1 for char in decoded if char.isprintable() or char.isspace())
         if decoded and printable / max(len(decoded), 1) > 0.65:
@@ -3592,22 +3614,56 @@ class PecAuditRepository:
             self.enqueue_job(conn, "ocr", message_id=message_id, priority=30, actor=actor)
         return {"message_id": message_id, "attachments": created}
 
+    def _stale_zip_ocr_rows(self, conn: sqlite3.Connection, message_id: str, parsed_version_id: str) -> list[sqlite3.Row]:
+        rows = conn.execute(
+            """
+            SELECT attachment_index, filename, content_type, ocr_text
+            FROM pec_attachments
+            WHERE message_id=? AND parsed_version_id=?
+              AND COALESCE(ocr_text, '')<>''
+            """,
+            (message_id, parsed_version_id),
+        ).fetchall()
+        return [
+            row
+            for row in rows
+            if _is_stale_zip_ocr_text(str(row["filename"] or ""), str(row["content_type"] or ""), str(row["ocr_text"] or ""))
+        ]
+
+    def _refresh_ocr_for_message_on_connection(
+        self,
+        conn: sqlite3.Connection,
+        message_id: str,
+        *,
+        actor: str,
+        action: str = "pec.attachments.ocr",
+    ) -> list[dict[str, Any]]:
+        _ctx, payloads = self._attachment_payloads_for_message(conn, message_id)
+        processed: list[dict[str, Any]] = []
+        for item in payloads:
+            text, coverage = extract_text_with_coverage(item)
+            conn.execute(
+                """
+                UPDATE pec_attachments
+                SET ocr_text=?, ocr_coverage=?
+                WHERE message_id=? AND attachment_index=?
+                """,
+                (text, coverage, message_id, item.index),
+            )
+            processed.append({"filename": item.filename, "coverage": coverage, "chars": len(text)})
+        self.append_audit(
+            conn,
+            action=action,
+            resource_type="pec_message",
+            resource_id=message_id,
+            payload={"attachments": processed},
+            actor=actor,
+        )
+        return processed
+
     def ocr_attachments(self, message_id: str, *, actor: str = "pec-ocr") -> dict[str, Any]:
         with self.connect() as conn:
-            _ctx, payloads = self._attachment_payloads_for_message(conn, message_id)
-            processed: list[dict[str, Any]] = []
-            for item in payloads:
-                text, coverage = extract_text_with_coverage(item)
-                conn.execute(
-                    """
-                    UPDATE pec_attachments
-                    SET ocr_text=?, ocr_coverage=?
-                    WHERE message_id=? AND attachment_index=?
-                    """,
-                    (text, coverage, message_id, item.index),
-                )
-                processed.append({"filename": item.filename, "coverage": coverage, "chars": len(text)})
-            self.append_audit(conn, action="pec.attachments.ocr", resource_type="pec_message", resource_id=message_id, payload={"attachments": processed}, actor=actor)
+            processed = self._refresh_ocr_for_message_on_connection(conn, message_id, actor=actor)
             self.enqueue_job(conn, "signcheck", message_id=message_id, priority=35, actor=actor)
         return {"message_id": message_id, "attachments": processed}
 
@@ -3700,12 +3756,20 @@ class PecAuditRepository:
                         errors.append(f"{message_id}: JSON PEC non ancora disponibile.")
                         continue
                     parsed = json.loads(parsed_row["parsed_json"])
-                    attachments = self.attachment_rows(conn, message_id, str(parsed_row["id"]))
+                    parsed_id = str(parsed_row["id"])
+                    if self._stale_zip_ocr_rows(conn, message_id, parsed_id):
+                        self._refresh_ocr_for_message_on_connection(
+                            conn,
+                            message_id,
+                            actor=actor,
+                            action="pec.attachments.ocr_repaired",
+                        )
+                    attachments = self.attachment_rows(conn, message_id, parsed_id)
                     report = build_validation_report(parsed, attachments)
                     self._insert_validation_report(
                         conn,
                         message_id=message_id,
-                        parsed_version_id=str(parsed_row["id"]),
+                        parsed_version_id=parsed_id,
                         report=report,
                         actor=actor,
                         action="pec.validation.refreshed",
@@ -3929,9 +3993,17 @@ class PecAuditRepository:
                 ).fetchone()[0]
                 or 0
             )
-            if ocr_missing:
+            stale_zip_ocr = len(self._stale_zip_ocr_rows(conn, message_id, parsed_id))
+            if ocr_missing or stale_zip_ocr:
                 job_id = self.enqueue_job(conn, "ocr", message_id=message_id, priority=30, actor=actor)
-                return {"message_id": message_id, "queued": ["ocr"], "job_id": job_id, "stage": "ocr_missing"}
+                return {
+                    "message_id": message_id,
+                    "queued": ["ocr"],
+                    "job_id": job_id,
+                    "stage": "ocr_stale_zip" if stale_zip_ocr else "ocr_missing",
+                    "ocr_missing": ocr_missing,
+                    "stale_zip_ocr": stale_zip_ocr,
+                }
 
             signatures_missing = int(
                 conn.execute(
@@ -4718,8 +4790,10 @@ class PecAuditRepository:
     def _message_ids_from_deadline_note(note: str) -> list[str]:
         values: list[str] = []
         seen: set[str] = set()
-        for match in re.finditer(r"\bPEC_AUDIT:([A-Za-z0-9_.@<>_-]+)", str(note or "")):
-            value = match.group(1).strip()
+        for match in re.finditer(r"\bPEC_AUDIT:([^\s\r\n]+)", str(note or "")):
+            value = match.group(1).strip().strip(".,;")
+            if not value.startswith("pec_"):
+                continue
             if value and value not in seen:
                 seen.add(value)
                 values.append(value)
@@ -4753,6 +4827,9 @@ class PecAuditRepository:
                 continue
             message_id = self._message_id_from_deadline_note(note)
             checked += 1
+            if not message_id:
+                skipped += 1
+                continue
             try:
                 message_id, detail = self._detail_for_deadline_note(note)
                 report = detail.get("validation_report") if isinstance(detail.get("validation_report"), dict) else {}
@@ -4804,6 +4881,9 @@ class PecAuditRepository:
                 continue
             message_id = self._message_id_from_deadline_note(note)
             checked += 1
+            if not message_id:
+                skipped += 1
+                continue
             try:
                 message_id, detail = self._detail_for_deadline_note(note)
                 parsed = detail.get("parsed") if isinstance(detail.get("parsed"), dict) else {}

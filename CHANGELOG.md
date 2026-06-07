@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.249.31 - 2026-06-07
+
+- Corretto il presidio delle udienze audiovisive lette da allegati PDF compressi: se un vecchio OCR aveva salvato il contenuto binario dello ZIP (`PK...`) come testo, il refresh PEC lo riconosce come incompleto, rilegge il PDF interno e ricostruisce report, scadenziario e agenda con il link reale.
+- Impedito il fallback binario sugli allegati ZIP: un PDF compresso senza testo leggibile resta da OCR/riparare, invece di essere dichiarato letto con contenuto non giuridico.
+- Corretto il backfill delle scadenze PEC: i riferimenti legacy `PEC_AUDIT:email:...` non vengono più trattati come ID PEC mancanti e non fanno fallire la bonifica dei link udienza.
+
 ## 2.249.30 - 2026-06-07
 
 - Resa operativa la vista `Da PEC` dello scadenziario: mostra solo scadenze PEC aperte e utili al lavoro, mentre i termini già superati restano nello storico audit e non confondono la lista dell'avvocato.

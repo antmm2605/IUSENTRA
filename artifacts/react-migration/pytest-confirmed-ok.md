@@ -4362,3 +4362,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi; chunk Scadenziario e Impostazioni rigenerati dalla sorgente. |
 | `python tools\sync_packaging_files.py --check`; `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Packaging sincronizzato; OpenAPI rigenerato e valido dopo il bump versione `2.249.30`. |
 | `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `git diff --check` | OK | Registro App V2 e documenti test allineati; nessun errore whitespace. |
+
+## PEC OCR ZIP udienze audiovisive 2.249.31 - 2026-06-07
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/pec_pipeline.py tests/test_pec_audit_pipeline.py` | OK | Sintassi confermata dopo la guardia sugli OCR ZIP obsoleti e sui riferimenti `PEC_AUDIT:email:*`. |
+| `python -m ruff check pct/pec_pipeline.py tests/test_pec_audit_pipeline.py` | OK | Lint mirato verde sul perimetro PEC. |
+| `python -m pytest tests/test_pec_audit_pipeline.py::test_extract_text_with_coverage_reads_pdf_inside_zip tests/test_pec_audit_pipeline.py::test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link tests/test_pec_audit_pipeline.py::test_refresh_validation_reports_repairs_stale_binary_zip_ocr_for_remote_hearing tests/test_pec_audit_pipeline.py::test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda tests/test_pec_audit_pipeline.py::test_pec_repair_and_backfill_report_missing_reference_without_unbound_local tests/test_pec_audit_pipeline.py::test_pec_repair_and_backfill_skip_email_only_audit_reference -q` | OK | 6/6 passati: ZIP PDF riletto, link Teams identico ripristinato, scadenziario/agenda alimentati e riferimenti email legacy saltati senza errore. |
+| `python -m pytest tests/test_pec_audit_pipeline.py -q` | OK | 39/39 passati sul file PEC completo. |
+| `docker compose build app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto`; script Python runtime nel container app | OK | Docker locale reale su `127.0.0.1:8080` pronto con versione `2.249.31`; prova runtime equivalente al test ZIP passata: vecchio OCR `PK...` rilevato come `ocr_stale_zip`, report rigenerato e link Teams letto da `13744017s.pdf.zip`. |

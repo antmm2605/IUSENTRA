@@ -72,6 +72,11 @@ export type FeatureFlagKey =
   | 'routes.appV2.legalSkills.reviewQueue'
   | 'routes.appV2.workflowAgents.home'
   | 'routes.appV2.workflowAgents.reviewQueue'
+  | 'routes.appV2.clientPortal.enabled'
+  | 'routes.appV2.clientPortal.notifications'
+  | 'routes.appV2.clientPortal.webPush'
+  | 'routes.appV2.clientPortal.videoCalls'
+  | 'routes.appV2.clientPortal.signatures'
   | 'routes.appV2.docsPanel'
   | 'routes.appV2.commsDeposits'
   | 'routes.appV2.uploadClassification'
@@ -167,6 +172,8 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/legal-skills(?:\/|$)/, 'routes.appV2.legalSkills.catalog'],
   [/^\/workflow-agents\/(?:runs|approvals)(?:\/|$)/, 'routes.appV2.workflowAgents.reviewQueue'],
   [/^\/(?:workflow-agents|regia-agentica)(?:\/|$)/, 'routes.appV2.workflowAgents.home'],
+  [/^\/app\/portale-clienti(?:\/|$)/, 'routes.appV2.clientPortal.enabled'],
+  [/^\/portale-cliente(?:\/|$)/, 'routes.appV2.clientPortal.enabled'],
   [/^\/(?:workspace-intelligente|regia-operativa|app\/regia)(?:\/|$)/, 'routes.appV2.dashboard.regia'],
   [/^\/app\/fascicoli(?:\/|$)/, 'routes.appV2.cases.list'],
   [/^\/app\/anagrafiche(?:\/|$)/, 'routes.appV2.clients.list'],

@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portale Cliente IUSENTRA - vista cliente</title>
+  <style>
+    :root {
+      --page: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fbff;
+      --border: rgba(15, 23, 42, 0.1);
+      --border-soft: rgba(15, 23, 42, 0.08);
+      --text: #111827;
+      --muted: #64748b;
+      --primary: #123d72;
+      --primary-active: #2563eb;
+      --accent: #b8860b;
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --info: #0369a1;
+      --radius: 12px;
+      --shadow: 0 12px 34px rgba(15, 23, 42, 0.07);
+      --shadow-raised: 0 22px 54px rgba(15, 23, 42, 0.1);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      max-width: 100%;
+      overflow-x: hidden;
+      background: var(--page);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .preview-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 22px;
+      border-bottom: 1px solid rgba(18, 61, 114, 0.14);
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .preview-note strong {
+      color: var(--primary);
+    }
+
+    .page {
+      width: min(100%, 1320px);
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .client-app {
+      overflow: hidden;
+      border: 1px solid var(--border-soft);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(245, 247, 251, 0)),
+        var(--page);
+      box-shadow: var(--shadow-raised);
+    }
+
+    .topbar {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-soft);
+      background: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark,
+    .icon-box,
+    .avatar {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 11px;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .mark {
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(18, 61, 114, 0.18);
+      background: rgba(18, 61, 114, 0.08);
+      color: var(--primary);
+    }
+
+    .brand strong {
+      display: block;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.15;
+      font-weight: 950;
+    }
+
+    .brand small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 13px;
+      border: 1px solid rgba(15, 23, 42, 0.13);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 900;
+      line-height: 1.2;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+      white-space: normal;
+    }
+
+    .btn.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, #071329, #123d72);
+      color: #f8fafc;
+    }
+
+    .btn.soft {
+      background: #f8fafc;
+      color: var(--primary);
+    }
+
+    .btn.warning {
+      border-color: rgba(180, 83, 9, 0.18);
+      background: rgba(180, 83, 9, 0.08);
+      color: var(--warning);
+    }
+
+    .content {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      min-width: 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+      gap: 16px;
+      align-items: stretch;
+      padding: 22px;
+      border: 1px solid rgba(18, 61, 114, 0.14);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(18, 61, 114, 0.08), rgba(255, 255, 255, 0.98) 42%, rgba(248, 251, 255, 0.96)),
+        #fff;
+      box-shadow: 0 18px 48px rgba(18, 61, 114, 0.09);
+    }
+
+    .hero-main {
+      display: grid;
+      gap: 14px;
+      align-content: center;
+      min-width: 0;
+    }
+
+    .eyebrow {
+      width: max-content;
+      max-width: 100%;
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border: 1px solid rgba(3, 105, 161, 0.16);
+      border-radius: 999px;
+      background: rgba(3, 105, 161, 0.08);
+      color: var(--info);
+      font-size: 12px;
+      font-weight: 930;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      color: var(--text);
+      font-size: clamp(27px, 3vw, 40px);
+      line-height: 1.08;
+      font-weight: 950;
+    }
+
+    .hero p {
+      max-width: 72ch;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 720;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .completion {
+      display: grid;
+      gap: 10px;
+      align-content: center;
+      padding: 16px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .completion span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 820;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .completion strong {
+      color: var(--primary);
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 950;
+    }
+
+    .progress {
+      overflow: hidden;
+      height: 9px;
+      border-radius: 999px;
+      background: #e2e8f0;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #123d72, #2563eb, #b8860b);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+      scrollbar-width: thin;
+    }
+
+    .tabs button {
+      min-height: 40px;
+      flex: 0 0 auto;
+      padding: 7px 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 890;
+    }
+
+    .tabs button.active {
+      border-color: rgba(18, 61, 114, 0.24);
+      background: rgba(18, 61, 114, 0.08);
+      color: var(--primary);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .stack,
+    .rail {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .panel {
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      border: 1px solid rgba(18, 61, 114, 0.1);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: var(--shadow);
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: linear-gradient(90deg, rgba(18, 61, 114, 0.72), rgba(37, 99, 235, 0.58), rgba(184, 134, 11, 0.58));
+    }
+
+    .panel-header {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-soft);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.9));
+    }
+
+    .panel-title {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-box {
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(37, 99, 235, 0.16);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 246, 255, 0.86));
+      color: var(--primary-active);
+      font-size: 12px;
+    }
+
+    .panel-title strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 950;
+    }
+
+    .panel-title small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+      font-weight: 730;
+    }
+
+    .panel-body {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.68));
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .action-card,
+    .row,
+    .chat-message,
+    .notice {
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .action-card {
+      min-height: 116px;
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 10px;
+      align-content: start;
+      padding: 12px;
+    }
+
+    .action-card strong,
+    .row strong,
+    .chat-message strong {
+      display: block;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 930;
+    }
+
+    .action-card span,
+    .row span,
+    .chat-message p,
+    .notice p,
+    .micro {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 730;
+    }
+
+    .action-card button {
+      width: max-content;
+      margin-top: 7px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 70px;
+      padding: 12px;
+    }
+
+    .row-main {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
+    }
+
+    .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .badge.success {
+      color: var(--success);
+      background: rgba(21, 128, 61, 0.08);
+      border-color: rgba(21, 128, 61, 0.18);
+    }
+
+    .badge.warning {
+      color: var(--warning);
+      background: rgba(180, 83, 9, 0.1);
+      border-color: rgba(180, 83, 9, 0.18);
+    }
+
+    .badge.info {
+      color: var(--info);
+      background: rgba(3, 105, 161, 0.08);
+      border-color: rgba(3, 105, 161, 0.16);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0;
+    }
+
+    .step {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      padding-bottom: 16px;
+    }
+
+    .step:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      top: 32px;
+      bottom: 0;
+      width: 2px;
+      background: #dbe4f0;
+    }
+
+    .dot {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      background: #fff;
+      color: var(--primary);
+      font-weight: 950;
+      z-index: 1;
+    }
+
+    .dot.done {
+      background: rgba(21, 128, 61, 0.1);
+      color: var(--success);
+      border-color: rgba(21, 128, 61, 0.2);
+    }
+
+    .dot.current {
+      background: rgba(184, 134, 11, 0.13);
+      color: var(--accent);
+      border-color: rgba(184, 134, 11, 0.24);
+    }
+
+    .step-card {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .chat {
+      display: grid;
+      gap: 10px;
+    }
+
+    .chat-message {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border-soft);
+      background: rgba(18, 61, 114, 0.08);
+      color: var(--primary);
+      font-size: 12px;
+    }
+
+    .chat-box {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(18, 61, 114, 0.14);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .chat-box input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 0 12px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .chat-box-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .notice {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .notice strong {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 930;
+    }
+
+    @media (max-width: 1080px) {
+      .layout,
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .preview-note {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px;
+      }
+
+      .page {
+        padding: 10px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .top-actions,
+      .hero-actions,
+      .row-actions,
+      .chat-box-actions {
+        width: 100%;
+      }
+
+      .top-actions .btn,
+      .hero-actions .btn,
+      .row-actions .btn,
+      .chat-box-actions .btn {
+        width: 100%;
+      }
+
+      .content,
+      .hero,
+      .panel-body {
+        padding: 12px;
+      }
+
+      .action-grid,
+      .rail {
+        grid-template-columns: 1fr;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .brand,
+      .hero-main,
+      .row-main,
+      .panel-title,
+      .action-card,
+      .chat-message {
+        min-width: 0;
+      }
+
+      h1,
+      .brand strong,
+      .brand small,
+      .row strong,
+      .row span,
+      .chat-message p,
+      .notice p {
+        overflow-wrap: break-word;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-note">
+    <span><strong>Vista cliente completa</strong> - anteprima grafica del portale dopo l’accesso sicuro.</span>
+    <span>7 giugno 2026</span>
+  </div>
+
+  <main class="page">
+    <section class="client-app" aria-label="Portale Cliente">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark">IU</div>
+          <div>
+            <strong>Portale Cliente</strong>
+            <small>Studio Legale Verdi - pratica Rossi / Opposizione decreto</small>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="btn soft" type="button">Centro assistenza</button>
+          <button class="btn" type="button">Esci</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <section class="hero">
+          <div class="hero-main">
+            <span class="eyebrow">Accesso protetto attivo</span>
+            <h1>Cosa devo fare adesso</h1>
+            <p>Qui il cliente trova solo le attività necessarie per la propria pratica: documenti, firme, consensi, appuntamenti, notifiche e messaggi con lo studio.</p>
+            <div class="hero-actions">
+              <button class="btn primary" type="button">Scrivi allo studio</button>
+              <button class="btn warning" type="button">Carica documento identità</button>
+              <button class="btn soft" type="button">Riprendi questionario</button>
+            </div>
+          </div>
+          <aside class="completion">
+            <span>Completamento pratica</span>
+            <strong>72%</strong>
+            <div class="progress" aria-label="Completamento pratica 72%"><span style="width: 72%"></span></div>
+            <span class="badge warning">2 attività richieste</span>
+          </aside>
+        </section>
+
+        <nav class="tabs" aria-label="Sezioni del portale cliente">
+          <button class="active" type="button">Attività</button>
+          <button type="button">Pratica</button>
+          <button type="button">Documenti</button>
+          <button type="button">Firme</button>
+          <button type="button">Privacy</button>
+          <button type="button">Messaggi</button>
+          <button type="button">Appuntamenti</button>
+          <button type="button">Notifiche</button>
+        </nav>
+
+        <section class="layout">
+          <div class="stack">
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">AT</div><span><strong>Attività richieste</strong><small>Ordinate per urgenza</small></span></div>
+                <span class="badge warning">Da completare</span>
+              </header>
+              <div class="panel-body action-grid">
+                <article class="action-card">
+                  <div class="icon-box">ID</div>
+                  <div>
+                    <strong>Carica documento identità</strong>
+                    <span>Serve per completare l’anagrafica della pratica.</span>
+                    <button class="btn primary" type="button">Carica ora</button>
+                  </div>
+                </article>
+                <article class="action-card">
+                  <div class="icon-box">QU</div>
+                  <div>
+                    <strong>Completa questionario</strong>
+                    <span>Mancano 2 risposte per inviare tutto allo studio.</span>
+                    <button class="btn soft" type="button">Riprendi</button>
+                  </div>
+                </article>
+                <article class="action-card">
+                  <div class="icon-box">ME</div>
+                  <div>
+                    <strong>Rispondi allo studio</strong>
+                    <span>Hai un messaggio ricevuto oggi alle 16:20.</span>
+                    <button class="btn primary" type="button">Apri chat</button>
+                  </div>
+                </article>
+                <article class="action-card">
+                  <div class="icon-box">AP</div>
+                  <div>
+                    <strong>Appuntamento confermato</strong>
+                    <span>12 giugno 2026, ore 10:30.</span>
+                    <button class="btn soft" type="button">Vedi dettagli</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">CH</div><span><strong>Chat con lo studio</strong><small>Canale principale di dialogo sulla pratica</small></span></div>
+                <button class="btn primary" type="button">Scrivi allo studio</button>
+              </header>
+              <div class="panel-body chat">
+                <article class="chat-message">
+                  <span class="avatar">ST</span>
+                  <div>
+                    <strong>Studio Legale Verdi</strong>
+                    <p>Abbiamo ricevuto il questionario. Manca solo il documento identità aggiornato.</p>
+                    <span class="micro">Oggi, ore 16:20</span>
+                  </div>
+                </article>
+                <article class="chat-message">
+                  <span class="avatar">CL</span>
+                  <div>
+                    <strong>Cliente</strong>
+                    <p>Lo carico in giornata. Confermo l’appuntamento del 12 giugno.</p>
+                    <span class="micro">Oggi, ore 16:28</span>
+                  </div>
+                </article>
+                <div class="chat-box">
+                  <label class="micro" for="message">Nuovo messaggio</label>
+                  <input id="message" type="text" value="Scrivi qui il messaggio per lo studio">
+                  <div class="chat-box-actions">
+                    <button class="btn soft" type="button">Allega documento</button>
+                    <button class="btn primary" type="button">Invia messaggio</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">TL</div><span><strong>Timeline pratica</strong><small>Passaggi visibili al cliente</small></span></div>
+              </header>
+              <div class="panel-body timeline">
+                <div class="step">
+                  <div class="dot done">1</div>
+                  <div class="step-card"><strong>Invito accettato</strong><span class="micro">Accesso confermato il 7 giugno 2026 alle 15:42.</span></div>
+                </div>
+                <div class="step">
+                  <div class="dot done">2</div>
+                  <div class="step-card"><strong>Informativa privacy accettata</strong><span class="micro">Consensi obbligatori registrati.</span></div>
+                </div>
+                <div class="step">
+                  <div class="dot current">3</div>
+                  <div class="step-card"><strong>Documenti da caricare</strong><span class="micro">Manca il documento identità aggiornato.</span></div>
+                </div>
+                <div class="step">
+                  <div class="dot">4</div>
+                  <div class="step-card"><strong>Firma dichiarazione</strong><span class="micro">Sarà disponibile dopo la verifica documenti.</span></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">DO</div><span><strong>Documenti</strong><small>Caricamenti e verifiche</small></span></div>
+                <button class="btn primary" type="button">Carica documento</button>
+              </header>
+              <div class="panel-body">
+                <article class="row">
+                  <div class="row-main"><strong>Documento identità</strong><span>Richiesto dallo studio, non ancora ricevuto.</span></div>
+                  <div class="row-actions"><span class="badge warning">Mancante</span><button class="btn soft" type="button">Carica</button></div>
+                </article>
+                <article class="row">
+                  <div class="row-main"><strong>Contratto e ricevute</strong><span>Ricevuto e in verifica.</span></div>
+                  <div class="row-actions"><span class="badge info">In verifica</span></div>
+                </article>
+                <article class="row">
+                  <div class="row-main"><strong>Documentazione fiscale</strong><span>Verificata dallo studio il 6 giugno 2026.</span></div>
+                  <div class="row-actions"><span class="badge success">Accettata</span></div>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <aside class="rail">
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">FI</div><span><strong>Firme</strong><small>Documenti da confermare</small></span></div>
+              </header>
+              <div class="panel-body">
+                <article class="row">
+                  <div class="row-main"><strong>Dichiarazione per lo studio</strong><span>Disponibile dopo la verifica del documento identità.</span></div>
+                  <div class="row-actions"><span class="badge info">In attesa</span></div>
+                </article>
+                <article class="notice">
+                  <strong>Chiarezza firma</strong>
+                  <p>La firma mostrata qui è una conferma semplice sul portale, distinta dalle firme digitali qualificate quando richieste.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">PR</div><span><strong>Privacy</strong><small>Consensi e preferenze</small></span></div>
+              </header>
+              <div class="panel-body">
+                <article class="row">
+                  <div class="row-main"><strong>Informativa privacy</strong><span>Versione 7 giugno 2026.</span></div>
+                  <div class="row-actions"><span class="badge success">Accettata</span></div>
+                </article>
+                <article class="row">
+                  <div class="row-main"><strong>Notifiche email</strong><span>Attive per aggiornamenti pratica.</span></div>
+                  <div class="row-actions"><span class="badge success">Attive</span></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">AP</div><span><strong>Appuntamenti</strong><small>Incontri e promemoria</small></span></div>
+              </header>
+              <div class="panel-body">
+                <article class="row">
+                  <div class="row-main"><strong>Colloquio con avvocato</strong><span>12 giugno 2026, ore 10:30.</span></div>
+                  <div class="row-actions"><span class="badge success">Confermato</span><button class="btn soft" type="button">Dettagli</button></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">NO</div><span><strong>Notifiche</strong><small>Centro attività</small></span></div>
+              </header>
+              <div class="panel-body">
+                <article class="row">
+                  <div class="row-main"><strong>Messaggio ricevuto</strong><span>Studio Legale Verdi, oggi alle 16:20.</span></div>
+                  <div class="row-actions"><span class="badge info">Nuova</span></div>
+                </article>
+                <article class="row">
+                  <div class="row-main"><strong>Documento richiesto</strong><span>Documento identità da caricare.</span></div>
+                  <div class="row-actions"><span class="badge warning">Azione</span></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-header">
+                <div class="panel-title"><div class="icon-box">EP</div><span><strong>Pacchetto conclusivo</strong><small>Disponibile a fine pratica</small></span></div>
+              </header>
+              <div class="panel-body">
+                <article class="notice">
+                  <strong>Non ancora pronto</strong>
+                  <p>Quando la pratica sarà completata, il cliente troverà qui il riepilogo finale autorizzato dallo studio.</p>
+                </article>
+              </div>
+            </section>
+          </aside>
+        </section>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

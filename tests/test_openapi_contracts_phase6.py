@@ -54,7 +54,11 @@ def test_openapi_copre_endpoint_p0_p1_con_sicurezza():
     assert len(p0_p1) >= 90
     assert all(operation["x-tenant-scope"] == "current_tenant" for operation in p0_p1)
     assert all(operation.get("x-rbac-permission") for operation in p0_p1)
-    assert all(operation.get("x-provider-verification") in {"auth-error", "success+auth-error"} for operation in p0_p1)
+    assert all(
+        operation.get("x-provider-verification")
+        in {"auth-error", "success+auth-error", "client-token-error", "public-safe-error"}
+        for operation in p0_p1
+    )
 
     documented_paths = set(document["paths"])
     assert "/api/v1/ui/fascicoli" in documented_paths
@@ -62,6 +66,8 @@ def test_openapi_copre_endpoint_p0_p1_con_sicurezza():
     assert "/api/v1/ui/impostazioni" in documented_paths
     assert "/api/v1/ui/utenti/{id_utente}/ruolo" in documented_paths
     assert "/api/v1/ui/sito-studio/builder/assets/upload" in documented_paths
+    assert "/api/v1/ui/client-portal/dashboard" in documented_paths
+    assert "/api/v1/ui/client-portal/public/invites/{token}" in documented_paths
 
 
 def test_openapi_provider_verification_reale():
@@ -75,6 +81,7 @@ def test_openapi_provider_verification_reale():
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "auth-error=" in result.stdout
+    assert "public-safe=" in result.stdout
     assert "success=" in result.stdout
     assert "backend-security=1" in result.stdout
 

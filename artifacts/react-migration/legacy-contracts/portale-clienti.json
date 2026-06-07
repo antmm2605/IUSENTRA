@@ -1,0 +1,16 @@
+{
+  "route": "/app/portale-clienti",
+  "capturedAt": "2026-06-07",
+  "status": "react_operational_full",
+  "source": "tranche Portale Cliente: dashboard studio full React con API JSON reali",
+  "preserve": [
+    "dashboard studio Portale Cliente React",
+    "inviti con token hashato e scadenza/revoca",
+    "azioni chat documenti firme appuntamenti tramite API JSON",
+    "storage tenant-aware con schema SQLite e PostgreSQL equivalente",
+    "nessun tenant_id, path o token scelto dal client",
+    "nessun dato demo"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun form POST HTML, nessuna CTA primaria legacy, testi visibili non tecnici"
+}

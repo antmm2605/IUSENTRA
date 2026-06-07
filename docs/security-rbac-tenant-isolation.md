@@ -116,6 +116,30 @@ client e conferma 401 reale su tutti gli endpoint contrattualizzati, 200
 autenticato su un campione P0/P1 rappresentativo e 400
 `backend_security_control_param` quando il client prova a inviare `tenant_id`.
 
+## Portale Cliente
+
+Il Portale Cliente aggiunge un perimetro pubblico limitato senza indebolire il
+tenant isolation:
+
+- la console studio `/app/portale-clienti` usa sessione o API key
+  tenant-aware;
+- la vista cliente `/portale-cliente` usa token opaco firmato e risolto
+  server-side;
+- il token invito è salvato solo come hash, con scadenza e revoca;
+- gli endpoint pubblici non accettano `tenant_id`, `studio_id`, path o ruoli;
+- un token assente o non valido produce errore sicuro senza rivelare tenant,
+  cliente o pratica;
+- upload e download passano da storage tenant-aware e non espongono percorsi
+  filesystem;
+- Web Push e videocall restano dietro flag default-off.
+
+Test collegati:
+
+```powershell
+python -m pytest tests/test_client_portal_repository.py tests/test_client_portal_api.py -q --tb=short
+python scripts\verify_openapi_provider.py
+```
+
 ## Fase 8 Requisiti specifici per area
 
 La fase 8 aggiunge `docs/app-v2-area-requirements.md` come registro generato

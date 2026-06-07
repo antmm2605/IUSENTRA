@@ -22,7 +22,7 @@
   <link rel="modulepreload" href="{{ preload_file }}">
   {% endfor %}
 </head>
-<body class="react-shell-page">
+<body class="react-shell-page {{ react_body_class if react_body_class is defined else '' }}">
   {% if not react_assets.ready %}
   <main class="react-shell-fallback" aria-labelledby="react-shell-title">
     <div class="react-shell-fallback__card">

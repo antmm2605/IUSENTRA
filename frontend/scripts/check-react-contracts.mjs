@@ -434,7 +434,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/importa-pratiche-studio-telematico', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/impostazioni/sdi', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/app/portale-clienti', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/importa-pratiche-studio-telematico', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/impostazioni/sdi', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/portale-cliente', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedTelematicoGraphicalRoutes = ['/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale']
 const governedTelematicoAcquisitionRoutes = ['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
 for (const route of governedTelematicoGraphicalRoutes) allowedGovernedUnlocks.add(route)
@@ -446,6 +446,7 @@ const governedExpectedStatuses = new Map([
   ['/agenda/importa', 'react_operational_full'],
   ['/agenda/nuovo', 'react_operational_full'],
   ['/amministrazione', 'react_operational_full'],
+  ['/app/portale-clienti', 'react_operational_full'],
   ['/audit', 'react_operational_full'],
   ['/backup', 'react_operational_full'],
   ['/cartelle-condivise', 'react_operational_full'],
@@ -481,6 +482,7 @@ const governedExpectedStatuses = new Map([
   ['/messaggi/nuovo', 'react_operational_full'],
   ['/notifiche', 'react_operational_full'],
   ['/notifiche-whatsapp', 'react_operational_full'],
+  ['/portale-cliente', 'react_operational_full'],
   ['/preventivi', 'react_operational_full'],
   ['/preventivi/conferimento/:id', 'react_operational_full'],
   ['/preventivi/conferimento/nuovo', 'react_operational_full'],

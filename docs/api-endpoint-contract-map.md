@@ -8,10 +8,11 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 230.
-- Endpoint P0/P1 contrattualizzati: 199.
-- Endpoint con provider verification 200 rappresentativa: 28.
-- Endpoint con provider verification auth-error: 230.
+- Endpoint React API contrattualizzati: 256.
+- Endpoint P0/P1 contrattualizzati: 225.
+- Endpoint con provider verification 200 rappresentativa: 31.
+- Endpoint con provider verification auth-error: 242.
+- Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 14.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
@@ -41,6 +42,32 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Sincronizzazione calendari | `/api/v1/ui/calendari/microsoft/connect` | `POST` | Sincronizzazione calendari | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Sincronizzazione calendari | `/api/v1/ui/calendari/webcal/connect` | `POST` | Sincronizzazione calendari | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/cartelle-condivise` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/dashboard` | `GET` | Portale Clienti (/app/portale-clienti) | P1 | verified | success+auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `routes.appV2.clientPortal.enabled` | current_tenant | verified |
+| Portale Cliente | `/api/v1/ui/client-portal/public/appointments/{appointment_id}` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/consents` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/conversation-export` | `GET` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/dashboard` | `GET` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/documents` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/invites/{token}` | `GET` | Portale Cliente | P1 | complete | public-safe-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-public-safe-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/invites/{token}/accept` | `POST` | Portale Cliente | P1 | complete | public-safe-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-public-safe-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/messages` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/notifications/{notification_id}/read` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/preferences` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/profile` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/questionnaires/{questionnaire_id}` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/signatures/{signature_id}/complete` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/surveys` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/appointments` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/conversation-export` | `GET` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/dashboard` | `GET` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/document-requests` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/evidence-packs` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/invites` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/invites/{invite_id}/revoke` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/messages` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/settings` | `GET` | Portale Cliente | P1 | verified | success+auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | verified |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/settings` | `POST` | Portale Cliente | P1 | verified | success+auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | verified |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/signature-requests` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
 | Clienti | `/api/v1/ui/clienti` | `GET` | Clienti (/app/anagrafiche) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.clients.list` | current_tenant | verified |
 | Clienti | `/api/v1/ui/clienti/{id_cliente}/cartella` | `GET` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Clienti | `/api/v1/ui/clienti/{id_cliente}/modifica` | `GET` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -251,4 +278,5 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 - `auth-error` significa che l'endpoint e' invocato dal Flask test client senza credenziali e deve rispondere con errore controllato conforme allo schema errori.
 - `success+auth-error` aggiunge una chiamata autenticata 200 su endpoint statici rappresentativi di P0/P1 e delle aree principali.
+- `client-token-error` e `public-safe-error` coprono il Portale Cliente: senza token valido l'endpoint deve restare in errore sicuro, senza rivelare tenant, pratica o token.
 - Gli endpoint con path parametrici o mutazioni distruttive restano verificati sul contratto di autenticazione/errori e richiedono fixture dominio dedicate prima della promozione a provider success full.

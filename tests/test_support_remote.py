@@ -207,6 +207,42 @@ def test_support_pc_agent_http_arm_execute_and_reject_wrong_token():
         thread.join(timeout=2)
 
 
+def test_support_pc_agent_private_network_preflight_allows_app_origin():
+    server = ThreadingHTTPServer(("127.0.0.1", 0), SupportPcAgentRequestHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+
+    try:
+        req = urllib.request.Request(
+            f"{base}/status",
+            method="OPTIONS",
+            headers={
+                "Origin": "https://app.iusentra.it",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Private-Network": "true",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:  # noqa: S310 - localhost test
+            headers = dict(response.headers.items())
+
+        assert headers["Access-Control-Allow-Origin"] == "https://app.iusentra.it"
+        assert headers["Access-Control-Allow-Private-Network"] == "true"
+        assert "POST" in headers["Access-Control-Allow-Methods"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_support_pc_agent_declares_chrome_edge_loopback_policies():
+    assert "https://app.iusentra.it" in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_ORIGINS
+    assert any("Google\\Chrome\\LoopbackNetworkAllowedForUrls" in item for item in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS)
+    assert any("Google\\Chrome\\LocalNetworkAccessAllowedForUrls" in item for item in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS)
+    assert any("Microsoft\\Edge\\LoopbackNetworkAllowedForUrls" in item for item in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS)
+    assert any("Microsoft\\Edge\\LocalNetworkAccessAllowedForUrls" in item for item in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS)
+
+
 def test_support_remote_console_and_routes_register_on_runtime(tmp_path: Path):
     app, superadmin, _, _ = _seed_runtime(tmp_path)
 
@@ -440,7 +476,8 @@ def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path:
     assert "Richiesta visualizzata dal SUPERADMIN" in join_html
     assert 'id="customerFullscreenBtn"' in join_html
     assert 'id="compactChatBtn"' in join_html
-    assert 'id="localAgentPreview"' in join_html
+    assert 'id="localAgentPreview"' not in join_html
+    assert 'id="localPreview"' not in join_html
     assert 'id="customerScreenPanel"' in join_html
     assert 'id="customerChatPanel">\n        <div class="card-header fw-semibold">\n          <i class="bi bi-chat-dots' in join_html
     assert 'id="startBtn" type="button" disabled' in join_html
@@ -770,7 +807,9 @@ def test_support_remote_pc_control_scripts_and_agent_are_separate_from_local_sig
     assert "Microfono non disponibile: assistenza avviata senza audio." in customer_script
     assert "return [];" in customer_script
     assert "localStream = audioTracks.length ? new MediaStream(audioTracks) : null" in customer_script
-    assert "Agente locale non disponibile, uso la condivisione schermo del browser." in customer_script
+    assert "Agente IUSENTRA Assistenza non raggiungibile" in customer_script
+    assert "getDisplayMedia" not in customer_script
+    assert 'targetAddressSpace: "loopback"' in customer_script
     assert "await startAgentScreenShare();" in customer_script
     assert "wsOpenPromise = new Promise" in customer_script
     assert "Canale realtime chiuso prima della connessione." in customer_script

@@ -1,5 +1,42 @@
 # Migrazione progressiva Flask + React
 
+## Portale Cliente full React - 2026-06-07 - 2.249.33 in corso
+
+La tranche Portale Cliente introduce la console studio `/app/portale-clienti`
+e la vista cliente `/portale-cliente` come superfici React complete, alimentate
+da API JSON reali sotto `/api/v1/ui/client-portal/*`.
+
+Copertura funzionale implementata nel codice locale:
+
+- inviti cliente con token forte, hash su repository, scadenza e revoca;
+- dashboard studio con pratiche, inviti, documenti, firme, chat, appuntamenti,
+  notifiche e pacchetto finale;
+- vista cliente completa senza sidebar studio, con invito, anagrafica,
+  preferenze, privacy, timeline, documenti, firma semplice, chat, appuntamenti,
+  notifiche, questionari, survey ed esportazione conversazione;
+- repository tenant-aware con schema SQLite e schema PostgreSQL equivalente;
+- OpenAPI/provider verification estesi al blueprint Portale Cliente, inclusi
+  errori pubblici sicuri su token assente o non valido;
+- manifest App V2, contratti legacy, area requirements, piano test e
+  documentazione aggiornati.
+- la shell pubblica del cliente usa una classe dedicata e non mostra il widget
+  Lex o la sidebar studio; la console studio mobile nasconde Lex quando il
+  pannello non è aperto;
+- la lista fascicoli del Portale Cliente non propone pratiche marcate come dati
+  di prova/campione e l'API blocca la creazione di inviti su tali pratiche;
+- il layout cliente desktop è stato compattato per mostrare la chat già nella
+  prima schermata utile, mentre su mobile resta una colonna leggibile.
+- la topbar studio non carica più le notifiche a pannello chiuso, così una
+  risposta lenta del centro notifiche non ritarda la dashboard Portale Clienti.
+
+Verifiche locali già eseguite: py_compile dei moduli Portale Cliente e dei
+generatori OpenAPI, pytest dedicati Portale Cliente, gate sicurezza/tenant/flag,
+OpenAPI/provider, registry App V2, test frontend, typecheck e build Vite.
+Docker reale `127.0.0.1:8080` e browser desktop/tablet/mobile sono stati
+verificati localmente con screenshot in `artifacts/client-portal/browser-screenshots/`.
+Restano prima della chiusura: gate finali dopo l'ultima modifica, commit, push
+branch gemelli, check GitHub e deploy Hetzner.
+
 ## Template Atti professionale - correzione funzionale reale - 2026-06-04 - 2.249.14
 
 La tranche 2.249.14 chiude le regressioni emerse sull'editor template atti dopo

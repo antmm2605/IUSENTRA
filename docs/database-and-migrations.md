@@ -143,6 +143,21 @@ Rollback minimo:
 
 Quando PostgreSQL e' configurato, il DSN deve arrivare da configurazione ambiente/tenant, mai da documenti o codice hardcoded. I test devono preservare parita con SQLite quando il modulo supporta entrambi.
 
+### Portale Cliente
+
+Il Portale Cliente usa un repository strutturato con parità SQLite/PostgreSQL:
+
+- SQLite: `pct/sql/20260607_client_portal.sql`;
+- PostgreSQL: `pct/sql/20260607_client_portal_postgres.sql`;
+- repository: `pct/client_portal.py`;
+- DSN dedicato opzionale: `IUSENTRA_CLIENT_PORTAL_DATABASE_URL` o `CLIENT_PORTAL_DATABASE_URL`.
+
+Le tabelle sono tenant-scoped e coprono profili, pratiche, inviti, timeline,
+richieste documenti, documenti caricati, firme semplici, consensi, messaggi,
+appuntamenti, notifiche, questionari, survey, pacchetti finali, impostazioni,
+subscription push e audit. Il token invito è salvato come hash; i file caricati
+restano in storage tenant-aware e non vengono esposti come path API.
+
 ## File runtime
 
 Non committare modifiche runtime in:

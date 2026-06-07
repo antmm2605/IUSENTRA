@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.249.32
+  version: 2.249.33
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -17,6 +17,8 @@ tags:
   description: Contratti API Sistema.
 - name: Settings
   description: Contratti API Settings.
+- name: Portale Cliente
+  description: Contratti API Portale Cliente.
 - name: Anagrafiche
   description: Contratti API Anagrafiche.
 - name: Mandato
@@ -1250,6 +1252,1291 @@ paths:
       x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
       x-provider-verification: auth-error
       x-contract-status: complete
+  /api/v1/ui/client-portal/dashboard:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/dashboard'
+      description: 'Contratto fase 6 derivato da `studio_dashboard` in `web/blueprints/api_v1_client_portal.py:90`. Pagina/area
+        collegata: Portale Clienti (/app/portale-clienti). I dati sono sempre nel tenant corrente; il client non puo'' forzare
+        tenant/studio/user.'
+      operationId: reactUi_studio_dashboard_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: routes.appV2.clientPortal.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: success+auth-error
+      x-contract-status: verified
+  /api/v1/ui/client-portal/public/appointments/{appointment_id}:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/appointments/{appointment_id}'
+      description: 'Contratto fase 6 derivato da `public_appointment_update` in `web/blueprints/api_v1_client_portal.py:204`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_appointment_update_post
+      security:
+      - clientPortalToken: []
+      parameters:
+      - name: appointment_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/consents:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/consents'
+      description: 'Contratto fase 6 derivato da `public_consent_update` in `web/blueprints/api_v1_client_portal.py:181`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_consent_update_post
+      security:
+      - clientPortalToken: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/conversation-export:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/conversation-export'
+      description: 'Contratto fase 6 derivato da `public_conversation_export` in `web/blueprints/api_v1_client_portal.py:224`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_conversation_export_get
+      security:
+      - clientPortalToken: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+  /api/v1/ui/client-portal/public/dashboard:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/dashboard'
+      description: 'Contratto fase 6 derivato da `public_dashboard` in `web/blueprints/api_v1_client_portal.py:166`. Pagina/area
+        collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_dashboard_get
+      security:
+      - clientPortalToken: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+  /api/v1/ui/client-portal/public/documents:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/documents'
+      description: 'Contratto fase 6 derivato da `public_document_upload` in `web/blueprints/api_v1_client_portal.py:191`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_document_upload_post
+      security:
+      - clientPortalToken: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentUploadRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/invites/{token}:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/invites/{token}'
+      description: 'Contratto fase 6 derivato da `public_invite_preview` in `web/blueprints/api_v1_client_portal.py:156`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_invite_preview_get
+      security:
+      - clientPortalToken: []
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: public-safe-error
+      x-contract-status: complete
+  /api/v1/ui/client-portal/public/invites/{token}/accept:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/invites/{token}/accept'
+      description: 'Contratto fase 6 derivato da `public_invite_accept` in `web/blueprints/api_v1_client_portal.py:161`. Pagina/area
+        collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_invite_accept_post
+      security:
+      - clientPortalToken: []
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: public-safe-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/messages:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/messages'
+      description: 'Contratto fase 6 derivato da `public_message_create` in `web/blueprints/api_v1_client_portal.py:186`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_message_create_post
+      security:
+      - clientPortalToken: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/notifications/{notification_id}/read:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/notifications/{notification_id}/read'
+      description: 'Contratto fase 6 derivato da `public_notification_read` in `web/blueprints/api_v1_client_portal.py:209`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_notification_read_post
+      security:
+      - clientPortalToken: []
+      parameters:
+      - name: notification_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/preferences:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/preferences'
+      description: 'Contratto fase 6 derivato da `public_preferences_update` in `web/blueprints/api_v1_client_portal.py:176`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_preferences_update_post
+      security:
+      - clientPortalToken: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/profile:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/profile'
+      description: 'Contratto fase 6 derivato da `public_profile_update` in `web/blueprints/api_v1_client_portal.py:171`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_profile_update_post
+      security:
+      - clientPortalToken: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/questionnaires/{questionnaire_id}:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/questionnaires/{questionnaire_id}'
+      description: 'Contratto fase 6 derivato da `public_questionnaire_submit` in `web/blueprints/api_v1_client_portal.py:214`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_questionnaire_submit_post
+      security:
+      - clientPortalToken: []
+      parameters:
+      - name: questionnaire_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/signatures/{signature_id}/complete:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signatures/{signature_id}/complete'
+      description: 'Contratto fase 6 derivato da `public_signature_complete` in `web/blueprints/api_v1_client_portal.py:199`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_signature_complete_post
+      security:
+      - clientPortalToken: []
+      parameters:
+      - name: signature_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/public/surveys:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/surveys'
+      description: 'Contratto fase 6 derivato da `public_survey_submit` in `web/blueprints/api_v1_client_portal.py:219`. Pagina/area
+        collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_public_survey_submit_post
+      security:
+      - clientPortalToken: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: client-token-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/appointments:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/appointments'
+      description: 'Contratto fase 6 derivato da `studio_appointment_create` in `web/blueprints/api_v1_client_portal.py:139`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_appointment_create_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/conversation-export:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/conversation-export'
+      description: 'Contratto fase 6 derivato da `studio_conversation_export` in `web/blueprints/api_v1_client_portal.py:151`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_conversation_export_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/client-portal/studio/dashboard:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/dashboard'
+      description: 'Contratto fase 6 derivato da `studio_dashboard` in `web/blueprints/api_v1_client_portal.py:90`. Pagina/area
+        collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_dashboard_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/client-portal/studio/document-requests:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/document-requests'
+      description: 'Contratto fase 6 derivato da `studio_document_request_create` in `web/blueprints/api_v1_client_portal.py:127`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_document_request_create_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/evidence-packs:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/evidence-packs'
+      description: 'Contratto fase 6 derivato da `studio_evidence_pack_create` in `web/blueprints/api_v1_client_portal.py:145`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_evidence_pack_create_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/invites:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/invites'
+      description: 'Contratto fase 6 derivato da `studio_invite_create` in `web/blueprints/api_v1_client_portal.py:109`. Pagina/area
+        collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_invite_create_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/invites/{invite_id}/revoke:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/invites/{invite_id}/revoke'
+      description: 'Contratto fase 6 derivato da `studio_invite_revoke` in `web/blueprints/api_v1_client_portal.py:115`. Pagina/area
+        collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_invite_revoke_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: invite_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/messages:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/messages'
+      description: 'Contratto fase 6 derivato da `studio_message_create` in `web/blueprints/api_v1_client_portal.py:121`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_message_create_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/settings:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/settings'
+      description: 'Contratto fase 6 derivato da `studio_settings` in `web/blueprints/api_v1_client_portal.py:96`. Pagina/area
+        collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_settings_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: success+auth-error
+      x-contract-status: verified
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/settings'
+      description: 'Contratto fase 6 derivato da `studio_settings_update` in `web/blueprints/api_v1_client_portal.py:103`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_settings_update_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: success+auth-error
+      x-contract-status: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/signature-requests:
+    post:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/signature-requests'
+      description: 'Contratto fase 6 derivato da `studio_signature_request_create` in `web/blueprints/api_v1_client_portal.py:133`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_signature_request_create_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
   /api/v1/ui/clienti:
     get:
       tags:
@@ -11583,6 +12870,11 @@ components:
       in: header
       name: X-API-Key
       description: API key tenant-aware. Non accetta chiavi globali in multi-studio.
+    clientPortalToken:
+      type: apiKey
+      in: header
+      name: X-Client-Portal-Token
+      description: Token opaco del Portale Cliente, firmato e risolto server-side nel tenant corretto.
     csrfToken:
       type: apiKey
       in: header
@@ -13330,6 +14622,36 @@ components:
         message:
           type: string
       additionalProperties: true
+    ClientPortalResponse:
+      type: object
+      description: Portale Cliente, inviti, timeline, documenti, firme, messaggi e consensi.
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/DomainRecord'
+        items:
+          type: array
+          items: &id050
+            $ref: '#/components/schemas/DomainRecord'
+        record: *id050
+        summary:
+          $ref: '#/components/schemas/DomainRecord'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionLink'
+        warnings:
+          type: array
+          items:
+            type: string
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+        meta:
+          $ref: '#/components/schemas/DomainRecord'
+        message:
+          type: string
+      additionalProperties: true
     ClientResponse:
       type: object
       description: Clienti e cartelle.
@@ -13340,9 +14662,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id050
+          items: &id051
             $ref: '#/components/schemas/ClientSummary'
-        record: *id050
+        record: *id051
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13370,9 +14692,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id051
+          items: &id052
             $ref: '#/components/schemas/ContactSummary'
-        record: *id051
+        record: *id052
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13400,9 +14722,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id052
+          items: &id053
             $ref: '#/components/schemas/DomainRecord'
-        record: *id052
+        record: *id053
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13430,9 +14752,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id053
+          items: &id054
             $ref: '#/components/schemas/DocumentSummary'
-        record: *id053
+        record: *id054
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13460,9 +14782,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id054
+          items: &id055
             $ref: '#/components/schemas/DocumentDetail'
-        record: *id054
+        record: *id055
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13490,9 +14812,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id055
+          items: &id056
             $ref: '#/components/schemas/DomainRecord'
-        record: *id055
+        record: *id056
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13520,9 +14842,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id056
+          items: &id057
             $ref: '#/components/schemas/DomainRecord'
-        record: *id056
+        record: *id057
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13550,9 +14872,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id057
+          items: &id058
             $ref: '#/components/schemas/DomainRecord'
-        record: *id057
+        record: *id058
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13580,9 +14902,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id058
+          items: &id059
             $ref: '#/components/schemas/DomainRecord'
-        record: *id058
+        record: *id059
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13610,9 +14932,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id059
+          items: &id060
             $ref: '#/components/schemas/DomainRecord'
-        record: *id059
+        record: *id060
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13640,9 +14962,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id060
+          items: &id061
             $ref: '#/components/schemas/CurrentUser'
-        record: *id060
+        record: *id061
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:
@@ -13670,9 +14992,9 @@ components:
           $ref: '#/components/schemas/DomainRecord'
         items:
           type: array
-          items: &id061
+          items: &id062
             $ref: '#/components/schemas/DomainRecord'
-        record: *id061
+        record: *id062
         summary:
           $ref: '#/components/schemas/DomainRecord'
         actions:

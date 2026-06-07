@@ -46,6 +46,17 @@ SUPPORT_PC_AGENT_ALLOWED_ORIGINS: tuple[str, ...] = (
     "http://127.0.0.1:5173",
     "http://localhost:5173",
 )
+SUPPORT_PC_AGENT_BROWSER_POLICY_ORIGINS: tuple[str, ...] = (
+    "https://app.iusentra.it",
+    "http://127.0.0.1:8080",
+    "http://localhost:8080",
+)
+SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS: tuple[str, ...] = (
+    r"Software\Policies\Google\Chrome\LocalNetworkAccessAllowedForUrls",
+    r"Software\Policies\Google\Chrome\LoopbackNetworkAllowedForUrls",
+    r"Software\Policies\Microsoft\Edge\LocalNetworkAccessAllowedForUrls",
+    r"Software\Policies\Microsoft\Edge\LoopbackNetworkAllowedForUrls",
+)
 SM_CXSCREEN = 0
 SM_CYSCREEN = 1
 SM_XVIRTUALSCREEN = 76
@@ -312,6 +323,58 @@ class AgentState:
 
 
 SUPPORT_PC_AGENT_STATE = AgentState()
+SUPPORT_PC_AGENT_BROWSER_POLICY_STATUS: dict[str, Any] = {"ok": True, "applied": 0, "not_started": True}
+
+
+def ensure_support_pc_browser_loopback_policies(
+    origins: tuple[str, ...] = SUPPORT_PC_AGENT_BROWSER_POLICY_ORIGINS,
+) -> dict[str, Any]:
+    """Allow IUSENTRA web rooms to reach the local support agent on Chromium browsers."""
+    if not _support_pc_is_windows():
+        return {"ok": True, "applied": 0, "skipped": "not_windows"}
+
+    try:
+        import winreg
+    except Exception as exc:  # pragma: no cover - modulo Windows
+        return {"ok": False, "applied": 0, "error": exc.__class__.__name__}
+
+    applied = 0
+    errors: list[str] = []
+    clean_origins = [str(origin or "").strip() for origin in origins if str(origin or "").strip()]
+    for policy_path in SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS:
+        try:
+            with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, policy_path, 0, winreg.KEY_ALL_ACCESS) as key:
+                existing: set[str] = set()
+                index = 0
+                while True:
+                    try:
+                        _, value, value_type = winreg.EnumValue(key, index)
+                    except OSError:
+                        break
+                    index += 1
+                    if value_type == winreg.REG_SZ:
+                        existing.add(str(value))
+
+                next_slot = 1
+                while str(next_slot) in existing:
+                    next_slot += 1
+                for origin in clean_origins:
+                    if origin in existing:
+                        continue
+                    while True:
+                        try:
+                            winreg.QueryValueEx(key, str(next_slot))
+                            next_slot += 1
+                        except OSError:
+                            break
+                    winreg.SetValueEx(key, str(next_slot), 0, winreg.REG_SZ, origin)
+                    existing.add(origin)
+                    applied += 1
+                    next_slot += 1
+        except OSError as exc:
+            errors.append(f"{policy_path}: {exc}")
+
+    return {"ok": not errors, "applied": applied, "errors": errors}
 
 
 def _support_pc_is_windows() -> bool:
@@ -545,6 +608,8 @@ class SupportPcAgentRequestHandler(BaseHTTPRequestHandler):
         if origin:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
+            if str(self.headers.get("Access-Control-Request-Private-Network") or "").lower() == "true":
+                self.send_header("Access-Control-Allow-Private-Network", "true")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
         self.end_headers()
@@ -579,6 +644,7 @@ class SupportPcAgentRequestHandler(BaseHTTPRequestHandler):
                     "screen_width": geometry["width"],
                     "screen_height": geometry["height"],
                     "armed_sessions": SUPPORT_PC_AGENT_STATE.active_count(),
+                    "browser_policy": SUPPORT_PC_AGENT_BROWSER_POLICY_STATUS,
                 }
             )
             return
@@ -628,6 +694,8 @@ class SupportPcAgentRequestHandler(BaseHTTPRequestHandler):
 
 
 def run_support_pc_agent(host: str = SUPPORT_PC_AGENT_DEFAULT_HOST, port: int = SUPPORT_PC_AGENT_DEFAULT_PORT) -> None:
+    global SUPPORT_PC_AGENT_BROWSER_POLICY_STATUS
+    SUPPORT_PC_AGENT_BROWSER_POLICY_STATUS = ensure_support_pc_browser_loopback_policies()
     httpd = ThreadingHTTPServer((host, port), SupportPcAgentRequestHandler)
     print(f"{SUPPORT_PC_AGENT_NAME} in ascolto su http://{host}:{port}", flush=True)
     httpd.serve_forever()

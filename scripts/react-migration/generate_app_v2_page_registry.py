@@ -50,6 +50,7 @@ FAMILY_API = {
     "economico": "/api/v1/ui/fatturazione*, /api/v1/ui/preventivi*, /api/v1/ui/pagamenti*",
     "amministrazione": "/api/v1/ui/amministrazione*, /api/v1/ui/utenti*, /api/v1/ui/profili*, /api/v1/ui/audit*, /api/v1/ui/admin/database, /api/v1/ui/privacy/registro",
     "impostazioni": "/api/v1/ui/impostazioni*, /api/v1/ui/calendari*, /api/v1/ui/backup*, /api/push/*",
+    "portale-clienti": "/api/v1/ui/client-portal*, /portale-cliente",
 }
 
 FAMILY_STORAGE = {
@@ -68,6 +69,7 @@ FAMILY_STORAGE = {
     "economico": "FATTURAZIONE_DB, PREVENTIVI_DB, PAGAMENTI_DB",
     "amministrazione": "AUTH_DB, AUDIT_DB, tenant registry, privacy registry, database runtime",
     "impostazioni": "STUDIO_CONFIG, integrazioni, notifiche, backup, calendari",
+    "portale-clienti": "CLIENTI_DB, FASCICOLI_DB, client_portal.sqlite/PostgreSQL, upload tenant-aware, audit",
 }
 
 FAMILY_RBAC = {
@@ -86,6 +88,7 @@ FAMILY_RBAC = {
     "economico": "fatturazione.leggi / fatturazione.scrivi; pagamenti protetti",
     "amministrazione": "admin o permessi utenti/profili/audit specifici",
     "impostazioni": "impostazioni.leggi / impostazioni.scrivi; segreti mascherati",
+    "portale-clienti": "clienti.leggi / clienti.scrivi per studio; token cliente firmato e hashato per vista cliente",
 }
 
 PII_FAMILIES = {
@@ -99,6 +102,7 @@ PII_FAMILIES = {
     "economico",
     "amministrazione",
     "impostazioni",
+    "portale-clienti",
 }
 
 @dataclass(frozen=True)

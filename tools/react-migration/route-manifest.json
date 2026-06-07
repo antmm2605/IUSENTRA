@@ -288,6 +288,46 @@
       ]
     },
     {
+      "workspaceTarget": "/app/portale-clienti",
+      "route": "/app/portale-clienti",
+      "family": "portale-clienti",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ClientPortalPage.tsx",
+      "targetData": "frontend/src/clientPortalData.ts",
+      "targetBridge": "web/services/react_client_portal_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portale-clienti.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "dashboard studio Portale Cliente React",
+        "inviti con token hashato",
+        "azioni chat documenti firme appuntamenti JSON",
+        "SQLite e PostgreSQL allineati",
+        "nessun tenant o token scelto dal client",
+        "nessun dato demo"
+      ]
+    },
+    {
+      "workspaceTarget": "/portale-cliente",
+      "route": "/portale-cliente",
+      "family": "portale-clienti",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ClientPortalPage.tsx",
+      "targetData": "frontend/src/clientPortalData.ts",
+      "targetBridge": "web/services/react_client_portal_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portale-cliente.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "vista cliente completa senza sidebar studio",
+        "invito e token cliente risolti server-side",
+        "timeline anagrafica privacy documenti firme chat appuntamenti notifiche",
+        "upload tenant-aware senza path esposti",
+        "testi italiani UTF-8",
+        "nessun dato demo"
+      ]
+    },
+    {
       "workspaceTarget": "/app/mandato?tab=compensi",
       "route": "/compensi-forensi",
       "family": "mandato",

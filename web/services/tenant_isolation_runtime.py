@@ -138,6 +138,8 @@ def _public_request() -> bool:
         return True
     if path in {"/api/v1", "/api/v1/"}:
         return True
+    if path == "/api/v1/ui/client-portal/public" or path.startswith("/api/v1/ui/client-portal/public/"):
+        return True
     return path.startswith((
         "/static/",
         "/polisweb/local-signer/download",

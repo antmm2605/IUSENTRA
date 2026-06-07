@@ -1,0 +1,16 @@
+{
+  "route": "/portale-cliente",
+  "capturedAt": "2026-06-07",
+  "status": "react_operational_full",
+  "source": "tranche Portale Cliente: vista cliente pubblica full React con token opaco",
+  "preserve": [
+    "vista cliente completa senza sidebar studio",
+    "invito e token cliente risolti server-side",
+    "timeline, anagrafica, privacy, documenti, firme, chat, appuntamenti e notifiche",
+    "upload tenant-aware senza path filesystem esposti",
+    "token non salvato in chiaro",
+    "testi italiani UTF-8 e orari Europe/Rome"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun form POST HTML, nessuna CTA primaria legacy, nessun testo tecnico visibile"
+}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.249.33 - 2026-06-07
+
+- Aggiunto il Portale Cliente full React: console studio su `/app/portale-clienti` e vista cliente su `/portale-cliente`, con inviti sicuri, dashboard pratica, anagrafica, privacy, documenti, firma semplice, chat, appuntamenti, notifiche, questionari, survey ed export conversazione.
+- Introdotto repository tenant-aware `pct/client_portal.py` con schema SQLite e PostgreSQL equivalente, token invito salvati solo come hash e upload documenti senza path filesystem esposti.
+- Aggiunte API `/api/v1/ui/client-portal/*`, shell React pubblica/privata, feature flag dedicati, OpenAPI/provider verification, manifest App V2, documentazione e test mirati.
+- Rifinita la verifica visuale reale: il cliente vede subito `Scrivi allo studio` e `Apri chat`, il click porta al compositore, il layout desktop compatta le card senza spazio morto, Lex non copre il portale pubblico e i fascicoli marcati come dati di prova non compaiono nelle opzioni studio.
+
 ## 2.249.32 - 2026-06-07
 
 - Corretto il parser dei link udienza letti da OCR PDF: i collegamenti Teams/Webex/Meet spezzati da spazi di impaginazione o OCR, come `meetup- join` e `thr ead.v2`, vengono ricostruiti nello stesso URL completo prima di alimentare report PEC, scadenziario e agenda.

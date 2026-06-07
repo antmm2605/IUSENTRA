@@ -68,7 +68,7 @@
     <section class="support-customer-grid">
       <div class="card shadow-sm" id="customerScreenPanel">
         <div class="card-header fw-semibold">
-          <i class="bi bi-display me-2 text-primary"></i>Condivisione schermo
+          <i class="bi bi-display me-2 text-primary"></i>Autorizzazioni assistenza
         </div>
         <div class="card-body">
           <div class="support-consent-list">
@@ -96,18 +96,7 @@
               <i class="bi bi-stop-circle me-1"></i>Termina sessione
             </button>
           </div>
-          <div class="support-room__screen support-room__screen--customer mt-3">
-            <video id="localPreview" class="d-none" autoplay playsinline muted aria-hidden="true"></video>
-            <img id="localAgentPreview" class="support-room__agent-frame d-none" alt="">
-            <div class="support-room__screen-empty" id="localPreviewFallback">
-              {% if session_closed %}
-              Sessione conclusa: la condivisione schermo non è più disponibile.
-              {% else %}
-              Dopo il consenso lo schermo sarà visibile solo al SUPERADMIN collegato, non in questa pagina.
-              {% endif %}
-            </div>
-            <audio id="remoteAudio" autoplay></audio>
-          </div>
+          <audio id="remoteAudio" class="d-none" autoplay></audio>
         </div>
       </div>
 
@@ -148,6 +137,6 @@
     window.SUPPORT_BOOTSTRAP = {{ bootstrap | tojson }};
   </script>
   <script id="support-customer-bootstrap" type="application/json">{{ bootstrap | tojson }}</script>
-  <script src="{{ url_for('static', filename='js/support_customer_room.js') }}?v={{ app_version }}"></script>
+  <script src="{{ url_for('static', filename='js/support_customer_room.js') }}?v={{ app_version }}-support-loopback-20260607"></script>
 </body>
 </html>

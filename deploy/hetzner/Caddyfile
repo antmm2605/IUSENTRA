@@ -21,10 +21,14 @@
 		X-Frame-Options "SAMEORIGIN"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
+
+	@default_permissions {
+		not path /support/join/* /support/operatore/*
+	}
+	header @default_permissions Permissions-Policy "camera=(), microphone=(), local-network-access=(), local-network=(), loopback-network=(), geolocation=()"
 
 	# Rate limiting sulle route di autenticazione gestito da Flask-Limiter
 	# con backend Redis (RATELIMIT_STORAGE_URI=redis://redis:6379/1).
@@ -38,7 +42,10 @@
 	@react_shell path /app-v2*
 	header @react_shell Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
 
-	@sw path /static/sw.js
+	@support_rooms path /support/join/* /support/operatore/*
+	header @support_rooms Permissions-Policy "camera=(), microphone=(self), display-capture=(self), local-network-access=(self), local-network=(self), loopback-network=(self), geolocation=(), payment=()"
+
+	@sw path /sw.js /static/sw.js
 	header @sw Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
 	header @sw Service-Worker-Allowed "/"
 
@@ -54,7 +61,13 @@
 
 	# WebSocket supporto remoto
 	@support_ws path /support/ws/*
-	reverse_proxy @support_ws app:8080
+	reverse_proxy @support_ws app:8080 {
+		flush_interval -1
+		transport http {
+			read_timeout 1h
+			write_timeout 1h
+		}
+	}
 
 	reverse_proxy app:8080 {
 		header_up Host {host}

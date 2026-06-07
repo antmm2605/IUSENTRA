@@ -1,5 +1,20 @@
 # Pytest issue aperte e risoluzioni
 
+## Portale Cliente full React 2.249.33 in corso - 2026-06-07
+
+Nessuna failure di codice aperta sul perimetro mirato dopo repository/API,
+OpenAPI, registry App V2, frontend, Docker locale reale e browser verification
+su studio/cliente. La consegna non è ancora chiusa perché restano commit, push,
+check GitHub completi e deploy Hetzner.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Docker locale reale | `http://127.0.0.1:8080/api/pronto` | Risolto localmente | Dopo recreate i primi healthcheck hanno avuto timeout di warm-up; il container app è poi tornato `healthy` e `/api/pronto` ha risposto `ok=true` sulla porta reale 8080. | Ripetere il rebuild no-cache finale prima del commit/push se vengono toccati ancora asset, route, bootstrap o rendering. |
+| Browser desktop/tablet/mobile | Route Portale Cliente | Risolto localmente | Verificati studio mobile e cliente mobile/tablet/desktop: chat visibile, `Apri chat` funzionante, widget Lex nascosto, nessun overflow, nessun errore console. Il falso positivo `null` era la sottostringa di `Annulla`, non un testo tecnico visibile. | Mantenere gli screenshot in `artifacts/client-portal/browser-screenshots/` e ripetere su 8080 dopo ogni rebuild finale. |
+| Reattività console studio | `/app/portale-clienti` | Risolto localmente | La topbar caricava le notifiche anche a pannello chiuso; una risposta lenta di `/api/notifications` poteva ritardare la dashboard Portale Clienti nella verifica browser. Il hook ora carica le notifiche solo quando il pannello è aperto o arriva un evento esplicito. Dopo Docker no-cache la dashboard studio mobile è visibile in 1,6s; nei log iniziali compaiono shell, asset, time-tracking e `/api/v1/ui/client-portal/dashboard`, senza `/api/notifications` nel caricamento della route. | Mantenere il caricamento notifiche legato all'apertura del pannello; se si ripristina un badge live, va verificato che non blocchi il primo render delle pagine operative. |
+| Dati di prova nei menu Portale Cliente | Dashboard studio | Risolto localmente | La lista fascicoli studio mostrava un fascicolo locale con dicitura di prova. Il bridge ora filtra questi fascicoli dalle opzioni e blocca la creazione di inviti su pratiche non operative; test API dedicato verde. | Non trasformare dati di collaudo in UI cliente/studio: eventuali altri casi vanno esclusi dal backend, non solo nascosti con CSS. |
+| CI/push/deploy | GitHub e Hetzner | Da eseguire prima della chiusura release | Nessun commit/push eseguito come richiesto finché il prodotto non è completo e funzionante. | Dopo i gate finali locali: commit, sync branch gemelli, push, check GitHub/CodeQL e deploy Hetzner. |
+
 ## Lex/RAG, PEC e Ricerca Legale 2.249.24 - 2026-06-07
 
 Nessuna issue di codice aperta sul perimetro mirato dopo il rilancio ampio Lex/RAG, PEC, Ricerca Legale, packaging e OpenAPI.

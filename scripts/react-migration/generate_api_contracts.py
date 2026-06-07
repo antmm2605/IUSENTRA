@@ -14,7 +14,14 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BLUEPRINT = REPO_ROOT / "web" / "blueprints" / "api_v1_react.py"
+API_BLUEPRINTS = (
+    (REPO_ROOT / "web" / "blueprints" / "api_v1_react.py", "api_v1_react", "/api/v1/ui"),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_client_portal.py",
+        "api_v1_client_portal",
+        "/api/v1/ui/client-portal",
+    ),
+)
 FRONTEND_PAGES = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"
 OPENAPI_OUTPUT = REPO_ROOT / "docs" / "openapi.yaml"
 CONTRACT_MAP_OUTPUT = REPO_ROOT / "docs" / "api-endpoint-contract-map.md"
@@ -38,14 +45,25 @@ class Endpoint:
     function: str
     line: int
     auth: bool
+    source: Path
+    blueprint: str
+    api_prefix: str
 
     @property
     def full_path(self) -> str:
-        return f"/api/v1/ui{self.path}"
+        return f"{self.api_prefix}{self.path}"
 
     @property
     def openapi_path(self) -> str:
         return _flask_path_to_openapi(self.full_path)
+
+    @property
+    def contract_path(self) -> str:
+        return self.full_path.removeprefix("/api/v1/ui")
+
+    @property
+    def source_rel(self) -> str:
+        return self.source.relative_to(REPO_ROOT).as_posix()
 
 
 @dataclass(frozen=True)
@@ -85,6 +103,17 @@ AREA_RULES: tuple[tuple[str, ContractInfo], ...] = (
     ("/scadenziario", ContractInfo("Scadenziario", "sessione/API tenant-aware", "P1", "termini e audit calcolo", "DeadlineResponse", "Agenda")),
     ("/agenda", ContractInfo("Agenda", "sessione/API tenant-aware", "P1", "appuntamenti e calendario", "AgendaResponse", "Agenda")),
     ("/messaggi", ContractInfo("Messaggi", "sessione/API tenant-aware", "P1", "SMS/WhatsApp", "MessageResponse", "Comunicazioni")),
+    (
+        "/client-portal",
+        ContractInfo(
+            "Portale Cliente",
+            "clienti.leggi/scrivi oppure invito cliente valido",
+            "P1",
+            "inviti, pratiche, messaggi, documenti e consensi cliente",
+            "ClientPortalResponse",
+            "Portale Cliente",
+        ),
+    ),
     ("/clienti", ContractInfo("Clienti", "sessione/API tenant-aware", "P1", "anagrafiche e cartelle", "ClientResponse", "Anagrafiche")),
     ("/soggetti", ContractInfo("Soggetti e parti", "sessione/API tenant-aware", "P1", "parti e contatti", "ContactResponse", "Anagrafiche")),
     ("/privacy", ContractInfo("Registro GDPR", "sessione/API tenant-aware", "P1", "trattamenti privacy", "PrivacyRegistryResponse", "Admin")),
@@ -128,7 +157,19 @@ SUCCESS_PROVIDER_SAMPLES = {
     "/api/v1/ui/incassi-pagamenti",
     "/api/v1/ui/compensi-forensi",
     "/api/v1/ui/tariffario",
+    "/api/v1/ui/client-portal/dashboard",
+    "/api/v1/ui/client-portal/studio/settings",
 }
+
+
+def _provider_for(endpoint: Endpoint) -> str:
+    if endpoint.full_path in SUCCESS_PROVIDER_SAMPLES:
+        return "success+auth-error"
+    if endpoint.full_path.startswith("/api/v1/ui/client-portal/public/invites/"):
+        return "public-safe-error"
+    if endpoint.full_path.startswith("/api/v1/ui/client-portal/public/"):
+        return "client-token-error"
+    return "auth-error"
 
 
 def _decorator_text(node: ast.AST) -> str:
@@ -138,10 +179,10 @@ def _decorator_text(node: ast.AST) -> str:
         return ""
 
 
-def _route_from_decorator(node: ast.AST) -> tuple[str, str] | None:
+def _route_from_decorator(node: ast.AST, *, blueprint: str) -> tuple[str, str] | None:
     if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
         return None
-    if _decorator_text(node.func.value) != "api_v1_react":
+    if _decorator_text(node.func.value) != blueprint:
         return None
     attr = node.func.attr
     if attr not in {"get", "post", "delete", "put", "patch", "route"}:
@@ -162,19 +203,31 @@ def _route_from_decorator(node: ast.AST) -> tuple[str, str] | None:
 
 
 def endpoints() -> list[Endpoint]:
-    tree = ast.parse(BLUEPRINT.read_text(encoding="utf-8"))
     items: list[Endpoint] = []
-    for node in tree.body:
-        if not isinstance(node, ast.FunctionDef):
-            continue
-        auth = any("_richiedi_auth" in _decorator_text(decorator) for decorator in node.decorator_list)
-        for decorator in node.decorator_list:
-            route = _route_from_decorator(decorator)
-            if route is None:
+    for source, blueprint, api_prefix in API_BLUEPRINTS:
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        for node in tree.body:
+            if not isinstance(node, ast.FunctionDef):
                 continue
-            methods, path = route
-            for method in methods.split(","):
-                items.append(Endpoint(method=method, path=path, function=node.name, line=node.lineno, auth=auth))
+            auth = any("_richiedi_auth" in _decorator_text(decorator) for decorator in node.decorator_list)
+            for decorator in node.decorator_list:
+                route = _route_from_decorator(decorator, blueprint=blueprint)
+                if route is None:
+                    continue
+                methods, path = route
+                for method in methods.split(","):
+                    items.append(
+                        Endpoint(
+                            method=method,
+                            path=path,
+                            function=node.name,
+                            line=node.lineno,
+                            auth=auth,
+                            source=source,
+                            blueprint=blueprint,
+                            api_prefix=api_prefix,
+                        )
+                    )
     return sorted(items, key=lambda item: (item.full_path, item.method))
 
 
@@ -260,7 +313,7 @@ def _response_ref(name: str) -> dict[str, str]:
 
 
 def _is_multipart_request(endpoint: Endpoint) -> bool:
-    return "upload" in endpoint.path or endpoint.path.endswith("/documento/leggi")
+    return "upload" in endpoint.path or endpoint.path.endswith("/documento/leggi") or endpoint.path == "/public/documents"
 
 
 def _response_schema(endpoint: Endpoint, info: ContractInfo) -> str:
@@ -270,21 +323,26 @@ def _response_schema(endpoint: Endpoint, info: ContractInfo) -> str:
 
 
 def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -> dict[str, Any]:
-    info = classify(endpoint.path)
+    info = classify(endpoint.contract_path)
     frontend = frontend_links.get(endpoint.openapi_path) or frontend_links.get(endpoint.full_path)
     page = frontend[0] if frontend else info.area
     flag = frontend[1] if frontend else "non applicabile o governato dalla route collegata"
-    provider = "success+auth-error" if endpoint.full_path in SUCCESS_PROVIDER_SAMPLES else "auth-error"
+    provider = _provider_for(endpoint)
+    security = (
+        [{"clientPortalToken": []}]
+        if provider in {"client-token-error", "public-safe-error"}
+        else [{"cookieSession": []}, {"apiKeyAuth": []}]
+    )
 
     operation: dict[str, Any] = {
         "tags": [info.tag],
         "summary": f"{info.area}: {endpoint.method} {endpoint.openapi_path}",
         "description": (
-            f"Contratto fase 6 derivato da `{endpoint.function}` in `web/blueprints/api_v1_react.py:{endpoint.line}`. "
+            f"Contratto fase 6 derivato da `{endpoint.function}` in `{endpoint.source_rel}:{endpoint.line}`. "
             f"Pagina/area collegata: {page}. I dati sono sempre nel tenant corrente; il client non puo' forzare tenant/studio/user."
         ),
         "operationId": f"reactUi_{endpoint.function}_{endpoint.method.lower()}",
-        "security": [{"cookieSession": []}, {"apiKeyAuth": []}],
+        "security": security,
         "parameters": _path_parameters(endpoint.full_path) + _common_query_parameters(endpoint),
         "responses": {
             "200": {
@@ -521,6 +579,7 @@ def _components() -> dict[str, Any]:
         ("DeadlineResponse", "Scadenziario e termini processuali.", "DeadlineSummary"),
         ("AgendaResponse", "Agenda e timesheet.", "AgendaEventSummary"),
         ("MessageResponse", "Messaggi SMS/WhatsApp.", "CommunicationSummary"),
+        ("ClientPortalResponse", "Portale Cliente, inviti, timeline, documenti, firme, messaggi e consensi.", "DomainRecord"),
         ("ClientResponse", "Clienti e cartelle.", "ClientSummary"),
         ("ContactResponse", "Soggetti e parti.", "ContactSummary"),
         ("PrivacyRegistryResponse", "Registro GDPR.", "DomainRecord"),
@@ -549,6 +608,12 @@ def _components() -> dict[str, Any]:
                 "in": "header",
                 "name": "X-API-Key",
                 "description": "API key tenant-aware. Non accetta chiavi globali in multi-studio.",
+            },
+            "clientPortalToken": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-Client-Portal-Token",
+                "description": "Token opaco del Portale Cliente, firmato e risolto server-side nel tenant corretto.",
             },
             "csrfToken": {
                 "type": "apiKey",
@@ -618,7 +683,7 @@ def build_openapi(report_date: str) -> dict[str, Any]:
     paths: dict[str, Any] = {}
     tags: dict[str, dict[str, str]] = {}
     for endpoint in endpoints():
-        info = classify(endpoint.path)
+        info = classify(endpoint.contract_path)
         tags.setdefault(info.tag, {"name": info.tag, "description": f"Contratti API {info.tag}."})
         path_item = paths.setdefault(endpoint.openapi_path, {})
         path_item[endpoint.method.lower()] = _operation(endpoint, frontend_links)
@@ -641,7 +706,7 @@ def build_openapi(report_date: str) -> dict[str, Any]:
 
 
 def _status_for(endpoint: Endpoint) -> tuple[str, str, str]:
-    provider = "success+auth-error" if endpoint.full_path in SUCCESS_PROVIDER_SAMPLES else "auth-error"
+    provider = _provider_for(endpoint)
     openapi_status = "verified" if provider == "success+auth-error" else "complete"
     test = "tests/test_openapi_contracts_phase6.py + scripts/verify_openapi_provider.py"
     return openapi_status, provider, test
@@ -650,8 +715,9 @@ def _status_for(endpoint: Endpoint) -> tuple[str, str, str]:
 def render_contract_map(report_date: str) -> str:
     frontend_links = _read_frontend_api_links()
     rows = endpoints()
-    p0_p1 = sum(1 for endpoint in rows if classify(endpoint.path).priority in {"P0", "P1"})
-    verified = sum(1 for endpoint in rows if endpoint.full_path in SUCCESS_PROVIDER_SAMPLES)
+    p0_p1 = sum(1 for endpoint in rows if classify(endpoint.contract_path).priority in {"P0", "P1"})
+    verified = sum(1 for endpoint in rows if _provider_for(endpoint) == "success+auth-error")
+    safe_public = sum(1 for endpoint in rows if _provider_for(endpoint) in {"client-token-error", "public-safe-error"})
     lines = [
         "# API Endpoint Contract Map",
         "",
@@ -666,19 +732,20 @@ def render_contract_map(report_date: str) -> str:
         f"- Endpoint React API contrattualizzati: {len(rows)}.",
         f"- Endpoint P0/P1 contrattualizzati: {p0_p1}.",
         f"- Endpoint con provider verification 200 rappresentativa: {verified}.",
-        f"- Endpoint con provider verification auth-error: {len(rows)}.",
+        f"- Endpoint con provider verification auth-error: {len(rows) - safe_public}.",
+        f"- Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: {safe_public}.",
         "- Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.",
         "",
         "| Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |",
         "|------|----------|--------|--------|----------|---------|---------------|------|------|--------|-------|",
     ]
     for endpoint in rows:
-        info = classify(endpoint.path)
+        info = classify(endpoint.contract_path)
         frontend = frontend_links.get(endpoint.openapi_path) or frontend_links.get(endpoint.full_path)
         page = frontend[0] if frontend else info.area
         flag = frontend[1] if frontend else "n/a"
         openapi_status, provider, _test = _status_for(endpoint)
-        state = "verified" if provider == "success+auth-error" else "complete-auth-error"
+        state = "verified" if provider == "success+auth-error" else f"complete-{provider}"
         lines.append(
             f"| {info.area} | `{endpoint.openapi_path}` | `{endpoint.method}` | {page} | {info.priority} | {openapi_status} | {provider} | `{info.permission}` | `{flag}` | current_tenant | {state} |"
         )
@@ -689,6 +756,7 @@ def render_contract_map(report_date: str) -> str:
             "",
             "- `auth-error` significa che l'endpoint e' invocato dal Flask test client senza credenziali e deve rispondere con errore controllato conforme allo schema errori.",
             "- `success+auth-error` aggiunge una chiamata autenticata 200 su endpoint statici rappresentativi di P0/P1 e delle aree principali.",
+            "- `client-token-error` e `public-safe-error` coprono il Portale Cliente: senza token valido l'endpoint deve restare in errore sicuro, senza rivelare tenant, pratica o token.",
             "- Gli endpoint con path parametrici o mutazioni distruttive restano verificati sul contratto di autenticazione/errori e richiedono fixture dominio dedicate prima della promozione a provider success full.",
             "",
         ]
@@ -697,8 +765,9 @@ def render_contract_map(report_date: str) -> str:
 
 
 def _phase6_section(report_date: str, rows: list[Endpoint]) -> str:
-    p0_p1 = sum(1 for endpoint in rows if classify(endpoint.path).priority in {"P0", "P1"})
-    verified = sum(1 for endpoint in rows if endpoint.full_path in SUCCESS_PROVIDER_SAMPLES)
+    p0_p1 = sum(1 for endpoint in rows if classify(endpoint.contract_path).priority in {"P0", "P1"})
+    verified = sum(1 for endpoint in rows if _provider_for(endpoint) == "success+auth-error")
+    safe_public = sum(1 for endpoint in rows if _provider_for(endpoint) in {"client-token-error", "public-safe-error"})
     return f"""## Fase 6 API Contract Review
 
 Aggiornato: {report_date}.
@@ -719,7 +788,8 @@ Risultato di mappatura:
 - Endpoint React API contrattualizzati: {len(rows)}.
 - Endpoint P0/P1 con contratto OpenAPI: {p0_p1}.
 - Endpoint con provider verification rappresentativa non-auth-error: {verified} totali, includendo success-body autenticati e il controllo backend-security.
-- Endpoint con provider verification 401 reale: {len(rows)}.
+- Endpoint con provider verification 401 reale o errore pubblico sicuro: {len(rows)}.
+- Endpoint pubblici Portale Cliente verificati senza token valido: {safe_public}.
 
 Standard error schema:
 

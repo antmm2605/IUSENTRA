@@ -145,6 +145,8 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/workflow-agents/runs", "src/pages/workflow-agents/AgentRunDetail.tsx"),
     ("/workflow-agents", "src/pages/workflow-agents/WorkflowAgentsHome.tsx"),
     ("/regia-agentica", "src/pages/workflow-agents/WorkflowAgentsHome.tsx"),
+    ("/app/portale-clienti", "src/components/ClientPortalPage.tsx"),
+    ("/portale-cliente", "src/components/ClientPortalPage.tsx"),
     ("/ricerca-legale", "src/components/LegalIntelligencePage.tsx"),
     ("/giurisprudenza", "src/components/GiurisprudenzaPage.tsx"),
     ("/strumenti-legali", "src/components/StudioModulePage.tsx"),
@@ -280,6 +282,15 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
     }
 
 
+def _react_body_class_for_path(path: str) -> str:
+    lower = ((path or "/").rstrip("/") or "/").lower()
+    if lower.startswith("/portale-cliente"):
+        return "react-shell-page--client-portal-public"
+    if lower.startswith("/app/portale-clienti"):
+        return "react-shell-page--client-portal-studio"
+    return ""
+
+
 @react_shell.get("/app-v2")
 @react_shell.get("/app-v2/")
 @react_shell.get("/app-v2/<path:spa_path>")
@@ -315,6 +326,7 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
         react_bootstrap=_react_bootstrap_payload(),
         react_runtime_flags=_react_runtime_flags(),
         react_bootstrap_texts=[str(item) for item in (bootstrap_texts or []) if str(item or "").strip()],
+        react_body_class=_react_body_class_for_path(request.path),
     ))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"

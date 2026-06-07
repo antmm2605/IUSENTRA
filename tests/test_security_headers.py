@@ -61,6 +61,9 @@ def test_support_remote_rooms_allow_microphone_and_display_capture() -> None:
 
     assert "microphone=(self)" in policy
     assert "display-capture=(self)" in policy
+    assert "local-network-access=(self)" in policy
+    assert "local-network=(self)" in policy
+    assert "loopback-network=(self)" in policy
     assert "geolocation=()" in policy
 
 
@@ -72,3 +75,6 @@ def test_regular_pages_keep_microphone_denied_by_default() -> None:
         response = apply_security_headers(app.response_class("ok"), app)
 
     assert "microphone=()" in response.headers["Permissions-Policy"]
+    assert "local-network-access=()" in response.headers["Permissions-Policy"]
+    assert "local-network=()" in response.headers["Permissions-Policy"]
+    assert "loopback-network=()" in response.headers["Permissions-Policy"]

@@ -1543,6 +1543,10 @@ body.react-shell-page #root{
   background: #020617;
 }
 
+.iu-support-operator .d-none {
+  display: none !important;
+}
+
 .support-room__screen--control-enabled {
   cursor: crosshair;
   outline: 2px solid rgba(22, 163, 74, .95);
@@ -1740,5 +1744,584 @@ body.react-shell-page #root{
   .iu-support-button,
   .iu-support-switch {
     width: 100%;
+  }
+}
+
+.iu-client-portal,
+.iu-client-portal-public {
+  --cp-bg: #f8fafc;
+  --cp-surface: #fbfdff;
+  --cp-surface-soft: #f1f5f9;
+  --cp-border: #dbe3ee;
+  --cp-text: #0f172a;
+  --cp-muted: #64748b;
+  --cp-accent: #1d4ed8;
+  --cp-accent-soft: #dbeafe;
+  --cp-success: #15803d;
+  --cp-warning: #b45309;
+  --cp-danger: #b91c1c;
+  color: var(--cp-text);
+}
+
+.iu-client-portal {
+  min-height: 100%;
+  padding: 18px;
+  background: var(--cp-bg);
+}
+
+.iu-client-portal-public {
+  min-height: 100dvh;
+  padding: 20px;
+  background:
+    linear-gradient(180deg, #eef6ff 0%, #f8fafc 46%, #f4f7fb 100%);
+}
+
+.iu-client-portal-header,
+.iu-client-portal-client-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.iu-client-portal-header h1,
+.iu-client-portal-client-hero h1,
+.iu-client-portal-public__card h1 {
+  margin: 0;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.iu-client-portal-header span,
+.iu-client-portal-client-hero span,
+.iu-client-portal-public__card p {
+  color: var(--cp-muted);
+  line-height: 1.5;
+}
+
+.iu-client-portal-overline {
+  margin: 0 0 4px;
+  color: #334155;
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.iu-client-portal-button,
+.iu-client-portal-action-row button,
+.iu-client-portal-mini-form button,
+.iu-client-portal-file {
+  min-height: 42px;
+  border: 1px solid var(--cp-accent);
+  border-radius: 8px;
+  background: var(--cp-accent);
+  color: #f8fbff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 13px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.iu-client-portal-button.secondary,
+.iu-client-portal-action-row button,
+.iu-client-portal-mini-form button,
+.iu-client-portal-file {
+  border-color: var(--cp-border);
+  background: var(--cp-surface);
+  color: var(--cp-text);
+}
+
+.iu-client-portal-button:disabled,
+.iu-client-portal-action-row button:disabled {
+  cursor: not-allowed;
+  opacity: .56;
+}
+
+.iu-client-portal-notice {
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: var(--cp-surface);
+  font-weight: 700;
+}
+
+.iu-client-portal-notice.tone-success {
+  color: var(--cp-success);
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
+.iu-client-portal-notice.tone-warning {
+  color: var(--cp-warning);
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.iu-client-portal-notice.tone-danger {
+  color: var(--cp-danger);
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.iu-client-portal-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.iu-client-portal-kpi,
+.iu-client-portal-panel,
+.iu-client-portal-public__card,
+.iu-client-portal-client-summary article {
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  background: var(--cp-surface);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+}
+
+.iu-client-portal-kpi {
+  min-height: 88px;
+  padding: 13px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 9px;
+  align-items: center;
+}
+
+.iu-client-portal-kpi span {
+  color: var(--cp-muted);
+  font-weight: 700;
+}
+
+.iu-client-portal-kpi strong {
+  grid-column: 1 / -1;
+  font-size: 1.55rem;
+}
+
+.iu-client-portal-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.iu-client-portal-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 14px;
+}
+
+.iu-client-portal-client-grid {
+  columns: 2 360px;
+  column-gap: 14px;
+  margin-top: 14px;
+}
+
+.iu-client-portal-client-grid > .iu-client-portal-panel {
+  display: inline-grid;
+  width: 100%;
+  margin: 0 0 14px;
+  break-inside: avoid;
+}
+
+.iu-client-portal-panel {
+  padding: 14px;
+}
+
+.iu-client-portal-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.iu-client-portal-panel__head h2,
+.iu-client-portal-mini-form h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.iu-client-portal-panel__head span,
+.iu-client-portal-muted {
+  color: var(--cp-muted);
+  font-size: .9rem;
+}
+
+.iu-client-portal-form,
+.iu-client-portal-mini-form,
+.iu-client-portal-settings__form {
+  display: grid;
+  gap: 10px;
+}
+
+.iu-client-portal-form label,
+.iu-client-portal-settings__form label,
+.iu-client-portal-questionnaire label {
+  display: grid;
+  gap: 5px;
+  color: #334155;
+  font-size: .88rem;
+  font-weight: 800;
+}
+
+.iu-client-portal-form input,
+.iu-client-portal-form select,
+.iu-client-portal-form textarea,
+.iu-client-portal-mini-form input,
+.iu-client-portal-chat__composer textarea,
+.iu-client-portal-settings__form input,
+.iu-client-portal-questionnaire textarea {
+  width: 100%;
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  background: #fbfdff;
+  color: var(--cp-text);
+  padding: 9px 10px;
+  font: inherit;
+}
+
+.iu-client-portal-linkbox {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--cp-accent-soft);
+}
+
+.iu-client-portal-linkbox a {
+  color: var(--cp-accent);
+  font-weight: 800;
+}
+
+.iu-client-portal-matter-list {
+  display: grid;
+  gap: 8px;
+}
+
+.iu-client-portal-matter-list article,
+.iu-client-portal-action-row {
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  background: var(--cp-surface-soft);
+  padding: 10px;
+}
+
+.iu-client-portal-matter-list article {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.iu-client-portal-matter-list article.is-active {
+  border-color: var(--cp-accent);
+  background: #eff6ff;
+}
+
+.iu-client-portal-matter-list article > button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.iu-client-portal-matter-list strong,
+.iu-client-portal-action-row strong {
+  overflow-wrap: anywhere;
+}
+
+.iu-client-portal-inline {
+  border: 0;
+  background: transparent;
+  color: var(--cp-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.iu-client-portal-badge {
+  width: max-content;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.iu-client-portal-workgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.iu-client-portal-mini-form {
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  background: var(--cp-surface-soft);
+  padding: 10px;
+}
+
+.iu-client-portal-chat {
+  display: grid;
+  gap: 10px;
+}
+
+.iu-client-portal-chat__messages {
+  max-height: 360px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.iu-client-portal-chat__messages article {
+  width: min(88%, 620px);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #eef2ff;
+}
+
+.iu-client-portal-chat__messages article.from-client {
+  justify-self: end;
+  background: #dcfce7;
+}
+
+.iu-client-portal-chat__messages article p {
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+
+.iu-client-portal-chat__messages article span {
+  color: var(--cp-muted);
+  font-size: .78rem;
+}
+
+.iu-client-portal-chat__composer {
+  display: grid;
+  gap: 8px;
+}
+
+.iu-client-portal-public {
+  display: grid;
+  place-items: center;
+}
+
+.iu-client-portal-public--dashboard {
+  display: block;
+}
+
+body.react-shell-page--client-portal-public #pct-ai-widget,
+body:has(.iu-client-portal-public) #pct-ai-widget {
+  display: none !important;
+}
+
+.iu-client-portal-public__card {
+  width: min(100%, 620px);
+  padding: 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.iu-client-portal-public__actions,
+.iu-client-portal-client-hero__actions,
+.iu-client-portal-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.iu-client-portal-client-summary {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.iu-client-portal-client-summary article {
+  padding: 13px;
+  display: grid;
+  gap: 8px;
+}
+
+.iu-client-portal-client-summary strong {
+  font-size: 1.55rem;
+}
+
+.iu-client-portal-progress {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  border: 0;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.iu-client-portal-progress::-webkit-progress-bar {
+  border-radius: inherit;
+  background: #e2e8f0;
+}
+
+.iu-client-portal-progress::-webkit-progress-value {
+  border-radius: inherit;
+  background: var(--cp-accent);
+}
+
+.iu-client-portal-progress::-moz-progress-bar {
+  border-radius: inherit;
+  background: var(--cp-accent);
+}
+
+.iu-client-portal-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.iu-client-portal-timeline article {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.iu-client-portal-timeline article > span:first-child {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cp-accent);
+}
+
+.iu-client-portal-action-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.iu-client-portal-action-row div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.iu-client-portal-action-row span {
+  color: var(--cp-muted);
+}
+
+.iu-client-portal-file {
+  position: relative;
+  overflow: hidden;
+}
+
+.iu-client-portal-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.iu-client-portal-questionnaire {
+  display: grid;
+  gap: 9px;
+}
+
+.iu-client-portal-loading,
+.iu-client-portal-empty {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--cp-muted);
+}
+
+.iu-client-portal-loading svg {
+  animation: iu-client-portal-spin 900ms linear infinite;
+}
+
+@keyframes iu-client-portal-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1180px) {
+  .iu-client-portal-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iu-client-portal-layout,
+  .iu-client-portal-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-client-portal-client-grid {
+    columns: 1;
+  }
+
+  .iu-client-portal-workgrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .iu-client-portal,
+  .iu-client-portal-public {
+    padding: 10px 10px calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .iu-client-portal-header,
+  .iu-client-portal-client-hero,
+  .iu-client-portal-matter-list article,
+  .iu-client-portal-action-row {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .iu-client-portal-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iu-client-portal-kpis article:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .iu-client-portal-client-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iu-client-portal-client-summary article:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .iu-client-portal-button,
+  .iu-client-portal-action-row button,
+  .iu-client-portal-mini-form button,
+  .iu-client-portal-file {
+    width: 100%;
+  }
+
+  body.react-shell-page--client-portal-studio #pct-ai-widget:not(.pct-ai-widget--open),
+  body:has(.iu-client-portal--studio) #pct-ai-widget:not(.pct-ai-widget--open) {
+    display: none !important;
   }
 }

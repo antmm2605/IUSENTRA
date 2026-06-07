@@ -32,6 +32,8 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "routes.appV2.telematico.center",
         "routes.appV2.telematico.surface",
         "routes.appV2.notifications.mobilePush",
+        "routes.appV2.clientPortal.webPush",
+        "routes.appV2.clientPortal.videoCalls",
         "lex.legalSkills.trustLayer",
         "lex.legalSkills.customSkills",
         "lex.legalSkills.scheduledAgents",
@@ -109,6 +111,9 @@ APP_V2_DEFAULT_ON_FLAGS = frozenset(
         "routes.appV2.legalSkills.reviewQueue",
         "routes.appV2.workflowAgents.home",
         "routes.appV2.workflowAgents.reviewQueue",
+        "routes.appV2.clientPortal.enabled",
+        "routes.appV2.clientPortal.notifications",
+        "routes.appV2.clientPortal.signatures",
     }
 )
 
@@ -197,6 +202,11 @@ FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
     _flag("routes.appV2.legalSkills.reviewQueue", "Revisione risultati Legal Skills nella shell App V2."),
     _flag("routes.appV2.workflowAgents.home", "Regia Agentica Studio nella shell App V2."),
     _flag("routes.appV2.workflowAgents.reviewQueue", "Coda approvazioni agentiche nella shell App V2."),
+    _flag("routes.appV2.clientPortal.enabled", "Portale Cliente e Mini App Cliente nella shell App V2."),
+    _flag("routes.appV2.clientPortal.notifications", "Notifiche in-app del Portale Cliente."),
+    _flag("routes.appV2.clientPortal.webPush", "Notifiche Web Push del Portale Cliente."),
+    _flag("routes.appV2.clientPortal.videoCalls", "Link videocall governati nel Portale Cliente."),
+    _flag("routes.appV2.clientPortal.signatures", "Firma semplice con evidenza nel Portale Cliente."),
     FeatureFlagDefinition(
         "routes.appV2.docsPanel",
         "IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL",
@@ -355,6 +365,9 @@ APP_V2_ROUTE_FLAGS: tuple[tuple[str, str], ...] = (
     ("/workflow-agents/metrics", "routes.appV2.workflowAgents.home"),
     ("/workflow-agents", "routes.appV2.workflowAgents.home"),
     ("/regia-agentica", "routes.appV2.workflowAgents.home"),
+    ("/app/portale-clienti/impostazioni", "routes.appV2.clientPortal.enabled"),
+    ("/app/portale-clienti", "routes.appV2.clientPortal.enabled"),
+    ("/portale-cliente", "routes.appV2.clientPortal.enabled"),
     ("/workspace-intelligente", "routes.appV2.dashboard.regia"),
     ("/regia-operativa", "routes.appV2.dashboard.regia"),
     ("/app", "routes.appV2.dashboard.home"),

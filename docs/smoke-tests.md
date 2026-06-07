@@ -49,6 +49,7 @@ python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url ht
 | `admin` | utenti/profili/database e API admin database. | admin API esposta | `IUSENTRA_BASE_URL` | ready |
 | `search` | ricerca studio/legale/API ricerca; tenant-safe auth se profili presenti. | ricerca cross-tenant sospetta | profili opzionali | ready |
 | `notifications` | pagine notifiche e public-key push senza invio reale. | private key/leakage | nessuna | ready |
+| `client-portal` | console Portale Cliente, contratti API, token assente/non valido e pagina cliente senza dati sensibili. | token/tenant leakage, upload non protetto | fixture locale o token test per success path cliente | ready locale; success cliente blocked senza token test |
 | `post-deploy` | tutte le suite read-only da usare dopo deploy. | qualunque FAIL critico | env ambiente, credenziali opzionali | ready |
 
 ## Comandi principali
@@ -115,6 +116,7 @@ operativi completi.
 - RBAC readonly autenticato: richiede `IUSENTRA_READONLY_*`.
 - Cross-tenant con API key: richiede `IUSENTRA_SMOKE_API_KEY`.
 - Download documento test: richiede ID documento test sintetico e tenant-safe.
+- Success path Portale Cliente pubblico: richiede token invito o token cliente generato in fixture locale; senza token si verifica solo errore sicuro.
 - Mutating smoke: disattivato salvo `IUSENTRA_ENABLE_MUTATING_SMOKE=true` in
   ambiente controllato con cleanup.
 

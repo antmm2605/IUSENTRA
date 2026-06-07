@@ -6,10 +6,10 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 
 ## Sintesi
 
-- Aree rilevate o governate: 15.
-- Route nel manifest: 109.
-- Priorita route: P0=31; P1=41; P2=37.
-- Stato aree: blocked=1; complete_tested=6; complete_unverified=4; partial=4.
+- Aree rilevate o governate: 16.
+- Route nel manifest: 111.
+- Priorita route: P0=31; P1=43; P2=37.
+- Stato aree: blocked=1; complete_tested=7; complete_unverified=4; partial=4.
 - `complete_tested` non viene assegnato a un'area con route legacy/parziali o senza gate fase 8.
 - Le aree non parificate restano `partial`, `pending` o `blocked` e non devono essere esposte come complete nella shell App V2.
 
@@ -27,6 +27,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 | Impostazioni e integrazioni | /impostazioni; /impostazioni-studio; /impostazioni/calendario; /impostazioni/pagamenti; /impostazioni/sdi; /notifiche; /notifiche-whatsapp; /sincronizzazione-calendari; +2 altre | /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; +4 altre | routes.appV2.settings.backup; routes.appV2.settings.calendarSync; routes.appV2.settings.notifications; routes.appV2.settings.payments; routes.appV2.settings.sdi; routes.appV2.settings.studio; +1 altre | impostazioni.leggi / impostazioni.scrivi; segreti mascherati | configurazioni studio, PEC/SMTP, notifiche, backup, calendari e segreti redatti | dati studio; PEC/SMTP; pagamenti; notifiche; backup; calendari | non autorizzato 403; tenant A non vede settings B; secret mascherato; form invalido 400/422 | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1; P2 | complete_tested |
 | Mandato, preventivi e compensi | /compensi-forensi/*; /preventivi/*; /tariffario/*; /compensi-forensi; /preventivi; /preventivi/conferimento/:id; /preventivi/conferimento/nuovo; /preventivi/nuovo; +2 altre | /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=tariffario; /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=conferimenti; +4 altre | routes.appV2.billing.compensi; routes.appV2.billing.quotes; routes.appV2.billing.tariffario | mandato.leggi / mandato.scrivi; calcoli backend | offerte, conferimenti, tariffe e dati economici | preventivi; wizard; conferimenti; compensi; tariffario | lista preventivi tenant A; modifica senza permesso 403; importo invalido 400/422; apri fascicolo auditato se previsto | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1 | partial |
 | Panoramica | / | /app | routes.appV2.dashboard.home | sessione studio valida | metriche aggregate; evitare PII non necessaria | dashboard tenant-safe; widget abilitati da flag/RBAC; azioni verso pagine permesse | dashboard con dati/empty/error; link nascosti se flag o permesso mancanti; conteggi tenant-safe | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
+| Portale Cliente | /app/portale-clienti; /portale-cliente | /app/portale-clienti; /portale-cliente | routes.appV2.clientPortal.enabled | clienti.leggi / clienti.scrivi per studio; token cliente firmato e hashato per vista cliente | anagrafica cliente, pratica, documenti, consensi, messaggi e token invito | dashboard studio; invito sicuro; vista cliente; upload documenti; firme semplici; chat; appuntamenti | repository SQLite/PostgreSQL; API studio 401/400/success; API cliente con token valido/non valido; browser desktop/tablet/mobile | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1 | complete_tested |
 | Regia operativa | /regia-operativa; /workspace-intelligente | /app/regia-operativa; /app/workspace-intelligente | routes.appV2.dashboard.regia | sessione studio valida | metriche e suggerimenti su fascicoli/agenda | regia studio; sincronizzazione mailbox; azioni operative consentite | render regia; sync negata senza permesso; flag off senza API dati | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Ricerca studio e Lex | /global-search; /ricerca-studio | /app/global-search; /app/ricerca-studio | routes.appV2.search.global | ricerca.leggi; fonti e citazioni governate | query, fonti, risultati e cronologia ricerca | ricerca globale; ricerca legale; giurisprudenza | query vuota; query senza risultati; tenant B zero risultati; filtro invalido gestito | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Scadenze e termini | /scadenziario/:id/modifica; /scadenziario/nuova; /scadenziario; /scadenziario/:id; /wizard-pro | /app/scadenziario/:id/modifica; /app/scadenziario/nuova; /app/scadenziario; /app/scadenziario/:id; /app/wizard-pro | routes.appV2.deadlines.create; routes.appV2.deadlines.detail; routes.appV2.deadlines.hearingWizard; routes.appV2.deadlines.list | scadenze.leggi / scadenze.scrivi | termini, reminder e collegamenti a fascicolo | scadenziario; nuova scadenza; termini guidati | lista tenant A; scadenza tenant B negata; filtro invalido gestito; readonly non muta | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1; P2 | complete_tested |
@@ -194,6 +195,22 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 - Test richiesti: dashboard con dati/empty/error; link nascosti se flag o permesso mancanti; conteggi tenant-safe.
 - Test presenti fase 8: tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere.
 - Rischio residuo: nessuna promozione ulteriore senza smoke autenticato area-specifico.
+
+### Portale Cliente
+
+- Stato: `complete_tested` (area senza route pendenti/parziali e con P0/P1 coperti dai gate comuni piu' registro fase 8).
+- Route censite: 2; priorita: P1; migrazione: react_operational_full=2.
+- URL legacy principali: /app/portale-clienti; /portale-cliente.
+- URL App V2: /app/portale-clienti; /portale-cliente.
+- Endpoint API: /api/v1/ui/client-portal*, /portale-cliente.
+- Feature flag: routes.appV2.clientPortal.enabled.
+- RBAC: clienti.leggi / clienti.scrivi per studio; token cliente firmato e hashato per vista cliente.
+- PII: anagrafica cliente, pratica, documenti, consensi, messaggi e token invito.
+- Workflow principali: dashboard studio; invito sicuro; vista cliente; upload documenti; firme semplici; chat; appuntamenti.
+- Requisiti specifici verificati o governati: token mai salvato in chiaro; tenant risolto solo server-side; SQLite e PostgreSQL equivalenti; upload senza path esposti; privacy e consensi auditati.
+- Test richiesti: repository SQLite/PostgreSQL; API studio 401/400/success; API cliente con token valido/non valido; browser desktop/tablet/mobile.
+- Test presenti fase 8: tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite.
+- Rischio residuo: estendere smoke autenticato tenant A/B quando sono disponibili credenziali ambiente.
 
 ### Regia operativa
 

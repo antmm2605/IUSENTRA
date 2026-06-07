@@ -140,7 +140,7 @@ export default function SupportOperatorRoom({
           <img id="remoteAgentFrame" className="support-room__agent-frame d-none" alt="Schermo cliente condiviso tramite agente locale" />
           <div className="support-room__screen-empty" id="remoteVideoFallback">
             <Monitor size={34} />
-            <span>Il video del cliente comparirà qui appena la condivisione schermo è attiva.</span>
+            <span>In attesa dello schermo cliente. Appena il cliente avvia l'assistenza vedrai qui il suo desktop.</span>
           </div>
         </div>
       </section>

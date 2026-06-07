@@ -10,12 +10,13 @@ App V2 e' la shell React progressiva di IUSENTRA. Convive con le route Flask sto
 - Riepilogo frontend: [frontend-app-v2-pages](frontend-app-v2-pages.md).
 - Requisiti area: [app-v2-area-requirements](app-v2-area-requirements.md).
 - Test plan: [test-plan-app-v2](test-plan-app-v2.md).
+- Portale Cliente: [client-portal](client-portal.md).
 
 Sintesi corrente dai registri generati:
 
-- route manifest: 98;
-- priorita: P0=30, P1=33, P2=35;
-- aree: `complete_tested`=4, `complete_unverified`=4, `partial`=6, `blocked`=1;
+- route manifest: 111;
+- priorita: P0=31, P1=43, P2=37;
+- aree: `complete_tested`=7, `complete_unverified`=4, `partial`=4, `blocked`=1;
 - Storybook: presente come infrastruttura frontend, non gate visuale completo; VRT: non attivo, gap documentato;
 - smoke autenticati: richiedono env dedicate, non sono marcati verdi se assenti.
 

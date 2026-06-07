@@ -61,6 +61,7 @@
   let remoteCommandInFlight = null;
   let remoteCommandTimer = null;
   const remoteCommandQueue = [];
+  const pendingIceCandidates = [];
   let sessionClosed = Boolean(boot.closed || boot.status === "closed");
   const statePollDelayMs = 12000;
   const remoteCommandAckTimeoutMs = 10000;
@@ -279,6 +280,32 @@
     return pc;
   }
 
+  async function flushPendingIceCandidates(peer) {
+    if (!peer?.remoteDescription || !pendingIceCandidates.length) return;
+    const candidates = pendingIceCandidates.splice(0, pendingIceCandidates.length);
+    for (const candidate of candidates) {
+      try {
+        await peer.addIceCandidate(candidate);
+      } catch (error) {
+        console.warn("Candidato ICE scartato dopo descrizione remota.", error);
+      }
+    }
+  }
+
+  async function addRemoteIceCandidate(candidate) {
+    const peer = await ensurePeerConnection();
+    const iceCandidate = new RTCIceCandidate(candidate);
+    if (!peer.remoteDescription) {
+      pendingIceCandidates.push(iceCandidate);
+      return;
+    }
+    try {
+      await peer.addIceCandidate(iceCandidate);
+    } catch (error) {
+      console.warn("Candidato ICE remoto non applicato.", error);
+    }
+  }
+
   async function connectWs() {
     if (ws && ws.readyState === WebSocket.OPEN) {
       return;
@@ -347,6 +374,7 @@
       if (message.type === "offer") {
         const peer = await ensurePeerConnection();
         await peer.setRemoteDescription(new RTCSessionDescription(message.sdp));
+        await flushPendingIceCandidates(peer);
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
         ws.send(JSON.stringify({ type: "answer", sdp: peer.localDescription }));
@@ -357,15 +385,11 @@
       if (message.type === "answer") {
         const peer = await ensurePeerConnection();
         await peer.setRemoteDescription(new RTCSessionDescription(message.sdp));
+        await flushPendingIceCandidates(peer);
         return;
       }
       if (message.type === "ice" && message.candidate) {
-        const peer = await ensurePeerConnection();
-        try {
-          await peer.addIceCandidate(new RTCIceCandidate(message.candidate));
-        } catch (error) {
-          console.error(error);
-        }
+        await addRemoteIceCandidate(message.candidate);
         return;
       }
       if (message.type === "chat") {

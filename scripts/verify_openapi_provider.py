@@ -46,6 +46,8 @@ SUCCESS_SAMPLES = [
     "/api/v1/ui/incassi-pagamenti",
     "/api/v1/ui/compensi-forensi",
     "/api/v1/ui/tariffario",
+    "/api/v1/ui/client-portal/dashboard",
+    "/api/v1/ui/client-portal/studio/settings",
 ]
 
 RESERVED_RESPONSE_KEYS = {
@@ -106,6 +108,12 @@ def _sample_path(path: str) -> str:
         "skill_id": "contract_review",
         "run_id": "RUN_TEST",
         "agent_id": "regulatory_monitor",
+        "invite_id": "INVITO_TEST",
+        "token": "cp1.token-non-valido",
+        "signature_id": "FIRMA_TEST",
+        "appointment_id": "APPUNTAMENTO_TEST",
+        "notification_id": "NOTIFICA_TEST",
+        "questionnaire_id": "QUESTIONARIO_TEST",
     }
     result = path
     for name, value in samples.items():
@@ -142,7 +150,15 @@ def _operation_items(document: dict[str, Any]):
                 yield path, method.upper(), operation
 
 
-def verify_provider() -> tuple[int, int, int]:
+def _request(client, *, method: str, target: str):
+    if method == "GET":
+        return client.get(target)
+    if method == "DELETE":
+        return client.delete(target, json={})
+    return client.open(target, method=method, json={})
+
+
+def verify_provider() -> tuple[int, int, int, int]:
     document = _load_openapi()
     with tempfile.TemporaryDirectory(prefix="iusentra-openapi-", ignore_cleanup_errors=True) as tmp:
         root = Path(tmp)
@@ -152,16 +168,21 @@ def verify_provider() -> tuple[int, int, int]:
         _crea_operatore(app)
 
         auth_errors = 0
+        safe_public_errors = 0
         success = 0
         with app.test_client() as client:
-            for path, method, _operation in _operation_items(document):
+            for path, method, operation in _operation_items(document):
                 target = _sample_path(path)
-                if method == "GET":
-                    response = client.get(target)
-                elif method == "DELETE":
-                    response = client.delete(target, json={})
-                else:
-                    response = client.open(target, method=method, json={})
+                response = _request(client, method=method, target=target)
+                provider = operation.get("x-provider-verification")
+                if provider in {"client-token-error", "public-safe-error"}:
+                    if response.status_code not in {400, 401, 403, 404, 410, 422}:
+                        raise AssertionError(
+                            f"{method} {target}: atteso errore cliente sicuro, ottenuto {response.status_code}."
+                        )
+                    _assert_error_payload(response.get_json(silent=True), path=target, status=response.status_code)
+                    safe_public_errors += 1
+                    continue
                 if response.status_code != 401:
                     raise AssertionError(f"{method} {target}: atteso 401 anonimo, ottenuto {response.status_code}.")
                 _assert_error_payload(response.get_json(silent=True), path=target, status=response.status_code)
@@ -189,17 +210,17 @@ def verify_provider() -> tuple[int, int, int]:
                 raise AssertionError("guardrail tenant_id senza code backend_security_control_param.")
             guard_checks = 1
 
-    return auth_errors, success, guard_checks
+    return auth_errors, safe_public_errors, success, guard_checks
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Provider verification OpenAPI con Flask test client.")
     parser.parse_args()
 
-    auth_errors, success, guard_checks = verify_provider()
+    auth_errors, safe_public_errors, success, guard_checks = verify_provider()
     print(
         "OK | provider verification | "
-        f"auth-error={auth_errors} | success={success} | backend-security={guard_checks}"
+        f"auth-error={auth_errors} | public-safe={safe_public_errors} | success={success} | backend-security={guard_checks}"
     )
     return 0
 

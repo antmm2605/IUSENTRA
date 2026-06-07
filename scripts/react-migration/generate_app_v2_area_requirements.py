@@ -41,6 +41,7 @@ AREA_API = {
     "economico": "/api/v1/ui/fatturazione*, /api/v1/ui/preventivi*, /api/v1/ui/pagamenti*, /api/v1/ui/incassi-pagamenti*",
     "amministrazione": "/api/v1/ui/amministrazione*, /api/v1/ui/utenti*, /api/v1/ui/profili*, /api/v1/ui/audit*, /api/v1/ui/admin/database, /api/v1/ui/privacy/registro",
     "impostazioni": "/api/v1/ui/impostazioni*, /api/v1/ui/calendari*, /api/v1/ui/backup*, /api/push/*",
+    "portale-clienti": "/api/v1/ui/client-portal*, /portale-cliente",
 }
 
 AREA_RBAC = {
@@ -59,6 +60,7 @@ AREA_RBAC = {
     "economico": "fatturazione.leggi / fatturazione.scrivi; pagamenti protetti",
     "amministrazione": "admin o permessi utenti/profili/audit specifici",
     "impostazioni": "impostazioni.leggi / impostazioni.scrivi; segreti mascherati",
+    "portale-clienti": "clienti.leggi / clienti.scrivi per studio; token cliente firmato e hashato per vista cliente",
 }
 
 AREA_POLICIES: dict[str, AreaPolicy] = {
@@ -166,6 +168,24 @@ AREA_POLICIES: dict[str, AreaPolicy] = {
         ("dati studio", "PEC/SMTP", "pagamenti", "notifiche", "backup", "calendari"),
         ("segreti mai restituiti in chiaro", "update secret non ritorna secret", "form validati", "readonly non muta"),
         ("non autorizzato 403", "tenant A non vede settings B", "secret mascherato", "form invalido 400/422"),
+    ),
+    "portale-clienti": AreaPolicy(
+        "Portale Cliente",
+        "anagrafica cliente, pratica, documenti, consensi, messaggi e token invito",
+        ("dashboard studio", "invito sicuro", "vista cliente", "upload documenti", "firme semplici", "chat", "appuntamenti"),
+        (
+            "token mai salvato in chiaro",
+            "tenant risolto solo server-side",
+            "SQLite e PostgreSQL equivalenti",
+            "upload senza path esposti",
+            "privacy e consensi auditati",
+        ),
+        (
+            "repository SQLite/PostgreSQL",
+            "API studio 401/400/success",
+            "API cliente con token valido/non valido",
+            "browser desktop/tablet/mobile",
+        ),
     ),
 }
 

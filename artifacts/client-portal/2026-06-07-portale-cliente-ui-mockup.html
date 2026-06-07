@@ -1,0 +1,1431 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portale Cliente IUSENTRA - proposta grafica</title>
+  <style>
+    :root {
+      --page: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fbff;
+      --surface-warm: #fbfaf7;
+      --border: rgba(15, 23, 42, 0.1);
+      --border-soft: rgba(15, 23, 42, 0.08);
+      --text: #111827;
+      --muted: #64748b;
+      --primary: #123d72;
+      --primary-active: #2563eb;
+      --accent: #b8860b;
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --info: #0369a1;
+      --radius: 12px;
+      --shadow: 0 12px 34px rgba(15, 23, 42, 0.07);
+      --shadow-raised: 0 22px 54px rgba(15, 23, 42, 0.1);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .preview-note {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 22px;
+      border-bottom: 1px solid rgba(18, 61, 114, 0.14);
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--muted);
+      font-weight: 760;
+      backdrop-filter: blur(10px);
+    }
+
+    .preview-note strong {
+      color: var(--primary);
+    }
+
+    .artboard {
+      width: min(100%, 1540px);
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .shell {
+      min-height: 880px;
+      display: grid;
+      grid-template-columns: 272px minmax(0, 1fr);
+      border: 1px solid var(--border-soft);
+      border-radius: 18px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: var(--shadow-raised);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 22px 16px;
+      background:
+        linear-gradient(180deg, rgba(18, 61, 114, 0.97), rgba(7, 19, 41, 0.98)),
+        #071329;
+      color: #e5edf8;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 48px;
+    }
+
+    .brand-mark,
+    .icon-box {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff6da;
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      color: #fff;
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .brand small {
+      display: block;
+      margin-top: 4px;
+      color: rgba(229, 237, 248, 0.72);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .nav-group {
+      display: grid;
+      gap: 7px;
+    }
+
+    .nav-label {
+      margin: 12px 8px 2px;
+      color: rgba(229, 237, 248, 0.58);
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-item {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 11px;
+      color: rgba(229, 237, 248, 0.82);
+      font-weight: 820;
+    }
+
+    .nav-item .mini-icon {
+      width: 27px;
+      height: 27px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .nav-item.active {
+      background: rgba(255, 255, 255, 0.13);
+      color: #fff;
+      box-shadow: inset 4px 0 0 #c99a2e;
+    }
+
+    .main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(245, 247, 251, 0)),
+        var(--page);
+    }
+
+    .topbar {
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-soft);
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .search {
+      width: min(100%, 460px);
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 6px 10px;
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 850;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(18, 61, 114, 0.1);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .content {
+      min-width: 0;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      padding: 18px;
+    }
+
+    .page-header {
+      position: relative;
+      min-height: 124px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      overflow: hidden;
+      padding: 24px;
+      border: 1px solid rgba(18, 61, 114, 0.14);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(18, 61, 114, 0.07), rgba(255, 255, 255, 0.96) 40%, rgba(248, 251, 255, 0.96)),
+        #fff;
+      box-shadow: 0 18px 48px rgba(18, 61, 114, 0.09);
+    }
+
+    .page-header::before,
+    .panel::before,
+    .data-surface::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: linear-gradient(180deg, #123d72, #2563eb 48%, #b8860b);
+    }
+
+    .page-title {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .page-title .icon-box {
+      border-color: rgba(37, 99, 235, 0.16);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(239, 246, 255, 0.88));
+      color: var(--primary-active);
+      box-shadow: var(--shadow);
+    }
+
+    .page-title h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(25px, 2.1vw, 34px);
+      line-height: 1.08;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .page-title p {
+      max-width: 70ch;
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 690;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 13px;
+      border: 1px solid rgba(15, 23, 42, 0.13);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 900;
+      line-height: 1.2;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+    }
+
+    .btn.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, #071329, #123d72);
+      color: #f8fafc;
+    }
+
+    .btn.soft {
+      background: #f8fafc;
+      color: var(--primary);
+    }
+
+    .btn:disabled {
+      border-color: #cbd5e1;
+      background: linear-gradient(135deg, #f8fafc, #eef2f7);
+      color: #334155;
+      cursor: not-allowed;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric,
+    .panel,
+    .data-surface,
+    .state-card {
+      position: relative;
+      min-width: 0;
+      border: 1px solid rgba(18, 61, 114, 0.1);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: var(--shadow);
+    }
+
+    .metric {
+      min-height: 108px;
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .metric .icon-box,
+    .panel-title .icon-box,
+    .status-row .icon-box {
+      width: 38px;
+      height: 38px;
+      border-color: rgba(37, 99, 235, 0.16);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 246, 255, 0.86));
+      color: var(--primary-active);
+      box-shadow: none;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 820;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--text);
+      font-size: 26px;
+      line-height: 1.08;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-weight: 720;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(326px, 372px);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .surface-stack,
+    .rail-stack {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .panel,
+    .data-surface {
+      overflow: hidden;
+    }
+
+    .panel::before,
+    .data-surface::before {
+      inset: 0 0 auto;
+      width: auto;
+      height: 3px;
+      opacity: 0.82;
+      background: linear-gradient(90deg, rgba(18, 61, 114, 0.72), rgba(37, 99, 235, 0.58), rgba(184, 134, 11, 0.58));
+    }
+
+    .panel-header,
+    .data-header {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-soft);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.9));
+    }
+
+    .panel-title {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title strong,
+    .data-header strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 950;
+    }
+
+    .panel-title small,
+    .data-header small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+      font-weight: 730;
+    }
+
+    .panel-body,
+    .data-body {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.68));
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(150px, 180px) minmax(150px, 180px) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid rgba(18, 61, 114, 0.12);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .field {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 11px;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .row-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .case-row,
+    .activity-row,
+    .doc-row,
+    .message-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      min-height: 74px;
+      padding: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.07);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .row-main {
+      min-width: 0;
+      display: grid;
+      gap: 5px;
+    }
+
+    .row-main strong {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 920;
+    }
+
+    .row-main span,
+    .row-meta,
+    .microcopy {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .row-meta {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .badge.success {
+      color: var(--success);
+      background: rgba(21, 128, 61, 0.08);
+      border-color: rgba(21, 128, 61, 0.18);
+    }
+
+    .badge.warning {
+      color: var(--warning);
+      background: rgba(180, 83, 9, 0.1);
+      border-color: rgba(180, 83, 9, 0.18);
+    }
+
+    .badge.info {
+      color: var(--info);
+      background: rgba(3, 105, 161, 0.08);
+      border-color: rgba(3, 105, 161, 0.16);
+    }
+
+    .badge.danger {
+      color: var(--danger);
+      background: rgba(185, 28, 28, 0.08);
+      border-color: rgba(185, 28, 28, 0.16);
+    }
+
+    .progress {
+      overflow: hidden;
+      height: 8px;
+      border-radius: 999px;
+      background: #e2e8f0;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #123d72, #2563eb, #b8860b);
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .quick-action {
+      min-height: 88px;
+      display: grid;
+      align-content: start;
+      gap: 7px;
+      padding: 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .quick-action strong {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 920;
+    }
+
+    .quick-action span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0;
+    }
+
+    .timeline-step {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      padding-bottom: 16px;
+    }
+
+    .timeline-step:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      top: 32px;
+      bottom: 0;
+      width: 2px;
+      background: #dbe4f0;
+    }
+
+    .dot {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      background: #fff;
+      color: var(--primary);
+      font-weight: 950;
+      z-index: 1;
+    }
+
+    .dot.done {
+      background: rgba(21, 128, 61, 0.1);
+      color: var(--success);
+      border-color: rgba(21, 128, 61, 0.2);
+    }
+
+    .dot.current {
+      background: rgba(184, 134, 11, 0.13);
+      color: var(--accent);
+      border-color: rgba(184, 134, 11, 0.24);
+    }
+
+    .timeline-card {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .timeline-card strong {
+      font-size: 14px;
+      font-weight: 930;
+    }
+
+    .timeline-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .client-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .client-shell > .rail-stack {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .client-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+      gap: 16px;
+      align-items: center;
+      padding: 20px;
+      border: 1px solid rgba(18, 61, 114, 0.14);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(18, 61, 114, 0.08), rgba(255, 255, 255, 0.98) 42%, rgba(248, 251, 255, 0.96)),
+        #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .client-hero h3 {
+      margin: 0;
+      font-size: clamp(22px, 2vw, 31px);
+      line-height: 1.12;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .client-hero p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-weight: 720;
+    }
+
+    .completion {
+      display: grid;
+      gap: 9px;
+      padding: 14px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .completion strong {
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 950;
+      color: var(--primary);
+    }
+
+    .client-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+      scrollbar-width: thin;
+    }
+
+    .client-tabs button {
+      min-height: 40px;
+      flex: 0 0 auto;
+      padding: 7px 11px;
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 870;
+    }
+
+    .client-tabs button.active {
+      border-color: rgba(18, 61, 114, 0.24);
+      background: rgba(18, 61, 114, 0.08);
+      color: var(--primary);
+    }
+
+    .split-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 64px;
+      padding: 10px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .status-row strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 920;
+    }
+
+    .status-row small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-weight: 720;
+    }
+
+    .message-row {
+      grid-template-columns: 40px minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .bubble {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .bubble.studio {
+      background: rgba(18, 61, 114, 0.08);
+    }
+
+    .states-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .state-card {
+      min-height: 142px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 10px;
+      padding: 18px;
+      text-align: center;
+      background: linear-gradient(180deg, #fff, #f8fafc);
+    }
+
+    .state-card .icon-box {
+      border-color: rgba(37, 99, 235, 0.14);
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .state-card strong {
+      font-size: 14px;
+      font-weight: 940;
+    }
+
+    .state-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .mobile-preview {
+      display: grid;
+      gap: 14px;
+    }
+
+    .phone {
+      width: min(100%, 360px);
+      margin: 0 auto;
+      padding: 12px;
+      border: 1px solid rgba(18, 61, 114, 0.16);
+      border-radius: 28px;
+      background: #071329;
+      box-shadow: var(--shadow-raised);
+    }
+
+    .phone-screen {
+      overflow: hidden;
+      border-radius: 22px;
+      background: var(--page);
+    }
+
+    .phone-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      background: #fff;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .phone-content {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .phone-card {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .phone-card strong {
+      font-size: 13px;
+      font-weight: 930;
+    }
+
+    .phone-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .section-title {
+      margin: 8px 0 0;
+      color: var(--primary);
+      font-size: 15px;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    @media (max-width: 1180px) {
+      .shell {
+        grid-template-columns: 84px minmax(0, 1fr);
+      }
+
+      .brand h1,
+      .brand small,
+      .nav-label,
+      .nav-item span:not(.mini-icon) {
+        display: none;
+      }
+
+      .sidebar {
+        align-items: center;
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .workspace,
+      .client-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .rail-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metrics,
+      .states-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      html,
+      body {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .preview-note {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px;
+        overflow-wrap: break-word;
+        word-break: normal;
+      }
+
+      .preview-note span {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .artboard {
+        padding: 10px;
+      }
+
+      .shell {
+        min-height: 0;
+        grid-template-columns: 1fr;
+        border-radius: 14px;
+      }
+
+      .sidebar,
+      .topbar {
+        display: none;
+      }
+
+      .content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        padding: 12px;
+      }
+
+      .page-header,
+      .client-hero {
+        align-items: stretch;
+        flex-direction: column;
+        grid-template-columns: 1fr;
+        padding: 18px;
+      }
+
+      .page-title {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        width: 100%;
+      }
+
+      .page-title > div:last-child,
+      .client-hero > div {
+        min-width: 0;
+      }
+
+      .page-title h2,
+      .page-title p,
+      .client-hero h3,
+      .client-hero p,
+      .row-main strong,
+      .row-main span {
+        overflow-wrap: break-word;
+        word-break: normal;
+      }
+
+      .panel-header,
+      .data-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding-bottom: 10px;
+        padding-top: 10px;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .metrics,
+      .filters,
+      .quick-grid,
+      .split-grid,
+      .states-grid,
+      .rail-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .case-row,
+      .activity-row,
+      .doc-row,
+      .status-row {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .shell,
+      .main,
+      .workspace,
+      .surface-stack,
+      .rail-stack,
+      .client-shell,
+      .panel,
+      .data-surface,
+      .state-card,
+      .client-tabs {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .row-meta {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-note">
+    <span><strong>Proposta grafica Portale Cliente</strong> - anteprima separata dal prodotto, pronta per il tuo controllo visivo.</span>
+    <span>7 giugno 2026</span>
+  </div>
+
+  <main class="artboard">
+    <section class="shell" aria-label="Anteprima Portale Cliente">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">IU</div>
+          <div>
+            <h1>IUSENTRA</h1>
+            <small>Studio legale operativo</small>
+          </div>
+        </div>
+
+        <nav class="nav-group" aria-label="Navigazione studio">
+          <div class="nav-label">Lavoro</div>
+          <a class="nav-item" href="#"><span class="mini-icon">PA</span><span>Panoramica</span></a>
+          <a class="nav-item" href="#"><span class="mini-icon">FA</span><span>Fascicoli</span></a>
+          <a class="nav-item active" href="#"><span class="mini-icon">PC</span><span>Portale Clienti</span></a>
+          <a class="nav-item" href="#"><span class="mini-icon">AG</span><span>Agenda</span></a>
+          <a class="nav-item" href="#"><span class="mini-icon">CO</span><span>Comunicazioni</span></a>
+          <div class="nav-label">Studio</div>
+          <a class="nav-item" href="#"><span class="mini-icon">UT</span><span>Utenti</span></a>
+          <a class="nav-item" href="#"><span class="mini-icon">IM</span><span>Impostazioni</span></a>
+        </nav>
+      </aside>
+
+      <section class="main">
+        <header class="topbar">
+          <div class="search">Cerca cliente, fascicolo o attività</div>
+          <div class="user-chip"><span class="avatar">AV</span> Studio Verdi</div>
+        </header>
+
+        <section class="content">
+          <header class="page-header">
+            <div class="page-title">
+              <div class="icon-box">PC</div>
+              <div>
+                <h2>Portale Clienti</h2>
+                <p>Regia di inviti, documenti, firme, consensi, appuntamenti e messaggi con i clienti.</p>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn soft" type="button">Impostazioni</button>
+              <button class="btn primary" type="button">Invia invito</button>
+            </div>
+          </header>
+
+          <section class="metrics" aria-label="Indicatori Portale Clienti">
+            <article class="metric">
+              <div class="icon-box">IN</div>
+              <div><span>Inviti in attesa</span><strong>12</strong><small>3 scadono entro 48 ore</small></div>
+            </article>
+            <article class="metric">
+              <div class="icon-box">DO</div>
+              <div><span>Documenti da verificare</span><strong>27</strong><small>6 ricevuti oggi</small></div>
+            </article>
+            <article class="metric">
+              <div class="icon-box">FI</div>
+              <div><span>Firme richieste</span><strong>8</strong><small>2 solleciti pronti</small></div>
+            </article>
+            <article class="metric">
+              <div class="icon-box">ME</div>
+              <div><span>Messaggi non letti</span><strong>19</strong><small>Priorità per pratica</small></div>
+            </article>
+          </section>
+
+          <section class="workspace">
+            <div class="surface-stack">
+              <section class="filters" aria-label="Filtri portale">
+                <div class="field">Cerca nel portale</div>
+                <div class="field">Stato pratica</div>
+                <div class="field">Prossima azione</div>
+                <button class="btn" type="button">Filtra</button>
+              </section>
+
+              <section class="data-surface">
+                <header class="data-header">
+                  <div>
+                    <strong>Pratiche con attività cliente</strong>
+                    <small>Vista ordinata per urgenza e completamento</small>
+                  </div>
+                  <span class="badge info">Aggiornato alle 16:20</span>
+                </header>
+                <div class="data-body row-list">
+                  <article class="case-row">
+                    <div class="row-main">
+                      <strong>Rossi / Opposizione decreto ingiuntivo</strong>
+                      <span>Documento identità richiesto, questionario quasi completo</span>
+                      <div class="progress" aria-label="Completamento 72%"><span style="width: 72%"></span></div>
+                    </div>
+                    <div class="row-meta">
+                      <span class="badge warning">Azione cliente</span>
+                      <button class="btn soft" type="button">Avvia chat</button>
+                      <button class="btn soft" type="button">Apri pratica</button>
+                    </div>
+                  </article>
+
+                  <article class="case-row">
+                    <div class="row-main">
+                      <strong>Bianchi / Separazione consensuale</strong>
+                      <span>Consensi accettati, firma documento pendente</span>
+                      <div class="progress" aria-label="Completamento 58%"><span style="width: 58%"></span></div>
+                    </div>
+                    <div class="row-meta">
+                      <span class="badge info">Firma</span>
+                      <button class="btn soft" type="button">Apri pratica</button>
+                    </div>
+                  </article>
+
+                  <article class="case-row">
+                    <div class="row-main">
+                      <strong>Studio Gamma / Recupero credito</strong>
+                      <span>Pacchetto conclusivo pronto per controllo</span>
+                      <div class="progress" aria-label="Completamento 94%"><span style="width: 94%"></span></div>
+                    </div>
+                    <div class="row-meta">
+                      <span class="badge success">Pronta</span>
+                      <button class="btn soft" type="button">Apri pratica</button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="client-shell" aria-label="Anteprima esperienza cliente">
+                <div class="surface-stack">
+                  <section class="client-hero">
+                    <div>
+                      <span class="badge info">Vista cliente</span>
+                      <h3>Cosa devo fare adesso</h3>
+                      <p>Il cliente vede solo la propria pratica, con azioni chiare e senza elementi dello studio non pertinenti.</p>
+                    </div>
+                    <div class="completion">
+                      <span class="microcopy">Completamento pratica</span>
+                      <strong>72%</strong>
+                      <div class="progress"><span style="width: 72%"></span></div>
+                      <span class="badge warning">2 attività richieste</span>
+                    </div>
+                  </section>
+
+                  <nav class="client-tabs" aria-label="Sezioni cliente">
+                    <button class="active" type="button">Pratica</button>
+                    <button type="button">Documenti</button>
+                    <button type="button">Firme</button>
+                    <button type="button">Privacy</button>
+                    <button type="button">Messaggi</button>
+                    <button type="button">Appuntamenti</button>
+                    <button type="button">Notifiche</button>
+                  </nav>
+
+                  <section class="split-grid">
+                    <article class="panel">
+                      <header class="panel-header">
+                        <div class="panel-title"><div class="icon-box">TL</div><span><strong>Timeline pratica</strong><small>Passaggi visibili al cliente</small></span></div>
+                      </header>
+                      <div class="panel-body timeline">
+                        <div class="timeline-step">
+                          <div class="dot done">1</div>
+                          <div class="timeline-card"><strong>Invito accettato</strong><p>Accesso confermato il 7 giugno 2026 alle 15:42.</p></div>
+                        </div>
+                        <div class="timeline-step">
+                          <div class="dot current">2</div>
+                          <div class="timeline-card"><strong>Documenti da caricare</strong><p>Manca il documento identità aggiornato.</p></div>
+                        </div>
+                        <div class="timeline-step">
+                          <div class="dot">3</div>
+                          <div class="timeline-card"><strong>Firma dichiarazione</strong><p>Disponibile dopo la verifica documenti.</p></div>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="panel">
+                      <header class="panel-header">
+                        <div class="panel-title"><div class="icon-box">AZ</div><span><strong>Azioni richieste</strong><small>Priorità operative</small></span></div>
+                      </header>
+                      <div class="panel-body">
+                        <div class="status-row">
+                          <div class="icon-box">ID</div>
+                          <div><strong>Carica documento identità</strong><small>Formato PDF o immagine, massimo 15 MB</small></div>
+                          <button class="btn primary" type="button">Carica</button>
+                        </div>
+                        <div class="status-row">
+                          <div class="icon-box">QU</div>
+                          <div><strong>Completa questionario</strong><small>2 risposte mancanti</small></div>
+                          <button class="btn soft" type="button">Riprendi</button>
+                        </div>
+                        <div class="status-row">
+                          <div class="icon-box">VI</div>
+                          <div><strong>Videoincontro fissato</strong><small>12 giugno 2026, ore 10:30</small></div>
+                          <span class="badge success">Confermato</span>
+                        </div>
+                      </div>
+                    </article>
+                  </section>
+                </div>
+
+                <aside class="rail-stack">
+                  <section class="panel">
+                    <header class="panel-header">
+                      <div class="panel-title"><div class="icon-box">SI</div><span><strong>Sicurezza e consensi</strong><small>Accesso governato</small></span></div>
+                    </header>
+                    <div class="panel-body row-list">
+                      <div class="activity-row">
+                        <div class="row-main"><strong>Informativa privacy accettata</strong><span>Versione 7 giugno 2026</span></div>
+                        <span class="badge success">Attiva</span>
+                      </div>
+                      <div class="activity-row">
+                        <div class="row-main"><strong>Invito protetto</strong><span>Token non mostrato e revocabile dallo studio</span></div>
+                        <span class="badge success">Valido</span>
+                      </div>
+                      <div class="activity-row">
+                        <div class="row-main"><strong>Accesso in sola lettura</strong><span>Cliente senza modifiche sulla pratica dello studio</span></div>
+                        <span class="badge info">Limitato</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="panel">
+                    <header class="panel-header">
+                      <div class="panel-title"><div class="icon-box">CO</div><span><strong>Comunicazioni</strong><small>Messaggi e notifiche</small></span></div>
+                      <button class="btn primary" type="button">Scrivi al cliente</button>
+                    </header>
+                    <div class="panel-body row-list">
+                      <article class="message-row">
+                        <span class="avatar">ST</span>
+                        <div class="bubble studio"><strong>Studio</strong><p>Abbiamo ricevuto il questionario. Manca solo il documento identità aggiornato.</p></div>
+                      </article>
+                      <article class="message-row">
+                        <span class="avatar">CL</span>
+                        <div class="bubble"><strong>Cliente</strong><p>Lo carico in giornata. Confermo l’appuntamento del 12 giugno.</p></div>
+                      </article>
+                    </div>
+                  </section>
+                </aside>
+              </section>
+
+              <section class="panel">
+                <header class="panel-header">
+                  <div class="panel-title"><div class="icon-box">ST</div><span><strong>Stati obbligatori previsti</strong><small>La UI finale deve gestire ogni condizione prima della consegna</small></span></div>
+                </header>
+                <div class="panel-body states-grid">
+                  <article class="state-card"><div class="icon-box">CA</div><strong>Caricamento</strong><p>Scheletri stabili senza salti di layout.</p></article>
+                  <article class="state-card"><div class="icon-box">VU</div><strong>Stato vuoto</strong><p>Azioni utili quando non esistono ancora elementi.</p></article>
+                  <article class="state-card"><div class="icon-box">ER</div><strong>Errore recuperabile</strong><p>Messaggio chiaro e pulsante per riprovare.</p></article>
+                  <article class="state-card"><div class="icon-box">PE</div><strong>Permesso negato</strong><p>Motivo comprensibile, nessun dato esposto.</p></article>
+                  <article class="state-card"><div class="icon-box">FA</div><strong>Funzione non attiva</strong><p>Canale disattivato spiegato senza termini tecnici.</p></article>
+                  <article class="state-card"><div class="icon-box">SO</div><strong>Sola lettura</strong><p>Azioni protette disabilitate in modo visibile.</p></article>
+                  <article class="state-card"><div class="icon-box">OK</div><strong>Conferma</strong><p>Salvataggi e invii con esito tracciabile.</p></article>
+                  <article class="state-card"><div class="icon-box">DA</div><strong>Dati incompleti</strong><p>Campi mancanti evidenziati con prossima azione.</p></article>
+                </div>
+              </section>
+            </div>
+
+            <aside class="rail-stack">
+              <section class="panel">
+                <header class="panel-header">
+                  <div class="panel-title"><div class="icon-box">PR</div><span><strong>Prossime azioni studio</strong><small>Regia operativa</small></span></div>
+                </header>
+                <div class="panel-body row-list">
+                  <article class="activity-row">
+                    <div class="row-main"><strong>Verificare 6 documenti</strong><span>Arrivati nelle ultime 24 ore</span></div>
+                    <span class="badge warning">Oggi</span>
+                  </article>
+                  <article class="activity-row">
+                    <div class="row-main"><strong>Sollecitare 2 firme</strong><span>Scadenza entro 3 giorni</span></div>
+                    <span class="badge info">Firma</span>
+                  </article>
+                  <article class="activity-row">
+                    <div class="row-main"><strong>Preparare pacchetto conclusivo</strong><span>Pratica Studio Gamma</span></div>
+                    <span class="badge success">Pronta</span>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel">
+                <header class="panel-header">
+                  <div class="panel-title"><div class="icon-box">CA</div><span><strong>Canali cliente</strong><small>Disponibilità governata</small></span></div>
+                </header>
+                <div class="panel-body quick-grid">
+                  <article class="quick-action"><strong>Messaggi</strong><span>Canale interno attivo con lettura tracciata.</span></article>
+                  <article class="quick-action"><strong>Notifiche</strong><span>Centro attività sempre disponibile.</span></article>
+                  <article class="quick-action"><strong>Firme</strong><span>Richiesta semplice, senza promesse improprie.</span></article>
+                  <article class="quick-action"><strong>Videoincontri</strong><span>Mostrati solo se configurati dallo studio.</span></article>
+                </div>
+              </section>
+
+              <section class="panel mobile-preview">
+                <header class="panel-header">
+                  <div class="panel-title"><div class="icon-box">MO</div><span><strong>Mobile cliente</strong><small>Una colonna, azioni chiare</small></span></div>
+                </header>
+                <div class="panel-body">
+                  <div class="phone">
+                    <div class="phone-screen">
+                      <div class="phone-top">
+                        <strong>Portale Cliente</strong>
+                        <span class="badge warning">2 attività</span>
+                      </div>
+                      <div class="phone-content">
+                        <div class="phone-card">
+                          <span class="badge info">Pratica</span>
+                          <strong>Rossi / Opposizione decreto</strong>
+                          <p>Prossima azione: carica documento identità.</p>
+                          <div class="progress"><span style="width: 72%"></span></div>
+                        </div>
+                        <div class="phone-card">
+                          <strong>Documenti</strong>
+                          <p>1 documento mancante, 3 già ricevuti.</p>
+                          <button class="btn primary" type="button">Carica documento</button>
+                        </div>
+                        <div class="phone-card">
+                          <strong>Messaggi</strong>
+                          <p>Ultima risposta dello studio alle 16:20.</p>
+                          <button class="btn soft" type="button">Apri messaggi</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

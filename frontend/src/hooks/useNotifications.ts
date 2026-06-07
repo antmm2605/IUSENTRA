@@ -31,15 +31,12 @@ export function useNotifications(open: boolean) {
   }, [])
 
   useEffect(() => {
-    load()
-  }, [load])
-
-  useEffect(() => {
     if (open) load()
   }, [load, open])
 
   useEffect(() => {
-    const timer = window.setInterval(load, open ? 30000 : 60000)
+    if (!open) return undefined
+    const timer = window.setInterval(load, 30000)
     return () => window.clearInterval(timer)
   }, [load, open])
 

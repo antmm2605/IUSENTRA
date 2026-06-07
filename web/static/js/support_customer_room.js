@@ -19,9 +19,6 @@
 
   const statusBadge = $("statusBadge");
   const peerBadge = $("peerBadge");
-  const localPreview = $("localPreview");
-  const localAgentPreview = $("localAgentPreview");
-  const localPreviewFallback = $("localPreviewFallback");
   const remoteAudio = $("remoteAudio");
   const takeChargeNotice = $("takeChargeNotice");
   const consentScreen = $("consentScreen");
@@ -49,7 +46,10 @@
   let micStream = null;
   let stateTimer = null;
   let pingTimer = null;
+  let wsReconnectTimer = null;
+  let wsReconnectAttempts = 0;
   let agentScreenTimer = null;
+  let agentScreenInFlight = false;
   let agentScreenArmed = false;
   let agentControlArmed = false;
   let customerFullscreen = false;
@@ -60,7 +60,11 @@
   let closingWsIntentionally = false;
   let stateSyncInFlight = false;
   let sessionClosed = Boolean(boot.closed || boot.status === "closed");
+  const pendingIceCandidates = [];
   const statePollDelayMs = 12000;
+  const wsPingIntervalMs = 15000;
+  const wsReconnectBaseDelayMs = 800;
+  const wsReconnectMaxDelayMs = 6000;
 
   function setStatus(text) {
     if (statusBadge) statusBadge.textContent = text;
@@ -243,12 +247,14 @@
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 4500);
     try {
-      const response = await fetch(agentUrl(path), {
+      const fetchOptions = {
         method: body ? "POST" : "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: body ? { "Content-Type": "application/json" } : { Accept: "application/json" },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
-      });
+        targetAddressSpace: "loopback",
+      };
+      const response = await fetch(agentUrl(path), fetchOptions);
       const text = await response.text();
       let payload = {};
       try {
@@ -275,16 +281,7 @@
   }
 
   function markScreenSharedForOperator() {
-    if (localPreview) {
-      localPreview.classList.add("d-none");
-      localPreview.srcObject = null;
-    }
-    localAgentPreview?.classList.add("d-none");
-    if (localAgentPreview) localAgentPreview.src = "";
-    if (localPreviewFallback) {
-      localPreviewFallback.classList.remove("d-none");
-      localPreviewFallback.textContent = "Schermo condiviso: la visualizzazione è disponibile nella console del SUPERADMIN.";
-    }
+    setStatus("Schermo condiviso tramite agente locale");
   }
 
   async function captureAndRelayAgentScreen() {
@@ -343,9 +340,6 @@
     rejectAdvancedBtn.disabled = true;
     takeChargeNotice?.classList.add("d-none");
     advancedBanner?.classList.add("d-none");
-    if (localPreviewFallback) {
-      localPreviewFallback.textContent = "Sessione conclusa: chiedi all'operatore un nuovo link di assistenza.";
-    }
   }
 
   async function syncState() {
@@ -402,6 +396,32 @@
     return pc;
   }
 
+  async function flushPendingIceCandidates(peer) {
+    if (!peer?.remoteDescription || !pendingIceCandidates.length) return;
+    const candidates = pendingIceCandidates.splice(0, pendingIceCandidates.length);
+    for (const candidate of candidates) {
+      try {
+        await peer.addIceCandidate(candidate);
+      } catch (error) {
+        console.warn("Candidato ICE scartato dopo descrizione remota.", error);
+      }
+    }
+  }
+
+  async function addRemoteIceCandidate(candidate) {
+    const peer = await ensurePeerConnection();
+    const iceCandidate = new RTCIceCandidate(candidate);
+    if (!peer.remoteDescription) {
+      pendingIceCandidates.push(iceCandidate);
+      return;
+    }
+    try {
+      await peer.addIceCandidate(iceCandidate);
+    } catch (error) {
+      console.warn("Candidato ICE remoto non applicato.", error);
+    }
+  }
+
   async function connectWs() {
     if (ws && ws.readyState === WebSocket.OPEN) {
       return;
@@ -445,6 +465,7 @@
       if (message.type === "offer") {
         const peer = await ensurePeerConnection();
         await peer.setRemoteDescription(new RTCSessionDescription(message.sdp));
+        await flushPendingIceCandidates(peer);
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
         ws.send(JSON.stringify({ type: "answer", sdp: peer.localDescription }));
@@ -453,15 +474,11 @@
       if (message.type === "answer") {
         const peer = await ensurePeerConnection();
         await peer.setRemoteDescription(new RTCSessionDescription(message.sdp));
+        await flushPendingIceCandidates(peer);
         return;
       }
       if (message.type === "ice" && message.candidate) {
-        const peer = await ensurePeerConnection();
-        try {
-          await peer.addIceCandidate(new RTCIceCandidate(message.candidate));
-        } catch (error) {
-          console.error(error);
-        }
+        await addRemoteIceCandidate(message.candidate);
         return;
       }
       if (message.type === "chat") {
@@ -529,48 +546,10 @@
       syncCustomerMicUi();
       return;
     } catch (agentError) {
-      console.info("Agente locale non disponibile, uso la condivisione schermo del browser.", agentError);
-    }
-
-    let screenStream = null;
-    try {
-      screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 12, max: 15 } },
-        audio: false,
-      });
-    } catch (error) {
-      const name = String(error?.name || "");
-      if (name === "NotAllowedError" || name === "SecurityError" || name === "NotFoundError") {
-        await startAgentScreenShare(error);
-        localStream = audioTracks.length ? new MediaStream(audioTracks) : null;
-        customerAudioTracks().forEach((track) => {
-          track.enabled = !customerMicMuted;
-        });
-        syncCustomerMicUi();
-        return;
-      }
-      throw error;
-    }
-
-    const tracks = [...screenStream.getVideoTracks(), ...audioTracks];
-    localStream = new MediaStream(tracks);
-    customerAudioTracks().forEach((track) => {
-      track.enabled = !customerMicMuted;
-    });
-    syncCustomerMicUi();
-    if (localPreview) {
-      localPreview.classList.add("d-none");
-      localPreview.srcObject = null;
-    }
-    localAgentPreview?.classList.add("d-none");
-    if (localPreviewFallback) {
-      localPreviewFallback.classList.remove("d-none");
-      localPreviewFallback.textContent = "Schermo condiviso: la visualizzazione è disponibile nella console del SUPERADMIN.";
-    }
-
-    const videoTrack = screenStream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.onended = () => stopSession();
+      console.error("Agente locale non raggiungibile per assistenza remota completa.", agentError);
+      throw new Error(
+        "Agente IUSENTRA Assistenza non raggiungibile: avvialo sul PC e consenti al browser l'accesso alla rete locale."
+      );
     }
   }
 
@@ -595,8 +574,8 @@
           consent_chat: Boolean(consentChat?.checked),
         }),
       });
-      await connectWs();
       await acquireMedia();
+      await connectWs();
       if (localStream) {
         await ensurePeerConnection();
       }
@@ -667,16 +646,6 @@
     supportStarted = false;
     syncCustomerMicUi();
     syncStartButtonUi();
-    if (localPreview) {
-      localPreview.srcObject = null;
-      localPreview.classList.add("d-none");
-    }
-    localAgentPreview?.classList.add("d-none");
-    if (localAgentPreview) localAgentPreview.src = "";
-    localPreviewFallback?.classList.remove("d-none");
-    if (localPreviewFallback && enableRestart) {
-      localPreviewFallback.textContent = "Dopo il consenso lo schermo sarà visibile solo al SUPERADMIN collegato, non in questa pagina.";
-    }
     if (enableRestart) {
       syncStartButtonUi();
     }

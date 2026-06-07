@@ -91,8 +91,10 @@ function formatItalianDate(value?: string): string {
 
 function initialView(): ScadenziarioView {
   const params = new URLSearchParams(window.location.search)
-  const raw = params.get('vista') || (routeDeadlineId() ? 'tutte' : 'aperte')
+  const focusId = routeDeadlineId()
+  const raw = params.get('vista') || (focusId ? 'tutte' : 'aperte')
   const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
+  if (!focusId && raw === 'tutte') return 'aperte'
   return allowed.includes(raw as ScadenziarioView) ? raw as ScadenziarioView : 'aperte'
 }
 
@@ -147,7 +149,11 @@ function sortRows(rows: ScadenziarioRow[], sort: SortKey): ScadenziarioRow[] {
   if (sort === 'titolo') return copy.sort((a, b) => a.title.localeCompare(b.title, 'it'))
   if (sort === 'fascicolo') return copy.sort((a, b) => a.fascicoloLabel.localeCompare(b.fascicoloLabel, 'it'))
   if (sort === 'giorni') return copy.sort((a, b) => (a.days ?? 99999) - (b.days ?? 99999))
-  return copy.sort((a, b) => a.date.localeCompare(b.date) || priorityWeight[a.priority] - priorityWeight[b.priority])
+  return copy.sort((a, b) => {
+    if (a.overdue !== b.overdue) return a.overdue ? 1 : -1
+    if (a.overdue && b.overdue) return b.date.localeCompare(a.date) || priorityWeight[a.priority] - priorityWeight[b.priority]
+    return a.date.localeCompare(b.date) || priorityWeight[a.priority] - priorityWeight[b.priority]
+  })
 }
 
 function actionIcon(icon: ScadenziarioActionCard['icon']) {
@@ -690,8 +696,8 @@ function OperativeCards({
 }
 
 function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioRow[]}) {
-  const watch = rows.filter((item) => item.overdue || item.dueToday || item.priority === 'CRITICA').slice(0, 5)
-  const advanced = rows.filter((item) => item.advanced || item.operative).slice(0, 5)
+  const watch = rows.filter((item) => !item.overdue && (item.dueToday || item.priority === 'CRITICA' || item.operative || item.remoteHearingDetected)).slice(0, 5)
+  const advanced = rows.filter((item) => !item.overdue && (item.advanced || item.operative)).slice(0, 5)
   return (
     <aside className="iu-scad-inspector">
       <Panel title="Briefing Lex" subtitle="Contesto pronto per la prossima azione" icon={<Sparkles size={17}/>}>
@@ -699,7 +705,7 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
           <article>
             <span>Da presidiare ora</span>
             <strong>{watch.length}</strong>
-            <small>Scadute, odierne o critiche nella vista corrente.</small>
+            <small>Aperte, odierne, critiche o con udienza da remoto nella vista corrente.</small>
           </article>
           <div>
             <Button variant="primary" href={data.actions.lex}><Sparkles size={15}/> Chiedi a Lex</Button>
@@ -718,7 +724,7 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
               </a>
             ))}
           </div>
-        ) : <p className="iu-empty">Nessun termine critico nella vista corrente.</p>}
+        ) : <p className="iu-empty">Nessun termine aperto e critico nella vista corrente.</p>}
       </Panel>
       <Panel title="Calcoli e operatività" icon={<TimerReset size={17}/>} count={advanced.length}>
         {advanced.length ? (
@@ -1001,14 +1007,14 @@ export function ScadenziarioPage() {
         </div>
       </section>
 
-      {data.overduePreview.length ? (
+      {data.overduePreview.length && (view === 'scadute' || view === 'tutte') ? (
         <section className="iu-scad-alert" role="alert">
           <AlertTriangle size={22}/>
           <div>
-            <strong>{data.summary.overdue} scadenze scadute non ancora completate.</strong>
+            <strong>{data.summary.overdue} scadenze scadute nello storico.</strong>
             <p>{data.overduePreview.slice(0, 3).map((item) => `${item.title} — ${item.dateLabel}`).join(' · ')}</p>
           </div>
-          <button type="button" onClick={() => changeView('scadute')}>Apri scadute</button>
+          <button type="button" onClick={() => changeView('scadute')}>Apri storico scadute</button>
         </section>
       ) : null}
 
@@ -1017,7 +1023,7 @@ export function ScadenziarioPage() {
         <StatCard icon={<AlertTriangle size={19}/>} label="Critiche" value={data.summary.critical} note="massima priorità" tone={data.summary.critical ? 'danger' : 'neutral'} active={view === 'critiche'} onClick={() => changeView('critiche')}/>
         <StatCard icon={<ShieldCheck size={19}/>} label="Alta priorità" value={data.summary.high} note="da presidiare" tone={data.summary.high ? 'warning' : 'neutral'} active={view === 'alte'} onClick={() => changeView('alte')}/>
         <StatCard icon={<CheckCircle2 size={19}/>} label="Completate" value={data.summary.completed} note="chiuse" tone="success" active={view === 'completate'} onClick={() => changeView('completate')}/>
-        <StatCard icon={<TimerReset size={19}/>} label="Scadute" value={data.summary.overdue} note="non completate" tone={data.summary.overdue ? 'danger' : 'neutral'} active={view === 'scadute'} onClick={() => changeView('scadute')}/>
+        <StatCard icon={<TimerReset size={19}/>} label="Storico scadute" value={data.summary.overdue} note="fuori dalla vista operativa" tone={data.summary.overdue ? 'warning' : 'neutral'} active={view === 'scadute'} onClick={() => changeView('scadute')}/>
         <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
         <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
         <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
@@ -1130,7 +1136,9 @@ export function ScadenziarioPage() {
           <header>
             <div><strong>{visibleRows.length} scadenze</strong><span>{data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente'} · {sourceLabel(data.source)}</span></div>
             <div>
-              <Badge tone={data.summary.overdue ? 'danger' : 'success'}>{data.summary.overdue ? `${data.summary.overdue} scadute` : 'presidiata'}</Badge>
+              <Badge tone={view === 'scadute' || view === 'tutte' ? 'warning' : 'success'}>
+                {view === 'scadute' || view === 'tutte' ? `${data.summary.overdue} nello storico` : 'vista operativa'}
+              </Badge>
               <a href={data.actions.exportCsv}><Download size={15}/> Esporta</a>
             </div>
           </header>

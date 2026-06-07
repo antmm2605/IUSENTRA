@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from pct.scadenziario import PrioritaTermine, Scadenza, StatoTermine, TipoTermine
@@ -41,6 +42,38 @@ def is_scadenza_pec(scadenza: Scadenza) -> bool:
         str(getattr(scadenza, "deadline_profile_code", "") or "") == "PEC_AUTO_PRESIDIO"
         or "PEC_AUDIT:" in str(getattr(scadenza, "note", "") or "")
         or str(getattr(scadenza, "fonte_documento", "") or "") == "PEC_AUDIT_PIPELINE"
+    )
+
+
+def _deadline_days(scadenza: Scadenza) -> int | None:
+    current = getattr(scadenza, "giorni_alla_scadenza", None)
+    if isinstance(current, int):
+        return current
+    raw = str(getattr(scadenza, "data_scadenza", "") or "")[:10]
+    if not raw:
+        return None
+    try:
+        return (date.fromisoformat(raw) - date.today()).days
+    except ValueError:
+        return None
+
+
+def _is_overdue(scadenza: Scadenza) -> bool:
+    if getattr(scadenza, "stato", None) == StatoTermine.SCADUTO:
+        return True
+    days = _deadline_days(scadenza)
+    return bool(days is not None and days < 0)
+
+
+def _is_currently_actionable(scadenza: Scadenza) -> bool:
+    if getattr(scadenza, "stato", None) != StatoTermine.APERTO or _is_overdue(scadenza):
+        return False
+    days = _deadline_days(scadenza)
+    return (
+        getattr(scadenza, "priorita", None) == PrioritaTermine.CRITICA
+        or bool(getattr(scadenza, "operational_due_at", ""))
+        or bool(getattr(scadenza, "remote_hearing_detected", False))
+        or bool(days is not None and 0 <= days <= 30)
     )
 
 
@@ -95,7 +128,11 @@ def scadenze_per_vista(
     if vista == "avanzate":
         return [s for s in _base(solo_aperte=False) if s.ha_calcolo_avanzato]
     if vista == "operative":
-        return [s for s in _base(solo_aperte=False) if bool(s.operational_due_at)]
+        return [
+            s
+            for s in _base(solo_aperte=True, stato=StatoTermine.APERTO)
+            if bool(s.operational_due_at) and not _is_overdue(s)
+        ]
     if vista == "pec":
         return [
             s
@@ -105,9 +142,8 @@ def scadenze_per_vista(
     if vista == "da_presidiare":
         return [
             s
-            for s in _base(solo_aperte=False)
-            if s.stato == StatoTermine.SCADUTO
-            or (s.stato == StatoTermine.APERTO and s.priorita == PrioritaTermine.CRITICA)
+            for s in _base(solo_aperte=True, stato=StatoTermine.APERTO)
+            if _is_currently_actionable(s)
         ]
     if vista == "tutte":
         return _base(solo_aperte=False)

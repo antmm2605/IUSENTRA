@@ -978,6 +978,8 @@ def _is_remote_hearing_technical_attachment(item: dict[str, Any]) -> bool:
     name = _attachment_name(item).lower()
     content_type = _attachment_content_type(item)
     classification = clean_text(item.get("classification") or "", 80).lower()
+    if _is_pdf_attachment(item):
+        return False
     if classification in {"firma", "daticert", "postacert", "ricevute"}:
         return True
     if name.endswith((".p7s", ".cer", ".crt", ".crl")):
@@ -1480,6 +1482,15 @@ def _remote_hearing_note_lines(report: dict[str, Any], proposal: dict[str, Any] 
     return lines
 
 
+def _remote_hearing_needs_pdf_link_refresh(report: dict[str, Any]) -> bool:
+    remote = _remote_hearing_from_report(report)
+    if not remote:
+        return False
+    if _remote_hearing_link_records(remote):
+        return False
+    return bool(remote.get("pdf_required") or remote.get("pdf_pending") or remote.get("pdf_sources"))
+
+
 def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], note_lines: list[str]) -> dict[str, Any]:
     updates: dict[str, Any] = {}
     current_url = str(getattr(existing, "remote_hearing_url", "") or "").strip()
@@ -1543,6 +1554,8 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
             continue
         if not str(getattr(existing, key, "") or "").strip():
             updates[key] = value
+    if extra.get("remote_hearing_url") and bool(getattr(existing, "remote_hearing_pdf_required", False)):
+        updates["remote_hearing_pdf_required"] = False
     if current_url and "Link udienza audiovisiva:" in current_note and not _is_remote_hearing_url(current_url, context=current_source)[0]:
         cleaned_lines: list[str] = []
         skip_link_meta = False
@@ -1968,6 +1981,58 @@ def _is_stale_zip_ocr_text(filename: str, content_type: str, ocr_text: str) -> b
     return _is_zip_attachment(filename, content_type) and _looks_like_raw_zip_text(ocr_text)
 
 
+def _unique_preserving_order(values: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(text)
+    return result
+
+
+def _pdf_uri_links(data: bytes) -> list[str]:
+    """Estrae i link cliccabili del PDF, anche quando il testo visibile e' solo una label."""
+
+    try:
+        from pypdf import PdfReader  # type: ignore
+
+        reader = PdfReader(io.BytesIO(data))
+    except Exception:
+        return []
+    links: list[str] = []
+    for page in getattr(reader, "pages", []) or []:
+        try:
+            annotations = page.get("/Annots") or []
+        except Exception:
+            annotations = []
+        for annotation in annotations:
+            try:
+                obj = annotation.get_object() if hasattr(annotation, "get_object") else annotation
+                action = obj.get("/A") or {}
+                if hasattr(action, "get_object"):
+                    action = action.get_object()
+                uri = action.get("/URI") if hasattr(action, "get") else ""
+                if uri:
+                    links.append(str(uri))
+            except Exception:
+                continue
+    return _unique_preserving_order(links)
+
+
+def _append_pdf_uri_links(text: str, data: bytes) -> str:
+    links = _pdf_uri_links(data)
+    if not links:
+        return text
+    link_text = "\n".join(f"Link PDF cliccabile: {url}" for url in links)
+    return "\n".join(part for part in (text, link_text) if str(part or "").strip())
+
+
 def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
     name = item.filename
     lower = name.lower()
@@ -1990,6 +2055,8 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
             text = estrai_testo(item.data, name)
         except Exception:
             text = ""
+        if lower.endswith(".pdf"):
+            text = _append_pdf_uri_links(text, item.data)
     elif is_zip:
         allow_binary_fallback = False
         parts: list[str] = []
@@ -2020,6 +2087,7 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
                             entry_text = estrai_testo(payload, entry_name)
                         except Exception:
                             entry_text = ""
+                        entry_text = _append_pdf_uri_links(entry_text, payload)
                     if entry_text:
                         parts.append(f"[{entry_name}]\n{entry_text}")
         except Exception:
@@ -3839,12 +3907,18 @@ class PecAuditRepository:
                         continue
                     parsed = json.loads(parsed_row["parsed_json"])
                     parsed_id = str(parsed_row["id"])
-                    if self._stale_zip_ocr_rows(conn, message_id, parsed_id):
+                    latest_report = self.latest_report(conn, message_id)
+                    needs_remote_hearing_pdf_refresh = _remote_hearing_needs_pdf_link_refresh(latest_report)
+                    if self._stale_zip_ocr_rows(conn, message_id, parsed_id) or needs_remote_hearing_pdf_refresh:
                         self._refresh_ocr_for_message_on_connection(
                             conn,
                             message_id,
                             actor=actor,
-                            action="pec.attachments.ocr_repaired",
+                            action=(
+                                "pec.attachments.remote_hearing_pdf_links_repaired"
+                                if needs_remote_hearing_pdf_refresh
+                                else "pec.attachments.ocr_repaired"
+                            ),
                         )
                     attachments = self.attachment_rows(conn, message_id, parsed_id)
                     report = build_validation_report(parsed, attachments)

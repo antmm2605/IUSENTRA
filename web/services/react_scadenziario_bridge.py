@@ -112,6 +112,14 @@ def _days_label(days: int | None) -> str:
     return f"{days:+d} gg" if days > 0 else f"{days} gg"
 
 
+def _date_sort_value(value: Any, *, overdue: bool = False) -> int:
+    parsed = _parse_date(value)
+    if not parsed:
+        return -10_000_000 if overdue else 10_000_000
+    ordinal = parsed.toordinal()
+    return -ordinal if overdue else ordinal
+
+
 def _source_event_label(value: Any) -> str:
     raw = str(value or "").strip()
     if not raw:
@@ -501,7 +509,21 @@ def _filtered_scadenze(gestione_scadenziario: Any, args: Mapping[str, Any]) -> t
         scadenze = [item for item in scadenze if bool(getattr(item, "ha_calcolo_avanzato", False))]
     if operative:
         scadenze = [item for item in scadenze if bool(getattr(item, "operational_due_at", ""))]
-    scadenze.sort(key=lambda item: (str(getattr(item, "data_scadenza", "") or ""), _enum_value(getattr(item, "priorita", ""))))
+    if vista == "scadute":
+        scadenze.sort(
+            key=lambda item: (
+                _date_sort_value(getattr(item, "data_scadenza", ""), overdue=True),
+                _enum_value(getattr(item, "priorita", "")),
+            )
+        )
+    else:
+        scadenze.sort(
+            key=lambda item: (
+                1 if _is_overdue(item) else 0,
+                _date_sort_value(getattr(item, "data_scadenza", ""), overdue=_is_overdue(item)),
+                _enum_value(getattr(item, "priorita", "")),
+            )
+        )
     return scadenze, {
         "view": vista,
         "viewLabel": VISTA_LABEL_SCADENZIARIO.get(vista, "Scadenze"),
@@ -742,10 +764,15 @@ def build_react_scadenziario_payload(
         str(query.get("guidaPratica") or ""),
     )
     rows = [_row(item, gestione_fascicoli=gestione_fascicoli, gestione_utenti=gestione_utenti) for item in filtered]
-    overdue_preview = [
-        _row(item, gestione_fascicoli=gestione_fascicoli, gestione_utenti=gestione_utenti)
-        for item in sorted([item for item in all_items if _is_overdue(item)], key=lambda item: str(getattr(item, "data_scadenza", "") or ""))[:5]
-    ]
+    overdue_preview = []
+    if query.get("view") in {"scadute", "tutte"}:
+        overdue_preview = [
+            _row(item, gestione_fascicoli=gestione_fascicoli, gestione_utenti=gestione_utenti)
+            for item in sorted(
+                [item for item in all_items if _is_overdue(item)],
+                key=lambda item: _date_sort_value(getattr(item, "data_scadenza", ""), overdue=True),
+            )[:5]
+        ]
     next_items = [
         _row(item, gestione_fascicoli=gestione_fascicoli, gestione_utenti=gestione_utenti)
         for item in sorted([item for item in all_items if _is_open(item) and not _is_overdue(item)], key=lambda item: str(getattr(item, "data_scadenza", "") or ""))[:5]

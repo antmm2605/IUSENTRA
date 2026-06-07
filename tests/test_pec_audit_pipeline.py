@@ -56,6 +56,21 @@ def _zip_pdf_with_link(link: str) -> bytes:
     return zip_buffer.getvalue()
 
 
+def _zip_pdf_with_clickable_room_link(link: str) -> bytes:
+    from reportlab.pdfgen import canvas
+
+    pdf_buffer = BytesIO()
+    pdf = canvas.Canvas(pdf_buffer)
+    pdf.drawString(72, 760, "Udienza con strumenti audiovisivi ore 11:00")
+    pdf.drawString(72, 740, "Collegamento alla stanza virtuale: STANZA VIRTUALE DOTT. NICOLA TRITTA")
+    pdf.linkURL(link, (72, 734, 410, 752), relative=0)
+    pdf.save()
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as archive:
+        archive.writestr("20200029s.pdf", pdf_buffer.getvalue())
+    return zip_buffer.getvalue()
+
+
 def _gdp_hearing_message(*, hearing_date: str = "09/10/2026", hearing_time: str = "09:15", event: str = "FISSAZIONE UDIENZA") -> bytes:
     msg = EmailMessage()
     msg["From"] = "Giudice di Pace <gdp@example.test>"
@@ -407,6 +422,38 @@ def test_remote_hearing_rebuilds_teams_url_split_by_pdf_ocr_spaces():
     assert "rimossa punteggiatura finale" in links[0]["normalization_note"]
 
 
+def test_remote_hearing_profile_reads_pdf_zip_even_if_misclassified_as_daticert():
+    text = (
+        "Udienza fissata in modalita da remoto mediante collegamento delle parti al link: "
+        "https://teams.microsoft.com/l/meetup- join/"
+        "19%3ameeting_ZmFiOGJmMzgtNDI1OS00YTI0LTkzZmEtNDhjZTZhNTc0NzNi%40thr "
+        "ead.v2/0?context=%7b%22Tid%22%3a%22792bc8b1-9088-4858-b830- "
+        "2aad443e9f3f%22%2c%22Oid%22%3a%228df10bb4-001b-4015-9737- "
+        "15476113e02a%22%7d."
+    )
+    report = build_validation_report(
+        {
+            "headers": {"subject": "POSTA CERTIFICATA: COMUNICAZIONE 1263/2026/LAV"},
+            "body": {"text": "FISSATA UDIENZA DI DISCUSSIONE IL 29/10/2026 09:15 con strumenti audiovisivi"},
+        },
+        [
+            {
+                "filename": "13744017s.pdf.zip",
+                "content_type": "application/zip",
+                "classification": "daticert",
+                "ocr_text": text,
+            }
+        ],
+    )
+
+    remote = report["procedural_profile"]["remote_hearing"]
+
+    assert remote["pdf_required"] is False
+    assert remote["links"][0]["source"] == "13744017s.pdf.zip"
+    assert remote["links"][0]["url"].startswith("https://teams.microsoft.com/l/meetup-join/")
+    assert remote["links"][0]["exact_match"] is True
+
+
 def test_remote_hearing_report_excludes_technical_signature_and_invoice_urls():
     text = """
     Udienza da remoto con strumenti audiovisivi.
@@ -515,6 +562,24 @@ def test_extract_text_with_coverage_reads_pdf_inside_zip():
     assert coverage > 0
     assert "13744017s.pdf" in text
     assert "Udienza audiovisiva" in text
+    assert exact_link in text
+
+
+def test_extract_text_with_coverage_reads_clickable_pdf_link_inside_zip():
+    exact_link = "https://teams.microsoft.com/l/meetup-join/torino-3950?context=%7B%22Tid%22%3A%22abc%22%7D"
+
+    text, coverage = extract_text_with_coverage(
+        AttachmentPayload(
+            index=1,
+            filename="20200029s.pdf.zip",
+            content_type="application/zip",
+            data=_zip_pdf_with_clickable_room_link(exact_link),
+        )
+    )
+
+    assert coverage > 0
+    assert "20200029s.pdf" in text
+    assert "STANZA VIRTUALE DOTT. NICOLA TRITTA" in text
     assert exact_link in text
 
 
@@ -662,6 +727,153 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     assert len(agenda_items) == 1
     assert exact_link in agenda_items[0].note
     assert agenda_items[0].luogo == "Udienza da remoto"
+
+
+def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agenda(tmp_path):
+    from pct.agenda import Agenda
+    from pct.scadenziario import GestioneScadenziario
+
+    exact_link = "https://teams.microsoft.com/l/meetup-join/torino-3950?context=%7B%22Tid%22%3A%22abc%22%7D"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    msg = EmailMessage()
+    msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV"
+    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Wed, 27 May 2026 12:01:37 +0200"
+    msg["Message-ID"] = "<udienza-audiovisiva-clickable-scadenziario@example.test>"
+    msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Il link è nel PDF allegato.")
+    msg.add_attachment(
+        """
+        <Comunicazione>
+          <NumeroRuolo>3950/2026/LAV</NumeroRuolo>
+          <Oggetto>FISSAZIONE UDIENZA DI DISCUSSIONE</Oggetto>
+          <Contenuto><![CDATA[
+          Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 13/01/2027 11:00 con strumenti audiovisivi
+          ]]></Contenuto>
+        </Comunicazione>
+        """.encode("utf-8"),
+        maintype="application",
+        subtype="xml",
+        filename="Comunicazione.xml",
+    )
+    msg.add_attachment(_zip_pdf_with_clickable_room_link(exact_link), maintype="application", subtype="zip", filename="20200029s.pdf.zip")
+
+    ingest = repo.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="uid-clickable-link")
+    repo.run_pending_jobs(limit=30, actor="pytest")
+    scheduled = repo.schedule_deadline(ingest["id"], actor="pytest")
+
+    assert scheduled["ok"] is True
+    scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert scadenze[0].remote_hearing_url == exact_link
+    assert scadenze[0].remote_hearing_pdf_required is False
+    assert "Link udienza audiovisiva: da acquisire" not in scadenze[0].note
+    assert exact_link in scadenze[0].note
+    agenda_items = Agenda(str(agenda_db)).tutti()
+    assert len(agenda_items) == 1
+    assert exact_link in agenda_items[0].note
+    assert agenda_items[0].luogo == "Udienza da remoto"
+
+
+def test_refresh_validation_reports_repairs_clickable_pdf_link_for_existing_remote_hearing(tmp_path):
+    exact_link = "https://teams.microsoft.com/l/meetup-join/torino-3950?context=%7B%22Tid%22%3A%22abc%22%7D"
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    msg = EmailMessage()
+    msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV"
+    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Wed, 27 May 2026 12:01:37 +0200"
+    msg["Message-ID"] = "<udienza-audiovisiva-clickable-refresh@example.test>"
+    msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Il link è nel PDF allegato.")
+    msg.add_attachment(
+        """
+        <Comunicazione>
+          <NumeroRuolo>3950/2026/LAV</NumeroRuolo>
+          <Oggetto>FISSAZIONE UDIENZA DI DISCUSSIONE</Oggetto>
+          <Contenuto><![CDATA[
+          Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 13/01/2027 11:00 con strumenti audiovisivi
+          ]]></Contenuto>
+        </Comunicazione>
+        """.encode("utf-8"),
+        maintype="application",
+        subtype="xml",
+        filename="Comunicazione.xml",
+    )
+    msg.add_attachment(_zip_pdf_with_clickable_room_link(exact_link), maintype="application", subtype="zip", filename="20200029s.pdf.zip")
+    ingest = repo.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="uid-clickable-refresh")
+    repo.run_pending_jobs(limit=30, actor="pytest")
+
+    with repo.connect() as conn:
+        parsed_row = repo.latest_parsed_row(conn, ingest["id"])
+        assert parsed_row is not None
+        conn.execute(
+            """
+            UPDATE pec_attachments
+            SET ocr_text=?, ocr_coverage=?
+            WHERE message_id=? AND filename=?
+            """,
+            (
+                "RGL n. 3950/2026. Udienza con strumenti audiovisivi. "
+                "Collegamento alla stanza virtuale: STANZA VIRTUALE DOTT. NICOLA TRITTA.",
+                0.5,
+                ingest["id"],
+                "20200029s.pdf.zip",
+            ),
+        )
+        stale_report = {
+            "event_type": "comunicazione_cancelleria",
+            "severity": "warning",
+            "procedural_profile": {
+                "remote_hearing": {
+                    "detected": True,
+                    "mode": "audiovisiva",
+                    "pdf_required": True,
+                    "pdf_sources": ["20200029s.pdf.zip"],
+                }
+            },
+            "remote_hearing": {
+                "detected": True,
+                "mode": "audiovisiva",
+                "pdf_required": True,
+                "pdf_sources": ["20200029s.pdf.zip"],
+            },
+            "deadline_proposal": {
+                "auto_create": True,
+                "due_date": "2027-01-13",
+                "title": "Fissazione udienza di discussione - 13/01/2027 - RG 3950/2026",
+                "remote_hearing": {
+                    "detected": True,
+                    "mode": "audiovisiva",
+                    "pdf_required": True,
+                    "pdf_sources": ["20200029s.pdf.zip"],
+                },
+            },
+        }
+        repo._insert_validation_report(
+            conn,
+            message_id=ingest["id"],
+            parsed_version_id=str(parsed_row["id"]),
+            report=stale_report,
+            actor="pytest",
+        )
+        assert repo.latest_report(conn, ingest["id"])["remote_hearing"]["pdf_required"] is True
+
+    refreshed = repo.refresh_validation_reports(actor="pytest")
+
+    assert refreshed["ok"] is True
+    detail = repo.get_message_detail(ingest["id"])
+    remote = detail["validation_report"]["procedural_profile"]["remote_hearing"]
+    assert remote["pdf_required"] is False
+    assert remote["links"][0]["url"] == exact_link
+    zip_row = next(item for item in detail["attachments"] if item["filename"] == "20200029s.pdf.zip")
+    assert exact_link in zip_row["ocr_text"]
 
 
 def test_refresh_validation_reports_rewrites_stale_remote_hearing_report(tmp_path):

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 import base64
 import hashlib
@@ -236,7 +237,11 @@ def test_support_pc_agent_private_network_preflight_allows_app_origin():
 
 
 def test_support_pc_agent_declares_chrome_edge_loopback_policies():
-    assert "https://app.iusentra.it" in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_ORIGINS
+    origins = {
+        f"{parsed.scheme}://{parsed.netloc}"
+        for parsed in (urllib.parse.urlsplit(origin) for origin in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_ORIGINS)
+    }
+    assert "https://app.iusentra.it" in origins
     assert any("Google\\Chrome\\LoopbackNetworkAllowedForUrls" in item for item in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS)
     assert any("Google\\Chrome\\LocalNetworkAccessAllowedForUrls" in item for item in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS)
     assert any("Microsoft\\Edge\\LoopbackNetworkAllowedForUrls" in item for item in support_remote.SUPPORT_PC_AGENT_BROWSER_POLICY_PATHS)

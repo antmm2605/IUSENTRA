@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import secrets
 import sqlite3
 import uuid
@@ -41,6 +42,8 @@ CLIENT_PORTAL_TABLES = (
     "client_portal_push_subscriptions",
     "client_portal_audit_events",
 )
+CLIENT_PORTAL_TABLE_SET = frozenset(CLIENT_PORTAL_TABLES)
+CLIENT_PORTAL_IDENTIFIER_RE = re.compile(r"\A[a-z][a-z0-9_]*\Z")
 
 DEFAULT_CLIENT_PORTAL_SETTINGS = {
     "enabled": True,
@@ -110,6 +113,31 @@ def _row_dict(row: Any) -> dict[str, Any]:
         return {}
 
 
+def _sql_identifier(identifier: str, *, allowed: frozenset[str] | None = None) -> str:
+    name = str(identifier or "")
+    if allowed is not None and name not in allowed:
+        raise ClientPortalError("Identificatore dati non valido.")
+    if not CLIENT_PORTAL_IDENTIFIER_RE.fullmatch(name):
+        raise ClientPortalError("Identificatore dati non valido.")
+    return f'"{name}"'
+
+
+def _sql_order_clause(order: str) -> str:
+    clauses: list[str] = []
+    for raw_part in str(order or "created_at DESC").split(","):
+        tokens = raw_part.strip().split()
+        if not tokens:
+            continue
+        column = _sql_identifier(tokens[0])
+        direction = "ASC"
+        if len(tokens) > 1:
+            direction = tokens[1].upper()
+        if len(tokens) > 2 or direction not in {"ASC", "DESC"}:
+            raise ClientPortalError("Ordinamento dati non valido.")
+        clauses.append(f"{column} {direction}")
+    return ", ".join(clauses) or '"created_at" DESC'
+
+
 class ClientPortalRepository:
     """Repository del Portale Cliente con backend SQLite o PostgreSQL."""
 
@@ -150,32 +178,33 @@ class ClientPortalRepository:
             rows = conn.execute(sql, tuple(params)).fetchall()
         return [_row_dict(row) for row in rows]
 
-    def _execute(self, sql: str, params: Iterable[Any] = ()) -> None:
-        with self.connection() as conn:
-            conn.execute(sql, tuple(params))
-
     def _insert(self, table: str, values: dict[str, Any]) -> dict[str, Any]:
+        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
         columns = list(values)
         placeholders = ", ".join("?" for _ in columns)
-        names = ", ".join(columns)
-        sql = f"INSERT INTO {table} ({names}) VALUES ({placeholders})"
-        self._execute(sql, [values[column] for column in columns])
+        names = ", ".join(_sql_identifier(column) for column in columns)
+        sql = f"INSERT INTO {safe_table} ({names}) VALUES ({placeholders})"
+        with self.connection() as conn:
+            conn.execute(sql, tuple(values[column] for column in columns))
         return dict(values)
 
     def _update(self, table: str, values: dict[str, Any], where: str, params: Iterable[Any]) -> None:
         if not values:
             return
-        assignments = ", ".join(f"{column} = ?" for column in values)
-        self._execute(
-            f"UPDATE {table} SET {assignments} WHERE {where}",
-            [*values.values(), *tuple(params)],
-        )
+        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
+        assignments = ", ".join(f"{_sql_identifier(column)} = ?" for column in values)
+        with self.connection() as conn:
+            conn.execute(
+                f"UPDATE {safe_table} SET {assignments} WHERE {where}",
+                (*values.values(), *tuple(params)),
+            )
 
     def _count(self, table: str, tenant_id: str, extra_where: str = "", params: Iterable[Any] = ()) -> int:
+        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
         where = "tenant_id = ?"
         if extra_where:
             where += f" AND {extra_where}"
-        row = self._fetchone(f"SELECT COUNT(*) AS total FROM {table} WHERE {where}", (tenant_id, *tuple(params)))
+        row = self._fetchone(f"SELECT COUNT(*) AS total FROM {safe_table} WHERE {where}", (tenant_id, *tuple(params)))
         return int(row.get("total") or 0)
 
     def schema_table_names(self) -> set[str]:
@@ -695,11 +724,13 @@ class ClientPortalRepository:
         return record
 
     def _list(self, table: str, tenant_id: str, where: str = "", params: Iterable[Any] = (), order: str = "created_at DESC", limit: int = 200) -> list[dict[str, Any]]:
+        safe_table = _sql_identifier(table, allowed=CLIENT_PORTAL_TABLE_SET)
+        safe_order = _sql_order_clause(order)
         clause = "tenant_id = ?"
         if where:
             clause += f" AND {where}"
         return self._fetchall(
-            f"SELECT * FROM {table} WHERE {clause} ORDER BY {order} LIMIT ?",
+            f"SELECT * FROM {safe_table} WHERE {clause} ORDER BY {safe_order} LIMIT ?",
             (tenant_id, *tuple(params), int(limit)),
         )
 

@@ -34,10 +34,15 @@ CLIENT_PORTAL_SESSION_TOKEN = "client_portal_token"
 CLIENT_PORTAL_ENV_KEYS = ("IUSENTRA_CLIENT_PORTAL_DATABASE_URL", "CLIENT_PORTAL_DATABASE_URL")
 ROME = ZoneInfo("Europe/Rome")
 NON_OPERATIONAL_PORTAL_WORDS = ("demo", "sample", "mock")
+CLIENT_PORTAL_PUBLIC_ERROR = "Accesso cliente non valido o non più disponibile."
 
 
 def _text(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _invalid_invite_payload() -> dict[str, Any]:
+    return {"ok": False, "code": "invalid_invite", "message": CLIENT_PORTAL_PUBLIC_ERROR}
 
 
 def _is_non_operational_portal_text(*values: Any) -> bool:
@@ -595,8 +600,8 @@ def invite_preview_payload(token: str) -> dict[str, Any]:
             "matter": _public_row(snapshot.get("matter", {})),
             "featureFlags": _features_payload(),
         }
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def accept_invite_token(token: str) -> dict[str, Any]:
@@ -605,8 +610,8 @@ def accept_invite_token(token: str) -> dict[str, Any]:
         accepted = repo.accept_invite(_text(invite.get("id")), actor_ip=_text(request.remote_addr))
         session[CLIENT_PORTAL_SESSION_TOKEN] = token
         return {"ok": True, "message": "Accesso cliente attivato.", "dashboard": client_dashboard_payload(token=token), "invite": _public_row(accepted)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def _current_client_token(explicit: str = "") -> str:
@@ -665,8 +670,8 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
                 "conversationExport": f"/api/v1/ui/client-portal/public/conversation-export?matterId={matter_id}",
             },
         }
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_update_profile(payload: dict[str, Any]) -> dict[str, Any]:
@@ -681,8 +686,8 @@ def client_update_profile(payload: dict[str, Any]) -> dict[str, Any]:
             "identity_expires_at": _text(payload.get("identityExpiresAt")),
         })
         return {"ok": True, "message": "Anagrafica aggiornata.", "client": _public_row(profile), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_update_preferences(payload: dict[str, Any]) -> dict[str, Any]:
@@ -691,8 +696,8 @@ def client_update_preferences(payload: dict[str, Any]) -> dict[str, Any]:
         invite, repo = _invite_and_repo(token)
         profile = repo.update_preferences(_text(invite.get("tenant_id")), client_id=_text(invite.get("client_id")), preferences=dict(payload.get("preferences") or payload))
         return {"ok": True, "message": "Preferenze aggiornate.", "client": _public_row(profile), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_set_consent(payload: dict[str, Any]) -> dict[str, Any]:
@@ -709,8 +714,8 @@ def client_set_consent(payload: dict[str, Any]) -> dict[str, Any]:
             payload={"source": "portale_cliente"},
         )
         return {"ok": True, "message": "Consenso registrato.", "item": _public_row(consent), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_send_message(payload: dict[str, Any]) -> dict[str, Any]:
@@ -725,8 +730,8 @@ def client_send_message(payload: dict[str, Any]) -> dict[str, Any]:
             body=_text(payload.get("body")),
         )
         return {"ok": True, "message": "Messaggio inviato.", "item": _public_row(message), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def _safe_upload_name(filename: str) -> str:
@@ -782,8 +787,8 @@ def client_upload_document(file: FileStorage, *, request_id: str = "") -> dict[s
             sha256=digest,
         )
         return {"ok": True, "message": "Documento caricato.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_complete_signature(signature_id: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -799,8 +804,8 @@ def client_complete_signature(signature_id: str, payload: dict[str, Any]) -> dic
             evidence={"declaration": _text(payload.get("declaration")) or "Firma semplice acquisita dal Portale Cliente.", "ip": _text(request.remote_addr)},
         )
         return {"ok": True, "message": "Firma registrata.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_update_appointment(appointment_id: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -818,8 +823,8 @@ def client_update_appointment(appointment_id: str, payload: dict[str, Any]) -> d
             actor_type="cliente",
         )
         return {"ok": True, "message": "Appuntamento aggiornato.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_mark_notification(notification_id: str) -> dict[str, Any]:
@@ -828,8 +833,8 @@ def client_mark_notification(notification_id: str) -> dict[str, Any]:
         invite, repo = _invite_and_repo(token)
         item = repo.mark_notification_read(_text(invite.get("tenant_id")), notification_id, client_id=_text(invite.get("client_id")))
         return {"ok": True, "message": "Notifica aggiornata.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_submit_questionnaire(questionnaire_id: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -844,8 +849,8 @@ def client_submit_questionnaire(questionnaire_id: str, payload: dict[str, Any]) 
             client_id=_text(invite.get("client_id")),
         )
         return {"ok": True, "message": "Questionario inviato.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()
 
 
 def client_submit_survey(payload: dict[str, Any]) -> dict[str, Any]:
@@ -860,5 +865,5 @@ def client_submit_survey(payload: dict[str, Any]) -> dict[str, Any]:
             client_id=_text(invite.get("client_id")),
         )
         return {"ok": True, "message": "Valutazione inviata.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "invalid_invite", "message": str(exc)}
+    except ClientPortalError:
+        return _invalid_invite_payload()

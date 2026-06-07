@@ -8,7 +8,9 @@ def test_matrice_pratica_legale_ha_copertura_dichiarabile_100():
     assert audit["summary"]["coverage_percent"] == 100.0
     assert audit["summary"]["issues"] == 0
     assert audit["summary"]["cards"] >= 25
-    assert audit["summary"]["references"] >= 90
+    assert audit["summary"]["references"] >= 114
+    assert audit["summary"]["web_research_declared_status"] == "100%"
+    assert audit["summary"]["web_research_registered_references"] >= 24
 
 
 def test_matrice_pratica_legale_presidia_materie_chiave():
@@ -65,5 +67,39 @@ def test_matrice_pratica_legale_presidia_materie_chiave():
         "dlgs_286_1998_testo_unico_immigrazione",
         "dlgs_25_2008_protezione_internazionale",
         "legge_91_1992_cittadinanza",
+        "web_dm_206_2025_modifiche_dm217_ppt",
+        "web_dlgs_220_2023_riforma_contenzioso_tributario",
+        "web_mef_regole_tecniche_ptt_2017",
+        "web_openga_calendario_udienze_categoria",
+        "web_mim_di_182_2020_pei_linee_guida",
+        "web_mim_dm_153_2023_pei_modelli",
+        "web_gu_cnf_art25bis_2026_equo_compenso",
+        "web_corte_cost_80_2010_sostegno_scolastico",
+        "web_corte_cost_275_2016_diritti_disabili_bilancio",
+        "web_corte_cost_194_2018_tutele_crescenti_licenziamento",
+        "web_corte_cost_128_2024_gmo_fatto_materiale",
+        "web_cass_su_9456_2023_testimone_incapace",
+        "web_cass_su_6474_2026_notifica_nullita_prescrizione",
+        "web_cass_su_35385_2023_assegno_divorzile_convivenza",
+        "web_cass_su_36197_2023_prescrizione_crediti_lavoro_pubblico",
+        "web_cass_su_14840_2023_messa_alla_prova_enti",
+        "web_cass_su_5166_2026_giustizia_riparativa_impugnazione",
+        "web_cass_su_34419_2023_crediti_imposta_inesistenti_non_spettanti",
+        "web_cass_su_32790_2023_liquidatore_accertamento_tributario",
+        "web_cds_ap_10_2020_accesso_civico_appalti",
+        "web_cds_ap_12_2020_termini_impugnazione_appalti",
     ):
         assert references[reference_id]["covered"], reference_id
+
+
+def test_matrice_pratica_legale_ricerche_web_includono_sentenz_nominali():
+    audit = build_audit()
+    web_rows = [row for row in audit["references"] if row["id"].startswith("web_")]
+    sentenze = [row for row in web_rows if row["kind"] == "sentenza"]
+
+    assert len(sentenze) >= 12
+    assert all(row["covered"] for row in web_rows)
+    assert all(row["verified_on"] == "2026-06-06" for row in web_rows)
+    assert all(row["web_search_query"] for row in web_rows)
+    assert all(row["practice_steps"] >= 1 for row in web_rows)
+    assert all(row["lex_questions"] >= 1 for row in web_rows)

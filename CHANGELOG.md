@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.249.24 - 2026-06-07
+
+- Introdotti gate reali per Lex/RAG/Ricerca Legale: le domande dell'avvocato su Cartabia, fascicolo attivo, prova PEC completa e riferimenti giurisprudenziali devono produrre risposte operative leggibili, non solo risultati tecnicamente non vuoti.
+- Corretto il routing della domanda sul correttivo Cartabia civile: Lex usa fonti ufficiali/pratica legale e restituisce D.Lgs. 149/2022, D.Lgs. 164/2024, codice di procedura civile, uso operativo e pratiche collegate.
+- Rafforzata la sintesi del fascicolo attivo: ora espone inquadramento, documenti chiave, rischi, cosa manca e prossimi passi, con test specifico sul caso scolastico/MIM.
+- Corretto il problema reale PEC Control Tower su alias tenant: quando lo stesso studio ha `tenant_slug`, `tenant_id` e `tenant_storage_key`, Lex sceglie l'alias con dati giuridici completi e non torna più a zero se prove/ricevute sono nel DB.
+- Migliorata la risposta `Qual è la prova completa di questa notifica?`: mostra prove complete prima delle parziali e dettaglia ricevuta di accettazione, ricevuta di consegna, destinatario e orario italiano.
+- Corretto il filtro `PEC ricevute oggi`: la data viene confrontata in `Europe/Rome`, evitando che PEC vicine alla mezzanotte UTC spariscano dal presidio giornaliero.
+- Estesa la matrice pratica con riferimenti web verificati e test UI Ricerca Legale, inclusa Cassazione Sezioni Unite penali 5166/2026 sulla giustizia riparativa.
+- Corretto il bridge Ricerca Legale: ambiente/immigrazione/inPA non vengono più filtrati da riferimenti normativi o rito TAR non esclusivi, le sentenze esatte restano filtrate per organo/numero, i risultati live ufficiali non vengono più tagliati prima della UI e le ricerche su usura/tassi richiedono contenuto ufficiale corrente o tabella normativa reale.
+- Corretto Lex sulle questioni penali con allegato: se è disponibile un PDF ufficiale collegato, la risposta su scheda, allegato, norme, udienza, discrepanza R.G. e uso prudente prevale sul catalogo Centro Fonti.
+- Rigenerati e validati i contratti OpenAPI dopo il precedente gate remoto rosso su `docs/openapi.yaml`.
+
 ## 2.249.23 - 2026-06-06
 
 - Integrato `files (22).zip` nella Guida Pratica come set33: 8 moduli versionati, 40 schede ricevute e integrate, 42 termini processuali grezzi, fonti web operative per ogni scheda e nessuna contaminazione dei codici ufficiali PST/XSD.

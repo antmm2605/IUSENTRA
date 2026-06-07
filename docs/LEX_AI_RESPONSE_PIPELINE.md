@@ -7,6 +7,28 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento gate reali - 7 giugno 2026
+
+Ogni risposta Lex collegata al lavoro del 7 giugno deve essere verificata sul
+testo finale che legge l'avvocato. I gate minimi sono:
+
+- Cartabia civile/correttivo: la domanda su riforma civile, rito, decorrenze,
+  famiglia, esecuzione, notifiche e ADR deve citare D.Lgs. 149/2022, D.Lgs.
+  164/2024, codice di procedura civile e uso operativo;
+- fascicolo attivo: la sintesi deve riportare inquadramento, documenti chiave,
+  rischi, documenti mancanti e prossimi passi, non solo estratti OCR;
+- PEC prova completa: se accettazione e consegna sono nel database dello studio,
+  Lex deve mostrarle con destinatario e orario italiano; il tenant va risolto
+  sugli alias autorizzati più completi;
+- Ricerca Legale: le fonti devono arrivare come riferimenti nominali
+  consultabili e filtrabili, inclusi sentenze, decreti, udienze e fonti
+  ufficiali pertinenti.
+
+Il report verificabile è
+`artifacts/legal-sources/legal-work-real-gates-2026-06-07.md`. Se uno di questi
+gate torna a `0`, a fonte generica o a risposta non utile, la tranche è da
+considerare non completata.
+
 ## Aggiornamento operativo 2.249.19 - 6 giugno 2026
 
 Lex conosce la nuova sorgente interna `pec_control_tower`, alimentata da

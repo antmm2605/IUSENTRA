@@ -1,5 +1,20 @@
 # Lex AI Operational Knowledge Map
 
+Aggiornamento 2026-06-07, gate reali avvocato/RAG/Ricerca Legale: ogni nuova
+logica Lex deve essere verificata su domande operative reali, non solo su test
+di presenza. Sono gate obbligatori: fonte correttiva Cartabia civile con D.Lgs.
+149/2022 e D.Lgs. 164/2024; sintesi fascicolo attivo con documenti chiave,
+rischi, mancanti e prossimi passi; prova completa notifica PEC con accettazione
+e consegna lette dalla Control Tower del tenant reale; Ricerca Legale con
+riferimenti nominali filtrabili per materia. Il report operativo è
+`artifacts/legal-sources/legal-work-real-gates-2026-06-07.md`.
+
+Regola tenant PEC 2026-06-07: se nello stesso database dello studio sono
+presenti alias autorizzati (`tenant_slug`, `tenant_id`, `tenant_storage_key`),
+Lex deve usare l'alias con i dati giuridici più completi della PEC Control
+Tower, non il primo identificativo della sessione. Questo evita risposte a zero
+quando ricevute, prove e scadenze sono salvate sotto il tenant storage canonico.
+
 Aggiornamento 2026-05-23, Notifiche legali e relata fascicolo 2.248.21: Lex deve conoscere il flusso IUSENTRA per notifica ex L. 53/1994 con documento d'ufficio rilasciato dal portale. Il sistema monitora i depositi del fascicolo, crea notifica di sistema quando il documento è disponibile, precompila il collegamento al Portale Servizi con fascicolo, R.G. e ufficio, acquisisce il file scaricato dall'avvocato, lo collega alla relata e blocca la generazione definitiva finché non risulta acquisito.
 
 Nelle risposte Lex deve descrivere questi passaggi come procedura software governata: rilevazione rilascio, avviso, accesso assistito al portale ufficiale, import nel fascicolo, preparazione relata, controlli L. 53/1994, verifica pubblici elenchi, attestazioni per allegati, firma, invio PEC, conservazione RAC/RdAC e deposito prova. Le azioni dispositive restano all'avvocato: il software non conserva credenziali del portale, non accede automaticamente al posto del professionista e non invia senza revisione.

@@ -406,7 +406,11 @@ def test_operational_knowledge_document_analysis_usa_testo_indicizzato():
     )
 
     assert answer is not None
-    assert "Estratto leggibile" in answer.answer
+    assert "Sintesi operativa per l'avvocato" in answer.answer
+    assert "Documenti chiave letti o indicizzati" in answer.answer
+    assert "Rischi aperti da presidiare" in answer.answer
+    assert "Cosa manca o va confermato" in answer.answer
+    assert "Prossimi passi operativi" in answer.answer
     assert "opposizione a decreto ingiuntivo" in answer.answer
     assert "non invento contenuti" not in answer.answer
 
@@ -431,7 +435,11 @@ def test_operational_knowledge_fascicolo_attivo_da_page_path_js_usa_fonti_reali(
     assert answer.route is not None
     assert answer.route.intent == "fascicolo_summary"
     assert "Fascicolo: Rossi / Bianchi" in answer.answer
-    assert "Estratto leggibile" in answer.answer
+    assert "Sintesi operativa per l'avvocato" in answer.answer
+    assert "Documenti chiave letti o indicizzati" in answer.answer
+    assert "Rischi aperti da presidiare" in answer.answer
+    assert "Cosa manca o va confermato" in answer.answer
+    assert "Prossimi passi operativi" in answer.answer
     assert "rischio di decadenza" in answer.answer
     assert "Non ho trovato dati reali sufficienti" not in answer.answer
 
@@ -461,10 +469,64 @@ def test_operational_knowledge_document_analysis_legge_file_fascicolo_se_indice_
     )
 
     assert answer is not None
-    assert "Estratto leggibile" in answer.answer
+    assert "Sintesi operativa per l'avvocato" in answer.answer
+    assert "Documenti chiave letti o indicizzati" in answer.answer
+    assert "Rischi aperti da presidiare" in answer.answer
+    assert "Cosa manca o va confermato" in answer.answer
+    assert "Prossimi passi operativi" in answer.answer
     assert "contratti scolastici" in answer.answer
     assert "termine lungo di impugnazione" in answer.answer
     assert "Il testo integrale non risulta disponibile" not in answer.answer
+
+
+def test_operational_knowledge_sintesi_fascicolo_scolastico_mim_ragiona_da_avvocato():
+    repositories = _base_repositories()
+    fascicolo = repositories["fascicoli"].rows[0]
+    fascicolo.titolo = "Betti C. MIM"
+    fascicolo.oggetto = "Contratti scolastici a tempo determinato e servizio presso istituti statali"
+    fascicolo.nome_cliente = "Betti"
+    fascicolo.controparte = "Ministero dell'Istruzione e del Merito"
+    fascicolo.documenti = [
+        SimpleNamespace(
+            id="doc-contratto-2022",
+            nome="contratto_scuola_2022.pdf",
+            tipo="CONTRATTO",
+            sha256="a" * 64,
+            data_caricamento="2026-06-01",
+            anteprima="Contratto individuale di lavoro a tempo determinato presso istituto scolastico statale, docente, Ministero dell'Istruzione e del Merito.",
+        ),
+        SimpleNamespace(
+            id="doc-contratto-2023",
+            nome="contratto_scuola_2023.pdf",
+            tipo="CONTRATTO",
+            sha256="b" * 64,
+            data_caricamento="2026-06-01",
+            anteprima="Contratti scolastici annuali e servizio prestato presso istituto statale; verificare prescrizione e differenze retributive.",
+        ),
+    ]
+    service, user = _service(repositories=repositories)
+
+    answer = service.answer(
+        question="Fammi una sintesi del fascicolo attivo: documenti chiave, rischi aperti, cosa manca e prossimi passi.",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+        metadata={"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+    )
+
+    assert answer is not None
+    assert answer.route.intent == "fascicolo_summary"
+    assert "Betti C. MIM" in answer.answer
+    assert "Sintesi operativa per l'avvocato" in answer.answer
+    assert "pratica scolastica/lavoro pubblico" in answer.answer
+    assert "Documenti chiave letti o indicizzati" in answer.answer
+    assert "contratto_scuola_2022.pdf" in answer.answer
+    assert "Rischi aperti da presidiare" in answer.answer
+    assert "annualità di servizio" in answer.answer
+    assert "stato di servizio completo" in answer.answer
+    assert "Prossimi passi operativi" in answer.answer
+    assert "scegliere domanda praticabile" in answer.answer
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
 
 
 def test_operational_knowledge_settings_default_on(monkeypatch):
@@ -856,6 +918,31 @@ def test_lex_fonti_ufficiali_risponde_con_codici_decreti_sentenz_udienze():
     assert any(source.source_id == "fonti_ufficiali" for source in answer.sources)
 
 
+def test_lex_risponde_a_domanda_reale_su_correttivo_cartabia_civile_senza_perdersi_sulle_notifiche():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(
+        question=(
+            "Fonte correttiva collegata alla riforma civile Cartabia per controllare "
+            "rito, decorrenze, famiglia, esecuzione, notifiche e ADR."
+        ),
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+    )
+
+    assert answer is not None
+    assert answer.route is not None
+    assert answer.route.intent == "official_sources_lookup"
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
+    assert "D.Lgs. 31 ottobre 2024, n. 164" in answer.answer
+    assert "Correttivo Cartabia civile" in answer.answer or "Correttivo processo civile" in answer.answer
+    assert "rito" in answer.answer.lower()
+    assert "famiglia" in answer.answer.lower()
+    assert "notific" in answer.answer.lower()
+    assert "ADR" in answer.answer or "adr" in answer.answer.lower()
+    assert any(source.source_id in {"fonti_ufficiali", "matrice_pratica_legale"} for source in answer.sources)
+
+
 def test_fascicolo_route_risolve_domanda_lunga_senza_perdere_il_nucleo_pratica():
     service, user = _service(repositories=_base_repositories())
 
@@ -1062,7 +1149,7 @@ def test_lex_studio_reasoner_real_question_audit_matrix():
             "question": "Analizza i documenti presenti nel fascicolo Rossi e dimmi i punti importanti",
             "metadata": {"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
             "intent": "documenti_fascicolo",
-            "must": ["Punti importanti verificabili", "ricorso.pdf", "hash abc123", "non invento contenuti"],
+            "must": ["Sintesi operativa per l'avvocato", "ricorso.pdf", "hash abc123", "non invento contenuti"],
             "must_not": ["Non ho trovato"],
             "sources": {"fascicoli", "documenti_fascicolo"},
         },
@@ -1281,7 +1368,7 @@ def test_lex_studio_reasoner_colleague_conversation_score_reaches_90_percent():
         ("scrivi una risposta anche a questa email", "draft_communication", ["BOZZA", "RISPOSTA EMAIL", "Documenti contratto"]),
         ("fammi il riepilogo del fascicolo Rossi", "fascicolo_summary", ["Fascicolo: Rossi / Bianchi", "ricorso.pdf"]),
         ("che documenti ci sono?", "documenti_fascicolo", ["Documenti del fascicolo", "ricorso.pdf"]),
-        ("dimmi i punti importanti", "documenti_fascicolo", ["Punti importanti verificabili", "non invento contenuti"]),
+        ("dimmi i punti importanti", "documenti_fascicolo", ["Sintesi operativa per l'avvocato", "non invento contenuti"]),
         ("chi e' la controparte?", "soggetti_lookup", ["CONTROPARTE", "Luigi Bianchi"]),
         ("e le scadenze?", "deadlines_overview", ["Costituzione (20 maggio 2026)", "Udienza"]),
         ("costruisci la timeline", "build_case_timeline", ["Fascicolo: Rossi / Bianchi", "ricorso.pdf", "Udienza"]),

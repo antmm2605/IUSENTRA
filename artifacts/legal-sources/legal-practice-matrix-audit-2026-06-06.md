@@ -1,13 +1,13 @@
 # Audit matrice pratica legale
 
 Data audit: 2026-06-06.
-Versione matrice: 2026-06-06.
+Versione matrice: 2026-06-06-web-research.
 
 ## Esito
 
 - Copertura dichiarabile: 100%
 - Schede materia: 25
-- Riferimenti nominali: 90
+- Riferimenti nominali: 114
 - Mancanze rilevate: 0
 - Percentuale tecnica: 100.0%
 
@@ -22,26 +22,26 @@ Versione matrice: 2026-06-06.
 
 ## Materie coperte
 
-- `civile_obbligazioni_contratti_responsabilita` - Civile ordinario, obbligazioni, contratti e responsabilità (Civile): coperta; fonti 3, riferimenti 5, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `civile_notifiche_monitorio_esecuzioni` - Notifiche, decreto ingiuntivo, opposizioni ed esecuzioni (Civile esecutivo): coperta; fonti 3, riferimenti 7, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `lavoro_previdenza_inps_inail` - Contenzioso lavoro, previdenza, assistenza, INPS e INAIL (Lavoro e previdenza): coperta; fonti 4, riferimenti 6, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `famiglia_persone_minori` - Separazione, divorzio, affidamento, mantenimento, minori e protezione persone (Famiglia, persone e minori): coperta; fonti 4, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `penale_difesa_rito_pdp` - Difesa penale, indagini, udienze, riti alternativi, impugnazioni e PDP (Penale): coperta; fonti 4, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `amministrativo_tar_cds_appalti` - TAR, Consiglio di Stato, appalti, accesso atti, cautelari e PAT (Amministrativo): coperta; fonti 4, riferimenti 10, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `tributario_ptt_agenzia_entrate` - Contenzioso tributario, Agenzia Entrate, PTT/SIGIT e riscossione (Tributario): coperta; fonti 3, riferimenti 4, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `civile_obbligazioni_contratti_responsabilita` - Civile ordinario, obbligazioni, contratti e responsabilità (Civile): coperta; fonti 3, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `civile_notifiche_monitorio_esecuzioni` - Notifiche, decreto ingiuntivo, opposizioni ed esecuzioni (Civile esecutivo): coperta; fonti 3, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `lavoro_previdenza_inps_inail` - Contenzioso lavoro, previdenza, assistenza, INPS e INAIL (Lavoro e previdenza): coperta; fonti 4, riferimenti 9, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `famiglia_persone_minori` - Separazione, divorzio, affidamento, mantenimento, minori e protezione persone (Famiglia, persone e minori): coperta; fonti 4, riferimenti 9, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `penale_difesa_rito_pdp` - Difesa penale, indagini, udienze, riti alternativi, impugnazioni e PDP (Penale): coperta; fonti 4, riferimenti 12, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `amministrativo_tar_cds_appalti` - TAR, Consiglio di Stato, appalti, accesso atti, cautelari e PAT (Amministrativo): coperta; fonti 4, riferimenti 16, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `tributario_ptt_agenzia_entrate` - Contenzioso tributario, Agenzia Entrate, PTT/SIGIT e riscossione (Tributario): coperta; fonti 3, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `bancario_finanziario_usura_abf` - Banche, finanziamenti, usura, anatocismo, ABF e vigilanza (Bancario e finanziario): coperta; fonti 3, riferimenti 6, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `consumatori_agcm_agcom_conciliaweb` - Consumo, AGCM, AGCOM, Corecom e ConciliaWeb (Consumatori e comunicazioni): coperta; fonti 3, riferimenti 3, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `privacy_garante_gdpr` - Privacy, GDPR, Garante, data breach, accesso e prove digitali (Privacy e dati personali): coperta; fonti 3, riferimenti 4, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `crisi_impresa_concorsuale` - Crisi d'impresa, insolvenza, procedure concorsuali e composizione negoziata (Crisi d'impresa): coperta; fonti 3, riferimenti 3, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `locazioni_condominio_sfratto` - Locazioni, sfratti, condominio e impugnazioni delibere (Locazioni e condominio): coperta; fonti 3, riferimenti 7, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `crisi_impresa_concorsuale` - Crisi d'impresa, insolvenza, procedure concorsuali e composizione negoziata (Crisi d'impresa): coperta; fonti 3, riferimenti 4, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `locazioni_condominio_sfratto` - Locazioni, sfratti, condominio e impugnazioni delibere (Locazioni e condominio): coperta; fonti 3, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `responsabilita_sanitaria_assicurativa_sinistri` - Responsabilità sanitaria, assicurazioni, RCA e risarcimento danni (Responsabilità sanitaria, assicurativa e sinistri): coperta; fonti 3, riferimenti 4, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `immigrazione_cittadinanza_protezione` - Permessi, espulsioni, protezione internazionale, cittadinanza, ricongiungimento e decreto flussi (Immigrazione, asilo e cittadinanza): coperta; fonti 6, riferimenti 7, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `deontologia_mandato_compensi` - Mandato, compensi, equo compenso, preventivi e codice deontologico (Deontologia e professione forense): coperta; fonti 3, riferimenti 5, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `telematico_pec_pst_registri` - PST/PCT, PEC, PDP, PAT, PTT, INI-PEC, IPA e INAD (Telematico, PEC e registri pubblici): coperta; fonti 5, riferimenti 11, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `deontologia_mandato_compensi` - Mandato, compensi, equo compenso, preventivi e codice deontologico (Deontologia e professione forense): coperta; fonti 3, riferimenti 7, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `telematico_pec_pst_registri` - PST/PCT, PEC, PDP, PAT, PTT, INI-PEC, IPA e INAD (Telematico, PEC e registri pubblici): coperta; fonti 5, riferimenti 14, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `ue_cedu_costituzionale` - Diritto UE, CEDU, Corte costituzionale, CGUE e HUDOC (UE, CEDU e costituzionale): coperta; fonti 4, riferimenti 4, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `codice_strada_sanzioni_sinistri` - Sanzioni stradali, ricorsi, patente, RCA e sinistri (Codice della strada): coperta; fonti 3, riferimenti 3, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `scolastico_docenti_alunni_concorsi` - Scuola, docenti, sostegno, graduatorie, alunni e provvedimenti MIM/USR (Scolastico): coperta; fonti 5, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
-- `pubblico_impiego_concorsi_mobilita` - Concorsi pubblici, inPA, pubblico impiego, mobilità, progressioni e disciplinare (Pubblico impiego e concorsi): coperta; fonti 4, riferimenti 7, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `scolastico_docenti_alunni_concorsi` - Scuola, docenti, sostegno, graduatorie, alunni e provvedimenti MIM/USR (Scolastico): coperta; fonti 5, riferimenti 12, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
+- `pubblico_impiego_concorsi_mobilita` - Concorsi pubblici, inPA, pubblico impiego, mobilità, progressioni e disciplinare (Pubblico impiego e concorsi): coperta; fonti 4, riferimenti 8, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `edilizia_urbanistica_espropri` - Titoli edilizi, abusi, sanatorie, vincoli urbanistici, paesaggio ed espropriazione (Edilizia, urbanistica ed espropri): coperta; fonti 4, riferimenti 5, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `ambiente_autorizzazioni_rifiuti` - Ambiente, rifiuti, bonifiche, VIA, VAS, AIA, acque, emissioni e danno ambientale (Ambiente): coperta; fonti 4, riferimenti 4, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
 - `contabile_corte_conti_erariale` - Responsabilità erariale, giudizi contabili, pensioni pubbliche e conti giudiziali (Contabile e Corte dei conti): coperta; fonti 3, riferimenti 2, norme 2, decreti/regole 2, sentenze/udienze/provvedimenti 2, atti 2, scadenze/task 2, domande Lex 3.
@@ -140,6 +140,30 @@ Versione matrice: 2026-06-06.
 - `legge_91_1992_cittadinanza` - L. 5 febbraio 1992, n. 91 - Cittadinanza (Normattiva): coperto; tipo legislazione; pratiche immigrazione_cittadinanza_protezione.
 - `ministero_interno_immigrazione_asilo_cittadinanza` - Ministero Interno - Immigrazione, asilo e cittadinanza (Ministero dell'Interno): coperto; tipo autorità competente; pratiche immigrazione_cittadinanza_protezione.
 - `commissione_nazionale_diritto_asilo` - Commissione nazionale per il diritto di asilo (Ministero dell'Interno - Dipartimento Libertà civili e immigrazione): coperto; tipo autorità competente; pratiche immigrazione_cittadinanza_protezione.
+- `web_dm_206_2025_modifiche_dm217_ppt` - D.M. 30 dicembre 2025, n. 206 - modifiche al D.M. 217/2023 sul processo penale telematico (Gazzetta Ufficiale / Normattiva): coperto; tipo decreto ministeriale; pratiche penale_difesa_rito_pdp, telematico_pec_pst_registri.
+- `web_gu_2026_process_penale_telematico_transitorio` - Gazzetta Ufficiale 2026 - disposizioni in materia di processo penale telematico (Gazzetta Ufficiale): coperto; tipo regime transitorio telematico; pratiche penale_difesa_rito_pdp, telematico_pec_pst_registri.
+- `web_dlgs_220_2023_riforma_contenzioso_tributario` - D.Lgs. 30 dicembre 2023, n. 220 - riforma del contenzioso tributario (Normattiva): coperto; tipo decreto legislativo; pratiche tributario_ptt_agenzia_entrate.
+- `web_mef_regole_tecniche_ptt_2017` - MEF/Giustizia Tributaria - regole tecnico-operative PTT 2017 (Ministero dell'Economia e delle Finanze / Giustizia Tributaria): coperto; tipo regola tecnica; pratiche tributario_ptt_agenzia_entrate, telematico_pec_pst_registri.
+- `web_openga_calendario_udienze_categoria` - OpenGA - categoria Calendario Udienze (Giustizia Amministrativa): coperto; tipo udienze; pratiche amministrativo_tar_cds_appalti.
+- `web_openga_cds_sentenze_dataset` - OpenGA - CDS Sentenze (Giustizia Amministrativa): coperto; tipo sentenze; pratiche amministrativo_tar_cds_appalti.
+- `web_mim_di_182_2020_pei_linee_guida` - MIM - Decreto interministeriale 29 dicembre 2020, n. 182 e modelli nazionali PEI (Ministero dell'Istruzione e del Merito): coperto; tipo decreto e linee guida; pratiche scolastico_docenti_alunni_concorsi.
+- `web_mim_dm_153_2023_pei_modelli` - MIM - D.M. 153/2023 modifiche PEI, GLO e modelli (Ministero dell'Istruzione e del Merito): coperto; tipo decreto ministeriale; pratiche scolastico_docenti_alunni_concorsi.
+- `web_gu_cnf_modifiche_cdf_2025_titolo_iv` - G.U. 1 settembre 2025 - modifiche Codice deontologico forense artt. 48, 50, 51, 56, 61, 62, 62-bis e Titolo IV (Consiglio Nazionale Forense / Gazzetta Ufficiale): coperto; tipo deontologia; pratiche deontologia_mandato_compensi, locazioni_condominio_sfratto, civile_obbligazioni_contratti_responsabilita.
+- `web_gu_cnf_art25bis_2026_equo_compenso` - G.U. 5 febbraio 2026 - modifica art. 25-bis Codice deontologico forense su equo compenso (Consiglio Nazionale Forense / Gazzetta Ufficiale): coperto; tipo deontologia; pratiche deontologia_mandato_compensi.
+- `web_corte_cost_80_2010_sostegno_scolastico` - Corte costituzionale, sentenza 80/2010 - sostegno scolastico e limite massimo ore (Corte costituzionale): coperto; tipo sentenza; pratiche scolastico_docenti_alunni_concorsi, amministrativo_tar_cds_appalti.
+- `web_corte_cost_275_2016_diritti_disabili_bilancio` - Corte costituzionale, sentenza 275/2016 - diritti incomprimibili e vincoli di bilancio (Corte costituzionale): coperto; tipo sentenza; pratiche scolastico_docenti_alunni_concorsi, amministrativo_tar_cds_appalti.
+- `web_corte_cost_194_2018_tutele_crescenti_licenziamento` - Corte costituzionale, sentenza 194/2018 - tutele crescenti e indennita' licenziamento (Corte costituzionale): coperto; tipo sentenza; pratiche lavoro_previdenza_inps_inail.
+- `web_corte_cost_128_2024_gmo_fatto_materiale` - Corte costituzionale, sentenza 128/2024 - licenziamento per giustificato motivo oggettivo e fatto materiale (Corte costituzionale): coperto; tipo sentenza; pratiche lavoro_previdenza_inps_inail.
+- `web_cass_su_9456_2023_testimone_incapace` - Cassazione Sezioni Unite civili, sentenza 9456/2023 - incapacita' a testimoniare (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche civile_obbligazioni_contratti_responsabilita.
+- `web_cass_su_6474_2026_notifica_nullita_prescrizione` - Cassazione Sezioni Unite civili, sentenza 6474/2026 - notifica nulla e prescrizione (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche civile_notifiche_monitorio_esecuzioni, civile_obbligazioni_contratti_responsabilita.
+- `web_cass_su_35385_2023_assegno_divorzile_convivenza` - Cassazione Sezioni Unite civili, sentenza 35385/2023 - assegno divorzile e convivenza prematrimoniale (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche famiglia_persone_minori.
+- `web_cass_su_36197_2023_prescrizione_crediti_lavoro_pubblico` - Cassazione Sezioni Unite civili, sentenza 36197/2023 - prescrizione crediti retributivi nel lavoro pubblico (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche lavoro_previdenza_inps_inail, pubblico_impiego_concorsi_mobilita.
+- `web_cass_su_14840_2023_messa_alla_prova_enti` - Cassazione Sezioni Unite penali, sentenza 14840/2023 - messa alla prova e responsabilita' enti (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche penale_difesa_rito_pdp.
+- `web_cass_su_5166_2026_giustizia_riparativa_impugnazione` - Cassazione Sezioni Unite penali, sentenza 5166/2026 - giustizia riparativa e impugnazione (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche penale_difesa_rito_pdp.
+- `web_cass_su_34419_2023_crediti_imposta_inesistenti_non_spettanti` - Cassazione Sezioni Unite civili, sentenza 34419/2023 - crediti d'imposta inesistenti e non spettanti (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche tributario_ptt_agenzia_entrate.
+- `web_cass_su_32790_2023_liquidatore_accertamento_tributario` - Cassazione Sezioni Unite civili, sentenza 32790/2023 - accertamento verso liquidatore (Corte Suprema di Cassazione): coperto; tipo sentenza; pratiche tributario_ptt_agenzia_entrate, crisi_impresa_concorsuale.
+- `web_cds_ap_10_2020_accesso_civico_appalti` - Consiglio di Stato, Adunanza Plenaria 10/2020 - accesso civico e contratti pubblici (Giustizia Amministrativa / Consiglio di Stato): coperto; tipo sentenza; pratiche amministrativo_tar_cds_appalti.
+- `web_cds_ap_12_2020_termini_impugnazione_appalti` - Consiglio di Stato, Adunanza Plenaria 12/2020 - termini impugnazione aggiudicazione e accesso (Giustizia Amministrativa / Consiglio di Stato): coperto; tipo sentenza; pratiche amministrativo_tar_cds_appalti.
 
 ## Mancanze
 

@@ -532,6 +532,58 @@ def _record_covers_query(record: Mapping[str, Any], search_query: str) -> bool:
     return len(matched) >= required
 
 
+def _practice_record_matches_query_domain(record: Mapping[str, Any], search_query: str) -> bool:
+    record_id = _text(record.get("id"))
+    if not record_id.startswith(("practice-research:", "practice-reference:")):
+        return True
+    query = _text(search_query).lower()
+    if not query:
+        return True
+    haystack = _record_search_haystack(record)
+    rules = (
+        (
+            ("pei", "sostegno", "glo", "mim", "scuola", "scolastic", "docente", "alunno"),
+            ("pei", "sostegno", "glo", "mim", "scuola", "scolastic", "docente", "alunno", "disabil"),
+        ),
+        (
+            ("deontolog", "cnf", "equo compenso", "25-bis", "mandato", "preventivo"),
+            ("deontolog", "cnf", "equo compenso", "25-bis", "forense", "mandato", "preventivo", "compenso"),
+        ),
+        (
+            ("tribut", "ptt", "sigit", "546", "220/2023", "contenzioso tributario"),
+            ("tribut", "ptt", "sigit", "agenzia entrate", "546", "220/2023", "fisc"),
+        ),
+        (
+            ("penale", "pdp", "ppt", "processo penale", "c.p.p", "cpp"),
+            ("penale", "pdp", "ppt", "processo penale", "c.p.p", "cpp", "217/2023", "206/2025"),
+        ),
+        (
+            ("tar", "consiglio di stato", "openga", "appalt", "accesso civico", "processo amministrativo"),
+            ("tar", "consiglio di stato", "openga", "appalt", "accesso civico", "amministrativ", "cpa"),
+        ),
+        (
+            ("cartabia", "correttivo", "riforma civile", "rito civile", "decorrenze", "adr"),
+            ("cartabia", "correttivo", "riforma civile", "rito civile", "famiglia", "esecuzione", "adr", "149/2022", "164/2024"),
+        ),
+        (
+            ("via", "aia", "rifiuti", "ambiente", "ambiental", "mase", "152"),
+            ("via", "aia", "rifiuti", "ambiente", "ambiental", "mase", "152/2006", "152"),
+        ),
+        (
+            ("immigrazione", "cittadinanza", "protezione internazionale", "permesso soggiorno", "ministero interno"),
+            ("immigrazione", "cittadinanza", "protezione internazionale", "permesso", "soggiorno", "286/1998", "25/2008", "interno"),
+        ),
+    )
+    triggered = [
+        required
+        for triggers, required in rules
+        if any(trigger in query for trigger in triggers)
+    ]
+    if not triggered:
+        return True
+    return any(any(token in haystack for token in required) for required in triggered)
+
+
 def _governed_records_cover_query(records: Iterable[Mapping[str, Any]], search_query: str) -> bool:
     governed = [
         record
@@ -585,7 +637,12 @@ def _requested_reference_source(value: Any) -> str:
         return "corte_costituzionale"
     if "cassazione" in text or "corte suprema" in text or "cortedicassazione.it" in text:
         return "cassazione"
-    if "consiglio di stato" in text or "giustizia-amministrativa.it" in text or re.search(r"\btar\b", text):
+    if "consiglio di stato" in text or "giustizia-amministrativa.it" in text:
+        return "giustizia_amministrativa"
+    if re.search(r"\btar\b", text) and any(
+        marker in text
+        for marker in ("sentenza", "ordinanza", "decreto", "provvedimento", "decisione")
+    ):
         return "giustizia_amministrativa"
     return ""
 
@@ -634,6 +691,8 @@ def _record_reference_source(record: Mapping[str, Any]) -> str:
 
 
 def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query: str) -> bool:
+    if not _practice_record_matches_query_domain(record, search_query):
+        return False
     reference_number = _legal_reference_number(search_query)
     if not reference_number:
         return True
@@ -646,13 +705,33 @@ def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query
         if record_source and record_source != requested_source:
             return False
     if record_id.startswith(("practice-research:", "practice-reference:")):
-        tokens = _context_tokens(search_query)
-        if tokens:
-            haystack = _record_search_haystack(record)
-            matched = [token for token in tokens if token in haystack]
-            required = min(3, max(1, (len(tokens) + 1) // 2))
-            if len(matched) >= required:
+        haystack = _record_search_haystack(record)
+        if bool(re.search(rf"(?<!\d){re.escape(reference_number)}(?!\d)", haystack)):
+            return True
+        if requested_source:
+            return False
+        semantic_tokens = [
+            token
+            for token in _context_tokens(search_query)
+            if not token.isdigit()
+            and not re.fullmatch(r"\d{4}", token)
+            and token
+            not in {
+                "decreto",
+                "legislativo",
+                "legge",
+                "sentenza",
+                "ordinanza",
+                "marzo",
+                "lgs",
+            }
+        ]
+        if semantic_tokens:
+            matched = [token for token in semantic_tokens if token in haystack]
+            if any(token in {"anac", "cnf", "inpa", "mase", "mim", "pdp", "pst"} for token in matched):
                 return True
+            return len(matched) >= min(2, len(semantic_tokens))
+        return False
     haystack = " ".join(
         [
             *(
@@ -676,6 +755,11 @@ def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query
 
 
 def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
+    records = [
+        record
+        for record in records
+        if _practice_record_matches_query_domain(record, search_query)
+    ]
     if not _looks_like_exact_legal_reference(search_query):
         return records
     filtered = [
@@ -799,9 +883,12 @@ def _dedupe_records(records: list[dict[str, Any]], *, limit: int | None = None) 
 def _record_query_rank(record: Mapping[str, Any], search_query: str) -> tuple[int, str]:
     if not search_query:
         return (0, _text(record.get("date")))
+    if not _practice_record_matches_query_domain(record, search_query):
+        return (-10000, _text(record.get("date")))
     title = _text(record.get("title")).lower()
     excerpt = _record_excerpt(record).lower()
     query = _text(search_query).lower()
+    record_kind = _text(record.get("kind")).lower()
     rank = 0
     reference_number = _legal_reference_number(search_query)
     if reference_number and re.search(rf"(?<!\d){re.escape(reference_number)}(?!\d)", title):
@@ -817,6 +904,27 @@ def _record_query_rank(record: Mapping[str, Any], search_query: str) -> tuple[in
         rank += 20
     if "ufficiale" in _text(record.get("sourceKind")).lower():
         rank += 10
+    if _text(record.get("evidenceType")).lower() == "pdf ufficiale letto" and any(token in query for token in ("pdf", "allegato", "ocr")):
+        rank += 90
+    if "normativa" in record_kind or re.search(r"\b(?:decreto|legge|d\.?\s*lgs\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?)\b", title):
+        rank += 8
+    if "prassi" in record_kind or title.startswith(("circolare", "messaggio")):
+        rank -= 2
+    identity = " ".join(
+        _text(record.get(key)).lower()
+        for key in ("id", "title", "sourceLabel", "sourceKind", "registryNumber", "area")
+    )
+    boosts = (
+        (("cartabia", "correttivo", "riforma civile", "rito", "decorrenze", "adr"), ("dlgs_164_2024_correttivo_civile", "dlgs_149_2022_riforma_civile", "dlgs_216_2024_correttivo_adr", "164/2024", "149/2022")),
+        (("pei", "sostegno", "mim", "glo"), ("web_mim_di_182_2020_pei_linee_guida", "web_mim_dm_153_2023_pei_modelli", "dlgs_66_2017_inclusione_scolastica")),
+        (("deontologico", "equo", "compenso", "cnf"), ("web_gu_cnf_modifiche_cdf_2025_titolo_iv", "web_gu_cnf_art25bis_2026_equo_compenso", "cnf_codice_deontologico_2026")),
+        (("tributario", "ptt", "sigit"), ("web_dlgs_220_2023_riforma_contenzioso_tributario", "web_mef_regole_tecniche_ptt_2017", "dlgs_546_1992")),
+        (("penale", "pdp", "ppt"), ("web_dm_206_2025_modifiche_dm217_ppt", "web_gu_2026_process_penale_telematico_transitorio", "pdp_penale_pst")),
+        (("tar", "openga", "consiglio di stato", "appalti"), ("web_openga_calendario_udienze_categoria", "web_openga_cds_sentenze_dataset", "openga_calendario_udienze")),
+    )
+    for query_terms, reference_ids in boosts:
+        if any(term in query for term in query_terms) and any(ref_id in identity for ref_id in reference_ids):
+            rank += 90
     if _is_weak_source_context(record, search_query):
         rank -= 30
     return (rank, _text(record.get("date")))
@@ -1151,6 +1259,8 @@ def _context_tokens(*values: Any) -> list[str]:
         "gazzetta",
         "ufficiale",
         "normattiva",
+        "gennaio",
+        "febbraio",
         "marzo",
         "aprile",
         "maggio",
@@ -2395,6 +2505,10 @@ def _practice_nominal_reference_record(entry: Mapping[str, Any], index: int) -> 
     url = _safe_href(entry.get("url"))
     articles = _text(entry.get("articles"))
     practical_use = _text(entry.get("use"))
+    verified_on = _text(entry.get("verified_on"))
+    web_search_query = _text(entry.get("web_search_query"))
+    practice_steps = [_text(item) for item in _list(entry.get("practice_steps")) if _text(item)]
+    lex_questions = [_text(item) for item in _list(entry.get("lex_questions")) if _text(item)]
     parent_titles = _practice_reference_parent_titles()
     practice_ids = [_text(item) for item in _list(entry.get("practice_ids")) if _text(item)]
     linked_practices = [parent_titles.get(item, item) for item in practice_ids if parent_titles.get(item, item)]
@@ -2409,6 +2523,14 @@ def _practice_nominal_reference_record(entry: Mapping[str, Any], index: int) -> 
         key_points.append(f"Materie/pratiche collegate: {'; '.join(linked_practices[:8])}")
     if practical_use:
         key_points.append(f"Uso operativo: {practical_use}")
+    if verified_on:
+        key_points.append(f"Ricerca web verificata il {verified_on}")
+    if web_search_query:
+        key_points.append(f"Query di controllo: {web_search_query}")
+    for step in practice_steps[:4]:
+        key_points.append(f"Passaggio operativo: {step}")
+    for question in lex_questions[:3]:
+        key_points.append(f"Domanda Lex da superare: {question}")
     operational_checks = [
         f"Fonte ufficiale nominale tracciata: {label}.",
         f"Autorità competente: {authority}.",
@@ -2417,6 +2539,12 @@ def _practice_nominal_reference_record(entry: Mapping[str, Any], index: int) -> 
         operational_checks.append(f"Riferimento specifico da usare nella pratica: {articles}.")
     if practical_use:
         operational_checks.append(f"Output operativo: {practical_use}.")
+    if verified_on:
+        operational_checks.append(f"Ricerca web verificata il {verified_on}.")
+    for step in practice_steps:
+        operational_checks.append(f"Passaggio da presidiare: {step}.")
+    for question in lex_questions:
+        operational_checks.append(f"Test Lex: {question}.")
     for practice in linked_practices:
         operational_checks.append(f"Collegata alla pratica: {practice}.")
     return {
@@ -2437,17 +2565,18 @@ def _practice_nominal_reference_record(entry: Mapping[str, Any], index: int) -> 
         "researchSteps": [
             f"Controllare fonte ufficiale {authority}: {label}",
             f"Usare il riferimento nel contesto: {'; '.join(linked_practices[:4])}" if linked_practices else "",
-        ],
+        ] + practice_steps + ([f"Query web verificata: {web_search_query}"] if web_search_query else []),
+        "lexQuestions": lex_questions,
         "contextCompleted": True,
-        "contextStatus": "Riferimento nominale ufficiale pubblicato",
-        "contextSource": "Libreria riferimenti nominali per materie",
+        "contextStatus": "Ricerca web verificata e pubblicata" if verified_on else "Riferimento nominale ufficiale pubblicato",
+        "contextSource": "Ricerche web verificate per materie" if verified_on else "Libreria riferimenti nominali per materie",
         "sourceLabel": authority,
         "sourceKind": f"fonte ufficiale - {kind}",
         "sourceHref": url,
-        "date": "2026-06-06",
+        "date": verified_on or "2026-06-06",
         "area": "; ".join(linked_practices[:3]) or "Ricerca Legale",
         "branch": kind,
-        "approvalLabel": "riferimento ufficiale pubblicato",
+        "approvalLabel": "ricerca web verificata" if verified_on else "riferimento ufficiale pubblicato",
         "approvalTone": "success",
         "stateLabel": "sincronizzata e pubblicata",
         "stateTone": "success",
@@ -2789,11 +2918,48 @@ def _is_governed_registry_record(record: Mapping[str, Any]) -> bool:
     )
 
 
+def _source_delivery_record_can_satisfy_query(record: Mapping[str, Any], search_query: str) -> bool:
+    """Le schede Centro Fonti chiudono la ricerca solo se la domanda nomina davvero quella fonte."""
+    if not _text(record.get("id")).startswith("source-delivery:"):
+        return True
+    query_tokens = set(_context_tokens(search_query))
+    if not query_tokens:
+        return False
+    identity_tokens = set(
+        _context_tokens(
+            record.get("title"),
+            record.get("sourceLabel"),
+            record.get("registryNumber"),
+            record.get("sourceHref"),
+        )
+    )
+    weak_identity = {
+        "centro",
+        "fonti",
+        "fonte",
+        "ufficiale",
+        "ufficiali",
+        "lex",
+        "config",
+        "legal",
+        "update",
+        "sources",
+    }
+    identity_tokens = {token for token in identity_tokens if token not in weak_identity}
+    if not (query_tokens & identity_tokens):
+        return False
+    haystack = _record_search_haystack(record)
+    matched = [token for token in query_tokens if token in haystack]
+    return len(matched) >= min(2, len(query_tokens))
+
+
 def _is_governed_sufficient_context(record: Mapping[str, Any], search_query: str) -> bool:
     if not _is_governed_registry_record(record):
         return False
     excerpt = _record_excerpt(record)
     if not bool(record.get("contextCompleted")) or _record_context_sufficiency_length(record) < 60:
+        return False
+    if not _source_delivery_record_can_satisfy_query(record, search_query):
         return False
     if _looks_like_exact_legal_reference(search_query) and not _record_relevant_for_exact_reference(record, search_query):
         return False
@@ -2836,6 +3002,8 @@ def _is_weak_source_context(record: Mapping[str, Any], search_query: str) -> boo
 def _needs_public_fallback(records: list[dict[str, Any]], search_query: str) -> bool:
     if not search_query:
         return False
+    if _query_requires_current_official_content(search_query) and not _has_current_official_content(records, search_query):
+        return True
     relevant_records = [
         record
         for record in records
@@ -2860,6 +3028,34 @@ def _needs_public_fallback(records: list[dict[str, Any]], search_query: str) -> 
         return True
     required_sources = 1 if exact_reference else 2
     return len(official_context) < required_sources
+
+
+def _query_requires_current_official_content(search_query: str) -> bool:
+    query = _text(search_query).lower()
+    return "usura" in query and ("tasso" in query or "soglia" in query)
+
+
+def _has_current_official_content(records: Iterable[Mapping[str, Any]], search_query: str) -> bool:
+    weak_registry_prefixes = (
+        "practice-research:",
+        "practice-reference:",
+        "source-delivery:",
+        "guida-pratica-source:",
+        "template-atti-source:",
+    )
+    for record in records:
+        record_id = _text(record.get("id"))
+        if record_id.startswith("normative-table:") and _record_covers_query(record, search_query):
+            return True
+        if record_id.startswith(weak_registry_prefixes):
+            continue
+        if (
+            ("ufficiale" in _text(record.get("sourceKind")).lower() or _is_official_href(record.get("sourceHref")))
+            and _record_context_sufficiency_length(record) >= 80
+            and _record_covers_query(record, search_query)
+        ):
+            return True
+    return False
 
 
 def _public_search_records(search_query: str, warnings: list[dict[str, str]]) -> tuple[list[dict[str, Any]], bool]:
@@ -3425,7 +3621,7 @@ def build_react_legal_intelligence_payload(
         combined_search = _sort_records_for_query(combined_search, search_query)
         if _needs_public_fallback(combined_search, search_query):
             public_records, official_search_attempted = _public_search_records(search_query, warnings)
-            combined_search = _dedupe_records(combined_search + public_records, limit=24)
+            combined_search = _dedupe_records(combined_search + public_records)
             combined_search = _filter_records_for_exact_reference(combined_search, search_query)
             combined_search = _sort_records_for_query(combined_search, search_query)
         if search_query:

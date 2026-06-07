@@ -1,6 +1,6 @@
 {
   "audit_date": "2026-06-06",
-  "matrix_version": "2026-06-06",
+  "matrix_version": "2026-06-06-web-research",
   "product_destinations": [
     "Ricerca Legale",
     "Lex AI/RAG Legal",
@@ -11,14 +11,18 @@
   ],
   "summary": {
     "cards": 25,
-    "references": 90,
+    "references": 114,
     "covered_cards": 25,
-    "covered_references": 90,
+    "covered_references": 114,
+    "web_research_verified_references": 24,
+    "web_research_registered_references": 24,
+    "covered_web_research_verified_references": 24,
+    "web_research_declared_status": "100%",
     "issues": 0,
     "coverage_percent": 100.0,
     "declared_coverage_status": "100%",
     "practice_areas": 25,
-    "authorities": 29
+    "authorities": 34
   },
   "areas": {
     "Ambiente": 1,
@@ -55,26 +59,31 @@
     "Agenzia per la rappresentanza negoziale delle pubbliche amministrazioni": 1,
     "Banca d'Italia": 1,
     "CONSOB": 1,
-    "Consiglio Nazionale Forense / Gazzetta Ufficiale": 1,
-    "Corte costituzionale": 1,
+    "Consiglio Nazionale Forense / Gazzetta Ufficiale": 3,
+    "Corte Suprema di Cassazione": 8,
+    "Corte costituzionale": 5,
     "Corte dei conti": 1,
     "Corte di giustizia dell'Unione europea": 1,
     "Corte europea dei diritti dell'uomo": 1,
     "Dipartimento Funzione Pubblica": 1,
     "EUR-Lex": 1,
     "Garante per la protezione dei dati personali": 1,
-    "Giustizia Amministrativa": 3,
+    "Gazzetta Ufficiale": 1,
+    "Gazzetta Ufficiale / Normattiva": 1,
+    "Giustizia Amministrativa": 5,
+    "Giustizia Amministrativa / Consiglio di Stato": 2,
     "INI-PEC/InfoCamere": 1,
     "INPS": 1,
     "IndicePA": 1,
     "Ministero dell'Ambiente e della Sicurezza Energetica": 1,
+    "Ministero dell'Economia e delle Finanze / Giustizia Tributaria": 1,
     "Ministero dell'Interno": 1,
     "Ministero dell'Interno - Dipartimento Libertà civili e immigrazione": 1,
-    "Ministero dell'Istruzione e del Merito": 1,
+    "Ministero dell'Istruzione e del Merito": 3,
     "Ministero della Giustizia - DGSIA": 1,
     "Ministero della Giustizia - PST": 1,
     "Ministero delle Imprese e del Made in Italy - UIBM": 1,
-    "Normattiva": 60,
+    "Normattiva": 61,
     "Registro Imprese / InfoCamere": 1,
     "SIAE": 1
   },
@@ -84,7 +93,7 @@
       "area": "Civile",
       "title": "Civile ordinario, obbligazioni, contratti e responsabilità",
       "official_sources": 3,
-      "nominal_references": 5,
+      "nominal_references": 8,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -100,7 +109,7 @@
       "area": "Civile esecutivo",
       "title": "Notifiche, decreto ingiuntivo, opposizioni ed esecuzioni",
       "official_sources": 3,
-      "nominal_references": 7,
+      "nominal_references": 8,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -116,7 +125,7 @@
       "area": "Lavoro e previdenza",
       "title": "Contenzioso lavoro, previdenza, assistenza, INPS e INAIL",
       "official_sources": 4,
-      "nominal_references": 6,
+      "nominal_references": 9,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -132,7 +141,7 @@
       "area": "Famiglia, persone e minori",
       "title": "Separazione, divorzio, affidamento, mantenimento, minori e protezione persone",
       "official_sources": 4,
-      "nominal_references": 8,
+      "nominal_references": 9,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -148,7 +157,7 @@
       "area": "Penale",
       "title": "Difesa penale, indagini, udienze, riti alternativi, impugnazioni e PDP",
       "official_sources": 4,
-      "nominal_references": 8,
+      "nominal_references": 12,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -164,7 +173,7 @@
       "area": "Amministrativo",
       "title": "TAR, Consiglio di Stato, appalti, accesso atti, cautelari e PAT",
       "official_sources": 4,
-      "nominal_references": 10,
+      "nominal_references": 16,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -180,7 +189,7 @@
       "area": "Tributario",
       "title": "Contenzioso tributario, Agenzia Entrate, PTT/SIGIT e riscossione",
       "official_sources": 3,
-      "nominal_references": 4,
+      "nominal_references": 8,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -244,7 +253,7 @@
       "area": "Crisi d'impresa",
       "title": "Crisi d'impresa, insolvenza, procedure concorsuali e composizione negoziata",
       "official_sources": 3,
-      "nominal_references": 3,
+      "nominal_references": 4,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -260,7 +269,7 @@
       "area": "Locazioni e condominio",
       "title": "Locazioni, sfratti, condominio e impugnazioni delibere",
       "official_sources": 3,
-      "nominal_references": 7,
+      "nominal_references": 8,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -308,7 +317,7 @@
       "area": "Deontologia e professione forense",
       "title": "Mandato, compensi, equo compenso, preventivi e codice deontologico",
       "official_sources": 3,
-      "nominal_references": 5,
+      "nominal_references": 7,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -324,7 +333,7 @@
       "area": "Telematico, PEC e registri pubblici",
       "title": "PST/PCT, PEC, PDP, PAT, PTT, INI-PEC, IPA e INAD",
       "official_sources": 5,
-      "nominal_references": 11,
+      "nominal_references": 14,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -372,7 +381,7 @@
       "area": "Scolastico",
       "title": "Scuola, docenti, sostegno, graduatorie, alunni e provvedimenti MIM/USR",
       "official_sources": 5,
-      "nominal_references": 8,
+      "nominal_references": 12,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -388,7 +397,7 @@
       "area": "Pubblico impiego e concorsi",
       "title": "Concorsi pubblici, inPA, pubblico impiego, mobilità, progressioni e disciplinare",
       "official_sources": 4,
-      "nominal_references": 7,
+      "nominal_references": 8,
       "articles_and_codes": 2,
       "decrees_and_rules": 2,
       "case_law_and_hearings": 2,
@@ -494,6 +503,10 @@
         "responsabilita_sanitaria_assicurativa_sinistri"
       ],
       "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1942/03/16/262/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -511,6 +524,10 @@
         "codice_strada_sanzioni_sinistri"
       ],
       "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1940/10/28/1443/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -525,6 +542,10 @@
         "locazioni_condominio_sfratto"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17&tipoDettaglio=vigente",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -539,6 +560,10 @@
         "civile_notifiche_monitorio_esecuzioni"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=24G00183&atto.dataPubblicazioneGazzetta=2024-11-11&tipoDettaglio=vigente",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -553,6 +578,10 @@
         "amministrativo_tar_cds_appalti"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=094G0076&atto.dataPubblicazioneGazzetta=1994-01-26&tipoDettaglio=vigente",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -568,6 +597,10 @@
         "penale_difesa_rito_pdp"
       ],
       "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115!vig=",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -581,6 +614,10 @@
         "civile_obbligazioni_contratti_responsabilita"
       ],
       "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28!vig=",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -594,6 +631,10 @@
         "deontologia_mandato_compensi"
       ],
       "url": "https://www.normattiva.it/eli/id/2023/10/31/23G00163/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -607,6 +648,10 @@
         "civile_notifiche_monitorio_esecuzioni"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO/2011/02/21/44/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -621,6 +666,10 @@
         "penale_difesa_rito_pdp"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO/2023/12/29/217/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -635,6 +684,10 @@
         "penale_difesa_rito_pdp"
       ],
       "url": "https://pst.giustizia.it/PST/it/documentation.page",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -647,6 +700,10 @@
         "penale_difesa_rito_pdp"
       ],
       "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1930/10/19/1398/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -659,6 +716,10 @@
         "penale_difesa_rito_pdp"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/1988/09/22/447/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -671,6 +732,10 @@
         "penale_difesa_rito_pdp"
       ],
       "url": "https://www.normattiva.it/eli/id/2022/10/17/22G00159/ORIGINAL",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -683,6 +748,10 @@
         "penale_difesa_rito_pdp"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2024/03/19/31/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -696,6 +765,10 @@
         "telematico_pec_pst_registri"
       ],
       "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC2786",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -708,6 +781,10 @@
         "amministrativo_tar_cds_appalti"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2010/07/02/104/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -721,6 +798,10 @@
         "telematico_pec_pst_registri"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DEL_CONSIGLIO_DEI_MINISTRI/2016/02/16/40/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -733,6 +814,10 @@
         "amministrativo_tar_cds_appalti"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2023/03/31/36/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -745,6 +830,10 @@
         "amministrativo_tar_cds_appalti"
       ],
       "url": "https://openga.giustizia-amministrativa.it/dataset/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -757,6 +846,10 @@
         "amministrativo_tar_cds_appalti"
       ],
       "url": "https://openga.giustizia-amministrativa.it/dataset/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -769,6 +862,10 @@
         "amministrativo_tar_cds_appalti"
       ],
       "url": "https://openga.giustizia-amministrativa.it/dataset/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -781,6 +878,10 @@
         "tributario_ptt_agenzia_entrate"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1992/12/31/546/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -794,6 +895,10 @@
         "telematico_pec_pst_registri"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO/2013/12/23/163/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -806,6 +911,10 @@
         "tributario_ptt_agenzia_entrate"
       ],
       "url": "https://www.agenziaentrate.gov.it/portale/web/guest/provvedimenti",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -818,6 +927,10 @@
         "lavoro_previdenza_inps_inail"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1970/05/20/300/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -830,6 +943,10 @@
         "lavoro_previdenza_inps_inail"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1966/07/15/604/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -842,6 +959,10 @@
         "lavoro_previdenza_inps_inail"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2015/03/04/23/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -854,6 +975,10 @@
         "lavoro_previdenza_inps_inail"
       ],
       "url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa.html",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -866,6 +991,10 @@
         "famiglia_persone_minori"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1970/12/01/898/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -878,6 +1007,10 @@
         "famiglia_persone_minori"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1983/05/04/184/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -890,6 +1023,10 @@
         "famiglia_persone_minori"
       ],
       "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:DECRETO.LEGISLATIVO:2021-12-21;230!vig=",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -902,6 +1039,10 @@
         "crisi_impresa_concorsuale"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2019/01/12/14/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -914,6 +1055,10 @@
         "locazioni_condominio_sfratto"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1998/12/09/431/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -926,6 +1071,10 @@
         "locazioni_condominio_sfratto"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1978/07/27/392/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -938,6 +1087,10 @@
         "responsabilita_sanitaria_assicurativa_sinistri"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/2017/03/08/24/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -950,6 +1103,10 @@
         "responsabilita_sanitaria_assicurativa_sinistri"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2005/09/07/209/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -962,6 +1119,10 @@
         "bancario_finanziario_usura_abf"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1993/09/01/385/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -974,6 +1135,10 @@
         "bancario_finanziario_usura_abf"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1996/03/07/108/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -986,6 +1151,10 @@
         "bancario_finanziario_usura_abf"
       ],
       "url": "https://www.bancaditalia.it/compiti/vigilanza/normativa/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -998,6 +1167,10 @@
         "consumatori_agcm_agcom_conciliaweb"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2005/09/06/206/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1010,6 +1183,10 @@
         "consumatori_agcm_agcom_conciliaweb"
       ],
       "url": "https://www.agcm.it/pubblicazioni/bollettino-settimanale",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1022,6 +1199,10 @@
         "consumatori_agcm_agcom_conciliaweb"
       ],
       "url": "https://www.agcom.it/provvedimenti",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1035,6 +1216,10 @@
         "ue_cedu_costituzionale"
       ],
       "url": "https://eur-lex.europa.eu/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1047,6 +1232,10 @@
         "privacy_garante_gdpr"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2003/06/30/196/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1059,6 +1248,10 @@
         "privacy_garante_gdpr"
       ],
       "url": "https://www.garanteprivacy.it/normativa-e-provvedimenti",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1072,6 +1265,10 @@
         "ue_cedu_costituzionale"
       ],
       "url": "https://hudoc.echr.coe.int/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1085,6 +1282,10 @@
         "ue_cedu_costituzionale"
       ],
       "url": "https://www.cortecostituzionale.it/actionPronuncia.do",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1098,6 +1299,10 @@
         "privacy_garante_gdpr"
       ],
       "url": "https://curia.europa.eu/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1110,6 +1315,10 @@
         "deontologia_mandato_compensi"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/2012/12/31/247/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1122,6 +1331,10 @@
         "deontologia_mandato_compensi"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO/2014/03/10/55/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1134,6 +1347,10 @@
         "deontologia_mandato_compensi"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/2023/04/21/49/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1146,6 +1363,10 @@
         "deontologia_mandato_compensi"
       ],
       "url": "https://www.gazzettaufficiale.it/eli/gu/2026/02/05/29/sg",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1159,6 +1380,10 @@
         "responsabilita_sanitaria_assicurativa_sinistri"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/1992/04/30/285/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1172,6 +1397,10 @@
         "crisi_impresa_concorsuale"
       ],
       "url": "https://www.inipec.gov.it/cerca-pec",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1185,6 +1414,10 @@
         "amministrativo_tar_cds_appalti"
       ],
       "url": "https://www.indicepa.gov.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1198,6 +1431,10 @@
         "codice_strada_sanzioni_sinistri"
       ],
       "url": "https://domiciliodigitale.gov.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1210,6 +1447,10 @@
         "scolastico_docenti_alunni_concorsi"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=094G0291&atto.dataPubblicazioneGazzetta=1994-05-19&tipoDettaglio=vigente",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1222,6 +1463,10 @@
         "scolastico_docenti_alunni_concorsi"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=099G0339&atto.dataPubblicazioneGazzetta=1999-08-10&tipoDettaglio=multivigenza",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1234,6 +1479,10 @@
         "scolastico_docenti_alunni_concorsi"
       ],
       "url": "https://www.normattiva.it/eli/id/2015/07/15/15G00122/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1246,6 +1495,10 @@
         "scolastico_docenti_alunni_concorsi"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=17G00074&atto.dataPubblicazioneGazzetta=2017-05-16&tipoDettaglio=singolavigenza",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1258,6 +1511,10 @@
         "scolastico_docenti_alunni_concorsi"
       ],
       "url": "https://www.mim.gov.it/web/guest/normativa",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1274,6 +1531,10 @@
         "ambiente_autorizzazioni_rifiuti"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=090G0294&atto.dataPubblicazioneGazzetta=1990-08-18&tipoDettaglio=vigente",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1287,6 +1548,10 @@
         "scolastico_docenti_alunni_concorsi"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2001/03/30/165/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1299,6 +1564,10 @@
         "pubblico_impiego_concorsi_mobilita"
       ],
       "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.presidente.repubblica:1994-05-09;487!vig=",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1311,6 +1580,10 @@
         "pubblico_impiego_concorsi_mobilita"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=23G00093&atto.dataPubblicazioneGazzetta=2023-06-29&tipoDettaglio=vigente",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1323,6 +1596,10 @@
         "pubblico_impiego_concorsi_mobilita"
       ],
       "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2009;150=",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1336,6 +1613,10 @@
         "scolastico_docenti_alunni_concorsi"
       ],
       "url": "https://www.inpa.gov.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1349,6 +1630,10 @@
         "lavoro_previdenza_inps_inail"
       ],
       "url": "https://www.aranagenzia.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1361,6 +1646,10 @@
         "edilizia_urbanistica_espropri"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/2001/06/06/380/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1373,6 +1662,10 @@
         "edilizia_urbanistica_espropri"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=001G0372&atto.dataPubblicazioneGazzetta=2001-08-16&tipoDettaglio=multivigenza",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1386,6 +1679,10 @@
         "ambiente_autorizzazioni_rifiuti"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2004/01/22/42/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1399,6 +1696,10 @@
         "edilizia_urbanistica_espropri"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2006/04/03/152/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1411,6 +1712,10 @@
         "ambiente_autorizzazioni_rifiuti"
       ],
       "url": "https://www.mase.gov.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1423,6 +1728,10 @@
         "contabile_corte_conti_erariale"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=16G00187&atto.dataPubblicazioneGazzetta=2016-09-07&tipoDettaglio=multivigenza",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1435,6 +1744,10 @@
         "contabile_corte_conti_erariale"
       ],
       "url": "https://www.corteconti.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1447,6 +1760,10 @@
         "societario_impresa_231_mercati"
       ],
       "url": "https://www.normattiva.it/eli/id/2001/06/19/001G0293/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1460,6 +1777,10 @@
         "bancario_finanziario_usura_abf"
       ],
       "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998;058=",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1474,6 +1795,10 @@
         "telematico_pec_pst_registri"
       ],
       "url": "https://www.registroimprese.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1487,6 +1812,10 @@
         "bancario_finanziario_usura_abf"
       ],
       "url": "https://www.consob.it/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1499,6 +1828,10 @@
         "proprieta_industriale_autore"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=005G0055&atto.dataPubblicazioneGazzetta=2005-03-04&tipoDettaglio=originario",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1511,6 +1844,10 @@
         "proprieta_industriale_autore"
       ],
       "url": "https://www.normattiva.it/eli/id/1941/07/16/041U0633/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1524,6 +1861,10 @@
         "societario_impresa_231_mercati"
       ],
       "url": "https://www.mimit.gov.it/it/impresa/competitivita-e-nuove-imprese/proprieta-industriale/marchi-e-disegni",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1536,6 +1877,10 @@
         "proprieta_industriale_autore"
       ],
       "url": "https://www.siae.it/it/autori-ed-editori/diritto-autore/",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1548,6 +1893,10 @@
         "immigrazione_cittadinanza_protezione"
       ],
       "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=098G0348&atto.dataPubblicazioneGazzetta=1998-08-18&currentPage=1",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1560,6 +1909,10 @@
         "immigrazione_cittadinanza_protezione"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/1999/08/31/394/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1572,6 +1925,10 @@
         "immigrazione_cittadinanza_protezione"
       ],
       "url": "https://www.normattiva.it/eli/stato/DECRETO_LEGISLATIVO/2008/01/28/25/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1584,6 +1941,10 @@
         "immigrazione_cittadinanza_protezione"
       ],
       "url": "https://www.normattiva.it/eli/stato/LEGGE/1992/02/05/91/CONSOLIDATED",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1596,6 +1957,10 @@
         "immigrazione_cittadinanza_protezione"
       ],
       "url": "https://www.interno.gov.it/it/temi/immigrazione-e-asilo",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
       "covered": true,
       "issues": []
     },
@@ -1608,6 +1973,404 @@
         "immigrazione_cittadinanza_protezione"
       ],
       "url": "https://libertaciviliimmigrazione.dlci.interno.gov.it/commissione-nazionale-il-diritto-di-asilo",
+      "verified_on": "",
+      "web_search_query": "",
+      "practice_steps": 0,
+      "lex_questions": 0,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_dm_206_2025_modifiche_dm217_ppt",
+      "label": "D.M. 30 dicembre 2025, n. 206 - modifiche al D.M. 217/2023 sul processo penale telematico",
+      "authority": "Gazzetta Ufficiale / Normattiva",
+      "kind": "decreto ministeriale",
+      "practice_ids": [
+        "penale_difesa_rito_pdp",
+        "telematico_pec_pst_registri"
+      ],
+      "url": "https://www.gazzettaufficiale.it/eli/id/2025/12/31/25G00215/SG",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:gazzettaufficiale.it D.M. 30 dicembre 2025 n. 206 D.M. 217 processo penale telematico",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_gu_2026_process_penale_telematico_transitorio",
+      "label": "Gazzetta Ufficiale 2026 - disposizioni in materia di processo penale telematico",
+      "authority": "Gazzetta Ufficiale",
+      "kind": "regime transitorio telematico",
+      "practice_ids": [
+        "penale_difesa_rito_pdp",
+        "telematico_pec_pst_registri"
+      ],
+      "url": "https://www.gazzettaufficiale.it/eli/gu/2026/05/04/101/sg/pdf",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:gazzettaufficiale.it processo penale telematico 2026 D.M. 217",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_dlgs_220_2023_riforma_contenzioso_tributario",
+      "label": "D.Lgs. 30 dicembre 2023, n. 220 - riforma del contenzioso tributario",
+      "authority": "Normattiva",
+      "kind": "decreto legislativo",
+      "practice_ids": [
+        "tributario_ptt_agenzia_entrate"
+      ],
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=24G00001&atto.dataPubblicazioneGazzetta=2024-01-03&tipoDettaglio=vigente",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:normattiva.it D.Lgs. 30 dicembre 2023 n. 220 contenzioso tributario",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_mef_regole_tecniche_ptt_2017",
+      "label": "MEF/Giustizia Tributaria - regole tecnico-operative PTT 2017",
+      "authority": "Ministero dell'Economia e delle Finanze / Giustizia Tributaria",
+      "kind": "regola tecnica",
+      "practice_ids": [
+        "tributario_ptt_agenzia_entrate",
+        "telematico_pec_pst_registri"
+      ],
+      "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?articolo=Preambolo&codiceOrdinamento=050000000000000&id=%7B0B1D7AFF-2F99-4960-B99B-F0FC67507D68%7D",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:giustiziatributaria.gov.it regole tecniche operative processo tributario telematico 2017",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_openga_calendario_udienze_categoria",
+      "label": "OpenGA - categoria Calendario Udienze",
+      "authority": "Giustizia Amministrativa",
+      "kind": "udienze",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://openga.giustizia-amministrativa.it/group/about/calendario-udienze",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:openga.giustizia-amministrativa.it calendario udienze OpenGA",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_openga_cds_sentenze_dataset",
+      "label": "OpenGA - CDS Sentenze",
+      "authority": "Giustizia Amministrativa",
+      "kind": "sentenze",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://openga.giustizia-amministrativa.it/dataset/cds-sentenze",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:openga.giustizia-amministrativa.it CDS sentenze dataset OpenGA",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_mim_di_182_2020_pei_linee_guida",
+      "label": "MIM - Decreto interministeriale 29 dicembre 2020, n. 182 e modelli nazionali PEI",
+      "authority": "Ministero dell'Istruzione e del Merito",
+      "kind": "decreto e linee guida",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://www.mim.gov.it/-/inclusione-inviato-alle-istituzioni-scolastiche-il-modello-nazionale-del-piano-educativo-individualizzato-",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:mim.gov.it decreto interministeriale 182 2020 PEI linee guida",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_mim_dm_153_2023_pei_modelli",
+      "label": "MIM - D.M. 153/2023 modifiche PEI, GLO e modelli",
+      "authority": "Ministero dell'Istruzione e del Merito",
+      "kind": "decreto ministeriale",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi"
+      ],
+      "url": "https://mim.gov.it/alunni-con-disabilita",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:mim.gov.it DM 153 2023 PEI GLO modelli sostegno",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_gu_cnf_modifiche_cdf_2025_titolo_iv",
+      "label": "G.U. 1 settembre 2025 - modifiche Codice deontologico forense artt. 48, 50, 51, 56, 61, 62, 62-bis e Titolo IV",
+      "authority": "Consiglio Nazionale Forense / Gazzetta Ufficiale",
+      "kind": "deontologia",
+      "practice_ids": [
+        "deontologia_mandato_compensi",
+        "locazioni_condominio_sfratto",
+        "civile_obbligazioni_contratti_responsabilita"
+      ],
+      "url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=25A04804&atto.dataPubblicazioneGazzetta=2025-09-01&tipoSerie=serie_generale&tipoVigenza=originario",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:gazzettaufficiale.it codice deontologico forense 25A04804 2025",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_gu_cnf_art25bis_2026_equo_compenso",
+      "label": "G.U. 5 febbraio 2026 - modifica art. 25-bis Codice deontologico forense su equo compenso",
+      "authority": "Consiglio Nazionale Forense / Gazzetta Ufficiale",
+      "kind": "deontologia",
+      "practice_ids": [
+        "deontologia_mandato_compensi"
+      ],
+      "url": "https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=26A00480&atto.dataPubblicazioneGazzetta=2026-02-05&tipoSerie=serie_generale&tipoVigenza=originario",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:gazzettaufficiale.it 26A00480 art 25-bis codice deontologico forense equo compenso",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_corte_cost_80_2010_sostegno_scolastico",
+      "label": "Corte costituzionale, sentenza 80/2010 - sostegno scolastico e limite massimo ore",
+      "authority": "Corte costituzionale",
+      "kind": "sentenza",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi",
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2010/80",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortecostituzionale.it sentenza 80 2010 sostegno scolastico disabili",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_corte_cost_275_2016_diritti_disabili_bilancio",
+      "label": "Corte costituzionale, sentenza 275/2016 - diritti incomprimibili e vincoli di bilancio",
+      "authority": "Corte costituzionale",
+      "kind": "sentenza",
+      "practice_ids": [
+        "scolastico_docenti_alunni_concorsi",
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2016/275",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortecostituzionale.it sentenza 275 2016 diritti incomprimibili disabili bilancio",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_corte_cost_194_2018_tutele_crescenti_licenziamento",
+      "label": "Corte costituzionale, sentenza 194/2018 - tutele crescenti e indennita' licenziamento",
+      "authority": "Corte costituzionale",
+      "kind": "sentenza",
+      "practice_ids": [
+        "lavoro_previdenza_inps_inail"
+      ],
+      "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2018/194",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortecostituzionale.it sentenza 194 2018 tutele crescenti licenziamento",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_corte_cost_128_2024_gmo_fatto_materiale",
+      "label": "Corte costituzionale, sentenza 128/2024 - licenziamento per giustificato motivo oggettivo e fatto materiale",
+      "authority": "Corte costituzionale",
+      "kind": "sentenza",
+      "practice_ids": [
+        "lavoro_previdenza_inps_inail"
+      ],
+      "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2024/128",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortecostituzionale.it sentenza 128 2024 licenziamento fatto materiale",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_9456_2023_testimone_incapace",
+      "label": "Cassazione Sezioni Unite civili, sentenza 9456/2023 - incapacita' a testimoniare",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "civile_obbligazioni_contratti_responsabilita"
+      ],
+      "url": "https://www.cortedicassazione.it/en/civile_dettaglio.page?contentId=SZC6891",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 9456 2023 incapacita a testimoniare sezioni unite",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_6474_2026_notifica_nullita_prescrizione",
+      "label": "Cassazione Sezioni Unite civili, sentenza 6474/2026 - notifica nulla e prescrizione",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "civile_notifiche_monitorio_esecuzioni",
+        "civile_obbligazioni_contratti_responsabilita"
+      ],
+      "url": "https://www.cortedicassazione.it/en/civile_dettaglio.page?contentId=SZC49389",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 6474 2026 notificazione nulla prescrizione Sezioni Unite",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_35385_2023_assegno_divorzile_convivenza",
+      "label": "Cassazione Sezioni Unite civili, sentenza 35385/2023 - assegno divorzile e convivenza prematrimoniale",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "famiglia_persone_minori"
+      ],
+      "url": "https://www.cortedicassazione.it/en/civile_dettaglio.page?contentId=SZC29158",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 35385 2023 assegno divorzile convivenza prematrimoniale",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_36197_2023_prescrizione_crediti_lavoro_pubblico",
+      "label": "Cassazione Sezioni Unite civili, sentenza 36197/2023 - prescrizione crediti retributivi nel lavoro pubblico",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "lavoro_previdenza_inps_inail",
+        "pubblico_impiego_concorsi_mobilita"
+      ],
+      "url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC29356",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 36197 2023 prescrizione crediti retributivi lavoro pubblico",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_14840_2023_messa_alla_prova_enti",
+      "label": "Cassazione Sezioni Unite penali, sentenza 14840/2023 - messa alla prova e responsabilita' enti",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP8207",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 14840 2023 messa alla prova enti Sezioni Unite penali",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_5166_2026_giustizia_riparativa_impugnazione",
+      "label": "Cassazione Sezioni Unite penali, sentenza 5166/2026 - giustizia riparativa e impugnazione",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "penale_difesa_rito_pdp"
+      ],
+      "url": "https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP48880",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 5166 2026 giustizia riparativa Sezioni Unite",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_34419_2023_crediti_imposta_inesistenti_non_spettanti",
+      "label": "Cassazione Sezioni Unite civili, sentenza 34419/2023 - crediti d'imposta inesistenti e non spettanti",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "tributario_ptt_agenzia_entrate"
+      ],
+      "url": "https://www.cortedicassazione.it/it/giurisprudenza_civile.page?contentId=SZC6771&frame3_item=17&frame3_item=2&frame3_item=5",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 34419 2023 crediti imposta inesistenti non spettanti",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cass_su_32790_2023_liquidatore_accertamento_tributario",
+      "label": "Cassazione Sezioni Unite civili, sentenza 32790/2023 - accertamento verso liquidatore",
+      "authority": "Corte Suprema di Cassazione",
+      "kind": "sentenza",
+      "practice_ids": [
+        "tributario_ptt_agenzia_entrate",
+        "crisi_impresa_concorsuale"
+      ],
+      "url": "https://www.cortedicassazione.it/it/giurisprudenza_civile.page?contentId=SZC6771&frame3_item=17&frame3_item=2&frame3_item=5",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:cortedicassazione.it sentenza 32790 2023 liquidatore art 36 DPR 602 tributario",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cds_ap_10_2020_accesso_civico_appalti",
+      "label": "Consiglio di Stato, Adunanza Plenaria 10/2020 - accesso civico e contratti pubblici",
+      "authority": "Giustizia Amministrativa / Consiglio di Stato",
+      "kind": "sentenza",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.giustizia-amministrativa.it/documents/20142/1717313/Cons.%2BSt.%2C%2BA.P.%2C%2Bsent.%2B02.04.2020%2C%2Bn.%2B10%28n.%2B45%2B-%2B14.04.20%29.pdf/16b7381c-9e68-35a1-b217-d9735b03b0d6",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:giustizia-amministrativa.it Adunanza Plenaria 10 2020 accesso civico appalti",
+      "practice_steps": 2,
+      "lex_questions": 2,
+      "covered": true,
+      "issues": []
+    },
+    {
+      "id": "web_cds_ap_12_2020_termini_impugnazione_appalti",
+      "label": "Consiglio di Stato, Adunanza Plenaria 12/2020 - termini impugnazione aggiudicazione e accesso",
+      "authority": "Giustizia Amministrativa / Consiglio di Stato",
+      "kind": "sentenza",
+      "practice_ids": [
+        "amministrativo_tar_cds_appalti"
+      ],
+      "url": "https://www.giustizia-amministrativa.it/-/dies-a-quo-del-termine-per-impugnare-l-aggiudicazione-della-gara-pubblica-e-proponibilita-dei-motivi-aggiunti",
+      "verified_on": "2026-06-06",
+      "web_search_query": "site:giustizia-amministrativa.it Adunanza Plenaria 12 2020 termine impugnazione aggiudicazione accesso",
+      "practice_steps": 2,
+      "lex_questions": 2,
       "covered": true,
       "issues": []
     }

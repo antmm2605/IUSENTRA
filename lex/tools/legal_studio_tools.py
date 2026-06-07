@@ -75,7 +75,37 @@ def _normative_manager():
 
 
 def _normative_match(payload: dict[str, Any], query: str) -> bool:
-    tokens = [token for token in str(query or "").lower().replace("-", " ").split() if len(token) >= 2][:8]
+    stopwords = {
+        "alla",
+        "allo",
+        "alle",
+        "agli",
+        "dalla",
+        "dalle",
+        "dello",
+        "della",
+        "degli",
+        "dei",
+        "del",
+        "per",
+        "con",
+        "che",
+        "una",
+        "uno",
+        "fonte",
+        "fonti",
+        "collegata",
+        "collegato",
+        "collegate",
+        "collegati",
+        "controllare",
+        "verificare",
+    }
+    tokens = [
+        token
+        for token in str(query or "").lower().replace("-", " ").split()
+        if len(token) >= 2 and token not in stopwords
+    ][:12]
     haystack = " ".join(str(value or "") for value in payload.values()).lower()
     return bool(tokens) and all(token in haystack for token in tokens)
 
@@ -688,11 +718,15 @@ def search_pratica_legale(query: str, *, limit: int = 8) -> dict[str, Any]:
         identity = field_text("id", "titolo", "title", "articoli", "uso_operativo")
         query_text = " ".join(tokens)
         boosts = (
+            (("cartabia", "correttivo", "riforma", "rito", "decorrenze", "adr"), ("dlgs_164_2024_correttivo_civile", "dlgs_149_2022_riforma_civile", "dlgs_216_2024_correttivo_adr")),
             (("licenziamento",), ("legge_300_1970_statuto_lavoratori", "legge_604_1966_licenziamenti", "dlgs_23_2015_tutele_crescenti")),
-            (("pei", "sostegno", "graduatoria", "mim", "docente"), ("dlgs_66_2017_inclusione_scolastica", "dlgs_297_1994_testo_unico_scuola", "mim_atti_normativa_graduatorie")),
-            (("tar", "udienze", "decreti", "sentenze"), ("openga_calendario_udienze", "openga_decreti_ordinanze_sentenze")),
+            (("pei", "sostegno", "graduatoria", "mim", "docente"), ("dlgs_66_2017_inclusione_scolastica", "dlgs_297_1994_testo_unico_scuola", "mim_atti_normativa_graduatorie", "web_mim_di_182_2020_pei_linee_guida", "web_mim_dm_153_2023_pei_modelli")),
+            (("tar", "udienze", "decreti", "sentenze"), ("openga_calendario_udienze", "openga_decreti_ordinanze_sentenze", "web_openga_calendario_udienze_categoria", "web_openga_cds_sentenze_dataset")),
             (("foia", "accesso", "riesame"), ("dlgs_33_2013_accesso_civico", "anac_accesso_civico")),
             (("cartella", "esattoriale", "riscossione"), ("dpr_602_1973_riscossione", "agenzia_entrate_riscossione")),
+            (("processo", "penale", "pdp", "ppt"), ("web_dm_206_2025_modifiche_dm217_ppt", "web_gu_2026_process_penale_telematico_transitorio", "dm_217_2023_telematico", "pdp_penale_pst")),
+            (("tributario", "ptt", "sigit"), ("web_dlgs_220_2023_riforma_contenzioso_tributario", "web_mef_regole_tecniche_ptt_2017", "dlgs_546_1992_contenzioso_tributario", "dm_163_2013_ptt")),
+            (("deontologico", "equo", "compenso", "cnf"), ("web_gu_cnf_modifiche_cdf_2025_titolo_iv", "web_gu_cnf_art25bis_2026_equo_compenso", "cnf_codice_deontologico_2026", "legge_49_2023_equo_compenso")),
         )
         for query_terms, reference_ids in boosts:
             if any(token in query_text for token in query_terms) and any(ref_id in identity for ref_id in reference_ids):
@@ -734,6 +768,10 @@ def search_pratica_legale(query: str, *, limit: int = 8) -> dict[str, Any]:
             "url_ufficiale": item.get("url"),
             "articoli": item.get("articles"),
             "uso_operativo": item.get("use"),
+            "verificata_il": item.get("verified_on"),
+            "query_web": item.get("web_search_query"),
+            "passaggi_pratici": item.get("practice_steps") or [],
+            "domande_lex": item.get("lex_questions") or [],
             "pratiche_collegate": [practice_titles.get(practice_id, practice_id) for practice_id in practice_ids],
         }
         value = score(payload)

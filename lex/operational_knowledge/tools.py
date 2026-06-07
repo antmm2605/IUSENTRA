@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
+import json
 import os
+from pathlib import Path
 import re
+import sqlite3
 from typing import Any
 
 from .models import (
@@ -481,7 +484,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("pec_audit", context)
         if not decision.allowed:
             return self._blocked("pec_audit", decision)
-        repo = self._pec_audit_repository()
+        repo = self._pec_audit_repository(context)
         if repo is None:
             return self._unavailable("pec_audit", "Controlli automatici PEC non ancora disponibili.")
         try:
@@ -498,7 +501,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("pec_audit", context)
         if not decision.allowed:
             return self._blocked("pec_audit", decision)
-        repo = self._pec_audit_repository()
+        repo = self._pec_audit_repository(context)
         if repo is None:
             return self._unavailable("pec_audit", "Controlli automatici PEC non ancora disponibili.")
         try:
@@ -513,7 +516,7 @@ class OperationalKnowledgeTools:
         decision = self._decision("pec_audit", context)
         if not decision.allowed:
             return self._blocked("pec_audit", decision)
-        repo = self._pec_audit_repository()
+        repo = self._pec_audit_repository(context)
         if repo is None:
             return self._unavailable("pec_audit", "Controlli automatici PEC non ancora disponibili.")
         manager = self._safe_manager("email_pec", lambda: self._email_manager("email_pec", context))
@@ -1017,6 +1020,123 @@ class OperationalKnowledgeTools:
         except Exception:
             return {}
 
+    def _tenant_aliases(self, context: OperationalQueryContext | None) -> list[str]:
+        aliases: list[str] = []
+
+        def add(value: Any) -> None:
+            clean = clean_spaces(value)
+            if clean and clean not in aliases:
+                aliases.append(clean)
+
+        add(getattr(context, "tenant_id", "") if context is not None else "")
+        user = getattr(context, "user", None) if context is not None else None
+        for attr in ("tenant_slug", "tenant_id", "tenant_storage_key"):
+            add(getattr(user, attr, ""))
+        data_roots: list[Path] = []
+        try:
+            from flask import current_app, g, has_app_context
+
+            if has_app_context():
+                for attr in ("tenant_slug", "auth_tenant_slug", "tenant_id", "tenant_storage_key"):
+                    add(getattr(g, attr, ""))
+                data_paths = getattr(g, "data_paths", {}) or {}
+                for path_value in list(data_paths.values()):
+                    path_text = clean_spaces(path_value)
+                    if not path_text:
+                        continue
+                    path = Path(path_text)
+                    parts = list(path.parts)
+                    for index, part in enumerate(parts):
+                        if part == "tenants" and index + 1 < len(parts):
+                            add(parts[index + 1])
+                            data_roots.append(Path(*parts[:index]) if index else Path("."))
+                            break
+                for key in ("DATA_DIR", "RUNTIME_DATA_DIR"):
+                    configured = clean_spaces(current_app.config.get(key))
+                    if configured:
+                        data_roots.append(Path(configured))
+                registry = clean_spaces(current_app.config.get("TENANTS_REGISTRY"))
+                if registry:
+                    registry_path = Path(registry)
+                    data_roots.append(registry_path.parent)
+        except Exception:
+            pass
+        data_roots.append(Path("data"))
+
+        known = set(aliases)
+        for root in data_roots:
+            directory_path = root / "tenant_user_directory.json"
+            if not directory_path.exists():
+                continue
+            try:
+                payload = json.loads(directory_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            rows: list[dict[str, Any]] = []
+            for section in ("users", "emails"):
+                section_payload = payload.get(section) if isinstance(payload, dict) else {}
+                if isinstance(section_payload, dict):
+                    rows.extend(row for row in section_payload.values() if isinstance(row, dict))
+            for row in rows:
+                row_aliases = {
+                    clean_spaces(row.get("tenant_id")),
+                    clean_spaces(row.get("tenant_slug")),
+                    clean_spaces(row.get("tenant_storage_key")),
+                }
+                row_aliases.discard("")
+                if row_aliases and row_aliases.intersection(known):
+                    for alias in row_aliases:
+                        add(alias)
+                    known.update(row_aliases)
+        return aliases
+
+    def _resolve_sqlite_tenant_id(self, db_path: Path, preferred: str, aliases: list[str]) -> str:
+        accepted = [alias for alias in aliases if alias]
+        if preferred and preferred not in accepted:
+            accepted.insert(0, preferred)
+        if not db_path.exists() or not accepted:
+            return preferred or (accepted[0] if accepted else "default")
+        try:
+            with sqlite3.connect(db_path) as con:
+                rows = [
+                    str(row[0] or "")
+                    for row in con.execute("SELECT DISTINCT tenant_id FROM legal_communications").fetchall()
+                    if str(row[0] or "").strip()
+                ]
+                available = [alias for alias in accepted if alias in rows]
+                if not available:
+                    return preferred or accepted[0]
+                scores: dict[str, int] = {alias: 0 for alias in available}
+                for table, weight in (
+                    ("legal_communications", 1),
+                    ("legal_events", 2),
+                    ("pec_receipt_events", 4),
+                    ("notification_jobs", 3),
+                    ("legal_deadlines", 3),
+                    ("agenda_events", 2),
+                ):
+                    try:
+                        table_rows = con.execute(
+                            f"SELECT tenant_id, COUNT(*) FROM {table} WHERE tenant_id IN ({','.join('?' for _ in available)}) GROUP BY tenant_id",
+                            available,
+                        ).fetchall()
+                    except Exception:
+                        continue
+                    for tenant_value, count in table_rows:
+                        tenant_key = str(tenant_value or "")
+                        if tenant_key in scores:
+                            scores[tenant_key] += int(count or 0) * weight
+        except Exception:
+            return preferred or accepted[0]
+        best = max(available, key=lambda alias: (scores.get(alias, 0), 1 if alias == preferred else 0))
+        if scores.get(best, 0) > 0:
+            return best
+        if preferred and preferred in available:
+            return preferred
+        for alias in available:
+            return alias
+        return preferred or accepted[0]
+
     def _tenant_manager(self, source_id: str, context: OperationalQueryContext | None) -> Any | None:
         paths = self._tenant_paths(context)
         if not paths:
@@ -1129,7 +1249,7 @@ class OperationalKnowledgeTools:
         db_path = tenant_data_path(key, current_app.config.get(key, ""), require_tenant=True)
         return GestioneEmailRicevute(db_path=db_path)
 
-    def _pec_audit_repository(self) -> Any | None:
+    def _pec_audit_repository(self, context: OperationalQueryContext | None = None) -> Any | None:
         if "pec_audit" in self.repositories:
             return self.repositories["pec_audit"]
         try:
@@ -1145,7 +1265,12 @@ class OperationalKnowledgeTools:
             db_path = Path(str(data_paths.get("PEC_AUDIT_DB") or email_db.parent / "pec_audit.sqlite"))
             if not db_path.exists():
                 return None
-            tenant_id = clean_spaces(getattr(g, "tenant_slug", "") or getattr(g, "auth_tenant_slug", "")) or "default"
+            preferred_tenant_id = clean_spaces(
+                getattr(g, "tenant_slug", "")
+                or getattr(g, "auth_tenant_slug", "")
+                or getattr(context, "tenant_id", "")
+            ) or "default"
+            tenant_id = self._resolve_sqlite_tenant_id(db_path, preferred_tenant_id, self._tenant_aliases(context))
             return PecAuditRepository(
                 db_path,
                 tenant_id=tenant_id,
@@ -1175,6 +1300,7 @@ class OperationalKnowledgeTools:
                 or getattr(g, "auth_tenant_slug", "")
                 or getattr(context, "tenant_id", "")
             ) or "default"
+            tenant_id = self._resolve_sqlite_tenant_id(db_path, tenant_id, self._tenant_aliases(context))
             return PecControlTowerRepository(
                 db_path,
                 tenant_id=tenant_id,
@@ -1872,8 +1998,41 @@ def _dict_get(row: Any, key: str) -> Any:
     return ""
 
 
+LEGAL_QUERY_STOPWORDS = {
+    "alla",
+    "allo",
+    "alle",
+    "agli",
+    "dalla",
+    "dalle",
+    "dello",
+    "della",
+    "degli",
+    "dei",
+    "del",
+    "per",
+    "con",
+    "che",
+    "una",
+    "uno",
+    "fonte",
+    "fonti",
+    "collegata",
+    "collegato",
+    "collegate",
+    "collegati",
+    "controllare",
+    "verificare",
+}
+
+
 def _terms(query: str) -> list[str]:
-    return [term for term in clean_spaces(query).lower().split() if len(term) >= 2][:8]
+    normalized = clean_spaces(query).lower().replace("-", " ")
+    return [
+        term
+        for term in normalized.split()
+        if len(term) >= 2 and term not in LEGAL_QUERY_STOPWORDS
+    ][:12]
 
 
 def _row_matches(payload: dict[str, Any], query: str) -> bool:
@@ -1997,6 +2156,10 @@ def _legal_practice_matrix_rows_for_query(query: str, *, limit: int = 12) -> lis
             "official_url": clean_spaces(item.get("url")),
             "articles": clean_spaces(item.get("articles")),
             "use": clean_spaces(item.get("use")),
+            "verified_on": clean_spaces(item.get("verified_on")),
+            "web_search_query": clean_spaces(item.get("web_search_query")),
+            "practice_steps": list(item.get("practice_steps") or []),
+            "lex_questions": list(item.get("lex_questions") or []),
             "linked_practices": [item for item in linked_practices if item],
             "action_url": "/ricerca-legale",
         }
@@ -2064,11 +2227,15 @@ def _practice_query_score(payload: dict[str, Any], terms: list[str]) -> int:
     identity = field_text("id", "title", "titolo", "articles", "articoli", "use", "uso_operativo")
     query = " ".join(terms)
     boosts = (
+        (("cartabia", "correttivo", "riforma", "rito", "decorrenze", "adr"), ("dlgs_164_2024_correttivo_civile", "dlgs_149_2022_riforma_civile", "dlgs_216_2024_correttivo_adr")),
         (("licenziamento",), ("legge_300_1970_statuto_lavoratori", "legge_604_1966_licenziamenti", "dlgs_23_2015_tutele_crescenti")),
-        (("pei", "sostegno", "graduatoria", "mim", "docente"), ("dlgs_66_2017_inclusione_scolastica", "dlgs_297_1994_testo_unico_scuola", "mim_atti_normativa_graduatorie")),
-        (("tar", "udienze", "decreti", "sentenze"), ("openga_calendario_udienze", "openga_decreti_ordinanze_sentenze")),
+        (("pei", "sostegno", "graduatoria", "mim", "docente"), ("dlgs_66_2017_inclusione_scolastica", "dlgs_297_1994_testo_unico_scuola", "mim_atti_normativa_graduatorie", "web_mim_di_182_2020_pei_linee_guida", "web_mim_dm_153_2023_pei_modelli")),
+        (("tar", "udienze", "decreti", "sentenze"), ("openga_calendario_udienze", "openga_decreti_ordinanze_sentenze", "web_openga_calendario_udienze_categoria", "web_openga_cds_sentenze_dataset")),
         (("foia", "accesso", "riesame"), ("dlgs_33_2013_accesso_civico", "anac_accesso_civico")),
         (("cartella", "esattoriale", "riscossione"), ("dpr_602_1973_riscossione", "agenzia_entrate_riscossione")),
+        (("processo", "penale", "pdp", "ppt"), ("web_dm_206_2025_modifiche_dm217_ppt", "web_gu_2026_process_penale_telematico_transitorio", "dm_217_2023_telematico", "pdp_penale_pst")),
+        (("tributario", "ptt", "sigit"), ("web_dlgs_220_2023_riforma_contenzioso_tributario", "web_mef_regole_tecniche_ptt_2017", "dlgs_546_1992_contenzioso_tributario", "dm_163_2013_ptt")),
+        (("deontologico", "equo", "compenso", "cnf"), ("web_gu_cnf_modifiche_cdf_2025_titolo_iv", "web_gu_cnf_art25bis_2026_equo_compenso", "cnf_codice_deontologico_2026", "legge_49_2023_equo_compenso")),
     )
     for query_terms, reference_ids in boosts:
         if any(term in query for term in query_terms) and any(ref_id in identity for ref_id in reference_ids):
@@ -2106,6 +2273,29 @@ def _source_delivery_specific_boost(query_text: str, payload: dict[str, Any]) ->
     if any(token in query_text for token in ("decreto legislativo", "decreti legislativi", "d.lgs", "legge", "leggi")):
         if any(token in identity for token in ("normattiva", "gazzetta", "codice_", "codice ")):
             boost += 14
+    if any(token in query_text for token in ("cartabia", "correttivo", "riforma civile", "riforma processo civile")):
+        if any(
+            token in identity
+            for token in (
+                "normattiva_d_lgs_164_2024_correttivo_cartabia_civile",
+                "dlgs_164_2024_correttivo_civile",
+                "correttivo cartabia civile",
+                "correttivo processo civile",
+            )
+        ):
+            boost += 140
+        elif any(
+            token in identity
+            for token in (
+                "normattiva_d_lgs_149_2022_cartabia_civile",
+                "dlgs_149_2022_riforma_civile",
+                "riforma civile cartabia",
+                "riforma processo civile",
+            )
+        ):
+            boost += 90
+        elif "normattiva_d_lgs_216_2024_correttivo_adr" in identity or "correttivo adr" in identity:
+            boost += 45 if "adr" in query_text else 20
     if any(token in query_text for token in ("decreto", "decreti", "ordinanza", "ordinanze")):
         if any(token in identity for token in ("decreti", "ordinanze", "cassazione", "openga")):
             boost += 18

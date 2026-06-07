@@ -300,19 +300,11 @@ class OperationalResponseComposer:
         if documenti:
             lines.append(f"Documenti del fascicolo collegati o indicizzati: {len(documenti)}.")
             if route.intent in {"documenti_fascicolo", "fascicolo_summary"} and document_analysis_requested:
-                lines.append("Punti importanti verificabili dai documenti disponibili:")
-            if route.intent in {"documenti_fascicolo", "fascicolo_summary"} and document_analysis_requested:
-                for row in documenti[:5]:
-                    lines.append(f"- {_document_line(row)}")
-                    excerpt = _document_excerpt(row)
-                    if excerpt:
-                        lines.append(f"  Estratto leggibile: {excerpt}")
+                lines.extend(_professional_case_analysis_lines(fascicoli[0] if fascicoli else {}, documenti, question))
                 if any(clean_spaces(row.get("anteprima") or row.get("summary") or row.get("content") or row.get("text")) for row in documenti):
-                    lines.append("Ho usato il testo indicizzato disponibile; eventuali sezioni non indicizzate restano da verificare nel documento originale.")
+                    lines.append("Metodo: ho usato il testo indicizzato disponibile e ho separato fatti leggibili, rischi, lacune e prossime azioni; le parti non indicizzate restano da verificare nel documento originale.")
                 else:
                     lines.append("Il testo integrale non risulta disponibile in questa evidenza: non invento contenuti e segnalo solo metadati, data, tipo, hash e link editor.")
-                if route.intent == "fascicolo_summary" and _looks_like_missing_or_next_steps(question):
-                    lines.append("Cosa manca e prossimi passi vanno confermati sulle fonti operative mostrate: controlla estratti, allegati, scadenze, ricevute e documenti non ancora firmati o non ancora classificati.")
             else:
                 lines.extend(f"- {_document_line(row)}" for row in documenti[:5])
         outcome_documents = [row for row in documenti if _is_outcome_document(row)]
@@ -513,8 +505,14 @@ class OperationalResponseComposer:
             for row in rows
             if clean_spaces(row.get("kind")) == "centro_fonti_operativo"
         ]
-        if source_delivery_rows:
-            lines = [f"Fonti operative pertinenti trovate: {len(source_delivery_rows)}."]
+        practice_rows = [
+            row
+            for row in _data_for(results, "matrice_pratica_legale")
+            if clean_spaces(row.get("kind") or row.get("tipo")) in {"scheda_pratica_legale", "riferimento_nominale_legale"}
+        ]
+        attachment_rows = [row for row in rows if clean_spaces(row.get("attachment_url") or row.get("url_allegato"))]
+        if (source_delivery_rows or practice_rows) and not attachment_rows:
+            lines = [f"Fonti operative pertinenti trovate: {len(source_delivery_rows) + len(practice_rows)}."]
             for row in source_delivery_rows[:6]:
                 title = _label(row)
                 state = clean_spaces(row.get("state"))
@@ -552,6 +550,46 @@ class OperationalResponseComposer:
                     lines.append(f"  Domanda Lex da verificare: {question_line}.")
                 if url:
                     lines.append(f"  Fonte: {_markdown_link(url, label='Apri fonte ufficiale')}.")
+            for row in practice_rows[:6]:
+                kind = clean_spaces(row.get("kind") or row.get("tipo"))
+                title = clean_spaces(row.get("title") or row.get("titolo") or row.get("id"))
+                if not title:
+                    continue
+                authority = clean_spaces(row.get("authority") or row.get("autorita"))
+                source_type = clean_spaces(row.get("source_type") or row.get("tipo_fonte") or kind)
+                url = clean_spaces(row.get("official_url") or row.get("url_ufficiale"))
+                articles = clean_spaces(row.get("articles") or row.get("articoli"))
+                use = clean_spaces(row.get("use") or row.get("uso_operativo") or row.get("scope") or row.get("perimetro"))
+                steps = [
+                    clean_spaces(item)
+                    for item in list(row.get("practice_steps") or row.get("passaggi_pratici") or row.get("acts_to_prepare") or row.get("atti_da_produrre") or [])
+                    if clean_spaces(item)
+                ]
+                lex_questions = [
+                    clean_spaces(item)
+                    for item in list(row.get("lex_questions") or row.get("domande_lex") or [])
+                    if clean_spaces(item)
+                ]
+                linked = [
+                    clean_spaces(item)
+                    for item in list(row.get("linked_practices") or row.get("pratiche_collegate") or [])
+                    if clean_spaces(item)
+                ]
+                lines.append(f"- **{title}**: {source_type}.")
+                if authority:
+                    lines.append(f"  Autorità: {authority}.")
+                if articles:
+                    lines.append(f"  Riferimento specifico: {_sentence_text(articles)}")
+                if use:
+                    lines.append(f"  Uso in pratica: {_sentence_text(use)}")
+                if steps:
+                    lines.append(f"  Passaggi operativi: {_join_clean_sentences(steps[:2])}.")
+                if linked:
+                    lines.append(f"  Pratiche collegate: {_join_clean_sentences(linked[:3])}.")
+                if lex_questions:
+                    lines.append(f"  Domande Lex da verificare: {_join_clean_sentences(lex_questions[:2])}.")
+                if url:
+                    lines.append(f"  Fonte: {_markdown_link(url, label='Apri fonte ufficiale')}.")
             display_gaps = [
                 gap
                 for gap in gaps
@@ -561,7 +599,6 @@ class OperationalResponseComposer:
                 lines.append("Limiti: " + "; ".join(display_gaps[:3]) + ".")
             lines.append("Uso professionale: una fonte catalogata non basta per citare in atto; prima va collegata al documento, alla regola vigente, al modello o alla prova del fascicolo.")
             return lines
-        attachment_rows = [row for row in rows if clean_spaces(row.get("attachment_url") or row.get("url_allegato"))]
         if attachment_rows:
             primary = attachment_rows[0]
             title = _label(primary)
@@ -868,6 +905,135 @@ def _document_excerpt(row: dict[str, Any], *, limit: int = 520) -> str:
     if len(excerpt) <= limit:
         return excerpt
     return excerpt[: limit - 3].rstrip() + "..."
+
+
+def _professional_case_analysis_lines(
+    fascicolo: dict[str, Any],
+    documenti: list[dict[str, Any]],
+    question: str,
+) -> list[str]:
+    haystack = clean_spaces(
+        " ".join(
+            [
+                str(fascicolo.get(key) or "")
+                for key in ("titolo", "oggetto", "nome_cliente", "controparte", "tribunale", "stato")
+            ]
+            + [
+                str(row.get(key) or "")
+                for row in documenti
+                for key in ("nome", "title", "titolo", "tipo", "anteprima", "summary", "content", "text")
+            ]
+        )
+    ).lower()
+    lines: list[str] = ["Sintesi operativa per l'avvocato:"]
+    lines.append(f"- Inquadramento: {_case_operational_frame(haystack)}")
+    key_documents = _case_key_documents(documenti)
+    if key_documents:
+        lines.append("- Documenti chiave letti o indicizzati:")
+        lines.extend(f"  - {item}" for item in key_documents[:6])
+    risks = _case_risk_lines(haystack)
+    if risks:
+        lines.append("- Rischi aperti da presidiare:")
+        lines.extend(f"  - {item}" for item in risks[:5])
+    missing = _case_missing_lines(haystack, documenti)
+    if missing:
+        lines.append("- Cosa manca o va confermato:")
+        lines.extend(f"  - {item}" for item in missing[:6])
+    next_steps = _case_next_step_lines(haystack, question)
+    if next_steps:
+        lines.append("- Prossimi passi operativi:")
+        lines.extend(f"  - {item}" for item in next_steps[:6])
+    return lines
+
+
+def _case_operational_frame(haystack: str) -> str:
+    if any(token in haystack for token in ("ministero dell'istruzione", "mim", "scuola", "docente", "sostegno", "pei")):
+        if any(token in haystack for token in ("tempo determinato", "contratti scolastici", "contratto individuale di lavoro")):
+            return "pratica scolastica/lavoro pubblico contro amministrazione scolastica, con verifica di contratti a termine, servizio prestato, crediti o tutela del rapporto."
+        return "pratica scolastica o amministrativa collegata a MIM/scuola, da leggere con fascicolo documentale, provvedimenti dell'istituto e termini di tutela."
+    if any(token in haystack for token in ("decreto ingiuntivo", "opposizione", "provvisoria esecutorieta", "provvisoria esecutoriet")):
+        return "opposizione o contenzioso civile monitorio: il punto centrale e' prova del credito, tempestivita' dell'opposizione e sospensione della provvisoria esecuzione."
+    if any(token in haystack for token in ("sentenza", "accoglimento", "rigetto", "condanna alle spese")):
+        return "fascicolo con provvedimento o esito leggibile: serve presidiare termini successivi, notifica, impugnazione o adempimenti conseguenti."
+    if haystack:
+        return "fascicolo attivo con documenti indicizzati: il sistema distingue dati letti, lacune e passaggi da confermare prima di generare atti o scadenze."
+    return "fascicolo attivo senza testo documentale sufficiente: si possono usare solo metadati e collegamenti interni."
+
+
+def _case_key_documents(documenti: list[dict[str, Any]]) -> list[str]:
+    ranked = sorted(
+        documenti,
+        key=lambda row: (
+            0 if _is_outcome_document(row) else 1,
+            0 if _document_excerpt(row) else 1,
+            clean_spaces(row.get("nome") or row.get("title") or row.get("titolo")),
+        ),
+    )
+    result: list[str] = []
+    for row in ranked:
+        line = _document_line(row).rstrip(".")
+        excerpt = _document_excerpt(row, limit=180)
+        if excerpt:
+            line += f" - evidenza: {_sentence_text(_short_text(excerpt, max_length=180))}"
+        result.append(line if line.endswith(".") else line + ".")
+    return _unique_strings(result)
+
+
+def _case_risk_lines(haystack: str) -> list[str]:
+    risks: list[str] = []
+    if any(token in haystack for token in ("decadenza", "termine", "impugnazione", "prescrizione")):
+        risks.append("termine, prescrizione o decadenza da calcolare e confermare nello scadenziario con regola verificabile.")
+    if any(token in haystack for token in ("tempo determinato", "contratti scolastici", "contratto individuale di lavoro")):
+        risks.append("prova delle annualità di servizio e coerenza tra contratti, stato di servizio, buste paga e domanda giudiziale.")
+    if any(token in haystack for token in ("ministero dell'istruzione", "mim", "scuola", "docente")):
+        risks.append("individuazione corretta dell'amministrazione resistente, dell'ufficio competente e della procedura applicabile.")
+    if any(token in haystack for token in ("decreto ingiuntivo", "opposizione")):
+        risks.append("tempestivita' dell'opposizione, prova del credito e valutazione della sospensione della provvisoria esecuzione.")
+    if any(token in haystack for token in ("sentenza", "ordinanza", "provvedimento")):
+        risks.append("termine successivo da presidiare: notifica, impugnazione, esecuzione, ottemperanza o deposito prova.")
+    return _unique_strings(risks)
+
+
+def _case_missing_lines(haystack: str, documenti: list[dict[str, Any]]) -> list[str]:
+    missing: list[str] = []
+    if any(token in haystack for token in ("tempo determinato", "contratti scolastici", "ministero dell'istruzione", "mim")):
+        missing.extend(
+            [
+                "stato di servizio completo, nomine/contratti per anno scolastico e prove della continuità del servizio.",
+                "buste paga, CU, diffide o atti interruttivi se la domanda riguarda differenze retributive, ricostruzione o prescrizione.",
+                "provvedimenti MIM/USR/istituto, graduatorie o comunicazioni amministrative rilevanti per individuare domanda e convenuto.",
+            ]
+        )
+    if "procura" not in haystack and "mandato" not in haystack:
+        missing.append("procura alle liti o mandato, se non presente in altra sezione del fascicolo.")
+    if not any(_is_outcome_document(row) for row in documenti):
+        missing.append("provvedimento, verbale o sentenza conclusiva: non risulta leggibile tra i documenti indicizzati.")
+    if not any(token in haystack for token in ("ricevuta", "accettazione", "consegna", "pec")):
+        missing.append("ricevute PEC, deposito o prova di notifica collegata, se la fase processuale la richiede.")
+    return _unique_strings(missing)
+
+
+def _case_next_step_lines(haystack: str, question: str) -> list[str]:
+    steps: list[str] = []
+    if any(token in haystack for token in ("tempo determinato", "contratti scolastici", "ministero dell'istruzione", "mim")):
+        steps.extend(
+            [
+                "costruire tabella annualità/contratti/documenti e collegarla a scadenziario e atto da produrre.",
+                "scegliere domanda praticabile: accertamento rapporto, ricostruzione carriera, differenze, risarcimento o accesso atti, in base ai documenti presenti.",
+            ]
+        )
+    if any(token in haystack for token in ("decreto ingiuntivo", "opposizione")):
+        steps.extend(
+            [
+                "verificare data notifica/deposito e calcolare il termine dell'opposizione.",
+                "preparare capitoli su prova del credito, sospensione e documenti mancanti del creditore.",
+            ]
+        )
+    if any(token in haystack for token in ("sentenza", "ordinanza", "provvedimento")):
+        steps.append("aprire scheda esito, calcolare termini successivi e preparare eventuale notifica, impugnazione o prova deposito.")
+    if _looks_like_missing_or_next_steps(question) and not steps:
+        steps.append("completare inventario documenti, associare scadenze/agenda/PEC e poi generare checklist dell'atto successivo.")
+    return _unique_strings(steps)
 
 
 _OUTCOME_DOCUMENT_TOKENS = (
@@ -2020,7 +2186,8 @@ def _pec_control_item_lines(row: dict[str, Any], *, answer_kind: str = "") -> li
     status = _pec_control_status_label(row.get("status") or row.get("stato"))
     risk = clean_spaces(row.get("risk_level") or row.get("priority"))
     date_value = _format_italian_date(row.get("received_at") or row.get("due_at") or row.get("created_at") or row.get("start_at"))
-    pieces = [piece for piece in (f"stato {status}" if status else "", f"rischio {risk}" if risk else "", date_value) if piece]
+    status_prefix = "prova" if answer_kind == "complete_proof" else "stato"
+    pieces = [piece for piece in (f"{status_prefix} {status}" if status else "", f"rischio {risk}" if risk else "", date_value) if piece]
     lines = [f"- {link}: {'; '.join(pieces) if pieces else 'da presidiare'}."]
     matter_id = clean_spaces(row.get("fascicolo_id") or row.get("matter_id"))
     if matter_id:
@@ -2042,6 +2209,22 @@ def _pec_control_item_lines(row: dict[str, Any], *, answer_kind: str = "") -> li
         complete = row.get("proof_complete") is True
         missing = [_pec_proof_role_label(item) for item in list(row.get("missing_roles") or []) if clean_spaces(item)]
         lines.append("  Prova: completa." if complete else f"  Prova: incompleta{(' - manca ' + ', '.join(missing)) if missing else ''}.")
+        proofs = [dict(item) for item in list(row.get("proofs") or []) if isinstance(item, dict)]
+        if proofs:
+            proof_lines: list[str] = []
+            role_order = {"acceptance": 0, "delivery": 1, "failed_delivery": 2}
+            for proof in sorted(proofs, key=lambda item: role_order.get(clean_spaces(item.get("role")), 99)):
+                role = _pec_proof_role_label(proof.get("role"))
+                receipt_at = _format_italian_date(proof.get("receipt_at") or proof.get("created_at"))
+                recipient = clean_spaces(proof.get("recipient"))
+                pieces = [role]
+                if receipt_at:
+                    pieces.append(receipt_at)
+                if recipient:
+                    pieces.append(f"destinatario {recipient}")
+                proof_lines.append(" - ".join(pieces))
+            if proof_lines:
+                lines.append("  Ricevute collegate: " + "; ".join(proof_lines[:4]) + ".")
     deadlines = [dict(item) for item in list(row.get("deadlines") or []) if isinstance(item, dict)]
     for deadline in deadlines[:2]:
         due = _format_italian_date(deadline.get("due_at")) or clean_spaces(deadline.get("due_at"))

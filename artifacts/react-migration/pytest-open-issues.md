@@ -1,5 +1,15 @@
 # Pytest issue aperte e risoluzioni
 
+## Lex/RAG, PEC e Ricerca Legale 2.249.24 - 2026-06-07
+
+Nessuna issue di codice aperta sul perimetro mirato dopo il rilancio ampio Lex/RAG, PEC, Ricerca Legale, packaging e OpenAPI.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Ricerca Legale filtri materia/fallback | `tests\test_react_legal_intelligence_search.py` | Risolto localmente | Il primo rilancio completo falliva perché il filtro esatto trattava “ricorso TAR” come fonte esclusiva, tagliava MASE nelle pratiche ambientali, non manteneva risultati live quando i record interni superavano il limite e lasciava schede nominali chiudere ricerche correnti come usura/tassi. | Mantenere i test su ambiente, immigrazione, inPA, Corte Costituzionale n. 50/2026, PDF ufficiale e limite letture live prima di toccare il bridge Ricerca Legale. |
+| Lex questione penale R.G. 9926/2026 | Gate ampio `tests\test_lex_operational_knowledge.py ...` | Risolto localmente | Il nuovo Centro Fonti veniva composto prima del blocco PDF: Lex rispondeva con “Fonti operative pertinenti” invece di sintetizzare scheda, allegato ufficiale, norme, udienza e discrepanza R.G. Ora gli allegati ufficiali hanno priorità. | Quando una domanda contiene R.G., questione penale/civile, allegato, PDF o ordinanza di rimessione, il gate deve verificare la risposta sul documento ufficiale e non solo la presenza di fonti catalogate. |
+| Docker locale e deploy Hetzner | Gate finale di rilascio | Da eseguire prima di chiusura release | I gate codice mirati sono verdi; restano obbligatori Docker reale `127.0.0.1:8080`, commit/push branch gemelli, gate GitHub e deploy Hetzner. | Eseguire i gate finali di release prima di dichiarare il lavoro distribuito. |
+
 ## PEC Control Tower e Lex AI 2.249.19 - 2026-06-06
 
 Nessuna issue di codice aperta sul perimetro repository/API/Lex dopo test mirati e script reale generativo.

@@ -1,5 +1,16 @@
 # Pytest shard confermati OK
 
+## Lex/RAG, PEC e Ricerca Legale 2.249.24 - 2026-06-07
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\operational_knowledge\tools.py lex\operational_knowledge\response_composer.py lex\operational_knowledge\query_router.py lex\tools\legal_studio_tools.py pct\pec_control_tower.py pct\legal_practice_research_matrix.py scripts\audit_legal_practice_matrix.py web\services\react_legal_intelligence_bridge.py` | OK | Sintassi confermata sui moduli Lex/RAG, PEC Control Tower, matrice pratica e bridge Ricerca Legale. |
+| `python scripts\audit_legal_practice_matrix.py --fail-on-incomplete --output-dir artifacts\legal-sources` | OK | Audit matrice: 25 schede, 114 riferimenti nominali, 24 ricerche web registrate, 0 issue, copertura dichiarata 100% sul perimetro auditato. |
+| `python -m pytest tests\test_react_legal_intelligence_search.py -q --tb=short` | OK | 35/35: Ricerca Legale copre Centro Fonti, Guida/RAG, DB normativa, matrice pratica, riferimenti nominali, filtri materia, fallback ufficiale, PDF OCR e limiti letture live. |
+| `python -m pytest tests\test_lex_operational_knowledge.py::test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale tests\test_lex_operational_knowledge.py::test_rg_questione_penale_risponde_a_domande_da_avvocato tests\test_lex_operational_knowledge.py::test_rg_questione_penale_articoli_attiva_web_libero_distinto_dalla_fonte_ufficiale tests\test_lex_operational_knowledge.py::test_rg_questione_penale_non_trascina_fonti_non_pertinenti tests\test_lex_operational_knowledge.py::test_rg_questione_penale_prefisso_template_resta_fonte_ufficiale tests\test_lex_operational_knowledge.py::test_rg_questione_penale_end_to_end_da_legal_updates_db -q --tb=short` | OK | 16/16: Lex risponde su questione penale R.G. 9926/2026 con PDF ufficiale, norme, udienza, discrepanza R.G., uso prudente e web libero sugli articoli senza farsi mascherare dal Centro Fonti. |
+| `python -m pytest tests\test_lex_operational_knowledge.py tests\test_pec_control_tower.py tests\test_legal_practice_research_matrix.py tests\test_react_legal_intelligence_search.py tests\test_packaging_consistency.py tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | Gate ampio mirato verde: Lex/RAG, PEC Control Tower, matrice fonti, Ricerca Legale, packaging e contratti OpenAPI. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\react-migration\generate_api_contracts.py --check` | OK | Packaging e contratti API allineati alla versione 2.249.24. |
+
 ## PEC Control Tower e Lex AI 2.249.19 - 2026-06-06
 
 | Comando / verifica | Esito | Nota |

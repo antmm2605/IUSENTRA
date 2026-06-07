@@ -21,6 +21,7 @@ from pct.legal_practice_research_matrix import (
     LEGAL_NOMINAL_REFERENCE_LIBRARY,
     LEGAL_PRACTICE_RESEARCH_MATRIX,
     LEGAL_PRACTICE_RESEARCH_MATRIX_VERSION,
+    LEGAL_WEB_RESEARCH_VERIFIED_REFERENCES,
     PRODUCT_DESTINATIONS,
 )
 
@@ -53,6 +54,12 @@ REQUIRED_REFERENCE_FIELDS = (
     "url",
     "articles",
     "use",
+)
+REQUIRED_WEB_RESEARCH_FIELDS = (
+    "verified_on",
+    "web_search_query",
+    "practice_steps",
+    "lex_questions",
 )
 
 OFFICIAL_URL_HINTS = (
@@ -206,6 +213,10 @@ def _audit_references(practice_ids: set[str]) -> tuple[list[dict[str, Any]], lis
         for practice_id in unknown_practices:
             reference_issues.append(f"{prefix}: pratica collegata inesistente `{practice_id}`")
 
+        is_web_verified = bool(_text(reference.get("verified_on"))) or reference_id.startswith("web_")
+        if is_web_verified:
+            reference_issues.extend(_missing_field_issues(prefix, reference, REQUIRED_WEB_RESEARCH_FIELDS))
+
         rows.append(
             {
                 "id": reference_id,
@@ -214,6 +225,10 @@ def _audit_references(practice_ids: set[str]) -> tuple[list[dict[str, Any]], lis
                 "kind": _text(reference.get("kind")),
                 "practice_ids": linked_practices,
                 "url": url,
+                "verified_on": _text(reference.get("verified_on")),
+                "web_search_query": _text(reference.get("web_search_query")),
+                "practice_steps": len(_list(reference.get("practice_steps"))),
+                "lex_questions": len(_list(reference.get("lex_questions"))),
                 "covered": not reference_issues,
                 "issues": reference_issues,
             }
@@ -239,6 +254,8 @@ def build_audit() -> dict[str, Any]:
     issues = card_issues + reference_issues
     covered_cards = sum(1 for row in cards if row["covered"])
     covered_references = sum(1 for row in references if row["covered"])
+    web_research_references = [row for row in references if _text(row.get("verified_on")) or row["id"].startswith("web_")]
+    covered_web_research_references = sum(1 for row in web_research_references if row["covered"])
     total_units = len(cards) + len(references)
     covered_units = covered_cards + covered_references
     coverage_percent = round((covered_units / total_units) * 100, 2) if total_units else 0.0
@@ -254,6 +271,10 @@ def build_audit() -> dict[str, Any]:
             "references": len(references),
             "covered_cards": covered_cards,
             "covered_references": covered_references,
+            "web_research_verified_references": len(web_research_references),
+            "web_research_registered_references": len(LEGAL_WEB_RESEARCH_VERIFIED_REFERENCES),
+            "covered_web_research_verified_references": covered_web_research_references,
+            "web_research_declared_status": "100%" if web_research_references and covered_web_research_references == len(web_research_references) else "non dichiarabile",
             "issues": len(issues),
             "coverage_percent": coverage_percent,
             "declared_coverage_status": "100%" if not issues else "non dichiarabile",

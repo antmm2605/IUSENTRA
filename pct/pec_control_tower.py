@@ -954,18 +954,24 @@ class PecControlTowerRepository:
         kind = _question_kind(question)
         with self._connect() as con:
             if kind == "deadlines_today":
-                items = [
+                today_rome = now_rome_date()
+                candidates = [
                     self._communication_from_row(con, row)
                     for row in con.execute(
                         """
                         SELECT DISTINCT c.* FROM legal_communications c
                         JOIN legal_deadlines d ON d.communication_id=c.id
-                        WHERE c.tenant_id=? AND substr(c.received_at, 1, 10)=?
+                        WHERE c.tenant_id=?
                         ORDER BY c.received_at DESC LIMIT ?
                         """,
-                        (self.tenant_id, now_rome_date().isoformat(), limit),
+                        (self.tenant_id, max(50, int(limit or 20) * 8)),
                     ).fetchall()
                 ]
+                items = [
+                    row
+                    for row in candidates
+                    if (_parse_dt(row.get("received_at")) or datetime.now(timezone.utc)).astimezone(ROME_TZ).date() == today_rome
+                ][:limit]
                 summary = f"PEC ricevute oggi con scadenze generate: {len(items)}."
             elif kind == "notifications_to_do":
                 items = [
@@ -1054,7 +1060,8 @@ class PecControlTowerRepository:
                 summary = f"Notifiche fallite o da rimediare: {len(items)}."
             elif kind == "complete_proof":
                 items = self._receipt_proof_bundles(con, limit=limit)
-                summary = f"Fascicoli prova notifica ricostruiti: {len(items)}."
+                complete_count = sum(1 for item in items if item.get("proof_complete"))
+                summary = f"Fascicoli prova notifica ricostruiti: {len(items)} ({complete_count} completi)."
             elif kind == "confirmed_deadlines":
                 items = [
                     _deadline_from_row(row)
@@ -1784,9 +1791,18 @@ class PecControlTowerRepository:
             bundle["missing_roles"] = sorted({"acceptance", "delivery"} - roles)
             bundle["status"] = "complete" if bundle["proof_complete"] else "partial"
             result.append(bundle)
-            if len(result) >= limit:
-                break
-        return result
+        result.sort(
+            key=lambda item: (
+                0 if item.get("proof_complete") else 1,
+                str(item.get("received_at") or ""),
+            ),
+            reverse=False,
+        )
+        complete = [item for item in result if item.get("proof_complete")]
+        partial = [item for item in result if not item.get("proof_complete")]
+        complete.sort(key=lambda item: str(item.get("received_at") or ""), reverse=True)
+        partial.sort(key=lambda item: str(item.get("received_at") or ""), reverse=True)
+        return [*complete, *partial][:limit]
 
 
 def parse_pec_mime(raw_mime: bytes) -> dict[str, Any]:

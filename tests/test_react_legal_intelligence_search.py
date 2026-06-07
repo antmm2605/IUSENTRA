@@ -315,6 +315,78 @@ def test_ricerca_legale_cerca_matrice_pratica_e_riferimenti_nominali_senza_fallb
     )
 
 
+def test_ricerca_legale_filtro_materia_non_mischia_riferimenti_generici_dm(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("la ricerca deve usare matrice e fonti verificate senza fallback live")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    pei = _payload(_Repository(), page="ricerca-legale", query={"q": "PEI sostegno D.M. 153 2023 MIM"})
+    deontologia = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "codice deontologico art 25-bis equo compenso 2026"},
+    )
+    cartabia = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "Fonte correttiva collegata alla riforma civile Cartabia rito decorrenze famiglia esecuzione notifiche ADR"},
+    )
+
+    pei_ids = {record["id"] for record in pei["records"]}
+    deontologia_ids = {record["id"] for record in deontologia["records"]}
+    cartabia_ids = {record["id"] for record in cartabia["records"]}
+
+    assert "practice-reference:web_mim_dm_153_2023_pei_modelli" in pei_ids
+    assert "practice-reference:web_mim_di_182_2020_pei_linee_guida" in pei_ids
+    assert "practice-reference:web_dm_206_2025_modifiche_dm217_ppt" not in pei_ids
+    assert "practice-reference:web_gu_cnf_art25bis_2026_equo_compenso" in deontologia_ids
+    assert "practice-reference:web_mim_di_182_2020_pei_linee_guida" not in deontologia_ids
+    assert "practice-reference:dlgs_164_2024_correttivo_civile" in cartabia_ids
+    assert "practice-reference:dlgs_149_2022_riforma_civile" in cartabia_ids
+
+
+def test_ricerca_legale_espone_sentenz_nominali_utili_allo_studio(monkeypatch):
+    def _unexpected_public_search(*args, **kwargs):
+        raise AssertionError("i precedenti nominativi verificati devono essere gia' pubblicati in Ricerca Legale")
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _unexpected_public_search)
+
+    sostegno = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "sentenza sostegno scolastico disabilita Corte costituzionale ore PEI"},
+    )
+    lavoro = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "sentenza licenziamento tutele crescenti indennita fatto materiale"},
+    )
+    appalti = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "sentenza accesso civico appalti Adunanza Plenaria termine aggiudicazione"},
+    )
+    penale = _payload(
+        _Repository(),
+        page="ricerca-legale",
+        query={"q": "sentenza giustizia riparativa impugnazione Sezioni Unite penali 5166 2026"},
+    )
+
+    sostegno_ids = {record["id"] for record in sostegno["records"]}
+    lavoro_ids = {record["id"] for record in lavoro["records"]}
+    appalti_ids = {record["id"] for record in appalti["records"]}
+    penale_ids = {record["id"] for record in penale["records"]}
+
+    assert "practice-reference:web_corte_cost_80_2010_sostegno_scolastico" in sostegno_ids
+    assert "practice-reference:web_corte_cost_275_2016_diritti_disabili_bilancio" in sostegno_ids
+    assert "practice-reference:web_corte_cost_194_2018_tutele_crescenti_licenziamento" in lavoro_ids
+    assert "practice-reference:web_corte_cost_128_2024_gmo_fatto_materiale" in lavoro_ids
+    assert "practice-reference:web_cds_ap_10_2020_accesso_civico_appalti" in appalti_ids
+    assert "practice-reference:web_cds_ap_12_2020_termini_impugnazione_appalti" in appalti_ids
+    assert "practice-reference:web_cass_su_5166_2026_giustizia_riparativa_impugnazione" in penale_ids
+
+
 def test_ricerca_legale_espone_db_normativa_operativo():
     normative_snapshot = {
         "totali": 2,

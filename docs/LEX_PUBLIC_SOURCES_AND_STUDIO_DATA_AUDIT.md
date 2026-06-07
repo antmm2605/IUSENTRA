@@ -2,7 +2,57 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento gate reali Lex/RAG/Ricerca Legale - 7 giugno 2026
+
+Le verifiche di Lex non possono più limitarsi a controlli di presenza, conteggi
+o risposte tecnicamente non vuote. Ogni lavoro su RAG, fonti, fascicoli,
+scadenziario, PEC o Ricerca Legale deve superare domande reali dell'avvocato e
+produrre una risposta professionalmente utilizzabile.
+
+Gate introdotti:
+
+- la domanda sulla fonte correttiva Cartabia civile deve restituire fonti
+  ufficiali e pratica legale, inclusi D.Lgs. 149/2022, D.Lgs. 164/2024 e uso
+  operativo su rito, famiglia, esecuzione, notifiche e ADR;
+- la domanda sulla sintesi del fascicolo attivo deve produrre inquadramento,
+  documenti chiave, rischi, cosa manca e prossimi passi, non solo estratti OCR o
+  metadati;
+- la domanda sulla prova completa di una notifica deve leggere la PEC Control
+  Tower reale dello studio, risolvere gli alias tenant autorizzati e mostrare
+  accettazione, consegna, orari italiani e destinatari quando presenti;
+- le domande sulle PEC ricevute `oggi` devono confrontare la data convertita in
+  `Europe/Rome`, non il prefisso testuale della data salvata in UTC;
+- la Ricerca Legale deve pubblicare riferimenti nominali e filtrabili per
+  materia, inclusi precedenti Corte costituzionale, Cassazione Sezioni Unite e
+  Consiglio di Stato, senza sostituirli con categorie generiche.
+
+Audit di riferimento:
+`artifacts/legal-sources/legal-work-real-gates-2026-06-07.md`.
+
+Verifiche eseguite: test mirati su Cartabia, fascicolo scolastico/MIM, tenant
+alias PEC, prova completa, Ricerca Legale e audit matrice pratica. Sul database
+reale locale `pec_control_tower.sqlite`, Lex risolve l'alias dati
+`tenant-8bf98719c459` e la domanda `Qual è la prova completa di questa
+notifica?` non torna più a zero quando le ricevute sono presenti.
+
 ## Aggiornamento Centro Fonti Ufficiali Lex e pacchetto giuridico minimo - 6 giugno 2026
+
+Aggiornamento di revisione estesa dello stesso giorno: una consegna non puo'
+essere dichiarata chiusa solo perche' una fonte risulta censita. Lex deve
+superare domande reali dell'avvocato, compresa la domanda "Fonte correttiva
+collegata alla riforma civile Cartabia per controllare rito, decorrenze,
+famiglia, esecuzione, notifiche e ADR". Questa domanda deve andare alla route
+fonti ufficiali/pratica legale, non alla route notifiche interne, e deve
+restituire D.Lgs. 164/2024, D.Lgs. 149/2022, uso operativo, atti/scadenze
+collegati e limite professionale.
+
+La matrice pratica deve inoltre includere precedenti nominativi utili alla
+strategia, non frasi generiche su "giurisprudenza". Ogni sentenza o udienza che
+entra nel perimetro deve avere autorita', numero, URL ufficiale, data di
+verifica, passaggi pratici, domanda Lex e destinazione Ricerca Legale/Lex/RAG.
+Se un precedente, fonte, decreto, udienza o collegamento manca, il lavoro resta
+da completare: non va sostituito da categoria astratta, nota generica o invito
+all'avvocato a verificare da solo.
 
 Il Centro Fonti Ufficiali Lex non è più solo un elenco di sorgenti: lo script
 `scripts/audit_legal_source_delivery.py` attraversa configurazione fonti,

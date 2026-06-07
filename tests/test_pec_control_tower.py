@@ -9,7 +9,8 @@ from types import SimpleNamespace
 
 from flask import Flask, g
 
-from lex.operational_knowledge.models import OperationalQueryContext
+from lex.operational_knowledge.models import OperationalQueryContext, OperationalRoute
+from lex.operational_knowledge.response_composer import OperationalResponseComposer
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
 from pct.pec_control_tower import PecControlTowerRepository, build_synthetic_pec_eml
 from web.blueprints.pec_control_tower_api import pec_control_tower_api
@@ -162,6 +163,133 @@ def test_pec_control_tower_backfill_keeps_tenants_separated(tmp_path):
     assert {row["legal_category"] for row in rows_b} == {"PROVVEDIMENTO_GIUDIZIARIO"}
     assert all(row["tenant_id"] == "studio-a" for row in rows_a)
     assert all(row["tenant_id"] == "studio-b" for row in rows_b)
+
+
+def test_lex_pec_control_tower_risolve_alias_tenant_e_mostra_prova_completa(tmp_path, monkeypatch):
+    data_root = tmp_path / "data"
+    db_path = data_root / "tenants" / "tenant-storage" / "email" / "pec_control_tower.sqlite"
+    db_path.parent.mkdir(parents=True)
+    repo = PecControlTowerRepository(db_path, tenant_id="tenant-storage")
+    created_at = "2026-06-06T12:00:00+02:00"
+    with repo._connect() as con:
+        for index, role in enumerate(("acceptance", "delivery"), start=1):
+            communication_id = f"comm-{role}"
+            con.execute(
+                """
+                INSERT INTO legal_communications
+                (id, tenant_id, direction, account_email, folder, message_id_header, original_message_id,
+                 subject, sender, recipients_json, received_at, sent_at, mime_sha256, technical_type,
+                 legal_category, legal_event_type, confidence, confidence_label, requires_human_confirmation,
+                 status, fascicolo_id, fascicolo_score, risk_level, summary, extracted_json, evidence_json,
+                 source_json, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    communication_id,
+                    "tenant-storage",
+                    "outbound",
+                    "studio@example.pec.it",
+                    "INBOX",
+                    f"<receipt-{role}@pec.test>",
+                    "<atto-notificato@pec.test>",
+                    f"Ricevuta PEC {role}",
+                    "posta-certificata@pec.test",
+                    "[]",
+                    f"2026-06-06T12:0{index}:00+02:00",
+                    "",
+                    f"{role}-sha256",
+                    "pec_receipt",
+                    "PEC_OUTBOUND_PROOF",
+                    f"PEC_RECEIPT_{role.upper()}",
+                    0.99,
+                    "alta",
+                    0,
+                    "open",
+                    "FASC-1",
+                    1.0,
+                    "media",
+                    f"Ricevuta PEC {role}",
+                    "{}",
+                    "{}",
+                    "{}",
+                    created_at,
+                    created_at,
+                ),
+            )
+            con.execute(
+                """
+                INSERT INTO pec_receipt_events
+                (id, tenant_id, communication_id, role, referred_message_id, receipt_type, recipient,
+                 receipt_at, daticert_sha256, daticert_json, proof_status, created_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    f"receipt-{role}",
+                    "tenant-storage",
+                    communication_id,
+                    role,
+                    "<atto-notificato@pec.test>",
+                    role,
+                    "controparte@example.pec.it",
+                    f"2026-06-06T12:0{index}:00+02:00",
+                    f"daticert-{role}",
+                    "{}",
+                    "complete" if role == "delivery" else "partial",
+                    created_at,
+                ),
+            )
+
+    app = Flask(__name__)
+    app.config.update(TESTING=True)
+    tenant_paths = {
+        "EMAIL_CASELLA_DB": db_path.parent / "casella.json",
+        "PEC_CONTROL_TOWER_DB": db_path,
+        "FASCICOLI_DB": tmp_path / "fascicoli" / "fascicoli.json",
+        "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
+        "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
+        "AGENDA_DB": tmp_path / "agenda" / "agenda.json",
+    }
+    for path in tenant_paths.values():
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+    def fake_tenant_data_path(key, default="", *aliases, require_tenant=True):
+        return str(tenant_paths[key])
+
+    monkeypatch.setattr("web.services.tenant_paths.tenant_data_path", fake_tenant_data_path)
+    context = OperationalQueryContext(
+        tenant_id="studio-slug",
+        user_id="user-test",
+        username="Avvocato Test",
+        user=_User(),
+        permissions={"ai.usa", "messaggi.leggi", "fascicoli.leggi"},
+        tenant_context_available=True,
+    )
+    tools = OperationalKnowledgeTools(repositories={})
+    with app.app_context():
+        g.tenant_slug = "studio-slug"
+        g.auth_tenant_slug = "studio-slug"
+        g.data_paths = {key: str(value) for key, value in tenant_paths.items()}
+        result = tools.answer_pec_control_question("Qual è la prova completa di questa notifica?", context, limit=5)
+
+    assert result.ok is True
+    payload = result.data[0]
+    assert payload["summary"] == "Fascicoli prova notifica ricostruiti: 1 (1 completi)."
+    assert payload["items"][0]["proof_complete"] is True
+    assert payload["items"][0]["matter_id"] == "FASC-1"
+    answer = OperationalResponseComposer().compose(
+        question="Qual è la prova completa di questa notifica?",
+        route=OperationalRoute(
+            "pec_control_tower",
+            "pec_control_tower",
+            ("pec_control_tower",),
+            "Qual è la prova completa di questa notifica?",
+        ),
+        results=[result],
+    )
+    assert "Prova: completa" in answer.answer
+    assert "Ricevute collegate" in answer.answer
+    assert "ricevuta di accettazione" in answer.answer
+    assert "ricevuta di consegna" in answer.answer
 
 
 def test_pec_control_tower_generation_script_answers_lex_matrix(tmp_path):

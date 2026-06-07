@@ -16,6 +16,7 @@ VISTE_SCADENZIARIO_AMMESSE = {
     "imminenti",
     "avanzate",
     "operative",
+    "pec",
     "da_presidiare",
     "tutte",
 }
@@ -29,9 +30,18 @@ VISTA_LABEL_SCADENZIARIO = {
     "imminenti": "scadenze entro 7 giorni",
     "avanzate": "scadenze con calcolo avanzato",
     "operative": "scadenze operative",
+    "pec": "scadenze da PEC",
     "da_presidiare": "scadenze da presidiare",
     "tutte": "scadenze totali",
 }
+
+
+def is_scadenza_pec(scadenza: Scadenza) -> bool:
+    return (
+        str(getattr(scadenza, "deadline_profile_code", "") or "") == "PEC_AUTO_PRESIDIO"
+        or "PEC_AUDIT:" in str(getattr(scadenza, "note", "") or "")
+        or str(getattr(scadenza, "fonte_documento", "") or "") == "PEC_AUDIT_PIPELINE"
+    )
 
 
 def normalizza_vista_scadenziario(value: str | None) -> str:
@@ -86,6 +96,8 @@ def scadenze_per_vista(
         return [s for s in _base(solo_aperte=False) if s.ha_calcolo_avanzato]
     if vista == "operative":
         return [s for s in _base(solo_aperte=False) if bool(s.operational_due_at)]
+    if vista == "pec":
+        return [s for s in _base(solo_aperte=False) if is_scadenza_pec(s)]
     if vista == "da_presidiare":
         return [
             s

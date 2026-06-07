@@ -32,6 +32,7 @@ OPERATIONAL_BACKUP_SCHEDULE: dict[str, str] = {
     "code": "nightly",
     "label": "Backup blindato notturno",
     "time": "23:50",
+    "retention": "una_copia_completa",
 }
 
 
@@ -1154,7 +1155,7 @@ def build_backup_targets(
 ) -> dict[str, Any]:
     backup_root = Path(str(backup_dir or "./backup"))
     tenant_code = str(tenant_slug or "single-studio").strip().lower() or "single-studio"
-    local_target = Path(str(local_mirror_dir or backup_root / "mirror" / "cliente"))
+    local_target = Path(str(local_mirror_dir)).expanduser() if str(local_mirror_dir or "").strip() else None
     secondary_target = (
         Path(str(secondary_mirror_dir or "")).expanduser()
         if str(secondary_mirror_dir or "").strip()
@@ -1163,7 +1164,7 @@ def build_backup_targets(
     return {
         "tenant_slug": tenant_code,
         "backup_root": str(backup_root),
-        "local_target": str(local_target),
+        "local_target": str(local_target) if local_target else "",
         "secondary_target": str(secondary_target) if secondary_target else "",
         "secondary_label": str(secondary_label or "Destinazione esterna da configurare"),
     }
@@ -1202,27 +1203,32 @@ def run_operational_backup_plan(
         secondary_mirror_dir=secondary_mirror_dir,
         secondary_label=secondary_label,
     )
+    try:
+        backup_manager.config.max_backup = 1
+        backup_manager.salva_config(backup_manager.config)
+    except Exception:
+        pass
     stamp = _stamp_now()
     backup_runs: list[dict[str, Any]] = []
-    for backup_type in (TipoBackup.COMPLETO, TipoBackup.INCREMENTALE):
+    for backup_type in (TipoBackup.COMPLETO,):
         note = f"Backup blindato {backup_type.value.lower()} {trigger_source}"
         record = backup_manager.esegui_backup(tipo=backup_type, nota=note)
         local_copy_path = ""
         secondary_copy_path = ""
-        if record.stato == StatoBackup.OK:
+        if record.stato == StatoBackup.OK and targets["local_target"]:
             local_copy_path = _copy_backup_artifact(
                 record.percorso_file,
                 targets["local_target"],
                 tenant_slug=targets["tenant_slug"],
                 stamp=stamp,
             )
-            if targets["secondary_target"]:
-                secondary_copy_path = _copy_backup_artifact(
-                    record.percorso_file,
-                    targets["secondary_target"],
-                    tenant_slug=targets["tenant_slug"],
-                    stamp=stamp,
-                )
+        if record.stato == StatoBackup.OK and targets["secondary_target"]:
+            secondary_copy_path = _copy_backup_artifact(
+                record.percorso_file,
+                targets["secondary_target"],
+                tenant_slug=targets["tenant_slug"],
+                stamp=stamp,
+            )
         payload = {
             "tenant_slug": targets["tenant_slug"],
             "executed_at": _now_iso(),

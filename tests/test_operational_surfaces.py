@@ -263,7 +263,7 @@ def test_lex_operativo_e_control_tower_renderizzano(tmp_path: Path):
     assert api.get_json()["ok"] is True
     assert "fascicolo" in api.get_json()
     assert telematico.status_code == 200
-    assert "Regia telematica operativa" in telematico.get_data(as_text=True)
+    assert "react-shell-document" in telematico.get_data(as_text=True)
 
 
 def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
@@ -305,8 +305,9 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
     assert 'href="/admin/governance"' in salute.get_data(as_text=True)
     assert scorecard.status_code == 200
     assert "Eval suite e scorecard Lex" in scorecard.get_data(as_text=True)
+    assert "Prove eseguite" in scorecard.get_data(as_text=True)
     assert osservabilita.status_code == 200
-    assert "Osservabilita runtime" in osservabilita.get_data(as_text=True)
+    assert "Osservabilità runtime" in osservabilita.get_data(as_text=True)
     assert "Segnali di degrado" in osservabilita.get_data(as_text=True)
     assert server_manutenzione.status_code == 200
     assert "Server e manutenzione" in server_manutenzione.get_data(as_text=True)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from time import monotonic
 from typing import Any
 
@@ -45,6 +46,7 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
     runtime_app = app or current_app._get_current_object()
     registry: RuntimeMetricsRegistry | None = runtime_app.extensions.get("runtime_metrics")
     ocr_runtime = runtime_app.extensions.get("ocr_runtime")
+    storage_runtime = _build_storage_runtime_payload(runtime_app)
     payload: dict[str, Any] = {
         "ok": True,
         "runtime": registry.snapshot() if registry is not None else {"http": {"buckets": []}, "lex": {}},
@@ -52,6 +54,7 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
             "default_mode": str(runtime_app.config.get("STORAGE_MODE_DEFAULT") or ("SQLITE" if runtime_app.config.get("SQLITE_MODE") else "JSON")),
             "sqlite_mode_default": bool(runtime_app.config.get("SQLITE_MODE")),
             "search_index": str(runtime_app.config.get("SEARCH_INDEX", "")),
+            **storage_runtime,
         },
         "scheduler_worker_mode": bool(runtime_app.config.get("PCT_SCHEDULER_WORKER")),
         "ocr": ocr_runtime.status_snapshot() if ocr_runtime is not None else {"enabled": False},
@@ -175,6 +178,37 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
     }
 
     return payload
+
+
+def _build_storage_runtime_payload(app: Flask) -> dict[str, Any]:
+    try:
+        from web.services.server_maintenance_surface import human_bytes, resolve_data_root
+
+        data_root = resolve_data_root(app.config)
+        disk = shutil.disk_usage(data_root if data_root.exists() else ".")
+        return {
+            "data_root": str(data_root),
+            "data_root_exists": data_root.exists(),
+            "disk_used_bytes": int(disk.used),
+            "disk_free_bytes": int(disk.free),
+            "disk_total_bytes": int(disk.total),
+            "disk_used_label": human_bytes(disk.used),
+            "disk_free_label": human_bytes(disk.free),
+            "disk_total_label": human_bytes(disk.total),
+            "disk_used_percent": round((disk.used / disk.total) * 100, 1) if disk.total else 0,
+        }
+    except Exception:
+        return {
+            "data_root": "",
+            "data_root_exists": False,
+            "disk_used_bytes": 0,
+            "disk_free_bytes": 0,
+            "disk_total_bytes": 0,
+            "disk_used_label": "n.d.",
+            "disk_free_label": "n.d.",
+            "disk_total_label": "n.d.",
+            "disk_used_percent": 0,
+        }
 
 
 def _build_observability_thresholds() -> dict[str, Any]:

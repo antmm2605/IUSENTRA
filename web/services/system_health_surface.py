@@ -7,37 +7,66 @@ from typing import Any
 
 from flask import current_app
 
-from web.services.admin_surfaces_shared import (
-    _cfg,
-    get_backup_manager,
-    path_size_bytes,
-)
 from web.services.observability_runtime import build_observability_payload
+from web.services.admin_surfaces_shared import get_backup_manager
+from web.services.server_maintenance_surface import build_server_maintenance_surface
 
 
 def _fmt_mb(size_bytes: int) -> str:
     return f"{(int(size_bytes or 0) / (1024 * 1024)):.1f} MB"
 
 
+def _slow_endpoint_action(bucket: dict[str, Any] | None) -> dict[str, str]:
+    if not bucket:
+        return {
+            "title": "Nessuna latenza misurata",
+            "detail": "Eseguire un flusso reale per popolare la tabella endpoint.",
+            "action": "Apri osservabilità dopo un uso reale del sistema.",
+        }
+    label = str(bucket.get("bucket") or "")
+    if "server_maintenance_admin" in label:
+        return {
+            "title": "Manutenzione server lenta",
+            "detail": "La scansione o la compattazione storage è pesante: usare azioni mirate e leggere il dettaglio disco.",
+            "action": "Apri Server e manutenzione e controlla backup, normativa globale, Docker e log.",
+        }
+    if "assistente" in label or "Lex" in label:
+        return {
+            "title": "Risposta Lex lenta",
+            "detail": "Misurare primo token, fonti usate e dimensione del contesto fascicolo.",
+            "action": "Apri Scorecard Lex e verifica run reali, fonti utili e casi falliti.",
+        }
+    return {
+        "title": "Endpoint lento",
+        "detail": label,
+        "action": "Controllare log applicativi e ripetere il flusso con un singolo caso reale.",
+    }
+
+
 def build_system_health_surface() -> dict:
     observability = build_observability_payload(current_app._get_current_object())
+    maintenance = build_server_maintenance_surface()
     backup_manager = get_backup_manager()
     backup_last = backup_manager.ultimo()
 
     runtime = dict(observability.get("runtime") or {})
     http_buckets = list((runtime.get("http") or {}).get("buckets") or [])
+    slowest = http_buckets[0] if http_buckets else None
     lex_first_token = dict((runtime.get("lex") or {}).get("first_token") or {})
     ocr = dict(observability.get("ocr") or {})
     local_ai = dict((observability.get("providers") or {}).get("local_ai") or {})
     advanced_ai = dict((observability.get("providers") or {}).get("advanced_ai") or {})
     advanced_enabled = list(advanced_ai.get("enabled") or [])
     advanced_to_measure = list(advanced_ai.get("to_measure") or [])
+    storage_summary = dict(maintenance.get("summary") or {})
+    host_console = dict(maintenance.get("host_console") or {})
+    disk = dict(maintenance.get("disk") or {})
 
     cards = [
         {
             "label": "Latenza media endpoint",
-            "value": f"{http_buckets[0]['avg_ms']:.0f} ms" if http_buckets else "n.d.",
-            "detail": http_buckets[0]["bucket"] if http_buckets else "Nessun campione HTTP disponibile",
+            "value": f"{slowest['avg_ms']:.0f} ms" if slowest else "n.d.",
+            "detail": slowest["bucket"] if slowest else "Nessun campione HTTP disponibile",
         },
         {
             "label": "Primo token Lex",
@@ -60,9 +89,19 @@ def build_system_health_surface() -> dict:
             "detail": f"{len(advanced_to_measure)} capacita' da misurare",
         },
         {
-            "label": "Spazio dati",
-            "value": _fmt_mb(path_size_bytes(_cfg("CLIENTI_DB"))),
-            "detail": "stima area dati principale",
+            "label": "Disco server",
+            "value": disk.get("used_label") or observability.get("storage", {}).get("disk_used_label") or "n.d.",
+            "detail": f"liberi {disk.get('free_label') or observability.get('storage', {}).get('disk_free_label') or 'n.d.'} su {disk.get('total_label') or observability.get('storage', {}).get('disk_total_label') or 'n.d.'}",
+        },
+        {
+            "label": "Studi attivi",
+            "value": storage_summary.get("tenant_total_size_label") or "n.d.",
+            "detail": f"{storage_summary.get('tenant_count', 0)} studi · backup {storage_summary.get('tenant_backup_size_label') or 'n.d.'}",
+        },
+        {
+            "label": "Sistema e piattaforma",
+            "value": host_console.get("outside_tenants_label") or "n.d.",
+            "detail": host_console.get("outside_tenants_note") or "Docker, codice deploy, fonti globali e sistema operativo.",
         },
         {
             "label": "Ultimo backup",
@@ -70,10 +109,43 @@ def build_system_health_surface() -> dict:
             "detail": getattr(backup_last, "esito", "nessun esito registrato") if backup_last else "nessun backup registrato",
         },
     ]
+    storage_rows = [
+        {
+            "label": "Studi attivi",
+            "value": storage_summary.get("tenant_total_size_label") or "n.d.",
+            "detail": f"{storage_summary.get('tenant_count', 0)} studi registrati, {storage_summary.get('inactive_tenant_dirs', 0)} cartelle escluse.",
+        },
+        {
+            "label": "Posta e allegati studi",
+            "value": storage_summary.get("tenant_email_size_label") or "n.d.",
+            "detail": "PEC, email ordinaria, EML e allegati tenant-aware.",
+        },
+        {
+            "label": "Backup e mirror studi",
+            "value": storage_summary.get("tenant_backup_size_label") or "n.d.",
+            "detail": "Retention: una sola copia completa per studio; temporanei e mirror sono pulibili.",
+        },
+        {
+            "label": "Sistema e piattaforma",
+            "value": host_console.get("outside_tenants_label") or "n.d.",
+            "detail": host_console.get("outside_tenants_note") or "",
+        },
+    ]
 
     return {
         "cards": cards,
         "http_buckets": http_buckets[:8],
+        "slow_endpoint_action": _slow_endpoint_action(slowest),
+        "storage": {
+            "disk": disk,
+            "summary": storage_summary,
+            "host_console": host_console,
+            "rows": storage_rows,
+            "actions": [
+                {"label": "Apri Server e manutenzione", "href": "/admin/server-manutenzione"},
+                {"label": "Apri Osservabilità runtime", "href": "/admin/osservabilita"},
+            ],
+        },
         "lex_first_token": lex_first_token,
         "ocr": ocr,
         "local_ai": local_ai,
@@ -125,7 +197,7 @@ def build_system_health_api_payload() -> dict[str, Any]:
         "components": {
             "scheduler": {
                 "status": scheduler_status,
-                "detail": "Worker dedicato attivo" if observability.get("scheduler_worker_mode") else "Modalita web",
+                "detail": "Worker dedicato attivo" if observability.get("scheduler_worker_mode") else "Modalità web",
             },
             "ocr": {
                 "status": ocr_status,

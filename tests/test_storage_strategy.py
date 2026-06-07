@@ -10,6 +10,7 @@ from pct.core_storage_backend import build_core_storage_backend
 from pct.database import GestioneDatabase
 from pct.storage import StudioDB
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
+from scripts.audit_tenant_data_structure import audit_tenant_data_structure
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.app import create_app
 from web.blueprints.api_v1_react import admin_database_react_payload
@@ -163,6 +164,81 @@ def test_gestione_tenant_provision_storage_backend_creates_sqlite_and_manifest(t
     assert manifest["runtime_kind"] == "sqlite"
     assert manifest["effective_runtime_kind"] == "sqlite"
     assert manifest["activation_state"] == "active"
+
+
+def test_nuovo_studio_crea_configurazione_runtime_agenda_scadenze_notifiche(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Config Completa", "studio-config-completa", db_config={"mode": "SQLITE"})
+
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+
+    assert Path(paths["AGENDA_DB"]).exists()
+    assert Path(paths["SCADENZIARIO_DB"]).exists()
+    assert Path(paths["STUDIO_DB"]).exists()
+    assert Path(paths["NOTIFICATIONS_DB"]).exists()
+    with sqlite3.connect(paths["STUDIO_DB"]) as conn:
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        moduli = {
+            row[0]
+            for row in conn.execute("SELECT nome FROM moduli_dati").fetchall()
+        }
+    assert {"appuntamenti", "scadenze", "clienti", "fascicoli"}.issubset(tables)
+    assert {
+        "appuntamenti",
+        "scadenze",
+        "email_casella",
+        "email_ordinaria",
+        "practice_engine",
+        "legal_updates_repository",
+        "legal_skills_runs",
+        "redaction_assistant",
+    }.issubset(moduli)
+    with sqlite3.connect(paths["NOTIFICATIONS_DB"]) as conn:
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert {"notifications", "push_subscriptions", "notification_preferences"}.issubset(tables)
+
+
+def test_audit_tenant_data_structure_verifica_json_sqlite_postgres(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Audit Dati", "studio-audit-dati", db_config={"mode": "SQLITE"})
+    tm.ensure_runtime_baseline(studio.slug, force=True)
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
+
+    assert report["ok"] is True
+    assert report["postgres_schema"]["ok"] is True
+    assert report["studios"][studio.slug]["json"]["scadenziario/scadenze.json"]["module"] == "scadenze"
+
+
+def test_audit_tenant_data_structure_fallisce_se_manca_mirror_json_sql(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Audit Rosso", "studio-audit-rosso", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+
+    with sqlite3.connect(paths["STUDIO_DB"]) as conn:
+        conn.execute("DELETE FROM moduli_dati WHERE nome = ?", ("scadenze",))
+        conn.commit()
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
+
+    assert report["ok"] is False
+    assert any("moduli_dati senza record per scadenze" in error for error in report["errors"])
+
+
+def test_audit_tenant_data_structure_fallisce_se_manca_json_tenant(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Audit Json", "studio-audit-json", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+    Path(paths["SCADENZIARIO_DB"]).unlink()
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
+
+    assert report["ok"] is False
+    assert any("JSON mancante scadenziario/scadenze.json" in error for error in report["errors"])
 
 
 def test_practice_engine_default_follows_fascicoli_data_root(tmp_path: Path):

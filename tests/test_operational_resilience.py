@@ -97,7 +97,7 @@ def test_run_operational_backup_plan_salva_report_e_copie(tmp_path: Path):
 
     assert report["success"] is True
     assert Path(report["report_path"]).exists()
-    assert len(report["runs"]) == 2
+    assert len(report["runs"]) == 1
     assert all(Path(run["local_copy_path"]).exists() for run in report["runs"])
     assert all(Path(run["secondary_copy_path"]).exists() for run in report["runs"])
     for run in report["runs"]:

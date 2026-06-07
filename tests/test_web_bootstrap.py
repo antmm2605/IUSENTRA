@@ -736,7 +736,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
             "Log operativo della migrazione",
         ],
         "web/templates/admin/osservabilita.html": [
-            "Osservabilita runtime",
+            "Osservabilità runtime",
             "Segnali di degrado",
             "Come intervenire",
         ],

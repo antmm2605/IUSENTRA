@@ -69,6 +69,12 @@ Legenda:
 - I moduli JSON monitorati da `admin/database` che non hanno ancora una tabella verticale dedicata sono comunque migrabili con struttura esplicita SQLite/PostgreSQL: `moduli_dati` registra percorso, backend e metadati; `moduli_json_records` conserva i record normalizzati per modulo. Le tabelle dedicate restano il target preferito per i domini core, ma Calendar Sync, Email, Soggetti, Portale, Template, Wizard, Intelligence e moduli analoghi non devono risultare "non migrabili" solo perche' sono JSON runtime.
 - Lo snapshot SQLite mostrato da `admin/database` resta presente anche se una tabella tecnica derivata, come l'indice FTS `search_documenti`, non e' conteggiabile nel runtime corrente: la pagina mostra un avviso e conserva le statistiche delle altre tabelle invece di dichiarare assente l'intero database.
 
+## Baseline tenant obbligatoria
+
+Ogni nuovo studio e ogni studio riparato dal superadmin esegue la baseline dati tenant: seed JSON con forma corretta, `studio.db`, `notifications.db`, tabelle core, agenda, scadenziario e mirror `moduli_dati`/`moduli_json_records` per tutti i JSON monitorati.
+
+Il gate `python scripts/audit_tenant_data_structure.py --repair` deve uscire con codice `0`. Senza `--repair` deve fallire se manca un JSON, una tabella SQLite, una tabella notifiche, un record `moduli_dati`, un mirror `moduli_json_records` o lo schema PostgreSQL corrispondente. Questo controllo non crea backup o snapshot: corregge solo la struttura minima tenant-aware e verifica che ogni JSON previsto abbia il corrispondente presidio SQL.
+
 ## Check di consistenza minimi
 
 - utenti attivi, ruoli e audit log coerenti
@@ -81,3 +87,4 @@ Legenda:
 - snapshot, gap queue, draft e publish history di `Coverage AI` coerenti tra SQLite condiviso e PostgreSQL esplicito di piattaforma
 - report di migrazione persistito sotto `backup/` del tenant
 - audit severo con `scripts/audit_sqlite_migration_integrity.py` prima di dichiarare riuscito un recupero dati o un cutover su tenant reale
+- audit struttura tenant con `scripts/audit_tenant_data_structure.py` prima di dichiarare chiusa una modifica che tocca JSON, SQLite, PostgreSQL, agenda, scadenziario, notifiche, PEC o creazione studi

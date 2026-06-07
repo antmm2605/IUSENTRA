@@ -1,16 +1,19 @@
 {% extends "admin/base.html" %}
-{% block title %}Osservabilita runtime{% endblock %}
+{% block title %}Osservabilità runtime{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
   <div>
-    <h1 class="h3 mb-1">Osservabilita runtime</h1>
+    <h1 class="h3 mb-1">Osservabilità runtime</h1>
     <p class="text-muted mb-0">
       Metriche vive del processo web, pipeline OCR, provider locali e segnali di degrado con rimedi operativi.
     </p>
   </div>
   <a class="btn btn-outline-primary btn-sm" href="{{ url_for('admin.dashboard') }}">
     <i class="bi bi-arrow-left"></i> Torna alla dashboard
+  </a>
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('server_maintenance_admin.dashboard') }}">
+    <i class="bi bi-hdd-stack"></i> Server e manutenzione
   </a>
 </div>
 
@@ -43,6 +46,17 @@
         <div class="display-6 fw-semibold">{{ payload.storage.default_mode }}</div>
         <div class="small text-muted">
           Indicizzazione: {{ payload.storage.search_index or 'non configurata' }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Disco server</div>
+        <div class="display-6 fw-semibold">{{ payload.storage.disk_used_label or 'n.d.' }}</div>
+        <div class="small text-muted">
+          Liberi {{ payload.storage.disk_free_label or 'n.d.' }} · {{ payload.storage.disk_used_percent or 0 }}% usato
         </div>
       </div>
     </div>

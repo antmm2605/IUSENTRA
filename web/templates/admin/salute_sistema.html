@@ -6,10 +6,12 @@
 <div class="admin-page-header">
   <div>
     <h4 class="admin-page-title">Salute sistema</h4>
-    <p class="admin-page-subtitle">Latenze, scheduler, OCR, provider AI, backup e spazio dati in una vista sola.</p>
+    <p class="admin-page-subtitle">Latenze, scheduler, OCR, provider AI, backup e spazio disco reale in una vista operativa.</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-dark btn-sm" href="{{ url_for('admin.system_health') }}">Apri endpoint JSON</a>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('server_maintenance_admin.dashboard') }}">Server e manutenzione</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.osservabilita') }}">Osservabilità runtime</a>
   </div>
 </div>
 
@@ -28,9 +30,45 @@
 </div>
 
 <div class="row g-4">
+  <div class="col-12">
+    <div class="card h-100">
+      <div class="card-header fw-semibold d-flex flex-wrap justify-content-between gap-2">
+        <span>Spazio disco reale</span>
+        <span class="badge text-bg-light border">{{ payload.storage.disk.used_percent or 0 }}% usato</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Area</th>
+                <th class="text-end">Spazio</th>
+                <th>Significato operativo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in payload.storage.rows %}
+              <tr>
+                <td class="fw-semibold">{{ row.label }}</td>
+                <td class="text-end">{{ row.value }}</td>
+                <td class="small text-muted">{{ row.detail }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="p-3 border-top d-flex flex-wrap gap-2">
+          {% for action in payload.storage.actions %}
+          <a class="btn btn-sm btn-outline-primary" href="{{ action.href }}">{{ action.label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="col-12 col-xl-7">
     <div class="card h-100">
-      <div class="card-header fw-semibold">Endpoint piu lenti</div>
+      <div class="card-header fw-semibold">Endpoint più lenti</div>
       <div class="card-body p-0">
         <div class="table-responsive">
           <table class="table table-sm align-middle mb-0">
@@ -52,6 +90,11 @@
             </tbody>
           </table>
         </div>
+        <div class="border-top p-3">
+          <div class="fw-semibold">{{ payload.slow_endpoint_action.title }}</div>
+          <div class="small text-muted">{{ payload.slow_endpoint_action.detail }}</div>
+          <div class="small mt-1">{{ payload.slow_endpoint_action.action }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -67,7 +110,7 @@
           </div>
           <div class="admin-surface-item">
             <div class="fw-semibold">Coda OCR</div>
-            <div class="small mt-1">Depth {{ payload.ocr.queue_depth or 0 }} · completati {{ payload.ocr.completed or 0 }}</div>
+            <div class="small mt-1">In coda {{ payload.ocr.queue_depth or payload.ocr.in_coda or 0 }} · completati {{ payload.ocr.completed or payload.ocr.completati or 0 }}</div>
           </div>
           <div class="admin-surface-item">
             <div class="fw-semibold">Provider locale</div>
@@ -75,7 +118,7 @@
           </div>
           <div class="admin-surface-item">
             <div class="fw-semibold">Scheduler separato</div>
-            <div class="small mt-1">{{ 'Attivo su worker dedicato' if payload.scheduler_worker_mode else 'Modalita web' }}</div>
+            <div class="small mt-1">{{ 'Attivo su worker dedicato' if payload.scheduler_worker_mode else 'Modalità web' }}</div>
           </div>
         </div>
       </div>

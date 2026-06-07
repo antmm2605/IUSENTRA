@@ -91,8 +91,8 @@ function formatItalianDate(value?: string): string {
 
 function initialView(): ScadenziarioView {
   const params = new URLSearchParams(window.location.search)
-  const raw = params.get('vista') || 'aperte'
-  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'da_presidiare', 'tutte']
+  const raw = params.get('vista') || (routeDeadlineId() ? 'tutte' : 'aperte')
+  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
   return allowed.includes(raw as ScadenziarioView) ? raw as ScadenziarioView : 'aperte'
 }
 
@@ -982,6 +982,7 @@ export function ScadenziarioPage() {
         <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
         <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
         <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
+        <StatCard icon={<Archive size={19}/>} label="Da PEC" value={data.summary.pec} note={`${data.summary.pec_future} future · ${data.summary.pec_overdue} scadute`} tone={data.summary.pec_overdue ? 'warning' : 'info'} active={view === 'pec'} onClick={() => changeView('pec')}/>
       </section>
 
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">
@@ -1058,6 +1059,11 @@ export function ScadenziarioPage() {
               <div><dt>Scadenza operativa</dt><dd>{focusedRow.operationalDueLabel || 'Non impostata'}</dd></div>
               <div><dt>Priorità</dt><dd>{focusedRow.priorityLabel}</dd></div>
               <div><dt>Responsabile</dt><dd>{focusedRow.ownerLabel || 'Non assegnato'}</dd></div>
+              {focusedRow.sourceEventTypeLabel ? <div><dt>Evento</dt><dd>{focusedRow.sourceEventTypeLabel}</dd></div> : null}
+              {focusedRow.officeLabel ? <div><dt>Ufficio</dt><dd>{focusedRow.officeLabel}</dd></div> : null}
+              {focusedRow.officeModeLabel ? <div><dt>Operatività ufficio</dt><dd>{focusedRow.officeModeLabel}</dd></div> : null}
+              {focusedRow.officePatronLabel ? <div><dt>Patrono ufficio</dt><dd>{focusedRow.officePatronLabel}</dd></div> : null}
+              {focusedRow.octoberObservanceBlocks ? <div><dt>Osservanza</dt><dd>Osservanza bloccante</dd></div> : null}
             </dl>
           </div>
           <div className="iu-scad-focus-actions">

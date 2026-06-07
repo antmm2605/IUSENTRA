@@ -18,8 +18,8 @@ from pct.email_attachments import deduplicate_attachment_tree, discover_email_at
 from scripts.compact_iusentra_storage import discover_backup_roots
 
 DEFAULT_BACKUP_RETENTION_DAYS = 14
-DEFAULT_BACKUP_RETENTION_COUNT = 3
-DEFAULT_BACKUP_RETENTION_MIN_COUNT = 2
+DEFAULT_BACKUP_RETENTION_COUNT = 1
+DEFAULT_BACKUP_RETENTION_MIN_COUNT = 1
 DEFAULT_BACKUP_RETENTION_MAX_GIB = 8
 MAX_BACKUP_RETENTION_COUNT = 3
 DEFAULT_TENANT_STORAGE_SCAN_MAX_FILES = 12_000
@@ -52,6 +52,16 @@ class BackupArchive:
     checksum_path: Path | None
     size_bytes: int
     mtime: float
+
+
+@dataclass(frozen=True)
+class TenantBackupArchive:
+    path: Path
+    tenant_slug: str
+    backup_dir: Path
+    size_bytes: int
+    mtime: float
+    kind: str
 
 
 TENANT_STORAGE_CATEGORIES: tuple[dict[str, Any], ...] = (
@@ -396,6 +406,118 @@ def resolve_external_backup_dir(config: dict[str, Any] | None = None) -> Path:
             or "/opt/iusentra/backups"
         )
     )
+
+
+def _registry_path_for_data_root(data_root: Path, config: dict[str, Any]) -> Path:
+    configured = (
+        os.getenv("PCT_TENANTS_REGISTRY")
+        or os.getenv("TENANTS_REGISTRY")
+        or config.get("TENANTS_REGISTRY")
+        or data_root / "tenants.json"
+    )
+    return Path(str(configured)).resolve()
+
+
+def _registered_tenant_index(data_root: Path, config: dict[str, Any]) -> dict[str, Any]:
+    registry = _registry_path_for_data_root(data_root, config)
+    if not registry.is_file():
+        return {"available": False, "by_storage": {}, "aliases": {}, "path": str(registry)}
+    try:
+        raw = json.loads(registry.read_text(encoding="utf-8"))
+    except Exception:
+        return {"available": False, "by_storage": {}, "aliases": {}, "path": str(registry)}
+
+    if isinstance(raw, list):
+        items = [(str(index), item) for index, item in enumerate(raw) if isinstance(item, dict)]
+    elif isinstance(raw, dict) and isinstance(raw.get("tenants"), list):
+        items = [
+            (str(index), item)
+            for index, item in enumerate(raw.get("tenants") or [])
+            if isinstance(item, dict)
+        ]
+    elif isinstance(raw, dict):
+        items = [(str(key), item) for key, item in raw.items() if isinstance(item, dict)]
+    else:
+        items = []
+
+    by_storage: dict[str, dict[str, Any]] = {}
+    aliases: dict[str, dict[str, Any]] = {}
+    for key, item in items:
+        directory = str(item.get("directory_dati") or "").strip()
+        storage_key = str(item.get("storage_key") or "").strip()
+        if not storage_key and directory:
+            storage_key = Path(directory).name
+        slug = str(item.get("slug") or key or storage_key).strip()
+        storage_key = storage_key or slug or key
+        state = str(item.get("stato") or ("ATTIVO" if item.get("attivo", True) is not False else "SOSPESO")).upper()
+        active = item.get("attivo", True) is not False and state not in {"SOSPESO", "SCADUTO", "DISATTIVATO"}
+        record = {
+            "storage_key": storage_key,
+            "slug": slug or storage_key,
+            "name": str(item.get("nome") or item.get("name") or slug or storage_key).strip(),
+            "state": state or "ATTIVO",
+            "active": active,
+            "registry_key": key,
+        }
+        by_storage[storage_key] = record
+        if slug and slug != storage_key:
+            aliases[slug] = record
+    return {"available": True, "by_storage": by_storage, "aliases": aliases, "path": str(registry)}
+
+
+def _tenant_dir_identity(tenant_dir: Path, registry_index: dict[str, Any]) -> dict[str, Any]:
+    name = tenant_dir.name
+    if not registry_index.get("available"):
+        return {
+            "registered": True,
+            "active_registered": True,
+            "storage_status": "registrata",
+            "storage_status_label": "Studio registrato",
+            "registry_slug": name,
+            "canonical_storage_key": name,
+            "display_name": name,
+            "warning": "",
+        }
+    by_storage = dict(registry_index.get("by_storage") or {})
+    aliases = dict(registry_index.get("aliases") or {})
+    if name in by_storage:
+        record = dict(by_storage[name])
+        active = bool(record.get("active"))
+        return {
+            "registered": True,
+            "active_registered": active,
+            "storage_status": "attiva" if active else "non_attiva",
+            "storage_status_label": "Studio attivo registrato" if active else "Studio registrato non attivo",
+            "registry_slug": str(record.get("slug") or name),
+            "canonical_storage_key": str(record.get("storage_key") or name),
+            "display_name": str(record.get("name") or record.get("slug") or name),
+            "warning": "",
+        }
+    if name in aliases:
+        record = dict(aliases[name])
+        return {
+            "registered": False,
+            "active_registered": False,
+            "storage_status": "alias_legacy",
+            "storage_status_label": "Cartella legacy non attiva",
+            "registry_slug": str(record.get("slug") or name),
+            "canonical_storage_key": str(record.get("storage_key") or ""),
+            "display_name": str(record.get("name") or record.get("slug") or name),
+            "warning": (
+                "Cartella storica collegata allo slug dello studio: lo storage attivo e' "
+                f"{record.get('storage_key') or 'quello registrato'}."
+            ),
+        }
+    return {
+        "registered": False,
+        "active_registered": False,
+        "storage_status": "non_registrata",
+        "storage_status_label": "Cartella non registrata",
+        "registry_slug": "",
+        "canonical_storage_key": "",
+        "display_name": name,
+        "warning": "Cartella presente su disco ma assente dalla registry tenant: non e' conteggiata come studio attivo.",
+    }
 
 
 def resolve_host_root(config: dict[str, Any] | None = None) -> Path | None:
@@ -770,6 +892,474 @@ def run_backup_retention(
     }
 
 
+def _zip_contains_operational_documents(path: Path) -> bool:
+    try:
+        import zipfile
+
+        with zipfile.ZipFile(path) as archive:
+            names = archive.namelist()
+    except Exception:
+        return False
+    return any(name.startswith(("fascicoli/", "documenti/", "archivio/")) for name in names)
+
+
+def _tenant_backup_roots(data_root: Path, tenant_slug: str = "") -> list[Path]:
+    tenants_root = data_root / "tenants"
+    slug = str(tenant_slug or "").strip()
+    if slug:
+        root = tenants_root / slug / "backup"
+        return [root] if root.is_dir() else []
+    if not tenants_root.is_dir():
+        return []
+    return sorted(
+        [item / "backup" for item in tenants_root.iterdir() if (item / "backup").is_dir()],
+        key=lambda item: str(item),
+    )
+
+
+def _tenant_backup_archives(data_root: Path, tenant_slug: str = "") -> list[TenantBackupArchive]:
+    archives: list[TenantBackupArchive] = []
+    for backup_root in _tenant_backup_roots(data_root, tenant_slug):
+        tenant_name = backup_root.parent.name
+        for path in backup_root.glob("*.zip"):
+            if not path.is_file():
+                continue
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            kind = "temporaneo" if path.name.endswith("_tmp.zip") else (
+                "completo" if _zip_contains_operational_documents(path) else "incrementale"
+            )
+            archives.append(
+                TenantBackupArchive(
+                    path=path,
+                    tenant_slug=tenant_name,
+                    backup_dir=backup_root,
+                    size_bytes=int(stat.st_size),
+                    mtime=float(stat.st_mtime),
+                    kind=kind,
+                )
+            )
+    return sorted(archives, key=lambda item: item.mtime, reverse=True)
+
+
+def _prune_backup_registry(backup_dir: Path, keep_path: Path | None) -> None:
+    registry = backup_dir / "registro.json"
+    if keep_path is None or not registry.is_file():
+        return
+    try:
+        payload = json.loads(registry.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    if not isinstance(payload, list):
+        return
+    keep_name = keep_path.name
+    filtered = [
+        item
+        for item in payload
+        if isinstance(item, dict) and Path(str(item.get("percorso_file") or "")).name == keep_name
+    ]
+    if filtered:
+        registry.write_text(json.dumps(filtered, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def run_tenant_backup_retention(
+    *,
+    apply: bool = False,
+    data_root: str | Path | None = None,
+    tenant_slug: str = "",
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Conserva una sola copia completa per gli archivi backup interni agli studi."""
+
+    cfg = _runtime_config(config)
+    root = Path(data_root) if data_root else resolve_data_root(cfg)
+    settings = backup_retention_settings(cfg)
+    archives = _tenant_backup_archives(root, tenant_slug)
+    by_backup_dir: dict[Path, list[TenantBackupArchive]] = {}
+    for archive in archives:
+        by_backup_dir.setdefault(archive.backup_dir, []).append(archive)
+
+    planned: list[TenantBackupArchive] = []
+    protected_paths: set[Path] = set()
+    for backup_dir, rows in by_backup_dir.items():
+        complete_rows = [item for item in rows if item.kind == "completo"]
+        keep = max(complete_rows or rows, key=lambda item: item.mtime, default=None)
+        if keep:
+            protected_paths.add(keep.path.resolve())
+        for item in rows:
+            if item.path.resolve() in protected_paths:
+                continue
+            planned.append(item)
+
+    mirror_dirs = [root_path / "mirror" for root_path in by_backup_dir if (root_path / "mirror").is_dir()]
+    mirror_bytes = sum(directory_size(path) for path in mirror_dirs)
+    bytes_reclaimable = sum(item.size_bytes for item in planned) + mirror_bytes
+    deleted_archives = 0
+    deleted_files = 0
+    deleted_mirror_dirs = 0
+    bytes_reclaimed = 0
+    errors: list[str] = []
+
+    if apply:
+        for archive in planned:
+            try:
+                size = archive.path.stat().st_size
+                archive.path.unlink()
+                deleted_archives += 1
+                deleted_files += 1
+                bytes_reclaimed += int(size)
+            except OSError as exc:
+                errors.append(f"{archive.path.name}: {exc}")
+        for backup_dir, rows in by_backup_dir.items():
+            complete_rows = [item for item in rows if item.kind == "completo" and item.path.exists()]
+            keep = max(complete_rows or [item for item in rows if item.path.exists()], key=lambda item: item.mtime, default=None)
+            _prune_backup_registry(backup_dir, keep.path if keep else None)
+        for mirror_dir in mirror_dirs:
+            try:
+                size = directory_size(mirror_dir)
+                shutil.rmtree(mirror_dir)
+                deleted_mirror_dirs += 1
+                bytes_reclaimed += int(size)
+            except OSError as exc:
+                errors.append(f"{mirror_dir}: {exc}")
+
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "data_root": str(root),
+        "tenant_slug": str(tenant_slug or "").strip(),
+        "tenant_backup_roots": len(by_backup_dir),
+        "backup_archives_scanned": len(archives),
+        "archives_to_delete": len(planned),
+        "archives_deleted": deleted_archives,
+        "files_deleted": deleted_files,
+        "mirror_dirs_to_delete": len(mirror_dirs),
+        "mirror_dirs_deleted": deleted_mirror_dirs,
+        "bytes_reclaimable": bytes_reclaimable,
+        "bytes_reclaimed": bytes_reclaimed,
+        "bytes_reclaimable_label": human_bytes(bytes_reclaimable),
+        "bytes_reclaimed_label": human_bytes(bytes_reclaimed),
+        "retention": settings,
+        "kept_archives": [
+            {
+                "tenant_slug": item.tenant_slug,
+                "path": str(item.path),
+                "name": item.path.name,
+                "kind": item.kind,
+                "size_label": human_bytes(item.size_bytes),
+            }
+            for item in archives
+            if item.path.resolve() in protected_paths
+        ],
+        "errors": errors,
+    }
+
+
+def run_all_backup_retention(
+    *,
+    apply: bool = False,
+    config: dict[str, Any] | None = None,
+    tenant_slug: str = "",
+) -> dict[str, Any]:
+    """Applica la retention governata a backup esterni e backup interni tenant."""
+
+    cfg = _runtime_config(config)
+    external = run_backup_retention(apply=apply, config=cfg)
+    tenant = run_tenant_backup_retention(apply=apply, config=cfg, tenant_slug=tenant_slug)
+    archives_scanned = int(external.get("backup_archives_scanned", 0) or 0) + int(
+        tenant.get("backup_archives_scanned", 0) or 0
+    )
+    archives_to_delete = int(external.get("archives_to_delete", 0) or 0) + int(
+        tenant.get("archives_to_delete", 0) or 0
+    )
+    archives_deleted = int(external.get("archives_deleted", 0) or 0) + int(
+        tenant.get("archives_deleted", 0) or 0
+    )
+    reclaimable = int(external.get("bytes_reclaimable", 0) or 0) + int(
+        tenant.get("bytes_reclaimable", 0) or 0
+    )
+    reclaimed = int(external.get("bytes_reclaimed", 0) or 0) + int(tenant.get("bytes_reclaimed", 0) or 0)
+    errors = list(external.get("errors") or []) + list(tenant.get("errors") or [])
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "backup_dir": str(external.get("backup_dir") or ""),
+        "backup_archives_scanned": archives_scanned,
+        "archives_to_delete": archives_to_delete,
+        "archives_deleted": archives_deleted,
+        "files_deleted": int(external.get("files_deleted", 0) or 0) + int(tenant.get("files_deleted", 0) or 0),
+        "bytes_total_before": int(external.get("bytes_total_before", 0) or 0),
+        "bytes_total_after": int(external.get("bytes_total_after", 0) or 0),
+        "bytes_reclaimable": reclaimable,
+        "bytes_reclaimed": reclaimed,
+        "bytes_total_before_label": external.get("bytes_total_before_label") or human_bytes(0),
+        "bytes_total_after_label": external.get("bytes_total_after_label") or human_bytes(0),
+        "bytes_reclaimable_label": human_bytes(reclaimable),
+        "bytes_reclaimed_label": human_bytes(reclaimed),
+        "retention": backup_retention_settings(cfg),
+        "external": external,
+        "tenant": tenant,
+        "errors": errors,
+    }
+
+
+def run_inactive_tenant_cleanup(
+    *,
+    apply: bool = False,
+    data_root: str | Path | None = None,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Rimuove cartelle tenant non operative: alias legacy e directory fuori registry."""
+
+    cfg = _runtime_config(config)
+    root = Path(data_root) if data_root else resolve_data_root(cfg)
+    tenants_root = root / "tenants"
+    registry_index = _registered_tenant_index(root, cfg)
+    candidates: list[dict[str, Any]] = []
+    errors: list[str] = []
+    if tenants_root.is_dir() and registry_index.get("available"):
+        for tenant_dir in sorted([item for item in tenants_root.iterdir() if item.is_dir()], key=lambda item: item.name):
+            identity = _tenant_dir_identity(tenant_dir, registry_index)
+            if bool(identity.get("active_registered")):
+                continue
+            size = directory_size(tenant_dir)
+            candidates.append(
+                {
+                    "slug": tenant_dir.name,
+                    "path": str(tenant_dir),
+                    "status": identity["storage_status"],
+                    "status_label": identity["storage_status_label"],
+                    "warning": identity["warning"],
+                    "size_bytes": size,
+                    "size_label": human_bytes(size),
+                }
+            )
+
+    removed = 0
+    bytes_reclaimed = 0
+    if apply:
+        for item in candidates:
+            target = Path(str(item.get("path") or "")).resolve()
+            try:
+                if not str(target).startswith(str(tenants_root.resolve()) + os.sep):
+                    errors.append(f"{target}: percorso fuori dallo storage tenant")
+                    continue
+                if not target.is_dir():
+                    continue
+                size = directory_size(target)
+                shutil.rmtree(target)
+                removed += 1
+                bytes_reclaimed += int(size)
+            except OSError as exc:
+                errors.append(f"{target}: {exc}")
+
+    reclaimable = sum(int(item.get("size_bytes", 0) or 0) for item in candidates)
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "data_root": str(root),
+        "candidates": candidates,
+        "candidates_count": len(candidates),
+        "directories_deleted": removed,
+        "bytes_reclaimable": reclaimable,
+        "bytes_reclaimed": bytes_reclaimed,
+        "bytes_reclaimable_label": human_bytes(reclaimable),
+        "bytes_reclaimed_label": human_bytes(bytes_reclaimed),
+        "errors": errors,
+    }
+
+
+def run_temporary_snapshot_cleanup(
+    *,
+    apply: bool = False,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    cfg = _runtime_config(config)
+    host_iusentra = resolve_host_iusentra_dir(cfg)
+    target = (host_iusentra / "tmp-backup-snapshot") if host_iusentra else None
+    size = directory_size(target) if target and target.exists() else 0
+    removed = False
+    error = ""
+    if apply and target and target.exists():
+        try:
+            shutil.rmtree(target)
+            removed = True
+        except OSError as exc:
+            error = str(exc)
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "path": str(target or ""),
+        "exists": bool(target and target.exists()) if not removed else False,
+        "bytes_reclaimable": size,
+        "bytes_reclaimed": size if removed else 0,
+        "bytes_reclaimable_label": human_bytes(size),
+        "bytes_reclaimed_label": human_bytes(size if removed else 0),
+        "deleted": removed,
+        "errors": [error] if error else [],
+    }
+
+
+def resolve_normativa_root(config: dict[str, Any] | None = None) -> Path:
+    cfg = _runtime_config(config)
+    configured = (
+        os.getenv("PCT_NORMATTIVA_DB")
+        or os.getenv("PCT_LEX_NORMATTIVA_DB")
+        or str(cfg.get("NORMATTIVA_DB") or "").strip()
+    )
+    if configured:
+        path = Path(configured)
+        return path.parent if path.name else path
+    return resolve_data_root(cfg) / "normativa"
+
+
+def run_normativa_global_cleanup(
+    *,
+    apply: bool = False,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Rimuove solo backup duplicati Normattiva, lasciando vivi DB, indice e sorgenti."""
+
+    cfg = _runtime_config(config)
+    root = resolve_normativa_root(cfg)
+    backup_dir = root / "backups"
+    db_path = Path(str(cfg.get("NORMATTIVA_DB") or root / "normattiva.sqlite"))
+    jsonl_path = Path(str(cfg.get("NORMATTIVA_JSONL") or root / "index" / "normattiva_chunks.jsonl"))
+    size = directory_size(backup_dir) if backup_dir.is_dir() else 0
+    deleted = False
+    errors: list[str] = []
+    if apply and backup_dir.is_dir():
+        try:
+            resolved_root = root.resolve()
+            resolved_target = backup_dir.resolve()
+            if resolved_target.name != "backups" or not str(resolved_target).startswith(str(resolved_root) + os.sep):
+                errors.append(f"{resolved_target}: percorso backup Normattiva non sicuro")
+            else:
+                shutil.rmtree(resolved_target)
+                deleted = True
+        except OSError as exc:
+            errors.append(f"{backup_dir}: {exc}")
+
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "normativa_root": str(root),
+        "backup_dir": str(backup_dir),
+        "backup_dir_exists": bool(backup_dir.exists()) if not deleted else False,
+        "live_db_path": str(db_path),
+        "live_db_exists": db_path.exists(),
+        "index_path": str(jsonl_path),
+        "index_exists": jsonl_path.exists(),
+        "backup_dirs_scanned": 1 if backup_dir.exists() or deleted else 0,
+        "directories_deleted": 1 if deleted else 0,
+        "bytes_reclaimable": size,
+        "bytes_reclaimed": size if deleted else 0,
+        "bytes_reclaimable_label": human_bytes(size),
+        "bytes_reclaimed_label": human_bytes(size if deleted else 0),
+        "errors": errors,
+    }
+
+
+def run_system_log_cleanup(
+    *,
+    apply: bool = False,
+    max_size: str = "256M",
+) -> dict[str, Any]:
+    """Riduce i journal di sistema senza toccare dati applicativi o container."""
+
+    before_text = ""
+    after_text = ""
+    error = ""
+    try:
+        import subprocess
+
+        before = subprocess.run(
+            ["journalctl", "--disk-usage"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        before_text = before.stdout.strip() or before.stderr.strip()
+        if apply:
+            vacuum = subprocess.run(
+                ["journalctl", f"--vacuum-size={max_size}"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if vacuum.returncode != 0:
+                error = vacuum.stderr.strip() or vacuum.stdout.strip() or "Pulizia log non completata."
+        after = subprocess.run(
+            ["journalctl", "--disk-usage"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        after_text = after.stdout.strip() or after.stderr.strip()
+    except Exception as exc:
+        error = str(exc)
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "max_size": max_size,
+        "before": before_text,
+        "after": after_text,
+        "bytes_reclaimable": 0,
+        "bytes_reclaimed": 0,
+        "bytes_reclaimable_label": "calcolato dal sistema",
+        "bytes_reclaimed_label": "calcolato dal sistema",
+        "errors": [error] if error else [],
+    }
+
+
+def run_professional_server_maintenance(
+    *,
+    apply: bool = False,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Manutenzione superadmin end-to-end sulle sole aree rigenerabili o non operative."""
+
+    cfg = _runtime_config(config)
+    backup = run_all_backup_retention(apply=apply, config=cfg)
+    inactive = run_inactive_tenant_cleanup(apply=apply, config=cfg)
+    snapshot = run_temporary_snapshot_cleanup(apply=apply, config=cfg)
+    normativa = run_normativa_global_cleanup(apply=apply, config=cfg)
+    logs = run_system_log_cleanup(apply=apply)
+    docker = run_docker_prune(dry_run=not apply)
+    reclaimed = (
+        int(backup.get("bytes_reclaimed" if apply else "bytes_reclaimable", 0) or 0)
+        + int(inactive.get("bytes_reclaimed" if apply else "bytes_reclaimable", 0) or 0)
+        + int(snapshot.get("bytes_reclaimed" if apply else "bytes_reclaimable", 0) or 0)
+        + int(normativa.get("bytes_reclaimed" if apply else "bytes_reclaimable", 0) or 0)
+        + int(docker.get("bytes_reclaimed" if apply else "bytes_reclaimable", 0) or 0)
+    )
+    errors = (
+        list(backup.get("errors") or [])
+        + list(inactive.get("errors") or [])
+        + list(snapshot.get("errors") or [])
+        + list(normativa.get("errors") or [])
+        + list(logs.get("errors") or [])
+        + ([str(docker.get("error"))] if docker.get("error") else [])
+    )
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "bytes_reclaimable": reclaimed if not apply else 0,
+        "bytes_reclaimed": reclaimed if apply else 0,
+        "bytes_reclaimable_label": human_bytes(reclaimed if not apply else 0),
+        "bytes_reclaimed_label": human_bytes(reclaimed if apply else 0),
+        "backup_retention": backup,
+        "inactive_tenants": inactive,
+        "temporary_snapshot": snapshot,
+        "normativa_global": normativa,
+        "system_logs": logs,
+        "docker_prune": docker,
+        "errors": errors,
+    }
+
+
 def _scan_note(note: str, scan: dict[str, Any]) -> str:
     if not scan.get("truncated"):
         return note
@@ -1091,12 +1681,15 @@ def _tenant_rows(
     *,
     max_files: int = DEFAULT_TENANT_STORAGE_SCAN_MAX_FILES,
     time_budget_seconds: float = DEFAULT_TENANT_STORAGE_SCAN_SECONDS,
+    config: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     tenants_root = data_root / "tenants"
     if not tenants_root.is_dir():
         return []
+    registry_index = _registered_tenant_index(data_root, _runtime_config(config))
     rows: list[dict[str, Any]] = []
     for tenant_dir in sorted([item for item in tenants_root.iterdir() if item.is_dir()], key=lambda item: item.name):
+        identity = _tenant_dir_identity(tenant_dir, registry_index)
         scan = _scan_tenant_storage(
             tenant_dir,
             max_files=max_files,
@@ -1107,6 +1700,14 @@ def _tenant_rows(
         rows.append(
             {
                 "slug": tenant_dir.name,
+                "display_name": identity["display_name"],
+                "registry_slug": identity["registry_slug"],
+                "canonical_storage_key": identity["canonical_storage_key"],
+                "registered": identity["registered"],
+                "active_registered": identity["active_registered"],
+                "storage_status": identity["storage_status"],
+                "storage_status_label": identity["storage_status_label"],
+                "storage_warning": identity["warning"],
                 "path": str(tenant_dir),
                 "total_bytes": total_size,
                 "total_label": human_bytes(total_size),
@@ -1134,9 +1735,9 @@ def _tenant_rows(
                 "primary_action": _tenant_primary_action(scan),
                 "recommendations": _tenant_recommendations(scan),
                 "links": {
-                    "detail": f"/admin/studi/{tenant_dir.name}",
-                    "database": f"/admin/studi/{tenant_dir.name}/database",
-                    "users": f"/admin/studi/{tenant_dir.name}/utenti",
+                    "detail": f"/admin/studi/{identity['registry_slug'] or tenant_dir.name}",
+                    "database": f"/admin/studi/{identity['registry_slug'] or tenant_dir.name}/database",
+                    "users": f"/admin/studi/{identity['registry_slug'] or tenant_dir.name}/utenti",
                 },
             }
         )
@@ -1184,6 +1785,47 @@ def _host_area(code: str, label: str, path: Path | None, note: str) -> dict[str,
         "estimated": bool(size.get("estimated")),
         "note": note,
     }
+
+
+def _platform_data_children(data_root: Path, *, platform_outside_size: int, limit: int = 8) -> tuple[list[dict[str, Any]], int]:
+    if not data_root.is_dir():
+        return [], 0
+    rows: list[dict[str, Any]] = []
+    for child in sorted(data_root.iterdir(), key=lambda item: item.name):
+        if child.name == "tenants":
+            continue
+        size = int(_du_size(child, timeout_seconds=1.5).get("size_bytes", 0) or 0)
+        if size <= 0:
+            continue
+        label = f"Dati globali: {child.name}"
+        note = "Area dati piattaforma fuori dagli storage tenant attivi."
+        tone = "warning" if child.name in {"normativa", "ollama", "intelligence"} else "neutral"
+        if child.name == "normativa":
+            backup_size = directory_size(child / "backups") if (child / "backups").is_dir() else 0
+            label = "Dati globali: normativa"
+            note = "Archivio Normattiva globale usato da Ricerca Legale e Lex: DB, indice e sorgenti restano vivi."
+            if backup_size:
+                note = f"{note} Backup duplicati pulibili: {human_bytes(backup_size)}."
+            tone = "warning" if backup_size else "success"
+        elif child.name == "intelligence":
+            note = "Repository globale di ricerca e aggiornamenti legali condivisi dal prodotto."
+        elif child.name == "ollama":
+            note = "Modelli AI locali: rimuovere solo da Impostazioni AI se non vengono usati."
+        rows.append(
+            {
+                "code": f"data_{child.name}",
+                "label": label,
+                "size_bytes": size,
+                "size_label": human_bytes(size),
+                "note": note,
+                "tone": tone,
+            }
+        )
+    rows.sort(key=lambda item: int(item.get("size_bytes", 0) or 0), reverse=True)
+    visible = rows[:limit]
+    visible_total = sum(int(item.get("size_bytes", 0) or 0) for item in visible)
+    other_size = max(0, int(platform_outside_size) - visible_total)
+    return visible, other_size
 
 
 def build_host_console(
@@ -1257,15 +1899,74 @@ def build_host_console(
     snapshot = next((area for area in areas if area["code"] == "temporary_snapshot"), None) or {}
     snapshot_bytes = int(snapshot.get("size_bytes", 0) or 0)
     docker_reclaimable = int(docker.get("build_cache_reclaimable_bytes", 0) or 0)
+    normativa_cleanup = run_normativa_global_cleanup(apply=False, config=cfg)
+    normativa_reclaimable = int(normativa_cleanup.get("bytes_reclaimable", 0) or 0)
     retention_reclaimable = max(
         0,
         int(backup_external_size) - backup_retention_settings(cfg)["max_gib"] * 1024**3,
     )
-    immediate_reclaimable = docker_reclaimable
+    immediate_reclaimable = docker_reclaimable + normativa_reclaimable
     review_reclaimable = snapshot_bytes + retention_reclaimable
     outside_tenants = max(0, int(host_disk.used) - int(tenant_total_size))
     docker_total = int(docker.get("total_size_bytes", 0) or 0)
-    explained_total = docker_total + sum(int(area.get("size_bytes", 0) or 0) for area in areas)
+    platform_area = next((area for area in areas if area["code"] == "platform_data"), {}) or {}
+    platform_outside = max(0, int(platform_area.get("size_bytes", 0) or 0) - int(tenant_total_size))
+    platform_children, platform_other = _platform_data_children(
+        data_root,
+        platform_outside_size=platform_outside,
+    )
+    outside_known = docker_total + platform_outside + sum(
+        int(area.get("size_bytes", 0) or 0)
+        for area in areas
+        if area.get("code") not in {"platform_data"}
+    )
+    outside_unclassified = max(0, outside_tenants - outside_known)
+    explained_total = outside_known
+    outside_breakdown = [
+        *platform_children,
+        {
+            "code": "platform_shared_other",
+            "label": "Altri dati piattaforma fuori studi",
+            "size_bytes": platform_other,
+            "size_label": human_bytes(platform_other),
+            "note": "Residuo delle aree globali sotto data dopo le voci principali.",
+            "tone": "neutral",
+        },
+        {
+            "code": "docker_storage",
+            "label": "Docker e servizi",
+            "size_bytes": docker_total,
+            "size_label": human_bytes(docker_total),
+            "note": "Immagini, container, volumi e cache. La cache costruzione e' pulibile dalla console.",
+            "tone": "success" if docker_reclaimable else "neutral",
+        },
+    ]
+    for area in areas:
+        if area.get("code") == "platform_data":
+            continue
+        outside_breakdown.append(
+            {
+                "code": area.get("code"),
+                "label": area.get("label"),
+                "size_bytes": int(area.get("size_bytes", 0) or 0),
+                "size_label": area.get("size_label"),
+                "note": area.get("note"),
+                "tone": "warning" if area.get("code") in {"temporary_snapshot", "external_backups"} else "neutral",
+            }
+        )
+    if outside_unclassified:
+        outside_breakdown.append(
+            {
+                "code": "system_unclassified",
+                "label": "Sistema operativo e spazio non classificato",
+                "size_bytes": outside_unclassified,
+                "size_label": human_bytes(outside_unclassified),
+                "note": "Quota residua del disco: sistema operativo, librerie, journald, pacchetti e file non sotto IUSENTRA.",
+                "tone": "neutral",
+            }
+        )
+    outside_breakdown = [item for item in outside_breakdown if int(item.get("size_bytes", 0) or 0) > 0]
+    outside_breakdown.sort(key=lambda item: int(item.get("size_bytes", 0) or 0), reverse=True)
 
     recovery_items: list[dict[str, Any]] = []
     if docker_reclaimable:
@@ -1276,6 +1977,16 @@ def build_host_console(
                 "tone": "success",
                 "action": "Pulizia cache servizi",
                 "note": "Recupero sicuro: non tocca dati studio e rende solo piu' lenta la prossima ricostruzione.",
+            }
+        )
+    if normativa_reclaimable:
+        recovery_items.append(
+            {
+                "label": "Backup duplicati Normattiva",
+                "size_label": human_bytes(normativa_reclaimable),
+                "tone": "success",
+                "action": "Pulizia backup normativa",
+                "note": "Recupero sicuro: lascia vivi DB, indice e sorgenti usati da Ricerca Legale e Lex.",
             }
         )
     if snapshot_bytes:
@@ -1325,8 +2036,10 @@ def build_host_console(
         },
         "outside_tenants_bytes": outside_tenants,
         "outside_tenants_label": human_bytes(outside_tenants),
+        "outside_tenants_note": "Sistema operativo, Docker, codice deploy, backup esterni e dati globali non appartenenti agli studi attivi.",
         "explained_total_bytes": explained_total,
         "explained_total_label": human_bytes(explained_total),
+        "outside_breakdown": outside_breakdown,
         "immediate_reclaimable_bytes": immediate_reclaimable,
         "immediate_reclaimable_label": human_bytes(immediate_reclaimable),
         "review_reclaimable_bytes": review_reclaimable,
@@ -1343,11 +2056,23 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
     backup_dir = resolve_external_backup_dir(cfg)
     disk = shutil.disk_usage(data_root if data_root.exists() else Path("/"))
     scan_settings = storage_scan_settings(cfg)
-    tenant_rows = _tenant_rows(
+    registry_available = bool(_registered_tenant_index(data_root, cfg).get("available"))
+    all_tenant_rows = _tenant_rows(
         data_root,
         max_files=int(scan_settings["tenant_max_files"]),
         time_budget_seconds=float(scan_settings["tenant_seconds"]),
+        config=cfg,
     )
+    tenant_rows = [
+        row
+        for row in all_tenant_rows
+        if bool(row.get("active_registered")) or not registry_available
+    ]
+    inactive_tenant_rows = [
+        row
+        for row in all_tenant_rows
+        if row not in tenant_rows
+    ]
     email_roots = discover_email_attachment_roots(data_root)
     backup_roots = discover_backup_roots(data_root)
     global_email_roots = [path for path in email_roots if "tenants" not in path.parts]
@@ -1372,7 +2097,7 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
     backup_archives = _backup_archives(backup_dir)
     backup_external_size = sum(item.size_bytes for item in backup_archives)
     retention_settings = backup_retention_settings(cfg)
-    backup_retention = run_backup_retention(apply=False, backup_dir=backup_dir, config=cfg)
+    backup_retention = run_all_backup_retention(apply=False, config=cfg)
     host_console = build_host_console(
         config=cfg,
         data_root=data_root,
@@ -1478,6 +2203,10 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
         recommendations.append(
             "Sono presenti aree da verificare fuori dagli studi: controllare snapshot temporanei e retention prima di rimuovere."
         )
+    if inactive_tenant_rows:
+        recommendations.append(
+            f"{len(inactive_tenant_rows)} cartelle dati non sono studi attivi registrati: restano separate dal conteggio operativo."
+        )
     if backup_external_size > retention_settings["max_gib"] * 1024**3:
         recommendations.append("Backup esterni oltre il tetto configurato: applicare retention e compressione alta.")
     if backup_mirror_size > 512 * 1024**2:
@@ -1501,6 +2230,9 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
             "free_label": human_bytes(disk.free),
         },
         "summary": {
+            "tenant_count": len(tenant_rows),
+            "tenant_storage_dirs": len(all_tenant_rows),
+            "inactive_tenant_dirs": len(inactive_tenant_rows),
             "email_roots": len(email_roots),
             "backup_roots": len(backup_roots),
             "scan_mode": "rapida",
@@ -1522,6 +2254,7 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
         },
         "backup_retention": backup_retention,
         "tenants": tenant_rows,
+        "inactive_tenants": inactive_tenant_rows,
         "areas": [area.__dict__ for area in sorted(areas, key=lambda item: item.size_bytes, reverse=True)],
         "host_console": host_console,
         "actions": {
@@ -1928,10 +2661,13 @@ def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
     before = docker_storage_summary()
 
     if dry_run:
+        reclaimable = int(before.get("build_cache_reclaimable_bytes", 0) or 0)
         return {
             "applied": False,
             "dry_run": True,
             "docker": before,
+            "bytes_reclaimable": reclaimable,
+            "bytes_reclaimable_label": human_bytes(reclaimable),
             "bytes_reclaimed": 0,
             "bytes_reclaimed_label": human_bytes(0),
             "error": None,
@@ -1949,6 +2685,8 @@ def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
             "stdout": "",
             "error": None,
             "docker": before,
+            "bytes_reclaimable": 0,
+            "bytes_reclaimable_label": human_bytes(0),
             "bytes_reclaimed": reclaimed,
             "bytes_reclaimed_label": human_bytes(reclaimed),
         }
@@ -1968,6 +2706,8 @@ def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
             "stdout": prune.stdout,
             "error": prune.stderr if prune.returncode != 0 else None,
             "docker": before,
+            "bytes_reclaimable": 0,
+            "bytes_reclaimable_label": human_bytes(0),
             "bytes_reclaimed": estimated,
             "bytes_reclaimed_label": human_bytes(estimated),
         }
@@ -1976,6 +2716,8 @@ def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
             "applied": False,
             "dry_run": False,
             "docker": before,
+            "bytes_reclaimable": 0,
+            "bytes_reclaimable_label": human_bytes(0),
             "bytes_reclaimed": 0,
             "bytes_reclaimed_label": human_bytes(0),
             "error": str(exc) or str(response.get("error") or ""),

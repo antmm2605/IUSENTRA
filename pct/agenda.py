@@ -108,9 +108,42 @@ class Agenda:
 
     # ------------------------------------------------------------------ I/O
 
+    def _carica_json_file(self) -> dict[str, Appuntamento]:
+        from pct import cache as _cache
+
+        try:
+            raw = _cache.load(self.db_path)
+        except Exception:
+            raw = {}
+        if isinstance(raw, list):
+            iterable = [(str(item.get("id", "") or ""), item) for item in raw if isinstance(item, dict)]
+        elif isinstance(raw, dict):
+            iterable = [(str(key), value) for key, value in raw.items()]
+        else:
+            iterable = []
+        appuntamenti: dict[str, Appuntamento] = {}
+        for item_id, value in iterable:
+            if not isinstance(value, dict):
+                continue
+            payload = dict(value)
+            if item_id and not str(payload.get("id", "") or "").strip():
+                payload["id"] = item_id
+            try:
+                appuntamento = Appuntamento.from_dict(payload)
+                appuntamenti[appuntamento.id] = appuntamento
+            except Exception:
+                continue
+        return appuntamenti
+
+    def _salva_json_file(self) -> None:
+        from pct import cache as _cache
+
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._appuntamenti.items()})
+
     def _carica(self) -> None:
         if self._studio_db is not None:
             import json as _json
+            json_appuntamenti = self._carica_json_file()
             try:
                 rows = self._studio_db.conn.execute(
                     "SELECT * FROM appuntamenti"
@@ -127,10 +160,19 @@ class Agenda:
                         pass
             except Exception:
                 self._appuntamenti = {}
+            merged = False
+            for item_id, appuntamento in json_appuntamenti.items():
+                if item_id not in self._appuntamenti:
+                    self._appuntamenti[item_id] = appuntamento
+                    merged = True
+            if merged:
+                self._salva()
+            elif not self.db_path.exists():
+                self._salva_json_file()
             return
-        from pct import cache as _cache
-        dati = _cache.load(self.db_path)
-        self._appuntamenti = {k: Appuntamento.from_dict(v) for k, v in dati.items()}
+        self._appuntamenti = self._carica_json_file()
+        if not self.db_path.exists():
+            self._salva_json_file()
 
     def _salva(self) -> None:
         if self._studio_db is not None:
@@ -158,9 +200,9 @@ class Agenda:
                 )
 
             self._studio_db.salva_tabella("appuntamenti", list(self._appuntamenti.values()), _insert)
+            self._salva_json_file()
             return
-        from pct import cache as _cache
-        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._appuntamenti.items()})
+        self._salva_json_file()
 
     # ------------------------------------------------------------------ CRUD
 

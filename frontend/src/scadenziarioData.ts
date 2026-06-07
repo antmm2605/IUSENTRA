@@ -10,6 +10,7 @@ export type ScadenziarioView =
   | 'imminenti'
   | 'avanzate'
   | 'operative'
+  | 'pec'
   | 'da_presidiare'
   | 'tutte'
 
@@ -33,6 +34,10 @@ export type ScadenziarioSummary = {
   within7: number
   advanced: number
   operative: number
+  pec: number
+  pec_open: number
+  pec_overdue: number
+  pec_future: number
   peremptory: number
 }
 
@@ -63,7 +68,13 @@ export type ScadenziarioRow = {
   ownerLabel: string
   sourceEventAt: string
   sourceEventLabel: string
+  sourceEventType: string
+  sourceEventTypeLabel: string
   officeLabel: string
+  officeModeLabel: string
+  officePatronLabel: string
+  officeVerifiedAt: string
+  octoberObservanceBlocks: boolean
   traceCount: number
   href: string
   editHref: string
@@ -286,6 +297,10 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     within7: 0,
     advanced: 0,
     operative: 0,
+    pec: 0,
+    pec_open: 0,
+    pec_overdue: 0,
+    pec_future: 0,
     peremptory: 0,
   },
   items: [],
@@ -324,6 +339,7 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
       { value: 'imminenti', label: 'Entro 7 gg', count: 0 },
       { value: 'avanzate', label: 'Avanzate', count: 0 },
       { value: 'operative', label: 'Operative', count: 0 },
+      { value: 'pec', label: 'Da PEC', count: 0 },
     ],
     types: [{ value: '', label: 'Tutti i tipi', count: 0 }],
     priorities: [{ value: '', label: 'Tutte le priorità', count: 0 }],
@@ -369,7 +385,7 @@ function asArray(value: unknown): unknown[] {
 
 function safeView(value: unknown): ScadenziarioView {
   const text = asString(value, 'aperte')
-  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'da_presidiare', 'tutte']
+  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
   return allowed.includes(text as ScadenziarioView) ? text as ScadenziarioView : 'aperte'
 }
 
@@ -456,7 +472,13 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     ownerLabel: asString(item.ownerLabel, '-'),
     sourceEventAt: asString(item.sourceEventAt),
     sourceEventLabel: asString(item.sourceEventLabel),
+    sourceEventType: asString(item.sourceEventType),
+    sourceEventTypeLabel: asString(item.sourceEventTypeLabel),
     officeLabel: asString(item.officeLabel),
+    officeModeLabel: asString(item.officeModeLabel),
+    officePatronLabel: asString(item.officePatronLabel),
+    officeVerifiedAt: asString(item.officeVerifiedAt),
+    octoberObservanceBlocks: asBoolean(item.octoberObservanceBlocks),
     traceCount: asNumber(item.traceCount),
     href: asString(item.href, `/scadenziario/${asString(item.id, '')}`),
     editHref: asString(item.editHref, `/scadenziario/${asString(item.id, '')}/modifica`),
@@ -534,6 +556,10 @@ function normalizeSummary(value: unknown): ScadenziarioSummary {
     within7: asNumber(value.within7),
     advanced: asNumber(value.advanced),
     operative: asNumber(value.operative),
+    pec: asNumber(value.pec),
+    pec_open: asNumber(value.pec_open),
+    pec_overdue: asNumber(value.pec_overdue),
+    pec_future: asNumber(value.pec_future),
     peremptory: asNumber(value.peremptory),
   }
 }

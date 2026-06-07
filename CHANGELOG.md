@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.249.26 - 2026-06-07
+
+- Introdotta la baseline dati tenant obbligatoria: ogni nuovo studio e ogni riparazione superadmin crea/verifica JSON runtime con forma corretta, `studio.db`, `notifications.db`, schema core, agenda, scadenziario e mirror `moduli_dati`/`moduli_json_records`.
+- Aggiunto `scripts/audit_tenant_data_structure.py`: controlla tutti i JSON previsti, le tabelle SQLite tenant, il DB notifiche e gli schemi PostgreSQL equivalenti; esce rosso se manca anche un JSON o un mirror SQL. Il controllo non crea backup o snapshot.
+- Riallineato il presidio PEC: scadenze e agenda generate o già presenti nei JSON tenant vengono riconciliate in `studio.db`, mentre le nuove scadenze PEC creano anche notifica interna idempotente.
+- Estesa la UI React dello Scadenziario con vista `Da PEC` e dettaglio operativo della scadenza: fascicolo, responsabile, ufficio, evento generatore, patrono, operatività ufficio e osservanza bloccante arrivano dal payload reale.
+- Aggiornati i test di scadenziario al contratto React/API reale e aggiunti test strutturali che falliscono se JSON, SQLite o mirror SQL non sono allineati.
+
+## 2.249.25 - 2026-06-07
+
+- Trasformata la manutenzione server in una console operativa per superadmin: distingue studi attivi da cartelle legacy/non operative, mostra la composizione dello spazio fuori dagli studi e offre azioni dedicate per backup, cartelle escluse, log, normativa globale e cache servizi.
+- Portata la retention backup alla regola richiesta di una sola copia completa: i backup interni tenant eliminano duplicati, archivi temporanei e mirror rigenerabili, mentre il piano operativo non produce più incrementali automatici o copie locali non configurate.
+- Aggiunta pulizia governata della normativa globale: il sistema rimuove solo i backup Normattiva duplicati e conserva database, indici e sorgenti utili a Ricerca Legale, Lex e RAG.
+- Resa leggibile la salute sistema: il pannello mostra spazio disco reale, studi attivi, posta/allegati, backup/mirror, sistema e piattaforma, con rimandi diretti alla manutenzione invece di numeri ciechi come `0.0 MB`.
+- Rafforzata l'osservabilità runtime con dati disco reali del root dati, percentuale usata e spazio libero, evitando stime vuote quando il problema è consumo effettivo sul server.
+- Rifatta la Scorecard Lex: distingue catalogo dei casi da prove realmente eseguite, calcola pass/fail, fonti utili e tempi solo da risultati di eval reali, e dichiara esplicitamente quando una suite non è stata ancora misurata.
+
 ## 2.249.24 - 2026-06-07
 
 - Introdotti gate reali per Lex/RAG/Ricerca Legale: le domande dell'avvocato su Cartabia, fascicolo attivo, prova PEC completa e riferimenti giurisprudenziali devono produrre risposte operative leggibili, non solo risultati tecnicamente non vuoti.

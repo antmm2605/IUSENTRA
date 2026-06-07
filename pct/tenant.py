@@ -55,6 +55,7 @@ TENANT_FILE_SEED_PATHS: tuple[str, ...] = (
     "intelligence/workspace_intelligence.json",
     "messaggi/storico.json",
     "notifiche/log.json",
+    "notifications/notifications.db",
     "penale/pdp_penale.db",
     "portale/portali.json",
     "preventivi/conferimenti.json",
@@ -83,6 +84,51 @@ TENANT_DIRECTORY_MERGE_PATHS: tuple[str, ...] = (
     "intelligence/models",
     "portale/uploads",
 )
+
+TENANT_JSON_EMPTY_DEFAULTS: dict[str, Any] = {
+    "agenda/appuntamenti.json": {},
+    "agenda/calendar_sync.json": {"profiles": []},
+    "auth/utenti.json": {},
+    "auth/audit.json": [],
+    "backup/config.json": {"max_backup": 1},
+    "backup/registro.json": [],
+    "clienti/anagrafica.json": {},
+    "clienti/condivisioni.json": {},
+    "clienti/note_faldone.json": {},
+    "config/studio.json": {},
+    "email/casella.json": {},
+    "email/ordinaria.json": {},
+    "fascicoli/fascicoli.json": {},
+    "fascicoli/practice_engine/practice_engine.json": {},
+    "fatturazione/parcelle.json": {},
+    "intelligence/assistente_redazionale.json": [],
+    "intelligence/giurisprudenza.json": {},
+    "intelligence/legal_skills/profile.json": {},
+    "intelligence/legal_skills/runs.json": [],
+    "intelligence/legal_skills/scheduled.json": [],
+    "intelligence/legal_updates_repository.json": {},
+    "intelligence/motori.json": {},
+    "intelligence/tabelle_normative.json": {},
+    "intelligence/validation_runs.json": [],
+    "intelligence/workspace_intelligence.json": {},
+    "messaggi/storico.json": {},
+    "notifiche/log.json": [],
+    "portale/portali.json": {},
+    "preventivi/conferimenti.json": {},
+    "preventivi/preventivi.json": {},
+    "privacy/registro.json": {},
+    "scadenziario/scadenze.json": {},
+    "soggetti/anagrafica.json": [],
+    "soggetti/parti.json": {},
+    "template_atti/editor_layout.json": {},
+    "template_atti/templates.json": {},
+    "timesheet/entries.json": {},
+    "timesheet/time_tracking.json": {},
+    "wizard_pro/sessioni.json": [],
+}
+
+TENANT_RUNTIME_BASELINE_CHECKED: set[str] = set()
+TENANT_RUNTIME_BASELINE_IN_PROGRESS: set[str] = set()
 
 
 # ============================================================== Moduli disponibili
@@ -1162,7 +1208,7 @@ class GestioneTenant:
             "fascicoli/practice_engine", "fascicoli/practice_engine/receipts",
             "fascicoli/practice_engine/evidence_packs",
             "agenda", "scadenziario", "timesheet", "fatturazione", "messaggi", "backup",
-            "notifiche", "pagamenti", "portale", "portale/uploads",
+            "notifiche", "notifications", "pagamenti", "portale", "portale/uploads",
             "penale", "telematico",
             "privacy", "condivisioni", "template_atti", "wizard_pro",
             "intelligence", "search", "config",
@@ -1177,6 +1223,119 @@ class GestioneTenant:
             "studio_data/keys",
         ]:
             (base / subdir).mkdir(parents=True, exist_ok=True)
+        self._ensure_runtime_baseline(slug)
+
+    def _ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
+        base = self._data_dir(slug)
+        key = str(base.resolve())
+        if not force and key in TENANT_RUNTIME_BASELINE_CHECKED:
+            return {"ok": True, "slug": slug, "skipped": True, "errors": [], "created_files": []}
+        if key in TENANT_RUNTIME_BASELINE_IN_PROGRESS:
+            return {"ok": True, "slug": slug, "in_progress": True, "errors": [], "created_files": []}
+
+        TENANT_RUNTIME_BASELINE_IN_PROGRESS.add(key)
+        report: Dict[str, Any] = {
+            "ok": True,
+            "slug": slug,
+            "data_dir": str(base),
+            "created_files": [],
+            "errors": [],
+            "sqlite_ready": False,
+            "notifications_ready": False,
+            "json_sqlite_mirror": {},
+        }
+
+        def _record_error(message: str) -> None:
+            report["ok"] = False
+            report.setdefault("errors", []).append(message)
+
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+            for relative in TENANT_FILE_SEED_PATHS:
+                target = base / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if target.suffix.lower() == ".json" and not target.exists():
+                    payload = TENANT_JSON_EMPTY_DEFAULTS.get(relative, {})
+                    target.write_text(
+                        json.dumps(payload, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
+                    report["created_files"].append(relative)
+
+            studio_db = None
+            try:
+                from pct.storage import StudioDB
+
+                studio_db = StudioDB.get(str(base / "studio.db"))
+                studio_db.ensure_schema()
+                report["sqlite_ready"] = True
+            except Exception as exc:  # noqa: BLE001 - bootstrap deve riportare il motivo
+                _record_error(f"Schema SQLite tenant non inizializzato: {exc}")
+
+            try:
+                from pct.notifications.repository import NotificationRepository
+
+                NotificationRepository(base / "notifications" / "notifications.db")
+                report["notifications_ready"] = True
+            except Exception as exc:  # noqa: BLE001 - bootstrap deve riportare il motivo
+                _record_error(f"Archivio notifiche tenant non inizializzato: {exc}")
+
+            if studio_db is not None:
+                try:
+                    from pct.agenda import Agenda
+                    from pct.scadenziario import GestioneScadenziario
+
+                    Agenda(db_path=str(base / "agenda" / "appuntamenti.json"), studio_db=studio_db)
+                    GestioneScadenziario(db_path=str(base / "scadenziario" / "scadenze.json"), studio_db=studio_db)
+                except Exception as exc:  # noqa: BLE001 - sync mirror non deve sparire silenziosamente
+                    _record_error(f"Agenda/scadenziario tenant non allineati: {exc}")
+
+                try:
+                    from pct.database import GestioneDatabase
+                    from pct.storage_migration import _build_json_to_sqlite_sources
+
+                    paths = self.percorsi_dati(slug, reconcile_aliases=False)
+                    paths_for_mirror = dict(paths)
+                    paths_for_mirror["STUDIO_CONFIG"] = paths.get("CONFIG_STUDIO_DB", "")
+                    mirror = GestioneDatabase(
+                        _build_json_to_sqlite_sources(paths_for_mirror)
+                    ).sincronizza_moduli_json_sqlite(
+                        paths["STUDIO_DB"],
+                        include_structured=True,
+                    )
+                    report["json_sqlite_mirror"] = mirror
+                    if not mirror.get("ok", False):
+                        _record_error(
+                            "Mirror SQL dei JSON tenant incompleto: "
+                            + "; ".join(str(item) for item in mirror.get("errors", []))
+                        )
+                except Exception as exc:  # noqa: BLE001 - report operativo, non fallback muto
+                    _record_error(f"Mirror SQL dei JSON tenant non completato: {exc}")
+        finally:
+            TENANT_RUNTIME_BASELINE_IN_PROGRESS.discard(key)
+
+        if report["ok"]:
+            TENANT_RUNTIME_BASELINE_CHECKED.add(key)
+        return report
+
+    def ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
+        """Garantisce la struttura dati completa di uno studio."""
+        return self._ensure_runtime_baseline(slug, force=force)
+
+    def ensure_active_runtime_baseline(self, *, force: bool = False) -> Dict[str, Any]:
+        """Garantisce la struttura dati completa di tutti gli studi operativi."""
+        results: Dict[str, Any] = {}
+        for studio in self.lista():
+            if str(studio.stato or "").strip().upper() not in {"ATTIVO", "TRIAL"}:
+                continue
+            slug = str(studio.slug or "").strip().lower()
+            if not slug:
+                continue
+            results[slug] = self._ensure_runtime_baseline(slug, force=force)
+        return {
+            "ok": all(bool(item.get("ok")) for item in results.values()) if results else True,
+            "studios": results,
+        }
 
     def bootstrap_legacy_runtime_data(
         self,
@@ -1220,6 +1379,7 @@ class GestioneTenant:
             "PREVENTIVI_DB",
             "SOGGETTI_DB",
             "SOGGETTI_PARTI_DB",
+            "NOTIFICATIONS_DB",
             "TEMPLATE_ATTI_DB",
             "TEMPLATE_ATTI_PREFS_DB",
             "WIZARD_PRO_DB",
@@ -1301,6 +1461,9 @@ class GestioneTenant:
         """Restituisce il dizionario di configurazione data paths per questo tenant."""
         if reconcile_aliases:
             self.reconcile_storage_aliases(slug)
+        baseline_key = str(self._data_dir(slug).resolve())
+        if baseline_key not in TENANT_RUNTIME_BASELINE_IN_PROGRESS:
+            self._ensure_runtime_baseline(slug)
         base = str(self._data_dir(slug))
         return {
             "AGENDA_DB":         f"{base}/agenda/appuntamenti.json",
@@ -1547,6 +1710,16 @@ class GestioneTenant:
                 report["repairs"].append("Alias e cartelle dati dello studio riallineati.")
         except Exception as exc:  # noqa: BLE001 - azione superadmin best effort con report
             _append_error(f"Riallineamento cartelle non completato: {exc}")
+
+        try:
+            baseline = self._ensure_runtime_baseline(slug_norm, force=True)
+            report["runtime_baseline"] = baseline
+            if baseline.get("ok"):
+                report["repairs"].append("Struttura dati dello studio verificata e riallineata.")
+            else:
+                _append_error("Struttura dati dello studio non completa.")
+        except Exception as exc:  # noqa: BLE001 - risposta controllata per superadmin
+            _append_error(f"Verifica struttura dati non completata: {exc}")
 
         paths = self.percorsi_dati(slug_norm, reconcile_aliases=False)
         auth_path = Path(str(paths.get("AUTH_DB") or ""))

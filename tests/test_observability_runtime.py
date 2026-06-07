@@ -122,10 +122,11 @@ def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Osservabilita runtime" in html
+    assert "Osservabilità runtime" in html
     assert "Pipeline OCR" in html
     assert "Capability di prodotto" in html
     assert "Segnali di degrado" in html
+    assert "Disco server" in html
 
 
 def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):

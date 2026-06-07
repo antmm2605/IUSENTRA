@@ -1593,6 +1593,94 @@ class GestioneDatabase:
             totale += count
         migrati["moduli_json_records"] = totale
 
+    def sincronizza_moduli_json_sqlite(
+        self,
+        percorso_db: str,
+        *,
+        include_structured: bool = False,
+    ) -> Dict[str, Any]:
+        """Allinea nel DB tenant il catalogo SQL di tutti i JSON monitorati.
+
+        Il metodo e' idempotente e non sostituisce le tabelle verticali dei
+        domini core: aggiorna sempre `moduli_dati` e, quando richiesto, anche
+        `moduli_json_records` per ogni JSON tenant-aware.
+        """
+        t0 = time.monotonic()
+        target_db_path = resolve_sqlite_path(percorso_db)
+        target_db_path.parent.mkdir(parents=True, exist_ok=True)
+        modules: Dict[str, Dict[str, Any]] = {}
+        errors: List[str] = []
+        moduli_count = 0
+        records_total = 0
+        now = datetime.now().isoformat()
+
+        with sqlite3.connect(str(target_db_path)) as conn:
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.executescript(SCHEMA_SQL)
+            for chiave in self._moduli_monitorati():
+                path = self.percorsi.get(chiave)
+                if not path:
+                    continue
+                raw, err = self._leggi_json_grezzo(chiave)
+                payload_json = self._modulo_payload_metadata(path, raw, err)
+                storage_kind = "json"
+                conn.execute(
+                    """
+                    INSERT INTO moduli_dati
+                    (nome, percorso, storage_kind, inizializzato_il, payload_json)
+                    VALUES (?,?,?,?,?)
+                    ON CONFLICT(nome) DO UPDATE SET
+                        percorso=excluded.percorso,
+                        storage_kind=excluded.storage_kind,
+                        payload_json=excluded.payload_json
+                    """,
+                    (chiave, str(path), storage_kind, now, payload_json),
+                )
+                moduli_count += 1
+                record_count = 0
+                if err:
+                    errors.append(f"{chiave}: {err}")
+                elif raw is None:
+                    if include_structured or chiave not in self.MODULI_SQLITE_STRUTTURATI:
+                        conn.execute("DELETE FROM moduli_json_records WHERE modulo = ?", (chiave,))
+                elif include_structured or chiave not in self.MODULI_SQLITE_STRUTTURATI:
+                    conn.execute("DELETE FROM moduli_json_records WHERE modulo = ?", (chiave,))
+                    for record_key, record_index, record_kind, payload in self._json_record_entries(raw):
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO moduli_json_records
+                            (modulo, record_key, record_index, record_kind, payload_json)
+                            VALUES (?,?,?,?,?)
+                            """,
+                            (
+                                chiave,
+                                record_key,
+                                record_index,
+                                record_kind,
+                                self._json_record_payload(payload),
+                            ),
+                        )
+                        record_count += 1
+                    records_total += record_count
+                modules[chiave] = {
+                    "path": str(path),
+                    "exists": bool(path.exists()),
+                    "records": record_count,
+                    "error": err or "",
+                    "structured": chiave in self.MODULI_SQLITE_STRUTTURATI,
+                }
+            conn.commit()
+
+        return {
+            "ok": not errors,
+            "percorso_db": str(target_db_path),
+            "moduli_dati": moduli_count,
+            "moduli_json_records": records_total,
+            "modules": modules,
+            "errors": errors,
+            "ms": int((time.monotonic() - t0) * 1000),
+        }
+
     def _backup_json_prima_riparazione(self, chiave: str, ts: str) -> str:
         p = self.percorsi.get(chiave)
         if not p or not p.exists():

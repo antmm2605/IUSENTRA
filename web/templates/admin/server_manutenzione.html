@@ -89,7 +89,7 @@
   <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between align-items-center gap-2">
     <div>
       <strong>Console {{ payload.host_console.provider_name }}</strong>
-      <div class="small text-muted">Spazio fuori dagli studi, cache dei servizi e aree da verificare sul server.</div>
+      <div class="small text-muted">Composizione disco, cache dei servizi, dati globali e aree pulibili dal superadmin.</div>
     </div>
     {% if payload.host_console.connected %}
     <span class="badge text-bg-success">Presidio attivo</span>
@@ -101,9 +101,9 @@
     <div class="row g-3 mb-3">
       <div class="col-12 col-md-6 col-xl-3">
         <div class="border rounded-3 p-3 h-100">
-          <div class="text-muted small mb-1">Fuori dagli studi</div>
+          <div class="text-muted small mb-1">Sistema e piattaforma</div>
           <div class="h3 fw-semibold mb-1">{{ payload.host_console.outside_tenants_label }}</div>
-          <div class="small text-muted">Differenza tra disco usato e dati degli studi.</div>
+          <div class="small text-muted">{{ payload.host_console.outside_tenants_note }}</div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-xl-3">
@@ -129,6 +129,31 @@
       </div>
     </div>
     <div class="row g-3">
+      <div class="col-12">
+        <div class="table-responsive border rounded-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Composizione fuori studi</th>
+                <th class="text-end">Spazio</th>
+                <th>Significato</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in payload.host_console.outside_breakdown %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ item.label }}</div>
+                  <span class="badge text-bg-{{ 'warning' if item.tone == 'warning' else ('success' if item.tone == 'success' else 'light') }} border">{{ item.code }}</span>
+                </td>
+                <td class="text-end fw-semibold">{{ item.size_label }}</td>
+                <td class="small text-muted">{{ item.note }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
       <div class="col-12 col-xl-5">
         <div class="table-responsive border rounded-3">
           <table class="table table-sm align-middle mb-0">
@@ -199,6 +224,18 @@
       </div>
       <div class="col-12 col-xl-5">
         <div class="d-flex flex-wrap gap-2 justify-content-xl-end">
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_manutenzione_professionale') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-clipboard2-pulse"></i> Analizza manutenzione
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.applica_manutenzione_professionale') }}" onsubmit="return confirm('Eseguire manutenzione professionale? Verranno rimossi solo backup eccedenti, cartelle tenant non registrate, snapshot temporanei e cache ricostruibile.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-danger" type="submit">
+              <i class="bi bi-tools"></i> Esegui manutenzione
+            </button>
+          </form>
           <form method="post" action="{{ url_for('server_maintenance_admin.analizza_compattazione') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-primary" type="submit">
@@ -235,6 +272,36 @@
               <i class="bi bi-trash3"></i> Applica retention backup
             </button>
           </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_cartelle_escluse') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-warning" type="submit">
+              <i class="bi bi-folder-x"></i> Analizza cartelle escluse
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.elimina_cartelle_escluse') }}" onsubmit="return confirm('Eliminare le cartelle tenant escluse dalla registry attiva? I due storage degli studi registrati non vengono toccati.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-danger" type="submit">
+              <i class="bi bi-trash3"></i> Elimina cartelle escluse
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.pulisci_log_sistema') }}" onsubmit="return confirm('Ridurre i log di sistema mantenendo gli ultimi 256 MiB di journal?')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-journal-x"></i> Pulisci log sistema
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_normativa_globale') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-journal-text"></i> Analizza normativa globale
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.pulisci_normativa_globale') }}" onsubmit="return confirm('Rimuovere solo i backup duplicati della normativa globale? DB Normattiva, indice e sorgenti restano disponibili per Ricerca Legale e Lex.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-danger" type="submit">
+              <i class="bi bi-trash3"></i> Pulisci backup Normattiva
+            </button>
+          </form>
           <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Pulire la cache ricostruibile dei servizi? I dati degli studi non vengono toccati.')">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-danger" type="submit">
@@ -244,6 +311,74 @@
         </div>
       </div>
     </div>
+    {% if professional_maintenance %}
+    <div class="alert alert-{{ 'success' if professional_maintenance.applied and not professional_maintenance.errors else ('warning' if professional_maintenance.errors else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Manutenzione professionale applicata' if professional_maintenance.applied else 'Analisi manutenzione professionale' }}
+      </div>
+      <div class="small">
+        Backup: {{ professional_maintenance.backup_retention.archives_to_delete }} archivi eliminabili,
+        cartelle escluse: {{ professional_maintenance.inactive_tenants.candidates_count }},
+        snapshot temporaneo: {{ professional_maintenance.temporary_snapshot.bytes_reclaimable_label }},
+        log sistema: {{ professional_maintenance.system_logs.after or professional_maintenance.system_logs.before }},
+        cache servizi: {{ professional_maintenance.docker_prune.bytes_reclaimable_label or professional_maintenance.docker_prune.bytes_reclaimed_label }}.
+      </div>
+      <div class="small">
+        Normativa globale: backup duplicati {{ professional_maintenance.normativa_global.bytes_reclaimable_label }},
+        DB vivo {{ 'presente' if professional_maintenance.normativa_global.live_db_exists else 'non rilevato' }},
+        indice {{ 'presente' if professional_maintenance.normativa_global.index_exists else 'non rilevato' }}.
+      </div>
+      <div class="small fw-semibold mt-1">
+        {{ 'Recuperato' if professional_maintenance.applied else 'Recuperabile' }}:
+        {{ professional_maintenance.bytes_reclaimed_label if professional_maintenance.applied else professional_maintenance.bytes_reclaimable_label }}.
+      </div>
+      {% if professional_maintenance.errors %}
+      <ul class="small mt-2 mb-0">
+        {% for error in professional_maintenance.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if normativa_cleanup %}
+    <div class="alert alert-{{ 'success' if normativa_cleanup.applied and not normativa_cleanup.errors else ('warning' if normativa_cleanup.errors else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Pulizia normativa globale applicata' if normativa_cleanup.applied else 'Analisi normativa globale' }}
+      </div>
+      <div class="small">
+        Backup duplicati: {{ normativa_cleanup.bytes_reclaimable_label }} recuperabili,
+        rimossi {{ normativa_cleanup.directories_deleted }} percorsi,
+        recuperati {{ normativa_cleanup.bytes_reclaimed_label }}.
+      </div>
+      <div class="small">
+        DB Normattiva: {{ 'presente' if normativa_cleanup.live_db_exists else 'non rilevato' }} -
+        indice ricerca: {{ 'presente' if normativa_cleanup.index_exists else 'non rilevato' }}.
+      </div>
+      <div class="small text-muted text-break">{{ normativa_cleanup.normativa_root }}</div>
+      {% if normativa_cleanup.errors %}
+      <ul class="small mt-2 mb-0">
+        {% for error in normativa_cleanup.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if log_cleanup %}
+    <div class="alert alert-{{ 'warning' if log_cleanup.errors else 'success' }} mt-3 mb-0">
+      <div class="fw-semibold">Pulizia log sistema</div>
+      <div class="small">Prima: {{ log_cleanup.before or 'dato non disponibile' }}</div>
+      <div class="small">Dopo: {{ log_cleanup.after or 'dato non disponibile' }}</div>
+      {% if log_cleanup.errors %}
+      <ul class="small mt-2 mb-0">
+        {% for error in log_cleanup.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endif %}
     {% if compaction %}
     <div class="alert alert-{{ 'success' if compaction.applied else 'info' }} mt-3 mb-0">
       <div class="fw-semibold">
@@ -318,9 +453,43 @@
         {{ backup_retention.retention.days }} giorni,
         tetto {{ backup_retention.retention.max_gib }} GiB.
       </div>
+      {% if backup_retention.tenant %}
+      <div class="small mt-1">
+        Backup interni studi: {{ backup_retention.tenant.tenant_backup_roots }} cartelle,
+        {{ backup_retention.tenant.archives_to_delete }} archivi eliminabili,
+        mirror eliminabili {{ backup_retention.tenant.mirror_dirs_to_delete }}.
+      </div>
+      {% endif %}
       {% if backup_retention.errors %}
       <ul class="small mt-2 mb-0">
         {% for error in backup_retention.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if inactive_cleanup %}
+    <div class="alert alert-{{ 'success' if inactive_cleanup.applied and not inactive_cleanup.errors else ('warning' if inactive_cleanup.errors else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Cartelle escluse eliminate' if inactive_cleanup.applied else 'Analisi cartelle escluse' }}
+      </div>
+      <div class="small">
+        Cartelle candidate: {{ inactive_cleanup.candidates_count }} -
+        eliminazioni eseguite: {{ inactive_cleanup.directories_deleted }} -
+        recuperabile: {{ inactive_cleanup.bytes_reclaimable_label }} -
+        recuperato: {{ inactive_cleanup.bytes_reclaimed_label }}.
+      </div>
+      {% if inactive_cleanup.candidates %}
+      <ol class="small mt-2 mb-0">
+        {% for item in inactive_cleanup.candidates[:8] %}
+        <li>{{ item.slug }} - {{ item.status_label }} - {{ item.size_label }}</li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+      {% if inactive_cleanup.errors %}
+      <ul class="small mt-2 mb-0">
+        {% for error in inactive_cleanup.errors %}
         <li>{{ error }}</li>
         {% endfor %}
       </ul>
@@ -343,12 +512,16 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div>
         <strong>Consumi per studio</strong>
-        <div class="small text-muted">Categorie, cartelle pesanti, file principali e interventi disponibili per ogni studio.</div>
+        <div class="small text-muted">Solo storage registrati nella registry tenant: le cartelle legacy sono escluse dal conteggio degli studi.</div>
       </div>
       <div class="d-flex flex-wrap gap-2 small">
-        <span class="badge text-bg-light border">Studi: {{ payload.summary.tenant_total_size_label }}</span>
+        <span class="badge text-bg-light border">Studi attivi: {{ payload.summary.tenant_count }}</span>
+        <span class="badge text-bg-light border">Spazio studi: {{ payload.summary.tenant_total_size_label }}</span>
         <span class="badge text-bg-light border">Posta studi: {{ payload.summary.tenant_email_size_label }}</span>
         <span class="badge text-bg-light border">Backup studi: {{ payload.summary.tenant_backup_size_label }}</span>
+        {% if payload.summary.inactive_tenant_dirs %}
+        <span class="badge text-bg-warning">Cartelle escluse: {{ payload.summary.inactive_tenant_dirs }}</span>
+        {% endif %}
         {% if payload.summary.scan_truncated %}
         <span class="badge text-bg-warning">Scansione rapida</span>
         {% endif %}
@@ -363,7 +536,7 @@
           <th class="text-end">Totale</th>
           <th>Area dominante</th>
           <th>Distribuzione</th>
-          <th>Cartelle piu' pesanti</th>
+          <th>Cartelle più pesanti</th>
           <th>File principali</th>
           <th class="text-end">Azioni</th>
         </tr>
@@ -372,7 +545,9 @@
         {% for tenant in payload.tenants %}
         <tr>
           <td>
-            <div class="fw-semibold">{{ tenant.slug }}</div>
+            <div class="fw-semibold">{{ tenant.display_name or tenant.registry_slug or tenant.slug }}</div>
+            <div class="small text-muted">{{ tenant.registry_slug or tenant.slug }}{% if tenant.canonical_storage_key and tenant.canonical_storage_key != tenant.slug %} - storage {{ tenant.canonical_storage_key }}{% endif %}</div>
+            <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">{{ tenant.storage_status_label }}</span>
             <div class="small text-muted">File: {{ tenant.file_count }} - cartelle: {{ tenant.directory_count }}</div>
             {% if tenant.scan_truncated %}
             <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle">Scansione rapida parziale</span>
@@ -472,6 +647,40 @@
     </table>
   </div>
 </div>
+
+{% if payload.inactive_tenants %}
+<div class="card shadow-sm mb-4 border-warning">
+  <div class="card-header bg-warning-subtle">
+    <strong>Cartelle dati escluse dagli studi attivi</strong>
+    <div class="small text-muted">Non sono conteggiate come studio operativo. Se restano senza registry, vanno rimosse dalla manutenzione controllata.</div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Cartella</th>
+          <th>Stato</th>
+          <th class="text-end">Spazio</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tenant in payload.inactive_tenants %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ tenant.slug }}</div>
+            <div class="small text-muted text-break">{{ tenant.path }}</div>
+          </td>
+          <td><span class="badge text-bg-warning">{{ tenant.storage_status_label }}</span></td>
+          <td class="text-end fw-semibold">{{ tenant.total_label }}</td>
+          <td class="small text-muted">{{ tenant.storage_warning or 'Cartella esclusa dal conteggio operativo.' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 
 <div class="card shadow-sm">
   <div class="card-header bg-body-tertiary">

@@ -355,6 +355,56 @@ def _local_acquire_deadline_status(result: dict[str, Any]) -> str:
     return "deadline_not_ready"
 
 
+def _notify_pec_deadline(message_id: str, result: dict[str, Any]) -> dict[str, Any]:
+    if not result.get("ok"):
+        return result
+    deadline_id = str(result.get("deadline_id") or "").strip()
+    if not deadline_id:
+        return result
+    try:
+        from web.services.notifications_runtime import (
+            build_notification_service,
+            current_tenant_id,
+            current_user_id,
+        )
+
+        agenda = result.get("agenda") if isinstance(result.get("agenda"), dict) else {}
+        agenda_id = str(agenda.get("agenda_id") or "")
+        due_date = str(result.get("due_date") or "")
+        source_id = str(message_id or deadline_id)
+        agenda_text = " e all'agenda" if agenda_id else ""
+        due_text = f" per il {due_date}" if due_date else ""
+        service = build_notification_service()
+        _record, created, summary = service.create_notification(
+            tenant_id=current_tenant_id(),
+            user_id=current_user_id() or _actor(),
+            type="pec_deadline",
+            priority="important",
+            title="Scadenza PEC registrata",
+            body=f"Presidio PEC collegato allo scadenziario{agenda_text}{due_text}.",
+            href="/scadenziario?vista=pec",
+            source_type="pec_deadline",
+            source_id=source_id,
+            dedupe_key=f"PEC_AUDIT:{source_id}:deadline",
+            payload_json={
+                "deadlineId": deadline_id,
+                "agendaId": agenda_id,
+                "dueDate": due_date,
+                "alreadyExists": bool(result.get("already_exists")),
+            },
+            send_push=True,
+        )
+        result["notification"] = {
+            "created": created,
+            "pushConfigured": summary.configured,
+            "pushAttempted": summary.attempted,
+            "pushSent": summary.sent,
+        }
+    except Exception as exc:
+        result["notification"] = {"created": False, "error": str(exc)[:180]}
+    return result
+
+
 def _local_acquire_record(
     repo: PecAuditRepository,
     run_id: str,
@@ -585,6 +635,7 @@ def _pec_acquire_local_emails_chunked():
                         "ok": False,
                         "message": "MIME originale non disponibile nella casella locale: presidio registrato, verifica IMAP se serve la prova completa.",
                     }
+            result = _notify_pec_deadline(message_id, result)
             deadline_status = _local_acquire_deadline_status(result)
             if deadline_status == "deadline_already_exists":
                 deadline_report["already_exists"] += 1
@@ -1025,6 +1076,7 @@ def pec_schedule_deadline(message_id: str):
     payload = request.get_json(silent=True) or {}
     try:
         result = _repo().schedule_deadline(message_id, actor=_actor(), due_date=str(payload.get("data_scadenza") or ""))
+        result = _notify_pec_deadline(message_id, result)
         return _json_success(result, 200 if result.get("ok") else 409)
     except KeyError:
         return _json_error(404)

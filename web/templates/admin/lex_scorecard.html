@@ -6,22 +6,33 @@
 <div class="admin-page-header">
   <div>
     <h4 class="admin-page-title">Eval suite e scorecard Lex</h4>
-    <p class="admin-page-subtitle">Casi reali per fascicolo, udienza, telematico, giurisprudenza, atti e operativita giornaliera.</p>
+    <p class="admin-page-subtitle">Catalogo casi, prove reali eseguite, fonti utili, tempi e fallimenti da chiudere prima di dichiarare Lex affidabile.</p>
+  </div>
+</div>
+
+<div class="alert alert-{{ 'warning' if payload.summary.measurement_status != 'misurata' else 'success' }} mb-4">
+  <div class="fw-semibold">{{ payload.summary.measurement_status_label }}</div>
+  <div class="small">
+    {% if payload.summary.results_path %}
+    Ultimo file risultati: {{ payload.summary.results_path }}{% if payload.summary.results_updated_at %} · {{ payload.summary.results_updated_at }}{% endif %}
+    {% else %}
+    La scorecard non ha ancora risultati reali salvati: i casi sotto sono il perimetro da testare, non prove superate.
+    {% endif %}
   </div>
 </div>
 
 <div class="row g-3 mb-4">
   <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Casi</div><div class="fs-2 fw-bold">{{ payload.summary.cases_total }}</div></div></div>
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Casi catalogo</div><div class="fs-2 fw-bold">{{ payload.summary.cases_total }}</div></div></div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Aree</div><div class="fs-2 fw-bold">{{ payload.summary.areas_total }}</div></div></div>
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Prove eseguite</div><div class="fs-2 fw-bold">{{ payload.summary.measured_cases }}</div></div></div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Target fonti utili</div><div class="fs-2 fw-bold">{{ payload.summary.citations_target }}</div></div></div>
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Passate</div><div class="fs-2 fw-bold text-success">{{ payload.summary.passed_cases }}</div></div></div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Target tempo risposta</div><div class="fs-2 fw-bold">{{ payload.summary.response_time_target }}</div></div></div>
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Fallite/aperte</div><div class="fs-2 fw-bold text-warning">{{ payload.summary.failed_cases }}</div></div></div>
   </div>
 </div>
 
@@ -37,6 +48,7 @@
               <div>
                 <div class="fw-semibold">{{ area.area|replace('_', ' ')|title }}</div>
                 <div class="small text-muted mt-1">{{ area.titles|join(' · ') }}</div>
+                <div class="small mt-1">Misurati {{ area.measured }}/{{ area.count }} · passati {{ area.passed }} · falliti {{ area.failed }}</div>
               </div>
               <span class="badge text-bg-light border">{{ area.count }}</span>
             </div>
@@ -49,7 +61,7 @@
 
   <div class="col-12 col-xl-6">
     <div class="card h-100">
-      <div class="card-header fw-semibold">Rubrica qualita</div>
+      <div class="card-header fw-semibold">Rubrica qualità</div>
       <div class="card-body">
         <div class="admin-surface-list">
           {% for item in payload.rubric %}
@@ -67,13 +79,71 @@
 </div>
 
 <div class="card mt-4">
-  <div class="card-header fw-semibold">KPI finali da presidiare</div>
+  <div class="card-header fw-semibold">KPI misurati e obiettivi</div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>KPI</th><th>Valore reale</th><th>Obiettivo</th><th>Stato</th></tr>
+      </thead>
+      <tbody>
+        {% for item in payload.kpi %}
+        <tr>
+          <td class="fw-semibold">{{ item.label }}</td>
+          <td>{{ item.value }}</td>
+          <td>{{ item.target }}</td>
+          <td><span class="badge text-bg-{{ 'success' if item.status == 'ok' else ('info' if item.status == 'info' else 'warning') }}">{{ item.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header fw-semibold">Casi da eseguire e risultati</div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Caso</th><th>Area</th><th>Esito</th><th>Tempo</th><th>Fonti utili</th><th>Avvisi</th></tr>
+      </thead>
+      <tbody>
+        {% for case in payload.cases %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ case.title }}</div>
+            <div class="small text-muted">{{ case.id }}</div>
+          </td>
+          <td>{{ case.area|replace('_', ' ')|title }}</td>
+          <td>
+            {% if case.measured %}
+            <span class="badge text-bg-{{ 'success' if case.passed else 'danger' }}">{{ 'passato' if case.passed else 'fallito' }}</span>
+            {% else %}
+            <span class="badge text-bg-warning">non eseguito</span>
+            {% endif %}
+          </td>
+          <td>{{ case.duration_ms if case.duration_ms else 'n.d.' }}{% if case.duration_ms %} ms{% endif %}</td>
+          <td>
+            {% if case.sources_useful is sameas true %}sì{% elif case.sources_useful is sameas false %}no{% else %}n.d.{% endif %}
+          </td>
+          <td class="small text-muted">{{ case.warnings|join(' · ') if case.warnings else 'nessun dato' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header fw-semibold">Azioni necessarie</div>
   <div class="card-body">
-    <ul class="mb-0">
-      {% for item in payload.kpi %}
-      <li><strong>{{ item.label }}</strong>: {{ item.target }}</li>
+    <div class="admin-surface-list">
+      {% for action in payload.actions %}
+      <div class="admin-surface-item">
+        <div class="fw-semibold">{{ action.label }}</div>
+        <div class="small text-muted">{{ action.detail }}</div>
+      </div>
       {% endfor %}
-    </ul>
+    </div>
   </div>
 </div>
 {% endblock %}

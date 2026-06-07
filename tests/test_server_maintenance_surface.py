@@ -12,6 +12,8 @@ from web.services.server_maintenance_surface import (
     build_server_maintenance_surface,
     directory_size,
     run_backup_retention,
+    run_normativa_global_cleanup,
+    run_tenant_backup_retention,
     run_max_storage_optimization,
     run_storage_compaction,
 )
@@ -32,8 +34,8 @@ def test_backup_retention_defaults_professionali():
 
     assert settings == {
         "days": 14,
-        "count": 3,
-        "min_count": 2,
+        "count": 1,
+        "min_count": 1,
         "max_gib": 8,
     }
 
@@ -129,7 +131,108 @@ def test_server_maintenance_surface_mostra_consumi_per_studio(tmp_path: Path):
     assert payload["summary"]["backup_external_size_label"] == "8.0 KiB"
     assert payload["summary"]["tenant_email_size_label"] == "8.0 KiB"
     assert payload["summary"]["tenant_backup_size_label"] == "8.0 KiB"
-    assert payload["backup_retention"]["backup_archives_scanned"] == 1
+    assert payload["backup_retention"]["backup_archives_scanned"] == 2
+    assert payload["backup_retention"]["tenant"]["backup_archives_scanned"] == 1
+
+
+def test_server_maintenance_surface_separa_cartelle_legacy_da_studi_attivi(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    registry.write_text(
+        '{"tenants": [{"slug": "studio-a", "storage_key": "tenant-a", "nome": "Studio A", "attivo": true}]}',
+        encoding="utf-8",
+    )
+    active_root = tmp_path / "tenants" / "tenant-a"
+    legacy_root = tmp_path / "tenants" / "studio-a"
+    active_root.mkdir(parents=True)
+    legacy_root.mkdir(parents=True)
+    (active_root / "studio.db").write_bytes(b"a" * 4096)
+    (legacy_root / "vecchio.json").write_bytes(b"b" * 4096)
+
+    payload = build_server_maintenance_surface(
+        {
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "TENANTS_REGISTRY": str(registry),
+            "IUSENTRA_BACKUP_DIR": str(tmp_path / "external_backups"),
+        }
+    )
+
+    assert [row["slug"] for row in payload["tenants"]] == ["tenant-a"]
+    assert payload["summary"]["tenant_count"] == 1
+    assert payload["summary"]["tenant_storage_dirs"] == 2
+    assert payload["summary"]["inactive_tenant_dirs"] == 1
+    assert payload["inactive_tenants"][0]["slug"] == "studio-a"
+    assert payload["inactive_tenants"][0]["storage_status"] == "alias_legacy"
+
+
+def test_tenant_backup_retention_conserva_solo_ultimo_completo_e_tmp(tmp_path: Path):
+    import zipfile
+
+    backup_root = tmp_path / "tenants" / "studio-a" / "backup"
+    mirror_root = backup_root / "mirror" / "cliente"
+    backup_root.mkdir(parents=True)
+    mirror_root.mkdir(parents=True)
+
+    old_complete = backup_root / "old.zip"
+    new_complete = backup_root / "new.zip"
+    temporary = backup_root / "running_tmp.zip"
+    partial = backup_root / "partial.zip"
+    for archive in (old_complete, new_complete, temporary):
+        with zipfile.ZipFile(archive, "w") as handle:
+            handle.writestr("fascicoli/documenti/atto.pdf", "contenuto")
+    with zipfile.ZipFile(partial, "w") as handle:
+        handle.writestr("registro.json", "{}")
+    (mirror_root / "old.zip").write_bytes(b"mirror")
+    for index, archive in enumerate((old_complete, partial, temporary, new_complete), start=1):
+        mtime = 1_700_000_000 + index
+        os.utime(archive, (mtime, mtime))
+
+    analysis = run_tenant_backup_retention(apply=False, data_root=tmp_path)
+
+    assert analysis["backup_archives_scanned"] == 4
+    assert analysis["archives_to_delete"] == 3
+    assert analysis["mirror_dirs_to_delete"] == 1
+    assert analysis["kept_archives"][0]["name"] == "new.zip"
+
+    applied = run_tenant_backup_retention(apply=True, data_root=tmp_path)
+
+    assert applied["archives_deleted"] == 3
+    assert new_complete.exists()
+    assert not old_complete.exists()
+    assert not temporary.exists()
+    assert not partial.exists()
+    assert not (backup_root / "mirror").exists()
+
+
+def test_normativa_global_cleanup_rimuove_solo_backup(tmp_path: Path):
+    normativa_root = tmp_path / "normativa"
+    backup_root = normativa_root / "backups"
+    index_root = normativa_root / "index"
+    backup_root.mkdir(parents=True)
+    index_root.mkdir(parents=True)
+    db = normativa_root / "normattiva.sqlite"
+    index = index_root / "normattiva_chunks.jsonl"
+    db.write_bytes(b"db")
+    index.write_text("{}\n", encoding="utf-8")
+    (backup_root / "normattiva.sqlite").write_bytes(b"backup" * 1024)
+
+    analysis = run_normativa_global_cleanup(
+        apply=False,
+        config={"NORMATTIVA_DB": str(db), "NORMATTIVA_JSONL": str(index)},
+    )
+
+    assert analysis["bytes_reclaimable"] > 0
+    assert analysis["live_db_exists"] is True
+    assert analysis["index_exists"] is True
+
+    applied = run_normativa_global_cleanup(
+        apply=True,
+        config={"NORMATTIVA_DB": str(db), "NORMATTIVA_JSONL": str(index)},
+    )
+
+    assert applied["directories_deleted"] == 1
+    assert not backup_root.exists()
+    assert db.exists()
+    assert index.exists()
 
 
 def test_server_maintenance_surface_spiega_spazio_fuori_studi(tmp_path: Path, monkeypatch):
@@ -309,11 +412,12 @@ def test_superadmin_server_manutenzione_renderizza(tmp_path: Path):
     assert response.status_code == 200
     assert "Server e manutenzione" in html
     assert "Console Hetzner CPX42" in html
-    assert "Fuori dagli studi" in html
+    assert "Sistema e piattaforma" in html
     assert "Consumi per studio" in html
-    assert "Cartelle piu&#39; pesanti" in html or "Cartelle piu' pesanti" in html
+    assert "Cartelle più pesanti" in html
     assert "File principali" in html
     assert "Compatta" in html
     assert "Ottimizza archivi studi" in html
     assert "Pulisci cache servizi" in html
+    assert "Pulisci backup Normattiva" in html
     assert "retention backup" in html

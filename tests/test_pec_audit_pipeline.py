@@ -383,6 +383,7 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
         "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
         "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
         "AGENDA_DB": tmp_path / "agenda" / "appuntamenti.json",
+        "NOTIFICATIONS_DB": tmp_path / "notifications" / "notifications.db",
     }
 
     def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
@@ -408,7 +409,10 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     def _inject_user():
         g.utente_corrente = _User()
         g.tenant_slug = "default"
-        g.data_paths = {"PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"])}
+        g.data_paths = {
+            "PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"]),
+            "NOTIFICATIONS_DB": str(paths["NOTIFICATIONS_DB"]),
+        }
 
     client = app.test_client()
     demo = client.post("/api/pec/demo/ingest")
@@ -446,6 +450,8 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert schedule_payload["due_date"]
     assert schedule_payload["agenda"]["ok"] is True
     assert schedule_payload["agenda"]["agenda_id"]
+    assert schedule_payload["notification"]["created"] is True
+    assert schedule_payload["notification"]["pushConfigured"] is False
 
     scadenze = GestioneScadenziario(str(paths["SCADENZIARIO_DB"])).tutte(solo_aperte=False)
     marker = f"PEC_AUDIT:{notice_id}"
@@ -460,10 +466,21 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert agenda_items[0].tipo == TipoAppuntamento.SCADENZA
     assert agenda_items[0].external_uid == f"PEC_AUDIT:{notice_id}:deadline"
     assert agenda_items[0].external_provider == "pec_audit"
+    with sqlite3.connect(paths["NOTIFICATIONS_DB"]) as conn:
+        row = conn.execute(
+            "SELECT title, href, source_type, source_id FROM notifications WHERE dedupe_key=?",
+            (f"PEC_AUDIT:{notice_id}:deadline",),
+        ).fetchone()
+    assert row is not None
+    assert row[0] == "Scadenza PEC registrata"
+    assert row[1] == "/scadenziario?vista=pec"
+    assert row[2] == "pec_deadline"
+    assert row[3] == notice_id
 
     schedule_again = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza", json={"data_scadenza": "2030-01-15"})
     assert schedule_again.status_code == 200
     assert schedule_again.get_json()["already_exists"] is True
+    assert schedule_again.get_json()["notification"]["created"] is False
     assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
 
     prepare_save = client.post(
@@ -556,6 +573,7 @@ def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch
         "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
         "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
         "AGENDA_DB": tmp_path / "agenda" / "appuntamenti.json",
+        "NOTIFICATIONS_DB": tmp_path / "notifications" / "notifications.db",
     }
 
     def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
@@ -604,7 +622,10 @@ def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch
     def _inject_user():
         g.utente_corrente = _User()
         g.tenant_slug = "default"
-        g.data_paths = {"PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"])}
+        g.data_paths = {
+            "PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"]),
+            "NOTIFICATIONS_DB": str(paths["NOTIFICATIONS_DB"]),
+        }
 
     client = app.test_client()
     single = client.post("/api/pec/email/MAIL-LEGACY-PEC/acquisisci")
@@ -814,6 +835,7 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
         "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
         "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
         "AGENDA_DB": tmp_path / "agenda" / "appuntamenti.json",
+        "NOTIFICATIONS_DB": tmp_path / "notifications" / "notifications.db",
     }
 
     def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
@@ -892,7 +914,10 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
     def _inject_user():
         g.utente_corrente = _User()
         g.tenant_slug = "default"
-        g.data_paths = {"PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"])}
+        g.data_paths = {
+            "PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"]),
+            "NOTIFICATIONS_DB": str(paths["NOTIFICATIONS_DB"]),
+        }
 
     client = app.test_client()
     massivo = client.post("/api/pec/email/acquisisci-locali?limit=20&worker_limit=0")
@@ -913,6 +938,11 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
     assert "Udienza da PEC" in scadenze[0].titolo
     assert scadenze[0].id_appuntamento
     assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
+    with sqlite3.connect(paths["NOTIFICATIONS_DB"]) as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM notifications WHERE source_type='pec_deadline' AND source_id=?",
+            (ingest["id"],),
+        ).fetchone()[0] == 1
 
 
 def test_pec_repository_quarantines_stale_sqlite_journal(tmp_path):

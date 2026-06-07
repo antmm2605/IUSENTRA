@@ -16,6 +16,7 @@ from pct.scadenziario import (
     OFFICE_MODE_LABELS,
     PRESET_TERMINI,
     PrioritaTermine,
+    SOURCE_EVENT_TYPE_LABELS,
     StatoTermine,
     TipoTermine,
     profili_termine_builtin,
@@ -30,6 +31,7 @@ from pct.termini_processuali import (
 )
 from web.services.scadenziario_views import (
     VISTA_LABEL_SCADENZIARIO,
+    is_scadenza_pec,
     normalizza_vista_scadenziario,
     scadenze_per_vista,
 )
@@ -107,6 +109,13 @@ def _days_label(days: int | None) -> str:
     if days == -1:
         return "-1 gg"
     return f"{days:+d} gg" if days > 0 else f"{days} gg"
+
+
+def _source_event_label(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    return SOURCE_EVENT_TYPE_LABELS.get(raw, raw.replace("_", " ").title())
 
 
 def _priority_label(value: Any) -> str:
@@ -232,6 +241,13 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
     fascicolo = _safe_get(gestione_fascicoli, fascicolo_id)
     priority = _enum_value(getattr(scadenza, "priorita", PrioritaTermine.MEDIA.value)) or PrioritaTermine.MEDIA.value
     status = _enum_value(getattr(scadenza, "stato", StatoTermine.APERTO.value)) or StatoTermine.APERTO.value
+    office_mode = str(getattr(scadenza, "judicial_office_operating_mode", "") or "").strip()
+    patron_name = str(getattr(scadenza, "judicial_office_patron_name", "") or "").strip()
+    patron_day = int(getattr(scadenza, "judicial_office_patron_day", 0) or 0)
+    patron_month = int(getattr(scadenza, "judicial_office_patron_month", 0) or 0)
+    patron_label = patron_name
+    if patron_name and patron_day and patron_month:
+        patron_label = f"{patron_name} ({patron_day:02d}/{patron_month:02d})"
     return {
         "id": item_id,
         "date": due_date,
@@ -259,7 +275,13 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
         "ownerLabel": _owner_label(scadenza, gestione_utenti, fascicolo),
         "sourceEventAt": str(getattr(scadenza, "source_event_at", "") or getattr(scadenza, "data_decorrenza", "") or ""),
         "sourceEventLabel": _format_date(getattr(scadenza, "source_event_at", "") or getattr(scadenza, "data_decorrenza", "")),
+        "sourceEventType": str(getattr(scadenza, "source_event_type", "") or ""),
+        "sourceEventTypeLabel": _source_event_label(getattr(scadenza, "source_event_type", "")),
         "officeLabel": str(getattr(scadenza, "judicial_office_name", "") or getattr(fascicolo, "tribunale", "") or ""),
+        "officeModeLabel": OFFICE_MODE_LABELS.get(office_mode, office_mode.replace("_", " ").title() if office_mode else ""),
+        "officePatronLabel": patron_label,
+        "officeVerifiedAt": str(getattr(scadenza, "judicial_office_verified_at", "") or ""),
+        "octoberObservanceBlocks": bool(getattr(scadenza, "october_observance_blocks", False)),
         "traceCount": _trace_count(scadenza),
         "href": f"/scadenziario/{item_id}?vista=tutte",
         "editHref": f"/scadenziario/{item_id}/modifica",
@@ -297,6 +319,7 @@ def _is_overdue(item: Any) -> bool:
 
 def _summary(all_items: list[Any]) -> dict[str, int]:
     open_items = [item for item in all_items if _is_open(item)]
+    pec_items = [item for item in all_items if is_scadenza_pec(item)]
     def days(item: Any) -> int | None:
         current = getattr(item, "giorni_alla_scadenza", None)
         return current if current is not None else _days_to(getattr(item, "data_scadenza", ""))
@@ -311,6 +334,10 @@ def _summary(all_items: list[Any]) -> dict[str, int]:
         "within7": sum(1 for item in open_items if (days(item) is not None and 0 <= int(days(item)) <= 7)),
         "advanced": sum(1 for item in all_items if bool(getattr(item, "ha_calcolo_avanzato", False))),
         "operative": sum(1 for item in all_items if bool(getattr(item, "operational_due_at", ""))),
+        "pec": len(pec_items),
+        "pec_open": sum(1 for item in pec_items if _is_open(item)),
+        "pec_overdue": sum(1 for item in pec_items if _is_overdue(item)),
+        "pec_future": sum(1 for item in pec_items if _is_open(item) and not _is_overdue(item)),
         "peremptory": sum(1 for item in all_items if bool(getattr(item, "perentorio", False))),
     }
 
@@ -337,6 +364,7 @@ def _facets(all_items: list[Any], summary: dict[str, int]) -> dict[str, list[dic
             _facet("imminenti", "Entro 7 gg", summary["within7"]),
             _facet("avanzate", "Avanzate", summary["advanced"]),
             _facet("operative", "Operative", summary["operative"]),
+            _facet("pec", "Da PEC", summary["pec"]),
             _facet("tutte", "Tutte", summary["total"]),
         ],
         "types": [_facet("", "Tutti i tipi", len(all_items))] + [
@@ -467,6 +495,17 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
             kind="filter",
             label="Mostra critiche",
             view="critiche",
+        ),
+        _card(
+            "pec",
+            "Scadenze da PEC",
+            "Apri le scadenze generate o riconciliate dal presidio PEC, con agenda e priorità operative collegate.",
+            summary["pec"],
+            "warning" if summary["pec_overdue"] else "info",
+            "archive",
+            kind="filter",
+            label="Apri PEC",
+            view="pec",
         ),
         _card(
             "bulk-complete",

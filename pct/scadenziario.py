@@ -736,8 +736,41 @@ class GestioneScadenziario:
         self._scadenze: Dict[str, Scadenza] = {}
         self._carica()
 
+    def _carica_json_file(self) -> Dict[str, Scadenza]:
+        from pct import cache as _cache
+
+        try:
+            raw = _cache.load(self.db_path)
+        except Exception:
+            raw = {}
+        if isinstance(raw, list):
+            iterable = [(str(item.get("id", "") or ""), item) for item in raw if isinstance(item, dict)]
+        elif isinstance(raw, dict):
+            iterable = [(str(key), value) for key, value in raw.items()]
+        else:
+            iterable = []
+        scadenze: Dict[str, Scadenza] = {}
+        for item_id, value in iterable:
+            if not isinstance(value, dict):
+                continue
+            payload = dict(value)
+            if item_id and not str(payload.get("id", "") or "").strip():
+                payload["id"] = item_id
+            try:
+                scadenza = Scadenza.from_dict(payload)
+                scadenze[scadenza.id] = scadenza
+            except Exception:
+                continue
+        return scadenze
+
+    def _salva_json_file(self) -> None:
+        from pct import cache as _cache
+
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._scadenze.items()})
+
     def _carica(self) -> None:
         if self._studio_db is not None:
+            json_scadenze = self._carica_json_file()
             try:
                 rows = self._studio_db.conn.execute("SELECT * FROM scadenze").fetchall()
                 self._scadenze = {}
@@ -755,13 +788,19 @@ class GestioneScadenziario:
                         continue
             except Exception:
                 self._scadenze = {}
+            merged = False
+            for item_id, scadenza in json_scadenze.items():
+                if item_id not in self._scadenze:
+                    self._scadenze[item_id] = scadenza
+                    merged = True
+            if merged:
+                self._salva()
+            elif not self.db_path.exists():
+                self._salva_json_file()
             return
-        from pct import cache as _cache
-        try:
-            raw = _cache.load(self.db_path)
-            self._scadenze = {k: Scadenza.from_dict(v) for k, v in raw.items()}
-        except Exception:
-            self._scadenze = {}
+        self._scadenze = self._carica_json_file()
+        if not self.db_path.exists():
+            self._salva_json_file()
 
     def _salva(self) -> None:
         if self._studio_db is not None:
@@ -777,9 +816,9 @@ class GestioneScadenziario:
                     ),
                 )
             self._studio_db.salva_tabella("scadenze", list(self._scadenze.values()), _insert)
+            self._salva_json_file()
             return
-        from pct import cache as _cache
-        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._scadenze.items()})
+        self._salva_json_file()
 
     @staticmethod
     def profili_termine() -> Dict[str, Dict[str, Any]]:

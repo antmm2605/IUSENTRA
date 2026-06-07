@@ -1,15 +1,71 @@
 """Test per l'agenda digitale."""
 
+import json
+
 import pytest
 from datetime import date, datetime, timedelta
 
 from pct.agenda import Agenda, Appuntamento, TipoAppuntamento, StatoAppuntamento
 from pct.ical_import import EventoImportato
+from pct.storage import StudioDB
 
 
 @pytest.fixture
 def agenda(tmp_path):
     return Agenda(db_path=str(tmp_path / "appuntamenti.json"))
+
+
+def test_agenda_sqlite_importa_json_tenant_pec_quando_db_vuoto(tmp_path):
+    agenda_path = tmp_path / "agenda" / "appuntamenti.json"
+    agenda_path.parent.mkdir(parents=True)
+    agenda_path.write_text(
+        json.dumps(
+            {
+                "app-pec": {
+                    "id": "app-pec",
+                    "titolo": "Presidio PEC - Comunicazione",
+                    "tipo": TipoAppuntamento.SCADENZA.value,
+                    "stato": StatoAppuntamento.PROGRAMMATO.value,
+                    "data_ora": "2026-10-29T09:00:00",
+                    "durata_minuti": 30,
+                    "luogo": "Agenda studio",
+                    "note": "Fonte: pipeline PEC audit-grade.",
+                    "external_uid": "PEC_AUDIT:msg-1:deadline",
+                    "external_provider": "pec_audit",
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM appuntamenti").fetchone()[0] == 0
+
+    agenda = Agenda(db_path=str(agenda_path), studio_db=studio_db)
+
+    assert agenda.get("app-pec") is not None
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM appuntamenti").fetchone()[0] == 1
+
+
+def test_agenda_sqlite_salva_anche_mirror_json_tenant(tmp_path):
+    agenda_path = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    agenda = Agenda(db_path=str(agenda_path), studio_db=studio_db)
+
+    appuntamento = agenda.aggiungi(
+        titolo="Presidio PEC sincronizzato",
+        tipo=TipoAppuntamento.SCADENZA,
+        data_ora="2026-12-17T09:00:00",
+        durata_minuti=30,
+        luogo="Agenda studio",
+        external_uid="PEC_AUDIT:msg-2:deadline",
+        external_provider="pec_audit",
+    )
+
+    raw = json.loads(agenda_path.read_text(encoding="utf-8"))
+    assert appuntamento.id in raw
+    assert raw[appuntamento.id]["external_provider"] == "pec_audit"
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM appuntamenti").fetchone()[0] == 1
 
 
 def _domani_ore(ora: str) -> str:

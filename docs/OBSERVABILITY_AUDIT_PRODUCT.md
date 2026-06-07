@@ -24,6 +24,12 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 | Crash test operativo | `admin/crash-test-operativo` | checklist finale `si/no`, ticket di riparazione, backup blindato, esito per fase |
 | Assistenza remota pronta | `admin/supporto-remoto` | link cliente firmato, stanza operatore, schermo/audio con consenso, chat e audit |
 
+## Aggiornamento operativo 2026-06-07
+
+La salute sistema e l'osservabilità non devono più mostrare stime vuote o pannelli senza decisione operativa. Il superadmin deve poter vedere disco reale, studi attivi, aree globali, backup/mirror, log e dati Normattiva duplicati, quindi applicare manutenzione governata senza intervenire a mano sul server.
+
+La Scorecard Lex non è considerata misura se mostra solo il catalogo dei casi. Deve indicare quante prove reali sono state eseguite, quante sono passate/fallite, percentuale di risposte con fonti utili, tempo medio risposta e percorso del file risultati. In assenza di risultati reali, il pannello deve dire `non misurata` e non dichiarare copertura.
+
 ## Regole
 
 - ogni superficie sensibile deve avere una lettura prodotto, non solo log tecnici

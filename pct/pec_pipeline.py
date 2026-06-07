@@ -3758,6 +3758,30 @@ class PecAuditRepository:
             return False
         return deadline_day < datetime.now(ROME_TZ).date()
 
+    def _studio_db_for_data_path(self, path: Path | str):
+        try:
+            from pct.storage import StudioDB
+
+            return StudioDB.from_data_path(str(path))
+        except Exception:
+            return None
+
+    def _scadenziario_manager(self):
+        from pct.scadenziario import GestioneScadenziario
+
+        return GestioneScadenziario(
+            db_path=str(self.scadenziario_db_path),
+            studio_db=self._studio_db_for_data_path(self.scadenziario_db_path),
+        )
+
+    def _agenda_manager(self):
+        from pct.agenda import Agenda
+
+        return Agenda(
+            db_path=str(self.agenda_db_path),
+            studio_db=self._studio_db_for_data_path(self.agenda_db_path),
+        )
+
     def _sync_pec_deadline_to_agenda(
         self,
         *,
@@ -3773,10 +3797,10 @@ class PecAuditRepository:
         if not self.agenda_db_path:
             return {"ok": False, "message": "Agenda non configurata per questa azione."}
         try:
-            from pct.agenda import Agenda, TipoAppuntamento
+            from pct.agenda import TipoAppuntamento
             from pct.ical_import import EventoImportato
 
-            agenda = Agenda(db_path=str(self.agenda_db_path))
+            agenda = self._agenda_manager()
             event_uid = f"PEC_AUDIT:{message_id}:deadline"
             description = "\n".join(
                 part
@@ -3866,9 +3890,7 @@ class PecAuditRepository:
         if not wanted or not self.scadenziario_db_path:
             return {}
         try:
-            from pct.scadenziario import GestioneScadenziario
-
-            manager = GestioneScadenziario(db_path=str(self.scadenziario_db_path))
+            manager = self._scadenziario_manager()
             result: dict[str, dict[str, Any]] = {}
             pattern = re.compile(r"\bPEC_AUDIT:([A-Za-z0-9_.:-]+)")
             for existing in manager.tutte(solo_aperte=False):
@@ -4197,9 +4219,9 @@ class PecAuditRepository:
         title = clean_text(proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
         marker = f"PEC_AUDIT:{message_id}"
         try:
-            from pct.scadenziario import GestioneScadenziario, TipoTermine
+            from pct.scadenziario import TipoTermine
 
-            manager = GestioneScadenziario(db_path=str(self.scadenziario_db_path))
+            manager = self._scadenziario_manager()
             for existing in manager.tutte(solo_aperte=False):
                 if marker in str(getattr(existing, "note", "") or ""):
                     agenda = self._sync_pec_deadline_to_agenda(
@@ -4322,9 +4344,9 @@ class PecAuditRepository:
         title = clean_text(proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
         marker = f"PEC_AUDIT:{message_id}"
         try:
-            from pct.scadenziario import GestioneScadenziario, TipoTermine
+            from pct.scadenziario import TipoTermine
 
-            manager = GestioneScadenziario(db_path=str(self.scadenziario_db_path))
+            manager = self._scadenziario_manager()
             for existing in manager.tutte(solo_aperte=False):
                 if marker in str(getattr(existing, "note", "") or ""):
                     agenda = self._sync_pec_deadline_to_agenda(

@@ -29,12 +29,82 @@ from pct.scadenziario import (
 from pct.auth import GestioneUtenti
 from pct.config_studio import GestioneConfigStudio
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.storage import StudioDB
 from web.app import create_app
 
 
 @pytest.fixture
 def gs(tmp_path):
     return GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+
+
+def _scadenziario_payload(client, query: str = "") -> dict:
+    response = client.get(f"/api/v1/ui/scadenziario{query}")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    return payload
+
+
+def _row_by_id(payload: dict, item_id: str) -> dict:
+    for row in payload.get("items", []):
+        if row.get("id") == item_id:
+            return row
+    raise AssertionError(f"Scadenza {item_id} non presente nel payload React")
+
+
+def _titles(payload: dict) -> list[str]:
+    return [str(row.get("title") or "") for row in payload.get("items", [])]
+
+
+def test_scadenziario_sqlite_importa_json_tenant_pec_quando_db_vuoto(tmp_path):
+    scadenze_path = tmp_path / "scadenziario" / "scadenze.json"
+    scadenze_path.parent.mkdir(parents=True)
+    scadenze_path.write_text(
+        json.dumps(
+            {
+                "pec-1": {
+                    "id": "pec-1",
+                    "titolo": "Comunicazione PEC con termine",
+                    "tipo": TipoTermine.ADEMPIMENTO.value,
+                    "stato": StatoTermine.APERTO.value,
+                    "data_scadenza": "2026-10-29",
+                    "deadline_profile_code": "PEC_AUTO_PRESIDIO",
+                    "note": "PEC_AUDIT:msg-1",
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM scadenze").fetchone()[0] == 0
+
+    gestione = GestioneScadenziario(db_path=str(scadenze_path), studio_db=studio_db)
+
+    assert gestione.get("pec-1") is not None
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM scadenze").fetchone()[0] == 1
+    reloaded = GestioneScadenziario(db_path=str(scadenze_path), studio_db=studio_db)
+    assert reloaded.get("pec-1").deadline_profile_code == "PEC_AUTO_PRESIDIO"
+
+
+def test_scadenziario_sqlite_salva_anche_mirror_json_tenant(tmp_path):
+    scadenze_path = tmp_path / "scadenziario" / "scadenze.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    gestione = GestioneScadenziario(db_path=str(scadenze_path), studio_db=studio_db)
+
+    scadenza = gestione.nuova(
+        titolo="Termine PEC sincronizzato",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2026-12-17",
+        deadline_profile_code="PEC_AUTO_PRESIDIO",
+        note="PEC_AUDIT:msg-2",
+    )
+
+    raw = json.loads(scadenze_path.read_text(encoding="utf-8"))
+    assert scadenza.id in raw
+    assert raw[scadenza.id]["deadline_profile_code"] == "PEC_AUTO_PRESIDIO"
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM scadenze").fetchone()[0] == 1
 
 
 def test_import_portale_scarta_scadenze_gia_passate_dallo_scadenziario():
@@ -613,14 +683,13 @@ def test_route_scadenziario_filtra_avanzate_e_operative(tmp_path):
     login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
     assert login.status_code == 200
 
-    response = client.get("/scadenziario?avanzate=1&operative=1")
+    payload = _scadenziario_payload(client, "?avanzate=1&operative=1")
+    titles = _titles(payload)
 
-    assert response.status_code == 200
-    body = response.get_data(as_text=True)
-    assert "Termine avanzato" in body
-    assert "Termine manuale" not in body
-    assert "Solo calcolo avanzato" in body
-    assert "Solo con anticipo operativo" in body
+    assert "Termine avanzato" in titles
+    assert "Termine manuale" not in titles
+    assert payload["query"]["advanced"] is True
+    assert payload["query"]["operative"] is True
 
 
 def test_route_scadenziario_card_completate_mostra_lista_e_azioni(tmp_path):
@@ -648,14 +717,14 @@ def test_route_scadenziario_card_completate_mostra_lista_e_azioni(tmp_path):
     login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
     assert login.status_code == 200
 
-    response = client.get("/scadenziario?vista=completate")
-    body = response.get_data(as_text=True)
+    payload = _scadenziario_payload(client, "?vista=completate")
+    titles = _titles(payload)
+    row = _row_by_id(payload, completata.id)
 
-    assert response.status_code == 200
-    assert "Termine completato visibile" in body
-    assert "Termine aperto da non mostrare" not in body
-    assert f"/scadenziario/{completata.id}/modifica" in body
-    assert f"/scadenziario/{completata.id}/elimina" in body
+    assert "Termine completato visibile" in titles
+    assert "Termine aperto da non mostrare" not in titles
+    assert row["editHref"] == f"/scadenziario/{completata.id}/modifica"
+    assert row["deleteHref"] == f"/scadenziario/{completata.id}/elimina"
 
 
 def test_route_scadenziario_card_scadute_mostra_lista_e_azioni(tmp_path):
@@ -682,14 +751,14 @@ def test_route_scadenziario_card_scadute_mostra_lista_e_azioni(tmp_path):
     login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
     assert login.status_code == 200
 
-    response = client.get("/scadenziario?vista=scadute")
-    body = response.get_data(as_text=True)
+    payload = _scadenziario_payload(client, "?vista=scadute")
+    titles = _titles(payload)
+    row = _row_by_id(payload, scaduta.id)
 
-    assert response.status_code == 200
-    assert "Termine scaduto visibile" in body
-    assert "Termine futuro da non mostrare" not in body
-    assert f"/scadenziario/{scaduta.id}/modifica" in body
-    assert f"/scadenziario/{scaduta.id}/elimina" in body
+    assert "Termine scaduto visibile" in titles
+    assert "Termine futuro da non mostrare" not in titles
+    assert row["editHref"] == f"/scadenziario/{scaduta.id}/modifica"
+    assert row["deleteHref"] == f"/scadenziario/{scaduta.id}/elimina"
 
 
 def test_dettaglio_scadenza_mostra_studio_e_contesto(tmp_path):
@@ -736,15 +805,17 @@ def test_dettaglio_scadenza_mostra_studio_e_contesto(tmp_path):
     login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
     assert login.status_code == 200
 
-    response = client.get(f"/scadenziario/{sc.id}")
+    page = client.get(f"/scadenziario/{sc.id}")
+    assert page.status_code == 200
+    payload = _scadenziario_payload(client, "?vista=tutte")
+    row = _row_by_id(payload, sc.id)
 
-    assert response.status_code == 200
-    body = response.get_data(as_text=True)
-    assert "Studio Test Palermo" in body
-    assert "Santa Rosalia" in body
-    assert "Solo atti urgenti" in body
-    assert "Osservanza bloccante" in body
-    assert "Notifica" in body
+    assert row["title"] == "Termine con contesto"
+    assert row["officeLabel"] == "Tribunale di Palermo"
+    assert "Santa Rosalia" in row["officePatronLabel"]
+    assert row["officeModeLabel"] == "Solo atti urgenti"
+    assert row["octoberObservanceBlocks"] is True
+    assert row["sourceEventTypeLabel"] == "Notifica"
 
 
 def test_dettaglio_scadenza_propaga_fascicolo_responsabile_e_placeholder_puliti(tmp_path):
@@ -785,14 +856,14 @@ def test_dettaglio_scadenza_propaga_fascicolo_responsabile_e_placeholder_puliti(
     login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
     assert login.status_code == 200
 
-    response = client.get(f"/scadenziario/{sc.id}")
-    body = response.get_data(as_text=True)
+    page = client.get(f"/scadenziario/{sc.id}")
+    assert page.status_code == 200
+    payload = _scadenziario_payload(client, "?vista=tutte")
+    row = _row_by_id(payload, sc.id)
 
-    assert response.status_code == 200
-    assert "RG 466/2023 - Risarcimento danno" in body
-    assert any(label in body for label in ("Amministratore", "Avv. Studio", "Super Amministratore"))
-    assert "Giudice di Pace - Palmi" in body
-    assert "Nessun anticipo operativo impostato" in body
-    assert "&amp;mdash;" not in body
-    assert "&mdash;" not in body
-    assert "giornoi lavorativoi" not in body
+    assert row["fascicoloLabel"] == "RG 466/2023 - Risarcimento danno"
+    assert row["ownerLabel"] in {"Amministratore", "Avv. Studio", "Super Amministratore", "admin"}
+    assert row["officeLabel"] == "Giudice di Pace - Palmi"
+    assert row["operationalDueLabel"] in {"-", "Non impostata"}
+    assert "&mdash;" not in json.dumps(row, ensure_ascii=False)
+    assert "giornoi lavorativoi" not in json.dumps(row, ensure_ascii=False)

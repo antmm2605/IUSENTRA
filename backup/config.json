@@ -1,7 +1,7 @@
 {
   "directory_backup": "backup",
   "percorsi_dati": [],
-  "max_backup": 10,
+  "max_backup": 1,
   "password": "",
   "frequenza": "GIORNALIERA",
   "ora_esecuzione": "02:00",

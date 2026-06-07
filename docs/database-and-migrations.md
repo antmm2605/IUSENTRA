@@ -27,6 +27,7 @@ Per test locali usare data root temporaneo quando il test puo' scrivere dati:
 ```powershell
 python -m pytest -q tests/test_tenant_isolation_runtime.py --tb=short
 python -m pytest -q tests/test_storage_strategy.py --tb=short
+python scripts\audit_tenant_data_structure.py --repair
 ```
 
 Per App V2/security:
@@ -46,6 +47,8 @@ Ogni migrazione dati deve:
 5. registrare audit se modifica dati operativi;
 6. avere test su tenant A/B o data root temporaneo;
 7. documentare rollback.
+
+Ogni modifica che tocca JSON, SQLite, PostgreSQL, agenda, scadenziario, notifiche, PEC o creazione studi deve inoltre passare `scripts/audit_tenant_data_structure.py`. Lo script verifica tutti i JSON previsti del tenant, `studio.db`, `notifications.db`, `moduli_dati`, `moduli_json_records` e gli schemi PostgreSQL equivalenti. Con `--repair` riallinea solo la struttura minima tenant-aware e non crea backup o snapshot.
 
 ## Presidio anti-perdita SQLite
 

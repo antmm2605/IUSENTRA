@@ -184,6 +184,39 @@ def _audit_studio(tm: GestioneTenant, slug: str, *, repair: bool = False) -> dic
     conn: sqlite3.Connection | None = None
     if sqlite_path.exists() and {"moduli_dati", "moduli_json_records"}.issubset(studio_tables):
         conn = sqlite3.connect(str(sqlite_path))
+    mirror_resynced = False
+
+    def _repair_json_mirror() -> None:
+        nonlocal conn, mirror_resynced
+        if mirror_resynced or not repair:
+            return
+        if conn is not None:
+            conn.close()
+            conn = None
+        paths_for_mirror = dict(paths)
+        paths_for_mirror["STUDIO_CONFIG"] = paths.get("CONFIG_STUDIO_DB", "")
+        GestioneDatabase(
+            _build_json_to_sqlite_sources(paths_for_mirror)
+        ).sincronizza_moduli_json_sqlite(
+            paths["STUDIO_DB"],
+            include_structured=True,
+        )
+        conn = sqlite3.connect(str(sqlite_path))
+        mirror_resynced = True
+
+    def _metadata_and_count(module: str) -> tuple[Any, int]:
+        if conn is None:
+            return None, 0
+        metadata_row = conn.execute(
+            "SELECT percorso FROM moduli_dati WHERE nome = ?",
+            (module,),
+        ).fetchone()
+        count_row = conn.execute(
+            "SELECT COUNT(*) FROM moduli_json_records WHERE modulo = ?",
+            (module,),
+        ).fetchone()
+        return metadata_row, int(count_row[0] if count_row else 0)
+
     try:
         for relative in TENANT_FILE_SEED_PATHS:
             if not relative.endswith(".json"):
@@ -221,24 +254,25 @@ def _audit_studio(tm: GestioneTenant, slug: str, *, repair: bool = False) -> dic
                 errors.append(f"{slug}: impossibile verificare mirror SQL per {relative}.")
                 json_results[relative] = result
                 continue
-            metadata = conn.execute(
-                "SELECT percorso FROM moduli_dati WHERE nome = ?",
-                (module,),
-            ).fetchone()
+            metadata, actual_count = _metadata_and_count(module)
+            stored_path = Path(str(metadata[0] or "")).resolve() if metadata else None
+            mirror_mismatch = (
+                metadata is None
+                or stored_path != path.resolve()
+                or actual_count != int(result["entries"])
+            )
+            if mirror_mismatch and repair:
+                _repair_json_mirror()
+                metadata, actual_count = _metadata_and_count(module)
+                stored_path = Path(str(metadata[0] or "")).resolve() if metadata else None
             result["sqlite_metadata"] = metadata is not None
             if metadata is None:
                 errors.append(f"{slug}: moduli_dati senza record per {module} ({relative}).")
             else:
-                stored_path = Path(str(metadata[0] or "")).resolve()
                 if stored_path != path.resolve():
                     errors.append(
                         f"{slug}: percorso SQL incoerente per {module}: {stored_path} != {path}."
                     )
-            row_count = conn.execute(
-                "SELECT COUNT(*) FROM moduli_json_records WHERE modulo = ?",
-                (module,),
-            ).fetchone()
-            actual_count = int(row_count[0] if row_count else 0)
             result["sqlite_records"] = actual_count
             if actual_count != int(result["entries"]):
                 errors.append(

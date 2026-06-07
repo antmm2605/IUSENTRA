@@ -228,6 +228,28 @@ def test_audit_tenant_data_structure_fallisce_se_manca_mirror_json_sql(tmp_path:
     assert any("moduli_dati senza record per scadenze" in error for error in report["errors"])
 
 
+def test_audit_tenant_data_structure_repair_risincronizza_mirror_json_sql(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Audit Repair", "studio-audit-repair", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+
+    with sqlite3.connect(paths["STUDIO_DB"]) as conn:
+        conn.execute("DELETE FROM moduli_json_records WHERE modulo = ?", ("scadenze",))
+        conn.commit()
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug, repair=True)
+
+    assert report["ok"] is True
+    assert not report["errors"]
+    with sqlite3.connect(paths["STUDIO_DB"]) as conn:
+        row_count = conn.execute(
+            "SELECT COUNT(*) FROM moduli_json_records WHERE modulo = ?",
+            ("scadenze",),
+        ).fetchone()[0]
+    assert row_count == report["studios"][studio.slug]["json"]["scadenziario/scadenze.json"]["entries"]
+
+
 def test_audit_tenant_data_structure_fallisce_se_manca_json_tenant(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))

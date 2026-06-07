@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import calendar
 import json
+import re
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, time, timedelta
@@ -594,6 +595,15 @@ class Scadenza:
     trace_json: str = "[]"
     operational_lead_business_days: int = 0
     october_observance_blocks: bool = False
+    remote_hearing_detected: bool = False
+    remote_hearing_mode: str = ""
+    remote_hearing_url: str = ""
+    remote_hearing_source: str = ""
+    remote_hearing_verified: bool = False
+    remote_hearing_integrity: str = ""
+    remote_hearing_time: str = ""
+    remote_hearing_access_info: str = ""
+    remote_hearing_pdf_required: bool = False
 
     @property
     def data_scadenza_obj(self) -> Optional[date]:
@@ -793,14 +803,111 @@ class GestioneScadenziario:
                 if item_id not in self._scadenze:
                     self._scadenze[item_id] = scadenza
                     merged = True
-            if merged:
+            deduped = self._deduplica_pec_automatiche()
+            if merged or deduped:
                 self._salva()
             elif not self.db_path.exists():
                 self._salva_json_file()
             return
         self._scadenze = self._carica_json_file()
-        if not self.db_path.exists():
+        deduped = self._deduplica_pec_automatiche()
+        if not self.db_path.exists() or deduped:
             self._salva_json_file()
+
+    @staticmethod
+    def _is_pec_automatica(scadenza: Scadenza) -> bool:
+        note = str(getattr(scadenza, "note", "") or "")
+        profile = str(getattr(scadenza, "deadline_profile_code", "") or "")
+        title = str(getattr(scadenza, "titolo", "") or "")
+        return "PEC_AUDIT:" in note or profile.startswith("PEC_") or " da PEC" in title
+
+    @staticmethod
+    def _pec_canonical_key(scadenza: Scadenza) -> str:
+        if not GestioneScadenziario._is_pec_automatica(scadenza):
+            return ""
+        source = " ".join(
+            str(getattr(scadenza, name, "") or "")
+            for name in ("titolo", "descrizione", "note", "id_fascicolo")
+        )
+        rg_match = re.search(r"\b\d{1,7}/\d{4}(?:/[A-Z]{2,5})?\b", source, flags=re.I)
+        rg = rg_match.group(0).upper() if rg_match else ""
+        title = re.sub(r"\s+", " ", str(getattr(scadenza, "titolo", "") or "").strip().lower())
+        title = re.sub(r"^posta certificata:\s*", "", title)
+        date_key = str(getattr(scadenza, "data_scadenza", "") or "")[:10]
+        fascicolo_key = str(getattr(scadenza, "id_fascicolo", "") or "").strip()
+        if not date_key or not (rg or title):
+            return ""
+        return "|".join([date_key, fascicolo_key, rg or title])
+
+    @staticmethod
+    def _severity_rank(priority: PrioritaTermine) -> int:
+        value = getattr(priority, "value", priority)
+        return {
+            PrioritaTermine.CRITICA.value: 4,
+            PrioritaTermine.ALTA.value: 3,
+            PrioritaTermine.MEDIA.value: 2,
+            PrioritaTermine.BASSA.value: 1,
+        }.get(str(value), 0)
+
+    @staticmethod
+    def _merge_note(primary: str, duplicate: str) -> str:
+        lines: list[str] = []
+        seen: set[str] = set()
+        for value in (primary, duplicate):
+            for line in str(value or "").splitlines():
+                clean = line.strip()
+                key = clean.lower()
+                if clean and key not in seen:
+                    seen.add(key)
+                    lines.append(clean)
+        return "\n".join(lines)
+
+    @classmethod
+    def _merge_pec_duplicate(cls, primary: Scadenza, duplicate: Scadenza) -> None:
+        if len(str(duplicate.descrizione or "")) > len(str(primary.descrizione or "")):
+            primary.descrizione = duplicate.descrizione
+        primary.note = cls._merge_note(primary.note, duplicate.note)
+        if not primary.id_appuntamento and duplicate.id_appuntamento:
+            primary.id_appuntamento = duplicate.id_appuntamento
+        if not primary.id_fascicolo and duplicate.id_fascicolo:
+            primary.id_fascicolo = duplicate.id_fascicolo
+        if cls._severity_rank(duplicate.priorita) > cls._severity_rank(primary.priorita):
+            primary.priorita = duplicate.priorita
+        primary.perentorio = bool(primary.perentorio or duplicate.perentorio)
+        for key in (
+            "source_event_type",
+            "source_event_at",
+            "operational_due_at",
+            "remote_hearing_mode",
+            "remote_hearing_url",
+            "remote_hearing_source",
+            "remote_hearing_integrity",
+            "remote_hearing_time",
+            "remote_hearing_access_info",
+        ):
+            if not str(getattr(primary, key, "") or "").strip() and str(getattr(duplicate, key, "") or "").strip():
+                setattr(primary, key, getattr(duplicate, key))
+        for key in ("remote_hearing_detected", "remote_hearing_verified", "remote_hearing_pdf_required"):
+            setattr(primary, key, bool(getattr(primary, key, False) or getattr(duplicate, key, False)))
+        if duplicate.tipo == TipoTermine.UDIENZA and primary.tipo != TipoTermine.UDIENZA:
+            primary.tipo = TipoTermine.UDIENZA
+
+    def _deduplica_pec_automatiche(self) -> int:
+        by_key: Dict[str, Scadenza] = {}
+        remove_ids: list[str] = []
+        for scadenza in list(self._scadenze.values()):
+            key = self._pec_canonical_key(scadenza)
+            if not key:
+                continue
+            existing = by_key.get(key)
+            if not existing:
+                by_key[key] = scadenza
+                continue
+            self._merge_pec_duplicate(existing, scadenza)
+            remove_ids.append(scadenza.id)
+        for item_id in remove_ids:
+            self._scadenze.pop(item_id, None)
+        return len(remove_ids)
 
     def _salva(self) -> None:
         if self._studio_db is not None:

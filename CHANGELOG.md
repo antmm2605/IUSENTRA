@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.249.27 - 2026-06-07
+
+- Corretto il presidio PEC delle udienze audiovisive: i link tecnici o istituzionali letti nei MIME/XML/certificati (`pst.giustizia.it`, `Comunicazione.dtd`, OCSP/CRL) non vengono più classificati come link udienza.
+- Aggiunta persistenza strutturata del link udienza remota nello scadenziario: URL, fonte allegato, verifica di identicità, modalità, orario, istruzioni accesso e stato “da acquisire dal PDF”.
+- Collegata la stessa informazione all’agenda generata dalla PEC, con luogo `Udienza da remoto` e note operative complete quando il link è stato letto dal PDF/OCR.
+- Estesa la UI React dello Scadenziario: nella riga e nella scheda dettaglio compaiono `Link udienza da remoto`, fonte, verifica e avviso se il PDF deve ancora essere acquisito.
+- Corretta la generazione delle scadenze da PEC Giudice di Pace: una notifica generica D.L. 179/2012 senza termine o udienza concreta non crea più scadenze artificiali, mentre fissazioni, rinvii e differimenti udienza restano `UDIENZA` con RG/oggetto evento distinguibili.
+- Aggiunta bonifica idempotente `scripts/backfill_pec_remote_hearing_links.py` per aggiornare le PEC già presidiate senza backup, senza duplicare scadenze e senza promuovere URL tecnici.
+- Aggiunta bonifica `scripts/repair_pec_deadlines.py` per rimuovere le vecchie scadenze PEC generiche non fondate, togliere l’eventuale agenda collegata e riallineare udienze reali già presenti.
+- Aggiunta deduplica delle scadenze PEC automatiche equivalenti con conservazione di note, link udienza, appuntamento agenda e priorità più alta.
+
 ## 2.249.26 - 2026-06-07
 
 - Introdotta la baseline dati tenant obbligatoria: ogni nuovo studio e ogni riparazione superadmin crea/verifica JSON runtime con forma corretta, `studio.db`, `notifications.db`, schema core, agenda, scadenziario e mirror `moduli_dati`/`moduli_json_records`.

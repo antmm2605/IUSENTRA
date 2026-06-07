@@ -101,6 +101,38 @@ def test_react_scadenziario_bridge_usa_repository_reale(tmp_path: Path):
     assert payload["calculator"]["scheduler"]["channel"] == "PEC"
 
 
+def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    exact_link = "https://teams.microsoft.com/l/meetup-join/udienza-1263"
+    with app.app_context():
+        gestione = get_scadenziario()
+        scadenza = gestione.nuova(
+            "Udienza da PEC: RG 1263/2026/LAV",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=10)).isoformat(),
+            descrizione="Fissazione udienza con strumenti audiovisivi",
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            note=f"PEC_AUDIT:msg-link\nLink udienza audiovisiva: {exact_link}\nFonte link udienza: 13744017s.pdf.zip\nVerifica link udienza: identico alla fonte letta.",
+            remote_hearing_detected=True,
+            remote_hearing_mode="audiovisiva",
+            remote_hearing_url=exact_link,
+            remote_hearing_source="13744017s.pdf.zip",
+            remote_hearing_verified=True,
+            remote_hearing_time="29/10/2026 ore 09:15",
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=pec", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert response.status_code == 200
+    assert row["remoteHearingDetected"] is True
+    assert row["remoteHearingUrl"] == exact_link
+    assert row["remoteHearingSource"] == "13744017s.pdf.zip"
+    assert row["remoteHearingVerified"] is True
+
+
 def test_react_scadenziario_calcolatore_non_ripete_template_identici():
     base = {
         "name": "Reclamo contro provvedimento cautelare",

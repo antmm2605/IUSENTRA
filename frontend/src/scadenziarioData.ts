@@ -76,6 +76,15 @@ export type ScadenziarioRow = {
   officeVerifiedAt: string
   octoberObservanceBlocks: boolean
   traceCount: number
+  remoteHearingDetected: boolean
+  remoteHearingMode: string
+  remoteHearingUrl: string
+  remoteHearingSource: string
+  remoteHearingVerified: boolean
+  remoteHearingIntegrity: string
+  remoteHearingTime: string
+  remoteHearingAccessInfo: string
+  remoteHearingPdfRequired: boolean
   href: string
   editHref: string
   completeHref: string
@@ -480,6 +489,15 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     officeVerifiedAt: asString(item.officeVerifiedAt),
     octoberObservanceBlocks: asBoolean(item.octoberObservanceBlocks),
     traceCount: asNumber(item.traceCount),
+    remoteHearingDetected: asBoolean(item.remoteHearingDetected),
+    remoteHearingMode: asString(item.remoteHearingMode),
+    remoteHearingUrl: asString(item.remoteHearingUrl),
+    remoteHearingSource: asString(item.remoteHearingSource),
+    remoteHearingVerified: asBoolean(item.remoteHearingVerified),
+    remoteHearingIntegrity: asString(item.remoteHearingIntegrity),
+    remoteHearingTime: asString(item.remoteHearingTime),
+    remoteHearingAccessInfo: asString(item.remoteHearingAccessInfo),
+    remoteHearingPdfRequired: asBoolean(item.remoteHearingPdfRequired),
     href: asString(item.href, `/scadenziario/${asString(item.id, '')}`),
     editHref: asString(item.editHref, `/scadenziario/${asString(item.id, '')}/modifica`),
     completeHref: asString(item.completeHref, `/scadenziario/${asString(item.id, '')}/completa`),

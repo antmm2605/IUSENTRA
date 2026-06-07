@@ -19,6 +19,7 @@ from pct.email_client import EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.pec_pipeline import (
     AttachmentPayload,
     PecAuditRepository,
+    _extract_remote_hearing_links,
     build_pec_procedural_profile,
     build_validation_report,
     detect_pec_legal_context,
@@ -53,6 +54,35 @@ def _zip_pdf_with_link(link: str) -> bytes:
     with zipfile.ZipFile(zip_buffer, "w") as archive:
         archive.writestr("13744017s.pdf", pdf_buffer.getvalue())
     return zip_buffer.getvalue()
+
+
+def _gdp_hearing_message(*, hearing_date: str = "09/10/2026", hearing_time: str = "09:15", event: str = "FISSAZIONE UDIENZA") -> bytes:
+    msg = EmailMessage()
+    msg["From"] = "Giudice di Pace <gdp@example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Subject"] = "POSTA CERTIFICATA: GIUDICE DI PACE Notificazione ai sensi del D.L. 179/2012"
+    msg["Date"] = "Mon, 1 Jun 2026 12:00:00 +0200"
+    msg["Message-ID"] = f"<gdp-hearing-{hearing_date.replace('/', '')}@iusentra.test>"
+    msg.set_content(
+        "Messaggio di posta certificata. I dati di cancelleria sono associati a: "
+        f"Data Evento: 25/02/2026 Tipo Evento: EVENTI DI RINVIO Oggetto: {event} "
+        f"Descrizione: UDIENZA RINVIATA AL {hearing_date} {hearing_time}."
+    )
+    xml = f"""
+    <Comunicazione>
+      <NumeroRuolo>777/2026</NumeroRuolo>
+      <Oggetto>{event}</Oggetto>
+      <Contenuto><![CDATA[
+      Ufficio: GIUDICE DI PACE DI PALMI
+      Numero di Ruolo generale: 777/2026
+      Giudice: ROSSI MARIA
+      Oggetto: {event}
+      Descrizione: UDIENZA RINVIATA AL {hearing_date} {hearing_time}
+      ]]></Contenuto>
+    </Comunicazione>
+    """.encode("utf-8")
+    msg.add_attachment(xml, maintype="application", subtype="xml", filename="Comunicazione.xml")
+    return msg.as_bytes(policy=policy.SMTP)
 
 
 def test_pec_pipeline_ingests_synthetic_dataset_with_audit_grade_storage(tmp_path):
@@ -212,6 +242,24 @@ def test_remote_hearing_report_uses_pdf_ocr_link_and_persists_lawyer_actions():
     assert any("link dell'udienza audiovisiva" in item for item in report["agent_questions"])
 
 
+def test_remote_hearing_report_excludes_technical_pst_dtd_ocsp_links():
+    text = """
+    Udienza da remoto con strumenti audiovisivi.
+    http://pst.giustizia.it/
+    http://schemi.processotelematico.giustizia.it/Schemi/Comunicazione.dtd
+    http://ca1.agid.gov.it/OCSP0
+    Collegamento udienza: https://teams.microsoft.com/l/meetup-join/vera-stanza
+    """
+
+    links = _extract_remote_hearing_links(text)
+
+    urls = [item["url"] for item in links]
+    assert urls == ["https://teams.microsoft.com/l/meetup-join/vera-stanza"]
+    assert "pst.giustizia.it" not in " ".join(urls)
+    assert "Comunicazione.dtd" not in " ".join(urls)
+    assert "OCSP0" not in " ".join(urls)
+
+
 def test_remote_hearing_report_warns_when_pdf_link_is_not_yet_ocr_read():
     profile = build_pec_procedural_profile(
         subject="Fissazione udienza",
@@ -316,6 +364,177 @@ def test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link(tmp_p
     )
 
 
+def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
+    from pct.agenda import Agenda
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    exact_link = "https://teams.microsoft.com/l/meetup-join/udienza-1263?context=%7B%22Tid%22%3A%22123%22%7D"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    msg = EmailMessage()
+    msg["Subject"] = "FISSAZIONE UDIENZA DI DISCUSSIONE"
+    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
+    msg["Message-ID"] = "<udienza-audiovisiva-scadenziario@example.test>"
+    msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Il link è nel PDF allegato.")
+    msg.add_attachment(
+        """
+        <Comunicazione>
+          <NumeroRuolo>1263/2026/LAV</NumeroRuolo>
+          <Oggetto>FISSAZIONE UDIENZA DI DISCUSSIONE</Oggetto>
+          <Contenuto><![CDATA[
+          Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 29/10/2026 09:15 con strumenti audiovisivi
+          ]]></Contenuto>
+        </Comunicazione>
+        """.encode("utf-8"),
+        maintype="application",
+        subtype="xml",
+        filename="Comunicazione.xml",
+    )
+    msg.add_attachment(_zip_pdf_with_link(exact_link), maintype="application", subtype="zip", filename="13744017s.pdf.zip")
+
+    ingest = repo.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="uid-link")
+    repo.run_pending_jobs(limit=30, actor="pytest")
+    scheduled = repo.schedule_deadline(ingest["id"], actor="pytest")
+
+    assert scheduled["ok"] is True
+    scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert scadenze[0].tipo == TipoTermine.UDIENZA
+    assert scadenze[0].remote_hearing_url == exact_link
+    assert scadenze[0].remote_hearing_source == "13744017s.pdf.zip"
+    assert scadenze[0].remote_hearing_verified is True
+    assert "Link udienza audiovisiva" in scadenze[0].note
+    agenda_items = Agenda(str(agenda_db)).tutti()
+    assert len(agenda_items) == 1
+    assert exact_link in agenda_items[0].note
+    assert agenda_items[0].luogo == "Udienza da remoto"
+
+
+def test_giudice_di_pace_hearing_creates_real_hearing_not_generic_notice(tmp_path):
+    from pct.agenda import Agenda
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    agenda_db = tmp_path / "agenda.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    ingest = repo.ingest_mime(_gdp_hearing_message(), account_email="studio@example.test", folder="INBOX", imap_uid="gdp-hearing")
+    repo.run_pending_jobs(limit=30, actor="codex-test")
+    scheduled = repo.schedule_deadline(ingest["id"], actor="codex-test")
+
+    assert scheduled["ok"] is True
+    assert scheduled["due_date"] == "2026-10-09"
+    assert scheduled["proposal"]["deadline_kind"] == "udienza"
+    scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert scadenze[0].tipo == TipoTermine.UDIENZA
+    assert scadenze[0].data_scadenza == "2026-10-09"
+    assert "RG 777/2026" in scadenze[0].titolo
+    assert scadenze[0].titolo.startswith("Rinvio udienza")
+    assert "09/10/2026" in scadenze[0].titolo
+    assert "Valuta termini da notifica PEC" not in scadenze[0].titolo
+    assert "Evento:" in scadenze[0].descrizione
+    assert scadenze[0].id_utente_responsabile == ""
+    agenda_items = Agenda(str(agenda_db)).tutti()
+    assert len(agenda_items) == 1
+    assert agenda_items[0].external_organizer == ""
+
+
+def test_pec_repair_removes_generic_gdp_notice_2030_deadline_and_agenda(tmp_path):
+    from pct.agenda import Agenda, TipoAppuntamento
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    agenda_db = tmp_path / "agenda.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    raw = next(raw for label, raw in synthetic_pec_messages() if label == "mittente_ambiguo")
+    ingest = repo.ingest_mime(raw, account_email="studio@example.test", folder="INBOX", imap_uid="generic-gdp")
+    repo.run_pending_jobs(limit=30, actor="pec-demo")
+
+    agenda = Agenda(str(agenda_db))
+    app = agenda.aggiungi(
+        "Presidio PEC - Valuta termini da notifica PEC",
+        TipoAppuntamento.SCADENZA,
+        "2030-01-15T09:00:00",
+        allow_overlap=True,
+        external_uid=f"PEC_AUDIT:{ingest['id']}:deadline",
+        external_provider="pec_audit",
+        external_profile_id="pec_scadenziario",
+        external_organizer="codex-test",
+    )
+    manager = GestioneScadenziario(str(scadenziario_db))
+    manager.nuova(
+        titolo="Valuta termini da notifica PEC: GIUDICE DI PACE - Notificazione ai sensi del D.L. 179/2012",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2030-01-15",
+        note=f"PEC_AUDIT:{ingest['id']}\nTermine legale conclusivo: no",
+        id_utente_responsabile="codex-test",
+        id_appuntamento=app.id,
+        deadline_profile_code="PEC_AUTO_PRESIDIO",
+    )
+
+    repaired = repo.repair_pec_deadlines(actor="codex-test")
+
+    assert repaired["deleted"] == 1
+    assert GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False) == []
+    assert Agenda(str(agenda_db)).tutti() == []
+
+
+def test_pec_repair_upgrades_old_gdp_hearing_deadline_and_clears_codex_actor(tmp_path):
+    from pct.agenda import Agenda
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    agenda_db = tmp_path / "agenda.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    ingest = repo.ingest_mime(_gdp_hearing_message(), account_email="studio@example.test", folder="INBOX", imap_uid="old-gdp-hearing")
+    repo.run_pending_jobs(limit=30, actor="pec-demo")
+    manager = GestioneScadenziario(str(scadenziario_db))
+    manager.nuova(
+        titolo="Udienza da PEC: POSTA CERTIFICATA: GIUDICE DI PACE Notificazione ai sensi del D.L. 179/2012",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2026-10-09",
+        note=f"PEC_AUDIT:{ingest['id']}\nTermine legale conclusivo: no",
+        id_utente_responsabile="codex-test",
+        deadline_profile_code="PEC_AUTO_PRESIDIO",
+    )
+
+    repaired = repo.repair_pec_deadlines(actor="codex-test")
+
+    assert repaired["updated"] == 1
+    scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert scadenze[0].tipo == TipoTermine.UDIENZA
+    assert scadenze[0].id_utente_responsabile == ""
+    assert scadenze[0].titolo.startswith("Rinvio udienza")
+    assert "09/10/2026" in scadenze[0].titolo
+    assert "RG 777/2026" in scadenze[0].titolo
+    assert Agenda(str(agenda_db)).tutti()[0].external_organizer == ""
+
+
 def test_giudice_di_pace_notice_generates_non_blocking_validation_and_agent_questions(tmp_path):
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     ingest_synthetic_dataset(repo)
@@ -328,7 +547,9 @@ def test_giudice_di_pace_notice_generates_non_blocking_validation_and_agent_ques
     assert any(issue["code"] == "legal_notice_review_required" for issue in report["issues"])
     assert any("D.L. 179/2012" in ref["label"] for ref in report["normative_references"])
     assert any("termini" in question.lower() for question in report["agent_questions"])
-    assert report["deadline_proposal"]["auto_create"] is True
+    assert report["deadline_proposal"]["auto_create"] is False
+    assert report["deadline_proposal"]["status"] == "review_required"
+    assert report["deadline_proposal"]["due_date"] == ""
     assert report["deadline_proposal"]["source_event_type"] == "notifica_giudice_pace"
 
 
@@ -935,7 +1156,8 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
     assert len(scadenze) == 1
     assert f"PEC_AUDIT:{ingest['id']}" in scadenze[0].note
     assert scadenze[0].data_scadenza == "2030-07-09"
-    assert "Udienza da PEC" in scadenze[0].titolo
+    assert "09/07/2030" in scadenze[0].titolo
+    assert "comunicazione 3001/2025" in scadenze[0].titolo.lower()
     assert scadenze[0].id_appuntamento
     assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
     with sqlite3.connect(paths["NOTIFICATIONS_DB"]) as conn:

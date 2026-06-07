@@ -414,6 +414,13 @@
 }
 .iu-scad-focus-card h2{margin:10px 0 8px;color:var(--iu-slate-950);font-size:clamp(22px,3vw,32px)}
 .iu-scad-focus-card p{margin:0;color:var(--iu-slate-600)}
+.iu-scad-remote-access{
+  margin-top:12px!important;
+  color:var(--iu-slate-700)!important;
+  font-size:13px;
+  font-weight:750;
+  line-height:1.45;
+}
 .iu-scad-focus-card dl{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -423,7 +430,8 @@
 .iu-scad-focus-card dt{color:var(--iu-slate-500);font-size:11px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
 .iu-scad-focus-card dd{margin:4px 0 0;color:var(--iu-slate-950);font-weight:850}
 .iu-scad-focus-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;min-width:260px}
-.iu-scad-focus-actions button{
+.iu-scad-focus-actions button,
+.iu-scad-focus-actions .iu-scad-remote-action{
   display:inline-flex;
   align-items:center;
   gap:8px;
@@ -434,6 +442,12 @@
   color:var(--iu-slate-900);
   background:#fff;
   font-weight:850;
+}
+.iu-scad-focus-actions .iu-scad-remote-action{
+  color:var(--iu-blue-700);
+  border-color:rgba(37,99,235,.24);
+  font-weight:900;
+  text-decoration:none;
 }
 .iu-scad-layout{
   display:grid;
@@ -490,6 +504,18 @@
 .iu-scad-table td>strong{display:block;font-size:13px;font-weight:950;white-space:nowrap}
 .iu-scad-table td>span,.iu-scad-table small{display:block;margin-top:4px;color:var(--iu-slate-500);font-size:11px;font-weight:750;line-height:1.35}
 .iu-scad-title{display:block;color:var(--iu-blue-700);font-size:13px;font-weight:950;line-height:1.25}
+.iu-scad-remote-link,
+.iu-scad-remote-pending{
+  display:inline-flex!important;
+  align-items:center;
+  gap:5px;
+  margin-top:7px!important;
+  font-size:11px;
+  font-weight:900;
+  line-height:1.2;
+}
+.iu-scad-remote-link{color:var(--iu-blue-700)!important}
+.iu-scad-remote-pending{color:#b45309!important}
 .iu-scad-flags{
   display:flex!important;
   align-items:center;

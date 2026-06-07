@@ -107,6 +107,50 @@ def test_scadenziario_sqlite_salva_anche_mirror_json_tenant(tmp_path):
     assert studio_db.conn.execute("SELECT COUNT(*) FROM scadenze").fetchone()[0] == 1
 
 
+def test_scadenziario_deduplica_scadenze_pec_equivalenti_e_conserva_link(tmp_path):
+    scadenze_path = tmp_path / "scadenziario" / "scadenze.json"
+    scadenze_path.parent.mkdir(parents=True)
+    scadenze_path.write_text(
+        json.dumps(
+            {
+                "pec-a": {
+                    "id": "pec-a",
+                    "titolo": "Udienza da PEC: FISSAZIONE UDIENZA RG 1263/2026/LAV",
+                    "tipo": TipoTermine.ADEMPIMENTO.value,
+                    "stato": StatoTermine.APERTO.value,
+                    "data_scadenza": "2026-10-29",
+                    "deadline_profile_code": "PEC_AUTO_PRESIDIO",
+                    "note": "PEC_AUDIT:msg-a",
+                },
+                "pec-b": {
+                    "id": "pec-b",
+                    "titolo": "Udienza da PEC: FISSAZIONE UDIENZA RG 1263/2026/LAV",
+                    "tipo": TipoTermine.UDIENZA.value,
+                    "stato": StatoTermine.APERTO.value,
+                    "data_scadenza": "2026-10-29",
+                    "deadline_profile_code": "PEC_AUTO_PRESIDIO",
+                    "note": "PEC_AUDIT:msg-b\nLink udienza audiovisiva: https://teams.microsoft.com/l/meetup-join/abc",
+                    "remote_hearing_detected": True,
+                    "remote_hearing_url": "https://teams.microsoft.com/l/meetup-join/abc",
+                    "remote_hearing_source": "13744017s.pdf.zip",
+                    "remote_hearing_verified": True,
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    gestione = GestioneScadenziario(db_path=str(scadenze_path))
+    scadenze = gestione.tutte(solo_aperte=False)
+
+    assert len(scadenze) == 1
+    assert scadenze[0].tipo == TipoTermine.UDIENZA
+    assert scadenze[0].remote_hearing_url == "https://teams.microsoft.com/l/meetup-join/abc"
+    assert "PEC_AUDIT:msg-a" in scadenze[0].note
+    assert "PEC_AUDIT:msg-b" in scadenze[0].note
+
+
 def test_import_portale_scarta_scadenze_gia_passate_dallo_scadenziario():
     from web.services.telematico_runtime import (
         _data_portale_scadenziario_utilizzabile,

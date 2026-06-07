@@ -268,6 +268,13 @@ function DeadlineTable({
               <td>
                 <a className="iu-scad-title" href={item.href}>{item.title}</a>
                 <small>{item.description || item.sourceEventLabel || 'Nessuna descrizione operativa.'}</small>
+                {item.remoteHearingUrl ? (
+                  <a className="iu-scad-remote-link" href={item.remoteHearingUrl} target="_blank" rel="noreferrer">
+                    <Link2 size={13}/> Link udienza da remoto
+                  </a>
+                ) : item.remoteHearingPdfRequired ? (
+                  <span className="iu-scad-remote-pending"><FileSearch size={13}/> Link udienza nel PDF da acquisire</span>
+                ) : null}
                 <DeadlineFlags item={item}/>
               </td>
               <td><Badge tone="neutral">{item.typeLabel}</Badge></td>
@@ -1061,12 +1068,23 @@ export function ScadenziarioPage() {
               <div><dt>Responsabile</dt><dd>{focusedRow.ownerLabel || 'Non assegnato'}</dd></div>
               {focusedRow.sourceEventTypeLabel ? <div><dt>Evento</dt><dd>{focusedRow.sourceEventTypeLabel}</dd></div> : null}
               {focusedRow.officeLabel ? <div><dt>Ufficio</dt><dd>{focusedRow.officeLabel}</dd></div> : null}
+              {focusedRow.remoteHearingDetected ? <div><dt>Udienza da remoto</dt><dd>{focusedRow.remoteHearingMode || 'Da remoto'}</dd></div> : null}
+              {focusedRow.remoteHearingTime ? <div><dt>Orario collegamento</dt><dd>{focusedRow.remoteHearingTime}</dd></div> : null}
+              {focusedRow.remoteHearingSource ? <div><dt>Fonte link</dt><dd>{focusedRow.remoteHearingSource}</dd></div> : null}
+              {focusedRow.remoteHearingUrl ? <div><dt>Verifica link</dt><dd>{focusedRow.remoteHearingVerified ? 'Identico alla fonte letta' : 'Normalizzato da verificare'}</dd></div> : null}
+              {focusedRow.remoteHearingPdfRequired ? <div><dt>Link udienza</dt><dd>Da acquisire dal PDF allegato</dd></div> : null}
               {focusedRow.officeModeLabel ? <div><dt>Operatività ufficio</dt><dd>{focusedRow.officeModeLabel}</dd></div> : null}
               {focusedRow.officePatronLabel ? <div><dt>Patrono ufficio</dt><dd>{focusedRow.officePatronLabel}</dd></div> : null}
               {focusedRow.octoberObservanceBlocks ? <div><dt>Osservanza</dt><dd>Osservanza bloccante</dd></div> : null}
             </dl>
+            {focusedRow.remoteHearingAccessInfo ? <p className="iu-scad-remote-access">{focusedRow.remoteHearingAccessInfo}</p> : null}
           </div>
           <div className="iu-scad-focus-actions">
+            {focusedRow.remoteHearingUrl ? (
+              <a className="iu-scad-remote-action" href={focusedRow.remoteHearingUrl} target="_blank" rel="noreferrer">
+                <Link2 size={15}/> Apri link udienza
+              </a>
+            ) : null}
             <Button href={focusedRow.editHref}><Edit3 size={15}/> Modifica</Button>
             <button type="button" onClick={() => runComplete(focusedRow)}><CheckCircle2 size={15}/> Completa</button>
             <button type="button" onClick={() => runDelete(focusedRow)}><Trash2 size={15}/> Elimina</button>

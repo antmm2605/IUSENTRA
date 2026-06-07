@@ -7,6 +7,7 @@ Flask gia' auditate: crea, modifica, completa, elimina, bulk, export e iCal.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterable
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -231,6 +232,64 @@ def _trace_count(scadenza: Any) -> int:
         return 0
 
 
+def _is_remote_hearing_ui_url(url: str, context: str = "") -> bool:
+    try:
+        from pct.pec_pipeline import _is_remote_hearing_url
+
+        return _is_remote_hearing_url(str(url or ""), context=context)[0]
+    except Exception:
+        return False
+
+
+def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
+    note = str(getattr(scadenza, "note", "") or "")
+    url = str(getattr(scadenza, "remote_hearing_url", "") or "").strip()
+    source = str(getattr(scadenza, "remote_hearing_source", "") or "").strip()
+    if url and not _is_remote_hearing_ui_url(url, source or note):
+        url = ""
+    mode = str(getattr(scadenza, "remote_hearing_mode", "") or "").strip()
+    time_value = str(getattr(scadenza, "remote_hearing_time", "") or "").strip()
+    access_info = str(getattr(scadenza, "remote_hearing_access_info", "") or "").strip()
+    pdf_required = bool(getattr(scadenza, "remote_hearing_pdf_required", False))
+    detected = bool(getattr(scadenza, "remote_hearing_detected", False))
+    if not url:
+        for match in re.finditer(r"Link udienza audiovisiva:\s*(https?://\S+|www\.\S+)", note, flags=re.I):
+            candidate = match.group(1).rstrip(".,;)")
+            if _is_remote_hearing_ui_url(candidate, match.group(0)):
+                url = candidate
+                detected = True
+                break
+    if not source:
+        match = re.search(r"Fonte link udienza:\s*([^\n]+)", note, flags=re.I)
+        source = match.group(1).strip() if match else ""
+    if not mode:
+        match = re.search(r"Udienza da remoto:\s*([^\n]+)", note, flags=re.I)
+        mode = match.group(1).strip() if match else ""
+    if not time_value:
+        match = re.search(r"Orario collegamento:\s*([^\n]+)", note, flags=re.I)
+        time_value = match.group(1).strip() if match else ""
+    if not access_info:
+        match = re.search(r"Istruzioni accesso udienza:\s*([^\n]+)", note, flags=re.I)
+        access_info = match.group(1).strip() if match else ""
+    if "Link udienza audiovisiva: da acquisire" in note:
+        pdf_required = True
+        detected = True
+    verified = bool(getattr(scadenza, "remote_hearing_verified", False))
+    if "Verifica link udienza: identico alla fonte letta" in note:
+        verified = True
+    return {
+        "remoteHearingDetected": bool(detected or url or pdf_required),
+        "remoteHearingMode": _short_text(mode, 80),
+        "remoteHearingUrl": url,
+        "remoteHearingSource": _short_text(source, 140),
+        "remoteHearingVerified": verified,
+        "remoteHearingIntegrity": str(getattr(scadenza, "remote_hearing_integrity", "") or ""),
+        "remoteHearingTime": _short_text(time_value, 80),
+        "remoteHearingAccessInfo": _short_text(access_info, 220),
+        "remoteHearingPdfRequired": pdf_required and not bool(url),
+    }
+
+
 def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dict[str, Any]:
     item_id = str(getattr(scadenza, "id", "") or "")
     due_date = str(getattr(scadenza, "data_scadenza", "") or "")
@@ -248,6 +307,7 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
     patron_label = patron_name
     if patron_name and patron_day and patron_month:
         patron_label = f"{patron_name} ({patron_day:02d}/{patron_month:02d})"
+    remote_payload = _remote_hearing_payload(scadenza)
     return {
         "id": item_id,
         "date": due_date,
@@ -283,6 +343,7 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
         "officeVerifiedAt": str(getattr(scadenza, "judicial_office_verified_at", "") or ""),
         "octoberObservanceBlocks": bool(getattr(scadenza, "october_observance_blocks", False)),
         "traceCount": _trace_count(scadenza),
+        **remote_payload,
         "href": f"/scadenziario/{item_id}?vista=tutte",
         "editHref": f"/scadenziario/{item_id}/modifica",
         "completeHref": f"/scadenziario/{item_id}/completa",

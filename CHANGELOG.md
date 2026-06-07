@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.249.30 - 2026-06-07
+
+- Resa operativa la vista `Da PEC` dello scadenziario: mostra solo scadenze PEC aperte e utili al lavoro, mentre i termini già superati restano nello storico audit e non confondono la lista dell'avvocato.
+- Migliorata la visualizzazione delle udienze audiovisive: ogni riga e scheda mobile mostra subito evento/ufficio, link udienza, allegato fonte e verifica di identicità del collegamento letto dal PDF o dalla PEC.
+- Estesa l'estrazione dei link Teams: vengono conservati interi anche i collegamenti launcher lunghi con parametri codificati, senza troncarli o sostituirli con link tecnici PST/XML/OCSP.
+- Collegati gli avvisi PEC agli utenti attivi dello studio e resi visibili nel pannello Notifiche di Impostazioni, così le notifiche interne non restano assegnate al solo processo di manutenzione.
+
 ## 2.249.29 - 2026-06-07
 
 - Corretto il presidio PEC su archivi storici dello stesso studio: se una PEC era già salvata nel DB tenant con `tenant_id` storico `default`, il nuovo presidio la riconosce come duplicato utile, normalizza il messaggio allo studio corrente e non produce più errori `UNIQUE constraint failed`.

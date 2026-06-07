@@ -5,7 +5,7 @@
 
 .iu-notify-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -70,6 +70,18 @@
   font-size: 12px;
   line-height: 1.35;
   font-weight: 700;
+}
+
+.iu-notify-list a {
+  width: fit-content;
+  color: var(--iu-blue-700, #1d4ed8);
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.iu-notify-list a:hover {
+  text-decoration: underline;
 }
 
 .iu-notify-field {

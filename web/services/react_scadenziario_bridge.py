@@ -381,6 +381,7 @@ def _is_overdue(item: Any) -> bool:
 def _summary(all_items: list[Any]) -> dict[str, int]:
     open_items = [item for item in all_items if _is_open(item)]
     pec_items = [item for item in all_items if is_scadenza_pec(item)]
+    pec_operational_items = [item for item in pec_items if _is_open(item) and not _is_overdue(item)]
     def days(item: Any) -> int | None:
         current = getattr(item, "giorni_alla_scadenza", None)
         return current if current is not None else _days_to(getattr(item, "data_scadenza", ""))
@@ -395,10 +396,10 @@ def _summary(all_items: list[Any]) -> dict[str, int]:
         "within7": sum(1 for item in open_items if (days(item) is not None and 0 <= int(days(item)) <= 7)),
         "advanced": sum(1 for item in all_items if bool(getattr(item, "ha_calcolo_avanzato", False))),
         "operative": sum(1 for item in all_items if bool(getattr(item, "operational_due_at", ""))),
-        "pec": len(pec_items),
-        "pec_open": sum(1 for item in pec_items if _is_open(item)),
+        "pec": len(pec_operational_items),
+        "pec_open": len(pec_operational_items),
         "pec_overdue": sum(1 for item in pec_items if _is_overdue(item)),
-        "pec_future": sum(1 for item in pec_items if _is_open(item) and not _is_overdue(item)),
+        "pec_future": len(pec_operational_items),
         "peremptory": sum(1 for item in all_items if bool(getattr(item, "perentorio", False))),
     }
 
@@ -560,12 +561,12 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
         _card(
             "pec",
             "Scadenze da PEC",
-            "Apri le scadenze generate o riconciliate dal presidio PEC, con agenda e priorità operative collegate.",
+            "Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico audit.",
             summary["pec"],
-            "warning" if summary["pec_overdue"] else "info",
+            "info",
             "archive",
             kind="filter",
-            label="Apri PEC",
+            label="Apri PEC operative",
             view="pec",
         ),
         _card(

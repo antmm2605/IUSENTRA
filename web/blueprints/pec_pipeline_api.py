@@ -369,6 +369,36 @@ def _local_acquire_deadline_status(result: dict[str, Any]) -> str:
     return "deadline_not_ready"
 
 
+def _visible_deadline_report(deadline_report: dict[str, Any], limit: int) -> dict[str, Any]:
+    items = deadline_report.get("items") if isinstance(deadline_report.get("items"), list) else []
+    operational_items = [item for item in items if not bool(item.get("expired"))]
+    return {
+        **deadline_report,
+        "items": operational_items[:limit],
+        "expired_audit_only": int(deadline_report.get("expired") or 0),
+    }
+
+
+def _pec_deadline_summary_message(
+    *,
+    created: int,
+    already_exists: int,
+    agenda_linked: int,
+    not_ready: int = 0,
+    expired: int = 0,
+) -> str:
+    parts = [
+        f"{created} scadenze operative create",
+        f"{already_exists} già presenti",
+        f"{agenda_linked} collegate all'agenda",
+    ]
+    if not_ready:
+        parts.append(f"{not_ready} da verificare")
+    if expired:
+        parts.append("termini già superati conservati solo nello storico audit")
+    return ", ".join(parts)
+
+
 def _notify_pec_deadline(message_id: str, result: dict[str, Any]) -> dict[str, Any]:
     if not result.get("ok"):
         return result
@@ -740,20 +770,30 @@ def _pec_acquire_local_emails_chunked():
             actor=actor,
         )
         if has_more:
+            summary_text = _pec_deadline_summary_message(
+                created=int(deadline_report["created"] or 0),
+                already_exists=int(deadline_report["already_exists"] or 0),
+                agenda_linked=int(deadline_report["agenda_linked"] or 0),
+                not_ready=int(deadline_report["not_ready"] or 0),
+                expired=int(deadline_report["expired"] or 0),
+            )
             message = (
                 f"Blocco presidio PEC completato: esaminate {next_cursor}/{total_emails} comunicazioni; "
-                f"{deadline_report['created']} scadenze create, {deadline_report['already_exists']} già presenti, "
-                f"{deadline_report['expired']} scadute registrate, {deadline_report['agenda_linked']} collegate all'agenda. "
+                f"{summary_text}. "
                 "Il controllo prosegue automaticamente."
             )
         else:
+            summary_text = _pec_deadline_summary_message(
+                created=int(run_report.get("deadline_created") or 0),
+                already_exists=int(run_report.get("deadline_already_exists") or 0),
+                agenda_linked=int(run_report.get("agenda_linked") or 0),
+                not_ready=int(run_report.get("deadline_not_ready") or 0),
+                expired=int(run_report.get("deadline_expired") or 0),
+            )
             message = (
                 f"Presidio PEC completato su {int(run_report.get('acquired') or acquired)} comunicazioni PEC già note "
                 f"({int(run_report.get('duplicates') or duplicates)} già presenti): "
-                f"{int(run_report.get('deadline_created') or 0)} scadenze create, "
-                f"{int(run_report.get('deadline_already_exists') or 0)} già presenti, "
-                f"{int(run_report.get('deadline_expired') or 0)} scadute registrate, "
-                f"{int(run_report.get('agenda_linked') or 0)} collegate all'agenda. "
+                f"{summary_text}. "
                 "Le PEC già presidiate non alimentano più l'avviso automatico."
             )
         return _json_success(
@@ -773,7 +813,7 @@ def _pec_acquire_local_emails_chunked():
                 "skipped_not_pec": skipped_not_pec,
                 "queued_repairs": queued_repairs,
                 "repair_stages": repair_stages,
-                "deadline_report": {**deadline_report, "items": deadline_report["items"][:80]},
+                "deadline_report": _visible_deadline_report(deadline_report, 80),
                 "pec_control_tower": control_tower_report,
                 "local_acquire": repo.local_acquire_run_report(run_id, limit=80),
                 "errors": errors[:20],
@@ -993,11 +1033,15 @@ def pec_acquire_local_emails():
         message = (
             f"Presidio PEC eseguito su {acquired} MIME locali"
             f" ({duplicates} già presenti): "
-            f"{deadline_report['created']} scadenze create, "
+            f"{deadline_report['created']} scadenze operative create, "
             f"{deadline_report['already_exists']} già presenti, "
-            f"{deadline_report['expired']} scadute ignorate, "
             f"{deadline_report['agenda_linked']} collegate all'agenda. "
-            f"{queued_repairs} controlli tecnici accodati."
+            + (
+                "Termini già superati conservati solo nello storico audit. "
+                if deadline_report["expired"]
+                else ""
+            )
+            + f"{queued_repairs} controlli tecnici accodati."
         )
         return _json_success(
             {
@@ -1010,7 +1054,7 @@ def pec_acquire_local_emails():
                 "skipped_not_pec": skipped_not_pec,
                 "queued_repairs": queued_repairs,
                 "repair_stages": repair_stages,
-                "deadline_report": {**deadline_report, "items": deadline_report["items"][:50]},
+                "deadline_report": _visible_deadline_report(deadline_report, 50),
                 "pec_control_tower": control_tower_report,
                 "errors": errors[:20],
                 "workers": worker,

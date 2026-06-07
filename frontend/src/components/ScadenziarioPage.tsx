@@ -228,6 +228,29 @@ function DeadlineActions({ item, onComplete, onDelete }:{item:ScadenziarioRow; o
   )
 }
 
+function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
+  if (!item.remoteHearingUrl && !item.remoteHearingPdfRequired && !item.remoteHearingSource) return null
+  return (
+    <div className="iu-scad-remote-box">
+      {item.remoteHearingUrl ? (
+        <a className="iu-scad-remote-link" href={item.remoteHearingUrl} target="_blank" rel="noreferrer">
+          <Link2 size={13}/> Apri link udienza audiovisiva
+        </a>
+      ) : item.remoteHearingPdfRequired ? (
+        <span className="iu-scad-remote-pending"><FileSearch size={13}/> Link udienza nel PDF allegato da acquisire</span>
+      ) : null}
+      {item.remoteHearingSource ? (
+        <span className="iu-scad-remote-source"><FileSearch size={13}/> Allegato fonte: {item.remoteHearingSource}</span>
+      ) : null}
+      {item.remoteHearingUrl ? (
+        <span className={`iu-scad-remote-check ${item.remoteHearingVerified ? 'is-verified' : 'is-review'}`}>
+          <CheckCircle2 size={13}/> {item.remoteHearingVerified ? 'Link verificato identico alla fonte letta' : 'Link da verificare sulla fonte'}
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
 function DeadlineTable({
   rows,
   selectedIds,
@@ -268,13 +291,14 @@ function DeadlineTable({
               <td>
                 <a className="iu-scad-title" href={item.href}>{item.title}</a>
                 <small>{item.description || item.sourceEventLabel || 'Nessuna descrizione operativa.'}</small>
-                {item.remoteHearingUrl ? (
-                  <a className="iu-scad-remote-link" href={item.remoteHearingUrl} target="_blank" rel="noreferrer">
-                    <Link2 size={13}/> Link udienza da remoto
-                  </a>
-                ) : item.remoteHearingPdfRequired ? (
-                  <span className="iu-scad-remote-pending"><FileSearch size={13}/> Link udienza nel PDF da acquisire</span>
+                {item.sourceEventTypeLabel || item.officeLabel ? (
+                  <span className="iu-scad-event-line">
+                    {item.sourceEventTypeLabel ? `Evento: ${item.sourceEventTypeLabel}` : ''}
+                    {item.sourceEventTypeLabel && item.officeLabel ? ' · ' : ''}
+                    {item.officeLabel ? `Ufficio: ${item.officeLabel}` : ''}
+                  </span>
                 ) : null}
+                <RemoteHearingNotice item={item}/>
                 <DeadlineFlags item={item}/>
               </td>
               <td><Badge tone="neutral">{item.typeLabel}</Badge></td>
@@ -314,6 +338,14 @@ function DeadlineCardList({
           </header>
           <a href={item.href}>{item.title}</a>
           <p>{item.description || item.fascicoloLabel || 'Scadenza senza descrizione.'}</p>
+          {item.sourceEventTypeLabel || item.officeLabel ? (
+            <span className="iu-scad-event-line">
+              {item.sourceEventTypeLabel ? `Evento: ${item.sourceEventTypeLabel}` : ''}
+              {item.sourceEventTypeLabel && item.officeLabel ? ' · ' : ''}
+              {item.officeLabel ? `Ufficio: ${item.officeLabel}` : ''}
+            </span>
+          ) : null}
+          <RemoteHearingNotice item={item}/>
           <div className="iu-scad-mobile-meta">
             <span><CalendarDays size={14}/>{item.daysLabel}</span>
             <span><Gavel size={14}/>{item.typeLabel}</span>
@@ -989,7 +1021,7 @@ export function ScadenziarioPage() {
         <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
         <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
         <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
-        <StatCard icon={<Archive size={19}/>} label="Da PEC" value={data.summary.pec} note={`${data.summary.pec_future} future · ${data.summary.pec_overdue} scadute`} tone={data.summary.pec_overdue ? 'warning' : 'info'} active={view === 'pec'} onClick={() => changeView('pec')}/>
+        <StatCard icon={<Archive size={19}/>} label="Da PEC" value={data.summary.pec} note="aperte operative" tone="info" active={view === 'pec'} onClick={() => changeView('pec')}/>
       </section>
 
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">

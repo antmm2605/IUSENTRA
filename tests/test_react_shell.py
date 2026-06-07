@@ -2139,6 +2139,46 @@ def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: 
     assert timbro["qualifiche_professionali"] == "Patrocinante in Cassazione"
 
 
+def test_impostazioni_notifiche_mostra_avvisi_operativi_persistenti(tmp_path: Path):
+    from pct.notifications import NotificationRepository, NotificationRecord
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.app_context():
+        users = GestioneUtenti(
+            db_path=app.config["AUTH_DB"],
+            audit_path=app.config["AUDIT_DB"],
+            secret_key=app.secret_key,
+        ).tutti(solo_attivi=True)
+        user_id = next(user.id for user in users if user.username == "operatore")
+        NotificationRepository(app.config["NOTIFICATIONS_DB"]).upsert_notification(
+            NotificationRecord(
+                tenant_id="default",
+                user_id=user_id,
+                type="pec_deadline",
+                priority="important",
+                title="Scadenza PEC registrata",
+                body="Presidio PEC collegato allo scadenziario e all'agenda per il 2030-01-15.",
+                href="/scadenziario?vista=pec",
+                source_type="pec_deadline",
+                source_id="pec-test",
+                dedupe_key="PEC_AUDIT:pec-test:deadline",
+            )
+        )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/api/v1/ui/impostazioni?tab=notifiche")
+
+    payload = response.get_json()
+    avvisi = payload["notifiche"]["avvisi_operativi"]
+
+    assert response.status_code == 200
+    assert payload["notifiche"]["avvisi_operativi_non_letti"] == 1
+    assert avvisi[0]["titolo"] == "Scadenza PEC registrata"
+    assert avvisi[0]["href"] == "/scadenziario?vista=pec"
+
+
 def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     page = Path("frontend/src/features/impostazioni/ImpostazioniPage.tsx").read_text(encoding="utf-8")
     form = Path("frontend/src/features/impostazioni/components/SettingsSectionForm.tsx").read_text(encoding="utf-8")
@@ -2178,6 +2218,8 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     assert "Mostra valore inserito" in payments
     assert "Prepara link WhatsApp" in notifications
     assert "Invia promemoria" in notifications
+    assert "Avvisi operativi" in notifications
+    assert "avvisi_operativi" in notifications
     assert "createBackup" in backup
     assert "verifyBackupIntegrity" in backup
     assert "createCalendarProfile" in calendari

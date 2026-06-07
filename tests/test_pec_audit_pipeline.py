@@ -134,6 +134,25 @@ def test_pec_pipeline_recovers_stale_default_tenant_duplicate(tmp_path):
         assert repo_studio.get_message_row(conn, first["id"])["id"] == first["id"]
 
 
+def test_pec_pipeline_processes_jobs_for_stale_default_tenant_message(tmp_path):
+    db_path = tmp_path / "pec_audit.sqlite"
+    _label, raw_mime = synthetic_pec_messages()[0]
+    repo_default = PecAuditRepository(db_path, tenant_id="default")
+    first = repo_default.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="1")
+    repo_studio = PecAuditRepository(db_path, tenant_id="studio-legale-giuseppe-montagnese")
+    with repo_studio.connect() as conn:
+        repo_studio.enqueue_job(conn, "parse", message_id=first["id"], priority=20, actor="pytest")
+
+    result = repo_studio.run_pending_jobs(limit=5, actor="pytest")
+
+    assert result["processed"] >= 1
+    assert result["failed"] == 0
+    assert any(item["message_id"] == first["id"] for item in result["jobs"])
+    with sqlite3.connect(db_path) as conn:
+        tenant_id = conn.execute("SELECT tenant_id FROM pec_messages WHERE id=?", (first["id"],)).fetchone()[0]
+    assert tenant_id == "studio-legale-giuseppe-montagnese"
+
+
 def test_pec_operational_audit_counts_latest_local_presidio_with_stale_message_tenant(tmp_path):
     from pct.email_client import CartellaEmail
     from scripts.audit_pec_operational_chain import audit_studio
@@ -344,6 +363,23 @@ def test_remote_hearing_report_excludes_technical_pst_dtd_ocsp_links():
     assert "pst.giustizia.it" not in " ".join(urls)
     assert "Comunicazione.dtd" not in " ".join(urls)
     assert "OCSP0" not in " ".join(urls)
+
+
+def test_remote_hearing_extracts_full_teams_launcher_url_without_truncation():
+    launcher_link = (
+        "https://teams.microsoft.com/dl/launcher/launcher.html?"
+        "url=%2F_%23%2Fl%2Fmeetup-join%2F19%3Ameeting_TEST%40thread.v2%2F0"
+        "%3Fcontext%3D%257b%2522Tid%2522%253a%252211111111-1111-1111-1111-111111111111"
+        "%2522%252c%2522Oid%2522%253a%252222222222-2222-2222-2222-222222222222%2522%257d"
+        "%26anon%3Dtrue&type=meetup-join&deeplinkId=33333333-3333-3333-3333-333333333333"
+        "&directDl=true&msLaunch=true&enableMobilePage=true&suppressPrompt=true"
+    )
+    text = f"Udienza audiovisiva. Collegamento per la connessione: {launcher_link}"
+
+    links = _extract_remote_hearing_links(text)
+
+    assert [item["url"] for item in links] == [launcher_link]
+    assert links[0]["integrity"] == "exact"
 
 
 def test_remote_hearing_report_excludes_technical_signature_and_invoice_urls():
@@ -691,6 +727,33 @@ def test_pec_repair_removes_generic_gdp_notice_2030_deadline_and_agenda(tmp_path
     assert repaired["deleted"] == 1
     assert GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False) == []
     assert Agenda(str(agenda_db)).tutti() == []
+
+
+def test_pec_repair_and_backfill_report_missing_reference_without_unbound_local(tmp_path):
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+    )
+    GestioneScadenziario(str(scadenziario_db)).nuova(
+        titolo="Scadenza PEC con riferimento mancante",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2026-10-01",
+        note="PEC_AUDIT:pec_mancante\nTermine legale conclusivo: no",
+        deadline_profile_code="PEC_AUTO_PRESIDIO",
+    )
+
+    repaired = repo.repair_pec_deadlines(actor="pytest")
+    backfilled = repo.enrich_deadlines_with_remote_hearing_links(actor="pytest")
+
+    assert repaired["ok"] is False
+    assert backfilled["ok"] is False
+    combined = "\n".join([*repaired["errors"], *backfilled["errors"]])
+    assert "cannot access local variable" not in combined
+    assert "pec_mancante" in combined
 
 
 def test_pec_repair_upgrades_old_gdp_hearing_deadline_and_clears_codex_actor(tmp_path):
@@ -1377,9 +1440,26 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
         "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
         "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
         "NOTIFICATIONS_DB": str(tmp_path / "notifications" / "notifications.db"),
+        "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
     }
     for value in paths.values():
         Path(value).parent.mkdir(parents=True, exist_ok=True)
+    from pct.auth import GestioneUtenti, RuoloUtente
+
+    user = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key="test",
+        crea_admin_se_vuoto=False,
+    ).crea(
+        username="avvocato",
+        password="Avvocato123!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.test",
+        nome_completo="Avv. Test",
+        must_change_password=False,
+    )
     gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
     gestore.aggiungi(
         EmailRicevuta(
@@ -1416,6 +1496,7 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
     assert result["deadline_created"] + result["deadline_already_exists"] == 1
     assert result["agenda_linked"] == 1
     assert result["notifications_created"] >= 1
+    assert user.id in result["local_acquire"]["payload"]["notification_users"]
     scadenze = GestioneScadenziario(paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
     pec_scadenze = [item for item in scadenze if "PEC_AUDIT:" in item.note]
     assert len(pec_scadenze) == 1
@@ -1427,6 +1508,11 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
     assert audit["ok"] is True
     assert audit["email_archive"]["pec_relevant"] == 1
     assert audit["pec_control"]["latest_local_status"]["missing_mime_latest"] == 0
+    with sqlite3.connect(paths["NOTIFICATIONS_DB"]) as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM notifications WHERE user_id=? AND source_type='pec_deadline'",
+            (user.id,),
+        ).fetchone()[0] == 1
 
 
 def test_pec_repository_quarantines_stale_sqlite_journal(tmp_path):

@@ -40,6 +40,12 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Completa selezionate" in page_source
     assert "Elimina selezionate" in page_source
     assert "Elimina tutto" in page_source
+    assert "RemoteHearingNotice" in page_source
+    assert "Apri link udienza audiovisiva" in page_source
+    assert "Allegato fonte:" in page_source
+    assert "Link verificato identico alla fonte letta" in page_source
+    assert "Evento:" in page_source
+    assert "Ufficio:" in page_source
     assert "removePdfCandidates" in page_source
     assert "Anteprima PDF svuotata" in page_source
     assert "maxDocuments: fascicoloId ? 0 : 25" in page_source
@@ -57,6 +63,9 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert '@api_v1_react.post("/scadenziario/termini/override")' in api_source
     assert ".iu-scad-page" in css
     assert ".iu-scad-calculator" in css
+    assert ".iu-scad-remote-source" in css
+    assert ".iu-scad-remote-check.is-verified" in css
+    assert ".iu-scad-event-line" in css
     assert ".iu-scad-pdf-danger-btn" in css
     assert ".iu-scad-pdf-row-delete" in css
     assert "@media(max-width:760px)" in css
@@ -104,7 +113,14 @@ def test_react_scadenziario_bridge_usa_repository_reale(tmp_path: Path):
 def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
-    exact_link = "https://teams.microsoft.com/l/meetup-join/udienza-1263"
+    exact_link = (
+        "https://teams.microsoft.com/dl/launcher/launcher.html?"
+        "url=%2F_%23%2Fl%2Fmeetup-join%2F19%3Ameeting_TEST%40thread.v2%2F0"
+        "%3Fcontext%3D%257b%2522Tid%2522%253a%252211111111-1111-1111-1111-111111111111"
+        "%2522%252c%2522Oid%2522%253a%252222222222-2222-2222-2222-222222222222%2522%257d"
+        "%26anon%3Dtrue&type=meetup-join&deeplinkId=33333333-3333-3333-3333-333333333333"
+        "&directDl=true&msLaunch=true&enableMobilePage=true&suppressPrompt=true"
+    )
     with app.app_context():
         gestione = get_scadenziario()
         scadenza = gestione.nuova(
@@ -131,6 +147,38 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     assert row["remoteHearingUrl"] == exact_link
     assert row["remoteHearingSource"] == "13744017s.pdf.zip"
     assert row["remoteHearingVerified"] is True
+
+
+def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        gestione = get_scadenziario()
+        futura = gestione.nuova(
+            "Udienza da PEC operativa",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=20)).isoformat(),
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            note="PEC_AUDIT:pec-futura",
+        )
+        scaduta = gestione.nuova(
+            "Udienza da PEC già superata",
+            TipoTermine.UDIENZA,
+            (date.today() - timedelta(days=20)).isoformat(),
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            note="PEC_AUDIT:pec-scaduta",
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=pec", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    ids = {item["id"] for item in payload["items"]}
+
+    assert response.status_code == 200
+    assert futura.id in ids
+    assert scaduta.id not in ids
+    assert payload["summary"]["pec"] == 1
+    assert payload["summary"]["pec_future"] == 1
+    assert payload["summary"]["pec_overdue"] >= 1
 
 
 def test_react_scadenziario_calcolatore_non_ripete_template_identici():

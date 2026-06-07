@@ -3414,12 +3414,34 @@ class PecAuditRepository:
         return report
 
     def get_message_row(self, conn: sqlite3.Connection, message_id: str) -> sqlite3.Row:
+        clean_id = clean_text(message_id)
         row = conn.execute(
             "SELECT * FROM pec_messages WHERE tenant_id=? AND id=?",
-            (self.tenant_id, message_id),
+            (self.tenant_id, clean_id),
         ).fetchone()
         if row is None:
-            raise KeyError(f"PEC non trovata: {message_id}")
+            stale = conn.execute("SELECT * FROM pec_messages WHERE id=? LIMIT 1", (clean_id,)).fetchone()
+            if stale is not None:
+                previous_tenant = str(stale["tenant_id"] or "")
+                if previous_tenant and previous_tenant != self.tenant_id:
+                    conn.execute(
+                        "UPDATE pec_messages SET tenant_id=? WHERE id=? AND tenant_id=?",
+                        (self.tenant_id, clean_id, previous_tenant),
+                    )
+                    self.append_audit(
+                        conn,
+                        action="pec.message.tenant_normalized",
+                        resource_type="pec_message",
+                        resource_id=clean_id,
+                        payload={"tenant_normalized_from": previous_tenant},
+                        actor="pec-repository",
+                    )
+                row = conn.execute(
+                    "SELECT * FROM pec_messages WHERE tenant_id=? AND id=?",
+                    (self.tenant_id, clean_id),
+                ).fetchone()
+        if row is None:
+            raise KeyError(f"PEC non trovata: {clean_id}")
         return row
 
     def latest_parsed_row(self, conn: sqlite3.Connection, message_id: str) -> sqlite3.Row | None:
@@ -4725,9 +4747,11 @@ class PecAuditRepository:
         for scadenza in manager.tutte(solo_aperte=False):
             if limit and checked >= int(limit):
                 break
+            message_id = ""
             note = str(getattr(scadenza, "note", "") or "")
             if "PEC_AUDIT:" not in note:
                 continue
+            message_id = self._message_id_from_deadline_note(note)
             checked += 1
             try:
                 message_id, detail = self._detail_for_deadline_note(note)
@@ -4752,7 +4776,7 @@ class PecAuditRepository:
                     actor=actor,
                 )
             except Exception as exc:
-                errors.append(f"{message_id}: {exc}")
+                errors.append(f"{message_id or getattr(scadenza, 'id', '') or 'scadenza'}: {exc}")
         return {
             "ok": not errors,
             "checked": checked,
@@ -4774,9 +4798,11 @@ class PecAuditRepository:
         for scadenza in list(manager.tutte(solo_aperte=False)):
             if limit and checked >= int(limit):
                 break
+            message_id = ""
             note = str(getattr(scadenza, "note", "") or "")
             if "PEC_AUDIT:" not in note:
                 continue
+            message_id = self._message_id_from_deadline_note(note)
             checked += 1
             try:
                 message_id, detail = self._detail_for_deadline_note(note)
@@ -4843,7 +4869,7 @@ class PecAuditRepository:
                         actor=actor,
                     )
             except Exception as exc:
-                errors.append(f"{message_id}: {exc}")
+                errors.append(f"{message_id or getattr(scadenza, 'id', '') or 'scadenza'}: {exc}")
         return {
             "ok": not errors,
             "checked": checked,

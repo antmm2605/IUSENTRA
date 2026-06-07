@@ -76,6 +76,7 @@ export function NotificationsSettingsPanel({
   const clients = rows(raw.clienti)
   const appointments = rows(raw.appuntamenti_domani)
   const log = rows(raw.registro)
+  const operationalAlerts = rows(raw.avvisi_operativi)
   const channel = asRecord(raw.channel)
   const canSend = Boolean(raw.can_send || data.permissions.can_send_notifications || data.permissions.can_update)
   const canConfigureServer = Boolean(data.permissions.can_update)
@@ -143,6 +144,7 @@ export function NotificationsSettingsPanel({
         <span><strong>{text(raw.clienti_con_numero || 0)}</strong> clienti con WhatsApp</span>
         <span><strong>{text(raw.appuntamenti_inviabili || 0)}</strong> promemoria pronti</span>
         <span><strong>{text(raw.registro_totale || 0)}</strong> messaggi nel registro</span>
+        <span><strong>{text(raw.avvisi_operativi_non_letti || 0)}</strong> avvisi operativi da leggere</span>
       </div>
 
       <section className="iu-notify-compose iu-notify-device">
@@ -200,6 +202,38 @@ export function NotificationsSettingsPanel({
           </Button>
         </div>
         {pushResult ? <p className={pushResult.ok ? 'iu-notify-result is-ok' : 'iu-notify-result is-ko'}>{pushResult.message}</p> : null}
+      </section>
+
+      <section className="iu-notify-compose">
+        <header>
+          <BellRing aria-hidden="true" />
+          <div>
+            <strong>Avvisi operativi</strong>
+            <span>Scadenze PEC, agenda e presidi interni creati dal gestionale.</span>
+          </div>
+          <IusStatusBadge tone={operationalAlerts.length ? 'info' : 'neutral'}>
+            {operationalAlerts.length ? `${operationalAlerts.length} avvisi` : 'Nessun avviso'}
+          </IusStatusBadge>
+        </header>
+        <div className="iu-notify-device-grid">
+          <p>
+            <b>Dispositivi push attivi</b>
+            <span>{text(raw.dispositivi_push_attivi || 0)}</span>
+          </p>
+          <p>
+            <b>Consegna interna</b>
+            <span>Gli avvisi restano visibili nel gestionale anche quando il push del dispositivo non è ancora attivo.</span>
+          </p>
+        </div>
+        <div className="iu-notify-list">
+          {operationalAlerts.length ? operationalAlerts.map((item) => (
+            <p key={text(item.id)}>
+              <b>{text(item.quando)} - {text(item.titolo)}</b>
+              <span>{text(item.messaggio)} {item.letto ? '' : '- da leggere'}</span>
+              {text(item.href) ? <a href={text(item.href)}>Apri avviso</a> : null}
+            </p>
+          )) : <p>{text(raw.avvisi_operativi_errore) || 'Nessun avviso operativo registrato per questo utente.'}</p>}
+        </div>
       </section>
 
       <section className="iu-notify-compose">

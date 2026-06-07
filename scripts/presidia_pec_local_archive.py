@@ -130,8 +130,28 @@ def _deadline_status(result: dict[str, Any]) -> str:
     return "deadline_not_ready"
 
 
-def _notification_user_ids(path: Path, actor: str) -> list[str]:
+def _add_unique(values: list[str], value: Any) -> None:
+    text = str(value or "").strip()
+    if text and text not in values:
+        values.append(text)
+
+
+def _notification_user_ids(path: Path, actor: str, *, auth_path: Path | None = None) -> list[str]:
     values: list[str] = []
+    if auth_path and auth_path.exists():
+        try:
+            from pct.auth import GestioneUtenti
+
+            users = GestioneUtenti(
+                db_path=str(auth_path),
+                audit_path=str(auth_path.with_name("audit.json")),
+                secret_key=os.environ.get("SECRET_KEY", ""),
+                crea_admin_se_vuoto=False,
+            ).tutti(solo_attivi=True)
+            for user in users:
+                _add_unique(values, getattr(user, "id", "") or getattr(user, "username", ""))
+        except Exception:
+            pass
     try:
         import sqlite3
 
@@ -147,14 +167,11 @@ def _notification_user_ids(path: Path, actor: str) -> list[str]:
                 except sqlite3.Error:
                     continue
                 for row in rows:
-                    value = str(row[0] or "").strip()
-                    if value and value not in values:
-                        values.append(value)
+                    _add_unique(values, row[0])
     except Exception:
         pass
     fallback = str(actor or "pec-maintenance").strip()
-    if fallback and fallback not in values:
-        values.append(fallback)
+    _add_unique(values, fallback)
     return values
 
 
@@ -410,7 +427,11 @@ def presidia_studio(
             unique_message_ids.append(message_id)
     existing_deadlines = repo.existing_deadlines_by_message_id(unique_message_ids)
     skipped_deadlines = repo.skipped_deadlines_by_message_id(unique_message_ids)
-    notification_users = _notification_user_ids(Path(paths["NOTIFICATIONS_DB"]), actor)
+    notification_users = _notification_user_ids(
+        Path(paths["NOTIFICATIONS_DB"]),
+        actor,
+        auth_path=Path(paths["AUTH_DB"]) if paths.get("AUTH_DB") else None,
+    )
     for message_id in unique_message_ids:
         meta = message_email_index.get(message_id, {})
         existing = existing_deadlines.get(message_id) if isinstance(existing_deadlines, dict) else None
@@ -512,7 +533,7 @@ def presidia_studio(
         actor=actor,
     )
     report["run_id"] = run_id
-    report["local_acquire"] = run_report
+    report["local_acquire"] = repo.local_acquire_run_report(run_id, limit=max(100, len(selected) or 1)) or run_report
     report["ok"] = not report["errors"] and int(report["missing_mime"] or 0) == 0
     return report
 

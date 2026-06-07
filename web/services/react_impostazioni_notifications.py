@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from flask import current_app, g, request
+from flask import current_app, g
 from web.services.tenant_api_auth import api_key_valid_for_request
 
 
@@ -150,6 +150,52 @@ def _registro_payload() -> list[dict[str, Any]]:
     return rows
 
 
+def _avvisi_operativi_payload() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    try:
+        from web.services.notifications_runtime import (
+            build_notification_service,
+            current_tenant_id,
+            current_user_id,
+        )
+
+        tenant_id = current_tenant_id()
+        user_id = current_user_id()
+        if not user_id:
+            return [], {"totale": 0, "non_letti": 0, "dispositivi_attivi": 0, "push_abilitato": False}
+        service = build_notification_service()
+        records = service.repository.list_notifications(tenant_id, user_id, limit=30)
+        subscriptions = service.repository.list_active_subscriptions(tenant_id, user_id)
+        preferences = service.preferences(tenant_id, user_id)
+        rows = [
+            {
+                "id": _text(record.id),
+                "titolo": _text(record.title, "Avviso operativo"),
+                "messaggio": _text(record.body),
+                "tipo": _text(record.type, "operativo"),
+                "priorita": _text(record.priority, "normal"),
+                "href": _text(record.href),
+                "quando": _format_dt(record.created_at),
+                "letto": bool(record.read_at),
+            }
+            for record in records
+        ]
+        return rows, {
+            "totale": len(rows),
+            "non_letti": sum(1 for row in rows if not row["letto"]),
+            "dispositivi_attivi": len(subscriptions),
+            "push_abilitato": bool(preferences.push_enabled),
+        }
+    except Exception as exc:
+        current_app.logger.warning("Avvisi operativi notifiche non disponibili: %s", exc)
+        return [], {
+            "totale": 0,
+            "non_letti": 0,
+            "dispositivi_attivi": 0,
+            "push_abilitato": False,
+            "errore": "Avvisi operativi non disponibili in questo momento.",
+        }
+
+
 def build_notifiche_payload(studio_cfg: Any | None = None) -> dict[str, Any]:
     config = _config_wa(studio_cfg)
     try:
@@ -161,6 +207,7 @@ def build_notifiche_payload(studio_cfg: Any | None = None) -> dict[str, Any]:
     clienti_by_id = {_text(getattr(cliente, "id", "")): cliente for cliente in clienti}
     appuntamenti = _domani_payload(clienti_by_id)
     registro = _registro_payload()
+    avvisi_operativi, avvisi_summary = _avvisi_operativi_payload()
     automatico = bool(config.ha_twilio or config.ha_callmebot)
     return {
         "available": True,
@@ -177,6 +224,12 @@ def build_notifiche_payload(studio_cfg: Any | None = None) -> dict[str, Any]:
         "appuntamenti_inviabili": sum(1 for item in appuntamenti if item.get("inviabile")),
         "registro": registro,
         "registro_totale": len(_leggi_log()),
+        "avvisi_operativi": avvisi_operativi,
+        "avvisi_operativi_totale": avvisi_summary.get("totale", 0),
+        "avvisi_operativi_non_letti": avvisi_summary.get("non_letti", 0),
+        "dispositivi_push_attivi": avvisi_summary.get("dispositivi_attivi", 0),
+        "push_abilitato": avvisi_summary.get("push_abilitato", False),
+        "avvisi_operativi_errore": avvisi_summary.get("errore", ""),
         "quick_texts": [
             "Le ricordiamo l'appuntamento fissato con lo studio.",
             "La documentazione richiesta e' disponibile per la consultazione.",

@@ -97,7 +97,11 @@ def scadenze_per_vista(
     if vista == "operative":
         return [s for s in _base(solo_aperte=False) if bool(s.operational_due_at)]
     if vista == "pec":
-        return [s for s in _base(solo_aperte=False) if is_scadenza_pec(s)]
+        return [
+            s
+            for s in _base(solo_aperte=True, stato=StatoTermine.APERTO)
+            if is_scadenza_pec(s)
+        ]
     if vista == "da_presidiare":
         return [
             s

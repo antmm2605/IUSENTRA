@@ -9,4 +9,16 @@ python tools/sync_packaging_files.py --check
 python scripts/react-migration/generate_api_contracts.py --check
 python scripts/react-migration/generate_app_v2_page_registry.py --check
 python scripts/react-migration/generate_app_v2_test_docs.py --check
+python scripts/react-migration/generate_app_v2_area_requirements.py --check
+python -m ruff check --config pyproject.toml \
+  packaging_manifest.py \
+  docker/entrypoint.py \
+  tools/sync_packaging_files.py \
+  pct/giurisprudenza_corpus.py \
+  lex/http_bounded_bridge.py \
+  lex/context/studio_context.py \
+  lex/retrieval \
+  scripts/audit_pec_remote_hearing_deadlines.py \
+  scripts/backfill_pec_remote_hearing_links.py \
+  scripts/repair_pec_deadlines.py
 git diff --check

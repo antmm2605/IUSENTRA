@@ -12,7 +12,6 @@ from pct.pec_pipeline import _is_remote_hearing_url
 from pct.scadenziario import GestioneScadenziario
 from pct.tenant import GestioneTenant
 
-
 TECHNICAL_ACTORS = {"codex-test", "pytest", "pec-api", "pec-worker", "pec-demo", "pec-maintenance"}
 
 

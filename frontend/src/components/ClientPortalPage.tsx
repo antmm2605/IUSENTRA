@@ -4,7 +4,9 @@ import {
   CalendarDays,
   Check,
   ClipboardList,
+  Copy,
   Download,
+  ExternalLink,
   FileCheck2,
   FileText,
   Link2,
@@ -17,6 +19,7 @@ import {
   UploadCloud,
   UserRound,
   UsersRound,
+  Video,
 } from 'lucide-react'
 import {
   acceptInvite,
@@ -46,6 +49,14 @@ type ClientPortalPageProps = {
 type Notice = {
   tone: 'success' | 'warning' | 'danger' | 'info'
   text: string
+}
+
+type GeneratedInviteLink = {
+  url: string
+  matterId: string
+  clientId: string
+  clientName: string
+  clientPhone: string
 }
 
 function text(value: unknown, fallback = ''): string {
@@ -95,6 +106,57 @@ function PortalBadge({ value }: { value: unknown }) {
   return <span className="iu-client-portal-badge">{statusLabel(value)}</span>
 }
 
+function absolutePortalUrl(value: string): string {
+  try {
+    return new URL(value, window.location.origin).href
+  } catch {
+    return value
+  }
+}
+
+function normaliseWhatsAppPhone(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('00')) return digits.slice(2)
+  if (digits.startsWith('39')) return digits
+  if (digits.length === 10 && digits.startsWith('3')) return `39${digits}`
+  return digits.length >= 8 ? digits : ''
+}
+
+function whatsAppWebLink(invite: GeneratedInviteLink): string {
+  const message = `Buongiorno, le invio il link riservato al Portale Cliente IUSENTRA: ${invite.url}`
+  const phone = normaliseWhatsAppPhone(invite.clientPhone)
+  const params = new URLSearchParams({ text: message })
+  if (phone) params.set('phone', phone)
+  return `https://web.whatsapp.com/send?${params.toString()}`
+}
+
+function InviteLinkBox({
+  invite,
+  onCopy,
+}: {
+  invite: GeneratedInviteLink
+  onCopy: (value: string) => void
+}) {
+  return (
+    <div className="iu-client-portal-linkbox" role="group" aria-label="Link cliente generato">
+      <span>Link cliente pronto per {text(invite.clientName, 'il cliente')}</span>
+      <input readOnly value={invite.url} onFocus={(event) => event.currentTarget.select()} aria-label="Link cliente"/>
+      <div className="iu-client-portal-linkbox__actions">
+        <button className="iu-client-portal-button secondary" type="button" onClick={() => onCopy(invite.url)}>
+          <Copy size={16} aria-hidden="true"/>Copia link
+        </button>
+        <a className="iu-client-portal-button secondary" href={invite.url} target="_blank" rel="noreferrer">
+          <ExternalLink size={16} aria-hidden="true"/>Apri vista cliente
+        </a>
+        <a className="iu-client-portal-button" href={whatsAppWebLink(invite)} target="_blank" rel="noreferrer">
+          <MessageCircle size={16} aria-hidden="true"/>Invia con WhatsApp Web
+        </a>
+      </div>
+    </div>
+  )
+}
+
 function StudioKpis({ payload }: { payload: ClientPortalStudioPayload }) {
   const summary = payload.summary || {}
   const items = [
@@ -120,13 +182,15 @@ function ClientPortalStudio() {
   const [payload, setPayload] = useState<ClientPortalStudioPayload>(emptyStudioPortal)
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<Notice | null>(null)
-  const [inviteLink, setInviteLink] = useState('')
+  const [generatedInvite, setGeneratedInvite] = useState<GeneratedInviteLink | null>(null)
   const [selectedMatterId, setSelectedMatterId] = useState('')
+  const [clientSearch, setClientSearch] = useState('')
   const [inviteForm, setInviteForm] = useState({ clientId: '', matterId: '', message: '', expiresDays: 14 })
   const [messageBody, setMessageBody] = useState('')
   const [requestTitle, setRequestTitle] = useState('')
   const [signatureTitle, setSignatureTitle] = useState('')
   const [appointmentStart, setAppointmentStart] = useState('')
+  const [appointmentVideoUrl, setAppointmentVideoUrl] = useState('')
   const [settingsDays, setSettingsDays] = useState(14)
 
   const load = async () => {
@@ -155,7 +219,38 @@ function ClientPortalStudio() {
   const selectedDocumentRequests = payload.documentRequests.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedSignatures = payload.signatures.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedAppointments = payload.appointments.filter((item) => text(item.matter_id) === rowId(selectedMatter))
+  const selectedInvites = payload.invites.filter((item) => text(item.matter_id) === rowId(selectedMatter))
+  const selectedGeneratedInvite = generatedInvite && generatedInvite.matterId === rowId(selectedMatter) ? generatedInvite : null
+  const filteredClientOptions = useMemo(() => {
+    const query = clientSearch.trim().toLowerCase()
+    if (!query) return payload.clientOptions
+    return payload.clientOptions.filter((item) => (
+      `${item.label} ${item.email || ''} ${item.phone || ''} ${item.fiscalCode || ''}`.toLowerCase().includes(query)
+    ))
+  }, [clientSearch, payload.clientOptions])
+  const linkedMatterOptions = useMemo(
+    () => payload.matterOptions.filter((item) => !inviteForm.clientId || text(item.clientId) === inviteForm.clientId),
+    [inviteForm.clientId, payload.matterOptions],
+  )
+  const selectedClientOption = payload.clientOptions.find((item) => item.id === inviteForm.clientId)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
+  const videoCallsEnabled = payload.featureFlags['routes.appV2.clientPortal.videoCalls'] !== false
+
+  useEffect(() => {
+    if (!inviteForm.clientId) return
+    const nextMatter = linkedMatterOptions[0]
+    const currentStillLinked = linkedMatterOptions.some((item) => item.id === inviteForm.matterId)
+    if (!currentStillLinked) {
+      setInviteForm((current) => ({ ...current, matterId: text(nextMatter?.id) }))
+    }
+  }, [inviteForm.clientId, inviteForm.matterId, linkedMatterOptions])
+
+  useEffect(() => {
+    if (filteredClientOptions.length === 0) return
+    if (!inviteForm.clientId || !filteredClientOptions.some((item) => item.id === inviteForm.clientId)) {
+      updateInviteClient(filteredClientOptions[0].id)
+    }
+  }, [filteredClientOptions, inviteForm.clientId])
 
   const applyDashboard = (response: ClientPortalResponse) => {
     const dashboard = response.dashboard
@@ -163,11 +258,91 @@ function ClientPortalStudio() {
     setNotice({ tone: response.ok ? 'success' : 'warning', text: text(response.message, response.ok ? 'Operazione completata.' : 'Operazione non completata.') })
   }
 
+  const rememberInviteLink = (
+    response: ClientPortalResponse & { inviteUrl?: string; invite?: PortalRow },
+    requestPayload: { clientId?: string; matterId?: string },
+  ) => {
+    if (!response.ok || !response.inviteUrl) return
+    const invite = response.invite || {}
+    const clientId = text(requestPayload.clientId) || text(invite.client_id)
+    const client = payload.clientOptions.find((item) => item.id === clientId)
+    const matterId = text(invite.matter_id) || rowId(selectedMatter)
+    if (matterId) setSelectedMatterId(matterId)
+    setGeneratedInvite({
+      url: absolutePortalUrl(response.inviteUrl),
+      matterId,
+      clientId,
+      clientName: text(client?.label, text((selectedMatter?.client as PortalRow | undefined)?.display_name, 'Cliente')),
+      clientPhone: text(client?.phone),
+    })
+  }
+
+  const submitInvitePayload = async (requestPayload: typeof inviteForm) => {
+    const response = await studioPortalPost<ClientPortalResponse & { inviteUrl?: string; invite?: PortalRow }>(
+      '/api/v1/ui/client-portal/studio/invites',
+      requestPayload,
+    )
+    rememberInviteLink(response, requestPayload)
+    applyDashboard(response)
+    return response
+  }
+
   const createInvite = async (event: FormEvent) => {
     event.preventDefault()
-    const response = await studioPortalPost<ClientPortalResponse & { inviteUrl?: string }>('/api/v1/ui/client-portal/studio/invites', inviteForm)
-    if (response.ok && response.inviteUrl) setInviteLink(response.inviteUrl)
-    applyDashboard(response)
+    await submitInvitePayload(inviteForm)
+  }
+
+  function updateInviteClient(clientId: string) {
+    const nextMatter = payload.matterOptions.find((item) => text(item.clientId) === clientId)
+    setInviteForm((current) => ({ ...current, clientId, matterId: text(nextMatter?.id) }))
+  }
+
+  const createInviteForMatter = async (matter: PortalRow | undefined) => {
+    const clientId = text(matter?.client_id)
+    const fascicoloId = text(matter?.fascicolo_id)
+    if (!clientId || !fascicoloId) {
+      setNotice({ tone: 'warning', text: 'Per generare il link collega prima cliente e fascicolo.' })
+      return
+    }
+    const requestPayload = {
+      clientId,
+      matterId: fascicoloId,
+      message: '',
+      expiresDays: numberValue(settingsDays) || numberValue(payload.settings?.inviteExpiresDays) || 14,
+    }
+    setInviteForm((current) => ({ ...current, ...requestPayload }))
+    await submitInvitePayload(requestPayload)
+  }
+
+  const copyInviteLink = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+    } catch {
+      const helper = document.createElement('textarea')
+      helper.value = value
+      helper.setAttribute('readonly', 'true')
+      helper.style.position = 'fixed'
+      helper.style.left = '-9999px'
+      document.body.appendChild(helper)
+      helper.select()
+      document.execCommand('copy')
+      document.body.removeChild(helper)
+    }
+    setNotice({ tone: 'success', text: 'Link cliente copiato.' })
+  }
+
+  const scrollToPanel = (id: string) => {
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
+  }
+
+  const focusMatterLink = (matter: PortalRow) => {
+    setSelectedMatterId(rowId(matter))
+    scrollToPanel('portale-clienti-link-cliente')
+  }
+
+  const focusMatterChat = (matter: PortalRow) => {
+    setSelectedMatterId(rowId(matter))
+    scrollToPanel('portale-clienti-chat')
   }
 
   const sendMessage = async (event: FormEvent) => {
@@ -205,8 +380,12 @@ function ClientPortalStudio() {
       matterId: rowId(selectedMatter),
       title: 'Appuntamento con il cliente',
       startsAt: appointmentStart,
+      videoUrl: videoCallsEnabled ? appointmentVideoUrl : '',
     })
-    if (response.ok) setAppointmentStart('')
+    if (response.ok) {
+      setAppointmentStart('')
+      setAppointmentVideoUrl('')
+    }
     applyDashboard(response)
   }
 
@@ -246,17 +425,30 @@ function ClientPortalStudio() {
           </div>
           <form className="iu-client-portal-form" onSubmit={createInvite}>
             <label>
-              Cliente
-              <select value={inviteForm.clientId} onChange={(event) => setInviteForm((current) => ({ ...current, clientId: event.target.value }))}>
-                {payload.clientOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-              </select>
+              Cerca cliente
+              <input value={clientSearch} onChange={(event) => setClientSearch(event.target.value)} placeholder="Nome, email, telefono o codice fiscale"/>
             </label>
             <label>
-              Fascicolo
-              <select value={inviteForm.matterId} onChange={(event) => setInviteForm((current) => ({ ...current, matterId: event.target.value }))}>
-                {payload.matterOptions.map((item) => <option key={item.id} value={item.id}>{item.number ? `${item.number} · ${item.label}` : item.label}</option>)}
+              Cliente
+              <select value={inviteForm.clientId} onChange={(event) => updateInviteClient(event.target.value)} disabled={filteredClientOptions.length === 0}>
+                {filteredClientOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
               </select>
             </label>
+            {clientSearch ? (
+              <p className="iu-client-portal-muted">{filteredClientOptions.length} clienti trovati.</p>
+            ) : null}
+            {filteredClientOptions.length === 0 ? <p className="iu-client-portal-muted">Nessun cliente trovato con questa ricerca.</p> : null}
+            <label>
+              Fascicoli collegati
+              <select value={inviteForm.matterId} onChange={(event) => setInviteForm((current) => ({ ...current, matterId: event.target.value }))} disabled={linkedMatterOptions.length === 0}>
+                {linkedMatterOptions.map((item) => <option key={item.id} value={item.id}>{item.number ? `${item.number} · ${item.label}` : item.label}</option>)}
+              </select>
+            </label>
+            {linkedMatterOptions.length > 0 ? (
+              <p className="iu-client-portal-muted">{linkedMatterOptions.length === 1 ? 'Fascicolo associato automaticamente al cliente selezionato.' : `${linkedMatterOptions.length} fascicoli associati a ${text(selectedClientOption?.label, 'questo cliente')}.`}</p>
+            ) : (
+              <p className="iu-client-portal-muted">Nessun fascicolo collegato al cliente selezionato.</p>
+            )}
             <label>
               Validità invito
               <input type="number" min={1} max={90} value={inviteForm.expiresDays} onChange={(event) => setInviteForm((current) => ({ ...current, expiresDays: Number(event.target.value) }))}/>
@@ -265,16 +457,15 @@ function ClientPortalStudio() {
               Messaggio per il cliente
               <textarea value={inviteForm.message} onChange={(event) => setInviteForm((current) => ({ ...current, message: event.target.value }))} rows={3}/>
             </label>
-            <button className="iu-client-portal-button" type="submit" disabled={!payload.canWrite}>
+            <button className="iu-client-portal-button" type="submit" disabled={!payload.canWrite || filteredClientOptions.length === 0 || linkedMatterOptions.length === 0}>
               <Send size={17} aria-hidden="true"/>Crea invito
             </button>
           </form>
-          {inviteLink ? (
-            <div className="iu-client-portal-linkbox">
-              <span>Link cliente pronto</span>
-              <a href={inviteLink} target="_blank" rel="noreferrer">Apri vista cliente</a>
-            </div>
-          ) : null}
+          {generatedInvite ? (
+            <InviteLinkBox invite={generatedInvite} onCopy={copyInviteLink}/>
+          ) : (
+            <p className="iu-client-portal-muted">Il link completo appare qui appena lo studio genera un invito.</p>
+          )}
         </aside>
 
         <section className="iu-client-portal-panel iu-client-portal-panel--main">
@@ -293,8 +484,11 @@ function ClientPortalStudio() {
                     <span>{text((matter.client as PortalRow | undefined)?.display_name, 'Cliente')}</span>
                     <PortalBadge value={matter.status}/>
                   </button>
-                  <div>
-                    <button className="iu-client-portal-inline" type="button" onClick={() => setSelectedMatterId(rowId(matter))}>
+                  <div className="iu-client-portal-matter-actions">
+                    <button className="iu-client-portal-inline" type="button" onClick={() => focusMatterLink(matter)}>
+                      <Link2 size={15} aria-hidden="true"/>Link cliente
+                    </button>
+                    <button className="iu-client-portal-inline" type="button" onClick={() => focusMatterChat(matter)}>
                       <MessageCircle size={15} aria-hidden="true"/>Avvia chat
                     </button>
                   </div>
@@ -314,6 +508,29 @@ function ClientPortalStudio() {
                 <FileCheck2 size={17} aria-hidden="true"/>Prepara pacchetto finale
               </button>
             </div>
+            <section className="iu-client-portal-link-panel" id="portale-clienti-link-cliente" aria-label="Link cliente">
+              <div>
+                <h3>Link cliente</h3>
+                <p>Genera un nuovo collegamento riservato per inviare al cliente l'accesso alla pratica.</p>
+              </div>
+              <button className="iu-client-portal-button" type="button" onClick={() => createInviteForMatter(selectedMatter)} disabled={!payload.canWrite}>
+                <Link2 size={17} aria-hidden="true"/>Genera link cliente
+              </button>
+              {selectedGeneratedInvite ? (
+                <InviteLinkBox invite={selectedGeneratedInvite} onCopy={copyInviteLink}/>
+              ) : (
+                <p className="iu-client-portal-muted">Per sicurezza il collegamento completo non viene conservato dopo la chiusura della pagina. Rigeneralo quando devi inviarlo o copiarlo.</p>
+              )}
+              <div className="iu-client-portal-invite-list" aria-label="Inviti cliente">
+                {selectedInvites.length === 0 ? <span className="iu-client-portal-muted">Nessun invito registrato per questa pratica.</span> : null}
+                {selectedInvites.map((invite) => (
+                  <article key={rowId(invite)}>
+                    <strong>{statusLabel(invite.status)}</strong>
+                    <span>{text(invite.expires_at_label) ? `Scade il ${text(invite.expires_at_label)}` : 'Scadenza non disponibile'}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
             <div className="iu-client-portal-workgrid">
               <form className="iu-client-portal-mini-form" onSubmit={addDocumentRequest}>
                 <h3>Documenti</h3>
@@ -336,9 +553,43 @@ function ClientPortalStudio() {
               )}
               <form className="iu-client-portal-mini-form" onSubmit={addAppointment}>
                 <h3>Appuntamenti</h3>
-                <input type="datetime-local" value={appointmentStart} onChange={(event) => setAppointmentStart(event.target.value)}/>
-                <button type="submit"><CalendarDays size={16} aria-hidden="true"/>Proponi</button>
-                {selectedAppointments.map((item) => <span key={rowId(item)}>{text(item.starts_at_label)} · {statusLabel(item.status)}</span>)}
+                <label>
+                  Data e ora
+                  <input
+                    id="client-portal-appointment-start"
+                    name="startsAt"
+                    aria-label="Data e ora"
+                    type="datetime-local"
+                    required
+                    value={appointmentStart}
+                    onInput={(event) => setAppointmentStart(event.currentTarget.value)}
+                    onChange={(event) => setAppointmentStart(event.target.value)}
+                  />
+                </label>
+                {videoCallsEnabled ? (
+                  <label>
+                    Link videocall
+                    <input
+                      id="client-portal-appointment-video"
+                      name="videoUrl"
+                      aria-label="Link videocall"
+                      type="url"
+                      value={appointmentVideoUrl}
+                      onInput={(event) => setAppointmentVideoUrl(event.currentTarget.value)}
+                      onChange={(event) => setAppointmentVideoUrl(event.target.value)}
+                      placeholder="https://"
+                    />
+                  </label>
+                ) : (
+                  <span className="iu-client-portal-muted">Videocall non attiva per questo studio.</span>
+                )}
+                <button type="submit" disabled={!payload.canWrite || !appointmentStart.trim()}><CalendarDays size={16} aria-hidden="true"/>Proponi</button>
+                {selectedAppointments.map((item) => (
+                  <span className="iu-client-portal-appointment-line" key={rowId(item)}>
+                    {text(item.starts_at_label) ? <>{text(item.starts_at_label)} · </> : null}{statusLabel(item.status)}
+                    {text(item.video_url) ? <a href={text(item.video_url)} target="_blank" rel="noreferrer">Apri videocall</a> : null}
+                  </span>
+                ))}
               </form>
             </div>
           </div>
@@ -663,7 +914,15 @@ function ClientPortalClient() {
           {(payload.appointments || []).length === 0 ? <span className="iu-client-portal-muted">Nessun appuntamento proposto.</span> : null}
           {(payload.appointments || []).map((appointment) => (
             <article className="iu-client-portal-action-row" key={rowId(appointment)}>
-              <div><strong>{text(appointment.title)}</strong><span>{text(appointment.starts_at_label)} · {statusLabel(appointment.status)}</span></div>
+              <div>
+                <strong>{text(appointment.title)}</strong>
+                <span>{text(appointment.starts_at_label) ? <>{text(appointment.starts_at_label)} · </> : null}{statusLabel(appointment.status)}</span>
+                {text(appointment.video_url) ? (
+                  <a className="iu-client-portal-video-link" href={text(appointment.video_url)} target="_blank" rel="noreferrer">
+                    <Video size={15} aria-hidden="true"/>Apri videocall
+                  </a>
+                ) : null}
+              </div>
               <div className="iu-client-portal-row-actions">
                 <button type="button" onClick={() => updateAppointment(rowId(appointment), 'confermato')}>Conferma</button>
                 <button type="button" onClick={() => updateAppointment(rowId(appointment), 'annullato')}>Annulla</button>

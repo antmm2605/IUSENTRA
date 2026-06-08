@@ -50,6 +50,7 @@ def _create_invite(client, cliente_id: str, fascicolo_id: str) -> tuple[str, dic
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["ok"] is True
+    assert payload["inviteUrl"].startswith("http://localhost/portale-cliente/invito/")
     token = payload["inviteUrl"].rsplit("/", 1)[-1]
     return token, payload
 
@@ -113,6 +114,78 @@ def test_client_portal_non_propone_fascicoli_di_prova(tmp_path: Path):
     assert all("demo" not in label for label in labels)
     assert create.status_code == 422
     assert create.get_json()["code"] == "validation_error"
+
+
+def test_client_portal_invito_associa_fascicolo_del_cliente_se_unico(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/api/v1/ui/client-portal/studio/invites",
+            json={"clientId": cliente.id, "expiresDays": 7},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["invite"]["matter_id"]
+    assert payload["dashboard"]["matters"][0]["fascicolo_id"] == fascicolo.id
+    assert payload["inviteUrl"].startswith("http://localhost/portale-cliente/invito/")
+
+
+def test_client_portal_videocall_visibile_e_validata(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+
+    with app.test_client() as client:
+        _login(client)
+        token, invite_payload = _create_invite(client, cliente.id, fascicolo.id)
+        matter_id = invite_payload["invite"]["matter_id"]
+
+        missing_date = client.post(
+            "/api/v1/ui/client-portal/studio/appointments",
+            json={"matterId": matter_id, "videoUrl": "https://meet.example.test/studio/rossi"},
+        )
+        assert missing_date.status_code == 422
+        assert missing_date.get_json()["message"] == "Indica data e ora dell'appuntamento."
+
+        invalid = client.post(
+            "/api/v1/ui/client-portal/studio/appointments",
+            json={"matterId": matter_id, "startsAt": "2026-06-08T10:00", "videoUrl": "javascript:alert(1)"},
+        )
+        assert invalid.status_code == 422
+        assert invalid.get_json()["code"] == "validation_error"
+
+        appointment = client.post(
+            "/api/v1/ui/client-portal/studio/appointments",
+            json={
+                "matterId": matter_id,
+                "startsAt": "2026-06-08T10:00",
+                "videoUrl": "https://meet.example.test/studio/rossi",
+            },
+        )
+        appointment_payload = appointment.get_json()
+        assert appointment.status_code == 200
+        assert appointment_payload["ok"] is True
+        assert appointment_payload["item"]["starts_at"] == "2026-06-08T08:00:00+00:00"
+        assert appointment_payload["item"]["starts_at_label"] == "08/06/2026 10:00"
+        assert appointment_payload["item"]["video_url"] == "https://meet.example.test/studio/rossi"
+
+        accepted = client.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={})
+        assert accepted.status_code == 200
+        dashboard = client.get(
+            "/api/v1/ui/client-portal/public/dashboard",
+            headers={"X-Client-Portal-Token": token},
+        )
+
+    payload = dashboard.get_json()
+    assert dashboard.status_code == 200
+    assert payload["appointments"][0]["starts_at_label"] == "08/06/2026 10:00"
+    assert payload["appointments"][0]["video_url"] == "https://meet.example.test/studio/rossi"
 
 
 def test_client_portal_invito_cliente_chat_upload_e_consenso(tmp_path: Path):

@@ -1,6 +1,6 @@
 # Portale Cliente
 
-Aggiornato: 2026-06-07.
+Aggiornato: 2026-06-08.
 
 Il Portale Cliente espone una console studio in React su `/app/portale-clienti` e una vista cliente pubblica in React su `/portale-cliente`. Le API sono sotto `/api/v1/ui/client-portal/*` e usano dati reali di clienti e fascicoli, senza dati dimostrativi.
 
@@ -9,8 +9,11 @@ Il Portale Cliente espone una console studio in React su `/app/portale-clienti` 
 Studio:
 
 - apre la dashboard Portale Cliente dalla sezione Clienti;
+- ricerca il cliente mentre digita nel form invito;
 - crea un invito per cliente e pratica;
+- quando sceglie il cliente vede solo i fascicoli collegati a quel cliente, con selezione automatica se il fascicolo collegato è unico;
 - copia il link sicuro cliente;
+- può aprire WhatsApp Web con testo già predisposto e link cliente, senza salvare credenziali WhatsApp nel backend;
 - invia messaggi, richieste documento, richieste firma semplice, appuntamenti e pacchetti conclusivi;
 - consulta attività, firme, documenti caricati, notifiche e conversazione esportabile.
 
@@ -56,12 +59,16 @@ Ogni tabella include `tenant_id`. I file caricati sono salvati sotto storage ten
 - `routes.appV2.clientPortal.notifications`: notifiche in-app, default `on`;
 - `routes.appV2.clientPortal.signatures`: firma semplice con evidenza, default `on`;
 - `routes.appV2.clientPortal.webPush`: Web Push cliente, default `off`;
-- `routes.appV2.clientPortal.videoCalls`: link videocall governati, default `off`.
+- `routes.appV2.clientPortal.videoCalls`: link videocall governati, default `on`.
 
 ## Contratti e UI
 
 - Console studio: `frontend/src/components/ClientPortalPage.tsx` in modalità `studio`;
 - vista cliente: lo stesso componente in modalità `client`, senza sidebar studio;
+- link cliente: il collegamento completo viene mostrato subito dopo la generazione o rigenerazione dell'invito; nel database resta solo l'hash del token;
+- WhatsApp Web: la UI apre `web.whatsapp.com` dal browser dello studio con messaggio precompilato, senza invio automatico server-side;
+- videocall: lo studio inserisce un link `http/https` nell'appuntamento e il cliente vede il pulsante `Apri videocall`;
+- orari appuntamento: il valore scelto dal browser dello studio viene interpretato in ora italiana, normalizzato in UTC nel salvataggio e mostrato al cliente in formato italiano senza slittamenti;
 - client dati: `frontend/src/clientPortalData.ts`;
 - bridge applicativo: `web/services/react_client_portal_bridge.py`;
 - API blueprint: `web/blueprints/api_v1_client_portal.py`;

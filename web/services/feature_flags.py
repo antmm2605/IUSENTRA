@@ -33,7 +33,6 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "routes.appV2.telematico.surface",
         "routes.appV2.notifications.mobilePush",
         "routes.appV2.clientPortal.webPush",
-        "routes.appV2.clientPortal.videoCalls",
         "lex.legalSkills.trustLayer",
         "lex.legalSkills.customSkills",
         "lex.legalSkills.scheduledAgents",
@@ -113,6 +112,7 @@ APP_V2_DEFAULT_ON_FLAGS = frozenset(
         "routes.appV2.workflowAgents.reviewQueue",
         "routes.appV2.clientPortal.enabled",
         "routes.appV2.clientPortal.notifications",
+        "routes.appV2.clientPortal.videoCalls",
         "routes.appV2.clientPortal.signatures",
     }
 )

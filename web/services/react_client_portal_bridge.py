@@ -11,6 +11,7 @@ import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from flask import current_app, g, request, session
 from werkzeug.datastructures import FileStorage
@@ -246,6 +247,19 @@ def _fascicolo_options() -> list[dict[str, str]]:
     return result
 
 
+def _fascicoli_for_client(client_id: str) -> list[Any]:
+    manager = _fascicoli_manager()
+    if manager is None or not client_id:
+        return []
+    result = []
+    for fascicolo in manager.tutti(archiviati=True):
+        if _is_non_operational_fascicolo(fascicolo):
+            continue
+        if _text(getattr(fascicolo, "id_cliente", "")) == client_id:
+            result.append(fascicolo)
+    return result
+
+
 def _profile_from_cliente(cliente: Any) -> dict[str, str]:
     recapiti = getattr(cliente, "recapiti", None)
     documento = getattr(cliente, "documento", None)
@@ -292,6 +306,34 @@ def _iso_to_rome_label(value: Any) -> str:
             y, m, d = text.split("-")
             return f"{d}/{m}/{y}"
         return text
+
+
+def _normalise_studio_datetime(value: Any) -> str:
+    text = _text(value)
+    if not text:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except Exception:
+        return text
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ROME)
+    return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _is_public_http_url(value: str) -> bool:
+    parsed = urlparse(_text(value))
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _public_url(path: str) -> str:
+    base = (
+        _text(current_app.config.get("IUSENTRA_BASE_URL"))
+        or _text(current_app.config.get("PUBLIC_BASE_URL"))
+        or _text(current_app.config.get("APP_PUBLIC_URL"))
+        or _text(request.url_root)
+    ).rstrip("/")
+    return f"{base}/{path.lstrip('/')}"
 
 
 def _public_row(row: dict[str, Any], *, include_private: bool = False) -> dict[str, Any]:
@@ -386,6 +428,15 @@ def create_invite_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
     fascicolo = _fascicolo_by_id(fascicolo_id)
     if cliente is None:
         return {"ok": False, "code": "validation_error", "message": "Cliente non trovato."}
+    if fascicolo is None and not fascicolo_id:
+        linked_fascicoli = _fascicoli_for_client(client_id)
+        if len(linked_fascicoli) == 1:
+            fascicolo = linked_fascicoli[0]
+            fascicolo_id = _text(getattr(fascicolo, "id", ""))
+        elif len(linked_fascicoli) > 1:
+            return {"ok": False, "code": "validation_error", "message": "Scegli uno dei fascicoli collegati al cliente."}
+        else:
+            return {"ok": False, "code": "validation_error", "message": "Nessun fascicolo collegato al cliente."}
     if fascicolo is None:
         return {"ok": False, "code": "validation_error", "message": "Fascicolo non trovato."}
     if _is_non_operational_fascicolo(fascicolo):
@@ -408,7 +459,7 @@ def create_invite_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         metadata={"matterTitle": matter.get("title"), "clientName": profile.get("display_name")},
         token_value=token,
     )
-    invite_url = f"/portale-cliente/invito/{created['token']}"
+    invite_url = _public_url(f"/portale-cliente/invito/{created['token']}")
     repo.add_notification(
         tenant_id,
         client_id=client_id,
@@ -516,12 +567,17 @@ def studio_add_appointment(payload: dict[str, Any]) -> dict[str, Any]:
     matter = repo.get_matter(tenant_id, matter_id)
     if not matter:
         return {"ok": False, "code": "validation_error", "message": "Pratica portale non trovata."}
+    starts_at = _normalise_studio_datetime(payload.get("startsAt"))
+    if not starts_at:
+        return {"ok": False, "code": "validation_error", "message": "Indica data e ora dell'appuntamento."}
     video_url = _text(payload.get("videoUrl")) if is_feature_enabled("routes.appV2.clientPortal.videoCalls", current_app.config) else ""
+    if video_url and not _is_public_http_url(video_url):
+        return {"ok": False, "code": "validation_error", "message": "Link videocall non valido."}
     item = repo.add_appointment(
         tenant_id,
         matter_id=matter_id,
         title=_text(payload.get("title")) or "Appuntamento con lo studio",
-        starts_at=_text(payload.get("startsAt")),
+        starts_at=starts_at,
         ends_at=_text(payload.get("endsAt")),
         location=_text(payload.get("location")),
         video_url=video_url,

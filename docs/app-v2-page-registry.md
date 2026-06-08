@@ -492,7 +492,7 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | routes.appV2.clientPortal.enabled | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_ENABLED | Portale Cliente e Mini App Cliente nella shell App V2. | on |
 | routes.appV2.clientPortal.notifications | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_NOTIFICATIONS | Notifiche in-app del Portale Cliente. | on |
 | routes.appV2.clientPortal.webPush | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_WEBPUSH | Notifiche Web Push del Portale Cliente. | off |
-| routes.appV2.clientPortal.videoCalls | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_VIDEOCALLS | Link videocall governati nel Portale Cliente. | off |
+| routes.appV2.clientPortal.videoCalls | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_VIDEOCALLS | Link videocall governati nel Portale Cliente. | on |
 | routes.appV2.clientPortal.signatures | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_SIGNATURES | Firma semplice con evidenza nel Portale Cliente. | on |
 | routes.appV2.docsPanel | IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL | Alias compatibilita fase 1 per routes.appV2.documents.list. | off |
 | routes.appV2.commsDeposits | IUSENTRA_FF_ROUTES_APPV2_COMMS_DEPOSITS | Alias compatibilita fase 1 per routes.appV2.comms.deposits. | off |

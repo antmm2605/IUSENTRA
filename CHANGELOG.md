@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.249.34 - 2026-06-08
+
+- Reso esplicito il `Link cliente` nel Portale Clienti: pannello dedicato nella pratica, link completo visibile dopo generazione, copia immediata, apertura vista cliente e invio manuale tramite WhatsApp Web con testo precompilato.
+- Aggiunta ricerca cliente nel form invito: mentre l'avvocato digita, l'elenco clienti viene filtrato e i fascicoli mostrati sono solo quelli collegati al cliente selezionato, con associazione automatica quando il fascicolo è unico.
+- Resa visibile la videocall nel flusso appuntamenti: lo studio può inserire un link `http/https` validato e il cliente vede il pulsante `Apri videocall`.
+- Corretto il contrasto dei pulsanti nel box link cliente e nella vista cliente pubblica: i comandi primari e secondari restano leggibili su desktop e mobile.
+- Normalizzato l'orario appuntamento del Portale Cliente: il valore scelto nello studio viene interpretato in ora italiana, salvato in UTC e mostrato al cliente senza slittamenti.
+
 ## 2.249.33 - 2026-06-07
 
 - Aggiunto il Portale Cliente full React: console studio su `/app/portale-clienti` e vista cliente su `/portale-cliente`, con inviti sicuri, dashboard pratica, anagrafica, privacy, documenti, firma semplice, chat, appuntamenti, notifiche, questionari, survey ed export conversazione.

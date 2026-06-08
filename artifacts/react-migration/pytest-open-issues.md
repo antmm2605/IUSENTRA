@@ -1,5 +1,18 @@
 # Pytest issue aperte e risoluzioni
 
+## Portale Cliente link cliente, bottoni e videocall 2.249.34 - 2026-06-08
+
+Nessuna failure di codice aperta sul perimetro mirato dopo test API, gate React,
+Docker locale reale e browser verification studio/cliente. La consegna resta in
+corso fino a commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Link cliente e WhatsApp Web | Browser Docker `127.0.0.1:8080` | Risolto localmente | Lo studio filtra il cliente mentre digita, vede solo i fascicoli collegati, genera il link completo, copia il link, apre la vista cliente e apre WhatsApp Web con testo precompilato. | Attendere check remoti dello SHA e verificare produzione dopo deploy. |
+| Testo pulsanti non visibile | Browser desktop/mobile | Risolto localmente | Corretto il contrasto del box link: secondari testo scuro su chiaro, primari testo chiaro su blu; mobile `390x844` senza overflow orizzontale. | Mantenere il controllo colori computati sui pulsanti del Portale Cliente. |
+| Videocall e orario appuntamento | API + browser cliente | Risolto localmente | Lo studio inserisce link `http/https`, il cliente vede `Apri videocall` e l'orario scelto `13/06/2026 10:30` resta in ora italiana dopo normalizzazione UTC. | Non salvare appuntamenti Portale Cliente da `datetime-local` trattandoli come UTC naive. |
+| Build Docker no-cache | `docker compose build --no-cache app` | Risolto localmente | Il primo tentativo si era fermato su HTTP 504 di GitHub durante download Dart Sass, non su codice IUSENTRA; il rilancio no-cache finale è passato. | Usare l'immagine no-cache appena ricreata per la verifica `/api/pronto` finale prima del commit. |
+
 ## Portale Cliente full React 2.249.33 in corso - 2026-06-07
 
 Nessuna failure di codice aperta sul perimetro mirato dopo repository/API,
@@ -1310,6 +1323,13 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- | --- |
 | CodeQL sullo SHA `34b889a7f091c757f6f3fe2abf5f1ed0c84b0c4c` | GitHub CodeQL / check richiesti | Risolto localmente, da verificare sul nuovo SHA | Il primo giro post-audit database ha evidenziato esposizione di eccezioni, redirect `next`, path runtime non presidiati e MD5 su superfici toccate dalla tranche. | Applicati messaggi pubblici, validazione `is_safe_internal_path`, risoluzione runtime path per import/buste/PEC, SHA-256 e fallback Local Signer; dopo push verificare che CodeQL e tutti i check richiesti siano verdi sul nuovo commit. |
 | Dati runtime locali durante test | `git status --short` | Governato | Le suite locali hanno rigenerato JSON tenant in `data/`; i file sono stati ripristinati prima dei gate e non devono entrare nel commit. | Prima del commit/finale rilanciare `git status --short` e mantenere in worktree solo modifiche sorgente/documentazione intenzionali. |
+
+## Note Portale Cliente link e videocall 2.249.34 - 2026-06-08
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Link cliente non visibile | API, typecheck, build e browser Docker | Risolto localmente, da verificare sul nuovo SHA remoto | La UI ora mostra pannello `Link cliente`, ricerca cliente, fascicoli collegati, link completo appena generato, copia, apertura vista cliente e WhatsApp Web. Il token resta salvato solo come hash. | Prima del report finale completare verifica browser su `127.0.0.1:8080`, commit/push, check GitHub e deploy Hetzner. |
+| Videocall non visibile | API, flag e browser Docker | Risolto localmente, da verificare sul nuovo SHA remoto | Il flag videocall del Portale Cliente è default-on, l'API accetta solo link `http/https`, lo studio vede il campo `Link videocall` e il cliente il pulsante `Apri videocall`. | Confermare nel browser reale desktop/mobile dopo rebuild Docker locale. |
 
 ## Note assistenza remota reale 2.249.3 - 2026-06-01
 

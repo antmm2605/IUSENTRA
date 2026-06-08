@@ -93,12 +93,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Syft
+        run: |
+          set -euo pipefail
+          version="1.42.3"
+          asset="syft_${version}_linux_amd64.tar.gz"
+          base_url="https://github.com/anchore/syft/releases/download/v${version}"
+          for attempt in 1 2 3 4 5; do
+            curl -fL --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 20 \
+              --output "${asset}" "${base_url}/${asset}" \
+            && curl -fL --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 20 \
+              --output syft_checksums.txt "${base_url}/syft_${version}_checksums.txt" \
+            && break
+            if [ "$attempt" = "5" ]; then
+              echo "Download Syft non riuscito dopo ${attempt} tentativi." >&2
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
+          grep " ${asset}$" syft_checksums.txt | sha256sum -c -
+          tar -xzf "${asset}" syft
+          sudo install -m 0755 syft /usr/local/bin/syft
+          syft version
+
       - name: Build sbom
-        uses: anchore/sbom-action@v0
-        with:
-          format: spdx-json
-          output-file: sbom.spdx.json
-          path: .
+        run: syft dir:. -o spdx-json=sbom.spdx.json
 
       - name: Upload sbom
         uses: actions/upload-artifact@v4

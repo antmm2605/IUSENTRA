@@ -3,6 +3,7 @@
 ## 2.249.35 - 2026-06-08
 
 - Scheduler superadmin: le fonti legali censite ma fuori dal gruppo verde della fase 9 progressiva non generano più una failure quando si usa `Avvia tutti`; l'esecuzione viene chiusa come presidio rinviato e resta tracciata nel dettaglio.
+- CI supply-chain: la generazione SBOM installa Syft con retry, verifica checksum e comando esplicito, evitando failure transitorie quando GitHub risponde 504 sul download dei checksum.
 
 ## 2.249.34 - 2026-06-08
 

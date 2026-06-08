@@ -8,6 +8,7 @@
 | `python -m pytest tests/test_client_portal_api.py tests/test_client_portal_repository.py -q --tb=short` | OK | 11/11: nessuna regressione sul Portale Cliente dopo il fix scheduler e il bump versione. |
 | `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4: testi italiani e report UTF-8 validi. |
 | `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml` | OK | Contratti API allineati a `2.249.35` e OpenAPI valido. |
+| `python -c "import pathlib, yaml; yaml.safe_load(...)"` | OK | Workflow supply-chain validato dopo il passaggio da `anchore/sbom-action` a installazione Syft con retry e checksum esplicito. |
 | `docker compose build --no-cache app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Build no-cache locale passata; container app ricreato, `healthy`, `/api/pronto` verde con versione `2.249.35`. |
 
 ## Portale Cliente full React 2.249.33 in corso - 2026-06-07

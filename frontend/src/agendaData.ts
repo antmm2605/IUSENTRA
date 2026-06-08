@@ -8,6 +8,11 @@ export type AgendaSyncStatus = 'sincronizzato' | 'locale' | 'da_sincronizzare' |
 export type AgendaEvent = {
   id: string
   title: string
+  displayTitle: string
+  legalLabel: string
+  originTitle: string
+  detailTitle: string
+  detailLines: string[]
   subtitle: string
   date: string
   start: string
@@ -80,6 +85,10 @@ function asArray(value: unknown): unknown[] {
   if (isRecord(value) && Array.isArray(value.data)) return value.data
   if (isRecord(value) && Array.isArray(value.items)) return value.items
   return []
+}
+
+function asStringArray(value: unknown): string[] {
+  return asArray(value).map((item) => asString(item)).filter(Boolean)
 }
 
 function parseDate(value: unknown): Date | null {
@@ -158,6 +167,19 @@ function kindFrom(value: unknown): AgendaEvent['kind'] {
   return 'appuntamento'
 }
 
+function legalLabelFromText(title: string, kind: AgendaEvent['kind'], notes = ''): string {
+  const text = `${title} ${kind} ${notes}`.toLowerCase()
+  if (text.includes('rinvio') || text.includes('rinviata') || text.includes('differimento') || text.includes('differita')) return 'Rinvio udienza'
+  if (text.includes('fissazione udienza') || text.includes('fissata udienza') || text.includes("fissata l'udienza")) return 'Fissazione udienza'
+  if (text.includes('udienza')) return 'Udienza'
+  if (text.includes('deposito') && (text.includes('accett') || text.includes('consegn') || text.includes('esito positivo'))) return 'Deposito accettato'
+  if (text.includes('deposito')) return 'Deposito'
+  if (text.includes('notifica') || text.includes('notificazione')) return 'Notifica'
+  if (text.includes('termine') || text.includes('scadenza') || text.includes('decorrenza')) return 'Termine giuridico'
+  if (text.includes('pec') || text.includes('cancelleria')) return 'Comunicazione PEC'
+  return 'Adempimento'
+}
+
 function priorityFrom(value: unknown): AgendaPriority {
   const text = asString(value).toLowerCase()
   if (text.includes('critic') || text.includes('urgent')) return 'critica'
@@ -214,10 +236,21 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
   const client = asString(pickFirst(item, ['client', 'cliente', 'nome_cliente', 'parte']))
   const clientId = asString(pickFirst(item, ['clientId', 'id_cliente', 'cliente_id']))
   const location = asString(pickFirst(item, ['location', 'luogo', 'aula', 'indirizzo']))
-  const subtitle = [matter, court, location].filter(Boolean).join(' - ') || asString(pickFirst(item, ['subtitle', 'descrizione', 'note']))
+  const notes = asString(pickFirst(item, ['notes', 'note', 'descrizione']))
+  const legalLabel = asString(pickFirst(item, ['legalLabel', 'legal_label', 'etichettaGiuridica', 'etichetta_giuridica'])) || legalLabelFromText(title, kind, notes)
+  const originTitle = asString(pickFirst(item, ['originTitle', 'origin_title', 'originalTitle', 'original_title']), title)
+  const displayTitle = asString(pickFirst(item, ['displayTitle', 'display_title', 'titoloOperativo', 'titolo_operativo'])) || [client, matter].filter(Boolean).join(' · ') || title
+  const backendSubtitle = asString(pickFirst(item, ['subtitle', 'sottotitolo']))
+  const subtitle = backendSubtitle || [matter, court, location].filter(Boolean).join(' - ') || asString(pickFirst(item, ['descrizione', 'note']))
+  const detailLines = asStringArray(pickFirst(item, ['detailLines', 'detail_lines', 'dettagli']))
   return {
     id: asString(pickFirst(item, ['id', 'uuid', 'pk']), `agenda-${index}`),
     title,
+    displayTitle,
+    legalLabel,
+    originTitle,
+    detailTitle: asString(pickFirst(item, ['detailTitle', 'detail_title', 'titoloDettaglio']), legalLabel),
+    detailLines,
     subtitle,
     date: toDateKey(start),
     start: start.toISOString(),
@@ -237,7 +270,7 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
     status: asString(pickFirst(item, ['status', 'stato']), 'programmato'),
     source: asString(pickFirst(item, ['source', 'fonte']), 'agenda studio'),
     syncStatus: syncFrom(pickFirst(item, ['syncStatus', 'sync_status', 'sync', 'stato_sync'])),
-    notes: asString(pickFirst(item, ['notes', 'note', 'descrizione'])),
+    notes,
     href: asString(pickFirst(item, ['href', 'url']), '/agenda'),
   }
 }

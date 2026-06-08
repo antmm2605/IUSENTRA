@@ -68,7 +68,7 @@ const timelineSlots = Array.from({ length: 24 }, (_, index) => {
 
 function isSameText(event: AgendaEvent, query: string): boolean {
   if (!query.trim()) return true
-  const haystack = [event.title, event.subtitle, event.client, event.court, event.matter, event.location, event.owner].join(' ').toLowerCase()
+  const haystack = [event.title, event.displayTitle, event.legalLabel, event.subtitle, event.client, event.court, event.matter, event.location, event.owner, ...event.detailLines].join(' ').toLowerCase()
   return haystack.includes(query.trim().toLowerCase())
 }
 
@@ -99,7 +99,7 @@ function createAppointmentHref(dayIso: string, time = '09:00'): string {
 function messageReminderHref(event?: AgendaEvent): string {
   const params = new URLSearchParams()
   params.set('from', 'agenda')
-  params.set('oggetto', event ? `Promemoria: ${event.title}` : 'Promemoria agenda')
+  params.set('oggetto', event ? `Promemoria: ${agendaLegalLabel(event)} - ${agendaTitle(event)}` : 'Promemoria agenda')
   if (event?.clientId) params.set('id_cliente', event.clientId)
   if (event?.client) params.set('destinatario_nome', event.client)
   return `/messaggi/nuovo?${params.toString()}`
@@ -108,7 +108,7 @@ function messageReminderHref(event?: AgendaEvent): string {
 function linkedDeadlineHref(event?: AgendaEvent): string {
   const params = new URLSearchParams()
   if (event?.matterId) params.set('id_fascicolo', event.matterId)
-  if (event?.title) params.set('titolo', `Scadenza collegata - ${event.title}`)
+  if (event?.title) params.set('titolo', `Scadenza collegata - ${agendaLegalLabel(event)} - ${agendaTitle(event)}`)
   if (event?.date) params.set('data', event.date)
   return `/scadenziario/nuova${params.toString() ? `?${params.toString()}` : ''}`
 }
@@ -130,28 +130,90 @@ function isWritableAgendaEvent(event: AgendaEvent): boolean {
   return event.source === 'agenda'
 }
 
-function EventCard({ event }:{event:AgendaEvent}) {
+function agendaTitle(event: AgendaEvent): string {
+  return event.displayTitle || event.title || event.legalLabel || 'Evento agenda'
+}
+
+function agendaLegalLabel(event: AgendaEvent): string {
+  return event.legalLabel || (event.kind === 'udienza' ? 'Udienza' : event.kind === 'deposito' ? 'Deposito' : event.kind === 'scadenza' ? 'Termine giuridico' : 'Adempimento')
+}
+
+function agendaDetailLines(event: AgendaEvent): string[] {
+  const details = event.detailLines?.length
+    ? event.detailLines
+    : [
+        event.client ? `Cliente/parte: ${event.client}` : '',
+        event.matter ? `Fascicolo/RG: ${event.matter}` : '',
+        event.court ? `Ufficio: ${event.court}` : '',
+        event.location ? `Luogo: ${event.location}` : '',
+        event.notes ? `Dettaglio: ${event.notes}` : '',
+      ].filter(Boolean)
+  return details.slice(0, 7)
+}
+
+function layoutEvents(events: AgendaEvent[]): { event: AgendaEvent; laneIndex: number; laneCount: number }[] {
+  const groups = new Map<string, AgendaEvent[]>()
+  for (const event of events) {
+    const key = event.start.slice(0, 16)
+    groups.set(key, [...(groups.get(key) ?? []), event])
+  }
+  return events.map((event) => {
+    const group = groups.get(event.start.slice(0, 16)) ?? [event]
+    return {
+      event,
+      laneIndex: Math.max(0, group.findIndex((item) => item.id === event.id)),
+      laneCount: Math.max(1, group.length),
+    }
+  })
+}
+
+function laneStyle(laneIndex: number, laneCount: number) {
+  if (laneCount <= 1) return { left: '10px', width: 'calc(100% - 20px)' }
+  const width = 100 / laneCount
+  return {
+    left: `calc(10px + ${laneIndex * width}%)`,
+    width: `calc(${width}% - 14px)`,
+  }
+}
+
+function EventCard({ event, laneIndex = 0, laneCount = 1 }:{event:AgendaEvent; laneIndex?:number; laneCount?:number}) {
+  const label = agendaLegalLabel(event)
+  const title = agendaTitle(event)
+  const detailLines = agendaDetailLines(event)
+  const tooltipText = [event.detailTitle || label, ...detailLines].join('\n')
+  const layout = laneStyle(laneIndex, laneCount)
   return (
     <a
       className={`iu-ag-event iu-ag-event--${event.tone}`}
       draggable
       href={event.href || '/agenda'}
+      title={tooltipText}
+      aria-label={tooltipText}
       onDragStart={(dragEvent) => {
         dragEvent.dataTransfer.effectAllowed = 'move'
         dragEvent.dataTransfer.setData('text/plain', event.id)
         dragEvent.dataTransfer.setData('application/x-iusentra-agenda-event', event.id)
       }}
-      style={{ top: `${eventTopPercent(event)}%`, minHeight: eventHeightPixels(event) }}
+      style={{ top: `${eventTopPercent(event)}%`, minHeight: eventHeightPixels(event), ...layout }}
     >
-      <span className="iu-ag-event__time">{event.timeLabel}</span>
-      <strong>{eventIcon(event.kind)} {event.title}</strong>
-      <small>{event.subtitle || event.client || event.location}</small>
-      <em>{event.durationLabel}</em>
+      <span className="iu-ag-event__top">
+        <span className="iu-ag-event__time">{event.timeLabel}</span>
+        <span className="iu-ag-event__label">{label}</span>
+        <em>{event.durationLabel}</em>
+      </span>
+      <strong>{eventIcon(event.kind)} <span>{title}</span></strong>
+      <small>{event.subtitle || event.client || event.location || event.originTitle}</small>
+      <span className="iu-ag-event__tooltip" role="tooltip" aria-hidden="true">
+        <b>{event.detailTitle || label}</b>
+        {detailLines.map((line) => <span key={line}>{line}</span>)}
+      </span>
     </a>
   )
 }
 
 function MonthEventChip({ event }:{event:AgendaEvent}) {
+  const label = agendaLegalLabel(event)
+  const title = agendaTitle(event)
   return (
     <a
       className={`iu-ag-month-event iu-ag-event--${event.tone}`}
@@ -164,7 +226,8 @@ function MonthEventChip({ event }:{event:AgendaEvent}) {
       }}
     >
       <span>{event.timeLabel}</span>
-      <strong>{event.title}</strong>
+      <strong>{label}</strong>
+      <small>{title}</small>
     </a>
   )
 }
@@ -239,7 +302,7 @@ function DayColumn({
             <span>{slot.endsWith(':00') ? slot : ''}</span>
           </button>
         ))}
-        {day.events.map((event) => <EventCard event={event} key={event.id}/>)}
+        {layoutEvents(day.events).map(({ event, laneIndex, laneCount }) => <EventCard event={event} laneIndex={laneIndex} laneCount={laneCount} key={event.id}/>)}
         {!day.events.length ? <button className="iu-ag-drop" type="button" onClick={() => onCreateSlot(day.iso, '09:00')}><Move size={15}/> Spazio disponibile</button> : null}
       </div>
     </section>
@@ -250,12 +313,12 @@ function AgendaInspector({ events, nextEvent, unsynced }:{events:AgendaEvent[]; 
   const critical = events.filter((event) => event.priority === 'critica' || event.priority === 'alta').slice(0, 4)
   return (
     <aside className="iu-ag-inspector">
-      <Panel title="Briefing agenda" subtitle="Priorita operative e prossime mosse" icon={<Sparkles size={17}/>}>
+      <Panel title="Briefing agenda" subtitle="Priorità operative e prossime mosse" icon={<Sparkles size={17}/>}>
         <div className="iu-ag-brief">
           {nextEvent ? (
             <article>
               <span>Prossimo impegno</span>
-              <strong>{nextEvent.timeLabel} - {nextEvent.title}</strong>
+              <strong>{nextEvent.timeLabel} - {agendaLegalLabel(nextEvent)} · {agendaTitle(nextEvent)}</strong>
               <small>{nextEvent.subtitle || nextEvent.location}</small>
             </article>
           ) : <p className="iu-empty">Nessun impegno imminente.</p>}
@@ -266,13 +329,13 @@ function AgendaInspector({ events, nextEvent, unsynced }:{events:AgendaEvent[]; 
         </div>
       </Panel>
 
-      <Panel title="Priorita da non perdere" icon={<AlertTriangle size={17}/>} count={critical.length}>
+      <Panel title="Priorità da non perdere" icon={<AlertTriangle size={17}/>} count={critical.length}>
         {critical.length ? (
           <div className="iu-ag-priority-list">
             {critical.map((event) => (
               <a href={event.href || '/agenda'} key={event.id}>
                 <Badge tone={event.tone}>{event.kind}</Badge>
-                <strong>{event.title}</strong>
+                <strong>{agendaLegalLabel(event)} · {agendaTitle(event)}</strong>
                 <span>{event.date} - {event.timeLabel}</span>
               </a>
             ))}
@@ -300,7 +363,7 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
       <div>
         <a href="/agenda"><ArrowLeftIcon/>Torna all'agenda</a>
         <span>Elemento selezionato</span>
-        <h2>{event.title}</h2>
+        <h2>{agendaLegalLabel(event)} · {agendaTitle(event)}</h2>
         <p>{event.subtitle || event.notes || event.location || 'Impegno agenda senza note aggiuntive.'}</p>
       </div>
       <dl>
@@ -312,8 +375,8 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
       <div className="iu-ag-focus__actions">
         <a href={editHref}><Settings2 size={15}/>Modifica</a>
         <a href={event.href || '/agenda'}><CalendarDays size={15}/>Apri origine</a>
-        <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(event.title)}`}><MessageCircleIcon/>Avvisa cliente</a>
-        <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${event.title}`}><Sparkles size={15}/>Chiedi a Lex</a>
+        <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(`${agendaLegalLabel(event)} - ${agendaTitle(event)}`)}`}><MessageCircleIcon/>Avvisa cliente</a>
+        <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${agendaLegalLabel(event)} - ${agendaTitle(event)}`}><Sparkles size={15}/>Chiedi a Lex</a>
         {!isDeadline ? (
           <JsonPostForm action={completeHref}>
             <input type="hidden" name="stato" value="COMPLETATO"/>
@@ -517,7 +580,7 @@ export function AgendaPage() {
                 <input type="hidden" name="from_page" value="fascicolo"/>
                 <input type="hidden" name="focus" value="workflow"/>
                 <input type="hidden" name="id_fascicolo" value={automationTarget?.matterId || ''}/>
-                <input type="hidden" name="descrizione" value={`Attività agenda - ${automationTarget?.title || 'impegno'}`}/>
+                <input type="hidden" name="descrizione" value={`Attività agenda - ${automationTarget ? agendaTitle(automationTarget) : 'impegno'}`}/>
                 <input type="hidden" name="data_attivita" value={automationDate}/>
                 <input type="hidden" name="minuti" value="30"/>
                 <input type="hidden" name="valore_unitario" value="80"/>

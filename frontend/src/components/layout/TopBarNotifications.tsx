@@ -1,5 +1,5 @@
 import { CheckCheck, Loader2 } from 'lucide-react'
-import { useCallback, useRef, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -17,7 +17,7 @@ export function TopBarNotifications({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const { data, loading, error, markRead, markAllRead } = useNotifications(open)
-  const items = Array.isArray(data?.items) ? data.items : []
+  const items = useMemo(() => dedupePanelItems(Array.isArray(data?.items) ? data.items : []), [data?.items])
   const unread = data?.unreadCount ?? 0
   const matchAnyKey = useCallback(() => true, [])
   const handleEscape = useCallback((event: KeyboardEvent) => {
@@ -71,4 +71,14 @@ export function TopBarNotifications({
       ) : null}
     </div>
   )
+}
+
+function dedupePanelItems<T extends { id?: string; href?: string | null; title?: string; message?: string }>(items: T[]): T[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    const key = [item.id || '', item.href || '', item.title || '', item.message || ''].join('|').toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }

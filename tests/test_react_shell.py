@@ -3423,6 +3423,26 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
         today.isoformat(),
         id_fascicolo="fasc-test",
     )
+    linked_deadline = scadenziario.nuova(
+        "Classifica PEC e conferma adempimenti",
+        TipoTermine.DEPOSITO_MEMORIA,
+        today.isoformat(),
+        id_fascicolo="fasc-pec",
+    )
+    Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Presidio PEC - Presidio anomalie PEC: POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(today, datetime.min.time()).replace(hour=11).isoformat(timespec="minutes"),
+        durata_minuti=30,
+        cliente="Mario Rossi",
+        procedimento=f"RG 3950/{today.year}",
+        tribunale="Tribunale di Milano",
+        note=(
+            f"Scadenza: {linked_deadline.id}\n"
+            "Oggetto: FISSAZIONE UDIENZA DI DISCUSSIONE. "
+            "Descrizione: FISSATA UDIENZA DI DISCUSSIONE con strumenti audiovisivi."
+        ),
+    )
 
     response = client.get(
         "/api/v1/ui/agenda",
@@ -3438,6 +3458,12 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     assert {item["source"] for item in payload["events"]} == {"agenda", "scadenziario"}
     assert any(item["title"] == "Udienza civile" for item in payload["events"])
     assert any(item["title"] == "Deposito memoria" for item in payload["events"])
+    pec_event = next(item for item in payload["events"] if str(item["title"]).startswith("Presidio PEC"))
+    assert pec_event["legalLabel"] == "Fissazione udienza"
+    assert pec_event["displayTitle"] == f"Mario Rossi · RG 3950/{today.year}"
+    assert "Presidio PEC" not in pec_event["displayTitle"]
+    assert any("Oggetto originale" in line for line in pec_event["detailLines"])
+    assert not any(item["id"] == f"scadenza-{linked_deadline.id}" for item in payload["events"])
 
 
 def test_react_dashboard_legge_repository_operativi(tmp_path: Path):

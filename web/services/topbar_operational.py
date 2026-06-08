@@ -6,7 +6,7 @@ import re
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 from flask import current_app, g, session
@@ -77,6 +77,63 @@ class TopbarApiError(ValueError):
 def _clean_text(value: Any, *, limit: int = TEXT_MAX) -> str:
     text = re.sub(r"\s+", " ", str(value or "")).strip()
     return text[:limit]
+
+
+def _react_href(value: Any) -> str | None:
+    href = _clean_text(value, limit=900)
+    if not href:
+        return None
+    if href.startswith(("http://", "https://", "mailto:", "tel:")):
+        return href
+    split = urlsplit(href)
+    path = split.path or href
+    lower = path.rstrip("/").lower() or "/"
+    if lower in {"/notifiche", "/notifiche-whatsapp"}:
+        return "/impostazioni?tab=notifiche"
+
+    agenda_match = re.match(r"^/agenda/([^/]+)/modifica/?$", path, flags=re.IGNORECASE)
+    if agenda_match:
+        path = f"/agenda/{agenda_match.group(1)}"
+        split = split._replace(path=path, query="", fragment="")
+        return urlunsplit(split)
+
+    deadline_match = re.match(r"^/scadenziario/([^/]+)/modifica/?$", path, flags=re.IGNORECASE)
+    if deadline_match:
+        path = f"/scadenziario/{deadline_match.group(1)}"
+        split = split._replace(path=path, query="", fragment="")
+        return urlunsplit(split)
+
+    email_match = re.match(r"^/email/([^/?#]+)$", path, flags=re.IGNORECASE)
+    if email_match and email_match.group(1).lower() not in {"messaggio", "scrivi"}:
+        split = split._replace(path=f"/email/messaggio/{email_match.group(1)}")
+        return urlunsplit(split)
+
+    ordinary_match = re.match(r"^/email-ordinaria/([^/?#]+)$", path, flags=re.IGNORECASE)
+    if ordinary_match and ordinary_match.group(1).lower() not in {"messaggio", "scrivi"}:
+        split = split._replace(path=f"/email-ordinaria/messaggio/{ordinary_match.group(1)}")
+        return urlunsplit(split)
+
+    return href
+
+
+def _dedupe_items(items: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for item in items:
+        href = _react_href(item.get("href"))
+        row = dict(item)
+        row["href"] = href
+        key = (
+            _clean_text(row.get("type"), limit=80).lower(),
+            _clean_text(row.get("id"), limit=220).lower(),
+            _clean_text(href, limit=500).lower(),
+            _clean_text(row.get("title"), limit=220).lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(row)
+    return deduped
 
 
 def _enum_value(value: Any) -> str:
@@ -467,6 +524,7 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
         except Exception:
             current_app.logger.info("Top bar oggi: PEC non disponibile", exc_info=True)
 
+    items = _dedupe_items(items)
     items.sort(key=lambda item: (_priority_weight(item["priority"]), item.get("date") or "", item.get("time") or ""))
     return {"ok": True, "date": day.isoformat(), "summary": summary, "items": items[:30]}
 
@@ -520,15 +578,16 @@ def quick_deadlines_payload(user: Any) -> dict[str, Any]:
                         getattr(fascicolo, "nome_cliente", ""),
                     )
                     or None,
-                    "href": f"/scadenziario/{scadenza.id}/modifica",
+                    "href": _react_href(f"/scadenziario/{scadenza.id}/modifica"),
                 }
             )
+    rows = _dedupe_items(rows)
     rows.sort(key=lambda item: (_priority_weight(item["priority"]), item["dueDate"], item["title"]))
     return {"ok": True, "summary": summary, "deadlines": rows[:25]}
 
 
 def notifications_payload(user: Any) -> dict[str, Any]:
-    items = _persistent_notification_items(user)
+    items = _dedupe_items(_persistent_notification_items(user))
     unread_count = sum(1 for item in items if not item["read"])
     return {"ok": True, "unreadCount": unread_count, "items": items[:30]}
 
@@ -566,7 +625,7 @@ def mark_all_notifications_read(user: Any) -> dict[str, Any]:
 
 def _session_notifications_payload(user: Any) -> dict[str, Any]:
     read_ids = _read_notification_ids()
-    items = _notification_items(user)
+    items = _dedupe_items(_notification_items(user))
     for item in items:
         item["read"] = item["id"] in read_ids
     unread_count = sum(1 for item in items if not item["read"])
@@ -579,16 +638,16 @@ def _persistent_notification_items(user: Any) -> list[dict[str, Any]]:
         tenant_id = _notification_tenant_id()
         user_id = _notification_user_id(user)
         if not user_id:
-            return generated
+            return _dedupe_items(generated)
         service = build_notification_service()
         records = service.sync_operational_items(tenant_id=tenant_id, user_id=user_id, items=generated)
-        return [_record_to_topbar_item(record) for record in records]
+        return _dedupe_items(_record_to_topbar_item(record) for record in records)
     except Exception:
         current_app.logger.info("Top bar notifiche: uso fallback in sessione", exc_info=True)
         read_ids = _read_notification_ids()
         for item in generated:
             item["read"] = item["id"] in read_ids
-        return generated
+        return _dedupe_items(generated)
 
 
 def _record_to_topbar_item(record: NotificationRecord) -> dict[str, Any]:
@@ -603,7 +662,7 @@ def _record_to_topbar_item(record: NotificationRecord) -> dict[str, Any]:
         "createdAt": payload.get("createdAt") or record.created_at,
         "priority": record.priority,
         "read": bool(record.read_at),
-        "href": record.href or None,
+        "href": _react_href(record.href),
         "actionLabel": payload.get("actionLabel") or None,
     }
 
@@ -807,6 +866,7 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
                 items.append(item)
         except Exception:
             current_app.logger.info("Top bar notifiche: fatturazione non disponibile", exc_info=True)
+    items = _dedupe_items(items)
     items.sort(key=lambda item: (_priority_weight(item["priority"]), item.get("createdAt") or ""), reverse=False)
     return items[:40]
 
@@ -856,6 +916,6 @@ def _notification(
         "createdAt": created_at,
         "priority": priority if priority in {"normal", "important", "urgent"} else "normal",
         "read": False,
-        "href": href,
+        "href": _react_href(href),
         "actionLabel": action_label,
     }

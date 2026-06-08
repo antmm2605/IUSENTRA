@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Callable, Iterable
+
+
+RG_RE = re.compile(r"\b(?:R\.?\s*G\.?|RG|Ruolo generale)\s*(?:n\.?|numero|:)?\s*([0-9]{1,7}\s*/\s*[0-9]{4}(?:/[A-Z]+)?)", re.IGNORECASE)
+PARTY_RE = re.compile(r"\b(?:Ricorr\.?\s+principale|Resist\.?\s+principale|Attore|Convenuto|Ricorrente|Resistente)\s*:\s*([^\n\r;]+)", re.IGNORECASE)
+DEADLINE_REF_RE = re.compile(r"\b(?:Scadenza|Termine)\s*:\s*([A-Za-z0-9_-]{6,80})", re.IGNORECASE)
+OPERATIONAL_PREFIX_RE = re.compile(r"^\s*(?:Presidio\s+PEC|Presidio\s+anomalie\s+PEC|Verifica\s+comunicazione\s+di\s+cancelleria\s+PEC)\s*:?\s*-?\s*", re.IGNORECASE)
 
 
 def _enum_value(value: Any) -> str:
@@ -40,6 +47,154 @@ def _safe_items(loader: Callable[[], Iterable[Any]]) -> list[Any]:
         return []
 
 
+def _clean_text(value: Any, *, limit: int = 360) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    return text[:limit]
+
+
+def _extract_rg(*values: Any) -> str:
+    for value in values:
+        match = RG_RE.search(str(value or ""))
+        if match:
+            return "RG " + re.sub(r"\s+", "", match.group(1).upper())
+    return ""
+
+
+def _extract_party(*values: Any) -> str:
+    for value in values:
+        match = PARTY_RE.search(str(value or ""))
+        if match:
+            return _clean_text(match.group(1), limit=90)
+    return ""
+
+
+def _legal_label(title: str, kind: str, notes: str = "") -> str:
+    text = f"{title} {kind} {notes}".lower()
+    if "rinvio" in text or "rinviata" in text or "differimento" in text or "differita" in text:
+        return "Rinvio udienza"
+    if "fissazione udienza" in text or "fissata udienza" in text or "fissata l'udienza" in text:
+        return "Fissazione udienza"
+    if "udienza" in text:
+        return "Udienza"
+    if "deposito" in text and any(token in text for token in ("accett", "consegn", "esito positivo")):
+        return "Deposito accettato"
+    if "deposito" in text:
+        return "Deposito"
+    if "notifica" in text or "notificazione" in text:
+        return "Notifica"
+    if "termine" in text or "scadenza" in text or "decorrenza" in text:
+        return "Termine giuridico"
+    if "pec" in text or "cancelleria" in text:
+        return "Comunicazione PEC"
+    return "Adempimento"
+
+
+def _operational_title(title: str, legal_label: str, client: str, matter: str, notes: str) -> str:
+    if client and matter:
+        return f"{client} · {matter}"
+    if client:
+        return client
+    if matter:
+        return matter
+    stripped = OPERATIONAL_PREFIX_RE.sub("", title or "").strip(" -:")
+    if stripped and not stripped.lower().startswith("presidio"):
+        return _clean_text(stripped, limit=90)
+    party = _extract_party(notes)
+    if party:
+        return party
+    return legal_label
+
+
+def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str) -> list[str]:
+    lines: list[str] = []
+    for label, key in (
+        ("Cliente/parte", "client"),
+        ("Fascicolo/RG", "matter"),
+        ("Ufficio", "court"),
+        ("Luogo", "location"),
+        ("Responsabile", "owner"),
+        ("Fonte", "source"),
+    ):
+        value = _clean_text(row.get(key), limit=140)
+        if value:
+            lines.append(f"{label}: {value}")
+    status = _clean_text(row.get("status"), limit=80)
+    if status:
+        lines.append(f"Stato: {status}")
+    if original_title and original_title != row.get("displayTitle"):
+        lines.append(f"Oggetto originale: {_clean_text(original_title, limit=180)}")
+    notes = _clean_text(row.get("notes"), limit=220)
+    if notes:
+        lines.append(f"Dettaglio: {notes}")
+    if not lines:
+        lines.append(f"Tipo evento: {legal_label}")
+    return lines[:8]
+
+
+def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
+    original_title = _clean_text(row.get("title") or "Appuntamento", limit=180)
+    notes = _clean_text(row.get("notes"), limit=700)
+    kind = _clean_text(row.get("kind"), limit=80)
+    matter = _clean_text(row.get("matter"), limit=120) or _extract_rg(original_title, notes)
+    client = _clean_text(row.get("client"), limit=120) or _extract_party(notes, original_title)
+    label = _legal_label(original_title, kind, notes)
+    row["originTitle"] = original_title
+    row["legalLabel"] = label
+    row["client"] = client
+    row["matter"] = matter
+    row["displayTitle"] = _operational_title(original_title, label, client, matter, notes)
+    subtitle = _clean_text(row.get("subtitle"), limit=160)
+    if not subtitle:
+        subtitle = " · ".join(part for part in (matter, _clean_text(row.get("court"), limit=80), _clean_text(row.get("location"), limit=80)) if part)
+    row["subtitle"] = subtitle
+    row["detailTitle"] = label
+    row["detailLines"] = _detail_lines(row, original_title=original_title, legal_label=label)
+    return row
+
+
+def _linked_deadline_refs(row: dict[str, Any]) -> set[str]:
+    text = "\n".join(str(row.get(key) or "") for key in ("notes", "title", "originTitle"))
+    return {match.group(1) for match in DEADLINE_REF_RE.finditer(text)}
+
+
+def _event_dedupe_key(row: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    def normal(value: Any) -> str:
+        return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+    return (
+        str(row.get("start") or "")[:16],
+        normal(row.get("legalLabel") or row.get("kind")),
+        normal(row.get("displayTitle") or row.get("title")),
+        normal(row.get("matter")),
+        normal(row.get("client")),
+    )
+
+
+def _dedupe_events(events: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = list(events)
+    linked_deadlines: set[str] = set()
+    for row in rows:
+        if str(row.get("source") or "") == "agenda":
+            linked_deadlines.update(_linked_deadline_refs(row))
+
+    deduped: list[dict[str, Any]] = []
+    positions: dict[tuple[str, str, str, str, str], int] = {}
+    for row in rows:
+        row_id = str(row.get("id") or "")
+        if str(row.get("source") or "") == "scadenziario" and row_id.startswith("scadenza-") and row_id.removeprefix("scadenza-") in linked_deadlines:
+            continue
+        key = _event_dedupe_key(row)
+        existing_index = positions.get(key)
+        if existing_index is None:
+            positions[key] = len(deduped)
+            deduped.append(row)
+            continue
+        existing = deduped[existing_index]
+        if str(existing.get("source") or "") != "agenda" and str(row.get("source") or "") == "agenda":
+            deduped[existing_index] = row
+    return deduped
+
+
 def _sync_status(item: Any) -> str:
     provider = str(getattr(item, "external_provider", "") or "").strip()
     last_sync = str(getattr(item, "external_last_sync", "") or "").strip()
@@ -69,7 +224,7 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         )
         if part
     )
-    return {
+    return _decorate_event({
         "id": item_id,
         "title": str(getattr(item, "titolo", "") or "Appuntamento"),
         "kind": tipo,
@@ -88,7 +243,7 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         "syncStatus": _sync_status(item),
         "notes": notes,
         "href": f"/agenda/{item_id}" if item_id else "/agenda",
-    }
+    })
 
 
 def _appointment_in_range(item: Any, start: date, end: date) -> bool:
@@ -127,7 +282,7 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         )
         if part
     )
-    return {
+    return _decorate_event({
         "id": f"scadenza-{item_id}" if item_id else f"scadenza-{due_date.isoformat()}",
         "title": str(getattr(item, "titolo", "") or "Scadenza"),
         "kind": kind,
@@ -146,7 +301,7 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         "syncStatus": "locale",
         "notes": notes,
         "href": f"/scadenziario/{item_id}" if item_id else "/scadenziario",
-    }
+    })
 
 
 def build_react_agenda_payload(
@@ -189,6 +344,7 @@ def build_react_agenda_payload(
             if start <= event_date <= end:
                 events.append(event)
 
+    events = _dedupe_events(events)
     events.sort(key=lambda row: str(row.get("start") or ""))
     return {
         "source": "repository_reali",

@@ -8,7 +8,7 @@ from typing import Any
 from flask import session
 
 from web.helpers import get_clienti, get_fascicoli
-from web.services.topbar_operational import ROME_TZ, TopbarApiError, _clean_text, _require_any_permission
+from web.services.topbar_operational import ROME_TZ, TopbarApiError, _clean_text, _react_href, _require_any_permission
 
 
 def recent_payload(user: Any) -> dict[str, Any]:
@@ -18,7 +18,7 @@ def recent_payload(user: Any) -> dict[str, Any]:
     for item in raw if isinstance(raw, list) else []:
         if not isinstance(item, dict):
             continue
-        href = _clean_text(item.get("url") or item.get("href") or "")
+        href = _react_href(item.get("url") or item.get("href") or "") or ""
         title = _clean_text(item.get("titolo") or item.get("title") or "")
         entity_type = _recent_type_to_api(item.get("tipo") or item.get("entityType"))
         entity_id = _clean_text(item.get("id") or item.get("entityId") or "")
@@ -34,7 +34,7 @@ def recent_payload(user: Any) -> dict[str, Any]:
                 "lastAccessedAt": _clean_text(item.get("lastAccessedAt") or item.get("ultimo_accesso") or "") or None,
             }
         )
-    return {"ok": True, "items": items[:10]}
+    return {"ok": True, "items": _dedupe_recent_items(items)[:10]}
 
 
 def track_recent_payload(user: Any, entity_type: str, entity_id: str) -> dict[str, Any]:
@@ -68,6 +68,22 @@ def _recent_type_to_api(value: Any) -> str:
         "documento": "document",
         "document": "document",
     }.get(text, "matter")
+
+
+def _dedupe_recent_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for item in items:
+        key = (
+            _clean_text(item.get("type"), limit=80).lower(),
+            _clean_text(item.get("id"), limit=180).lower(),
+            _clean_text(item.get("href"), limit=500).lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+    return deduped
 
 
 def _resolve_recent_entity(entity_type: str, entity_id: str) -> dict[str, Any] | None:

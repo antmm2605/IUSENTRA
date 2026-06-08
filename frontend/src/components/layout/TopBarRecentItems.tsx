@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { useCallback, useRef, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 import { useRecentItems } from '../../hooks/useRecentItems'
@@ -26,6 +26,7 @@ export function TopBarRecentItems({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const { data, loading, error } = useRecentItems(open)
+  const items = useMemo(() => dedupeRecentItems(data?.items ?? []), [data?.items])
   const matchAnyKey = useCallback(() => true, [])
   const handleEscape = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape' && open) onClose()
@@ -47,7 +48,7 @@ export function TopBarRecentItems({
           {loading ? <p className="iu-panel-state"><Loader2 className="iu-spin" size={16} /> Caricamento recenti...</p> : null}
           {error ? <p className="iu-panel-state is-error">{error}</p> : null}
           <div className="iu-panel-list">
-            {data?.items.length ? data.items.map((item) => (
+            {items.length ? items.map((item) => (
               <a className="iu-panel-item" href={item.href} key={`${item.type}-${item.id}`} onClick={onClose}>
                 <span>{labelFor(item.type).slice(0, 3)}</span>
                 <span>
@@ -61,4 +62,14 @@ export function TopBarRecentItems({
       ) : null}
     </div>
   )
+}
+
+function dedupeRecentItems<T extends { id?: string; href?: string; type?: string; title?: string }>(items: T[]): T[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    const key = [item.type || '', item.id || '', item.href || '', item.title || ''].join('|').toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }

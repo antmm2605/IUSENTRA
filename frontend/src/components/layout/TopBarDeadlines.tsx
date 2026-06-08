@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { useCallback, useRef, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 import { useQuickDeadlines } from '../../hooks/useQuickDeadlines'
@@ -22,6 +22,7 @@ export function TopBarDeadlines({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const { data, loading, error } = useQuickDeadlines(open)
+  const deadlines = useMemo(() => dedupeDeadlines(data?.deadlines ?? []), [data?.deadlines])
   const urgent = (data?.summary.urgent ?? 0) + (data?.summary.overdue ?? 0)
   const matchAnyKey = useCallback(() => true, [])
   const handleEscape = useCallback((event: KeyboardEvent) => {
@@ -53,7 +54,7 @@ export function TopBarDeadlines({
                 <span><strong>{data.summary.overdue}</strong> scadute</span>
               </div>
               <div className="iu-panel-list">
-                {data.deadlines.length ? data.deadlines.map((deadline) => (
+                {deadlines.length ? deadlines.map((deadline) => (
                   <a className={`iu-panel-item is-${deadline.status === 'overdue' ? 'urgent' : deadline.priority}`} href={deadline.href} key={deadline.id} onClick={onClose}>
                     <span>{formatDate(deadline.dueDate)}</span>
                     <span>
@@ -69,4 +70,14 @@ export function TopBarDeadlines({
       ) : null}
     </div>
   )
+}
+
+function dedupeDeadlines<T extends { id?: string; href?: string; title?: string; dueDate?: string }>(items: T[]): T[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    const key = [item.id || '', item.href || '', item.dueDate || '', item.title || ''].join('|').toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }

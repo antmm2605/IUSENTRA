@@ -231,11 +231,16 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         assert deadlines["summary"]["today"] == 1
         assert deadlines["summary"]["urgent"] >= 1
         assert deadlines["deadlines"][0]["caseId"] == fascicolo_id
+        assert deadlines["deadlines"][0]["href"].startswith("/scadenziario/")
+        assert "/modifica" not in deadlines["deadlines"][0]["href"]
 
         notifications_response = client.get("/api/notifications")
         notifications = notifications_response.get_json()
         assert notifications_response.status_code == 200
         assert notifications["unreadCount"] >= 1
+        assert all("/modifica" not in str(item.get("href") or "") for item in notifications["items"] if item.get("type") in {"deadline", "hearing"})
+        communication_item = next(item for item in notifications["items"] if item.get("type") == "communication")
+        assert communication_item["href"] == "/email/messaggio/pec-1"
         portal_item = next(item for item in notifications["items"] if item.get("actionLabel") == "Scarica dal portale")
         assert "ordinanza_da_notificare.pdf" in portal_item["message"]
         assert portal_item["href"].startswith("/portali/pst/acquisizione?")
@@ -254,6 +259,24 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         tracked = client.post("/api/recent", json={"entityType": "case", "entityId": fascicolo_id})
         assert tracked.status_code == 200
         assert tracked.get_json()["items"][0]["href"] == f"/fascicoli/{fascicolo_id}"
+        with client.session_transaction() as sess:
+            current = list(sess.get("recenti", []))
+            current.insert(
+                0,
+                {
+                    "tipo": "scadenza",
+                    "id": "scad-test",
+                    "titolo": "Scadenza rapida",
+                    "url": "/scadenziario/scad-test/modifica",
+                },
+            )
+            current.insert(0, dict(current[0]))
+            sess["recenti"] = current
+        recenti = client.get("/api/recent").get_json()["items"]
+        hrefs = [item["href"] for item in recenti]
+        assert "/scadenziario/scad-test" in hrefs
+        assert "/scadenziario/scad-test/modifica" not in hrefs
+        assert len(hrefs) == len(set(hrefs))
 
         active = client.get("/api/time-tracking/active")
         assert active.status_code == 200

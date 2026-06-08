@@ -85,6 +85,25 @@ def test_scheduler_registry_non_accoda_pianificazioni_disattivate(tmp_path: Path
     assert recent["message"] == "Pianificazione disattivata: esecuzione non avviata."
 
 
+def test_scheduler_registry_non_accoda_manutenzioni_pesanti_in_parallelo(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+
+    first = repo.request_manual_run("utf8_integrity_nightly", requested_by="superadmin")
+    second = repo.request_manual_run("operational_backup_nightly", requested_by="superadmin")
+
+    requested = repo.list_requested_runs(limit=10)
+    recent = repo.list_recent_runs(limit=2)
+
+    assert first["status"] == "requested"
+    assert second["status"] == "completed"
+    assert "Manutenzione pesante" in second["message"]
+    assert [run["job_id"] for run in requested] == ["utf8_integrity_nightly"]
+    assert recent[0]["job_id"] == "operational_backup_nightly"
+    assert recent[0]["status"] == "completed"
+    assert recent[0]["result"]["status"] == "manutenzione_esclusiva_rinviata"
+
+
 def test_scheduler_registry_chiude_manuale_running_da_worker_precedente(tmp_path: Path):
     repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
     repo.upsert_default_jobs({})

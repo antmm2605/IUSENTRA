@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.249.39 - 2026-06-08
+
+- Console pianificazioni: le manutenzioni manuali pesanti sono ora esclusive. Se un controllo UTF-8, un crash test operativo o il backup blindato è già richiesto o in corso, gli altri job pesanti vengono registrati come non avviati per proteggere spazio, database e reattività; `Avvia tutti` non genera più backup temporanei paralleli.
+
 ## 2.249.38 - 2026-06-08
 
 - Console pianificazioni: le esecuzioni manuali restano in stato `requested` finché il worker non le avvia davvero; al riavvio del worker le richieste manuali rimaste aperte dal processo precedente vengono chiuse come interrotte, così `Avvia tutti` non mostra job falsamente in corso.

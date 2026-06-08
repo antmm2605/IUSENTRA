@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Scheduler Avvia tutti 2.249.39 - 2026-06-08
+
+- Rilevato su produzione `2.249.38`: l'avvio massivo ha accodato 78 job senza errori, ma ha messo in parallelo UTF-8, tre crash test operativi e backup blindato. Dopo circa 50 minuti i job erano ancora in corso e avevano generato nuovi archivi temporanei, mentre tre fonti esterne erano fallite per timeout o lock database.
+- Azione operativa: worker scheduler riavviato in modo controllato, 5 run manuali pesanti chiusi come interrotti dal riavvio, temporanei backup rimossi e retention riportata a un solo archivio valido per area backup.
+- Fix `2.249.39`: le manutenzioni manuali pesanti sono esclusive. Se una manutenzione pesante è già richiesta o in corso, le altre vengono registrate come completate/non avviate per proteggere spazio, database e reattività. Test mirati, UTF-8, contratti e Docker locale reale `127.0.0.1:8080` sono confermati; restano push, check remoti e deploy finale.
+
 ## Scheduler Avvia tutti 2.249.35 - 2026-06-08
 
 - Rilevato dopo deploy `2.249.34`: premendo `Avvia tutti` su produzione, 78 job vengono accodati correttamente, ma `legal_source_codice_strada` risultava `failed` con messaggio di fonte fuori fase 9 progressiva.

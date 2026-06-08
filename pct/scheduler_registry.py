@@ -23,6 +23,15 @@ from pct.legal_update_autofetch import (
 
 ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 DEFAULT_DB_NAME = "scheduler_registry.sqlite"
+EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS = frozenset(
+    {
+        "utf8_integrity_nightly",
+        "operational_crash_morning",
+        "operational_crash_midday",
+        "operational_crash_evening",
+        "operational_backup_nightly",
+    }
+)
 
 
 def _utcnow() -> datetime:
@@ -845,6 +854,65 @@ class SchedulerRegistryRepository:
                     ),
                 )
             return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
+        if job_id in EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS:
+            placeholders = ",".join("?" for _ in EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS)
+            params = tuple(sorted(EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS))
+            with self.connect() as conn:
+                open_row = conn.execute(
+                    f"""
+                    SELECT job_id, status
+                    FROM scheduled_job_runs
+                    WHERE status IN ('requested', 'running')
+                      AND job_id IN ({placeholders})
+                    ORDER BY id ASC
+                    LIMIT 1
+                    """,
+                    params,
+                ).fetchone()
+                if open_row:
+                    blocked_by = str(open_row["job_id"] or "")
+                    message = (
+                        "Manutenzione pesante già in corso: esecuzione non avviata "
+                        "per proteggere spazio, database e reattività. "
+                        "Rilancia la singola pianificazione quando termina."
+                    )
+                    conn.execute(
+                        """
+                        INSERT INTO scheduled_job_runs (
+                            run_id, job_id, template_key, origin, status, scheduled_at,
+                            started_at, finished_at, duration_ms, message, result_json,
+                            error_message, requested_by, created_at
+                        )
+                        VALUES (?, ?, ?, 'manuale', 'completed', ?, ?, ?, 0, ?, ?, '', ?, ?)
+                        """,
+                        (
+                            run_id,
+                            job_id,
+                            str(job.get("template_key") or ""),
+                            now,
+                            now,
+                            now,
+                            message,
+                            _json_dumps(
+                                {
+                                    "ok": True,
+                                    "status": "manutenzione_esclusiva_rinviata",
+                                    "summary": message,
+                                    "blocked_by": blocked_by,
+                                    "details": [
+                                        {
+                                            "job_id": job_id,
+                                            "status": "non_avviata",
+                                            "blocked_by": blocked_by,
+                                        }
+                                    ],
+                                }
+                            ),
+                            requested_by,
+                            now,
+                        ),
+                    )
+                    return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
         with self.connect() as conn:
             conn.execute(
                 """

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.249.40 - 2026-06-08
+
+- Console pianificazioni: il backup blindato resta eseguibile singolarmente, ma viene rinviato quando arriva dentro un avvio massivo con altri job manuali già in coda o in corso. `Avvia tutti` non avvia più backup nuovi e non ricrea archivi temporanei mentre lo studio vuole conservare solo l'ultimo backup valido.
+
 ## 2.249.39 - 2026-06-08
 
 - Console pianificazioni: le manutenzioni manuali pesanti sono ora esclusive. Se un controllo UTF-8, un crash test operativo o il backup blindato è già richiesto o in corso, gli altri job pesanti vengono registrati come non avviati per proteggere spazio, database e reattività; `Avvia tutti` non genera più backup temporanei paralleli.

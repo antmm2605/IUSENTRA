@@ -6,6 +6,12 @@
 - Azione operativa: worker scheduler riavviato in modo controllato, 5 run manuali pesanti chiusi come interrotti dal riavvio, temporanei backup rimossi e retention riportata a un solo archivio valido per area backup.
 - Fix `2.249.39`: le manutenzioni manuali pesanti sono esclusive. Se una manutenzione pesante è già richiesta o in corso, le altre vengono registrate come completate/non avviate per proteggere spazio, database e reattività. Test mirati, UTF-8, contratti e Docker locale reale `127.0.0.1:8080` sono confermati; restano push, check remoti e deploy finale.
 
+## Scheduler Avvia tutti 2.249.40 - 2026-06-08
+
+- Rilevato su produzione `2.249.39`: nell'ordine reale della console il backup blindato può essere il primo job pesante accodato, quindi la sola esclusività dei pesanti non basta a rispettare la richiesta di lasciare solo l'ultimo backup.
+- Azione operativa: il run `operational_backup_nightly` è stato annullato mentre era ancora `requested`, prima dell'avvio reale e senza scrivere archivi nuovi.
+- Fix `2.249.40`: il backup blindato viene registrato come completato/non avviato quando esistono già altre esecuzioni manuali in coda o in corso; resta avviabile se richiesto singolarmente a console libera. Test mirati, UTF-8, contratti e Docker locale reale `127.0.0.1:8080` sono confermati; restano push, check remoti e deploy finale.
+
 ## Scheduler Avvia tutti 2.249.35 - 2026-06-08
 
 - Rilevato dopo deploy `2.249.34`: premendo `Avvia tutti` su produzione, 78 job vengono accodati correttamente, ma `legal_source_codice_strada` risultava `failed` con messaggio di fonte fuori fase 9 progressiva.

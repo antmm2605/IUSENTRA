@@ -97,11 +97,21 @@ def test_scheduler_registry_non_accoda_manutenzioni_pesanti_in_parallelo(tmp_pat
 
     assert first["status"] == "requested"
     assert second["status"] == "completed"
-    assert "Manutenzione pesante" in second["message"]
+    assert "Backup non avviato" in second["message"]
     assert [run["job_id"] for run in requested] == ["utf8_integrity_nightly"]
     assert recent[0]["job_id"] == "operational_backup_nightly"
     assert recent[0]["status"] == "completed"
-    assert recent[0]["result"]["status"] == "manutenzione_esclusiva_rinviata"
+    assert recent[0]["result"]["status"] == "backup_massivo_rinviato"
+
+
+def test_scheduler_registry_accoda_backup_se_richiesto_da_solo(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+
+    request = repo.request_manual_run("operational_backup_nightly", requested_by="superadmin")
+
+    assert request["status"] == "requested"
+    assert [run["job_id"] for run in repo.list_requested_runs(limit=10)] == ["operational_backup_nightly"]
 
 
 def test_scheduler_registry_chiude_manuale_running_da_worker_precedente(tmp_path: Path):

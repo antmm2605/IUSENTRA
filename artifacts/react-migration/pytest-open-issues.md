@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Scheduler Avvia tutti 2.249.35 - 2026-06-08
+
+- Rilevato dopo deploy `2.249.34`: premendo `Avvia tutti` su produzione, 78 job vengono accodati correttamente, ma `legal_source_codice_strada` risultava `failed` con messaggio di fonte fuori fase 9 progressiva.
+- Valutazione: non è un errore operativo né un problema di fonte irraggiungibile; è un presidio governato fuori dal gruppo verde. Deve chiudersi come esecuzione completata con dettaglio `fuori_step_progressivo`, senza sporcare il contatore failure quando l'utente avvia tutti.
+- Fix `2.249.35`: risolto localmente con `pct/scheduler_registry.py`, test mirato `tests/test_scheduler_registry.py`, OpenAPI/versione e Docker reale `127.0.0.1:8080`; restano commit, push, check GitHub e deploy Hetzner finale.
+
 ## Portale Cliente link cliente, bottoni e videocall 2.249.34 - 2026-06-08
 
 Nessuna failure di codice aperta sul perimetro mirato dopo test API, gate React,

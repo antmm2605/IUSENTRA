@@ -58,4 +58,5 @@ WhatsApp Web resta un'azione manuale dello studio nel browser: nessuna credenzia
 - Corretto il contrasto dei bottoni nel box link e nella vista cliente.
 - Corretto il salvataggio orario appuntamento: input locale dello studio interpretato come ora italiana e normalizzato in UTC.
 - Verificati test API, gate React, UTF-8, Docker reale `127.0.0.1:8080`, browser desktop e mobile.
-- Resta prima della chiusura: commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner senza backup.
+- Commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner senza backup completati per `2.249.34`.
+- Dopo il deploy finale è stato rilanciato `Avvia tutti` in produzione: 78 job richiesti e zero errori di accodamento; il controllo ha evidenziato che `legal_source_codice_strada`, fuori dalla fase 9 progressiva, veniva conteggiato come failure pur essendo un presidio rinviato. Correzione avviata in `2.249.35`.

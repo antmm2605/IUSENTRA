@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## Scheduler Avvia tutti 2.249.35 - 2026-06-08
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests/test_scheduler_registry.py -q --tb=short` | OK | 8/8: una fonte legale censita ma fuori fase 9 progressiva completa il presidio rinviato senza produrre failure quando viene avviata dal registro scheduler. |
+| `python -m pytest tests/test_client_portal_api.py tests/test_client_portal_repository.py -q --tb=short` | OK | 11/11: nessuna regressione sul Portale Cliente dopo il fix scheduler e il bump versione. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4: testi italiani e report UTF-8 validi. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml` | OK | Contratti API allineati a `2.249.35` e OpenAPI valido. |
+| `docker compose build --no-cache app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Build no-cache locale passata; container app ricreato, `healthy`, `/api/pronto` verde con versione `2.249.35`. |
+
 ## Portale Cliente full React 2.249.33 in corso - 2026-06-07
 
 | Comando / verifica | Esito | Nota |

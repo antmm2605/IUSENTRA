@@ -85,7 +85,7 @@ def test_agente_fonte_in_osservazione_propone_alternativa_ufficiale(tmp_path: Pa
     assert result["details"][0]["status"] == "in_osservazione"
 
 
-def test_agente_fonte_fuori_step_progressivo_non_parte(tmp_path: Path):
+def test_agente_fonte_fuori_step_progressivo_completa_presidio_rinviato(tmp_path: Path):
     class App:
         config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}
 
@@ -95,7 +95,8 @@ def test_agente_fonte_fuori_step_progressivo_non_parte(tmp_path: Path):
         {"source_code": "inps_sentenze"},
     )
 
-    assert result["ok"] is False
+    assert result["ok"] is True
+    assert "presidio rinviato" in result["summary"]
     assert "fase 9 progressiva" in result["summary"]
     assert result["details"][0]["status"] == "fuori_step_progressivo"
     assert "osservazione" in result["details"][0]["reason"]

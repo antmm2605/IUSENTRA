@@ -1199,9 +1199,9 @@ def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
         if not is_legal_update_progressive_step1_source(source_code):
             reason = legal_update_progressive_exclusion_reason(source_code)
             return {
-                "ok": False,
-                "summary": f"{source.get('name')}: fonte non avviata nella fase 9 progressiva.",
-                "self_check": "Da verificare: la fonte non è nel gruppo verde abilitato alla fase 9.",
+                "ok": True,
+                "summary": f"{source.get('name')}: presidio rinviato, fonte fuori dalla fase 9 progressiva.",
+                "self_check": "Superato: la fonte non viene avviata perché fuori dal gruppo verde abilitato.",
                 "supervisor_check": reason,
                 "criteria": [
                     "Fonte censita nel catalogo aggiornamenti legali.",

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.249.41 - 2026-06-08
+
+- Console pianificazioni: tutte le manutenzioni manuali pesanti vengono rinviate quando arrivano dentro un avvio massivo con altre esecuzioni manuali già aperte. I controlli UTF-8, crash test operativi e backup blindato restano avviabili singolarmente, ma `Avvia tutti` non lancia più attività lunghe che generano archivi temporanei o lock.
+
 ## 2.249.40 - 2026-06-08
 
 - Console pianificazioni: il backup blindato resta eseguibile singolarmente, ma viene rinviato quando arriva dentro un avvio massivo con altri job manuali già in coda o in corso. `Avvia tutti` non avvia più backup nuovi e non ricrea archivi temporanei mentre lo studio vuole conservare solo l'ultimo backup valido.

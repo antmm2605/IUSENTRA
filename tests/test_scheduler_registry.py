@@ -114,6 +114,23 @@ def test_scheduler_registry_accoda_backup_se_richiesto_da_solo(tmp_path: Path):
     assert [run["job_id"] for run in repo.list_requested_runs(limit=10)] == ["operational_backup_nightly"]
 
 
+def test_scheduler_registry_rinvia_crash_test_dentro_avvio_massivo(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+
+    repo.request_manual_run("legal_monitor_daily", requested_by="superadmin")
+    second = repo.request_manual_run("operational_crash_morning", requested_by="superadmin")
+
+    requested = repo.list_requested_runs(limit=10)
+    recent = repo.list_recent_runs(limit=2)
+
+    assert second["status"] == "completed"
+    assert "Manutenzione pesante non avviata" in second["message"]
+    assert [run["job_id"] for run in requested] == ["legal_monitor_daily"]
+    assert recent[0]["job_id"] == "operational_crash_morning"
+    assert recent[0]["result"]["status"] == "manutenzione_massiva_rinviata"
+
+
 def test_scheduler_registry_chiude_manuale_running_da_worker_precedente(tmp_path: Path):
     repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
     repo.upsert_default_jobs({})

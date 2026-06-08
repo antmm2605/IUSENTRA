@@ -12,6 +12,12 @@
 - Azione operativa: il run `operational_backup_nightly` è stato annullato mentre era ancora `requested`, prima dell'avvio reale e senza scrivere archivi nuovi.
 - Fix `2.249.40`: il backup blindato viene registrato come completato/non avviato quando esistono già altre esecuzioni manuali in coda o in corso; resta avviabile se richiesto singolarmente a console libera. Test mirati, UTF-8, contratti e Docker locale reale `127.0.0.1:8080` sono confermati; restano push, check remoti e deploy finale.
 
+## Scheduler Avvia tutti 2.249.41 - 2026-06-08
+
+- Rilevato su produzione `2.249.40`: il backup veniva correttamente rinviato, ma il primo crash test operativo pesante poteva restare `requested` dentro l'avvio massivo.
+- Azione operativa: il run `operational_crash_morning` è stato annullato mentre era ancora `requested`, prima dell'avvio reale.
+- Fix `2.249.41`: tutte le manutenzioni manuali pesanti vengono rinviate se ci sono altre esecuzioni manuali già in coda o in corso; restano avviabili singolarmente. Test mirati, UTF-8, contratti e Docker locale reale `127.0.0.1:8080` sono confermati; restano push, check remoti e deploy finale.
+
 ## Scheduler Avvia tutti 2.249.35 - 2026-06-08
 
 - Rilevato dopo deploy `2.249.34`: premendo `Avvia tutti` su produzione, 78 job vengono accodati correttamente, ma `legal_source_codice_strada` risultava `failed` con messaggio di fonte fuori fase 9 progressiva.

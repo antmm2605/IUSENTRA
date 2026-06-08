@@ -913,6 +913,64 @@ class SchedulerRegistryRepository:
                     )
                     return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
         if job_id in EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS:
+            with self.connect() as conn:
+                open_row = conn.execute(
+                    """
+                    SELECT job_id, status
+                    FROM scheduled_job_runs
+                    WHERE origin='manuale'
+                      AND status IN ('requested', 'running')
+                      AND job_id <> ?
+                    ORDER BY id ASC
+                    LIMIT 1
+                    """,
+                    (job_id,),
+                ).fetchone()
+                if open_row:
+                    blocked_by = str(open_row["job_id"] or "")
+                    message = (
+                        "Manutenzione pesante non avviata dentro un avvio massivo: "
+                        "sono già presenti altre esecuzioni manuali in coda o in corso. "
+                        "Rilancia la singola pianificazione quando la console è libera."
+                    )
+                    conn.execute(
+                        """
+                        INSERT INTO scheduled_job_runs (
+                            run_id, job_id, template_key, origin, status, scheduled_at,
+                            started_at, finished_at, duration_ms, message, result_json,
+                            error_message, requested_by, created_at
+                        )
+                        VALUES (?, ?, ?, 'manuale', 'completed', ?, ?, ?, 0, ?, ?, '', ?, ?)
+                        """,
+                        (
+                            run_id,
+                            job_id,
+                            str(job.get("template_key") or ""),
+                            now,
+                            now,
+                            now,
+                            message,
+                            _json_dumps(
+                                {
+                                    "ok": True,
+                                    "status": "manutenzione_massiva_rinviata",
+                                    "summary": message,
+                                    "blocked_by": blocked_by,
+                                    "details": [
+                                        {
+                                            "job_id": job_id,
+                                            "status": "non_avviata",
+                                            "blocked_by": blocked_by,
+                                        }
+                                    ],
+                                }
+                            ),
+                            requested_by,
+                            now,
+                        ),
+                    )
+                    return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
+        if job_id in EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS:
             placeholders = ",".join("?" for _ in EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS)
             params = tuple(sorted(EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS))
             with self.connect() as conn:

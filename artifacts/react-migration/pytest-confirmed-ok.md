@@ -10,6 +10,9 @@
 | `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml` | OK | Contratti API allineati a `2.249.35` e OpenAPI valido. |
 | `python -c "import pathlib, yaml; yaml.safe_load(...)"` | OK | Workflow supply-chain validato dopo il passaggio da `anchore/sbom-action` a installazione Syft con retry e checksum esplicito. |
 | `docker compose build --no-cache app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Build no-cache locale passata; container app ricreato, `healthy`, `/api/pronto` verde con versione `2.249.35`. |
+| GitHub check-run SHA `fa2552d755d1ed2484c0b0335afc815ddeee4b47` | OK | 175/175 check-run completati con successo dopo fix SBOM; CodeQL/Analyze, lint, governance, smoke, Coverage, Pytest core e Local Signer verdi. Lo status esterno non richiesto `Vercel` resta cancellato da dashboard e non è fra gli 86 required checks dei due branch protetti. |
+| Deploy Hetzner manuale no-backup; `GET https://app.iusentra.it/api/pronto` | OK | Server `/opt/iusentra/repo` su `fa2552d7`, container `app`, `scheduler-worker` e `ocr-worker` healthy, `/api/pronto` pubblico verde con versione `2.249.35`; cache build Docker potata e `/opt/iusentra/tmp-backup-snapshot` assente. |
+| Produzione `Avvia tutti` su `/admin/pianificazioni` | OK | 78 job richiesti, errori di accodamento zero. Dopo 60 secondi: nessuna failure recente nella superficie scheduler, `legal_source_codice_strada` verificato nel container con `ok=True` e messaggio `presidio rinviato`. |
 
 ## Portale Cliente full React 2.249.33 in corso - 2026-06-07
 

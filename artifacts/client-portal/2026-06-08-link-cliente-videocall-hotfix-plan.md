@@ -60,3 +60,4 @@ WhatsApp Web resta un'azione manuale dello studio nel browser: nessuna credenzia
 - Verificati test API, gate React, UTF-8, Docker reale `127.0.0.1:8080`, browser desktop e mobile.
 - Commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner senza backup completati per `2.249.34`.
 - Dopo il deploy finale è stato rilanciato `Avvia tutti` in produzione: 78 job richiesti e zero errori di accodamento; il controllo ha evidenziato che `legal_source_codice_strada`, fuori dalla fase 9 progressiva, veniva conteggiato come failure pur essendo un presidio rinviato. Correzione avviata in `2.249.35`.
+- `2.249.35`: corretta la failure impropria, reso robusto il workflow SBOM, completati test locali, Docker reale, push branch gemelli, 175 check-run GitHub verdi, deploy Hetzner no-backup e nuova esecuzione `Avvia tutti` sul deployment definitivo.

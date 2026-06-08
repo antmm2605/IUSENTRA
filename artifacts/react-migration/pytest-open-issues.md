@@ -4,8 +4,10 @@
 
 - Rilevato dopo deploy `2.249.34`: premendo `Avvia tutti` su produzione, 78 job vengono accodati correttamente, ma `legal_source_codice_strada` risultava `failed` con messaggio di fonte fuori fase 9 progressiva.
 - Valutazione: non è un errore operativo né un problema di fonte irraggiungibile; è un presidio governato fuori dal gruppo verde. Deve chiudersi come esecuzione completata con dettaglio `fuori_step_progressivo`, senza sporcare il contatore failure quando l'utente avvia tutti.
-- Fix `2.249.35`: risolto localmente con `pct/scheduler_registry.py`, test mirato `tests/test_scheduler_registry.py`, OpenAPI/versione e Docker reale `127.0.0.1:8080`; restano commit, push, check GitHub e deploy Hetzner finale.
+- Fix `2.249.35`: risolto con `pct/scheduler_registry.py`, test mirato `tests/test_scheduler_registry.py`, OpenAPI/versione, Docker reale `127.0.0.1:8080`, push branch gemelli, 175 check-run GitHub verdi e deploy Hetzner finale.
 - Durante i check remoti `Generate SBOM` ha fallito due volte per HTTP 504 sul download `syft_1.42.3_checksums.txt`: aggiornato `.github/workflows/security-supply-chain.yml` per installare Syft con retry e checksum esplicito.
+- Durante il deploy finale il server era al 100% disco: liberati solo log/cache temporanee e cache Docker rigenerabile, senza toccare dati applicativi, volumi o backup. Deploy manuale no-backup completato su `2.249.35`.
+- Nessuna issue di codice aperta sul perimetro `Avvia tutti` dopo verifica produzione: `legal_source_codice_strada` torna `ok=True` come presidio rinviato.
 
 ## Portale Cliente link cliente, bottoni e videocall 2.249.34 - 2026-06-08
 

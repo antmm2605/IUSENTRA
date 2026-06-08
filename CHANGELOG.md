@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.249.36 - 2026-06-08
+
+- Console pianificazioni: l'avvio manuale di una pianificazione disattivata viene registrato come presidio non avviato e non produce failure; i pulsanti delle righe pausate sono disabilitati e leggibili.
+
 ## 2.249.35 - 2026-06-08
 
 - Scheduler superadmin: le fonti legali censite ma fuori dal gruppo verde della fase 9 progressiva non generano più una failure quando si usa `Avvia tutti`; l'esecuzione viene chiusa come presidio rinviato e resta tracciata nel dettaglio.

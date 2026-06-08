@@ -69,6 +69,22 @@ def test_scheduler_registry_crea_agenti_fonte_legale_da_catalogo(tmp_path: Path)
     assert ga_job["enabled"] is False
 
 
+def test_scheduler_registry_non_accoda_pianificazioni_disattivate(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    repo.save_job("legal_updates_batch", {"enabled": False}, updated_by="system")
+
+    request = repo.request_manual_run("legal_updates_batch", requested_by="superadmin")
+
+    assert request["status"] == "completed"
+    assert "disattivata" in request["message"]
+    assert repo.list_requested_runs(limit=5) == []
+    recent = repo.list_recent_runs(limit=1)[0]
+    assert recent["run_id"] == request["run_id"]
+    assert recent["status"] == "completed"
+    assert recent["message"] == "Pianificazione disattivata: esecuzione non avviata."
+
+
 def test_agente_fonte_in_osservazione_propone_alternativa_ufficiale(tmp_path: Path):
     class App:
         config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}

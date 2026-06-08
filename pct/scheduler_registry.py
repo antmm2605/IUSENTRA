@@ -16,7 +16,6 @@ from uuid import uuid4
 from pct.legal_update_autofetch import (
     LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
     LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
-    LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES,
     is_legal_update_progressive_step1_source,
     legal_update_progressive_exclusion_reason,
 )
@@ -814,6 +813,38 @@ class SchedulerRegistryRepository:
             raise ValueError("Pianificazione non trovata.")
         run_id = uuid4().hex
         now = _iso()
+        if not job.get("enabled"):
+            message = "Pianificazione disattivata: esecuzione non avviata."
+            with self.connect() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO scheduled_job_runs (
+                        run_id, job_id, template_key, origin, status, scheduled_at,
+                        started_at, finished_at, duration_ms, message, result_json,
+                        error_message, requested_by, created_at
+                    )
+                    VALUES (?, ?, ?, 'manuale', 'completed', ?, ?, ?, 0, ?, ?, '', ?, ?)
+                    """,
+                    (
+                        run_id,
+                        job_id,
+                        str(job.get("template_key") or ""),
+                        now,
+                        now,
+                        now,
+                        message,
+                        _json_dumps(
+                            {
+                                "ok": True,
+                                "summary": message,
+                                "details": [{"job_id": job_id, "status": "disattivata"}],
+                            }
+                        ),
+                        requested_by,
+                        now,
+                    ),
+                )
+            return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
         with self.connect() as conn:
             conn.execute(
                 """

@@ -4435,3 +4435,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Browser integrato su `http://127.0.0.1:8080/app/portale-clienti` e `/portale-cliente` | OK | Verificati ricerca cliente `Moscato`, associazione fascicoli collegati, generazione link completo, `Copia link`, `Apri vista cliente`, `Invia con WhatsApp Web`, contrasto pulsanti, proposta videocall, orario italiano `13/06/2026 10:30`, ingresso cliente e dashboard completa con `Apri videocall`; console senza errori. |
 | Browser integrato post no-cache su `http://127.0.0.1:8080/portale-cliente` | OK | Reload finale dopo rebuild no-cache: area cliente, `Scrivi allo studio`, `Apri chat`, `Apri videocall`, orario `13/06/2026 10:30` e console pulita confermati. |
 | Browser mobile `390x844` su `/portale-cliente` | OK | Vista cliente responsive senza overflow orizzontale (`scrollWidth=375`, `innerWidth=390`), pulsanti leggibili e videocall visibile. Screenshot: `C:\Users\antmm\AppData\Local\Temp\iusentra-client-portal-2.249.34\cliente-desktop.png`, `C:\Users\antmm\AppData\Local\Temp\iusentra-client-portal-2.249.34\cliente-mobile.png`. |
+
+## Console pianificazioni Avvia tutti 2.249.36 - 2026-06-08
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_scheduler_registry.py tests/test_scheduler_admin.py -q --tb=short` | OK | 14/14 passati: le pianificazioni disattivate non vengono più accodate come template non autorizzati e la console resta accessibile al superadmin. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati dopo le nuove stringhe visibili della console pianificazioni. |
+| `python -m ruff check pct/scheduler_registry.py web/services/scheduler_admin_surface.py tests/test_scheduler_registry.py tests/test_scheduler_admin.py` | OK | Ruff mirato verde dopo la rimozione dell'import non usato nel registry scheduler. |
+| `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python tools/sync_packaging_files.py --check`; `git diff --check` | OK | OpenAPI e mappe contratti riallineate alla versione `2.249.36`; packaging sincronizzato e diff senza errori whitespace. |
+| `docker compose build --no-cache app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto`; `docker compose ps app` | OK | Copia Docker locale reale su `127.0.0.1:8080` ricreata e `healthy`; `/api/pronto` risponde con versione `2.249.36`. |

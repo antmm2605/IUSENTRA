@@ -1412,6 +1412,12 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Manutenzione server | Test mirati e deploy Hetzner | Risolto localmente, da verificare sul nuovo SHA remoto | Il superadmin può distinguere studi attivi da cartelle legacy, applicare retention a una sola copia, pulire Normattiva duplicata, log, snapshot temporanei e cache Docker senza cancellare dati applicativi vivi. | Dopo push/deploy verificare su Hetzner che resti un solo backup completo per studio, nessun `_tmp.zip`, nessuna cartella tenant legacy attiva e `/api/pronto` sul commit distribuito. |
 | Dati runtime locali durante test e Docker | `git status --short` | Governato | I file sotto `data/**` risultano modificati come stato runtime utente e non fanno parte del commit PEC Control Tower. | Non committare dati tenant/runtime; mantenere nel commit solo sorgente, SQL, API, test, script e documentazione. |
 
+## Note Portale Cliente e console pianificazioni 2.249.36 - 2026-06-08
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `Avvia tutti` su produzione | Ispezione run scheduler e test mirati | Risolto localmente, da verificare sul nuovo SHA remoto | Il job storico `legal_updates_gazzetta`, già disattivato dalla fase 9, veniva comunque accodato e finiva nel runner dei template delegati con `Template agente non autorizzato`. | `request_manual_run` registra le pianificazioni disattivate come completate/non avviate; la UI mostra `Pausata` disabilitato. Dopo push/deploy rilanciare `Avvia tutti` e controllare che non compaiano failure nuove per job disattivati. |
+
 ## Note baseline struttura dati tenant 2.249.26 - 2026-06-07
 
 | Area | Gate | Stato | Nota | Azione |

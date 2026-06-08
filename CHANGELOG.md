@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.249.38 - 2026-06-08
+
+- Console pianificazioni: le esecuzioni manuali restano in stato `requested` finché il worker non le avvia davvero; al riavvio del worker le richieste manuali rimaste aperte dal processo precedente vengono chiuse come interrotte, così `Avvia tutti` non mostra job falsamente in corso.
+
 ## 2.249.37 - 2026-06-08
 
 - Console pianificazioni: i canary fonte completati senza pubblicazioni non vengono più marcati come failure; una fonte come `Corte dei Conti` risulta completata quando legge/processa documenti senza timeout né errori interni.

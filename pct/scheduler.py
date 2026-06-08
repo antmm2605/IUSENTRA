@@ -11,6 +11,7 @@ Avviato da un worker dedicato tramite pct.scheduler_worker.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import logging
 import os
 from pathlib import Path
@@ -927,7 +928,7 @@ def start_scheduler(app):
                             config_error,
                         )
 
-                    snapshot = service.save_snapshot(target["snapshot_db"])
+                    service.save_snapshot(target["snapshot_db"])
                     processed_targets += 1
                     logger.info(
                         "[scheduler] Workspace intelligence %s: snapshot aggiornato con conteggi redatti",
@@ -1249,6 +1250,16 @@ def start_scheduler(app):
 
         registry_repo = scheduler_registry_repository(app.config)
         registry_repo.upsert_default_jobs(app.config)
+        startup_cutoff = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        recovered = registry_repo.cancel_manual_runs_started_before(
+            startup_cutoff,
+            reason="Esecuzione interrotta dal riavvio del worker; rilanciare dalla console.",
+        )
+        if recovered.get("cancelled"):
+            logger.warning(
+                "[scheduler] Richieste manuali rimaste aperte dal worker precedente chiuse: %d",
+                int(recovered.get("cancelled") or 0),
+            )
 
         def _scheduler_registry_tick():
             with app.app_context():

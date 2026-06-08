@@ -85,6 +85,37 @@ def test_scheduler_registry_non_accoda_pianificazioni_disattivate(tmp_path: Path
     assert recent["message"] == "Pianificazione disattivata: esecuzione non avviata."
 
 
+def test_scheduler_registry_chiude_manuale_running_da_worker_precedente(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+
+    with repo.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO scheduled_job_runs (
+                run_id, job_id, template_key, origin, status, scheduled_at,
+                started_at, finished_at, duration_ms, message, result_json,
+                error_message, requested_by, created_at
+            )
+            VALUES ('old-run', 'legal_source_corte_conti', 'legal_source_scan__corte_conti',
+                'manuale', 'running', '2026-06-08T10:18:37Z',
+                '2026-06-08T10:19:04Z', '', 0, 'Esecuzione in corso.',
+                '{}', '', 'codex', '2026-06-08T10:18:37Z')
+            """
+        )
+
+    result = repo.cancel_manual_runs_started_before(
+        "2026-06-08T10:30:00Z",
+        reason="Esecuzione interrotta dal riavvio del worker; rilanciare dalla console.",
+    )
+    recent = repo.list_recent_runs(limit=1)[0]
+
+    assert result == {"cancelled": 1}
+    assert recent["run_id"] == "old-run"
+    assert recent["status"] == "cancelled"
+    assert "riavvio del worker" in recent["message"]
+
+
 def test_agente_fonte_in_osservazione_propone_alternativa_ufficiale(tmp_path: Path):
     class App:
         config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}
@@ -249,7 +280,7 @@ def test_scheduler_registry_applica_agenti_e_richieste_manuali(monkeypatch, tmp_
     assert any(str(call["id"]).startswith("manual_") for call in calls)
     recent = repo.list_recent_runs(limit=1)[0]
     assert recent["run_id"] == request["run_id"]
-    assert recent["status"] == "running"
+    assert recent["status"] == "requested"
 
     manual_job_id = next(str(call["id"]) for call in calls if str(call["id"]).startswith("manual_"))
     scheduler.jobs[manual_job_id]()

@@ -980,6 +980,55 @@ class SchedulerRegistryRepository:
             )
         return {"cancelled": len(rows), "running": running, "requested": requested}
 
+    def cancel_manual_runs_started_before(self, cutoff_iso: str, *, reason: str = "") -> dict[str, int]:
+        cutoff = str(cutoff_iso or "").strip()
+        if not cutoff:
+            return {"cancelled": 0}
+        now = _iso()
+        message = (
+            " ".join(str(reason or "").split())
+            or "Esecuzione interrotta dal riavvio del worker; rilanciare dalla console."
+        )
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT run_id, started_at
+                FROM scheduled_job_runs
+                WHERE origin='manuale'
+                  AND status='running'
+                  AND COALESCE(started_at, created_at, '') < ?
+                """,
+                (cutoff,),
+            ).fetchall()
+            for row in rows:
+                started_at = str(row["started_at"] or now)
+                conn.execute(
+                    """
+                    UPDATE scheduled_job_runs
+                    SET status='cancelled',
+                        finished_at=?,
+                        duration_ms=?,
+                        message=?,
+                        error_message='',
+                        result_json=?
+                    WHERE run_id=?
+                    """,
+                    (
+                        now,
+                        _duration_ms(started_at, now),
+                        message,
+                        _json_dumps(
+                            {
+                                "ok": False,
+                                "status": "interrotta_riavvio_worker",
+                                "summary": message,
+                            }
+                        ),
+                        str(row["run_id"]),
+                    ),
+                )
+        return {"cancelled": len(rows)}
+
     def record_scheduler_event(
         self,
         job_id: str,
@@ -1513,7 +1562,6 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
         existing = scheduler.get_job(job_id)
         manual_job_id = f"manual_{job_id}_{run_id[:8]}"
         try:
-            repo.mark_run_running(run_id)
             if existing and job.get("built_in"):
                 scheduler.add_job(
                     _run_existing_scheduler_job,

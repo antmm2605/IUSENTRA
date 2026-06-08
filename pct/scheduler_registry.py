@@ -1282,12 +1282,23 @@ def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
         documents_found = sum(int(row.get("documents_found") or 0) for row in inner_rows)
         processed = sum(int(row.get("processed") or 0) for row in inner_rows)
         skipped = sum(int(row.get("skipped_unchanged") or 0) for row in inner_rows)
-        ok = bool(report.get("ok"))
+        row_errors = [
+            str(row.get("error") or "").strip()
+            for row in inner_rows
+            if str(row.get("error") or "").strip()
+        ]
+        payload_error = str(payload.get("error") or "").strip()
+        if payload_error:
+            row_errors.append(payload_error)
+        source_timeout = bool(source_report.get("timeout"))
+        source_completed = bool(source_report.get("ok")) and not row_errors and not source_timeout
+        read_completed = not row_errors and not source_timeout and (documents_found > 0 or processed > 0 or skipped > 0)
+        ok = source_completed or read_completed
         summary = (
             f"{source.get('name')}: {documents_found} documenti trovati, "
             f"{processed} lavorati, {skipped} invariati."
         )
-        if not ok and source_report.get("timeout"):
+        if not ok and source_timeout:
             summary = f"{source.get('name')}: timeout dopo {timeout_seconds} secondi."
         elif not ok:
             summary = f"{source.get('name')}: controllo non completato."
@@ -1309,6 +1320,7 @@ def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
                     "processed": processed,
                     "skipped_unchanged": skipped,
                     "timeout_seconds": timeout_seconds,
+                    "errors": row_errors,
                 }
             ],
             "report": report,

@@ -4445,3 +4445,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m ruff check pct/scheduler_registry.py web/services/scheduler_admin_surface.py tests/test_scheduler_registry.py tests/test_scheduler_admin.py` | OK | Ruff mirato verde dopo la rimozione dell'import non usato nel registry scheduler. |
 | `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python tools/sync_packaging_files.py --check`; `git diff --check` | OK | OpenAPI e mappe contratti riallineate alla versione `2.249.36`; packaging sincronizzato e diff senza errori whitespace. |
 | `docker compose build --no-cache app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto`; `docker compose ps app` | OK | Copia Docker locale reale su `127.0.0.1:8080` ricreata e `healthy`; `/api/pronto` risponde con versione `2.249.36`. |
+
+## Console pianificazioni canary fonti 2.249.37 - 2026-06-08
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_scheduler_registry.py tests/test_scheduler_admin.py -q --tb=short` | OK | 15/15 passati: il canary fonte completato senza pubblicazioni nuove non viene più marcato come failure quando ha letto/processato documenti senza timeout né errori. |
+| `python -m ruff check pct/scheduler_registry.py web/services/scheduler_admin_surface.py tests/test_scheduler_registry.py tests/test_scheduler_admin.py` | OK | Ruff mirato verde sul registry scheduler, superficie console e test collegati. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati dopo la nuova nota di changelog e la copy operativa. |
+| `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python tools/sync_packaging_files.py --check`; `git diff --check` | OK | OpenAPI rigenerato e riallineato alla versione `2.249.37`; packaging sincronizzato e diff senza errori whitespace. |
+| `docker compose build --no-cache app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto`; `docker compose ps app` | OK | Copia Docker locale reale su `127.0.0.1:8080` ricreata e `healthy`; `/api/pronto` risponde con versione `2.249.37`. |

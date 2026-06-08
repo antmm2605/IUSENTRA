@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.249.37 - 2026-06-08
+
+- Console pianificazioni: i canary fonte completati senza pubblicazioni non vengono più marcati come failure; una fonte come `Corte dei Conti` risulta completata quando legge/processa documenti senza timeout né errori interni.
+
 ## 2.249.36 - 2026-06-08
 
 - Console pianificazioni: l'avvio manuale di una pianificazione disattivata viene registrato come presidio non avviato e non produce failure; i pulsanti delle righe pausate sono disabilitati e leggibili.

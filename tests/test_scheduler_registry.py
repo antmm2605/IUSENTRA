@@ -118,6 +118,47 @@ def test_agente_fonte_fuori_step_progressivo_completa_presidio_rinviato(tmp_path
     assert "osservazione" in result["details"][0]["reason"]
 
 
+def test_agente_fonte_processata_senza_pubblicazione_non_diventa_failure(monkeypatch, tmp_path: Path):
+    class App:
+        config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}
+
+    def fake_batch(*args, **kwargs):
+        return {
+            "ok": False,
+            "reports": [
+                {
+                    "ok": False,
+                    "payload": {
+                        "report": {
+                            "reports": [
+                                {
+                                    "documents_found": 10,
+                                    "processed": 10,
+                                    "skipped_unchanged": 0,
+                                }
+                            ]
+                        }
+                    },
+                    "timeout": False,
+                }
+            ],
+            "timeouts": 0,
+            "autopublished": {"count": 0, "reports": []},
+        }
+
+    monkeypatch.setattr("pct.legal_update_batch_runner.run_legal_update_batch_with_timeouts", fake_batch)
+
+    result = run_delegated_agent_template(
+        "legal_source_scan__corte_conti",
+        App(),
+        {"source_code": "corte_conti"},
+    )
+
+    assert result["ok"] is True
+    assert "10 documenti trovati" in result["summary"]
+    assert result["details"][0]["errors"] == []
+
+
 def test_delegated_agent_autoverifica_percorso_mancante(tmp_path: Path):
     class App:
         config = {"CLIENTI_DB": str(tmp_path / "clienti.json")}

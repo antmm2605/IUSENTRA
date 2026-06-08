@@ -1417,6 +1417,7 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | `Avvia tutti` su produzione | Ispezione run scheduler e test mirati | Risolto localmente, da verificare sul nuovo SHA remoto | Il job storico `legal_updates_gazzetta`, già disattivato dalla fase 9, veniva comunque accodato e finiva nel runner dei template delegati con `Template agente non autorizzato`. | `request_manual_run` registra le pianificazioni disattivate come completate/non avviate; la UI mostra `Pausata` disabilitato. Dopo push/deploy rilanciare `Avvia tutti` e controllare che non compaiano failure nuove per job disattivati. |
+| Canary fonte `Corte dei Conti` | Test mirato registry scheduler e verifica diretta produzione | Risolto localmente, da verificare sul nuovo SHA remoto | La fonte poteva leggere/processare documenti reali senza pubblicarne di nuovi, ma il wrapper trasformava il report aggregato `ok=False` in failure della pianificazione. | `2.249.37` considera completato il canary quando non ci sono timeout né errori interni e sono stati trovati/processati/scartati documenti. Dopo deploy rilanciare `Avvia tutti` e controllare che `legal_source_corte_conti` risulti `ok=True`. |
 
 ## Note baseline struttura dati tenant 2.249.26 - 2026-06-07
 

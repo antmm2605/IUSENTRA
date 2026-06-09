@@ -446,6 +446,321 @@ def _euro(value: Any) -> str:
     return f"EUR {text}"
 
 
+PAYMENT_KINDS = (
+    "contributo_unificato",
+    "fondo_spese",
+    "liquidazione_giudice",
+    "parcella",
+)
+
+PAYMENT_KIND_LABELS = {
+    "contributo_unificato": "Contributo unificato",
+    "fondo_spese": "Fondo spese",
+    "liquidazione_giudice": "Liquidazione giudice",
+    "parcella": "Parcella",
+}
+
+PAYMENT_KIND_ALIASES = {
+    "cu": "contributo_unificato",
+    "contributo": "contributo_unificato",
+    "contributo_unificato": "contributo_unificato",
+    "contributo unificato": "contributo_unificato",
+    "fondo": "fondo_spese",
+    "fondo_spese": "fondo_spese",
+    "fondo spese": "fondo_spese",
+    "anticipazione": "fondo_spese",
+    "anticipazioni": "fondo_spese",
+    "liquidazione": "liquidazione_giudice",
+    "liquidazione_giudice": "liquidazione_giudice",
+    "liquidazione giudice": "liquidazione_giudice",
+    "parcella": "parcella",
+    "parcelle": "parcella",
+}
+
+PAYMENT_STATUS_LABELS = {
+    "non_previsto": "Non previsto",
+    "da_registrare": "Da registrare",
+    "pagato": "Pagato",
+    "parziale": "Parziale",
+    "da_emettere": "Da emettere",
+}
+
+PAYMENT_STATUS_TONES = {
+    "non_previsto": "neutral",
+    "da_registrare": "warning",
+    "pagato": "success",
+    "parziale": "orange",
+    "da_emettere": "warning",
+}
+
+PAYMENT_DEFAULT_STATUS = {
+    "contributo_unificato": "da_registrare",
+    "fondo_spese": "da_registrare",
+    "liquidazione_giudice": "non_previsto",
+    "parcella": "da_emettere",
+}
+
+
+def _normalise_payment_kind(value: Any) -> str:
+    raw = _text(value).lower().replace("-", "_").replace(".", "_")
+    raw = re.sub(r"\s+", " ", raw.replace("_", " ")).strip()
+    compact = raw.replace(" ", "_")
+    return PAYMENT_KIND_ALIASES.get(compact) or PAYMENT_KIND_ALIASES.get(raw) or ""
+
+
+def _normalise_payment_status(value: Any, *, default: str = "") -> str:
+    raw = _text(value).lower().replace("-", "_").replace(".", "_")
+    raw = re.sub(r"\s+", "_", raw).strip("_")
+    if raw in {"si", "sì", "yes", "true", "1", "paid", "pagata", "pagato", "saldata", "saldato"}:
+        return "pagato"
+    if raw in {"no", "false", "0", "non_pagato", "non_pagate", "non_pagata", "da_registrare", "mancante"}:
+        return "da_registrare"
+    if raw in {"non_previsto", "non_prevista", "non_previste", "escluso", "esclusa"}:
+        return "non_previsto"
+    if raw in {"parziale", "pagamento_parziale", "acconto"}:
+        return "parziale"
+    if raw in {"da_emettere", "emettere", "non_emessa", "non_emesso"}:
+        return "da_emettere"
+    return default
+
+
+def _payment_amount_value(value: Any) -> float | None:
+    if value is None:
+        return None
+    raw = _text(value)
+    if raw == "":
+        return None
+    cleaned = raw.replace("EUR", "").replace("eur", "").replace("€", "").replace(" ", "").strip()
+    if "," in cleaned:
+        cleaned = cleaned.replace(".", "").replace(",", ".")
+    try:
+        number = float(cleaned)
+    except (TypeError, ValueError):
+        return None
+    return round(number, 2)
+
+
+def _amount_label(value: float | None) -> str:
+    return _euro(value) if value is not None else ""
+
+
+def _payment_source_for_kind(payments: Any, kind: str) -> dict[str, Any]:
+    if not isinstance(payments, dict):
+        return {}
+    for key, value in payments.items():
+        if _normalise_payment_kind(key) == kind and isinstance(value, dict):
+            return dict(value)
+    return {}
+
+
+def _payment_history(raw: dict[str, Any]) -> list[dict[str, str]]:
+    rows = raw.get("history") or raw.get("storico") or []
+    out: list[dict[str, str]] = []
+    if not isinstance(rows, list):
+        return out
+    for entry in rows[-8:]:
+        if not isinstance(entry, dict):
+            continue
+        out.append(
+            {
+                "at": _text(entry.get("at") or entry.get("quando")),
+                "by": _text(entry.get("by") or entry.get("operatore")),
+                "fromStatus": _normalise_payment_status(entry.get("fromStatus") or entry.get("stato_precedente"), default=""),
+                "toStatus": _normalise_payment_status(entry.get("toStatus") or entry.get("stato_nuovo"), default=""),
+                "fromImporto": _amount_label(_payment_amount_value(entry.get("fromImporto") or entry.get("importo_precedente"))),
+                "toImporto": _amount_label(_payment_amount_value(entry.get("toImporto") or entry.get("importo_nuovo"))),
+                "note": _short(entry.get("note"), 160),
+            }
+        )
+    return out
+
+
+def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
+    default_status = PAYMENT_DEFAULT_STATUS[kind]
+    status = _normalise_payment_status(raw.get("status") or raw.get("stato"), default="")
+    if not status:
+        if raw.get("previsto") is False or raw.get("prevista") is False:
+            status = "non_previsto"
+        elif raw.get("pagato") is True or raw.get("pagata") is True:
+            status = "pagato"
+        else:
+            status = default_status
+    if kind != "parcella" and status == "da_emettere":
+        status = "da_registrare"
+    amount = _payment_amount_value(raw.get("importo") if "importo" in raw else raw.get("amount"))
+    payment_date = _text(raw.get("data_pagamento") or raw.get("dataPagamento") or raw.get("date"))
+    return {
+        "kind": kind,
+        "label": PAYMENT_KIND_LABELS[kind],
+        "status": status,
+        "statusLabel": PAYMENT_STATUS_LABELS[status],
+        "tone": PAYMENT_STATUS_TONES[status],
+        "pagato": status == "pagato",
+        "previsto": status != "non_previsto",
+        "importo": amount,
+        "importoLabel": _amount_label(amount),
+        "valuta": _text(raw.get("valuta") or raw.get("currency"), "EUR"),
+        "dataPagamento": _date_label(payment_date) if payment_date else "",
+        "dataPagamentoIso": payment_date,
+        "metodo": _text(raw.get("metodo") or raw.get("method") or raw.get("metodo_pagamento")),
+        "note": _italian_dates_in_text(raw.get("note")),
+        "updatedAt": _text(raw.get("updated_at") or raw.get("updatedAt")),
+        "updatedAtLabel": _date_label(raw.get("updated_at") or raw.get("updatedAt")) if _text(raw.get("updated_at") or raw.get("updatedAt")) else "",
+        "updatedBy": _text(raw.get("updated_by") or raw.get("updatedBy")),
+        "updateAction": f"/api/v1/ui/fascicoli/{quote(fid, safe='')}/pagamenti/{kind}",
+        "history": _payment_history(raw),
+    }
+
+
+def payment_summary_for_fascicolo(fascicolo: Any) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    items = {
+        kind: _payment_item(kind, _payment_source_for_kind(payments, kind), fid)
+        for kind in PAYMENT_KINDS
+    }
+    expected = [item for item in items.values() if item["previsto"]]
+    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"}]
+    paid = [item for item in expected if item["status"] == "pagato"]
+    if not expected:
+        state = "non_previsto"
+    elif not missing:
+        state = "completo"
+    elif paid:
+        state = "parziale"
+    else:
+        state = "da_presidiare"
+    total_registered = sum(
+        float(item["importo"] or 0.0)
+        for item in items.values()
+        if item["status"] in {"pagato", "parziale"} and item["importo"] is not None
+    )
+    advances_to_recover = sum(
+        float(item["importo"] or 0.0)
+        for kind, item in items.items()
+        if kind in {"contributo_unificato", "fondo_spese"} and item["status"] in {"da_registrare", "parziale"} and item["importo"] is not None
+    )
+    latest = max((_text(item["updatedAt"]) for item in items.values()), default="")
+    updated_by = ""
+    if latest:
+        updated_by = next((_text(item["updatedBy"]) for item in items.values() if _text(item["updatedAt"]) == latest), "")
+    state_labels = {
+        "completo": "Completo",
+        "parziale": "Parziale",
+        "da_presidiare": "Da presidiare",
+        "non_previsto": "Non previsto",
+    }
+    state_tones = {
+        "completo": "success",
+        "parziale": "orange",
+        "da_presidiare": "warning",
+        "non_previsto": "neutral",
+    }
+    return {
+        "stato": state,
+        "statoLabel": state_labels[state],
+        "tone": state_tones[state],
+        "totaleRegistrato": round(total_registered, 2),
+        "totaleRegistratoLabel": _euro(total_registered),
+        "anticipazioniDaRecuperare": round(advances_to_recover, 2),
+        "anticipazioniDaRecuperareLabel": _euro(advances_to_recover),
+        "parcelleDaEmettere": 1 if items["parcella"]["status"] == "da_emettere" else 0,
+        "mancanti": len(missing),
+        "updatedAt": latest,
+        "updatedAtLabel": _date_label(latest) if latest else "",
+        "updatedBy": updated_by,
+        "items": items,
+    }
+
+
+def _payment_date_iso(value: Any) -> tuple[str, str]:
+    raw = _text(value)
+    if not raw:
+        return "", ""
+    parsed = _parse_date(raw)
+    if not parsed:
+        return "", "Inserisci una data valida."
+    return parsed.isoformat(), ""
+
+
+def update_react_fascicolo_payment(
+    *,
+    get_fascicoli: Callable[[], Any],
+    id_fasc: str,
+    kind: str,
+    payload: dict[str, Any],
+    actor: str = "",
+) -> tuple[dict[str, Any], int]:
+    normalized_kind = _normalise_payment_kind(kind)
+    if normalized_kind not in PAYMENT_KINDS:
+        return {"ok": False, "message": "Voce economica non riconosciuta.", "errors": {"kind": "Voce economica non riconosciuta."}}, 400
+    repo = get_fascicoli()
+    fascicolo = _resolve_fascicolo(repo, id_fasc)
+    if not fascicolo:
+        return {"ok": False, "message": "Fascicolo non trovato.", "errors": {"fascicolo": "Fascicolo non trovato."}}, 404
+    raw_status = _text(payload.get("status") or payload.get("stato"))
+    status = _normalise_payment_status(raw_status, default="")
+    if not status:
+        status = PAYMENT_DEFAULT_STATUS[normalized_kind]
+    if normalized_kind != "parcella" and status == "da_emettere":
+        status = "da_registrare"
+    amount = _payment_amount_value(payload.get("importo") if "importo" in payload else payload.get("amount"))
+    if amount is not None and amount < 0:
+        return {"ok": False, "message": "L'importo non può essere negativo.", "errors": {"importo": "L'importo non può essere negativo."}}, 400
+    date_iso, date_error = _payment_date_iso(payload.get("dataPagamento") or payload.get("data_pagamento") or payload.get("date"))
+    if date_error:
+        return {"ok": False, "message": date_error, "errors": {"dataPagamento": date_error}}, 400
+
+    payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
+    previous_raw = _payment_source_for_kind(payments, normalized_kind)
+    previous = _payment_item(normalized_kind, previous_raw, _text(getattr(fascicolo, "id", id_fasc)))
+    history = list(previous_raw.get("history") or previous_raw.get("storico") or [])
+    now = _now()
+    operator = _text(actor, "Operatore")
+    history.append(
+        {
+            "at": now,
+            "by": operator,
+            "fromStatus": previous["status"],
+            "toStatus": status,
+            "fromImporto": previous.get("importo"),
+            "toImporto": amount,
+            "note": _short(payload.get("note"), 160),
+        }
+    )
+    payments[normalized_kind] = {
+        "kind": normalized_kind,
+        "label": PAYMENT_KIND_LABELS[normalized_kind],
+        "status": status,
+        "previsto": status != "non_previsto",
+        "pagato": status == "pagato",
+        "importo": amount,
+        "valuta": "EUR",
+        "data_pagamento": date_iso,
+        "metodo": _short(payload.get("metodo") or payload.get("method"), 80),
+        "note": _short(payload.get("note"), 400),
+        "updated_at": now,
+        "updated_by": operator,
+        "history": history[-25:],
+    }
+    fid = _text(getattr(fascicolo, "id", id_fasc))
+    if hasattr(repo, "aggiorna"):
+        fascicolo = repo.aggiorna(fid, pagamenti=payments)
+    else:
+        setattr(fascicolo, "pagamenti", payments)
+        saver = getattr(repo, "_salva", None)
+        if callable(saver):
+            saver()
+    summary = payment_summary_for_fascicolo(fascicolo)
+    return {
+        "ok": True,
+        "message": f"{PAYMENT_KIND_LABELS[normalized_kind]} aggiornato.",
+        "payment": summary["items"][normalized_kind],
+        "paymentSummary": summary,
+        "fascicolo": {"id": fid},
+    }, 200
+
+
 def _bytes_label(value: Any) -> str:
     try:
         size = int(value or 0)
@@ -693,6 +1008,7 @@ def _item_light(
         alerts += 1
     if n_scadenza and _deadline_tone(n_scadenza) in {"danger", "warning"}:
         alerts += 1
+    payment_summary = payment_summary_for_fascicolo(fascicolo)
     relata_summary: dict[str, Any] = {}
     if office_pec_messages is not None:
         fid_for_relata = quote(fid)
@@ -739,6 +1055,7 @@ def _item_light(
         "documents": _fast_documents_count(fascicolo),
         "unreadCommunications": unread,
         "alerts": alerts,
+        "paymentSummary": payment_summary,
         "openedAt": _text(getattr(fascicolo, "data_apertura", "")),
         "closedAt": _text(getattr(fascicolo, "data_chiusura", "")),
         "updatedAt": _text(getattr(fascicolo, "modificato_il", "")),
@@ -772,7 +1089,11 @@ def _all_scadenze_by_fasc(get_scadenziario: Callable[[], Any]) -> dict[str, list
     return _group_scadenze_by_fasc(_open_scadenze(get_scadenziario))
 
 
-def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: int = 0) -> dict[str, int]:
+def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: int = 0) -> dict[str, Any]:
+    economic_to_review = sum(1 for item in items if (item.get("paymentSummary") or {}).get("stato") in {"da_presidiare", "parziale"})
+    invoices_to_issue = sum(int((item.get("paymentSummary") or {}).get("parcelleDaEmettere") or 0) for item in items)
+    registered_amount = round(sum(float((item.get("paymentSummary") or {}).get("totaleRegistrato") or 0.0) for item in items), 2)
+    advances_to_recover = round(sum(float((item.get("paymentSummary") or {}).get("anticipazioniDaRecuperare") or 0.0) for item in items), 2)
     return {
         "total": len(items) + archived_count,
         "active": sum(1 for item in items if item["status"] != "archiviato"),
@@ -785,6 +1106,10 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
         "documents": sum(int(item.get("documents") or 0) for item in items),
         "documentsToClassify": sum(int(item.get("alerts") or 0) for item in items),
         "unreadCommunications": sum(int(item.get("unreadCommunications") or 0) for item in items),
+        "economicToReview": economic_to_review,
+        "invoicesToIssue": invoices_to_issue,
+        "registeredAmount": registered_amount,
+        "advancesToRecover": advances_to_recover,
     }
 
 
@@ -878,6 +1203,7 @@ def _matches_list_filters(
     status_filter: str = "",
     court: str = "",
     alerts_only: bool = False,
+    payments_only: bool = False,
 ) -> bool:
     needle = _text(query).lower()
     if needle:
@@ -908,6 +1234,8 @@ def _matches_list_filters(
     if court_needle and court_needle not in _text(item.get("court")).lower():
         return False
     if alerts_only and not (int(item.get("alerts") or 0) or int(item.get("unreadCommunications") or 0)):
+        return False
+    if payments_only and (item.get("paymentSummary") or {}).get("stato") not in {"da_presidiare", "parziale"}:
         return False
     return True
 
@@ -945,6 +1273,7 @@ def build_react_fascicoli_payload(
     court: str = "",
     sort: str = "rg",
     alerts_only: bool = False,
+    payments_only: bool = False,
 ) -> dict[str, Any]:
     gf = get_fascicoli()
     scadenze_rows = _open_scadenze(get_scadenziario)
@@ -963,6 +1292,7 @@ def build_react_fascicoli_payload(
             status_filter=status_filter,
             court=court,
             alerts_only=alerts_only,
+            payments_only=payments_only,
         )
     ]
     sorted_items = _sort_list_items(filtered, sort)
@@ -2196,9 +2526,11 @@ def _economics(preventivi: list[Any], conferimenti: list[Any], parcelle: list[An
     preventivo_href = f"/preventivi/p/{preventivo_id}" if preventivo_id else f"/preventivi/nuovo?id_fascicolo={fid}"
     conferimento_href = f"/preventivi/conferimento/{conferimento_id}" if conferimento_id else f"/preventivi/conferimento/nuovo?id_fascicolo={fid}"
     parcelle_href = f"/fatturazione?id_documento={parcella_id}" if parcella_id else f"/fatturazione/nuova?id_fascicolo={fid}"
+    payment_summary = payment_summary_for_fascicolo(fascicolo)
     return [
         {"id": "valore", "label": "Valore causa", "value": _euro(getattr(fascicolo, "valore_causa", 0)), "note": "dato fascicolo", "href": "#profilo", "tone": "primary"},
         {"id": "compenso", "label": "Compenso pattuito", "value": _euro(getattr(fascicolo, "compenso_pattuito", 0)), "note": f"{len(conferimenti)} conferimenti", "href": conferimento_href, "tone": "purple"},
+        {"id": "controllo_pagamenti", "label": "Controllo economico", "value": payment_summary["totaleRegistratoLabel"], "note": payment_summary["statoLabel"], "href": "#economia", "tone": payment_summary["tone"]},
         {"id": "parcelle", "label": "Parcelle", "value": _euro(parcelle_total), "note": f"{len(parcelle)} documenti economici", "href": parcelle_href, "tone": "success"},
         _fatturapa_item(parcelle, fascicolo),
         {"id": "tempo", "label": "Tempo", "value": f"{round(minutes/60, 1)} h".replace(".", ","), "note": f"{len(timesheet_entries)} voci timesheet", "href": f"/timesheet?id_fascicolo={fid}", "tone": "info"},
@@ -2530,6 +2862,15 @@ def build_react_fascicoli_export_payload(*, get_fascicoli: Callable[[], Any], ge
             {"key": "date", "label": "Date apertura/chiusura", "checked": True},
             {"key": "avvocato", "label": "Avvocato referente", "checked": True},
             {"key": "economico", "label": "Valori economici", "checked": False},
+            {"key": "contributo_unificato_stato", "label": "Contributo unificato - stato", "checked": True},
+            {"key": "contributo_unificato_importo", "label": "Contributo unificato - importo", "checked": True},
+            {"key": "fondo_spese_stato", "label": "Fondo spese - stato", "checked": True},
+            {"key": "fondo_spese_importo", "label": "Fondo spese - importo", "checked": True},
+            {"key": "liquidazione_giudice_stato", "label": "Liquidazione giudice - stato", "checked": True},
+            {"key": "liquidazione_giudice_importo", "label": "Liquidazione giudice - importo", "checked": True},
+            {"key": "parcella_stato", "label": "Parcella - stato", "checked": True},
+            {"key": "parcella_importo", "label": "Parcella - importo", "checked": True},
+            {"key": "totale_registrato", "label": "Totale registrato", "checked": True},
             {"key": "sync", "label": "Sync e fonte portale", "checked": False},
         ],
         "presets": [

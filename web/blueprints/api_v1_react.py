@@ -98,6 +98,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicoli_payload,
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
+    update_react_fascicolo_payment,
 )
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
 from web.services.react_notifiche_legali_bridge import (
@@ -3901,6 +3902,7 @@ def fascicoli_react_list():
         court=request.args.get("court", ""),
         sort=request.args.get("sort", "rg"),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
+        payments_only=_request_bool("payments_only") or _request_bool("paymentsOnly"),
     ))
 
 
@@ -3921,6 +3923,28 @@ def fascicoli_react_export():
         get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
     ))
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/pagamenti/<kind>")
+@_richiedi_auth
+def fascicolo_react_pagamento(id_fasc: str, kind: str):
+    if not (_api_key_valida() or _session_user_can("fascicoli.scrivi") or _session_user_can("fatturazione.scrivi")):
+        return jsonify({"ok": False, "message": "Operazione non autorizzata.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    result, status = update_react_fascicolo_payment(
+        get_fascicoli=_fascicoli_loader(),
+        id_fasc=id_fasc,
+        kind=kind,
+        payload=_request_payload(),
+        actor=_actor_label(),
+    )
+    if result.get("ok"):
+        _audit_event(
+            "fascicoli.pagamento_aggiornato",
+            "fascicolo",
+            id_fasc,
+            str(result.get("message") or "Controllo economico aggiornato."),
+        )
+    return jsonify(result), status
 
 
 @api_v1_react.get("/fascicoli/nuovo")

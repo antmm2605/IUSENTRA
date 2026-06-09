@@ -694,6 +694,7 @@ class Fascicolo:
     canale_operativo: str = ""
     registro_operativo: str = ""
     compenso_pattuito: float = 0.0  # importo totale dal conferimento incarico
+    pagamenti: dict[str, Any] = field(default_factory=dict)
 
     # --- Date
     data_apertura: str = field(default_factory=lambda: date.today().isoformat())

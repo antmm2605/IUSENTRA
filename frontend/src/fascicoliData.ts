@@ -1,13 +1,81 @@
 import type { Tone } from './data'
 import { sanitizeDisplayText } from './displayText'
+import { csrfToken } from './formSubmit'
 
 export type FascicoloTipo = 'tutti' | 'civile' | 'penale' | 'amministrativo' | 'tributario' | 'stragiudiziale' | 'consulenza' | 'lavoro' | 'famiglia' | 'successioni' | 'altro'
 export type FascicoloStato = 'tutti' | 'aperto' | 'in_corso' | 'definito' | 'da_archiviare' | 'archiviato' | 'sospeso'
+export type FascicoloPaymentKind = 'contributo_unificato' | 'fondo_spese' | 'liquidazione_giudice' | 'parcella'
+export type FascicoloPaymentStatus = 'non_previsto' | 'da_registrare' | 'pagato' | 'parziale' | 'da_emettere'
 
 export type Facet<T extends string> = { value: T; label: string; count: number }
 export type SelectOption = { value: string; label: string }
 export type ActionLink = { label: string; href: string; tone?: Tone; method?: 'get' | 'post'; confirm?: string }
 export type KeyValue = { label: string; value: string; mono?: boolean; href?: string; tone?: Tone }
+
+export type FascicoloPaymentHistoryItem = {
+  at: string
+  by: string
+  fromStatus: FascicoloPaymentStatus | ''
+  toStatus: FascicoloPaymentStatus | ''
+  fromImporto: string
+  toImporto: string
+  note: string
+}
+
+export type FascicoloPaymentItem = {
+  kind: FascicoloPaymentKind
+  label: string
+  status: FascicoloPaymentStatus
+  statusLabel: string
+  tone: Tone
+  pagato: boolean
+  previsto: boolean
+  importo: number | null
+  importoLabel: string
+  valuta: string
+  dataPagamento: string
+  dataPagamentoIso: string
+  metodo: string
+  note: string
+  updatedAt: string
+  updatedAtLabel: string
+  updatedBy: string
+  updateAction: string
+  history: FascicoloPaymentHistoryItem[]
+}
+
+export type FascicoloPaymentSummary = {
+  stato: 'completo' | 'parziale' | 'da_presidiare' | 'non_previsto'
+  statoLabel: string
+  tone: Tone
+  totaleRegistrato: number
+  totaleRegistratoLabel: string
+  anticipazioniDaRecuperare: number
+  anticipazioniDaRecuperareLabel: string
+  parcelleDaEmettere: number
+  mancanti: number
+  updatedAt: string
+  updatedAtLabel: string
+  updatedBy: string
+  items: Record<FascicoloPaymentKind, FascicoloPaymentItem>
+}
+
+export type FascicoloPaymentUpdatePayload = {
+  status: FascicoloPaymentStatus
+  importo?: number | string | null
+  dataPagamento?: string
+  metodo?: string
+  note?: string
+}
+
+export type FascicoloPaymentUpdateResult = {
+  ok: boolean
+  message: string
+  payment: FascicoloPaymentItem
+  paymentSummary: FascicoloPaymentSummary
+  fascicolo?: { id: string }
+  errors?: Record<string, string>
+}
 
 export type FascicoloRow = {
   id: string
@@ -47,6 +115,7 @@ export type FascicoloRow = {
   relataPrimaryLabel: string
   relataReleaseDetected: boolean
   relataCount: number
+  paymentSummary: FascicoloPaymentSummary
   archive?: {
     outcome: string
     archivedAt: string
@@ -70,6 +139,10 @@ export type FascicoliSummary = {
   documents: number
   documentsToClassify: number
   unreadCommunications: number
+  economicToReview: number
+  invoicesToIssue: number
+  registeredAmount: number
+  advancesToRecover: number
 }
 
 export type FascicoliPagination = {
@@ -90,6 +163,7 @@ export type FascicoliPageParams = {
   court?: string
   sort?: string
   alertsOnly?: boolean
+  paymentsOnly?: boolean
 }
 
 export type FascicoliPageData = {
@@ -574,7 +648,89 @@ const emptySummary: FascicoliSummary = {
   documents: 0,
   documentsToClassify: 0,
   unreadCommunications: 0,
+  economicToReview: 0,
+  invoicesToIssue: 0,
+  registeredAmount: 0,
+  advancesToRecover: 0,
 }
+
+const paymentKindLabels: Record<FascicoloPaymentKind, string> = {
+  contributo_unificato: 'Contributo unificato',
+  fondo_spese: 'Fondo spese',
+  liquidazione_giudice: 'Liquidazione giudice',
+  parcella: 'Parcella',
+}
+
+const paymentDefaultStatus: Record<FascicoloPaymentKind, FascicoloPaymentStatus> = {
+  contributo_unificato: 'da_registrare',
+  fondo_spese: 'da_registrare',
+  liquidazione_giudice: 'non_previsto',
+  parcella: 'da_emettere',
+}
+
+const paymentStatusLabels: Record<FascicoloPaymentStatus, string> = {
+  non_previsto: 'Non previsto',
+  da_registrare: 'Da registrare',
+  pagato: 'Pagato',
+  parziale: 'Parziale',
+  da_emettere: 'Da emettere',
+}
+
+const paymentStatusTones: Record<FascicoloPaymentStatus, Tone> = {
+  non_previsto: 'neutral',
+  da_registrare: 'warning',
+  pagato: 'success',
+  parziale: 'orange',
+  da_emettere: 'warning',
+}
+
+export const fascicoloPaymentKinds: FascicoloPaymentKind[] = ['contributo_unificato', 'fondo_spese', 'liquidazione_giudice', 'parcella']
+
+function emptyPaymentItem(kind: FascicoloPaymentKind, id = ''): FascicoloPaymentItem {
+  const status = paymentDefaultStatus[kind]
+  return {
+    kind,
+    label: paymentKindLabels[kind],
+    status,
+    statusLabel: paymentStatusLabels[status],
+    tone: paymentStatusTones[status],
+    pagato: false,
+    previsto: status !== 'non_previsto',
+    importo: null,
+    importoLabel: '',
+    valuta: 'EUR',
+    dataPagamento: '',
+    dataPagamentoIso: '',
+    metodo: '',
+    note: '',
+    updatedAt: '',
+    updatedAtLabel: '',
+    updatedBy: '',
+    updateAction: id ? `/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}` : '',
+    history: [],
+  }
+}
+
+function createEmptyPaymentSummary(id = ''): FascicoloPaymentSummary {
+  const items = Object.fromEntries(fascicoloPaymentKinds.map((kind) => [kind, emptyPaymentItem(kind, id)])) as Record<FascicoloPaymentKind, FascicoloPaymentItem>
+  return {
+    stato: 'da_presidiare',
+    statoLabel: 'Da presidiare',
+    tone: 'warning',
+    totaleRegistrato: 0,
+    totaleRegistratoLabel: 'EUR 0,00',
+    anticipazioniDaRecuperare: 0,
+    anticipazioniDaRecuperareLabel: 'EUR 0,00',
+    parcelleDaEmettere: 1,
+    mancanti: 3,
+    updatedAt: '',
+    updatedAtLabel: '',
+    updatedBy: '',
+    items,
+  }
+}
+
+export const emptyPaymentSummary = createEmptyPaymentSummary()
 
 export const emptyFascicoliPage: FascicoliPageData = {
   source: 'vuoto',
@@ -646,6 +802,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     rgNumber: 0, rgYear: 0, nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
+    paymentSummary: emptyPaymentSummary,
     clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
     riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
@@ -742,6 +899,100 @@ export function statusTone(status: FascicoloRow['status']): Tone {
   return 'primary'
 }
 
+export function normalizePaymentStatus(value: unknown, fallback: FascicoloPaymentStatus = 'da_registrare'): FascicoloPaymentStatus {
+  const raw = text(value).toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+  if (raw === 'non_previsto' || raw === 'non_prevista' || raw === 'escluso') return 'non_previsto'
+  if (raw === 'pagato' || raw === 'pagata' || raw === 'si' || raw === 'sì' || raw === 'paid') return 'pagato'
+  if (raw === 'parziale' || raw === 'acconto') return 'parziale'
+  if (raw === 'da_emettere' || raw === 'non_emessa') return 'da_emettere'
+  if (raw === 'da_registrare' || raw === 'non_pagato' || raw === 'no' || raw === 'mancante') return 'da_registrare'
+  return fallback
+}
+
+function paymentAmount(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.round(value * 100) / 100 : null
+  const raw = text(value)
+  if (!raw) return null
+  let cleaned = raw.replace(/EUR/gi, '').replace(/€/g, '').replace(/\s+/g, '')
+  if (cleaned.includes(',')) cleaned = cleaned.replace(/\./g, '').replace(',', '.')
+  const parsed = Number(cleaned)
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : null
+}
+
+function paymentStatusOrEmpty(value: unknown): FascicoloPaymentStatus | '' {
+  const raw = text(value)
+  if (!raw) return ''
+  return normalizePaymentStatus(raw)
+}
+
+function normalizePaymentHistory(value: unknown): FascicoloPaymentHistoryItem[] {
+  return asArray(value).map((entry) => {
+    const row = isRecord(entry) ? entry : {}
+    return {
+      at: text(row.at ?? row.quando),
+      by: text(row.by ?? row.operatore),
+      fromStatus: paymentStatusOrEmpty(row.fromStatus ?? row.stato_precedente),
+      toStatus: paymentStatusOrEmpty(row.toStatus ?? row.stato_nuovo),
+      fromImporto: text(row.fromImporto ?? row.importo_precedente),
+      toImporto: text(row.toImporto ?? row.importo_nuovo),
+      note: text(row.note),
+    }
+  }).filter((row) => row.at || row.by || row.note || row.toStatus)
+}
+
+export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind, id = ''): FascicoloPaymentItem {
+  const row = isRecord(value) ? value : {}
+  const status = normalizePaymentStatus(row.status ?? row.stato, paymentDefaultStatus[kind])
+  const importo = paymentAmount(row.importo ?? row.amount)
+  return {
+    kind,
+    label: text(row.label, paymentKindLabels[kind]),
+    status,
+    statusLabel: text(row.statusLabel ?? row.status_label, paymentStatusLabels[status]),
+    tone: (text(row.tone, paymentStatusTones[status]) as Tone) || paymentStatusTones[status],
+    pagato: bool(row.pagato) || status === 'pagato',
+    previsto: row.previsto === undefined ? status !== 'non_previsto' : bool(row.previsto),
+    importo,
+    importoLabel: text(row.importoLabel ?? row.importo_label, importo === null ? '' : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(importo).replace('€', 'EUR').trim()),
+    valuta: text(row.valuta ?? row.currency, 'EUR'),
+    dataPagamento: text(row.dataPagamento ?? row.data_pagamento),
+    dataPagamentoIso: text(row.dataPagamentoIso ?? row.data_pagamento_iso ?? row.data_pagamento),
+    metodo: text(row.metodo ?? row.method),
+    note: text(row.note),
+    updatedAt: text(row.updatedAt ?? row.updated_at),
+    updatedAtLabel: text(row.updatedAtLabel ?? row.updated_at_label),
+    updatedBy: text(row.updatedBy ?? row.updated_by),
+    updateAction: text(row.updateAction ?? row.update_action, id ? `/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}` : ''),
+    history: normalizePaymentHistory(row.history ?? row.storico),
+  }
+}
+
+export function normalizePaymentSummary(value: unknown, id = ''): FascicoloPaymentSummary {
+  if (!isRecord(value)) return createEmptyPaymentSummary(id)
+  const rawItems = isRecord(value.items) ? value.items : {}
+  const items = Object.fromEntries(
+    fascicoloPaymentKinds.map((kind) => [kind, normalizePaymentItem(rawItems[kind], kind, id)]),
+  ) as Record<FascicoloPaymentKind, FascicoloPaymentItem>
+  const statoRaw = text(value.stato)
+  const stato = statoRaw === 'completo' || statoRaw === 'parziale' || statoRaw === 'non_previsto' ? statoRaw : 'da_presidiare'
+  return {
+    stato,
+    statoLabel: text(value.statoLabel ?? value.stato_label, stato === 'completo' ? 'Completo' : stato === 'parziale' ? 'Parziale' : stato === 'non_previsto' ? 'Non previsto' : 'Da presidiare'),
+    tone: (text(value.tone, stato === 'completo' ? 'success' : stato === 'non_previsto' ? 'neutral' : 'warning') as Tone),
+    totaleRegistrato: number(value.totaleRegistrato ?? value.totale_registrato),
+    totaleRegistratoLabel: text(value.totaleRegistratoLabel ?? value.totale_registrato_label, 'EUR 0,00'),
+    anticipazioniDaRecuperare: number(value.anticipazioniDaRecuperare ?? value.anticipazioni_da_recuperare),
+    anticipazioniDaRecuperareLabel: text(value.anticipazioniDaRecuperareLabel ?? value.anticipazioni_da_recuperare_label, 'EUR 0,00'),
+    parcelleDaEmettere: number(value.parcelleDaEmettere ?? value.parcelle_da_emettere),
+    mancanti: number(value.mancanti),
+    updatedAt: text(value.updatedAt ?? value.updated_at),
+    updatedAtLabel: text(value.updatedAtLabel ?? value.updated_at_label),
+    updatedBy: text(value.updatedBy ?? value.updated_by),
+    items,
+  }
+}
+
 function normalizeArchive(value: unknown): FascicoloRow['archive'] | undefined {
   if (!isRecord(value)) return undefined
   return {
@@ -801,6 +1052,7 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     relataPrimaryLabel: text(item.relataPrimaryLabel ?? item.relata_primary_label, ''),
     relataReleaseDetected: bool(item.relataReleaseDetected ?? item.relata_release_detected),
     relataCount: number(item.relataCount ?? item.relata_count),
+    paymentSummary: normalizePaymentSummary(item.paymentSummary ?? item.payment_summary, id),
     archive: normalizeArchive(item.archive ?? item.archivio),
   }
 }
@@ -819,8 +1071,13 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
       documents: number(value.documents ?? value.documenti),
       documentsToClassify: number(value.documentsToClassify ?? value.documenti_da_classificare),
       unreadCommunications: number(value.unreadCommunications ?? value.comunicazioni_non_lette),
+      economicToReview: number(value.economicToReview ?? value.economic_to_review),
+      invoicesToIssue: number(value.invoicesToIssue ?? value.invoices_to_issue),
+      registeredAmount: number(value.registeredAmount ?? value.registered_amount),
+      advancesToRecover: number(value.advancesToRecover ?? value.advances_to_recover),
     }
   }
+  const economicToReview = items.filter((item) => item.paymentSummary.stato === 'da_presidiare' || item.paymentSummary.stato === 'parziale').length
   return {
     total: items.length,
     active: items.filter((item) => item.status !== 'archiviato').length,
@@ -833,6 +1090,10 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
     documents: items.reduce((total, item) => total + item.documents, 0),
     documentsToClassify: items.reduce((total, item) => total + item.alerts, 0),
     unreadCommunications: items.reduce((total, item) => total + item.unreadCommunications, 0),
+    economicToReview,
+    invoicesToIssue: items.reduce((total, item) => total + item.paymentSummary.parcelleDaEmettere, 0),
+    registeredAmount: items.reduce((total, item) => total + item.paymentSummary.totaleRegistrato, 0),
+    advancesToRecover: items.reduce((total, item) => total + item.paymentSummary.anticipazioniDaRecuperare, 0),
   }
 }
 
@@ -1364,6 +1625,7 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   if (params.court?.trim()) query.set('court', params.court.trim())
   if (params.sort) query.set('sort', params.sort)
   if (params.alertsOnly) query.set('alerts_only', '1')
+  if (params.paymentsOnly) query.set('payments_only', '1')
   const suffix = query.toString()
   return suffix ? `?${suffix}` : ''
 }
@@ -1405,4 +1667,42 @@ export function getFascicoloForm(id?: string, query = ''): Promise<FascicoloForm
 
 export function getFascicoliExport(): Promise<FascicoliExportData> {
   return safeFetch('/api/v1/ui/fascicoli/export', normalizeExportPayload, emptyFascicoliExport)
+}
+
+export async function updateFascicoloPayment(id: string, kind: FascicoloPaymentKind, payload: FascicoloPaymentUpdatePayload): Promise<FascicoloPaymentUpdateResult> {
+  const token = csrfToken()
+  const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(token ? { 'X-CSRFToken': token } : {}),
+    },
+    body: JSON.stringify({
+      status: payload.status,
+      importo: payload.importo === '' ? null : payload.importo ?? null,
+      dataPagamento: payload.dataPagamento || '',
+      metodo: payload.metodo || '',
+      note: payload.note || '',
+    }),
+  })
+  const contentType = response.headers.get('content-type') || ''
+  const rawPayload = contentType.includes('application/json') ? await response.json().catch(() => ({})) : {}
+  const raw = isRecord(rawPayload) ? rawPayload : {}
+  const message = text(raw.message ?? raw.messaggio ?? raw.errore ?? raw.error, response.ok ? 'Controllo economico aggiornato.' : 'Non ho potuto aggiornare il controllo economico.')
+  if (!response.ok || raw.ok === false) {
+    const errors = isRecord(raw.errors) ? Object.fromEntries(Object.entries(raw.errors).map(([key, value]) => [key, text(value)])) : {}
+    throw new Error(message || Object.values(errors)[0] || 'Non ho potuto aggiornare il controllo economico.')
+  }
+  const paymentSummary = normalizePaymentSummary(raw.paymentSummary ?? raw.payment_summary, id)
+  return {
+    ok: true,
+    message,
+    payment: normalizePaymentItem(raw.payment, kind, id),
+    paymentSummary,
+    fascicolo: isRecord(raw.fascicolo) ? { id: text(raw.fascicolo.id, id) } : { id },
+    errors: {},
+  }
 }

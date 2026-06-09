@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Fascicoli - controllo economico a griglia - 2026-06-09 - 2.249.42
+
+La pagina React `/fascicoli` include ora un foglio operativo per aggiornare in elenco le voci economiche dei fascicoli senza entrare nel singolo fascicolo.
+
+Copertura funzionale implementata:
+
+- stato fascicolo sempre visibile nella griglia, insieme a fascicolo, cliente e prossima scadenza;
+- colonne economiche per contributo unificato, fondo spese, liquidazione giudice e parcella;
+- salvataggio JSON reale su `/api/v1/ui/fascicoli/<id>/pagamenti/<voce>` con permessi, audit e cronologia;
+- importo vuoto preservato come valore assente, non convertito a `0`;
+- filtro `Solo controllo economico da completare`, KPI economici e export Fascicoli con stati/importi/totale;
+- dettagli metodo/note apribili per non appesantire la griglia principale.
+
+Verifiche locali eseguite: typecheck React, build Vite, py_compile mirato, test React Fascicoli mirati e verifica browser reale su `http://127.0.0.1:8080/fascicoli` con Docker locale.
+
 ## Portale Cliente full React - 2026-06-07 - 2.249.33 in corso
 
 La tranche Portale Cliente introduce la console studio `/app/portale-clienti`

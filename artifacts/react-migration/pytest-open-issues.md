@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Fascicoli controllo economico 2.249.42 - 2026-06-09
+
+Nessuna issue aperta sul perimetro mirato dopo i test React Fascicoli. Durante il rilancio mirato è emerso un `window.confirm` residuo nella cancellazione massiva della pagina Fascicoli; risolto con modale React coerente con `PostAction`.
+
+Gate locali mirati completati anche dopo il bump `2.249.42`: build Vite, Docker reale `127.0.0.1:8080`, `/api/pronto` e browser verification Fascicoli. Restano le attività di pubblicazione release: igiene repo, commit/push branch gemelli, check remoti e deploy Hetzner.
+
 ## Scheduler Avvia tutti 2.249.39 - 2026-06-08
 
 - Rilevato su produzione `2.249.38`: l'avvio massivo ha accodato 78 job senza errori, ma ha messo in parallelo UTF-8, tre crash test operativi e backup blindato. Dopo circa 50 minuti i job erano ancora in corso e avevano generato nuovi archivi temporanei, mentre tre fonti esterne erano fallite per timeout o lock database.

@@ -1,5 +1,16 @@
 # Pytest shard confermati OK
 
+## Fascicoli controllo economico 2.249.42 - 2026-06-09
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile tests\test_react_shell.py web\services\react_fascicoli_bridge.py web\blueprints\api_v1_react.py web\blueprints\export_csv.py pct\fascicoli.py` | OK | Sintassi confermata su test, bridge Fascicoli, API React, export CSV e modello fascicolo. |
+| `python -m pytest tests/test_react_shell.py::test_react_fascicoli_api_suite_richiede_auth tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_react_fascicoli_api_suite_usa_repository_reali -q --tb=short` | OK | 3/3: auth endpoint economico, guardia statica UI React Fascicoli, filtro economico, importo vuoto persistito come `null`, importo negativo bloccato ed export campi economici. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo griglia economica, submit pagamento e modale React per eliminazione massiva. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite verde; resta solo il warning storico sul chunk principale sopra 500 kB. |
+| Docker reale `docker compose up -d --build app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Container locale ricreato e `/api/pronto` verde su versione `2.249.42`. |
+| Browser in-app `http://127.0.0.1:8080/fascicoli` | OK | Griglia economica visibile con 25 righe su 287 fascicoli, `Fascicolo` e `Stato fascicolo` sticky, colonne economiche scrollabili, dettaglio metodo/note apribile, mobile `390x844` senza overflow pagina, nessun testo tecnico vietato visibile e zero errori console. |
+
 ## Scheduler Avvia tutti 2.249.35 - 2026-06-08
 
 | Comando | Esito | Note |

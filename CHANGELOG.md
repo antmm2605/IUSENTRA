@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.249.42 - 2026-06-09
+
+- Fascicoli: aggiunto il controllo economico a griglia nella pagina React `/fascicoli`, con stato fascicolo sempre visibile, colonne per contributo unificato, fondo spese, liquidazione giudice e parcella, salvataggio rapido per riga e dettagli metodo/note apribili.
+- Persistenza fascicolo: le voci economiche vengono salvate nel fascicolo reale con cronologia, operatore e stato; gli importi lasciati vuoti restano vuoti e non vengono trasformati in `0`.
+- Export Fascicoli: CSV e payload React includono stati/importi economici, totale registrato e ultimo aggiornamento economico.
+- UI Fascicoli: rimosso il confirm nativo dalla cancellazione massiva, sostituito dal modale React già usato dalla pagina.
+
 ## 2.249.41 - 2026-06-08
 
 - Console pianificazioni: tutte le manutenzioni manuali pesanti vengono rinviate quando arrivano dentro un avvio massivo con altre esecuzioni manuali già aperte. I controlli UTF-8, crash test operativi e backup blindato restano avviabili singolarmente, ma `Avvia tutti` non lancia più attività lunghe che generano archivi temporanei o lock.

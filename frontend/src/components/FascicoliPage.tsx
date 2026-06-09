@@ -17,6 +17,7 @@ import {
   Copy,
   Download,
   Edit3,
+  Euro,
   Eye,
   FileArchive,
   FileCheck2,
@@ -44,6 +45,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Save,
   Trash2,
   UploadCloud,
   UserRound,
@@ -77,6 +79,8 @@ import {
   getFascicoloDetail,
   getFascicoloDetailSection,
   getFascicoloForm,
+  updateFascicoloPayment,
+  fascicoloPaymentKinds,
   type FascicoliPageData,
   type FascicoliExportData,
   type FascicoloActivity,
@@ -90,6 +94,9 @@ import {
   type LexIndexingSummary,
   type FascicoloFormData,
   type FascicoloRow,
+  type FascicoloPaymentKind,
+  type FascicoloPaymentItem,
+  type FascicoloPaymentStatus,
   type FascicoloStato,
   type FascicoloTipo,
   type KeyValue,
@@ -178,6 +185,32 @@ const sortLabels: Record<SortKey, string> = {
   cliente: 'Cliente',
   scadenza: 'Prossima scadenza',
   documenti: 'Documenti',
+}
+
+const paymentFullLabels: Record<FascicoloPaymentKind, string> = {
+  contributo_unificato: 'Contributo unificato',
+  fondo_spese: 'Fondo spese',
+  liquidazione_giudice: 'Liquidazione giudice',
+  parcella: 'Parcella',
+}
+
+const paymentColumnLabels: Record<FascicoloPaymentKind, string> = {
+  contributo_unificato: 'Contributo',
+  fondo_spese: 'Fondo spese',
+  liquidazione_giudice: 'Liquidazione',
+  parcella: 'Parcella',
+}
+
+const paymentStatusOptions: Array<{ value: FascicoloPaymentStatus; label: string }> = [
+  { value: 'da_registrare', label: 'Da registrare' },
+  { value: 'pagato', label: 'Pagato' },
+  { value: 'parziale', label: 'Parziale' },
+  { value: 'non_previsto', label: 'Non previsto' },
+  { value: 'da_emettere', label: 'Da emettere' },
+]
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number.isFinite(value) ? value : 0).replace('€', 'EUR').trim()
 }
 
 function parseRoute(): Route {
@@ -456,6 +489,146 @@ function RowActions({ item, archive = false, onDeleted, onError }:{item:Fascicol
   )
 }
 
+function paymentAmountDraft(item: FascicoloPaymentItem): string {
+  return item.importo === null || item.importo === undefined ? '' : String(item.importo).replace('.', ',')
+}
+
+function EconomicPaymentCell({ row, kind, onSaved, onError }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void}) {
+  const payment = row.paymentSummary.items[kind]
+  const [status, setStatus] = useState<FascicoloPaymentStatus>(payment.status)
+  const [amount, setAmount] = useState(paymentAmountDraft(payment))
+  const [date, setDate] = useState(payment.dataPagamentoIso || '')
+  const [method, setMethod] = useState(payment.metodo || '')
+  const [note, setNote] = useState(payment.note || '')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setStatus(payment.status)
+    setAmount(paymentAmountDraft(payment))
+    setDate(payment.dataPagamentoIso || '')
+    setMethod(payment.metodo || '')
+    setNote(payment.note || '')
+  }, [payment.dataPagamentoIso, payment.importo, payment.metodo, payment.note, payment.status])
+
+  const availableStatuses = kind === 'parcella'
+    ? paymentStatusOptions
+    : paymentStatusOptions.filter((option) => option.value !== 'da_emettere')
+  const dirty = status !== payment.status
+    || amount.trim() !== paymentAmountDraft(payment)
+    || date !== (payment.dataPagamentoIso || '')
+    || method.trim() !== (payment.metodo || '')
+    || note.trim() !== (payment.note || '')
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    setSaving(true)
+    try {
+      const result = await updateFascicoloPayment(row.id, kind, {
+        status,
+        importo: amount.trim() === '' ? null : amount.trim(),
+        dataPagamento: date,
+        metodo: method.trim(),
+        note: note.trim(),
+      })
+      onSaved(row.id, result.paymentSummary, result.message)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Aggiornamento economico non riuscito.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form className={`iu-fas-economic-cell iu-fas-economic-cell--${payment.tone}`} onSubmit={(event) => { void submit(event) }}>
+      <label>
+        <span>Stato</span>
+        <select value={status} onChange={(event) => setStatus(event.target.value as FascicoloPaymentStatus)} aria-label={`${paymentFullLabels[kind]} - stato`}>
+          {availableStatuses.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+      <label>
+        <span>Importo</span>
+        <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="vuoto" aria-label={`${paymentFullLabels[kind]} - importo`}/>
+      </label>
+      <label>
+        <span>Data</span>
+        <input value={date} onChange={(event) => setDate(event.target.value)} type="date" aria-label={`${paymentFullLabels[kind]} - data`}/>
+      </label>
+      <button type="submit" disabled={saving || !dirty} title="Salva aggiornamento economico" aria-label={`Salva ${paymentFullLabels[kind]} per ${row.ref}`}>
+        {saving ? <RefreshCw size={14}/> : <Save size={14}/>}
+      </button>
+      <details className="iu-fas-economic-cell__details">
+        <summary>
+          <span>Dettagli</span>
+          <small>{payment.metodo || payment.note || payment.updatedAtLabel || 'Metodo e note'}</small>
+        </summary>
+        <div>
+          <label>
+            <span>Metodo</span>
+            <input value={method} onChange={(event) => setMethod(event.target.value)} placeholder="F24, bonifico..." aria-label={`${paymentFullLabels[kind]} - metodo`}/>
+          </label>
+          <label>
+            <span>Note</span>
+            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="nota interna" aria-label={`${paymentFullLabels[kind]} - note`}/>
+          </label>
+        </div>
+      </details>
+    </form>
+  )
+}
+
+function EconomicSheet({ items, loading, onSaved, onError }:{items:FascicoloRow[]; loading:boolean; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void}) {
+  return (
+    <IusentraDataSurface
+      title="Controllo economico fascicoli"
+      subtitle="Foglio rapido per contributo unificato, fondo spese, liquidazione e parcella"
+      toolbar={<span className="iu-fas-economic-toolbar"><Euro size={15}/> {items.length} righe visibili</span>}
+      fill
+      className="iu-fas-economic-card"
+      ariaLabel="Controllo economico fascicoli"
+      empty={!items.length ? <p className="iu-empty">{loading ? 'Caricamento controllo economico...' : 'Nessun fascicolo economico corrisponde ai filtri impostati.'}</p> : null}
+    >
+      <SyncedTopScrollbar className="iu-fas-economic-wrap iusentra-data-surface__scroll">
+        <table className="iu-fas-economic-table">
+          <thead>
+            <tr>
+              <th>Fascicolo</th>
+              <th>Stato fascicolo</th>
+              <th>Cliente</th>
+              <th>Prossima scad.</th>
+              {fascicoloPaymentKinds.map((kind) => <th key={kind} title={paymentFullLabels[kind]}>{paymentColumnLabels[kind]}</th>)}
+              <th>Totale registrato</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((row) => (
+              <tr key={row.id}>
+                <td className="iu-fas-economic-case">
+                  <a href={row.href}>{row.ref}</a>
+                  <span>{row.title}</span>
+                </td>
+                <td><Badge tone={row.tone}>{formatFascicoloStatus(row.status)}</Badge></td>
+                <td>{row.client}</td>
+                <td>{row.nextDeadline || 'n.d.'}</td>
+                {fascicoloPaymentKinds.map((kind) => (
+                  <td key={kind}>
+                    <EconomicPaymentCell row={row} kind={kind} onSaved={onSaved} onError={onError}/>
+                  </td>
+                ))}
+                <td className="iu-fas-economic-total">
+                  <strong>{row.paymentSummary.totaleRegistratoLabel}</strong>
+                  <Badge tone={row.paymentSummary.tone}>{row.paymentSummary.statoLabel}</Badge>
+                  {row.paymentSummary.updatedAtLabel ? <span>{row.paymentSummary.updatedAtLabel}</span> : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </SyncedTopScrollbar>
+    </IusentraDataSurface>
+  )
+}
+
 function DossierMobileCard({ item, checked, onToggle, archive = false, onDeleted, onError }:{item:FascicoloRow; checked:boolean; onToggle:()=>void; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void}) {
   return (
     <article className="iu-fas-mobile-card">
@@ -682,15 +855,17 @@ function FascicoliListPage() {
   const [court, setCourt] = useState('')
   const [debouncedCourt, setDebouncedCourt] = useState('')
   const [alertsOnly, setAlertsOnly] = useState(false)
+  const [paymentsOnly, setPaymentsOnly] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
+  const [bulkConfirmMessage, setBulkConfirmMessage] = useState('')
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(5)
+  const [pageSize, setPageSize] = useState(25)
 
   const refresh = () => {
     setLoading(true)
-    getFascicoliPage({ page, pageSize, q: debouncedQuery, type, status, court: debouncedCourt, sort, alertsOnly }).then(setData).finally(() => setLoading(false))
+    getFascicoliPage({ page, pageSize, q: debouncedQuery, type, status, court: debouncedCourt, sort, alertsOnly, paymentsOnly }).then(setData).finally(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -705,18 +880,19 @@ function FascicoliListPage() {
   useEffect(() => {
     let active = true
     setLoading(true)
-    getFascicoliPage({ page, pageSize, q: debouncedQuery, type, status, court: debouncedCourt, sort, alertsOnly })
+    getFascicoliPage({ page, pageSize, q: debouncedQuery, type, status, court: debouncedCourt, sort, alertsOnly, paymentsOnly })
       .then((payload) => { if (active) setData(payload) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [alertsOnly, debouncedCourt, debouncedQuery, page, pageSize, sort, status, type])
+  }, [alertsOnly, debouncedCourt, debouncedQuery, page, pageSize, paymentsOnly, sort, status, type])
 
   const visible = data.items
-  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || alertsOnly)
+  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || alertsOnly || paymentsOnly)
   const updateType = (value: FascicoloTipo) => { setPage(1); setType(value) }
   const updateStatus = (value: FascicoloStato) => { setPage(1); setStatus(value) }
   const updateSort = (value: SortKey) => { setPage(1); setSort(value) }
   const updateAlertsOnly = (value: boolean) => { setPage(1); setAlertsOnly(value) }
+  const updatePaymentsOnly = (value: boolean) => { setPage(1); setPaymentsOnly(value) }
   const updatePageSize = (value: number) => { setPage(1); setPageSize(value) }
   const updatePage = (value: number) => setPage(Math.max(1, Math.min(Math.max(1, data.pagination.pages || 1), value)))
 
@@ -728,13 +904,18 @@ function FascicoliListPage() {
     if (allSelected) return new Set([...current].filter((id) => !visible.some((item) => item.id === id)))
     return new Set([...current, ...visible.map((item) => item.id)])
   })
-  const handleBulkDelete = async () => {
+  const requestBulkDelete = () => {
     if (!selectedItems.length) return
     const refs = selectedItems.map((item) => item.ref).join(', ')
     const message = selectedItems.length === 1
       ? `Eliminare definitivamente il fascicolo ${selectedItems[0].ref}?`
       : `Eliminare definitivamente ${selectedItems.length} fascicoli selezionati? ${refs}`
-    if (!window.confirm(message)) return
+    setBulkConfirmMessage(message)
+  }
+
+  const handleBulkDelete = async () => {
+    if (!selectedItems.length) return
+    setBulkConfirmMessage('')
     setLoading(true)
     try {
       const deleted: string[] = []
@@ -763,6 +944,13 @@ function FascicoliListPage() {
     refresh()
   }
   const handleListError = (message: string) => setToast({ tone: 'danger', message })
+  const handlePaymentSaved = (id: string, paymentSummary: FascicoloRow['paymentSummary'], message?: string) => {
+    setData((current) => ({
+      ...current,
+      items: current.items.map((item) => item.id === id ? { ...item, paymentSummary } : item),
+    }))
+    setToast({ tone: 'success', message: message || 'Controllo economico aggiornato.' })
+  }
 
   return (
     <main className="iu-content iu-fascicoli-page">
@@ -784,6 +972,9 @@ function FascicoliListPage() {
           <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary"/>
           <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success"/>
           <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note="definiti o pronti" tone="warning"/>
+          <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="da completare" tone="warning"/>
+          <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success"/>
+          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoicesToIssue} note="da emettere" tone="purple"/>
           <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
           <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
           <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info"/>
@@ -814,6 +1005,7 @@ function FascicoliListPage() {
             <label><span>Ufficio giudiziario</span><input value={court} onChange={(event) => setCourt(event.target.value)} placeholder="Tribunale, TAR, GDP..."/></label>
             <label><span>Ordinamento</span><select value={sort} onChange={(event) => updateSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
             <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
+            <label className="iu-fas-check"><input type="checkbox" checked={paymentsOnly} onChange={(event) => updatePaymentsOnly(event.target.checked)}/><span>Solo controllo economico da completare</span></label>
           </>
         ) : null}
       </IusentraContextFilters>
@@ -831,10 +1023,23 @@ function FascicoliListPage() {
             <div className="iu-fas-bulkbar">
               <strong>{selectedVisible} fascicoli selezionati</strong>
               <a href="/fascicoli/esporta"><Download size={14}/> Esporta selezione</a>
-              <button className="is-danger" type="button" onClick={() => { void handleBulkDelete() }}><Trash2 size={14}/> Elimina selezionati</button>
+              <button className="is-danger" type="button" onClick={requestBulkDelete}><Trash2 size={14}/> Elimina selezionati</button>
               <button type="button" onClick={() => setSelected(new Set())}>Annulla</button>
             </div>
           ) : null}
+          {bulkConfirmMessage ? (
+            <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label="Elimina fascicoli selezionati">
+              <div className="iu-fas-confirm-modal__box">
+                <strong>Elimina fascicoli selezionati</strong>
+                <p>{bulkConfirmMessage}</p>
+                <div>
+                  <button type="button" onClick={() => setBulkConfirmMessage('')} disabled={loading}>Annulla</button>
+                  <button type="button" className="is-danger" onClick={() => { void handleBulkDelete() }} disabled={loading}>Elimina</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <EconomicSheet items={visible} loading={loading} onSaved={handlePaymentSaved} onError={handleListError}/>
           <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage}/>
         </IusentraMainSurface>
         <InsightPanel data={data} visible={visible}/>

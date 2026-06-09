@@ -3805,6 +3805,13 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
         assert name in page_source
     for endpoint in ("/api/v1/ui/fascicoli", "/api/v1/ui/fascicoli/archivio", "/api/v1/ui/fascicoli/export"):
         assert endpoint in data_source
+    assert "/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}" in data_source
+    assert "updateFascicoloPayment" in data_source
+    assert "EconomicSheet" in page_source
+    assert "Stato fascicolo" in page_source
+    assert "Solo controllo economico da completare" in page_source
+    assert ".iu-fas-economic-table" in css
+    assert ".iu-fas-economic-cell__details" in css
     for service_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
         assert service_action in bridge
     assert "Vista classica" not in page_source
@@ -3939,6 +3946,10 @@ def test_react_fascicoli_api_suite_richiede_auth(tmp_path: Path):
     assert client.get("/api/v1/ui/fascicoli/archivio").status_code == 401
     assert client.get("/api/v1/ui/fascicoli/nuovo").status_code == 401
     assert client.get("/api/v1/ui/fascicoli/export").status_code == 401
+    assert client.post(
+        "/api/v1/ui/fascicoli/fascicolo-demo/pagamenti/contributo_unificato",
+        json={"status": "pagato"},
+    ).status_code == 401
 
 
 def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_nativo(tmp_path: Path):
@@ -4121,6 +4132,28 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
         headers={"X-API-Key": "react-test-key"},
     )
     export_response = client.get("/api/v1/ui/fascicoli/export", headers={"X-API-Key": "react-test-key"})
+    payments_only_response = client.get(
+        "/api/v1/ui/fascicoli",
+        query_string={"payments_only": "1"},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payment_blank_response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/pagamenti/contributo_unificato",
+        json={
+            "status": "pagato",
+            "importo": "",
+            "dataPagamento": "2026-06-09",
+            "metodo": "F24",
+            "note": "Versamento senza importo ancora indicato",
+        },
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payment_negative_response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/pagamenti/fondo_spese",
+        json={"status": "pagato", "importo": "-1"},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    updated_list_response = client.get("/api/v1/ui/fascicoli", headers={"X-API-Key": "react-test-key"})
 
     payload = list_response.get_json()
     detail = detail_response.get_json()
@@ -4129,6 +4162,10 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     new_form = new_form_response.get_json()
     source_form = source_form_response.get_json()
     export_payload = export_response.get_json()
+    payments_only_payload = payments_only_response.get_json()
+    payment_blank_payload = payment_blank_response.get_json()
+    payment_negative_payload = payment_negative_response.get_json()
+    updated_payload = updated_list_response.get_json()
 
     assert list_response.status_code == 200
     assert detail_response.status_code == 200
@@ -4137,6 +4174,10 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert new_form_response.status_code == 200
     assert source_form_response.status_code == 200
     assert export_response.status_code == 200
+    assert payments_only_response.status_code == 200
+    assert payment_blank_response.status_code == 200
+    assert payment_negative_response.status_code == 400
+    assert updated_list_response.status_code == 200
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["mock_fallback"] is False
     assert payload["contracts"]["read_only"] is True
@@ -4147,6 +4188,30 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert row["editHref"] == f"/fascicoli/{fascicolo.id}/modifica"
     assert row["deleteHref"] == f"/fascicoli/{fascicolo.id}/elimina"
     assert not row["href"].startswith("/app-v2/")
+    assert row["paymentSummary"]["stato"] == "da_presidiare"
+    assert row["paymentSummary"]["items"]["contributo_unificato"]["status"] == "da_registrare"
+    assert row["paymentSummary"]["items"]["contributo_unificato"]["importo"] is None
+    assert row["paymentSummary"]["items"]["fondo_spese"]["status"] == "da_registrare"
+    assert row["paymentSummary"]["items"]["liquidazione_giudice"]["status"] == "non_previsto"
+    assert row["paymentSummary"]["items"]["parcella"]["status"] == "da_emettere"
+    assert any(item["id"] == fascicolo.id for item in payments_only_payload["items"])
+    assert payment_blank_payload["ok"] is True
+    assert payment_blank_payload["payment"]["status"] == "pagato"
+    assert payment_blank_payload["payment"]["importo"] is None
+    assert payment_blank_payload["payment"]["dataPagamento"] == "09/06/2026"
+    assert payment_blank_payload["paymentSummary"]["items"]["contributo_unificato"]["status"] == "pagato"
+    assert payment_negative_payload["errors"]["importo"] == "L'importo non può essere negativo."
+    updated_row = next(item for item in updated_payload["items"] if item["id"] == fascicolo.id)
+    assert updated_row["paymentSummary"]["items"]["contributo_unificato"]["status"] == "pagato"
+    assert updated_row["paymentSummary"]["items"]["contributo_unificato"]["importo"] is None
+    fascicolo_salvato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert fascicolo_salvato is not None
+    assert fascicolo_salvato.pagamenti["contributo_unificato"]["importo"] is None
+    assert fascicolo_salvato.pagamenti["contributo_unificato"]["status"] == "pagato"
     assert detail["fascicolo"]["title"] == "Appello civile"
     assert detail["fascicolo"]["sourceSnapshot"]["portale"] == "PST"
     assert detail["fascicolo"]["sourceSnapshot"]["counts"]["documenti"] == 3
@@ -4180,6 +4245,8 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert source_form["fascicolo"]["codiceOggettoPst"] == "014001"
     assert source_form["fascicolo"]["fonteCodiceOggetto"] == "PST_XSD"
     assert export_payload["formats"][0]["href"] == "/fascicoli/export.pdf"
+    assert any(field["key"] == "contributo_unificato_stato" for field in export_payload["fields"])
+    assert any(field["key"] == "totale_registrato" for field in export_payload["fields"])
     assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
 
 

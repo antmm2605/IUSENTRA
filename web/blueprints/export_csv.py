@@ -12,6 +12,7 @@ from datetime import date
 
 from flask import Blueprint, Response, g, redirect, url_for, current_app
 
+from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo
 from web.helpers import get_agenda, get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_scadenziario
 
 export_csv = Blueprint("export_csv", __name__, url_prefix="/export")
@@ -79,6 +80,8 @@ def fascicoli_csv():
     rows = []
     for f in get_fascicoli().tutti(archiviati=True):
         cliente = gc.get(f.id_cliente) if f.id_cliente else None
+        payment_summary = payment_summary_for_fascicolo(f)
+        payments = payment_summary["items"]
         rows.append({
             "ID":               f.id,
             "Numero RG":        f.numero_rg or "",
@@ -91,6 +94,17 @@ def fascicoli_csv():
             "Data chiusura":    getattr(f, "data_chiusura", "") or "",
             "Avvocato ref.":    getattr(f, "avvocato_referente", "") or "",
             "Descrizione":      getattr(f, "descrizione", "") or "",
+            "Contributo unificato - stato": payments["contributo_unificato"]["statusLabel"],
+            "Contributo unificato - importo": payments["contributo_unificato"]["importoLabel"],
+            "Fondo spese - stato": payments["fondo_spese"]["statusLabel"],
+            "Fondo spese - importo": payments["fondo_spese"]["importoLabel"],
+            "Liquidazione giudice - stato": payments["liquidazione_giudice"]["statusLabel"],
+            "Liquidazione giudice - importo": payments["liquidazione_giudice"]["importoLabel"],
+            "Parcella - stato": payments["parcella"]["statusLabel"],
+            "Parcella - importo": payments["parcella"]["importoLabel"],
+            "Totale registrato": payment_summary["totaleRegistratoLabel"],
+            "Ultimo aggiornamento economico": payment_summary["updatedAtLabel"],
+            "Operatore ultimo aggiornamento": payment_summary["updatedBy"],
         })
     return _csv_response(rows, f"fascicoli_{date.today()}.csv")
 

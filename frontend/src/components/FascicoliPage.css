@@ -93,6 +93,46 @@
 .iu-fas-actions a svg,.iu-fas-actions button svg,.iu-fas-actions .iu-fas-post svg{display:block;margin:0}
 .iu-fas-actions a:hover,.iu-fas-actions button:hover{border-color:rgba(37,99,235,.3);color:var(--iu-blue-600);box-shadow:0 6px 16px rgba(37,99,235,.08)}
 .iu-fas-mobile-list{display:none}
+.iu-fas-economic-card{border-color:rgba(37,99,235,.18);background:linear-gradient(180deg,#fff,rgba(239,246,255,.42))}
+.iu-fas-economic-toolbar{min-height:32px;display:inline-flex;align-items:center;gap:7px;padding:0 10px;border:1px solid rgba(37,99,235,.16);border-radius:999px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:900}
+.iu-fas-economic-wrap{overflow-x:auto;overflow-y:hidden}
+.iu-fas-economic-table{width:100%;min-width:1940px;table-layout:fixed;border-collapse:separate;border-spacing:0;background:#fff}
+.iu-fas-economic-table th{height:34px;padding:0 8px;border-bottom:1px solid var(--iu-border);background:#f8fafc;color:var(--iu-slate-600);font-size:10.5px;font-weight:950;text-align:left;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}
+.iu-fas-economic-table td{padding:6px 8px;border-bottom:1px solid rgba(15,23,42,.07);vertical-align:top;color:#0f172a;font-size:12px;font-weight:760}
+.iu-fas-economic-table tr:hover td{background:rgba(37,99,235,.03)}
+.iu-fas-economic-table th:nth-child(1),.iu-fas-economic-table td:nth-child(1){width:220px;position:sticky;left:0;z-index:2;background:#fff}
+.iu-fas-economic-table th:nth-child(1){z-index:3;background:#f8fafc}
+.iu-fas-economic-table th:nth-child(2),.iu-fas-economic-table td:nth-child(2){width:124px;position:sticky;left:220px;z-index:2;background:#fff}
+.iu-fas-economic-table th:nth-child(2){z-index:3;background:#f8fafc}
+.iu-fas-economic-table th:nth-child(3),.iu-fas-economic-table td:nth-child(3){width:150px}
+.iu-fas-economic-table th:nth-child(4),.iu-fas-economic-table td:nth-child(4){width:104px}
+.iu-fas-economic-table th:nth-child(5),.iu-fas-economic-table td:nth-child(5),
+.iu-fas-economic-table th:nth-child(6),.iu-fas-economic-table td:nth-child(6),
+.iu-fas-economic-table th:nth-child(7),.iu-fas-economic-table td:nth-child(7),
+.iu-fas-economic-table th:nth-child(8),.iu-fas-economic-table td:nth-child(8){width:300px}
+.iu-fas-economic-table th:nth-child(9),.iu-fas-economic-table td:nth-child(9){width:142px}
+.iu-fas-economic-case{display:grid;gap:3px}
+.iu-fas-economic-case a{color:#0f172a;font-size:13px;font-weight:950;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-economic-case span{color:var(--iu-slate-500);font-size:11.5px;font-weight:740;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-economic-total{display:grid;gap:6px;align-content:start}
+.iu-fas-economic-total strong{font-size:13px;font-weight:950;color:#0f172a}
+.iu-fas-economic-total span{color:var(--iu-slate-500);font-size:11px;font-weight:780}
+.iu-fas-economic-cell{display:grid;grid-template-columns:92px 58px 80px 28px;gap:4px;align-items:end;width:100%;box-sizing:border-box;padding:6px;border:1px solid rgba(148,163,184,.22);border-radius:9px;background:#fff}
+.iu-fas-economic-cell--success{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.045)}
+.iu-fas-economic-cell--warning,.iu-fas-economic-cell--orange{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.06)}
+.iu-fas-economic-cell--neutral{background:#f8fafc}
+.iu-fas-economic-cell label{display:grid;gap:2px;min-width:0}
+.iu-fas-economic-cell label>span{color:var(--iu-slate-500);font-size:9px;font-weight:950;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}
+.iu-fas-economic-cell select,.iu-fas-economic-cell input{width:100%;min-height:28px;border:1px solid var(--iu-border);border-radius:7px;background:#fff;padding:0 5px;color:#111827;font-size:10.5px;font-weight:800}
+.iu-fas-economic-cell button{width:28px;min-width:28px;height:28px;min-height:28px;display:grid;place-items:center;border:1px solid rgba(37,99,235,.18);border-radius:7px;background:var(--iu-blue-600);color:#fff;cursor:pointer}
+.iu-fas-economic-cell button:disabled{background:#eef2f7;color:#94a3b8;cursor:not-allowed}
+.iu-fas-economic-cell__details{grid-column:1/-1;min-width:0}
+.iu-fas-economic-cell__details summary{min-height:20px;display:flex;align-items:center;gap:6px;list-style:none;cursor:pointer;color:var(--iu-slate-500);font-size:10.5px;font-weight:850}
+.iu-fas-economic-cell__details summary::-webkit-details-marker{display:none}
+.iu-fas-economic-cell__details summary span{color:var(--iu-blue-700);font-size:10.5px;font-weight:900}
+.iu-fas-economic-cell__details summary small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10.5px;font-weight:760}
+.iu-fas-economic-cell__details[open] summary{margin-bottom:4px}
+.iu-fas-economic-cell__details>div{display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px}
 .iu-fas-insights{display:grid;gap:16px;position:static;top:auto}
 .iu-fas-briefing{display:grid;gap:10px}
 .iu-fas-briefing article{display:grid;gap:4px;padding:13px;border:1px solid var(--iu-border);border-radius:13px;background:#fff}

@@ -4,6 +4,8 @@
 
 Nessuna issue aperta sul perimetro mirato dopo i test React Fascicoli. Durante il rilancio mirato è emerso un `window.confirm` residuo nella cancellazione massiva della pagina Fascicoli; risolto con modale React coerente con `PostAction`.
 
+Primo push `b8bad2305`: `Lint + syntax` GitHub rosso perché `docs/backend-endpoint-security-map.md` non era stato rigenerato dopo il nuovo endpoint economico. Risolto rigenerando la mappa sicurezza backend e rilanciando il gruppo RBAC/tenant App V2.
+
 Gate locali mirati completati anche dopo il bump `2.249.42`: build Vite, Docker reale `127.0.0.1:8080`, `/api/pronto` e browser verification Fascicoli. Restano le attività di pubblicazione release: igiene repo, commit/push branch gemelli, check remoti e deploy Hetzner.
 
 ## Scheduler Avvia tutti 2.249.39 - 2026-06-08

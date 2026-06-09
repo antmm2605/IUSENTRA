@@ -10,6 +10,7 @@
 | `pnpm --filter @iusentra/studio build` | OK | Build Vite verde; resta solo il warning storico sul chunk principale sopra 500 kB. |
 | Docker reale `docker compose up -d --build app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Container locale ricreato e `/api/pronto` verde su versione `2.249.42`. |
 | Browser in-app `http://127.0.0.1:8080/fascicoli` | OK | Griglia economica visibile con 25 righe su 287 fascicoli, `Fascicolo` e `Stato fascicolo` sticky, colonne economiche scrollabili, dettaglio metodo/note apribile, mobile `390x844` senza overflow pagina, nessun testo tecnico vietato visibile e zero errori console. |
+| `python scripts/react-migration/generate_backend_security_map.py --check`; `python -m pytest -q tests/test_auth.py tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py tests/test_openapi_contracts_phase6.py --tb=short` | OK | Mappa sicurezza backend allineata al nuovo endpoint economico Fascicoli; gruppo RBAC/tenant App V2 verde `77/77`. |
 
 ## Scheduler Avvia tutti 2.249.35 - 2026-06-08
 

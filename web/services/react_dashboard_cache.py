@@ -38,3 +38,13 @@ def clear_dashboard_payload_cache() -> None:
     """Svuota la cache della Panoramica React nei test e nei refresh forzati."""
     with _LOCK:
         _CACHE.clear()
+
+
+def invalidate_dashboard_payload_cache(prefix: str) -> None:
+    """Invalida le voci con chiave che inizia per `prefix` (es. dopo una scrittura)."""
+    cleaned = str(prefix or "")
+    if not cleaned:
+        return
+    with _LOCK:
+        for key in [item for item in _CACHE if item.startswith(cleaned)]:
+            _CACHE.pop(key, None)

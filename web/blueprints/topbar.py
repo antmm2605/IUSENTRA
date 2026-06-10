@@ -10,8 +10,35 @@ from flask import Blueprint, current_app, g, jsonify, request
 from web.services import topbar_operational as core_service
 from web.services import topbar_recent as recent_service
 from web.services import topbar_timer as timer_service
+from web.services.react_dashboard_cache import (
+    get_dashboard_payload_cached,
+    invalidate_dashboard_payload_cache,
+)
 
 topbar = Blueprint("api_topbar", __name__)
+
+# La top bar viene pollata da ogni tab aperto (notifiche 60s/30s, scadenze 120s)
+# e i payload caricano interi archivi tenant: la cache breve per utente collassa
+# i poll ripetuti e i tab multipli in una sola costruzione per finestra TTL.
+_NOTIFICATIONS_TTL_SECONDS = 25.0
+_OPERATIONAL_TTL_SECONDS = 60.0
+
+
+def _topbar_cache_key(section: str, *extra: str) -> str:
+    user = g.get("utente_corrente")
+    parts = [
+        "topbar",
+        section,
+        core_service._tenant_id(),  # noqa: SLF001 - chiave cache coerente col servizio
+        core_service._user_id(user),  # noqa: SLF001
+        *[str(item or "") for item in extra],
+    ]
+    return ":".join(parts)
+
+
+def _notifications_cache_prefix() -> str:
+    user = g.get("utente_corrente")
+    return ":".join(["topbar", "notifications", core_service._tenant_id(), core_service._user_id(user)])  # noqa: SLF001
 
 
 def _json_error(message: str, status: int):
@@ -68,31 +95,62 @@ def api_global_search():
 @topbar.get("/api/dashboard/today")
 @_require_auth
 def api_today():
-    return _handle(lambda: core_service.today_payload(g.get("utente_corrente"), request.args.get("date")))
+    cache_key = _topbar_cache_key("today", request.args.get("date") or "oggi")
+    return _handle(
+        lambda: get_dashboard_payload_cached(
+            cache_key,
+            lambda: core_service.today_payload(g.get("utente_corrente"), request.args.get("date")),
+            ttl_seconds=_OPERATIONAL_TTL_SECONDS,
+        )[0]
+    )
 
 
 @topbar.get("/api/notifications")
 @_require_auth
 def api_notifications():
-    return _handle(lambda: core_service.notifications_payload(g.get("utente_corrente")))
+    cache_key = _topbar_cache_key("notifications")
+    return _handle(
+        lambda: get_dashboard_payload_cached(
+            cache_key,
+            lambda: core_service.notifications_payload(g.get("utente_corrente")),
+            ttl_seconds=_NOTIFICATIONS_TTL_SECONDS,
+        )[0]
+    )
 
 
 @topbar.patch("/api/notifications/read-all")
 @_require_auth
 def api_notifications_read_all():
-    return _handle(lambda: core_service.mark_all_notifications_read(g.get("utente_corrente")))
+    def _run():
+        result = core_service.mark_all_notifications_read(g.get("utente_corrente"))
+        invalidate_dashboard_payload_cache(_notifications_cache_prefix())
+        return result
+
+    return _handle(_run)
 
 
 @topbar.patch("/api/notifications/<path:notification_id>/read")
 @_require_auth
 def api_notification_read(notification_id: str):
-    return _handle(lambda: core_service.mark_notification_read(notification_id, g.get("utente_corrente")))
+    def _run():
+        result = core_service.mark_notification_read(notification_id, g.get("utente_corrente"))
+        invalidate_dashboard_payload_cache(_notifications_cache_prefix())
+        return result
+
+    return _handle(_run)
 
 
 @topbar.get("/api/deadlines/quick-summary")
 @_require_auth
 def api_quick_deadlines():
-    return _handle(lambda: core_service.quick_deadlines_payload(g.get("utente_corrente")))
+    cache_key = _topbar_cache_key("deadlines")
+    return _handle(
+        lambda: get_dashboard_payload_cached(
+            cache_key,
+            lambda: core_service.quick_deadlines_payload(g.get("utente_corrente")),
+            ttl_seconds=_OPERATIONAL_TTL_SECONDS,
+        )[0]
+    )
 
 
 @topbar.get("/api/recent")

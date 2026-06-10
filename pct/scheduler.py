@@ -839,11 +839,32 @@ def start_scheduler(app):
     def _pec_audit_pipeline_workers():
         with app.app_context():
             try:
-                from web.services.pec_pipeline_runtime import run_workers_for_paths
+                from web.services.pec_pipeline_runtime import (
+                    acquire_local_pec_for_paths,
+                    run_workers_for_paths,
+                )
 
+                try:
+                    auto_batch = int(os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_BATCH", "25") or 25)
+                except (TypeError, ValueError):
+                    auto_batch = 25
                 processed_targets = 0
                 processed_jobs = 0
                 for label, paths in _mailbox_sync_targets():
+                    # Prima l'acquisizione automatica delle PEC archiviate non ancora
+                    # presidiate (a budget, 0 = disattivata), poi i worker che lavorano
+                    # classificazione, scadenze automatiche e collegamento fascicoli.
+                    if auto_batch > 0:
+                        acquired = acquire_local_pec_for_paths(paths, tenant_label=label, batch_size=auto_batch)
+                        if acquired.get("ingested") or acquired.get("missing_mime") or acquired.get("errors"):
+                            logger.info(
+                                "[scheduler] Presidio PEC %s: %d acquisite, %d duplicate, %d senza MIME, %d errori",
+                                label,
+                                acquired.get("ingested", 0),
+                                acquired.get("duplicates", 0),
+                                acquired.get("missing_mime", 0),
+                                acquired.get("errors", 0),
+                            )
                     report = run_workers_for_paths(paths, tenant_label=label, limit=200)
                     processed_targets += 1
                     processed_jobs += int(report.get("processed") or 0)
@@ -1261,9 +1282,17 @@ def start_scheduler(app):
                 int(recovered.get("cancelled") or 0),
             )
 
+        # Le richieste manuali vanno prese entro un minuto; l'apply completo
+        # (upsert dei template, incluse le ~50 fonti legali, e re-schedule)
+        # costa CPU/I-O a ogni giro e basta ogni 5 minuti: le modifiche di
+        # orario dalla console diventano effettive entro quella finestra.
+        registry_tick_state = {"count": 0}
+
         def _scheduler_registry_tick():
             with app.app_context():
-                apply_scheduler_registry(scheduler, app, registry_repo)
+                if registry_tick_state["count"] % 5 == 0:
+                    apply_scheduler_registry(scheduler, app, registry_repo)
+                registry_tick_state["count"] += 1
                 dispatch_requested_manual_runs(scheduler, app, registry_repo)
 
         scheduler.add_job(

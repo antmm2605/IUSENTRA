@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.251.22 - 2026-06-10
+
+- Presidio PEC automatico: lo scheduler acquisisce da solo le PEC archiviate non ancora presidiate (budget per giro, default 25 ogni 5 minuti, override `IUSENTRA_PEC_AUTO_ACQUIRE_BATCH`, 0 disattiva) e i worker completano la catena senza azioni manuali: classificazione, report di validazione, scadenza automatica in scadenziario con collegamento agenda, link al fascicolo e digest. Prima l'ingest partiva solo dal pulsante manuale: le PEC restavano archiviate (es. 307 su 307) ma 0 presidiate, 0 scadenze, 0 agenda, 0 notifiche.
+- Dedupe presidio: nuovo `presided_email_ids` sul repository PEC — le email già presidiate (anche senza Message-ID o senza MIME recuperabile) non vengono ritentate a ogni giro.
+- Console pianificazioni: i job `Presidio PEC automatico` (*/5) e `Digest PEC giornaliero` (08:00) ora compaiono nel registro e sono governabili (pausa, orario, esecuzione manuale) come gli altri presidi.
+- Refactor governabile: i criteri di rilevanza PEC e la lettura/ricostruzione MIME vivono in `web/services/pec_pipeline_runtime.py` e sono condivisi tra API manuale e presidio automatico.
+- Memoria/CPU top bar: notifiche, scadenze rapide e quadro "oggi" usano una cache breve per utente (25-60 s, invalidata quando si segnano le notifiche come lette); prima ogni tab aperto ricaricava interi archivi tenant (fascicoli, clienti, scadenze) a ogni poll da 60-120 secondi.
+- Bundle dopo deploy: se un tab aperto col bundle precedente chiede un chunk che non esiste più (hash cambiati), la pagina si ricarica da sola una volta invece di mostrare "Pagina temporaneamente non disponibile" (guardia anti-loop in sessionStorage).
+- Worker scheduler: il tick del registro pianificazioni prende le richieste manuali ogni minuto ma esegue l'apply completo (upsert template e re-schedule) ogni 5 minuti, riducendo il carico costante di CPU/I-O.
+
 ## 2.251.21 - 2026-06-10
 
 - Nuovo workflow "Igiene branch" (avvio manuale, con dry-run): elimina dal remoto ogni branch fuori dalla allowlist autorizzata (`claude/legal-electronic-filing-kIxcV`, `Codex/legal-electronic-filing-kIxcV`, `chore/monorepo-foundation`), applicando la regola di governance registrata in CLAUDE.md.

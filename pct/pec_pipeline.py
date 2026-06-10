@@ -4383,6 +4383,52 @@ class PecAuditRepository:
                         result[header] = str(row["id"] or "")
         return result
 
+    def presided_email_ids(
+        self,
+        email_ids: Iterable[str],
+        *,
+        statuses: Iterable[str] = ("duplicate", "ingested", "processed", "already_presided", "missing_mime"),
+    ) -> set[str]:
+        """Email locali già presidiate (ultimo stato per email in `statuses`).
+
+        Serve al presidio automatico per non riacquisire a ogni giro le email
+        senza Message-ID header: l'ultimo esito registrato per email vince.
+        """
+
+        seen_values: set[str] = set()
+        values: list[str] = []
+        for item in email_ids:
+            value = str(item or "").strip()
+            if value and value not in seen_values:
+                seen_values.add(value)
+                values.append(value)
+        if not values:
+            return set()
+        wanted = {str(status or "").strip() for status in statuses if str(status or "").strip()}
+        presided: set[str] = set()
+        resolved: set[str] = set()
+        with self.connect() as conn:
+            for offset in range(0, len(values), 900):
+                chunk = values[offset : offset + 900]
+                placeholders = ",".join("?" for _ in chunk)
+                rows = conn.execute(
+                    f"""
+                    SELECT email_id, status
+                    FROM pec_local_acquire_items
+                    WHERE tenant_id=? AND email_id IN ({placeholders})
+                    ORDER BY updated_at DESC, rowid DESC
+                    """,
+                    (self.tenant_id, *chunk),
+                ).fetchall()
+                for row in rows:
+                    email_id = str(row["email_id"] or "")
+                    if not email_id or email_id in resolved:
+                        continue
+                    resolved.add(email_id)
+                    if str(row["status"] or "") in wanted:
+                        presided.add(email_id)
+        return presided
+
     def original_mime(self, message_id: str) -> tuple[bytes, dict[str, Any]]:
         with self.connect() as conn:
             row = self.get_message_row(conn, message_id)

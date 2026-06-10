@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useEffect, useState, type ReactNode } from 'react'
+import { Component, Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -61,67 +61,93 @@ import { findStudioModule, isStudioModuleRoute } from './studioModuleData'
 import './index.css'
 import './components/layout/TopBar.css'
 
-const AgendaPage = lazy(() => import('./components/AgendaPage').then((module) => ({ default: module.AgendaPage })))
-const AgendaImportPage = lazy(() => import('./components/AgendaImportPage').then((module) => ({ default: module.AgendaImportPage })))
-const NuovoAppuntamentoPage = lazy(() => import('./components/NuovoAppuntamentoPage').then((module) => ({ default: module.NuovoAppuntamentoPage })))
-const RicercaStudioPage = lazy(() => import('./components/RicercaStudioPage').then((module) => ({ default: module.RicercaStudioPage })))
-const FascicoliPage = lazy(() => import('./components/FascicoliPage').then((module) => ({ default: module.FascicoliPage })))
-const DocumentEditorPage = lazy(() => import('./components/DocumentEditorPage').then((module) => ({ default: module.DocumentEditorPage })))
-const AnagraficaClientiPage = lazy(() => import('./components/AnagraficaClientiPage').then((module) => ({ default: module.AnagraficaClientiPage })))
-const CartellaClientePage = lazy(() => import('./components/CartellaClientePage').then((module) => ({ default: module.CartellaClientePage })))
-const NuovoClientePage = lazy(() => import('./components/NuovoClientePage').then((module) => ({ default: module.NuovoClientePage })))
-const SoggettiPage = lazy(() => import('./components/SoggettiPage').then((module) => ({ default: module.SoggettiPage })))
-const EmailPecPage = lazy(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailPecPage })))
-const EmailOrdinariaPage = lazy(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailOrdinariaPage })))
-const EmailComposePage = lazy(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailComposePage })))
-const NotificheLegaliPage = lazy(() => import('./components/NotificheLegaliPage').then((module) => ({ default: module.NotificheLegaliPage })))
-const MessaggiPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.MessaggiPage })))
-const NuovoMessaggioPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.NuovoMessaggioPage })))
-const ScadenziarioPage = lazy(() => import('./components/ScadenziarioPage').then((module) => ({ default: module.ScadenziarioPage })))
-const NuovaScadenzaPage = lazy(() => import('./components/NuovaScadenzaPage').then((module) => ({ default: module.NuovaScadenzaPage })))
-const WizardProPage = lazy(() => import('./components/WizardProPage').then((module) => ({ default: module.WizardProPage })))
-const WizardProStepPage = lazy(() => import('./components/WizardProStepPage').then((module) => ({ default: module.WizardProStepPage })))
-const WizardProCompletePage = lazy(() => import('./components/WizardProCompletePage').then((module) => ({ default: module.WizardProCompletePage })))
-const TimesheetPage = lazy(() => import('./components/TimesheetPage').then((module) => ({ default: module.TimesheetPage })))
-const CartelleCondivisePage = lazy(() => import('./components/CartelleCondivisePage').then((module) => ({ default: module.CartelleCondivisePage })))
-const TelematicoPage = lazy(() => import('./components/TelematicoPage').then((module) => ({ default: module.TelematicoPage })))
-const TelematicoSurfacePage = lazy(() => import('./components/TelematicoSurfacePage').then((module) => ({ default: module.TelematicoSurfacePage })))
-const StudioModulePage = lazy(() => import('./components/StudioModulePage').then((module) => ({ default: module.StudioModulePage })))
-const PrivacyRegistroPage = lazy(() => import('./components/PrivacyRegistroPage').then((module) => ({ default: module.PrivacyRegistroPage })))
-const AdminDatabasePage = lazy(() => import('./components/AdminDatabasePage').then((module) => ({ default: module.AdminDatabasePage })))
-const QuickOrganizerImportPage = lazy(() => import('./components/QuickOrganizerImportPage').then((module) => ({ default: module.QuickOrganizerImportPage })))
-const StatistichePage = lazy(() => import('./components/StatistichePage').then((module) => ({ default: module.StatistichePage })))
-const ImpostazioniPage = lazy(() => import('./components/ImpostazioniPage').then((module) => ({ default: module.ImpostazioniPage })))
-const AuditPage = lazy(() => import('./components/AuditPage').then((module) => ({ default: module.AuditPage })))
-const UtentiPage = lazy(() => import('./components/UtentiPage').then((module) => ({ default: module.UtentiPage })))
-const ProfiliPage = lazy(() => import('./components/ProfiliPage').then((module) => ({ default: module.ProfiliPage })))
-const ProfiloPage = lazy(() => import('./components/ProfiloPage').then((module) => ({ default: module.ProfiloPage })))
-const BackupPage = lazy(() => import('./components/BackupPage').then((module) => ({ default: module.BackupPage })))
-const SitoStudioBuilderPage = lazy(() => import('./components/SitoStudioBuilderPage').then((module) => ({ default: module.SitoStudioBuilderPage })))
-const SitoStudioRedazioneAiPage = lazy(() => import('./components/SitoStudioRedazioneAiPage').then((module) => ({ default: module.SitoStudioRedazioneAiPage })))
-const SitoStudioPage = lazy(() => import('./components/SitoStudioPage').then((module) => ({ default: module.SitoStudioPage })))
-const StudioPage = lazy(() => import('./components/StudioPage').then((module) => ({ default: module.StudioPage })))
-const AmministrazionePage = lazy(() => import('./components/AmministrazionePage').then((module) => ({ default: module.AmministrazionePage })))
-const FatturazionePage = lazy(() => import('./components/FatturazionePage').then((module) => ({ default: module.FatturazionePage })))
-const IncassiPagamentiPage = lazy(() => import('./components/IncassiPagamentiPage').then((module) => ({ default: module.IncassiPagamentiPage })))
-const PreventiviPage = lazy(() => import('./components/PreventiviPage').then((module) => ({ default: module.PreventiviPage })))
-const PreventivoWizardPage = lazy(() => import('./components/PreventivoWizardPage').then((module) => ({ default: module.PreventivoWizardPage })))
-const CompensiForensiPage = lazy(() => import('./components/CompensiForensiPage').then((module) => ({ default: module.CompensiForensiPage })))
-const TariffarioPage = lazy(() => import('./components/TariffarioPage').then((module) => ({ default: module.TariffarioPage })))
-const TemplateAttiPage = lazy(() => import('./components/TemplateAttiPage').then((module) => ({ default: module.TemplateAttiPage })))
-const RedazioneAttiPage = lazy(() => import('./components/RedazioneAttiPage').then((module) => ({ default: module.RedazioneAttiPage })))
-const GiurisprudenzaPage = lazy(() => import('./components/GiurisprudenzaPage').then((module) => ({ default: module.GiurisprudenzaPage })))
-const LegalIntelligencePage = lazy(() => import('./components/LegalIntelligencePage').then((module) => ({ default: module.LegalIntelligencePage })))
-const LegalSkillsCatalogPage = lazy(() => import('./features/legal-skills/pages/LegalSkillsCatalogPage').then((module) => ({ default: module.LegalSkillsCatalogPage })))
-const PracticeProfilePage = lazy(() => import('./features/legal-skills/pages/PracticeProfilePage').then((module) => ({ default: module.PracticeProfilePage })))
-const ColdStartInterviewPage = lazy(() => import('./features/legal-skills/pages/ColdStartInterviewPage').then((module) => ({ default: module.ColdStartInterviewPage })))
-const LegalSkillRunPage = lazy(() => import('./features/legal-skills/pages/LegalSkillRunPage').then((module) => ({ default: module.LegalSkillRunPage })))
-const SkillRunDetailPage = lazy(() => import('./features/legal-skills/pages/SkillRunDetailPage').then((module) => ({ default: module.SkillRunDetailPage })))
-const ReviewerQueuePage = lazy(() => import('./features/legal-skills/pages/ReviewerQueuePage').then((module) => ({ default: module.ReviewerQueuePage })))
-const WorkflowAgentsHome = lazy(() => import('./pages/workflow-agents/WorkflowAgentsHome').then((module) => ({ default: module.WorkflowAgentsHome })))
-const AgentApprovalQueue = lazy(() => import('./pages/workflow-agents/AgentApprovalQueue').then((module) => ({ default: module.AgentApprovalQueue })))
-const AgentRunDetail = lazy(() => import('./pages/workflow-agents/AgentRunDetail').then((module) => ({ default: module.AgentRunDetail })))
-const ClientPortalPage = lazy(() => import('./components/ClientPortalPage').then((module) => ({ default: module.ClientPortalPage })))
+const CHUNK_RELOAD_GUARD_WINDOW_MS = 30_000
+
+// Dopo un deploy gli hash dei chunk cambiano: un tab aperto col bundle
+// precedente fallirebbe l'import dinamico mostrando l'error boundary.
+// Qui la pagina si ricarica da sola una volta così il browser riprende il
+// bundle aggiornato dal server; la guardia anti-loop vive in history.state
+// (sopravvive al reload senza usare storage di tab, vietato dalla governance).
+function lazyPage<T extends ComponentType<any>>(loader: () => Promise<{ default: T }>) {
+  return lazy(() =>
+    loader().catch((error: unknown) => {
+      try {
+        const state = (window.history.state || {}) as { iuChunkReloadAt?: number }
+        const last = Number(state.iuChunkReloadAt || 0)
+        if (Date.now() - last > CHUNK_RELOAD_GUARD_WINDOW_MS) {
+          window.history.replaceState({ ...state, iuChunkReloadAt: Date.now() }, '')
+          window.location.reload()
+          return new Promise<{ default: T }>(() => {})
+        }
+      } catch {
+        // history non disponibile: si lascia all'error boundary.
+      }
+      throw error
+    }),
+  )
+}
+
+const AgendaPage = lazyPage(() => import('./components/AgendaPage').then((module) => ({ default: module.AgendaPage })))
+const AgendaImportPage = lazyPage(() => import('./components/AgendaImportPage').then((module) => ({ default: module.AgendaImportPage })))
+const NuovoAppuntamentoPage = lazyPage(() => import('./components/NuovoAppuntamentoPage').then((module) => ({ default: module.NuovoAppuntamentoPage })))
+const RicercaStudioPage = lazyPage(() => import('./components/RicercaStudioPage').then((module) => ({ default: module.RicercaStudioPage })))
+const FascicoliPage = lazyPage(() => import('./components/FascicoliPage').then((module) => ({ default: module.FascicoliPage })))
+const DocumentEditorPage = lazyPage(() => import('./components/DocumentEditorPage').then((module) => ({ default: module.DocumentEditorPage })))
+const AnagraficaClientiPage = lazyPage(() => import('./components/AnagraficaClientiPage').then((module) => ({ default: module.AnagraficaClientiPage })))
+const CartellaClientePage = lazyPage(() => import('./components/CartellaClientePage').then((module) => ({ default: module.CartellaClientePage })))
+const NuovoClientePage = lazyPage(() => import('./components/NuovoClientePage').then((module) => ({ default: module.NuovoClientePage })))
+const SoggettiPage = lazyPage(() => import('./components/SoggettiPage').then((module) => ({ default: module.SoggettiPage })))
+const EmailPecPage = lazyPage(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailPecPage })))
+const EmailOrdinariaPage = lazyPage(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailOrdinariaPage })))
+const EmailComposePage = lazyPage(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailComposePage })))
+const NotificheLegaliPage = lazyPage(() => import('./components/NotificheLegaliPage').then((module) => ({ default: module.NotificheLegaliPage })))
+const MessaggiPage = lazyPage(() => import('./components/MessaggiPage').then((module) => ({ default: module.MessaggiPage })))
+const NuovoMessaggioPage = lazyPage(() => import('./components/MessaggiPage').then((module) => ({ default: module.NuovoMessaggioPage })))
+const ScadenziarioPage = lazyPage(() => import('./components/ScadenziarioPage').then((module) => ({ default: module.ScadenziarioPage })))
+const NuovaScadenzaPage = lazyPage(() => import('./components/NuovaScadenzaPage').then((module) => ({ default: module.NuovaScadenzaPage })))
+const WizardProPage = lazyPage(() => import('./components/WizardProPage').then((module) => ({ default: module.WizardProPage })))
+const WizardProStepPage = lazyPage(() => import('./components/WizardProStepPage').then((module) => ({ default: module.WizardProStepPage })))
+const WizardProCompletePage = lazyPage(() => import('./components/WizardProCompletePage').then((module) => ({ default: module.WizardProCompletePage })))
+const TimesheetPage = lazyPage(() => import('./components/TimesheetPage').then((module) => ({ default: module.TimesheetPage })))
+const CartelleCondivisePage = lazyPage(() => import('./components/CartelleCondivisePage').then((module) => ({ default: module.CartelleCondivisePage })))
+const TelematicoPage = lazyPage(() => import('./components/TelematicoPage').then((module) => ({ default: module.TelematicoPage })))
+const TelematicoSurfacePage = lazyPage(() => import('./components/TelematicoSurfacePage').then((module) => ({ default: module.TelematicoSurfacePage })))
+const StudioModulePage = lazyPage(() => import('./components/StudioModulePage').then((module) => ({ default: module.StudioModulePage })))
+const PrivacyRegistroPage = lazyPage(() => import('./components/PrivacyRegistroPage').then((module) => ({ default: module.PrivacyRegistroPage })))
+const AdminDatabasePage = lazyPage(() => import('./components/AdminDatabasePage').then((module) => ({ default: module.AdminDatabasePage })))
+const QuickOrganizerImportPage = lazyPage(() => import('./components/QuickOrganizerImportPage').then((module) => ({ default: module.QuickOrganizerImportPage })))
+const StatistichePage = lazyPage(() => import('./components/StatistichePage').then((module) => ({ default: module.StatistichePage })))
+const ImpostazioniPage = lazyPage(() => import('./components/ImpostazioniPage').then((module) => ({ default: module.ImpostazioniPage })))
+const AuditPage = lazyPage(() => import('./components/AuditPage').then((module) => ({ default: module.AuditPage })))
+const UtentiPage = lazyPage(() => import('./components/UtentiPage').then((module) => ({ default: module.UtentiPage })))
+const ProfiliPage = lazyPage(() => import('./components/ProfiliPage').then((module) => ({ default: module.ProfiliPage })))
+const ProfiloPage = lazyPage(() => import('./components/ProfiloPage').then((module) => ({ default: module.ProfiloPage })))
+const BackupPage = lazyPage(() => import('./components/BackupPage').then((module) => ({ default: module.BackupPage })))
+const SitoStudioBuilderPage = lazyPage(() => import('./components/SitoStudioBuilderPage').then((module) => ({ default: module.SitoStudioBuilderPage })))
+const SitoStudioRedazioneAiPage = lazyPage(() => import('./components/SitoStudioRedazioneAiPage').then((module) => ({ default: module.SitoStudioRedazioneAiPage })))
+const SitoStudioPage = lazyPage(() => import('./components/SitoStudioPage').then((module) => ({ default: module.SitoStudioPage })))
+const StudioPage = lazyPage(() => import('./components/StudioPage').then((module) => ({ default: module.StudioPage })))
+const AmministrazionePage = lazyPage(() => import('./components/AmministrazionePage').then((module) => ({ default: module.AmministrazionePage })))
+const FatturazionePage = lazyPage(() => import('./components/FatturazionePage').then((module) => ({ default: module.FatturazionePage })))
+const IncassiPagamentiPage = lazyPage(() => import('./components/IncassiPagamentiPage').then((module) => ({ default: module.IncassiPagamentiPage })))
+const PreventiviPage = lazyPage(() => import('./components/PreventiviPage').then((module) => ({ default: module.PreventiviPage })))
+const PreventivoWizardPage = lazyPage(() => import('./components/PreventivoWizardPage').then((module) => ({ default: module.PreventivoWizardPage })))
+const CompensiForensiPage = lazyPage(() => import('./components/CompensiForensiPage').then((module) => ({ default: module.CompensiForensiPage })))
+const TariffarioPage = lazyPage(() => import('./components/TariffarioPage').then((module) => ({ default: module.TariffarioPage })))
+const TemplateAttiPage = lazyPage(() => import('./components/TemplateAttiPage').then((module) => ({ default: module.TemplateAttiPage })))
+const RedazioneAttiPage = lazyPage(() => import('./components/RedazioneAttiPage').then((module) => ({ default: module.RedazioneAttiPage })))
+const GiurisprudenzaPage = lazyPage(() => import('./components/GiurisprudenzaPage').then((module) => ({ default: module.GiurisprudenzaPage })))
+const LegalIntelligencePage = lazyPage(() => import('./components/LegalIntelligencePage').then((module) => ({ default: module.LegalIntelligencePage })))
+const LegalSkillsCatalogPage = lazyPage(() => import('./features/legal-skills/pages/LegalSkillsCatalogPage').then((module) => ({ default: module.LegalSkillsCatalogPage })))
+const PracticeProfilePage = lazyPage(() => import('./features/legal-skills/pages/PracticeProfilePage').then((module) => ({ default: module.PracticeProfilePage })))
+const ColdStartInterviewPage = lazyPage(() => import('./features/legal-skills/pages/ColdStartInterviewPage').then((module) => ({ default: module.ColdStartInterviewPage })))
+const LegalSkillRunPage = lazyPage(() => import('./features/legal-skills/pages/LegalSkillRunPage').then((module) => ({ default: module.LegalSkillRunPage })))
+const SkillRunDetailPage = lazyPage(() => import('./features/legal-skills/pages/SkillRunDetailPage').then((module) => ({ default: module.SkillRunDetailPage })))
+const ReviewerQueuePage = lazyPage(() => import('./features/legal-skills/pages/ReviewerQueuePage').then((module) => ({ default: module.ReviewerQueuePage })))
+const WorkflowAgentsHome = lazyPage(() => import('./pages/workflow-agents/WorkflowAgentsHome').then((module) => ({ default: module.WorkflowAgentsHome })))
+const AgentApprovalQueue = lazyPage(() => import('./pages/workflow-agents/AgentApprovalQueue').then((module) => ({ default: module.AgentApprovalQueue })))
+const AgentRunDetail = lazyPage(() => import('./pages/workflow-agents/AgentRunDetail').then((module) => ({ default: module.AgentRunDetail })))
+const ClientPortalPage = lazyPage(() => import('./components/ClientPortalPage').then((module) => ({ default: module.ClientPortalPage })))
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }

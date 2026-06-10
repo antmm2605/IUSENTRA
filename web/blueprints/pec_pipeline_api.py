@@ -9,8 +9,13 @@ from typing import Any, Callable
 from flask import Blueprint, Response, g, jsonify, request
 
 from pct.email_client import GestioneEmailRicevute
-from pct.pec_control_tower import PecControlTowerRepository, _reconstruct_email_archive_mime
+from pct.pec_control_tower import PecControlTowerRepository
 from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset, parse_pec_message
+from web.services.pec_pipeline_runtime import (
+    email_rilevante_per_presidio_pec,
+    local_email_sort_key,
+    read_or_reconstruct_local_mime,
+)
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
@@ -274,52 +279,10 @@ def pec_acquire_legacy_email(email_id: str):
         return _json_error(403)
 
 
-def _email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
-    allegati = " ".join(
-        str(item.get("nome") or item.get("nome_file") or "")
-        for item in list(getattr(email_obj, "allegati", []) or [])
-        if isinstance(item, dict)
-    ).lower()
-    text = " ".join(
-        str(value or "")
-        for value in (
-            getattr(email_obj, "oggetto", ""),
-            getattr(email_obj, "mittente", ""),
-            getattr(email_obj, "mittente_nome", ""),
-            getattr(email_obj, "corpo_testo", ""),
-            getattr(email_obj, "stato_pct", ""),
-            allegati,
-        )
-    ).lower()
-    status_pct = str(getattr(email_obj, "stato_pct", "") or "").upper()
-    message_id = str(getattr(email_obj, "message_id", "") or "").strip()
-    origin = str(getattr(email_obj, "origine", "") or "").lower()
-    return bool(
-        getattr(email_obj, "e_pst", False)
-        or message_id
-        or status_pct
-        or "pec" in origin
-        or "posta certificata" in text
-        or "giustiziacert" in text
-        or "ptel.giustizia" in text
-        or "deposito telematico" in text
-        or "daticert" in text
-        or "postacert" in text
-        or any(marker in status_pct for marker in ("WARN", "RIFIUT", "ERRORE", "ACCETT", "CONSEGN", "CONTROLL", "DEPOSIT"))
-    )
-
-
-def _read_or_reconstruct_local_mime(gestore: GestioneEmailRicevute, email_obj: Any) -> tuple[bytes, str]:
-    raw_mime = gestore.leggi_eml_originale(email_obj)
-    if raw_mime:
-        return bytes(raw_mime), "originale"
-    try:
-        reconstructed = _reconstruct_email_archive_mime(gestore, email_obj)
-    except Exception:
-        reconstructed = b""
-    if reconstructed:
-        return bytes(reconstructed), "ricostruito"
-    return b"", ""
+# Helper condivisi con il presidio automatico dello scheduler: la logica vive
+# in web/services/pec_pipeline_runtime.py, qui restano gli alias storici.
+_email_rilevante_per_presidio_pec = email_rilevante_per_presidio_pec
+_read_or_reconstruct_local_mime = read_or_reconstruct_local_mime
 
 
 def _schedule_deadline_with_local_mime(
@@ -350,13 +313,7 @@ def _schedule_deadline_with_local_mime(
         }
 
 
-def _local_email_sort_key(email_obj: Any) -> str:
-    return str(
-        getattr(email_obj, "timestamp", "")
-        or getattr(email_obj, "data", "")
-        or getattr(email_obj, "ricevuta_il", "")
-        or ""
-    )
+_local_email_sort_key = local_email_sort_key
 
 
 def _local_acquire_deadline_status(result: dict[str, Any]) -> str:

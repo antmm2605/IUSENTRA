@@ -113,7 +113,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.69"
+VERSION = "1.6.70"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -165,13 +165,167 @@ def _local_signer_update_url() -> str:
     return url
 
 
+def _local_signer_base_url() -> str:
+    """Base ufficiale per scaricare i sorgenti aggiornati (sempre app.iusentra.it)."""
+    base = os.getenv("IUSENTRA_LOCAL_SIGNER_BASE_URL", "https://app.iusentra.it").strip().rstrip("/")
+    if not base.startswith("https://app.iusentra.it"):
+        raise RuntimeError("Base aggiornamento Local Signer non autorizzata.")
+    return base
+
+
+def _local_signer_install_dir() -> Path:
+    """Cartella da cui gira questo Local Signer (dove vanno sovrascritti i sorgenti)."""
+    return Path(__file__).resolve().parent
+
+
+# Sorgenti aggiornabili a caldo (senza EXE): nome file locale -> path download sul server.
+# Python e le dipendenze sono gia' installati: basta sostituire i .py e riavviare.
+_LOCAL_SIGNER_SOURCE_FILES: tuple[tuple[str, str], ...] = (
+    ("local_signer.py", "/polisWeb/local-signer/download"),
+    ("local_ai_host_bridge.py", "/polisWeb/local-signer/download/local-ai-bridge"),
+    ("lex_document_context.py", "/polisWeb/local-signer/download/lex-document-context"),
+    ("visible_signature.py", "/polisWeb/local-signer/download/visible-signature"),
+)
+_LOCAL_SIGNER_SOURCE_MOD_FILES: tuple[str, ...] = (
+    "__init__.py",
+    "ai_cache.py",
+    "ai_handlers.py",
+    "pec_bridge.py",
+    "security.py",
+    "server_bootstrap.py",
+    "support_agent.py",
+)
+
+
+def _scarica_sorgente(url: str, timeout: int = 30) -> bytes:
+    if not url.startswith("https://app.iusentra.it/"):
+        raise RuntimeError(f"URL sorgente non autorizzato: {url}")
+    import urllib.request
+
+    req = urllib.request.Request(url, headers={"Accept": "text/x-python, */*"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 (host fisso autorizzato)
+        if resp.status != 200:
+            raise RuntimeError(f"Download fallito ({resp.status}): {url}")
+        return resp.read()
+
+
+def _aggiorna_sorgenti_local_signer() -> dict:
+    """Aggiorna i sorgenti .py in-place dal server e riavvia, senza EXE.
+
+    Funziona su qualsiasi installazione gia' attiva (Python + dipendenze
+    presenti): scarica i file, li valida con py_compile in una cartella
+    temporanea, fa backup degli attuali e li sostituisce. Se qualcosa va
+    storto prima dello swap, l'installazione resta intatta.
+    """
+    import py_compile
+    import shutil
+
+    base = _local_signer_base_url()
+    install_dir = _local_signer_install_dir()
+    mod_dir = install_dir / "local_signer_mod"
+    staging = Path(tempfile.mkdtemp(prefix="iusentra-ls-update-"))
+    staging_mod = staging / "local_signer_mod"
+    staging_mod.mkdir(parents=True, exist_ok=True)
+
+    scaricati: list[tuple[Path, Path]] = []  # (file_staging, destinazione)
+    try:
+        # 1) Scarica + valida i file di primo livello
+        for nome, path in _LOCAL_SIGNER_SOURCE_FILES:
+            data = _scarica_sorgente(f"{base}{path}")
+            dest_stage = staging / nome
+            dest_stage.write_bytes(data)
+            py_compile.compile(str(dest_stage), doraise=True)
+            scaricati.append((dest_stage, install_dir / nome))
+
+        # 2) Scarica + valida i moduli local_signer_mod
+        for nome in _LOCAL_SIGNER_SOURCE_MOD_FILES:
+            data = _scarica_sorgente(f"{base}/polisWeb/local-signer/download/local-signer-mod/{nome}")
+            dest_stage = staging_mod / nome
+            dest_stage.write_bytes(data)
+            py_compile.compile(str(dest_stage), doraise=True)
+            scaricati.append((dest_stage, mod_dir / nome))
+
+        # 3) Tutto valido: applica con backup .bak per rollback manuale
+        mod_dir.mkdir(parents=True, exist_ok=True)
+        for sorgente, destinazione in scaricati:
+            if destinazione.exists():
+                backup = destinazione.with_suffix(destinazione.suffix + ".bak")
+                shutil.copy2(destinazione, backup)
+            shutil.copy2(sorgente, destinazione)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+
+    _programma_riavvio_local_signer()
+    return {
+        "ok": True,
+        "metodo": "sorgenti",
+        "versione_corrente": VERSION,
+        "file_aggiornati": [str(dest) for _, dest in scaricati],
+        "messaggio": "Sorgenti Local Signer aggiornati. Riavvio in corso: l'assistente torna attivo tra pochi secondi.",
+    }
+
+
+def _programma_riavvio_local_signer() -> None:
+    """Riavvia il Local Signer: lo starter su Windows, exec diretto altrove."""
+    install_dir = _local_signer_install_dir()
+    if sys.platform == "win32":
+        starter = install_dir / "start_local_signer.vbs"
+        starter_cmd = install_dir / "start_local_signer.cmd"
+        # PowerShell detached: attende l'uscita del processo corrente, poi rilancia.
+        if starter.exists():
+            relaunch = f"Start-Process -WindowStyle Hidden -FilePath wscript.exe -ArgumentList {_powershell_single_quote(str(starter))}"
+        elif starter_cmd.exists():
+            relaunch = f"Start-Process -WindowStyle Hidden -FilePath {_powershell_single_quote(str(starter_cmd))}"
+        else:
+            relaunch = (
+                f"Start-Process -WindowStyle Hidden -FilePath {_powershell_single_quote(sys.executable)} "
+                f"-ArgumentList {_powershell_single_quote(str(install_dir / 'local_signer.py'))}"
+            )
+        pid = os.getpid()
+        ps_command = (
+            f"$ErrorActionPreference='SilentlyContinue'; "
+            f"try {{ Wait-Process -Id {pid} -Timeout 15 }} catch {{}}; "
+            f"Start-Sleep -Milliseconds 500; {relaunch}"
+        )
+        subprocess.Popen(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-Command", ps_command],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+
+        def _exit_soon() -> None:
+            time.sleep(1.0)
+            os._exit(0)
+
+        threading.Thread(target=_exit_soon, daemon=True).start()
+    else:
+        # Linux/macOS: re-exec diretto del processo corrente con la nuova versione.
+        def _reexec_soon() -> None:
+            time.sleep(1.0)
+            os.execv(sys.executable, [sys.executable, *sys.argv])
+
+        threading.Thread(target=_reexec_soon, daemon=True).start()
+
+
 def _avvia_aggiornamento_local_signer() -> dict:
-    """Scarica e avvia il pacchetto ufficiale Windows senza salvare dati sensibili."""
+    """Aggiorna il Local Signer. Preferisce l'hot-update dei sorgenti (.py),
+    che non richiede alcun EXE: Python e dipendenze sono gia' installati.
+    Se l'hot-update non riesce, ricade sul pacchetto EXE ufficiale (Windows).
+    """
+    # Metodo preferito: hot-update dei sorgenti dal server. Funziona su ogni
+    # piattaforma con Python gia' installato e non dipende dalla disponibilita'
+    # dell'EXE versionato (che si genera solo da Windows con IExpress).
+    try:
+        return _aggiorna_sorgenti_local_signer()
+    except Exception as exc:  # noqa: BLE001 — fallback robusto all'EXE
+        log.warning("Hot-update sorgenti non riuscito (%s): provo il pacchetto EXE.", exc)
+
     update_url = _local_signer_update_url()
     if sys.platform != "win32":
         return {
             "ok": False,
-            "errore": "Aggiornamento automatico disponibile solo su Windows.",
+            "errore": f"Aggiornamento sorgenti non riuscito ({exc}) e pacchetto EXE disponibile solo su Windows.",
             "installer_url": update_url,
         }
     target = Path(tempfile.gettempdir()) / f"SetupLocalSigner-{secrets.token_hex(8)}.exe"

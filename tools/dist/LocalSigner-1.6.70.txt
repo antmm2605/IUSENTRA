@@ -1,0 +1,10 @@
+IUSENTRA Local Signer
+Versione: 1.6.70
+Generato: 2026-06-10 14:44 UTC
+Piattaforme: Windows (EXE piccolo IExpress), macOS (.command), Linux (.run)
+Ponte PEC locale: test SMTP e invio dal PC dello studio
+Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT
+Raccolta file browser ufficiale: PDP, PAT, PTT/SIGIT dai download locali
+Proxy PST allineato a Documentazione servizi web v1.69 / A1 WSDL Catalog v1.52
+PST: pacchetto allineato al riuso sessione view/download per evitare prompt PIN ripetuti
+Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma

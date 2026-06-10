@@ -4444,6 +4444,16 @@ def build_telematico_runtime(
         # deve usare la PS1 offline.
         return _local_signer_dist_dir() / _local_signer_windows_exe_name()
 
+    def _local_signer_windows_exe_alias_path() -> Path:
+        # Alias non versionato: l'ULTIMO EXE Windows generato (qualsiasi versione).
+        # Serve come fallback di prima installazione quando l'EXE della versione
+        # corrente non e' ancora stato rigenerato da Windows: un EXE precedente
+        # installa comunque Python portatile + venv + sorgenti, e al primo
+        # /update il Local Signer aggiorna i sorgenti .py alla versione corrente
+        # (vedi _aggiorna_sorgenti_local_signer). Quindi la versione dell'EXE non
+        # deve necessariamente coincidere con quella dei sorgenti.
+        return _local_signer_dist_dir() / "SetupLocalSigner.exe"
+
     def _local_signer_uffici_path() -> Path:
         return Path(__file__).resolve().parents[2] / "pct" / "data" / "uffici_ministero.json"
 
@@ -4950,6 +4960,7 @@ read -r -p "Premi Invio per chiudere..." _
         "local_signer_windows_cmd_path": _local_signer_windows_cmd_path,
         "local_signer_windows_cmd_name": _local_signer_windows_cmd_name,
         "local_signer_windows_exe_path": _local_signer_windows_exe_path,
+        "local_signer_windows_exe_alias_path": _local_signer_windows_exe_alias_path,
         "local_signer_windows_exe_name": _local_signer_windows_exe_name,
         "local_signer_windows_offline_ps1_path": _local_signer_windows_offline_ps1_path,
         "local_signer_windows_offline_ps1_name": _local_signer_windows_offline_ps1_name,

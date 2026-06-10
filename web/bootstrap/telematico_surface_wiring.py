@@ -69,6 +69,7 @@ def register_telematico_surfaces(
         local_signer_windows_cmd_path=telematico["local_signer_windows_cmd_path"],
         local_signer_windows_cmd_name=telematico["local_signer_windows_cmd_name"],
         local_signer_windows_exe_path=telematico["local_signer_windows_exe_path"],
+        local_signer_windows_exe_alias_path=telematico["local_signer_windows_exe_alias_path"],
         local_signer_windows_exe_name=telematico["local_signer_windows_exe_name"],
         local_signer_windows_offline_ps1_path=telematico["local_signer_windows_offline_ps1_path"],
         local_signer_windows_offline_ps1_name=telematico["local_signer_windows_offline_ps1_name"],

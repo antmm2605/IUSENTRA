@@ -3670,27 +3670,28 @@ def _cfg_web(tmp_path):
 
 
 def _assert_windows_exe_route(response, version: str) -> None:
-    """Verifica che una route /polisWeb/local-signer/*windows* serva l'EXE versionato.
+    """Verifica che una route /polisWeb/local-signer/*windows* serva un EXE valido.
 
-    Se l'EXE per la versione corrente non e' ancora stato rigenerato da Windows
-    (marker PENDING-WINDOWS-BUILD presente in tools/dist), la route ritorna
-    404: lo accettiamo come stato transitorio governato.
+    Se l'EXE della versione corrente esiste, la route lo serve (nome versionato).
+    Se non e' ancora stato rigenerato da Windows (marker PENDING-WINDOWS-BUILD),
+    la route ricade sull'alias non versionato SetupLocalSigner.exe — l'ultimo EXE
+    Windows disponibile — cosi' i nuovi clienti scaricano sempre un installer
+    funzionante che poi aggiorna i sorgenti via /update.
     """
     root = Path(__file__).resolve().parents[1]
     versioned_exe = root / "tools" / "dist" / f"SetupLocalSigner-{version}.exe"
-    pending_marker = root / "tools" / "dist" / f"SetupLocalSigner-{version}.exe.PENDING-WINDOWS-BUILD.txt"
+    alias_exe = root / "tools" / "dist" / "SetupLocalSigner.exe"
+
+    assert response.status_code == 200
+    disp = response.headers.get("Content-Disposition", "")
+    assert ".ps1" not in disp
+    assert ".cmd" not in disp
     if versioned_exe.exists():
-        assert response.status_code == 200
-        disp = response.headers.get("Content-Disposition", "")
         assert f"SetupLocalSigner-{version}.exe" in disp
-        assert ".ps1" not in disp
-        assert ".cmd" not in disp
-        return
-    assert pending_marker.exists(), (
-        f"Manca sia {versioned_exe.name} sia il marker {pending_marker.name}: "
-        "rigenerare tools/dist con python tools/build_dist.py"
-    )
-    assert response.status_code == 404
+    else:
+        # Fallback all'alias: deve esistere e il download deve riferirlo.
+        assert alias_exe.exists(), "Manca sia l'EXE versionato sia l'alias SetupLocalSigner.exe"
+        assert "SetupLocalSigner.exe" in disp
 
 
 def test_installer_local_signer_windows_legacy_restituisce_exe_senza_login(tmp_path):

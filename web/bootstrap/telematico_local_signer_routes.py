@@ -32,6 +32,7 @@ def register_telematico_local_signer_routes(
     local_signer_windows_cmd_path: Callable[[], Path],
     local_signer_windows_cmd_name: Callable[[], str],
     local_signer_windows_exe_path: Callable[[], Path],
+    local_signer_windows_exe_alias_path: Callable[[], Path],
     local_signer_windows_exe_name: Callable[[], str],
     local_signer_windows_offline_ps1_path: Callable[[], Path],
     local_signer_windows_offline_ps1_name: Callable[[], str],
@@ -50,15 +51,27 @@ def register_telematico_local_signer_routes(
 
     def _send_windows_exe():
         exe_path = local_signer_windows_exe_path()
+        download_name = local_signer_windows_exe_name()
         if not exe_path.exists():
-            return (
-                "Installer Windows .exe non ancora generato. Rigenerare i pacchetti Local Signer.",
-                404,
-            )
+            # L'EXE della versione corrente non e' stato ancora rigenerato da
+            # Windows (l'EXE IExpress si genera solo su Windows). Serviamo
+            # l'ultimo EXE Windows disponibile (alias non versionato): installa
+            # comunque Python portatile + venv + sorgenti, e al primo /update il
+            # Local Signer aggiorna i sorgenti .py alla versione corrente. Cosi'
+            # i nuovi clienti possono sempre scaricare un installer funzionante.
+            alias_path = local_signer_windows_exe_alias_path()
+            if alias_path.exists():
+                exe_path = alias_path
+                download_name = alias_path.name
+            else:
+                return (
+                    "Installer Windows .exe non ancora generato. Rigenerare i pacchetti Local Signer.",
+                    404,
+                )
         return send_file(
             exe_path,
             as_attachment=True,
-            download_name=local_signer_windows_exe_name(),
+            download_name=download_name,
             mimetype="application/octet-stream",
         )
 

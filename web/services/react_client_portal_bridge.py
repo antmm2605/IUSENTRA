@@ -558,6 +558,131 @@ def studio_add_signature_request(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "message": "Richiesta firma aggiunta.", "item": _public_row(item, include_private=True), "dashboard": build_studio_dashboard_payload()}
 
 
+def studio_upload_signature_document(file: FileStorage, payload: dict[str, Any]) -> dict[str, Any]:
+    """Carica il documento da firmare e crea la richiesta firma in un solo passaggio.
+
+    Il file viene salvato nello stesso storage degli upload del portale e collegato
+    alla richiesta tramite document_id: il cliente lo scarica, lo legge e conferma
+    la firma semplice con evidenza tracciata.
+    """
+    if not is_feature_enabled("routes.appV2.clientPortal.signatures", current_app.config):
+        return {"ok": False, "code": "feature_disabled", "message": "Firma cliente non attiva per questo studio."}
+    if not _can("clienti.scrivi"):
+        return {"ok": False, "code": "forbidden", "message": "Permesso clienti.scrivi richiesto."}
+    repo = repository_for_current_request()
+    tenant_id = _current_tenant_id()
+    matter_id = _text(payload.get("matterId"))
+    matter = repo.get_matter(tenant_id, matter_id)
+    if not matter:
+        return {"ok": False, "code": "validation_error", "message": "Pratica portale non trovata."}
+    if file is None or not (file.filename or "").strip():
+        return {"ok": False, "code": "validation_error", "message": "Seleziona il documento da far firmare (PDF)."}
+    settings = repo.get_settings(tenant_id)
+    limits = _upload_limits(settings)
+    original_name = _safe_upload_name(file.filename or "")
+    content_type = _text(file.mimetype) or mimetypes.guess_type(original_name)[0] or "application/octet-stream"
+    if content_type != "application/pdf":
+        return {"ok": False, "code": "validation_error", "message": "Il documento da firmare deve essere un PDF."}
+    data = file.read()
+    max_bytes = limits["maxUploadMb"] * 1024 * 1024
+    if len(data) > max_bytes:
+        actual_mb = len(data) / (1024 * 1024)
+        return {
+            "ok": False,
+            "code": "validation_error",
+            "message": f"Il PDF pesa {actual_mb:.1f} MB ma il limite è {limits['maxUploadMb']} MB.",
+        }
+    digest = hashlib.sha256(data).hexdigest()
+    doc_id = hashlib.sha256(f"{digest}:{utc_now()}".encode("utf-8")).hexdigest()[:20]
+    matter_dir = _safe_upload_name(matter_id)
+    upload_root = repo.db_path.parent / "uploads"
+    root = _resolved_upload_child(upload_root, matter_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    stored_name = f"firma_{doc_id}_{original_name}"
+    target = _resolved_upload_child(root, stored_name)
+    target.write_bytes(data)
+    document = repo.add_document(
+        tenant_id,
+        matter_id=matter_id,
+        request_id="firma-studio",
+        client_id=_text(matter.get("client_id")),
+        filename=original_name,
+        stored_name=f"{matter_dir}/{stored_name}",
+        content_type=content_type,
+        size_bytes=len(data),
+        sha256=digest,
+    )
+    title = _text(payload.get("title")) or original_name
+    item = repo.add_signature_request(
+        tenant_id,
+        matter_id=matter_id,
+        title=title,
+        description=_text(payload.get("description")),
+        document_id=_text(document.get("id")),
+        due_at=_text(payload.get("dueAt")),
+    )
+    repo.add_notification(
+        tenant_id,
+        client_id=_text(matter.get("client_id")),
+        matter_id=matter_id,
+        title="Documento da firmare",
+        body=title,
+        kind="firma",
+        href="/portale-cliente?tab=firme",
+    )
+    _audit("client_portal.signature.document_upload", "signature", _text(item.get("id")), title)
+    return {
+        "ok": True,
+        "message": f"Documento '{original_name}' allegato e richiesta firma inviata al cliente.",
+        "item": _public_row(item, include_private=True),
+        "document": _public_row(document, include_private=True),
+        "dashboard": build_studio_dashboard_payload(),
+    }
+
+
+def _document_row_for_download(repo: ClientPortalRepository, tenant_id: str, document_id: str) -> dict[str, Any] | None:
+    row = repo._fetchone(  # noqa: SLF001 - accesso interno consapevole, stessa classe repository
+        "SELECT * FROM client_portal_documents WHERE tenant_id = ? AND id = ?",
+        (tenant_id, document_id),
+    )
+    return row or None
+
+
+def _document_download_tuple(repo: ClientPortalRepository, row: dict[str, Any]) -> tuple[Path, str, str]:
+    stored = _text(row.get("stored_name"))
+    upload_root = repo.db_path.parent / "uploads"
+    path = _resolved_upload_child(upload_root, *stored.split("/"))
+    if not path.is_file():
+        raise ClientPortalError("File non più disponibile sullo storage del portale.")
+    return path, _text(row.get("filename"), "documento.pdf"), _text(row.get("content_type"), "application/octet-stream")
+
+
+def studio_document_download(document_id: str) -> tuple[Path, str, str] | dict[str, Any]:
+    if not _can("clienti.leggi"):
+        return {"ok": False, "code": "forbidden", "message": "Permesso clienti.leggi richiesto."}
+    repo = repository_for_current_request()
+    row = _document_row_for_download(repo, _current_tenant_id(), _text(document_id))
+    if not row:
+        return {"ok": False, "code": "not_found", "message": "Documento non trovato."}
+    try:
+        return _document_download_tuple(repo, row)
+    except ClientPortalError as exc:
+        return {"ok": False, "code": "not_found", "message": str(exc)}
+
+
+def client_document_download(document_id: str, *, token: str = "") -> tuple[Path, str, str] | dict[str, Any]:
+    try:
+        resolved = _current_client_token(token)
+        invite, repo = _invite_and_repo(resolved)
+        row = _document_row_for_download(repo, _text(invite.get("tenant_id")), _text(document_id))
+        # il cliente può scaricare solo i documenti della propria pratica
+        if not row or _text(row.get("matter_id")) != _text(invite.get("matter_id")):
+            return {"ok": False, "code": "not_found", "message": "Documento non trovato."}
+        return _document_download_tuple(repo, row)
+    except ClientPortalError:
+        return _invalid_invite_payload()
+
+
 def studio_add_appointment(payload: dict[str, Any]) -> dict[str, Any]:
     if not _can("agenda.scrivi") and not _can("clienti.scrivi"):
         return {"ok": False, "code": "forbidden", "message": "Permesso agenda.scrivi richiesto."}
@@ -712,6 +837,8 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
             "surveys": _public_rows(snapshot.get("surveys", [])),
             "evidencePacks": _public_rows(snapshot.get("evidencePacks", [])),
             "settings": snapshot.get("settings") or DEFAULT_CLIENT_PORTAL_SETTINGS,
+            "uploadLimits": _upload_limits(snapshot.get("settings") or DEFAULT_CLIENT_PORTAL_SETTINGS),
+            "profileCompletion": _profile_completion(snapshot.get("profile", {}) or {}),
             "actions": {
                 "profile": "/api/v1/ui/client-portal/public/profile",
                 "consent": "/api/v1/ui/client-portal/public/consents",
@@ -730,18 +857,154 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
         return _invalid_invite_payload()
 
 
+# Campi anagrafici estesi compilabili dal cliente. Vivono in
+# preferences_json["anagrafica"] (nessuna migrazione schema) e vengono
+# sincronizzati best-effort sulla scheda cliente dello studio.
+PROFILE_EXTRA_FIELDS = (
+    "birthDate",
+    "birthPlace",
+    "address",
+    "cap",
+    "city",
+    "province",
+    "pec",
+    "vatNumber",
+    "profession",
+    "iban",
+)
+
+# Campi che determinano la completezza della scheda: quando sono tutti
+# valorizzati lo studio riceve un messaggio in chat e una voce audit.
+PROFILE_REQUIRED_FOR_COMPLETION = (
+    "display_name",
+    "email",
+    "phone",
+    "fiscal_code",
+    "birthDate",
+    "birthPlace",
+    "address",
+    "cap",
+    "city",
+    "province",
+)
+
+
+def _profile_anagrafica(profile: dict[str, Any]) -> dict[str, Any]:
+    preferences = profile.get("preferences")
+    if not isinstance(preferences, dict):
+        preferences = json_loads(profile.get("preferences_json"), {})
+    anagrafica = preferences.get("anagrafica") if isinstance(preferences, dict) else {}
+    return dict(anagrafica) if isinstance(anagrafica, dict) else {}
+
+
+def _profile_completion(profile: dict[str, Any]) -> dict[str, Any]:
+    anagrafica = _profile_anagrafica(profile)
+    missing: list[str] = []
+    for field in PROFILE_REQUIRED_FOR_COMPLETION:
+        value = _text(profile.get(field)) if field in ("display_name", "email", "phone", "fiscal_code") else _text(anagrafica.get(field))
+        if not value:
+            missing.append(field)
+    total = len(PROFILE_REQUIRED_FOR_COMPLETION)
+    filled = total - len(missing)
+    return {
+        "complete": not missing,
+        "filled": filled,
+        "total": total,
+        "percent": int(round(filled * 100 / total)) if total else 100,
+        "missing": missing,
+    }
+
+
+def _sync_profile_to_cliente(client_id: str, core: dict[str, str], anagrafica: dict[str, str]) -> None:
+    """Riporta best-effort i dati compilati dal cliente sulla scheda anagrafica dello studio."""
+    try:
+        manager = _clienti_manager()
+        cliente = _cliente_by_id(client_id)
+        if not cliente or not hasattr(manager, "aggiorna"):
+            return
+        updates: dict[str, Any] = {}
+        mapping = {
+            "email": core.get("email"),
+            "telefono": core.get("phone"),
+            "codice_fiscale": core.get("fiscal_code"),
+            "indirizzo": anagrafica.get("address"),
+            "cap": anagrafica.get("cap"),
+            "citta": anagrafica.get("city"),
+            "provincia": anagrafica.get("province"),
+            "pec": anagrafica.get("pec"),
+            "partita_iva": anagrafica.get("vatNumber"),
+            "data_nascita": anagrafica.get("birthDate"),
+            "luogo_nascita": anagrafica.get("birthPlace"),
+            "professione": anagrafica.get("profession"),
+        }
+        for attr, value in mapping.items():
+            value = _text(value)
+            if value and hasattr(cliente, attr) and not _text(getattr(cliente, attr, "")):
+                updates[attr] = value
+        if updates:
+            manager.aggiorna(client_id, **updates)
+    except Exception:
+        current_app.logger.exception("Sync anagrafica portale -> scheda cliente non riuscita per %s", client_id)
+
+
 def client_update_profile(payload: dict[str, Any]) -> dict[str, Any]:
     try:
         token = _current_client_token()
         invite, repo = _invite_and_repo(token)
-        profile = repo.update_profile_fields(_text(invite.get("tenant_id")), client_id=_text(invite.get("client_id")), fields={
+        tenant_id = _text(invite.get("tenant_id"))
+        client_id = _text(invite.get("client_id"))
+        previous = repo.get_profile(tenant_id, client_id) or {}
+        was_complete = _profile_completion(previous)["complete"]
+
+        core_fields = {
             "display_name": _text(payload.get("displayName")),
             "email": _text(payload.get("email")),
             "phone": _text(payload.get("phone")),
             "fiscal_code": _text(payload.get("fiscalCode")),
             "identity_expires_at": _text(payload.get("identityExpiresAt")),
-        })
-        return {"ok": True, "message": "Anagrafica aggiornata.", "client": _public_row(profile), "dashboard": client_dashboard_payload(token=token)}
+        }
+        profile = repo.update_profile_fields(tenant_id, client_id=client_id, fields=core_fields)
+
+        anagrafica = _profile_anagrafica(profile)
+        for field in PROFILE_EXTRA_FIELDS:
+            if field in payload:
+                anagrafica[field] = _text(payload.get(field))
+        profile = repo.update_preferences(tenant_id, client_id=client_id, preferences={"anagrafica": anagrafica})
+
+        _sync_profile_to_cliente(client_id, core_fields, anagrafica)
+
+        completion = _profile_completion(profile)
+        message = "Anagrafica aggiornata."
+        if completion["complete"] and not was_complete:
+            # Prima compilazione completa: lo studio riceve la notifica in chat
+            # (visibile nel pannello /app/portale-clienti) e in audit.
+            display = _text(profile.get("display_name"), "Il cliente")
+            repo.add_message(
+                tenant_id,
+                matter_id=_text(invite.get("matter_id")),
+                sender_type="cliente",
+                sender_id=client_id,
+                body=f"✅ {display} ha completato la scheda anagrafica: tutti i campi richiesti sono stati compilati.",
+            )
+            repo.record_audit(
+                tenant_id,
+                "cliente",
+                client_id,
+                "client_portal.profile.completed",
+                "profile",
+                _text(profile.get("id")),
+                {"percent": 100},
+            )
+            message = "Anagrafica completata: lo studio è stato avvisato."
+        elif not completion["complete"]:
+            message = f"Anagrafica salvata ({completion['filled']}/{completion['total']} campi obbligatori compilati)."
+        return {
+            "ok": True,
+            "message": message,
+            "client": _public_row(profile),
+            "profileCompletion": completion,
+            "dashboard": client_dashboard_payload(token=token),
+        }
     except ClientPortalError:
         return _invalid_invite_payload()
 
@@ -790,6 +1053,30 @@ def client_send_message(payload: dict[str, Any]) -> dict[str, Any]:
         return _invalid_invite_payload()
 
 
+_UPLOAD_TYPE_LABELS = {
+    "application/pdf": "PDF",
+    "image/jpeg": "JPG",
+    "image/png": "PNG",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+    "application/msword": "DOC",
+}
+
+
+def _upload_types_label(types: Any) -> str:
+    labels = [_UPLOAD_TYPE_LABELS.get(_text(item), _text(item).split("/")[-1].upper()) for item in (types or [])]
+    return ", ".join(label for label in labels if label) or "PDF"
+
+
+def _upload_limits(settings: dict[str, Any]) -> dict[str, Any]:
+    allowed = list(settings.get("allowedUploadTypes") or DEFAULT_CLIENT_PORTAL_SETTINGS["allowedUploadTypes"])
+    max_mb = int(settings.get("maxUploadMb") or DEFAULT_CLIENT_PORTAL_SETTINGS["maxUploadMb"])
+    return {
+        "maxUploadMb": max_mb,
+        "allowedUploadTypes": allowed,
+        "allowedLabel": _upload_types_label(allowed),
+    }
+
+
 def _safe_upload_name(filename: str) -> str:
     cleaned = secure_filename(filename or "")
     return cleaned or "documento_cliente"
@@ -812,14 +1099,27 @@ def client_upload_document(file: FileStorage, *, request_id: str = "") -> dict[s
         tenant_id = _text(invite.get("tenant_id"))
         settings = repo.get_settings(tenant_id)
         allowed = set(settings.get("allowedUploadTypes") or DEFAULT_CLIENT_PORTAL_SETTINGS["allowedUploadTypes"])
-        max_bytes = int(settings.get("maxUploadMb") or 20) * 1024 * 1024
+        max_mb = int(settings.get("maxUploadMb") or DEFAULT_CLIENT_PORTAL_SETTINGS["maxUploadMb"])
+        max_bytes = max_mb * 1024 * 1024
         original_name = _safe_upload_name(file.filename or "")
         content_type = _text(file.mimetype) or mimetypes.guess_type(original_name)[0] or "application/octet-stream"
         if content_type not in allowed:
-            return {"ok": False, "code": "validation_error", "message": "Tipo file non consentito."}
+            return {
+                "ok": False,
+                "code": "validation_error",
+                "message": f"Tipo file non consentito ({content_type}). Formati accettati: {_upload_types_label(allowed)}.",
+            }
         data = file.read()
         if len(data) > max_bytes:
-            return {"ok": False, "code": "validation_error", "message": "File troppo grande per le impostazioni dello studio."}
+            actual_mb = len(data) / (1024 * 1024)
+            return {
+                "ok": False,
+                "code": "validation_error",
+                "message": (
+                    f"Il file pesa {actual_mb:.1f} MB ma il limite dello studio è {max_mb} MB. "
+                    "Riduci la dimensione (es. scansiona a risoluzione più bassa o dividi il PDF) e riprova."
+                ),
+            }
         digest = hashlib.sha256(data).hexdigest()
         matter_id = _text(invite.get("matter_id"))
         matter_dir = _safe_upload_name(matter_id)

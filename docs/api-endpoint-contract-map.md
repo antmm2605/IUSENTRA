@@ -8,11 +8,11 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 258.
-- Endpoint P0/P1 contrattualizzati: 227.
+- Endpoint React API contrattualizzati: 261.
+- Endpoint P0/P1 contrattualizzati: 230.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 244.
-- Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 14.
+- Endpoint con provider verification auth-error: 246.
+- Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
@@ -48,6 +48,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Portale Cliente | `/api/v1/ui/client-portal/public/conversation-export` | `GET` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
 | Portale Cliente | `/api/v1/ui/client-portal/public/dashboard` | `GET` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
 | Portale Cliente | `/api/v1/ui/client-portal/public/documents` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
+| Portale Cliente | `/api/v1/ui/client-portal/public/documents/{document_id}/download` | `GET` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
 | Portale Cliente | `/api/v1/ui/client-portal/public/invites/{token}` | `GET` | Portale Cliente | P1 | complete | public-safe-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-public-safe-error |
 | Portale Cliente | `/api/v1/ui/client-portal/public/invites/{token}/accept` | `POST` | Portale Cliente | P1 | complete | public-safe-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-public-safe-error |
 | Portale Cliente | `/api/v1/ui/client-portal/public/messages` | `POST` | Portale Cliente | P1 | complete | client-token-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-client-token-error |
@@ -61,6 +62,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Portale Cliente | `/api/v1/ui/client-portal/studio/conversation-export` | `GET` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
 | Portale Cliente | `/api/v1/ui/client-portal/studio/dashboard` | `GET` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
 | Portale Cliente | `/api/v1/ui/client-portal/studio/document-requests` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/documents/{document_id}/download` | `GET` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
 | Portale Cliente | `/api/v1/ui/client-portal/studio/evidence-packs` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
 | Portale Cliente | `/api/v1/ui/client-portal/studio/invites` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
 | Portale Cliente | `/api/v1/ui/client-portal/studio/invites/{invite_id}/revoke` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
@@ -68,6 +70,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Portale Cliente | `/api/v1/ui/client-portal/studio/settings` | `GET` | Portale Cliente | P1 | verified | success+auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | verified |
 | Portale Cliente | `/api/v1/ui/client-portal/studio/settings` | `POST` | Portale Cliente | P1 | verified | success+auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | verified |
 | Portale Cliente | `/api/v1/ui/client-portal/studio/signature-requests` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
+| Portale Cliente | `/api/v1/ui/client-portal/studio/signature-requests/upload` | `POST` | Portale Cliente | P1 | complete | auth-error | `clienti.leggi/scrivi oppure invito cliente valido` | `n/a` | current_tenant | complete-auth-error |
 | Clienti | `/api/v1/ui/clienti` | `GET` | Clienti (/app/anagrafiche) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.clients.list` | current_tenant | verified |
 | Clienti | `/api/v1/ui/clienti/{id_cliente}/cartella` | `GET` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Clienti | `/api/v1/ui/clienti/{id_cliente}/modifica` | `GET` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

@@ -104,7 +104,7 @@ DEFAULT_CLIENT_PORTAL_SETTINGS = {
         "image/png",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ],
-    "maxUploadMb": 20,
+    "maxUploadMb": 50,
     "notifications": {
         "inApp": True,
         "email": False,

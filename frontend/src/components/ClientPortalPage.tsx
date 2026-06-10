@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
   CalendarDays,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import {
   acceptInvite,
+  clientPortalDocumentUrl,
   clientPortalPost,
   clientPortalTokenFromPath,
   clearClientPortalToken,
@@ -34,8 +35,10 @@ import {
   loadStudioClientPortal,
   readClientPortalToken,
   storeClientPortalToken,
+  studioPortalDocumentUrl,
   studioPortalPost,
   uploadClientPortalDocument,
+  uploadStudioSignatureDocument,
   type ClientPortalClientPayload,
   type ClientPortalResponse,
   type ClientPortalStudioPayload,
@@ -189,9 +192,12 @@ function ClientPortalStudio() {
   const [messageBody, setMessageBody] = useState('')
   const [requestTitle, setRequestTitle] = useState('')
   const [signatureTitle, setSignatureTitle] = useState('')
+  const [signatureFile, setSignatureFile] = useState<File | null>(null)
+  const [signatureSending, setSignatureSending] = useState(false)
   const [appointmentStart, setAppointmentStart] = useState('')
   const [appointmentVideoUrl, setAppointmentVideoUrl] = useState('')
   const [settingsDays, setSettingsDays] = useState(14)
+  const studioChatRef = useRef<HTMLDivElement | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -211,12 +217,23 @@ function ClientPortalStudio() {
     void load()
   }, [])
 
+  useEffect(() => {
+    const node = studioChatRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [payload.messages.length, selectedMatterId])
+
   const selectedMatter = useMemo(
     () => payload.matters.find((matter) => rowId(matter) === selectedMatterId) || payload.matters[0],
     [payload.matters, selectedMatterId],
   )
   const selectedMessages = payload.messages.filter((message) => text(message.matter_id) === rowId(selectedMatter))
   const selectedDocumentRequests = payload.documentRequests.filter((item) => text(item.matter_id) === rowId(selectedMatter))
+  const selectedClientDocuments = (payload.documents || []).filter((item) => text(item.matter_id) === rowId(selectedMatter))
+  const unrequestedClientDocuments = selectedClientDocuments.filter((doc) => {
+    const requestId = text(doc.request_id)
+    // esclude i PDF caricati dallo studio per le firme e gli upload già agganciati a una richiesta
+    return requestId !== 'firma-studio' && !selectedDocumentRequests.some((item) => rowId(item) === requestId)
+  })
   const selectedSignatures = payload.signatures.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedAppointments = payload.appointments.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedInvites = payload.invites.filter((item) => text(item.matter_id) === rowId(selectedMatter))
@@ -366,12 +383,25 @@ function ClientPortalStudio() {
 
   const addSignature = async (event: FormEvent) => {
     event.preventDefault()
-    const response = await studioPortalPost('/api/v1/ui/client-portal/studio/signature-requests', {
-      matterId: rowId(selectedMatter),
-      title: signatureTitle,
-    })
-    if (response.ok) setSignatureTitle('')
-    applyDashboard(response)
+    setSignatureSending(true)
+    try {
+      // Con un PDF allegato la richiesta passa dall'upload multipart: il cliente
+      // riceve il documento da leggere e firmare. Senza file resta la richiesta
+      // di sola descrizione (compatibilità con il flusso precedente).
+      const response = signatureFile
+        ? await uploadStudioSignatureDocument(signatureFile, rowId(selectedMatter), signatureTitle)
+        : await studioPortalPost('/api/v1/ui/client-portal/studio/signature-requests', {
+            matterId: rowId(selectedMatter),
+            title: signatureTitle,
+          })
+      if (response.ok) {
+        setSignatureTitle('')
+        setSignatureFile(null)
+      }
+      applyDashboard(response as ClientPortalResponse)
+    } finally {
+      setSignatureSending(false)
+    }
   }
 
   const addAppointment = async (event: FormEvent) => {
@@ -534,16 +564,65 @@ function ClientPortalStudio() {
             <div className="iu-client-portal-workgrid">
               <form className="iu-client-portal-mini-form" onSubmit={addDocumentRequest}>
                 <h3>Documenti</h3>
-                <input value={requestTitle} onChange={(event) => setRequestTitle(event.target.value)} placeholder="Documento da richiedere"/>
-                <button type="submit"><UploadCloud size={16} aria-hidden="true"/>Richiedi</button>
-                {selectedDocumentRequests.map((item) => <span key={rowId(item)}>{text(item.title)} · {statusLabel(item.status)}</span>)}
+                <input value={requestTitle} onChange={(event) => setRequestTitle(event.target.value)} placeholder="Es. Carta d'identità, busta paga, contratto..."/>
+                <button type="submit" disabled={!requestTitle.trim()}><UploadCloud size={16} aria-hidden="true"/>Richiedi al cliente</button>
+                {selectedDocumentRequests.length === 0 ? <span className="iu-client-portal-muted">Nessuna richiesta documento per questa pratica.</span> : null}
+                {selectedDocumentRequests.map((item) => {
+                  const uploaded = selectedClientDocuments.find((doc) => text(doc.request_id) === rowId(item))
+                  return (
+                    <span className="iu-client-portal-doc-line" key={rowId(item)}>
+                      <strong>{text(item.title)}</strong>
+                      <PortalBadge value={uploaded ? 'ricevuto' : item.status}/>
+                      {uploaded ? (
+                        <a href={studioPortalDocumentUrl(rowId(uploaded))} title={`Scarica ${text(uploaded.filename)}`}>
+                          <Download size={14} aria-hidden="true"/>{text(uploaded.filename)}
+                        </a>
+                      ) : null}
+                    </span>
+                  )
+                })}
+                {unrequestedClientDocuments.length ? (
+                  <>
+                    <h4 className="iu-client-portal-doc-subtitle">Altri documenti caricati dal cliente</h4>
+                    {unrequestedClientDocuments.map((doc) => (
+                      <span className="iu-client-portal-doc-line" key={rowId(doc)}>
+                        <a href={studioPortalDocumentUrl(rowId(doc))} title="Scarica documento">
+                          <Download size={14} aria-hidden="true"/>{text(doc.filename)}
+                        </a>
+                        <em>{text(doc.uploaded_at_label)}</em>
+                      </span>
+                    ))}
+                  </>
+                ) : null}
               </form>
               {signaturesEnabled ? (
                 <form className="iu-client-portal-mini-form" onSubmit={addSignature}>
                   <h3>Firme</h3>
-                  <input value={signatureTitle} onChange={(event) => setSignatureTitle(event.target.value)} placeholder="Documento da firmare"/>
-                  <button type="submit"><FileCheck2 size={16} aria-hidden="true"/>Richiedi firma</button>
-                  {selectedSignatures.map((item) => <span key={rowId(item)}>{text(item.title)} · {statusLabel(item.status)}</span>)}
+                  <input value={signatureTitle} onChange={(event) => setSignatureTitle(event.target.value)} placeholder="Titolo del documento (es. Mandato professionale)"/>
+                  <label className="iu-client-portal-file iu-client-portal-file--studio">
+                    <UploadCloud size={15} aria-hidden="true"/>
+                    {signatureFile ? signatureFile.name : 'Allega PDF da firmare'}
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(event) => setSignatureFile(event.target.files?.[0] || null)}
+                    />
+                  </label>
+                  <button type="submit" disabled={signatureSending || (!signatureTitle.trim() && !signatureFile)}>
+                    <FileCheck2 size={16} aria-hidden="true"/>{signatureSending ? 'Invio in corso…' : signatureFile ? 'Allega e richiedi firma' : 'Richiedi firma'}
+                  </button>
+                  {selectedSignatures.length === 0 ? <span className="iu-client-portal-muted">Nessuna richiesta firma per questa pratica.</span> : null}
+                  {selectedSignatures.map((item) => (
+                    <span className="iu-client-portal-doc-line" key={rowId(item)}>
+                      <strong>{text(item.title)}</strong>
+                      <PortalBadge value={item.status}/>
+                      {text(item.document_id) ? (
+                        <a href={studioPortalDocumentUrl(text(item.document_id))} title="Scarica il documento allegato">
+                          <Download size={14} aria-hidden="true"/>PDF allegato
+                        </a>
+                      ) : null}
+                    </span>
+                  ))}
                 </form>
               ) : (
                 <section className="iu-client-portal-mini-form" aria-label="Firme">
@@ -599,7 +678,7 @@ function ClientPortalStudio() {
               <h2>Chat cliente</h2>
               <MessageCircle size={18} aria-hidden="true"/>
             </div>
-            <div className="iu-client-portal-chat__messages">
+            <div className="iu-client-portal-chat__messages" ref={studioChatRef}>
               {selectedMessages.length === 0 ? <span className="iu-client-portal-muted">Nessun messaggio nella pratica.</span> : null}
               {selectedMessages.map((message) => (
                 <article key={rowId(message)} className={text(message.sender_type) === 'studio' ? 'from-studio' : 'from-client'}>
@@ -610,8 +689,19 @@ function ClientPortalStudio() {
               ))}
             </div>
             <form className="iu-client-portal-chat__composer" onSubmit={sendMessage}>
-              <textarea value={messageBody} onChange={(event) => setMessageBody(event.target.value)} placeholder="Scrivi al cliente" rows={3}/>
-              <button className="iu-client-portal-button" type="submit"><Send size={17} aria-hidden="true"/>Scrivi al cliente</button>
+              <textarea
+                value={messageBody}
+                onChange={(event) => setMessageBody(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    if (messageBody.trim()) void sendMessage(event as unknown as FormEvent)
+                  }
+                }}
+                placeholder="Scrivi al cliente (Invio per inviare, Maiusc+Invio per andare a capo)"
+                rows={3}
+              />
+              <button className="iu-client-portal-button" type="submit" disabled={!messageBody.trim()}><Send size={17} aria-hidden="true"/>Invia al cliente</button>
             </form>
           </div>
         </section>
@@ -691,34 +781,73 @@ function ClientPortalInvite({ token }: { token: string }) {
   )
 }
 
+const EMPTY_PROFILE_FORM = {
+  displayName: '',
+  email: '',
+  phone: '',
+  fiscalCode: '',
+  identityExpiresAt: '',
+  birthDate: '',
+  birthPlace: '',
+  address: '',
+  cap: '',
+  city: '',
+  province: '',
+  pec: '',
+  vatNumber: '',
+  profession: '',
+}
+
+function profileFormFromPayload(data: ClientPortalClientPayload): typeof EMPTY_PROFILE_FORM {
+  const client = data.client || {}
+  const preferences = (client.preferences || {}) as Record<string, unknown>
+  const anagrafica = (preferences.anagrafica || {}) as Record<string, unknown>
+  return {
+    displayName: text(client.display_name),
+    email: text(client.email),
+    phone: text(client.phone),
+    fiscalCode: text(client.fiscal_code),
+    identityExpiresAt: text(client.identity_expires_at),
+    birthDate: text(anagrafica.birthDate),
+    birthPlace: text(anagrafica.birthPlace),
+    address: text(anagrafica.address),
+    cap: text(anagrafica.cap),
+    city: text(anagrafica.city),
+    province: text(anagrafica.province),
+    pec: text(anagrafica.pec),
+    vatNumber: text(anagrafica.vatNumber),
+    profession: text(anagrafica.profession),
+  }
+}
+
 function ClientPortalClient() {
   const [payload, setPayload] = useState<ClientPortalClientPayload>(emptyClientPortal)
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [messageBody, setMessageBody] = useState('')
-  const [profileForm, setProfileForm] = useState({ displayName: '', email: '', phone: '', fiscalCode: '', identityExpiresAt: '' })
+  const [profileForm, setProfileForm] = useState(EMPTY_PROFILE_FORM)
   const [questionnaireResponses, setQuestionnaireResponses] = useState<Record<string, string>>({})
   const [survey, setSurvey] = useState({ rating: 5, comment: '' })
   const token = readClientPortalToken()
+  const chatScrollRef = useRef<HTMLDivElement | null>(null)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
 
   const load = async () => {
     setLoading(true)
     const data = await loadClientPortal(token)
     setPayload(data)
-    setProfileForm({
-      displayName: text(data.client?.display_name),
-      email: text(data.client?.email),
-      phone: text(data.client?.phone),
-      fiscalCode: text(data.client?.fiscal_code),
-      identityExpiresAt: text(data.client?.identity_expires_at),
-    })
+    setProfileForm(profileFormFromPayload(data))
     setLoading(false)
   }
 
   useEffect(() => {
     void load()
   }, [])
+
+  useEffect(() => {
+    const node = chatScrollRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [payload.messages?.length])
 
   const applyClientResponse = (response: ClientPortalResponse) => {
     if (response.dashboard?.surface === 'client') setPayload(response.dashboard as ClientPortalClientPayload)
@@ -743,6 +872,16 @@ function ClientPortalClient() {
 
   const uploadDocument = async (file: File | null, requestId: string) => {
     if (!file) return
+    // pre-controllo lato client: evita l'upload destinato a fallire e spiega subito il limite
+    const limits = payload.uploadLimits
+    if (limits?.maxUploadMb && file.size > limits.maxUploadMb * 1024 * 1024) {
+      const actualMb = (file.size / (1024 * 1024)).toFixed(1)
+      setNotice({
+        tone: 'warning',
+        text: `Il file pesa ${actualMb} MB ma il limite è ${limits.maxUploadMb} MB. Riduci la dimensione (scansione a risoluzione più bassa o PDF diviso) e riprova.`,
+      })
+      return
+    }
     applyClientResponse(await uploadClientPortalDocument(file, requestId))
   }
 
@@ -799,6 +938,28 @@ function ClientPortalClient() {
 
   const progress = numberValue(payload.matter?.progress)
   const messages = payload.messages || []
+  const completion = payload.profileCompletion
+  const uploadLimits = payload.uploadLimits
+
+  // Stato reale di ogni passo del percorso, calcolato dai dati e non dal solo
+  // record statico: il cliente vede subito cosa ha completato e dove andare.
+  const consentsDone = (payload.consents || []).length > 0 && (payload.consents || []).every((item) => numberValue(item.accepted) > 0)
+  const documentsDone = (payload.documentRequests || []).length > 0 && (payload.documentRequests || []).every((item) => (
+    ['caricato', 'ricevuto', 'approvato'].includes(text(item.status)) ||
+    (payload.documents || []).some((doc) => text(doc.request_id) === rowId(item))
+  ))
+  const signaturesDone = (payload.signatures || []).length > 0 && (payload.signatures || []).every((item) => text(item.status) === 'firmato')
+  const appointmentsDone = (payload.appointments || []).some((item) => text(item.status) === 'confermato')
+  const checklist = [
+    { key: 'privacy', title: 'Privacy e consensi', anchor: '#panel-privacy', done: consentsDone, pending: (payload.consents || []).filter((item) => !numberValue(item.accepted)).length },
+    { key: 'anagrafica', title: 'Anagrafica cliente', anchor: '#panel-anagrafica', done: Boolean(completion?.complete), pending: completion ? completion.total - completion.filled : 0 },
+    { key: 'documenti', title: 'Documenti richiesti', anchor: '#panel-documenti', done: documentsDone, pending: (payload.documentRequests || []).filter((item) => !['caricato', 'ricevuto', 'approvato'].includes(text(item.status)) && !(payload.documents || []).some((doc) => text(doc.request_id) === rowId(item))).length },
+    { key: 'firme', title: 'Documenti da firmare', anchor: '#panel-firme', done: signaturesDone, pending: (payload.signatures || []).filter((item) => text(item.status) !== 'firmato').length },
+    { key: 'appuntamenti', title: 'Appuntamento o videocall', anchor: '#panel-appuntamenti', done: appointmentsDone, pending: (payload.appointments || []).filter((item) => text(item.status) === 'proposto').length },
+  ]
+  const checklistDone = checklist.filter((item) => item.done).length
+  const updateProfileField = (field: keyof typeof EMPTY_PROFILE_FORM) => (event: { target: { value: string } }) =>
+    setProfileForm((current) => ({ ...current, [field]: event.target.value }))
 
   return (
     <main className="iu-client-portal-public iu-client-portal-public--dashboard">
@@ -810,91 +971,142 @@ function ClientPortalClient() {
         </div>
         <div className="iu-client-portal-client-hero__actions">
           <a className="iu-client-portal-button" href="#chat-cliente"><MessageCircle size={17} aria-hidden="true"/>Scrivi allo studio</a>
-          <a className="iu-client-portal-button secondary" href="#chat-cliente"><MessageCircle size={17} aria-hidden="true"/>Apri chat</a>
         </div>
       </header>
       <NoticeBar notice={notice}/>
 
       <section className="iu-client-portal-client-summary">
         <article>
-          <span>Completamento</span>
-          <strong>{progress}%</strong>
-          <progress className="iu-client-portal-progress" value={progress} max={100}>{progress}%</progress>
+          <span>Percorso completato</span>
+          <strong>{checklistDone}/{checklist.length}</strong>
+          <progress className="iu-client-portal-progress" value={checklistDone} max={checklist.length}>{checklistDone}</progress>
         </article>
         <article>
           <span>Azioni aperte</span>
           <strong>{numberValue(payload.activityCenter?.openItems)}</strong>
         </article>
         <article>
-          <span>Notifiche</span>
-          <strong>{(payload.notifications || []).filter((item) => !text(item.read_at)).length}</strong>
+          <span>Avanzamento pratica</span>
+          <strong>{progress}%</strong>
         </article>
       </section>
 
       <section className="iu-client-portal-client-grid">
         <div className="iu-client-portal-panel">
           <div className="iu-client-portal-panel__head"><h2>Cosa devo fare adesso</h2><ClipboardList size={18} aria-hidden="true"/></div>
-          <div className="iu-client-portal-timeline">
-            {(payload.steps || []).map((step) => (
-              <article key={rowId(step)}>
-                <span/>
-                <strong>{text(step.title)}</strong>
-                <PortalBadge value={step.status}/>
-              </article>
+          <div className="iu-client-portal-timeline iu-client-portal-timeline--interactive">
+            {checklist.map((step) => (
+              <a href={step.anchor} key={step.key} className={step.done ? 'is-done' : ''}>
+                <span className="iu-client-portal-timeline__dot">{step.done ? <Check size={13} aria-hidden="true"/> : null}</span>
+                <strong>{step.title}</strong>
+                {step.done
+                  ? <em className="iu-client-portal-timeline__state is-done">Fatto</em>
+                  : <em className="iu-client-portal-timeline__state">{step.pending > 0 ? `${step.pending} da completare` : 'Da fare'} →</em>}
+              </a>
             ))}
           </div>
         </div>
 
-        <form className="iu-client-portal-panel iu-client-portal-form" onSubmit={saveProfile}>
-          <div className="iu-client-portal-panel__head"><h2>Anagrafica</h2><UserRound size={18} aria-hidden="true"/></div>
-          <label>Nome e cognome<input value={profileForm.displayName} onChange={(event) => setProfileForm((current) => ({ ...current, displayName: event.target.value }))}/></label>
-          <label>Email<input value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))}/></label>
-          <label>Telefono<input value={profileForm.phone} onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))}/></label>
-          <label>Codice fiscale<input value={profileForm.fiscalCode} onChange={(event) => setProfileForm((current) => ({ ...current, fiscalCode: event.target.value }))}/></label>
-          <label>Scadenza documento<input type="date" value={profileForm.identityExpiresAt} onChange={(event) => setProfileForm((current) => ({ ...current, identityExpiresAt: event.target.value }))}/></label>
+        <form className="iu-client-portal-panel iu-client-portal-form" onSubmit={saveProfile} id="panel-anagrafica">
+          <div className="iu-client-portal-panel__head">
+            <h2>Anagrafica</h2>
+            {completion ? (
+              <span className={`iu-client-portal-completion ${completion.complete ? 'is-done' : ''}`}>
+                {completion.complete ? <><Check size={13} aria-hidden="true"/>Completa</> : `${completion.filled}/${completion.total} campi`}
+              </span>
+            ) : <UserRound size={18} aria-hidden="true"/>}
+          </div>
+          {!completion?.complete ? (
+            <p className="iu-client-portal-muted">Compila tutti i campi obbligatori (*): lo studio riceverà conferma automatica appena la scheda è completa.</p>
+          ) : null}
+          <div className="iu-client-portal-form__grid">
+            <label>Nome e cognome *<input value={profileForm.displayName} onChange={updateProfileField('displayName')} autoComplete="name"/></label>
+            <label>Email *<input type="email" value={profileForm.email} onChange={updateProfileField('email')} autoComplete="email"/></label>
+            <label>Telefono *<input value={profileForm.phone} onChange={updateProfileField('phone')} autoComplete="tel"/></label>
+            <label>Codice fiscale *<input value={profileForm.fiscalCode} onChange={updateProfileField('fiscalCode')} style={{ textTransform: 'uppercase' }}/></label>
+            <label>Data di nascita *<input type="date" value={profileForm.birthDate} onChange={updateProfileField('birthDate')}/></label>
+            <label>Luogo di nascita *<input value={profileForm.birthPlace} onChange={updateProfileField('birthPlace')}/></label>
+            <label>Indirizzo (via e civico) *<input value={profileForm.address} onChange={updateProfileField('address')} autoComplete="street-address"/></label>
+            <label>CAP *<input value={profileForm.cap} onChange={updateProfileField('cap')} inputMode="numeric" maxLength={5}/></label>
+            <label>Città *<input value={profileForm.city} onChange={updateProfileField('city')}/></label>
+            <label>Provincia *<input value={profileForm.province} onChange={updateProfileField('province')} maxLength={2} style={{ textTransform: 'uppercase' }}/></label>
+            <label>PEC<input type="email" value={profileForm.pec} onChange={updateProfileField('pec')}/></label>
+            <label>Partita IVA<input value={profileForm.vatNumber} onChange={updateProfileField('vatNumber')} inputMode="numeric"/></label>
+            <label>Professione<input value={profileForm.profession} onChange={updateProfileField('profession')}/></label>
+            <label>Scadenza documento d'identità<input type="date" value={profileForm.identityExpiresAt} onChange={updateProfileField('identityExpiresAt')}/></label>
+          </div>
           <button className="iu-client-portal-button" type="submit">Salva anagrafica</button>
         </form>
 
-        <div className="iu-client-portal-panel">
+        <div className="iu-client-portal-panel" id="panel-privacy">
           <div className="iu-client-portal-panel__head"><h2>Privacy e consensi</h2><ShieldCheck size={18} aria-hidden="true"/></div>
           {(payload.consents || []).map((consent) => (
             <article className="iu-client-portal-action-row" key={rowId(consent)}>
-              <div><strong>{text(consent.consent_key, 'Informativa privacy').replace(/_/g, ' ')}</strong><span>{numberValue(consent.accepted) ? 'Accettato' : 'Da accettare'}</span></div>
-              <button type="button" onClick={() => acceptConsent(text(consent.consent_key))} disabled={Boolean(numberValue(consent.accepted))}>Accetta</button>
+              <div><strong>{text(consent.consent_key, 'Informativa privacy').replace(/_/g, ' ')}</strong><span>{numberValue(consent.accepted) ? `Accettato il ${text(consent.accepted_at_label)}` : 'Da accettare'}</span></div>
+              <button type="button" onClick={() => acceptConsent(text(consent.consent_key))} disabled={Boolean(numberValue(consent.accepted))}>{numberValue(consent.accepted) ? 'Accettato ✓' : 'Accetta'}</button>
             </article>
           ))}
         </div>
 
-        <div className="iu-client-portal-panel">
+        <div className="iu-client-portal-panel" id="panel-documenti">
           <div className="iu-client-portal-panel__head"><h2>Documenti</h2><UploadCloud size={18} aria-hidden="true"/></div>
-          {(payload.documentRequests || []).map((requestItem) => (
-            <article className="iu-client-portal-action-row" key={rowId(requestItem)}>
-              <div><strong>{text(requestItem.title)}</strong><span>{statusLabel(requestItem.status)}</span></div>
-              <label className="iu-client-portal-file">
-                <UploadCloud size={16} aria-hidden="true"/>Carica
-                <input type="file" onChange={(event) => uploadDocument(event.target.files?.[0] || null, rowId(requestItem))}/>
-              </label>
-            </article>
-          ))}
-          {(payload.documents || []).map((document) => <span className="iu-client-portal-muted" key={rowId(document)}>{text(document.filename)} · {text(document.uploaded_at_label)}</span>)}
+          {uploadLimits ? (
+            <p className="iu-client-portal-upload-hint">Formati accettati: {uploadLimits.allowedLabel} · dimensione massima {uploadLimits.maxUploadMb} MB per file.</p>
+          ) : null}
+          {(payload.documentRequests || []).length === 0 ? <span className="iu-client-portal-muted">Lo studio non ha ancora richiesto documenti.</span> : null}
+          {(payload.documentRequests || []).map((requestItem) => {
+            const uploaded = (payload.documents || []).find((doc) => text(doc.request_id) === rowId(requestItem))
+            return (
+              <article className="iu-client-portal-action-row" key={rowId(requestItem)}>
+                <div>
+                  <strong>{text(requestItem.title)}</strong>
+                  <span>{uploaded ? `Caricato: ${text(uploaded.filename)}` : statusLabel(requestItem.status)}</span>
+                </div>
+                <label className="iu-client-portal-file">
+                  <UploadCloud size={16} aria-hidden="true"/>{uploaded ? 'Sostituisci' : 'Carica'}
+                  <input
+                    type="file"
+                    accept={(uploadLimits?.allowedUploadTypes || []).join(',') || undefined}
+                    onChange={(event) => { uploadDocument(event.target.files?.[0] || null, rowId(requestItem)); event.target.value = '' }}
+                  />
+                </label>
+              </article>
+            )
+          })}
         </div>
 
-        <div className="iu-client-portal-panel">
-          <div className="iu-client-portal-panel__head"><h2>Firme</h2><FileCheck2 size={18} aria-hidden="true"/></div>
+        <div className="iu-client-portal-panel" id="panel-firme">
+          <div className="iu-client-portal-panel__head"><h2>Documenti da firmare</h2><FileCheck2 size={18} aria-hidden="true"/></div>
           {!signaturesEnabled ? <span className="iu-client-portal-muted">Firma semplice non attiva per questo studio.</span> : null}
           {signaturesEnabled && (payload.signatures || []).length === 0 ? <span className="iu-client-portal-muted">Nessun documento in firma.</span> : null}
-          {signaturesEnabled && (payload.signatures || []).map((signature) => (
-            <article className="iu-client-portal-action-row" key={rowId(signature)}>
-              <div><strong>{text(signature.title)}</strong><span>{statusLabel(signature.status)}</span></div>
-              <button type="button" onClick={() => completeSignature(rowId(signature))} disabled={text(signature.status) === 'firmato'}>Firma</button>
-            </article>
-          ))}
+          {signaturesEnabled && (payload.signatures || []).map((signature) => {
+            const documentId = text(signature.document_id)
+            const signed = text(signature.status) === 'firmato'
+            return (
+              <article className="iu-client-portal-action-row iu-client-portal-signature-row" key={rowId(signature)}>
+                <div>
+                  <strong>{text(signature.title)}</strong>
+                  <span>{statusLabel(signature.status)}</span>
+                  {documentId ? (
+                    <a className="iu-client-portal-doc-download" href={clientPortalDocumentUrl(documentId)}>
+                      <Download size={14} aria-hidden="true"/>Scarica e leggi il documento
+                    </a>
+                  ) : null}
+                </div>
+                <button type="button" onClick={() => completeSignature(rowId(signature))} disabled={signed}>
+                  {signed ? 'Firmato ✓' : 'Conferma firma'}
+                </button>
+              </article>
+            )
+          })}
         </div>
 
         <div className="iu-client-portal-panel iu-client-portal-chat" id="chat-cliente">
           <div className="iu-client-portal-panel__head"><h2>Chat con lo studio</h2><MessageCircle size={18} aria-hidden="true"/></div>
-          <div className="iu-client-portal-chat__messages">
-            {messages.length === 0 ? <span className="iu-client-portal-muted">Nessun messaggio ancora presente.</span> : null}
+          <div className="iu-client-portal-chat__messages" ref={chatScrollRef}>
+            {messages.length === 0 ? (
+              <span className="iu-client-portal-muted">Nessun messaggio: scrivi qui per qualsiasi domanda, lo studio risponde appena possibile.</span>
+            ) : null}
             {messages.map((message) => (
               <article key={rowId(message)} className={text(message.sender_type) === 'cliente' ? 'from-client' : 'from-studio'}>
                 <strong>{text(message.sender_type) === 'cliente' ? 'Tu' : 'Studio'}</strong>
@@ -904,12 +1116,23 @@ function ClientPortalClient() {
             ))}
           </div>
           <form className="iu-client-portal-chat__composer" onSubmit={sendMessage}>
-            <textarea value={messageBody} onChange={(event) => setMessageBody(event.target.value)} placeholder="Scrivi allo studio" rows={3}/>
-            <button className="iu-client-portal-button" type="submit"><Send size={17} aria-hidden="true"/>Invia</button>
+            <textarea
+              value={messageBody}
+              onChange={(event) => setMessageBody(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
+                  if (messageBody.trim()) void sendMessage(event as unknown as FormEvent)
+                }
+              }}
+              placeholder="Scrivi allo studio (Invio per inviare, Maiusc+Invio per andare a capo)"
+              rows={3}
+            />
+            <button className="iu-client-portal-button" type="submit" disabled={!messageBody.trim()}><Send size={17} aria-hidden="true"/>Invia</button>
           </form>
         </div>
 
-        <div className="iu-client-portal-panel">
+        <div className="iu-client-portal-panel" id="panel-appuntamenti">
           <div className="iu-client-portal-panel__head"><h2>Appuntamenti</h2><CalendarDays size={18} aria-hidden="true"/></div>
           {(payload.appointments || []).length === 0 ? <span className="iu-client-portal-muted">Nessun appuntamento proposto.</span> : null}
           {(payload.appointments || []).map((appointment) => (

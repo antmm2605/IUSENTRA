@@ -2418,3 +2418,34 @@ body:has(.iu-client-portal-public) #pct-ai-widget {
     display: none !important;
   }
 }
+
+/* ===== Portale clienti: checklist interattiva "Cosa devo fare adesso" ===== */
+.iu-client-portal-timeline--interactive{display:grid;gap:8px}
+.iu-client-portal-timeline--interactive a{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:inherit;text-decoration:none;transition:.15s}
+.iu-client-portal-timeline--interactive a:hover{border-color:rgba(37,99,235,.35);transform:translateX(2px)}
+.iu-client-portal-timeline--interactive a.is-done{background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.25)}
+.iu-client-portal-timeline__dot{width:22px;height:22px;display:grid;place-items:center;border-radius:999px;border:2px solid var(--iu-slate-300);background:#fff;color:#fff}
+.iu-client-portal-timeline--interactive a.is-done .iu-client-portal-timeline__dot{border-color:var(--iu-success-500);background:var(--iu-success-500)}
+.iu-client-portal-timeline__state{font-style:normal;font-size:12px;font-weight:850;color:var(--iu-blue-700);white-space:nowrap}
+.iu-client-portal-timeline__state.is-done{color:#047857}
+
+/* ===== Anagrafica cliente completa ===== */
+.iu-client-portal-form__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.iu-client-portal-form__grid label{display:grid;gap:4px;font-size:12px;font-weight:800;color:var(--iu-slate-600)}
+.iu-client-portal-form__grid input{min-height:38px;padding:0 10px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;font:inherit;font-size:13.5px}
+.iu-client-portal-completion{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 10px;border-radius:999px;background:rgba(245,158,11,.12);color:#b45309;font-size:11.5px;font-weight:900}
+.iu-client-portal-completion.is-done{background:rgba(16,185,129,.12);color:#047857}
+
+/* ===== Documenti: hint limiti + righe con download ===== */
+.iu-client-portal-upload-hint{margin:0 0 6px;padding:8px 11px;border:1px dashed rgba(37,99,235,.3);border-radius:10px;background:rgba(37,99,235,.05);color:var(--iu-slate-600);font-size:12px;font-weight:700}
+.iu-client-portal-doc-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px}
+.iu-client-portal-doc-line a{display:inline-flex;align-items:center;gap:5px;color:var(--iu-blue-700);font-weight:850;text-decoration:none}
+.iu-client-portal-doc-line a:hover{text-decoration:underline}
+.iu-client-portal-doc-line em{font-style:normal;color:var(--iu-slate-400);font-size:11.5px}
+.iu-client-portal-doc-subtitle{margin:8px 0 2px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--iu-slate-500)}
+.iu-client-portal-doc-download{display:inline-flex;align-items:center;gap:5px;margin-top:4px;color:var(--iu-blue-700);font-size:12.5px;font-weight:850;text-decoration:none}
+.iu-client-portal-doc-download:hover{text-decoration:underline}
+.iu-client-portal-signature-row > div{display:grid;gap:3px}
+.iu-client-portal-file--studio{justify-content:flex-start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media(max-width:640px){.iu-client-portal-form__grid{grid-template-columns:1fr}}

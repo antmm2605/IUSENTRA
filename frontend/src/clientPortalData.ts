@@ -83,6 +83,18 @@ export type ClientPortalClientPayload = {
   surveys?: PortalRow[]
   evidencePacks?: PortalRow[]
   settings?: Record<string, unknown>
+  uploadLimits?: {
+    maxUploadMb: number
+    allowedUploadTypes: string[]
+    allowedLabel: string
+  }
+  profileCompletion?: {
+    complete: boolean
+    filled: number
+    total: number
+    percent: number
+    missing: string[]
+  }
 }
 
 export const emptyStudioPortal: ClientPortalStudioPayload = {
@@ -212,6 +224,37 @@ export async function uploadClientPortalDocument(
   } catch {
     return { ok: false, message: 'Documento non caricato.' }
   }
+}
+
+export async function uploadStudioSignatureDocument(
+  file: File,
+  matterId: string,
+  title: string,
+): Promise<ClientPortalResponse> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('matterId', matterId)
+  form.append('title', title)
+  try {
+    const response = await fetch('/api/v1/ui/client-portal/studio/signature-requests/upload', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { ...csrfHeader() },
+      body: form,
+    })
+    const payload = await response.json()
+    return payload as ClientPortalResponse
+  } catch {
+    return { ok: false, message: 'Documento da firmare non caricato.' }
+  }
+}
+
+export function clientPortalDocumentUrl(documentId: string, token = readClientPortalToken()): string {
+  return `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/download?token=${encodeURIComponent(token)}`
+}
+
+export function studioPortalDocumentUrl(documentId: string): string {
+  return `/api/v1/ui/client-portal/studio/documents/${encodeURIComponent(documentId)}/download`
 }
 
 export async function exportClientPortalConversation(

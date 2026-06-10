@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import wraps
 from typing import Any, Callable
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 
 from web.services.backend_security import (
     backend_control_violations_for_request,
@@ -16,6 +16,7 @@ from web.services.react_client_portal_bridge import (
     build_studio_dashboard_payload,
     client_complete_signature,
     client_dashboard_payload,
+    client_document_download,
     client_mark_notification,
     client_send_message,
     client_set_consent,
@@ -34,6 +35,8 @@ from web.services.react_client_portal_bridge import (
     studio_add_message,
     studio_add_signature_request,
     studio_create_evidence_pack,
+    studio_document_download,
+    studio_upload_signature_document,
     update_settings_from_payload,
 )
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -134,6 +137,29 @@ def studio_signature_request_create():
     return _json(studio_add_signature_request(_json_body()))
 
 
+@api_v1_client_portal.post("/studio/signature-requests/upload")
+@_studio_auth_required
+def studio_signature_request_upload():
+    file = request.files.get("file")
+    payload = {
+        "matterId": str(request.form.get("matterId") or ""),
+        "title": str(request.form.get("title") or ""),
+        "description": str(request.form.get("description") or ""),
+        "dueAt": str(request.form.get("dueAt") or ""),
+    }
+    return _json(studio_upload_signature_document(file, payload))
+
+
+@api_v1_client_portal.get("/studio/documents/<document_id>/download")
+@_studio_auth_required
+def studio_document_file(document_id: str):
+    result = studio_document_download(document_id)
+    if isinstance(result, dict):
+        return _json(result)
+    path, filename, content_type = result
+    return send_file(path, mimetype=content_type, as_attachment=True, download_name=filename)
+
+
 @api_v1_client_portal.post("/studio/appointments")
 @_studio_auth_required
 def studio_appointment_create():
@@ -193,6 +219,15 @@ def public_document_upload():
     if file is None:
         return _json({"ok": False, "code": "validation_error", "message": "File richiesto."})
     return _json(client_upload_document(file, request_id=str(request.form.get("requestId") or "")))
+
+
+@api_v1_client_portal.get("/public/documents/<document_id>/download")
+def public_document_file(document_id: str):
+    result = client_document_download(document_id, token=str(request.args.get("token") or ""))
+    if isinstance(result, dict):
+        return _json(result)
+    path, filename, content_type = result
+    return send_file(path, mimetype=content_type, as_attachment=True, download_name=filename)
 
 
 @api_v1_client_portal.post("/public/signatures/<signature_id>/complete")

@@ -99,6 +99,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
     update_react_fascicolo_payment,
+    update_react_fascicolo_status,
 )
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
 from web.services.react_notifiche_legali_bridge import (
@@ -3903,6 +3904,12 @@ def fascicoli_react_list():
         sort=request.args.get("sort", "rg"),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
         payments_only=_request_bool("payments_only") or _request_bool("paymentsOnly"),
+        payment_filters={
+            "contributo_unificato": request.args.get("cu", "") or request.args.get("contributo_unificato", ""),
+            "fondo_spese": request.args.get("fondo_spese", "") or request.args.get("fondoSpese", ""),
+            "liquidazione_giudice": request.args.get("liquidazione", "") or request.args.get("liquidazione_giudice", ""),
+            "parcella": request.args.get("parcella", ""),
+        },
     ))
 
 
@@ -3923,6 +3930,27 @@ def fascicoli_react_export():
         get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
     ))
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/stato")
+@_richiedi_auth
+def fascicolo_react_stato(id_fasc: str):
+    if not (_api_key_valida() or _session_user_can("fascicoli.scrivi")):
+        return jsonify({"ok": False, "message": "Operazione non autorizzata.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    result, status = update_react_fascicolo_status(
+        get_fascicoli=_fascicoli_loader(),
+        id_fasc=id_fasc,
+        payload=_request_payload(),
+        actor=_actor_label(),
+    )
+    if result.get("ok"):
+        _audit_event(
+            "fascicoli.stato_aggiornato",
+            "fascicolo",
+            id_fasc,
+            str(result.get("message") or "Stato fascicolo aggiornato."),
+        )
+    return jsonify(result), status
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/pagamenti/<kind>")

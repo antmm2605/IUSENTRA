@@ -761,6 +761,83 @@ def update_react_fascicolo_payment(
     }, 200
 
 
+# Stati modificabili inline dall'elenco fascicoli: chiave = valore frontend
+# (lowercase), valore = enum di dominio. "da_archiviare" e' derivato e non
+# viene accettato come target diretto.
+_INLINE_STATUS_TARGETS = {
+    "aperto": StatoFascicolo.APERTO,
+    "in_corso": StatoFascicolo.IN_CORSO,
+    "sospeso": StatoFascicolo.SOSPESO,
+    "definito": StatoFascicolo.DEFINITO,
+    "archiviato": StatoFascicolo.ARCHIVIATO,
+}
+
+_INLINE_STATUS_LABELS = {
+    "aperto": "Aperto",
+    "in_corso": "In corso",
+    "sospeso": "Sospeso",
+    "definito": "Definito",
+    "archiviato": "Archiviato",
+}
+
+
+def update_react_fascicolo_status(
+    *,
+    get_fascicoli: Callable[[], Any],
+    id_fasc: str,
+    payload: dict[str, Any],
+    actor: str = "",
+) -> tuple[dict[str, Any], int]:
+    raw = _text(payload.get("stato") or payload.get("status")).strip().lower().replace(" ", "_")
+    target = _INLINE_STATUS_TARGETS.get(raw)
+    if target is None:
+        return {
+            "ok": False,
+            "message": "Stato fascicolo non riconosciuto.",
+            "errors": {"stato": "Stato fascicolo non riconosciuto."},
+        }, 400
+    repo = get_fascicoli()
+    fascicolo = _resolve_fascicolo(repo, id_fasc)
+    if not fascicolo:
+        return {"ok": False, "message": "Fascicolo non trovato.", "errors": {"fascicolo": "Fascicolo non trovato."}}, 404
+    fid = _text(getattr(fascicolo, "id", id_fasc))
+    previous = _status_for_filters(fascicolo)
+    if previous == raw:
+        return {
+            "ok": True,
+            "message": f"Stato già impostato su {_INLINE_STATUS_LABELS[raw]}.",
+            "fascicolo": {"id": fid, "status": raw, "tone": _status_tone(target.value)},
+        }, 200
+    try:
+        if hasattr(repo, "cambia_stato"):
+            fascicolo = repo.cambia_stato(
+                fid,
+                target,
+                note="Aggiornato dall'elenco fascicoli",
+                avvocato=_text(actor, "Operatore"),
+            )
+        else:
+            setattr(fascicolo, "stato", target)
+            saver = getattr(repo, "_salva", None)
+            if callable(saver):
+                saver()
+    except Exception as exc:  # pragma: no cover - dipende dal repository concreto
+        return {
+            "ok": False,
+            "message": f"Cambio stato non riuscito: {exc}",
+            "errors": {"stato": str(exc)},
+        }, 400
+    return {
+        "ok": True,
+        "message": f"Stato aggiornato a {_INLINE_STATUS_LABELS[raw]}.",
+        "fascicolo": {
+            "id": fid,
+            "status": _status_for_filters(fascicolo),
+            "tone": _status_tone(target.value),
+        },
+    }, 200
+
+
 def _bytes_label(value: Any) -> str:
     try:
         size = int(value or 0)
@@ -1204,6 +1281,7 @@ def _matches_list_filters(
     court: str = "",
     alerts_only: bool = False,
     payments_only: bool = False,
+    payment_filters: dict[str, str] | None = None,
 ) -> bool:
     needle = _text(query).lower()
     if needle:
@@ -1237,6 +1315,15 @@ def _matches_list_filters(
         return False
     if payments_only and (item.get("paymentSummary") or {}).get("stato") not in {"da_presidiare", "parziale"}:
         return False
+    if payment_filters:
+        summary_items = (item.get("paymentSummary") or {}).get("items") or {}
+        for kind, wanted in payment_filters.items():
+            wanted_key = _text(wanted).strip().lower()
+            if not wanted_key or wanted_key == "tutti":
+                continue
+            actual = _text((summary_items.get(kind) or {}).get("status")).strip().lower()
+            if actual != wanted_key:
+                return False
     return True
 
 
@@ -1274,6 +1361,7 @@ def build_react_fascicoli_payload(
     sort: str = "rg",
     alerts_only: bool = False,
     payments_only: bool = False,
+    payment_filters: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     gf = get_fascicoli()
     scadenze_rows = _open_scadenze(get_scadenziario)
@@ -1293,6 +1381,7 @@ def build_react_fascicoli_payload(
             court=court,
             alerts_only=alerts_only,
             payments_only=payments_only,
+            payment_filters=payment_filters,
         )
     ]
     sorted_items = _sort_list_items(filtered, sort)

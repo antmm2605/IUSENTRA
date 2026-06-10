@@ -152,6 +152,8 @@ export type FascicoliPagination = {
   pages: number
 }
 
+export type FascicoloPaymentFilter = 'tutti' | FascicoloPaymentStatus
+
 export type FascicoliPageParams = {
   page?: number
   pageSize?: number
@@ -164,6 +166,10 @@ export type FascicoliPageParams = {
   sort?: string
   alertsOnly?: boolean
   paymentsOnly?: boolean
+  cu?: FascicoloPaymentFilter
+  fondoSpese?: FascicoloPaymentFilter
+  liquidazione?: FascicoloPaymentFilter
+  parcella?: FascicoloPaymentFilter
 }
 
 export type FascicoliPageData = {
@@ -1626,6 +1632,10 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   if (params.sort) query.set('sort', params.sort)
   if (params.alertsOnly) query.set('alerts_only', '1')
   if (params.paymentsOnly) query.set('payments_only', '1')
+  if (params.cu && params.cu !== 'tutti') query.set('cu', params.cu)
+  if (params.fondoSpese && params.fondoSpese !== 'tutti') query.set('fondo_spese', params.fondoSpese)
+  if (params.liquidazione && params.liquidazione !== 'tutti') query.set('liquidazione', params.liquidazione)
+  if (params.parcella && params.parcella !== 'tutti') query.set('parcella', params.parcella)
   const suffix = query.toString()
   return suffix ? `?${suffix}` : ''
 }
@@ -1667,6 +1677,42 @@ export function getFascicoloForm(id?: string, query = ''): Promise<FascicoloForm
 
 export function getFascicoliExport(): Promise<FascicoliExportData> {
   return safeFetch('/api/v1/ui/fascicoli/export', normalizeExportPayload, emptyFascicoliExport)
+}
+
+export type FascicoloStatusUpdateResult = {
+  ok: boolean
+  message: string
+  status: FascicoloStato
+  tone: Tone
+}
+
+export async function updateFascicoloStatus(id: string, stato: FascicoloStato): Promise<FascicoloStatusUpdateResult> {
+  const token = csrfToken()
+  const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/stato`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(token ? { 'X-CSRFToken': token } : {}),
+    },
+    body: JSON.stringify({ stato }),
+  })
+  const contentType = response.headers.get('content-type') || ''
+  const rawPayload = contentType.includes('application/json') ? await response.json().catch(() => ({})) : {}
+  const raw = isRecord(rawPayload) ? rawPayload : {}
+  const message = text(raw.message ?? raw.messaggio ?? raw.errore ?? raw.error, response.ok ? 'Stato fascicolo aggiornato.' : 'Non ho potuto aggiornare lo stato del fascicolo.')
+  if (!response.ok || raw.ok === false) {
+    throw new Error(message || 'Non ho potuto aggiornare lo stato del fascicolo.')
+  }
+  const fascicolo = isRecord(raw.fascicolo) ? raw.fascicolo : {}
+  return {
+    ok: true,
+    message,
+    status: text(fascicolo.status, stato) as FascicoloStato,
+    tone: text(fascicolo.tone, 'primary') as Tone,
+  }
 }
 
 export async function updateFascicoloPayment(id: string, kind: FascicoloPaymentKind, payload: FascicoloPaymentUpdatePayload): Promise<FascicoloPaymentUpdateResult> {

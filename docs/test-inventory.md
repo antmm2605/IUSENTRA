@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 419.
+- File pytest censiti: 420.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,7 +16,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 44 |
 | E2E | 7 |
 | Frontend static gate | 1 |
-| Frontend/UI | 126 |
+| Frontend/UI | 127 |
 | RBAC | 40 |
 | Security | 35 |
 | Smoke CLI | 6 |
@@ -29,7 +29,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 19 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 19 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 25 |
-| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 45 |
+| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 46 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 39 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 31 |
@@ -283,6 +283,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Documenti | Tenant isolation | tests/test_lex_editor_ai_tools.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_template_atti_editor.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Fascicoli | API contract | tests/test_fascicoli_pagination.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Fascicoli | Frontend/UI | tests/test_fascicoli_stato_e_filtri_economici.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Tenant isolation | tests/test_fascicoli.py | tenant, feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_document_intelligence_extraction.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_document_intelligence_pdf_quality.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |

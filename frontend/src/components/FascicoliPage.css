@@ -1603,3 +1603,40 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   font-size:12px;
   font-weight:850;
 }
+
+/* ===== Elenco unico: toggle vista operativa/economica ===== */
+.iu-fas-table-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.iu-fas-viewtoggle{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--iu-border);border-radius:11px;background:#f1f5f9}
+.iu-fas-viewtoggle button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 13px;border:0;border-radius:8px;background:transparent;color:var(--iu-slate-600);font:inherit;font-size:12px;font-weight:850;cursor:pointer;transition:.15s}
+.iu-fas-viewtoggle button.is-active{background:#fff;color:var(--iu-navy-900,#0b1b35);box-shadow:0 3px 10px rgba(15,23,42,.1)}
+.iu-fas-viewtoggle button:not(.is-active):hover{color:var(--iu-slate-700)}
+
+/* ===== Select inline per stato fascicolo ===== */
+.iu-fas-status-select{min-height:26px;max-width:118px;padding:0 6px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;color:var(--iu-slate-700);font:inherit;font-size:11px;font-weight:850;cursor:pointer}
+.iu-fas-status-select:disabled{opacity:.55;cursor:progress}
+.iu-fas-status-select--primary{border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.06);color:var(--iu-blue-700)}
+.iu-fas-status-select--success{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.07);color:#047857}
+.iu-fas-status-select--warning,.iu-fas-status-select--orange{border-color:rgba(245,158,11,.32);background:rgba(245,158,11,.08);color:#b45309}
+.iu-fas-status-select--info{border-color:rgba(56,189,248,.32);background:rgba(56,189,248,.08);color:#0369a1}
+.iu-fas-status-select--neutral{background:var(--iu-slate-100)}
+.iu-fas-status-select--danger{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:#b91c1c}
+
+/* ===== Vista economica dentro la tabella unica ===== */
+.iu-fas-table--economic{min-width:1760px}
+.iu-fas-table--economic th,.iu-fas-table--economic td{padding:6px 8px}
+.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:200px}
+.iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
+.iu-fas-economic-ref a{color:var(--iu-blue-700);text-decoration:none}
+.iu-fas-economic-ref>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:650}
+
+/* ===== Filtri per voce economica nel pannello avanzato ===== */
+.iu-fas-economic-filters{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:10px;border-top:1px dashed var(--iu-border)}
+.iu-fas-economic-filters label{display:grid;gap:4px}
+.iu-fas-economic-filters label>span{color:var(--iu-slate-500);font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.iu-fas-economic-filters select{min-height:34px;padding:0 8px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;font:inherit;font-size:12.5px;font-weight:750;color:var(--iu-slate-700)}
+@media(max-width:860px){.iu-fas-economic-filters{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== Card mobile: totale economico in vista economica ===== */
+.iu-fas-mobile-card__economic{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid rgba(37,99,235,.16);border-radius:10px;background:rgba(239,246,255,.5)}
+.iu-fas-mobile-card__economic span{color:var(--iu-slate-500);font-size:11px;font-weight:850}
+.iu-fas-mobile-card__economic strong{font-size:13px;margin-left:auto}

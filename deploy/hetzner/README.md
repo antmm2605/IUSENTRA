@@ -152,7 +152,7 @@ docker builder prune --all --force
 
 La cache di build Docker e' rigenerabile e non contiene dati degli studi. Dopo ogni deploy Hetzner va eliminata per evitare che il disco del server venga saturato da layer di compilazione non piu' necessari. Non usare comandi che rimuovono volumi o dati applicativi.
 
-Le ultime tre `curl` confermano che da v2.240.0 in poi `Motori Legali` e `Ricerca legale` sono servite direttamente dai template Flask (con layout a tab e ricerca cross-source) e non più intercettate dalla shell React legacy. `/ricerca-legale` deve rispondere `302` verso `/legal-intelligence/ricerca`.
+Le ultime tre `curl` verificano il routing canonico di Ricerca legale (da v2.242.0): `/ricerca-legale` e i suoi sotto-path sono serviti dalla shell React come superficie principale, mentre `/legal-intelligence/` e `/legal-intelligence/ricerca` devono rispondere `301` verso i corrispondenti path `/ricerca-legale/*`. Restano serviti dal blueprint Flask solo il download `/ricerca-legale/fonte/<id>/scarica` e il diff `/ricerca-legale/daily/*`.
 
 ## Migrazione dati da Railway
 

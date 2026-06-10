@@ -70,7 +70,7 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
 - Frontend: `web/app.py` (210+ route Flask) + `web/templates/` (177 template Jinja2) + `web/static/`
 - Persistenza: file JSON per clienti, fascicoli, agenda, ecc. + SQLite per full-text search
 - Stack: Python 3.12, Flask 3, Bootstrap 5, Bootstrap Icons, Gunicorn + gevent, Nginx
-- Versione corrente: **2.79.1** (fonte di verità: `pct/__init__.py`)
+- Versione corrente: leggere sempre `__version__` in `pct/__init__.py` (unica fonte di verità — non fidarsi di numeri di versione hardcoded nella documentazione, invecchiano)
 
 ## Modularizzazione governabile — Regola obbligatoria
 
@@ -315,7 +315,7 @@ python -m pytest tests/test_fascicoli.py -v
 
 ## Conformità Portale Servizi Telematici — Stato attuale
 
-**Versione 2.79.1 — Conformità: ~98%** (idonea per produzione)
+**Conformità: ~98%** (idonea per produzione — valutazione basata sull'audit D.M. 44/2011; la versione applicativa corrente è in `pct/__init__.py`)
 
 ### Conforme ✅
 | Componente | Norma | Dettaglio |
@@ -454,7 +454,7 @@ Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazio
 **Deploy — Railway (produzione online):**
 - Il deploy su Railway avviene dopo il bump di versione e il push sul branch.
 - Ad ogni release va aggiornata anche la versione sul pannello Railway (variabile d'ambiente o redeploy dell'immagine).
-- Versione corrente in produzione: **2.79.1**
+- Versione corrente in produzione: la stessa di `pct/__init__.py` sul commit deployato (verificare con `curl https://<dominio>/api/pronto` o dal footer dell'app)
 
 ## Note tecniche
 

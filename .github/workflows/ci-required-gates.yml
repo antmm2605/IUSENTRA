@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.ref }}
 
@@ -46,7 +46,7 @@ jobs:
 
       - name: Upload report CI richiesti
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: current-sha-required-gates
           path: artifacts/ci/current-sha-required-gates.*

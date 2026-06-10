@@ -67,7 +67,7 @@ jobs:
           echo "Secrets verificati."
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.ref }}
 
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload report CI pre-deploy
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: deploy-required-gates
           path: artifacts/ci/deploy-required-gates.*

@@ -1,6 +1,6 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.244.0
+> **Versione corrente:** 2.249.42 (fonte di verita: `pct/__init__.py` — la guida non viene piu' aggiornata ad ogni patch)
 > Guida aggiornata: 17/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
@@ -149,7 +149,7 @@ curl -I https://<dominio>/ricerca-legale
 
 Il deploy stampa il commit deployed e l'URL health al termine. Il `git rev-parse` deve corrispondere all'HEAD del branch pushato.
 
-Le ultime tre verifiche servono solo da v2.240.0 in poi: confermano che la nuova UX a tab di **Motori Legali** e la **Ricerca legale unificata** vengano servite direttamente dai template Flask senza essere intercettate dalla shell React legacy.
+Le ultime tre verifiche controllano il routing canonico di **Ricerca legale** (da v2.242.0): `/ricerca-legale` risponde `200` dalla shell React, mentre `/legal-intelligence/` e `/legal-intelligence/ricerca` rispondono `301` verso i corrispondenti path `/ricerca-legale/*`. Solo il download fonte (`/ricerca-legale/fonte/<id>/scarica`) e il diff giornaliero (`/ricerca-legale/daily/*`) restano serviti dal blueprint Flask.
 
 ## Backup
 
@@ -299,20 +299,27 @@ bash deploy/hetzner/deploy.sh                     # riapplica la vecchia version
 
 Per ripristinare i dati da backup, vedere la sezione **Restore** sopra.
 
-## Verifiche post-deploy Ricerca legale (da v2.240.0)
+## Verifiche post-deploy Ricerca legale (aggiornate a v2.242.0+)
 
-La riscrittura di **Motori Legali** e **Ricerca legale** introduce nuovi endpoint Flask, una tab UI deep-linkabile e il download del testo archiviato di ogni fonte. Dopo ogni deploy controllare che le rotte rispondano e che la shell React non le intercetti più:
+> Storia breve del routing, per leggere correttamente i changelog: in v2.240.0 le pagine erano servite dai template Flask e la shell React era esclusa; da v2.242.0 il rapporto e' invertito — la shell React e' la superficie principale sui path canonici `/ricerca-legale/*` e i vecchi `/legal-intelligence/*` rispondono `301`. Le verifiche sotto descrivono lo stato attuale.
+
+Dopo ogni deploy controllare il routing canonico:
 
 ```bash
-# pagina principale a tab — deve restituire HTML del template legal_intelligence/index.html
-curl -fsSL -H "Cookie: session=<session_id>" https://<dominio>/legal-intelligence/ | grep -q 'li-tabs' && echo "tab UI OK"
+# home canonica — deve rispondere 200 dalla shell React
+curl -fsS -o /dev/null -w '%{http_code}\n' -H "Cookie: session=<session_id>" https://<dominio>/ricerca-legale
 
-# ricerca unificata cross-source (fonti, normativa, news, organismi, aggiornamenti)
-curl -fsSL -H "Cookie: session=<session_id>" "https://<dominio>/legal-intelligence/ricerca?q=mediazione&formato=json" \
+# alias storico — deve rispondere 301 verso /ricerca-legale
+curl -fsSI https://<dominio>/legal-intelligence/ | grep -i '^location' | grep -q '/ricerca-legale' && echo "redirect OK"
+curl -fsSI https://<dominio>/legal-intelligence/ricerca | grep -i '^location' | grep -q '/ricerca-legale/ricerca' && echo "redirect ricerca OK"
+
+# vista Flask legacy ancora raggiungibile esplicitamente (fallback governato)
+curl -fsSL -H "Cookie: session=<session_id>" "https://<dominio>/ricerca-legale/?_legacy=1" | grep -q 'li-tabs' && echo "legacy Flask OK"
+
+# ricerca unificata JSON (servita dal blueprint Flask: richiede Accept JSON per scavalcare il gate React)
+curl -fsSL -H "Cookie: session=<session_id>" -H "Accept: application/json" \
+  "https://<dominio>/ricerca-legale/ricerca?q=mediazione&formato=json" \
   | python3 -c "import sys, json; data = json.load(sys.stdin); print('ricerca OK', data['risultati']['totale'])"
-
-# alias /ricerca-legale che ora redirige alla ricerca unificata, non più alla dashboard
-curl -fsSI https://<dominio>/ricerca-legale | grep -i '^location' | grep -q '/legal-intelligence/ricerca' && echo "alias OK"
 ```
 
 Verifiche backend, da eseguire dentro il container app:
@@ -339,21 +346,21 @@ research service OK: True
 engine API OK
 ```
 
-Se le tre verifiche HTTP non rispondono `200`/`302`, controllare in ordine:
+Se le verifiche HTTP falliscono, controllare in ordine:
 
-1. `web/bootstrap/react_route_gate.py` non deve elencare `/legal-intelligence` o `/ricerca-legale` in `_REACT_PREFIXES` / `_REACT_EXACT` (rimossi in v2.240.0).
-2. Il blueprint `legal_intelligence` deve essere registrato in `web/bootstrap/blueprint_registry.py` con prefisso `/legal-intelligence`.
+1. `web/bootstrap/react_route_gate.py` DEVE elencare `/ricerca-legale` e `/legal-intelligence` in `_REACT_PREFIXES` e i sotto-path in `_REACT_EXACT` (reintrodotti in v2.242.0); il hook `_legal_intelligence_canonical_redirect` deve essere registrato per i 301.
+2. Il blueprint `legal_intelligence` deve risultare registrato due volte in `web/bootstrap/blueprint_registry.py`: con prefisso `/legal-intelligence` (alias storico) e con nome `ricerca_legale` su prefisso `/ricerca-legale` (canonico).
 3. La directory `/opt/iusentra/data/legal_intelligence/` deve essere scrivibile dal container app per persistere gli snapshot del motore giornaliero.
 
 Test interattivo del download archivio fonte (sostituire `<source_id>` con un id valido — es. `normattiva`, `pst_servizi_web`, `cassazione`):
 
 ```bash
 curl -fsSL -H "Cookie: session=<session_id>" \
-  https://<dominio>/legal-intelligence/fonte/<source_id>/scarica -o /tmp/fonte.txt
+  https://<dominio>/ricerca-legale/fonte/<source_id>/scarica -o /tmp/fonte.txt
 head -10 /tmp/fonte.txt
 ```
 
-L'header deve contenere le righe `Fonte:`, `URL:`, `Hash SHA-256:`, `Scaricata il:`. Se torna un redirect a `/legal-intelligence/fonte/<id>` con flash "snapshot non disponibile", eseguire prima un controllo dalla scheda **Fonti** (o `POST /legal-intelligence/daily/esegui`) per popolare il primo snapshot.
+L'header deve contenere le righe `Fonte:`, `URL:`, `Hash SHA-256:`, `Scaricata il:`. Se torna un redirect alla scheda fonte con flash "snapshot non disponibile", eseguire prima un controllo dalla scheda **Fonti** (o `POST /ricerca-legale/daily/esegui`) per popolare il primo snapshot.
 
 ## Verifiche post-deploy Lex (da v2.201.0)
 

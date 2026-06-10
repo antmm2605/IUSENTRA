@@ -1538,3 +1538,133 @@ def test_api_local_ai_bootstrap_aggiorna_cache_runtime_chat(tmp_path: Path, monk
     assert response.status_code == 200
     assert response.get_json()["result"]["status"] == "ready"
     assert calls["refresh"] == 1
+
+
+def test_local_ai_index_file_incrementale_non_rilegge_file_invariati(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    document_path = tmp_path / "memoria.txt"
+    document_path.write_text(
+        "TRIBUNALE DI MILANO\n\nMemoria difensiva con eccezioni preliminari.",
+        encoding="utf-8",
+    )
+
+    first = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-INCR",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Memoria difensiva",
+    )
+    assert first["status"] == "indexed"
+
+    read_calls = {"count": 0}
+    original_read = service._read_document_file
+
+    def counting_read(path):
+        read_calls["count"] += 1
+        return original_read(path)
+
+    monkeypatch.setattr(service, "_read_document_file", counting_read)
+
+    second = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-INCR",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Memoria difensiva",
+    )
+    assert second["status"] == "skipped"
+    assert second["document_id"] == first["document_id"]
+    assert read_calls["count"] == 0, "file invariato: non deve essere riletto in RAM"
+
+    document_path.write_text(
+        "TRIBUNALE DI MILANO\n\nMemoria difensiva integrata con nuove difese e documenti.",
+        encoding="utf-8",
+    )
+    third = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-INCR",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Memoria difensiva",
+    )
+    assert third["status"] == "indexed", "file modificato: deve essere re-indicizzato"
+    assert read_calls["count"] >= 1
+
+    with service._connect() as conn:
+        fts_rows = conn.execute(
+            "SELECT text FROM rag_chunks_fts WHERE document_id = ?",
+            (first["document_id"],),
+        ).fetchall()
+        chunk_total = int(
+            conn.execute(
+                "SELECT COUNT(*) AS totale FROM rag_chunks WHERE document_id = ?",
+                (first["document_id"],),
+            ).fetchone()["totale"]
+        )
+    joined = " ".join(str(row["text"]) for row in fts_rows)
+    assert fts_rows and len(fts_rows) == chunk_total, "FTS allineato ai chunk dopo la re-indicizzazione"
+    assert "integrata" in joined, "il testo nuovo deve essere ricercabile"
+    assert "eccezioni preliminari" not in joined, "il testo vecchio non deve restare nell'indice"
+
+    forced = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-INCR",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Memoria difensiva",
+        force=True,
+    )
+    assert forced["status"] == "indexed", "force=True deve bypassare il fast-path"
+
+
+def test_local_ai_index_file_migra_righe_legacy_al_fast_path(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    document_path = tmp_path / "ricorso.txt"
+    document_path.write_text(
+        "TRIBUNALE DI ROMA\n\nRicorso per decreto ingiuntivo con allegati contabili.",
+        encoding="utf-8",
+    )
+    first = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-LEGACY",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Ricorso",
+    )
+    assert first["status"] == "indexed"
+    with service._connect() as conn:
+        conn.execute(
+            "UPDATE rag_documents SET source_file_size = NULL, source_file_mtime_ns = NULL WHERE id = ?",
+            (first["document_id"],),
+        )
+        conn.commit()
+
+    read_calls = {"count": 0}
+    original_read = service._read_document_file
+
+    def counting_read(path):
+        read_calls["count"] += 1
+        return original_read(path)
+
+    monkeypatch.setattr(service, "_read_document_file", counting_read)
+
+    second = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-LEGACY",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Ricorso",
+    )
+    assert second["status"] == "skipped"
+    assert read_calls["count"] == 1, "riga legacy: una sola rilettura per riallineare l'impronta"
+
+    third = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-LEGACY",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Ricorso",
+    )
+    assert third["status"] == "skipped"
+    assert read_calls["count"] == 1, "impronta riallineata: dal secondo giro nessuna rilettura"

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.251.19 - 2026-06-10
+
+- Indicizzazione AI incrementale: i documenti già indicizzati e invariati su disco (stesso percorso, dimensione e mtime) vengono saltati senza essere riletti in RAM né spacchettati/hashati; prima ogni tick di manutenzione rileggeva integralmente ogni documento (PDF compresi) solo per scoprire che era invariato. Qualsiasi modifica al file riporta automaticamente alla verifica SHA-256 e alla re-indicizzazione.
+- Fix bug bloccante FTS: i trigger di `rag_chunks_fts` usavano il comando `'delete'` (valido solo per tabelle FTS5 external-content) e ogni re-indicizzazione di un documento modificato falliva con "SQL logic error" — il documento usciva dal RAG e veniva riletto e ri-parsato invano a ogni tick. Trigger corretti con `DELETE ... WHERE rowid` sia nello schema sia in migrazione automatica sui database esistenti; i documenti rimasti in stato errore si recuperano da soli al giro successivo.
+
 ## 2.251.18 - 2026-06-10
 
 - Memoria: il servizio Guida Pratica è ora un singleton di processo (`get_guida_pratica_service`); prima ogni richiesta su catalogo, schede, checklist, guida fascicolo, wizard template e creazione fascicoli ricaricava il KB da 22 MB + 104 moduli (~100-150 MB di picco e ~1,5 s di CPU per richiesta), causa primaria dei picchi RAM e dei 503 sotto carico.

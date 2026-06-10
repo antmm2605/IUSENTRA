@@ -642,11 +642,19 @@ class LocalAIService:
             conn.executescript(sql)
             conn.executescript(
                 """
+                -- rag_chunks_fts è FTS5 normale: il comando speciale 'delete'
+                -- (riservato alle tabelle external-content) qui solleva
+                -- "SQL logic error" e bloccava la re-indicizzazione dei
+                -- documenti modificati. I trigger vengono ricreati con la
+                -- DELETE esplicita anche sui database già esistenti.
+                DROP TRIGGER IF EXISTS rag_chunks_ad;
+                CREATE TRIGGER rag_chunks_ad AFTER DELETE ON rag_chunks BEGIN
+                    DELETE FROM rag_chunks_fts WHERE rowid = old.rowid;
+                END;
                 DROP TRIGGER IF EXISTS rag_chunks_au;
                 CREATE TRIGGER rag_chunks_au
                 AFTER UPDATE OF id, document_id, practice_id, text ON rag_chunks BEGIN
-                    INSERT INTO rag_chunks_fts(rag_chunks_fts, rowid, id, document_id, practice_id, text)
-                    VALUES ('delete', old.rowid, old.id, old.document_id, old.practice_id, old.text);
+                    DELETE FROM rag_chunks_fts WHERE rowid = old.rowid;
                     INSERT INTO rag_chunks_fts(rowid, id, document_id, practice_id, text)
                     VALUES (new.rowid, new.id, new.document_id, new.practice_id, new.text);
                 END;
@@ -655,6 +663,12 @@ class LocalAIService:
             doc_columns = {row["name"] for row in conn.execute("PRAGMA table_info(rag_documents)").fetchall()}
             if "practice_id" not in doc_columns:
                 conn.execute("ALTER TABLE rag_documents ADD COLUMN practice_id TEXT")
+            # Impronta del file su disco per il fast-path incrementale: se size e
+            # mtime non cambiano, il documento viene saltato senza rileggerlo.
+            if "source_file_size" not in doc_columns:
+                conn.execute("ALTER TABLE rag_documents ADD COLUMN source_file_size INTEGER")
+            if "source_file_mtime_ns" not in doc_columns:
+                conn.execute("ALTER TABLE rag_documents ADD COLUMN source_file_mtime_ns INTEGER")
             chunk_columns = {row["name"] for row in conn.execute("PRAGMA table_info(rag_chunks)").fetchall()}
             if "embedding_json" not in chunk_columns:
                 conn.execute("ALTER TABLE rag_chunks ADD COLUMN embedding_json TEXT")
@@ -1962,6 +1976,36 @@ class LocalAIService:
                 "mime_type": detected_mime,
                 "reason": "Formato non gestito dal parser locale.",
             }
+        try:
+            stat_info = resolved.stat()
+            file_size = int(stat_info.st_size)
+            file_mtime_ns = int(stat_info.st_mtime_ns)
+        except OSError:
+            file_size = -1
+            file_mtime_ns = -1
+        if not force and file_size >= 0:
+            # Fast-path incrementale: se il file su disco non è cambiato (stesso
+            # percorso, size e mtime) il documento già indicizzato viene saltato
+            # senza essere riletto in RAM né spacchettato/hashato. Qualsiasi
+            # modifica al file invalida il confronto e riporta al percorso pieno
+            # con verifica SHA-256.
+            with self._connect() as conn:
+                unchanged = self._document_by_source(conn, source_type, source_id)
+            if (
+                unchanged
+                and str(unchanged.get("parse_state") or "") == "parsed"
+                and str(unchanged.get("file_path") or "") == str(resolved)
+                and int(unchanged.get("source_file_size") or -1) == file_size
+                and int(unchanged.get("source_file_mtime_ns") or -1) == file_mtime_ns
+            ):
+                return {
+                    "status": "skipped",
+                    "document_id": unchanged["id"],
+                    "chunk_count": int(unchanged.get("chunk_count") or 0),
+                    "mime_type": str(unchanged.get("mime_type") or detected_mime),
+                    "outer_mime_type": None,
+                    "signed_status": None,
+                }
         raw_data = self._read_document_file(resolved)
         normalized_path = resolved
         normalized_mime = detected_mime
@@ -2000,6 +2044,18 @@ class LocalAIService:
         with self._connect() as conn:
             existing = self._document_by_source(conn, source_type, source_id)
             if existing and not force and existing.get("sha256") == sha256 and str(existing.get("parse_state") or "") == "parsed":
+                if file_size >= 0 and (
+                    int(existing.get("source_file_size") or -1) != file_size
+                    or int(existing.get("source_file_mtime_ns") or -1) != file_mtime_ns
+                    or str(existing.get("file_path") or "") != str(resolved)
+                ):
+                    # Allinea l'impronta su disco così dal prossimo giro il
+                    # documento prende il fast-path senza rilettura.
+                    conn.execute(
+                        "UPDATE rag_documents SET file_path = ?, source_file_size = ?, source_file_mtime_ns = ?, updated_at = ? WHERE id = ?",
+                        (str(resolved), file_size, file_mtime_ns, _now_iso(), existing["id"]),
+                    )
+                    conn.commit()
                 return {
                     "status": "skipped",
                     "document_id": existing["id"],
@@ -2031,7 +2087,8 @@ class LocalAIService:
                 conn.execute(
                     """
                     UPDATE rag_documents
-                    SET language = ?, parse_state = 'parsed', chunk_count = ?, last_indexed_at = ?, updated_at = ?, practice_id = ?
+                    SET language = ?, parse_state = 'parsed', chunk_count = ?, last_indexed_at = ?, updated_at = ?, practice_id = ?,
+                        source_file_size = ?, source_file_mtime_ns = ?
                     WHERE id = ?
                     """,
                     (
@@ -2040,6 +2097,8 @@ class LocalAIService:
                         _now_iso(),
                         _now_iso(),
                         practice_id,
+                        file_size if file_size >= 0 else None,
+                        file_mtime_ns if file_size >= 0 else None,
                         document_id,
                     ),
                 )

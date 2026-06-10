@@ -97,15 +97,17 @@ CREATE TRIGGER IF NOT EXISTS rag_chunks_ai AFTER INSERT ON rag_chunks BEGIN
     VALUES (new.rowid, new.id, new.document_id, new.practice_id, new.text);
 END;
 
+-- Nota: rag_chunks_fts è una FTS5 normale (non external-content), quindi la
+-- rimozione va fatta con DELETE ... WHERE rowid: il comando speciale 'delete'
+-- è valido solo per tabelle contentless/external-content e qui solleva
+-- "SQL logic error", bloccando la re-indicizzazione dei documenti modificati.
 CREATE TRIGGER IF NOT EXISTS rag_chunks_ad AFTER DELETE ON rag_chunks BEGIN
-    INSERT INTO rag_chunks_fts(rag_chunks_fts, rowid, id, document_id, practice_id, text)
-    VALUES ('delete', old.rowid, old.id, old.document_id, old.practice_id, old.text);
+    DELETE FROM rag_chunks_fts WHERE rowid = old.rowid;
 END;
 
 CREATE TRIGGER IF NOT EXISTS rag_chunks_au
 AFTER UPDATE OF id, document_id, practice_id, text ON rag_chunks BEGIN
-    INSERT INTO rag_chunks_fts(rag_chunks_fts, rowid, id, document_id, practice_id, text)
-    VALUES ('delete', old.rowid, old.id, old.document_id, old.practice_id, old.text);
+    DELETE FROM rag_chunks_fts WHERE rowid = old.rowid;
     INSERT INTO rag_chunks_fts(rowid, id, document_id, practice_id, text)
     VALUES (new.rowid, new.id, new.document_id, new.practice_id, new.text);
 END;

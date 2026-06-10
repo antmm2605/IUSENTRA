@@ -1077,11 +1077,26 @@ function FascicoliListPage() {
         </section>
 
         <section className="iu-fas-stats" aria-label="Indicatori fascicoli">
-          <StatCard icon={<Euro size={19}/>} label="Economico da completare" value={data.summary.economicToReview} note="clic — apre la vista economica" tone="warning" href="?vista=economica" onClick={(event) => { event.preventDefault(); updateView('economica'); updatePaymentsOnly(true) }}/>
+          <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary"/>
+          <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success"/>
+          <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note="definiti o pronti" tone="warning"/>
+          <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="da completare — apri vista economica" tone="warning" href="?vista=economica" onClick={(event) => { event.preventDefault(); updateView('economica'); updatePaymentsOnly(true) }}/>
           <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success"/>
-          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle da emettere" value={data.summary.invoicesToIssue} note="da fatturare ai clienti" tone="purple"/>
-          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze entro 7 giorni" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
+          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoicesToIssue} note="da emettere" tone="purple"/>
+          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
+          <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
+          <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info"/>
         </section>
+
+        {data.deadlines.length ? (
+          <section className="iu-fas-deadline-alert">
+            <AlertIcon />
+            <div>
+              <strong>Scadenze entro 7 giorni</strong>
+              <div>{data.deadlines.slice(0, 4).map((item) => <a href={item.href} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
+            </div>
+          </section>
+        ) : null}
 
       <IusentraMainArea className="iu-fas-layout">
         <IusentraMainSurface className="iu-fas-main-list">
@@ -1140,6 +1155,7 @@ function FascicoliListPage() {
           ) : null}
           <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} view={view} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
         </IusentraMainSurface>
+        <InsightPanel data={data} visible={visible}/>
       </IusentraMainArea>
 
         <section className="iu-fas-lower-grid">

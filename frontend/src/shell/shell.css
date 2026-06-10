@@ -52,29 +52,85 @@
 .iu-shell-sidebar nav,
 .iu-mobile-nav {
   display: grid;
-  gap: 6px;
+  gap: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
 
 .iu-shell-nav-link,
 .iu-mobile-nav a {
-  min-height: 42px;
+  position: relative;
+  min-height: 40px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 10px;
+  gap: 11px;
+  padding: 0 11px;
   border-radius: var(--iu-radius-control);
   color: var(--iu-text-subtle);
   font-size: 13px;
   font-weight: 760;
   text-decoration: none;
+  transition: background .14s ease, color .14s ease, transform .12s ease;
+}
+
+.iu-shell-nav-link svg,
+.iu-mobile-nav a svg {
+  flex-shrink: 0;
+  opacity: .82;
+  transition: opacity .14s ease;
+}
+
+.iu-shell-nav-link:hover,
+.iu-mobile-nav a:hover {
+  background: rgba(37, 99, 235, .06);
+  color: var(--iu-text-strong);
+  transform: translateX(1px);
+}
+
+.iu-shell-nav-link:hover svg,
+.iu-mobile-nav a:hover svg {
+  opacity: 1;
 }
 
 .iu-shell-nav-link.is-active,
-.iu-shell-nav-link:hover,
 .iu-mobile-nav a.is-active {
   background: var(--iu-surface-solid);
   color: var(--iu-text-strong);
   box-shadow: var(--iu-shadow-hairline);
+  font-weight: 880;
+  transform: none;
+}
+
+.iu-shell-nav-link.is-active::before,
+.iu-mobile-nav a.is-active::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--iu-accent, #2563eb);
+}
+
+.iu-shell-nav-link.is-active svg,
+.iu-mobile-nav a.is-active svg {
+  opacity: 1;
+  color: var(--iu-accent, #2563eb);
+}
+
+.iu-shell-sidebar nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.iu-shell-sidebar nav::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, .12);
+  border-radius: 999px;
+}
+
+.iu-shell-sidebar nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, .22);
 }
 
 .iu-shell-topbar {

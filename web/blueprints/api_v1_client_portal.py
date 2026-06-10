@@ -84,6 +84,20 @@ def _backend_security_guard():
     violations = backend_control_violations_for_request(request)
     if not violations:
         return None
+    # Eccezione mirata: il download pubblico del portale clienti riceve il token
+    # di sessione in query string perche' viene aperto via <a download> da link
+    # condivisi (email/SMS) — non e' possibile impostare header X-... su un click.
+    # Il token e' validato lato server contro la tabella client_portal_sessions
+    # (vedi client_document_download); resta un parametro di autenticazione,
+    # non un controllo server arbitrario.
+    if (
+        request.method == "GET"
+        and "/public/documents/" in request.path
+        and request.path.endswith("/download")
+    ):
+        violations = [v for v in violations if not (v.source == "query" and v.key == "token")]
+        if not violations:
+            return None
     return backend_security_error_response(violations)
 
 

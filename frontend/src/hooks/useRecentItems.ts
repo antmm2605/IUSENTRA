@@ -16,9 +16,15 @@ export function useRecentItems(open: boolean) {
       .finally(() => setLoading(false))
   }, [])
 
+  // Pre-fetch al mount per mostrare subito gli ultimi elementi appena si apre il pannello.
   useEffect(() => {
-    if (open && data === null && !loading && !error) load()
-  }, [data, error, load, loading, open])
+    load()
+  }, [load])
+
+  // Refresh ad ogni apertura del pannello (cattura nuove navigazioni avvenute nel frattempo).
+  useEffect(() => {
+    if (open) load()
+  }, [load, open])
 
   return { data, loading, error, reload: load }
 }

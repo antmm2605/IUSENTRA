@@ -27,6 +27,7 @@ export function TopBarRecentItems({
   const ref = useRef<HTMLDivElement | null>(null)
   const { data, loading, error } = useRecentItems(open)
   const items = useMemo(() => dedupeRecentItems(data?.items ?? []), [data?.items])
+  const count = items.length
   const matchAnyKey = useCallback(() => true, [])
   const handleEscape = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape' && open) onClose()
@@ -36,8 +37,9 @@ export function TopBarRecentItems({
 
   return (
     <div className="iu-topbar-popover" ref={ref}>
-      <button className="iu-icon" type="button" onClick={onToggle} aria-label="Ultimi elementi aperti" aria-haspopup="dialog" aria-expanded={open} title="Ultimi elementi aperti">
+      <button className="iu-icon notify" type="button" onClick={onToggle} aria-label={`Ultimi elementi aperti (${count})`} aria-haspopup="dialog" aria-expanded={open} title="Ultimi elementi aperti">
         {icon}
+        {count > 0 ? <span>{count > 9 ? '9+' : count}</span> : null}
       </button>
       {open ? (
         <div className="iu-topbar-panel iu-recent-panel" role="dialog" aria-label="Ultimi elementi aperti">

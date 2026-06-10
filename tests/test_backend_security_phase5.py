@@ -98,6 +98,41 @@ def test_guardrail_blocca_path_filesystem_ma_non_path_applicativo():
     assert {violazione.key for violazione in violazioni} == {"path"}
 
 
+def test_portal_public_download_accetta_token_in_query(tmp_path: Path):
+    """Il download pubblico del portale clienti deve poter ricevere ?token=... in query.
+
+    Il middleware backend_security blocca 'token' come parametro server-only
+    ovunque tranne su questa route specifica, perche' qui il token e' la chiave
+    di autenticazione di sessione del portale (link condivisi via email/SMS).
+    """
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/client-portal/public/documents/cpd_demo/download?token=cp1.fake-token",
+        )
+    # Non deve essere 400 con backend_security_control_param: la guardia deve
+    # permettere il pass-through. La route puo' rispondere con altri codici
+    # (es. 200 JSON di errore con codice di sessione non valida).
+    assert response.status_code != 400 or response.get_json().get("code") != "backend_security_control_param"
+
+
+def test_portal_public_token_resta_bloccato_su_altre_route(tmp_path: Path):
+    """Su route che NON sono il download del documento, ?token= resta bloccato."""
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        # POST su signature/complete con token in query: deve essere bloccato.
+        # Il portale pubblico usa header X-Client-Portal-Token o token nel body JSON,
+        # non in query (eccetto per il download via <a href>).
+        response = client.post(
+            "/api/v1/ui/client-portal/public/signatures/sig_demo/complete?token=cp1.fake",
+            json={},
+        )
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["code"] == "backend_security_control_param"
+    assert "token" in {item["key"] for item in payload["violations"]}
+
+
 def test_tutte_le_api_react_hanno_decorator_auth():
     source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     tree = ast.parse(source)

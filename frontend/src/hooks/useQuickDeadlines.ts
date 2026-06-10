@@ -16,9 +16,20 @@ export function useQuickDeadlines(open: boolean) {
       .finally(() => setLoading(false))
   }, [])
 
+  // Pre-fetch al mount per badge contatore + refresh ad ogni apertura.
   useEffect(() => {
-    if (open && data === null && !loading && !error) load()
-  }, [data, error, load, loading, open])
+    load()
+  }, [load])
+
+  useEffect(() => {
+    if (open) load()
+  }, [load, open])
+
+  // Polling soft ogni 2 minuti per scadenze urgenti nuove.
+  useEffect(() => {
+    const timer = window.setInterval(load, 120000)
+    return () => window.clearInterval(timer)
+  }, [load])
 
   return { data, loading, error, reload: load }
 }

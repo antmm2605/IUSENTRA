@@ -115,13 +115,69 @@ def gh_api(path: str, *, method: str = "GET", body: dict[str, Any] | None = None
     if body is not None:
         command.extend(["--input", "-"])
         input_text = json.dumps(body)
-    result = _run(command, input_text=input_text)
-    if result.returncode != 0:
-        message = (result.stderr or result.stdout).strip()
-        raise RuntimeError(f"gh api failed for {path}: {message}")
-    if not result.stdout.strip():
-        return {}
-    return json.loads(result.stdout)
+
+    # Retry sugli errori transitori dell'API GitHub. Senza questo, una singola
+    # risposta vuota/troncata ("unexpected end of JSON input"), un 5xx o un
+    # secondary rate limit fanno crashare l'intero gate anche quando i check
+    # sono quasi tutti verdi (race storica: il deploy passava 40s dopo perche'
+    # non colpiva lo stesso blip). I retry rendono il gate deterministico.
+    max_attempts = 6
+    last_error = ""
+    for attempt in range(1, max_attempts + 1):
+        result = _run(command, input_text=input_text)
+        if result.returncode == 0:
+            stdout = result.stdout.strip()
+            if not stdout:
+                return {}
+            try:
+                return json.loads(result.stdout)
+            except json.JSONDecodeError as exc:
+                # Risposta troncata: trattala come transitoria e riprova.
+                last_error = f"risposta JSON non valida: {exc}"
+        else:
+            last_error = (result.stderr or result.stdout).strip()
+            if not _is_transient_gh_error(last_error):
+                raise RuntimeError(f"gh api failed for {path}: {last_error}")
+
+        if attempt < max_attempts:
+            backoff = min(2 ** (attempt - 1), 16)
+            print(
+                f"::warning::gh api transitorio su {path} (tentativo {attempt}/{max_attempts}): "
+                f"{last_error}. Riprovo tra {backoff}s.",
+                flush=True,
+            )
+            time.sleep(backoff)
+
+    raise RuntimeError(f"gh api failed for {path} dopo {max_attempts} tentativi: {last_error}")
+
+
+def _is_transient_gh_error(message: str) -> bool:
+    """Riconosce gli errori dell'API GitHub che vale la pena ritentare."""
+    lowered = (message or "").lower()
+    transient_markers = (
+        "unexpected end of json input",
+        "eof",
+        "timeout",
+        "timed out",
+        "connection reset",
+        "connection refused",
+        "could not resolve host",
+        "temporary failure",
+        "bad gateway",
+        "service unavailable",
+        "gateway timeout",
+        "server error",
+        "rate limit",
+        "secondary rate",
+        "502",
+        "503",
+        "504",
+        "429",
+        "i/o timeout",
+        "tls handshake",
+        "empty response",
+    )
+    return any(marker in lowered for marker in transient_markers)
 
 
 def resolve_repo(explicit_repo: str | None) -> str:

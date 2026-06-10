@@ -284,14 +284,29 @@
     setStatus("Schermo condiviso tramite agente locale");
   }
 
+  // Qualita' adattiva: alta quando il controllo PC operatore e' attivo
+  // (banda piena, fluidita' prioritaria), normale altrimenti.
+  function _agentScreenQuality() {
+    if (agentControlArmed) {
+      return { max_width: 2400, quality: 80 };
+    }
+    return { max_width: 1920, quality: 72 };
+  }
+
+  // Intervallo cattura adattivo: piu' veloce durante controllo remoto.
+  function _agentScreenIntervalMs() {
+    return agentControlArmed ? 350 : 600;
+  }
+
   async function captureAndRelayAgentScreen() {
     if (sessionClosed || !agentScreenArmed) return;
     try {
+      const { max_width, quality } = _agentScreenQuality();
       const frame = await fetchAgent("/screenshot", {
         session_id: boot.publicId,
         token: boot.authToken,
-        max_width: 1600,
-        quality: 58,
+        max_width,
+        quality,
       });
       markScreenSharedForOperator();
       if (ws && ws.readyState === WebSocket.OPEN) {
@@ -311,12 +326,21 @@
     }
   }
 
+  // Restart timer cattura con l'interval corrente (usato quando cambia agentControlArmed).
+  function _restartAgentScreenTimer() {
+    if (agentScreenTimer) {
+      window.clearInterval(agentScreenTimer);
+      agentScreenTimer = null;
+    }
+    if (!sessionClosed && agentScreenArmed) {
+      agentScreenTimer = window.setInterval(captureAndRelayAgentScreen, _agentScreenIntervalMs());
+    }
+  }
+
   async function startAgentScreenShare(originalError) {
     await ensureLocalScreenShareAgent();
     await captureAndRelayAgentScreen();
-    if (!agentScreenTimer) {
-      agentScreenTimer = window.setInterval(captureAndRelayAgentScreen, 900);
-    }
+    _restartAgentScreenTimer();
     setStatus("Schermo condiviso tramite agente locale");
     if (originalError?.name === "NotAllowedError") {
       appendChat("Il browser ha bloccato la condivisione schermo: sto usando l'agente locale autorizzato.", "me");
@@ -694,6 +718,8 @@
     });
     agentControlArmed = true;
     setStatus("Controllo PC autorizzato su questo dispositivo");
+    // Boost qualita' + frequenza cattura schermo durante il controllo remoto.
+    _restartAgentScreenTimer();
   }
 
   async function ensureLocalScreenShareAgent() {

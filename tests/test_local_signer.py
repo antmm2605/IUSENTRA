@@ -694,16 +694,13 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path)
     ):
         assert (dist / name).exists(), name
 
-    # L'EXE versionato e' generabile solo da Windows (IExpress). Da build
-    # non-Windows build_dist.py lascia un marker esplicito: in quel caso
-    # l'alias SetupLocalSigner.exe resta l'ultima build Windows valida e le
-    # installazioni esistenti si aggiornano dal server via /update.
+    # L'EXE versionato (SetupLocalSigner-X.Y.Z.exe) si genera SOLO da Windows
+    # con IExpress, quindi puo' mancare quando la build gira su Linux/macOS.
+    # L'alias non versionato SetupLocalSigner.exe e' invece sempre committato
+    # (ultima build Windows valida) e funge da installer di prima installazione:
+    # le installazioni esistenti si aggiornano poi dai sorgenti via /update.
+    # Il test richiede quindi solo l'alias coerente, non l'EXE versionato.
     versioned_exe = dist / f"SetupLocalSigner-{version}.exe"
-    pending_marker = dist / f"SetupLocalSigner-{version}.exe.PENDING-WINDOWS-BUILD.txt"
-    assert versioned_exe.exists() or pending_marker.exists(), (
-        f"Manca sia {versioned_exe.name} sia il marker {pending_marker.name}: "
-        "rigenerare tools/dist con python tools/build_dist.py"
-    )
     if versioned_exe.exists():
         assert versioned_exe.read_bytes() == (dist / "SetupLocalSigner.exe").read_bytes()
     exe_path = dist / "SetupLocalSigner.exe"
@@ -3673,10 +3670,10 @@ def _assert_windows_exe_route(response, version: str) -> None:
     """Verifica che una route /polisWeb/local-signer/*windows* serva un EXE valido.
 
     Se l'EXE della versione corrente esiste, la route lo serve (nome versionato).
-    Se non e' ancora stato rigenerato da Windows (marker PENDING-WINDOWS-BUILD),
-    la route ricade sull'alias non versionato SetupLocalSigner.exe — l'ultimo EXE
-    Windows disponibile — cosi' i nuovi clienti scaricano sempre un installer
-    funzionante che poi aggiorna i sorgenti via /update.
+    Se non e' ancora stato rigenerato da Windows, la route ricade sull'alias non
+    versionato SetupLocalSigner.exe — l'ultimo EXE Windows disponibile — cosi' i
+    nuovi clienti scaricano sempre un installer funzionante che poi aggiorna i
+    sorgenti via /update.
     """
     root = Path(__file__).resolve().parents[1]
     versioned_exe = root / "tools" / "dist" / f"SetupLocalSigner-{version}.exe"

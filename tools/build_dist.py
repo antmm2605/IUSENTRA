@@ -548,24 +548,22 @@ def main() -> None:
     else:
         # Sorgenti in dist/ sempre allineati alla versione corrente (sono cio'
         # che il server distribuisce ai client via /update). Solo l'EXE
-        # IExpress richiede Windows.
+        # IExpress richiede Windows: quando manca, l'alias SetupLocalSigner.exe
+        # (ultima build Windows committata) resta l'installer di prima
+        # installazione e i client si aggiornano poi dai sorgenti via /update.
         support_files = write_windows_support_files(DIST_DIR)
         ps1_path = DIST_DIR / f"InstallaLocalSigner-{version}.ps1"
         ps1_path.write_text(build_windows_ps1(version), encoding="utf-8")
         if not args.no_windows:
-            pending_marker = DIST_DIR / f"SetupLocalSigner-{version}.exe.PENDING-WINDOWS-BUILD.txt"
             reason = (
                 "ambiente non-Windows"
                 if os.name != "nt"
                 else f"builder mancante: {WINDOWS_NATIVE_BUILDER}"
             )
-            pending_marker.write_text(
-                f"L'EXE Windows per la versione {version} non e' stato ancora generato ({reason}).\n"
-                "Generarlo da una macchina Windows con: python tools\\build_dist.py\n"
-                "Le installazioni esistenti si aggiornano comunque dal server via /update.\n",
-                encoding="utf-8",
+            print(
+                f"  [!!] Windows : EXE versionato non generato ({reason}); "
+                "alias SetupLocalSigner.exe usato come fallback di prima installazione."
             )
-            print(f"  [!!] Windows : EXE non generato ({reason}) — marker {pending_marker.name}")
         print(f"  [OK] Support : {ps1_path.name}")
         print(f"  [OK] Files   : {', '.join(path.name for path in support_files)}")
 

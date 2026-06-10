@@ -190,6 +190,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
         "pec_bridge.py",
         "security.py",
         "server_bootstrap.py",
+        "support_agent.py",
     ]:
         (module_dir / name).write_text(f"# {name}\n", encoding="utf-8")
 
@@ -220,6 +221,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
         "pec_bridge.py",
         "security.py",
         "server_bootstrap.py",
+        "support_agent.py",
     }
     assert (dist / "local_signer.py").read_text(encoding="utf-8") == "VERSION = '1.5.16'\n"
     assert (dist / "local_ai_host_bridge.py").read_text(encoding="utf-8") == "def bridge():\n    return 'ok'\n"

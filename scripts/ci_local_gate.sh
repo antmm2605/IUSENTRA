@@ -124,6 +124,13 @@ if [ "$FAST" -eq 0 ]; then
   step "Pytest registry/gates"     python3 -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short
   step "Pytest security fase 5"    python3 -m pytest -q tests/test_backend_security_phase5.py --tb=short
   step "Pytest area requirements"  python3 -m pytest -q tests/test_app_v2_area_requirements_phase8.py tests/test_ui_coverage_phase9.py --tb=short
+  # Packaging/dist + Local Signer: validano cio' che build_dist.py produce e i
+  # file distribuiti ai client. Sono lo shard CI "Local Signer e PKCS#11" che
+  # rompeva la CI quando il gate locale non li eseguiva (es. dist non allineato,
+  # support_agent.py nei file richiesti). Vanno SEMPRE eseguiti quando si tocca
+  # tools/, local_signer_mod/ o l'impacchettamento.
+  step "Pytest packaging/dist"     python3 -m pytest -q tests/test_build_dist.py tests/test_packaging_consistency.py --tb=short
+  step "Pytest local signer"       python3 -m pytest -q tests/test_local_signer.py --tb=short
 fi
 
 # ---------------------------------------------------------------------------

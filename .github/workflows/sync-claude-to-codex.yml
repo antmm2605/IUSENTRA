@@ -89,15 +89,14 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          target="${{ steps.branches.outputs.target }}"
-          if git push origin "HEAD:refs/heads/${target}" --force 2>&1 | tee push.log; then
-            echo "Sync completato verso ${target}."
+          if git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force 2>&1 | tee push.log; then
+            echo "Sync completato verso ${{ steps.branches.outputs.target }}."
             exit 0
           fi
           if grep -q "GH006" push.log; then
-            echo "::notice::Push verso ${target} rifiutato dalla branch protection: i required status checks sul commit non sono ancora tutti verdi. Il sync verrà ritentato automaticamente al completamento del prossimo workflow CI."
+            echo "::notice::Push verso ${{ steps.branches.outputs.target }} rifiutato dalla branch protection: i required status checks sul commit non sono ancora tutti verdi. Il sync verrà ritentato automaticamente al completamento del prossimo workflow CI."
             exit 0
           fi
-          echo "::error::Push verso ${target} fallito per una causa diversa dalla branch protection."
+          echo "::error::Push verso ${{ steps.branches.outputs.target }} fallito per una causa diversa dalla branch protection."
           cat push.log
           exit 1

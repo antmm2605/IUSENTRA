@@ -86,6 +86,30 @@
 .iu-fas-table th:nth-child(9),.iu-fas-table td:nth-child(9){width:88px}
 .iu-fas-table th:nth-child(10),.iu-fas-table td:nth-child(10){width:96px}
 .iu-fas-table td:nth-child(2),.iu-fas-table td:nth-child(5),.iu-fas-table td:nth-child(6),.iu-fas-table td:nth-child(7){overflow-wrap:anywhere}
+/* === Vista economica: colonne diverse dalla operativa ===
+   Il markup usa <table class="iu-fas-table iu-fas-table--economic"> con 10
+   colonne: checkbox, Rif, Cliente, Prossima scad, Stato, 4 celle economiche,
+   Totale. Senza queste larghezze dedicate la tabella ereditava le larghezze
+   nth-child della vista operativa (88-124px sulle colonne 6-9), schiacciando
+   le celle economiche che richiedono ~290px e causando sovrapposizioni.
+   table-layout:fixed -> ogni colonna prende ESATTAMENTE la larghezza dichiarata
+   e la griglia interna della cella (minmax 0) si adatta senza sbordare. */
+.iu-fas-table--economic{min-width:1900px}
+.iu-fas-table--economic th:nth-child(1),.iu-fas-table--economic td:nth-child(1){width:44px}
+.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:156px}
+.iu-fas-table--economic th:nth-child(3),.iu-fas-table--economic td:nth-child(3){width:150px}
+.iu-fas-table--economic th:nth-child(4),.iu-fas-table--economic td:nth-child(4){width:100px}
+.iu-fas-table--economic th:nth-child(5),.iu-fas-table--economic td:nth-child(5){width:118px}
+.iu-fas-table--economic th:nth-child(6),.iu-fas-table--economic td:nth-child(6),
+.iu-fas-table--economic th:nth-child(7),.iu-fas-table--economic td:nth-child(7),
+.iu-fas-table--economic th:nth-child(8),.iu-fas-table--economic td:nth-child(8),
+.iu-fas-table--economic th:nth-child(9),.iu-fas-table--economic td:nth-child(9){width:292px}
+.iu-fas-table--economic th:nth-child(10),.iu-fas-table--economic td:nth-child(10){width:150px}
+/* Le celle economiche contengono una form alta: allinea in alto, non al centro */
+.iu-fas-table--economic td{vertical-align:top}
+.iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
+.iu-fas-economic-ref a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:950}
+.iu-fas-economic-ref>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:730}
 .iu-fas-title-cell{min-width:0}
 .iu-fas-title-cell a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:950}
 .iu-fas-title-cell span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -98,29 +122,13 @@
 .iu-fas-mobile-list{display:none}
 .iu-fas-economic-card{border-color:rgba(37,99,235,.18);background:linear-gradient(180deg,#fff,rgba(239,246,255,.42))}
 .iu-fas-economic-toolbar{min-height:32px;display:inline-flex;align-items:center;gap:7px;padding:0 10px;border:1px solid rgba(37,99,235,.16);border-radius:999px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:900}
-.iu-fas-economic-wrap{overflow-x:auto;overflow-y:hidden}
-.iu-fas-economic-table{width:100%;min-width:1940px;table-layout:fixed;border-collapse:separate;border-spacing:0;background:#fff}
-.iu-fas-economic-table th{height:34px;padding:0 8px;border-bottom:1px solid var(--iu-border);background:#f8fafc;color:var(--iu-slate-600);font-size:10.5px;font-weight:950;text-align:left;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}
-.iu-fas-economic-table td{padding:6px 8px;border-bottom:1px solid rgba(15,23,42,.07);vertical-align:top;color:#0f172a;font-size:12px;font-weight:760}
-.iu-fas-economic-table tr:hover td{background:rgba(37,99,235,.03)}
-.iu-fas-economic-table th:nth-child(1),.iu-fas-economic-table td:nth-child(1){width:220px;position:sticky;left:0;z-index:2;background:#fff}
-.iu-fas-economic-table th:nth-child(1){z-index:3;background:#f8fafc}
-.iu-fas-economic-table th:nth-child(2),.iu-fas-economic-table td:nth-child(2){width:124px;position:sticky;left:220px;z-index:2;background:#fff}
-.iu-fas-economic-table th:nth-child(2){z-index:3;background:#f8fafc}
-.iu-fas-economic-table th:nth-child(3),.iu-fas-economic-table td:nth-child(3){width:150px}
-.iu-fas-economic-table th:nth-child(4),.iu-fas-economic-table td:nth-child(4){width:104px}
-.iu-fas-economic-table th:nth-child(5),.iu-fas-economic-table td:nth-child(5),
-.iu-fas-economic-table th:nth-child(6),.iu-fas-economic-table td:nth-child(6),
-.iu-fas-economic-table th:nth-child(7),.iu-fas-economic-table td:nth-child(7),
-.iu-fas-economic-table th:nth-child(8),.iu-fas-economic-table td:nth-child(8){width:300px}
-.iu-fas-economic-table th:nth-child(9),.iu-fas-economic-table td:nth-child(9){width:142px}
-.iu-fas-economic-case{display:grid;gap:3px}
-.iu-fas-economic-case a{color:#0f172a;font-size:13px;font-weight:950;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.iu-fas-economic-case span{color:var(--iu-slate-500);font-size:11.5px;font-weight:740;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iu-fas-economic-total{display:grid;gap:6px;align-content:start}
 .iu-fas-economic-total strong{font-size:13px;font-weight:950;color:#0f172a}
 .iu-fas-economic-total span{color:var(--iu-slate-500);font-size:11px;font-weight:780}
-.iu-fas-economic-cell{display:grid;grid-template-columns:92px 58px 80px 28px;gap:4px;align-items:end;width:100%;box-sizing:border-box;padding:6px;border:1px solid rgba(148,163,184,.22);border-radius:9px;background:#fff}
+/* Griglia interna flessibile: i tre campi (Stato/Importo/Data) usano minmax(0,..fr)
+   cosi' si adattano alla larghezza del <td> senza mai sbordare; il bottone Salva
+   resta a larghezza fissa. min-width:0 sui figli e' garantito da .iu-fas-economic-cell label. */
+.iu-fas-economic-cell{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1.25fr) 28px;gap:5px;align-items:end;width:100%;box-sizing:border-box;padding:6px;border:1px solid rgba(148,163,184,.22);border-radius:9px;background:#fff}
 .iu-fas-economic-cell--success{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.045)}
 .iu-fas-economic-cell--warning,.iu-fas-economic-cell--orange{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.06)}
 .iu-fas-economic-cell--neutral{background:#f8fafc}

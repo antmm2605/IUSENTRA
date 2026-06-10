@@ -221,17 +221,26 @@
     return `${proto}://${window.location.host}${boot.wsBase}/${boot.publicId}?role=${encodeURIComponent(boot.role)}&token=${encodeURIComponent(boot.authToken)}`;
   }
 
-  // Basi candidate per l'agente locale, in ordine di preferenza:
-  // 1) agente dedicato IUSENTRA Assistenza (porta 27273)
-  // 2) Local Signer gia' installato dallo studio (porta 27272, prefisso /support)
-  const agentBases = [
-    String(boot.localControlBase || "http://127.0.0.1:27273").replace(/\/+$/, ""),
-    "http://127.0.0.1:27272/support",
-  ];
+  // Basi candidate per l'agente locale, in ordine di preferenza.
+  // Il Local Signer (127.0.0.1:27272) e' il canale operativo locale UFFICIALE
+  // dello studio (firma, PEC, AI locale): la maggior parte degli studi ce l'ha
+  // gia' installato, quindi lo proviamo PER PRIMO (prefisso /support). L'agente
+  // dedicato 27273 resta come fallback per installazioni che lo usano.
+  // Provare 27272 per primo evita un timeout di ~4.5s verso un 27273 assente.
+  const agentBases = [];
+  if (boot.localControlBase) {
+    // Override esplicito dal server ha la precedenza assoluta.
+    agentBases.push(String(boot.localControlBase).replace(/\/+$/, ""));
+  }
+  agentBases.push("http://127.0.0.1:27272/support");
+  agentBases.push("http://127.0.0.1:27273");
+  // Dedup preservando l'ordine.
+  const _seenBase = new Set();
+  const agentBasesUnique = agentBases.filter((b) => (_seenBase.has(b) ? false : _seenBase.add(b)));
   let agentBaseActive = null;
 
   function agentUrl(path, base) {
-    return `${base ?? agentBaseActive ?? agentBases[0]}${path}`;
+    return `${base ?? agentBaseActive ?? agentBasesUnique[0]}${path}`;
   }
 
   async function fetchJson(url, options = {}) {
@@ -294,7 +303,7 @@
     // Passa alla base successiva SOLO per errori di rete (porta chiusa/timeout):
     // un errore applicativo (es. token non valido) viene propagato subito.
     let lastError = null;
-    for (const base of agentBases) {
+    for (const base of agentBasesUnique) {
       try {
         const payload = await fetchAgentAt(base, path, body);
         agentBaseActive = base;

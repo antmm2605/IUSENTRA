@@ -39,6 +39,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
   HETZNER_DOMAIN: ${{ vars.HETZNER_DOMAIN }}

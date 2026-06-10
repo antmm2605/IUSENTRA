@@ -16,14 +16,14 @@ Sequenza obbligatoria dopo ogni modifica:
 git add <file-modificati>
 git commit -m "descrizione task in italiano"
 git push -u origin claude/legal-electronic-filing-kIxcV
-git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-filing-kIxcV 2>/dev/null || true
 ```
 
 Regole:
 - Non lasciare mai modifiche uncommittate alla fine di un task
 - Il push su `claude/legal-electronic-filing-kIxcV` è obbligatorio e prioritario
-- Il push su `Codex/legal-electronic-filing-kIxcV` va tentato sempre dopo; se restituisce 403 non bloccarsi
-- Il branch `claude/` è la fonte di verità e viene sincronizzato esternamente su `Codex/`
+- **NON pushare direttamente su `Codex/legal-electronic-filing-kIxcV`**: è un branch protetto con required status checks — il push manuale viene sempre rifiutato (`GH006`). La sincronizzazione avviene automaticamente tramite il workflow "Sync Twin Branches" (`.github/workflows/sync-claude-to-codex.yml`) appena la CI sul commit pushato è verde.
+- Il branch `claude/` è la fonte di verità; `Codex/` è il gemello sincronizzato e protetto.
+- Se "Sync Twin Branches" fallisce con `GH006: required status checks have not succeeded`, la causa è la CI rossa sul commit: sistemare la CI, il sync ripartirà al push successivo.
 
 ## Deploy Hetzner automatico — REGOLA OBBLIGATORIA
 
@@ -419,7 +419,7 @@ Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazio
 
 ## Versioning — REGOLA OBBLIGATORIA
 
-**Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e quattro i file:**
+**Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti i file versionati:**
 
 | File | Campo | Esempio |
 |---|---|---|
@@ -427,6 +427,9 @@ Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazio
 | `setup.py` | `version="X.Y.Z"` | package Python |
 | `Dockerfile` | `LABEL … version="X.Y.Z"` | immagine Docker |
 | `railway.toml` | `#  version: X.Y.Z` | trigger redeploy Railway |
+| `docs/openapi.yaml` | `version: X.Y.Z` | **rigenerare, non editare a mano**: `python scripts/react-migration/generate_api_contracts.py` |
+
+**ATTENZIONE — gate CI**: il job "Lint + syntax" esegue `generate_api_contracts.py --check`: se `docs/openapi.yaml` non è riallineato dopo il bump, la CI fallisce, i required checks restano rossi e il branch protetto `Codex/` rifiuta la sincronizzazione automatica. Dopo ogni bump eseguire sempre il generatore e committare l'output insieme al bump.
 
 **La versione web è automaticamente sincronizzata** — `web/app.py` importa `pct.__version__` come `APP_VERSION` (riga 102) e la espone nel template `base.html` tramite `{{ app_version }}`. Non esiste una versione web separata.
 

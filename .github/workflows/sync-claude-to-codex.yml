@@ -1,10 +1,29 @@
 name: Sync Twin Branches
 
+# Sincronizza i due branch gemelli. Codex/legal-electronic-filing-kIxcV è
+# protetto da required status checks: il push di mirroring può riuscire solo
+# quando il commit ha già tutti i check verdi. Per questo il workflow gira:
+#   - al push (sincronizza subito la direzione Codex -> claude, non protetta;
+#     per claude -> Codex l'esito dipende dai check già presenti sul commit)
+#   - al completamento dei workflow di CI (workflow_run): è il percorso che
+#     porta a buon fine claude -> Codex appena i required checks sono verdi.
+# Un rifiuto GH006 per check ancora pendenti NON è un errore: il sync viene
+# ritentato automaticamente al completamento del workflow successivo.
+
 on:
   push:
     branches:
       - "Codex/legal-electronic-filing-kIxcV"
       - "claude/legal-electronic-filing-kIxcV"
+  workflow_run:
+    workflows:
+      - "CI"
+      - "CI Required Gates"
+      - "CodeQL"
+      - "Frontend React CI"
+      - "Security Supply Chain"
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -16,12 +35,30 @@ env:
 jobs:
   sync-peer-branch:
     runs-on: ubuntu-latest
+    # Per workflow_run: sincronizza solo se il workflow sorgente è andato a buon
+    # fine e girava su uno dei due branch gemelli.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        (
+          github.event.workflow_run.head_branch == 'claude/legal-electronic-filing-kIxcV' ||
+          github.event.workflow_run.head_branch == 'Codex/legal-electronic-filing-kIxcV'
+        )
+      )
     steps:
       - name: Determine source and target branch
         id: branches
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          source="${GITHUB_REF_NAME}"
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            source="$WORKFLOW_RUN_BRANCH"
+          else
+            source="${GITHUB_REF_NAME}"
+          fi
           case "$source" in
             "Codex/legal-electronic-filing-kIxcV")
               target="claude/legal-electronic-filing-kIxcV"
@@ -49,5 +86,18 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Mirror source branch into twin branch
+        shell: bash
         run: |
-          git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force
+          set -o pipefail
+          target="${{ steps.branches.outputs.target }}"
+          if git push origin "HEAD:refs/heads/${target}" --force 2>&1 | tee push.log; then
+            echo "Sync completato verso ${target}."
+            exit 0
+          fi
+          if grep -q "GH006" push.log; then
+            echo "::notice::Push verso ${target} rifiutato dalla branch protection: i required status checks sul commit non sono ancora tutti verdi. Il sync verrà ritentato automaticamente al completamento del prossimo workflow CI."
+            exit 0
+          fi
+          echo "::error::Push verso ${target} fallito per una causa diversa dalla branch protection."
+          cat push.log
+          exit 1

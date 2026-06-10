@@ -80,7 +80,7 @@
     },
     {
       "name": "CodeQL",
-      "events": ["push", "pull_request"],
+      "events": ["pull_request"],
       "accepted_conclusions": ["success", "neutral"]
     },
     {

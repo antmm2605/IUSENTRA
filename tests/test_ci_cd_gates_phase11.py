@@ -118,6 +118,12 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     codeql = [check for check in module.expand_required_checks(config) if check.name == "CodeQL"][0]
     assert codeql.accepted_conclusions == ("success", "neutral")
 
+    # CodeQL e' richiesto solo su pull_request: l'umbrella check Code Scanning
+    # non viene prodotto sui push (sul push c'e' solo il job "Analyze (python)").
+    # Valutiamo quindi su pull_request, dove CodeQL e' in scope e il conclusion
+    # "neutral" deve essere accettato come ok.
+    assert "CodeQL" not in push_checks
+    assert "CodeQL" in pull_request_checks
     rows = module.evaluate_required_checks(
         config,
         [
@@ -125,13 +131,24 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
             {"name": "Governance repo", "status": "completed", "conclusion": "skipped"},
             {"name": "CodeQL", "status": "completed", "conclusion": "neutral"},
         ],
-        "push",
+        "pull_request",
     )
     by_name = {row.name: row for row in rows}
     assert by_name["Lint + syntax"].state == "ok"
     assert by_name["Governance repo"].state == "failed"
     assert by_name["CodeQL"].state == "ok"
     assert by_name["Smoke test Flask"].state == "missing"
+
+    # Su push, CodeQL non e' richiesto: ogni gate richiesto su push deve avere un
+    # job che lo produce, altrimenti la CI resta bloccata su un check fantasma.
+    push_rows = module.evaluate_required_checks(
+        config,
+        [{"name": "Analyze (python)", "status": "completed", "conclusion": "success"}],
+        "push",
+    )
+    push_by_name = {row.name: row for row in push_rows}
+    assert "CodeQL" not in push_by_name
+    assert push_by_name["Analyze (python)"].state == "ok"
 
     statuses = module.evaluate_statuses(
         config,
@@ -161,3 +178,44 @@ def test_phase11_test_plan_mentions_ci_workflows() -> None:
     assert "`.github/workflows/ci.yml`" in test_plan
     assert "`.github/workflows/smoke-staging.yml`" in test_plan
     assert "GitHub Actions" in test_plan
+
+
+def test_every_push_required_check_has_a_producing_job() -> None:
+    """Salvaguardia anti check-fantasma: ogni check richiesto su push DEVE essere
+    prodotto da un job dei workflow. Un check richiesto ma mai prodotto resta
+    eternamente 'missing', blocca il wait-gate e quindi il deploy.
+    Eccezioni note: provider esterni (Vercel) non sono job di Actions.
+    """
+    import re
+
+    import yaml
+
+    module = _load_required_gates_module()
+    config = json.loads(_read(".github/required-checks.json"))
+    push_required = {check.name for check in module.expand_required_checks(config, event="push")}
+
+    external_providers = {"Vercel", "Vercel Preview Comments"}
+    # Il job-orchestratore che ATTENDE i gate non puo' attendere se stesso.
+    waiter_jobs = {"CI reale eseguita sul commit corrente"}
+
+    produced_prefixes: set[str] = set()
+    for workflow_path in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+        for job_id, job in (workflow.get("jobs") or {}).items():
+            raw_name = str(job.get("name", job_id))
+            # i nomi matrice hanno parti ${{ matrix.* }}: confronto sul prefisso fisso
+            prefix = re.split(r"\$\{\{", raw_name)[0].strip()
+            if prefix:
+                produced_prefixes.add(prefix)
+
+    orphans = sorted(
+        name
+        for name in push_required
+        if name not in external_providers
+        and name not in waiter_jobs
+        and not any(name == prefix or name.startswith(prefix) for prefix in produced_prefixes)
+    )
+    assert not orphans, (
+        "Check richiesti su push senza job che li produce (resterebbero 'missing' e "
+        f"bloccherebbero il deploy): {orphans}"
+    )

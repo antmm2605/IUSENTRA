@@ -32,6 +32,66 @@ step() {
 }
 
 # ---------------------------------------------------------------------------
+# 0. Lint statico Python — replica del job "Lint + syntax" (ci.yml).
+#    Questi gate (Ruff/Flake8/py_compile) NON erano replicati localmente:
+#    e' la causa storica di CI rossa su errori che il gate locale non vedeva
+#    (es. F821 undefined-name). Targets identici a .python-targets della CI.
+# ---------------------------------------------------------------------------
+PYTHON_TARGETS=(core pct web lex tests worker.py gunicorn.conf.py visible_signature.py wsgi.py)
+for f in tools/*.py; do PYTHON_TARGETS+=("$f"); done
+# Filtra solo i path esistenti (shopt nullglob non garantito in ogni shell)
+EXISTING_TARGETS=()
+for t in "${PYTHON_TARGETS[@]}"; do [ -e "$t" ] && EXISTING_TARGETS+=("$t"); done
+
+ensure_pytool() {
+  # Installa il linter se assente, cosi' il gate non lo salta mai in silenzio.
+  python3 -c "import $1" >/dev/null 2>&1 && return 0
+  pip install -q "$2" >/dev/null 2>&1
+}
+
+ruff_ci() {
+  ensure_pytool ruff "ruff>=0.6.0"
+  python3 -m ruff check --output-format=concise --select E9,F63,F7,F82 "${EXISTING_TARGETS[@]}"
+}
+ruff_governed() {
+  ensure_pytool ruff "ruff>=0.6.0"
+  python3 -m ruff check --config pyproject.toml \
+    packaging_manifest.py docker/entrypoint.py tools/sync_packaging_files.py \
+    pct/giurisprudenza_corpus.py lex/http_bounded_bridge.py lex/context/studio_context.py \
+    lex/retrieval lex/formatting/answer_builder.py \
+    tests/test_packaging_consistency.py tests/test_docker_entrypoint.py
+}
+flake8_ci() {
+  ensure_pytool flake8 "flake8>=7.0.0"
+  python3 -m flake8 "${EXISTING_TARGETS[@]}"
+}
+pycompile_ci() {
+  python3 - <<'PY'
+import compileall, py_compile, sys
+from pathlib import Path
+ok = True
+for d in (Path("pct"), Path("web"), Path("lex"), Path("tests")):
+    if d.exists():
+        ok = compileall.compile_dir(str(d), quiet=1) and ok
+paths = sorted(Path("tools").glob("*.py"))
+paths += [Path(f) for f in ("worker.py", "gunicorn.conf.py", "visible_signature.py", "wsgi.py") if Path(f).exists()]
+# local_signer_mod non e' nei target CI ma lo compiliamo: e' distribuito ai client
+paths += sorted(Path("local_signer_mod").glob("*.py"))
+for p in paths:
+    try:
+        py_compile.compile(str(p), doraise=True)
+    except py_compile.PyCompileError as exc:
+        print(exc); ok = False
+sys.exit(0 if ok else 1)
+PY
+}
+
+step "Ruff (E9,F63,F7,F82)"   ruff_ci
+step "Ruff governed modules"  ruff_governed
+step "Flake8"                 flake8_ci
+step "Compile Python"         pycompile_ci
+
+# ---------------------------------------------------------------------------
 # 1. Artefatti generati (i piu' frequenti colpevoli di CI rossa)
 # ---------------------------------------------------------------------------
 step "Packaging sync"            python3 tools/sync_packaging_files.py --check

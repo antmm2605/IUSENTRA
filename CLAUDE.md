@@ -435,7 +435,9 @@ Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazio
 bash scripts/ci_local_gate.sh
 ```
 
-e pushare SOLO con esito "Tutti i gate verdi". Lo script replica i gate bloccanti della CI (artefatti generati, contratti React, design system governance — che vieta gli inline style nei .tsx —, App V2, UI coverage, typecheck, build Vite, pytest dei gate). Se la CI introduce un nuovo gate, aggiungerlo allo script nello stesso commit. Questa regola esiste perché ogni gate scoperto "a posteriori" in CI blocca la catena CI → sync Codex (branch protetto) → deploy Hetzner.
+e pushare SOLO con esito "Tutti i gate verdi". Lo script replica i gate bloccanti della CI (lint statico Python **Ruff E9/F63/F7/F82 + Ruff governed + Flake8 + py_compile** identici al job "Lint + syntax", artefatti generati, contratti React, design system governance — che vieta gli inline style nei .tsx —, App V2, UI coverage, typecheck, build Vite, pytest dei gate). Se la CI introduce un nuovo gate, aggiungerlo allo script nello stesso commit. Questa regola esiste perché ogni gate scoperto "a posteriori" in CI blocca la catena CI → sync Codex (branch protetto) → deploy Hetzner.
+
+**Targets Python lint** (devono coincidere con `.python-targets` di `ci.yml`): `core pct web lex tests tools/*.py worker.py gunicorn.conf.py visible_signature.py wsgi.py`. Errore tipico che SOLO Ruff cattura: `F821 Undefined name` quando si usa il nome di un'eccezione (`except … as exc`) fuori dal blocco `except` (Python 3 cancella il nome a fine blocco) → catturare il messaggio in una variabile prima di uscire dall'`except`.
 
 **Dettaglio — artefatti generati**: la CI verifica con `--check` che i documenti generati siano allineati al codice. Se uno qualsiasi è stale, la CI fallisce, i required checks restano rossi e il branch protetto `Codex/` rifiuta la sincronizzazione automatica. Dopo OGNI bump di versione e dopo OGNI modifica a route/endpoint backend eseguire l'intera batteria di generatori e committare gli output insieme alla modifica:
 

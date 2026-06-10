@@ -113,7 +113,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.70"
+VERSION = "1.6.71"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -316,16 +316,18 @@ def _avvia_aggiornamento_local_signer() -> dict:
     # Metodo preferito: hot-update dei sorgenti dal server. Funziona su ogni
     # piattaforma con Python gia' installato e non dipende dalla disponibilita'
     # dell'EXE versionato (che si genera solo da Windows con IExpress).
+    errore_sorgenti = ""
     try:
         return _aggiorna_sorgenti_local_signer()
     except Exception as exc:  # noqa: BLE001 — fallback robusto all'EXE
+        errore_sorgenti = str(exc)
         log.warning("Hot-update sorgenti non riuscito (%s): provo il pacchetto EXE.", exc)
 
     update_url = _local_signer_update_url()
     if sys.platform != "win32":
         return {
             "ok": False,
-            "errore": f"Aggiornamento sorgenti non riuscito ({exc}) e pacchetto EXE disponibile solo su Windows.",
+            "errore": f"Aggiornamento sorgenti non riuscito ({errore_sorgenti}) e pacchetto EXE disponibile solo su Windows.",
             "installer_url": update_url,
         }
     target = Path(tempfile.gettempdir()) / f"SetupLocalSigner-{secrets.token_hex(8)}.exe"

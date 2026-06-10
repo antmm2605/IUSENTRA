@@ -5,7 +5,10 @@ import {
   Archive,
   BookOpen,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock3,
+  Download,
   ExternalLink,
   Files,
   FileSearch,
@@ -160,24 +163,23 @@ function WarningList({ data }: { data: LegalIntelligencePageData }) {
   )
 }
 function NavigationTabs({ view }: { view: LegalIntelligenceView }) {
-  // Path canonici sotto /ricerca-legale; /legal-intelligence/* viene ridiretto lato server.
-  // resta accessibile e viene ridiretto 301 lato server.
-  const items: Array<[LegalIntelligenceView, string, string, string]> = [
-    ['ricerca-legale', 'Ricerca', 'fonti e norme', '/ricerca-legale'],
-    ['news', 'News', 'aggiornamenti', '/ricerca-legale/news'],
-    ['mediazione', 'Mediazione', 'registro', '/ricerca-legale/mediazione'],
+  const items: Array<{ view: LegalIntelligenceView; label: string; description: string; href: string; icon: React.ReactNode }> = [
+    { view: 'ricerca-legale', label: 'Ricerca', description: 'Norme, giurisprudenza e fonti', href: '/ricerca-legale', icon: <Search size={18} aria-hidden="true" /> },
+    { view: 'news', label: 'News legali', description: 'Aggiornamenti e novità', href: '/ricerca-legale/news', icon: <Newspaper size={18} aria-hidden="true" /> },
+    { view: 'mediazione', label: 'Mediazione', description: 'Registro organismi', href: '/ricerca-legale/mediazione', icon: <Landmark size={18} aria-hidden="true" /> },
   ]
   return (
-    <nav className="iu-li-tabs iu-od-source-card" aria-label="Sezioni ricerca legale">
-      {items.map(([itemView, label, description, href]) => (
+    <nav className="iu-li-tabs" aria-label="Sezioni ricerca legale">
+      {items.map((item) => (
         <a
-          key={itemView}
-          href={href}
-          className={view === itemView ? 'iu-li-tab-card iu-li-tab-card--active' : 'iu-li-tab-card'}
-          aria-current={view === itemView ? 'page' : undefined}
+          key={item.view}
+          href={item.href}
+          className={view === item.view ? 'iu-li-tab-card iu-li-tab-card--active' : 'iu-li-tab-card'}
+          aria-current={view === item.view ? 'page' : undefined}
         >
-          <strong>{label}</strong>
-          <span>{description}</span>
+          <span className="iu-li-tab-card__icon">{item.icon}</span>
+          <strong>{item.label}</strong>
+          <span>{item.description}</span>
         </a>
       ))}
     </nav>
@@ -522,25 +524,11 @@ function RecordCard({
         </div>
         {stateLabel ? <Badge tone={stateTone}>{stateLabel}</Badge> : null}
       </header>
-      <div className="iu-li-internal-strip" aria-label="Stato scheda IUSENTRA">
-        <span className="iu-li-internal-strip__label">Scheda IUSENTRA</span>
-        <strong>{contextStatusLabel(record)}</strong>
-      </div>
       {summaryItems.length ? (
-        <ul className="iu-li-context-list" aria-label="Contesto disponibile">
-          {summaryItems.map((item) => (
-            <li key={`${record.id}-${item}`}>{item}</li>
-          ))}
-        </ul>
-      ) : null}
-      {pointPreview.length || checkPreview.length ? (
-        <div className="iu-li-card-points" aria-label="Punti e controlli della scheda">
-          {pointPreview.map((item) => <span key={`${record.id}-card-point-${item}`}>{item}</span>)}
-          {checkPreview.map((item) => <span key={`${record.id}-card-check-${item}`}>{item}</span>)}
-        </div>
+        <p className="iu-li-record__summary">{summaryItems[0]}</p>
       ) : null}
       <dl className="iu-li-meta iu-li-meta--compact">
-        {metaItems.slice(0, 4).map(([label, value]) => (
+        {metaItems.slice(0, 3).map(([label, value]) => (
           <div key={`${record.id}-${label}`}>
             <dt>{label}</dt>
             <dd>{value}</dd>
@@ -549,7 +537,6 @@ function RecordCard({
       </dl>
       <div className="iu-li-evidence-row">
         <span className="iu-od-source-badge">{record.evidenceType || 'informazione'}</span>
-        {record.sourceKind ? <span className="iu-od-source-badge">{record.sourceKind}</span> : null}
         {record.contextCompleted ? <span className="iu-od-source-badge">letto in IUSENTRA</span> : null}
       </div>
       <footer className="iu-od-action-row iu-li-record__actions">
@@ -557,10 +544,14 @@ function RecordCard({
           <BookOpen size={16} aria-hidden="true" />
           Leggi scheda
         </Button>
+        <ButtonLink href={`/legal-intelligence/fonte/${encodeURIComponent(record.id)}/scarica`} tone="neutral" download>
+          <Download size={16} aria-hidden="true" />
+          Scarica
+        </ButtonLink>
         {record.sourceHref ? (
           <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer" className="iu-li-official-link">
             <ExternalLink size={16} aria-hidden="true" />
-            Controllo ufficiale
+            Fonte originale
           </ButtonLink>
         ) : null}
       </footer>
@@ -673,8 +664,12 @@ function RecordDetail({
         ))}
       </dl>
       <div className="iu-od-action-row iu-li-detail__actions">
+        <ButtonLink href={`/legal-intelligence/fonte/${encodeURIComponent(record.id)}/scarica`} tone="primary" download>
+          <Download size={16} aria-hidden="true" />
+          Scarica scheda
+        </ButtonLink>
         {view !== 'mediazione' ? (
-          <Button type="button" tone="primary" onClick={() => onSearchRelated(relatedQuery(record))}>
+          <Button type="button" tone="neutral" onClick={() => onSearchRelated(relatedQuery(record))}>
             <Search size={16} aria-hidden="true" />
             Cerca collegati
           </Button>
@@ -682,10 +677,9 @@ function RecordDetail({
         {record.sourceHref ? (
           <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer" className="iu-li-official-link">
             <ExternalLink size={16} aria-hidden="true" />
-            {view === 'mediazione' ? 'Apri fonte originale' : 'Controllo ufficiale'}
+            Fonte originale
           </ButtonLink>
         ) : null}
-        {view !== 'mediazione' ? <ButtonLink href="/giurisprudenza" tone="neutral">Archivio giurisprudenza</ButtonLink> : null}
       </div>
     </aside>
   )
@@ -1323,7 +1317,6 @@ export function LegalIntelligencePage() {
       <div className="iu-li-page">
         <WarningList data={data} />
         <NavigationTabs view={view} />
-        {view === 'ricerca-legale' ? <DataAccessPanel data={data} onArchiveSearch={runArchiveSearch} /> : null}
         {view !== 'mediazione' ? (
           <RecordFilters
             view={view}
@@ -1424,7 +1417,37 @@ export function LegalIntelligencePage() {
           </div>
           <RecordDetail record={selectedRecord} view={view} onSearchRelated={runSearch} />
         </div>
+        {view === 'ricerca-legale' ? <CollapsibleSourceDashboard data={data} onArchiveSearch={runArchiveSearch} /> : null}
       </div>
     </Page>
+  )
+}
+function CollapsibleSourceDashboard({
+  data,
+  onArchiveSearch,
+}: {
+  data: LegalIntelligencePageData
+  onArchiveSearch: (query: string, scope?: string, source?: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const hasMonitor = data.autofetchMonitor.sourcesTotal > 0 || data.autofetchMonitor.sources.length > 0
+  if (!hasMonitor && !data.metrics.length) return null
+  return (
+    <section className="iu-li-collapsible-sources iu-od-source-card" aria-label="Stato fonti e acquisizioni">
+      <button
+        className="iu-li-collapsible-sources__toggle"
+        onClick={() => setOpen(!open)}
+        type="button"
+        aria-expanded={open}
+      >
+        <SearchCheck size={18} aria-hidden="true" />
+        <div>
+          <strong>Stato fonti e acquisizioni</strong>
+          <span>{data.autofetchMonitor.sourcesReady} fonti pronte · {data.autofetchMonitor.sourcesNotReady} da completare</span>
+        </div>
+        {open ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+      </button>
+      {open ? <DataAccessPanel data={data} onArchiveSearch={onArchiveSearch} /> : null}
+    </section>
   )
 }

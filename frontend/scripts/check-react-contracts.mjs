@@ -2045,7 +2045,7 @@ assertContains(legalIntelligencePage, 'Punti della scheda', 'LegalIntelligencePa
 assertContains(legalIntelligencePage, 'Testo letto in IUSENTRA', 'LegalIntelligencePage mostra testo letto dentro IUSENTRA')
 assertContains(legalIntelligencePage, 'Controlli per lo studio', 'LegalIntelligencePage mostra controlli operativi')
 assertContains(legalIntelligencePage, 'contextCompleted', 'LegalIntelligencePage distingue contesto completo in pagina')
-assertContains(legalIntelligencePage, 'Controllo ufficiale', 'LegalIntelligencePage tiene il link esterno come controllo secondario')
+assertContains(legalIntelligencePage, 'Fonte originale', 'LegalIntelligencePage tiene il link esterno alla fonte originale')
 assertContains(legalIntelligencePage, 'DataAccessPanel', 'LegalIntelligencePage rende operative le metriche in accessi dati')
 assertContains(legalIntelligencePage, 'Dati disponibili', 'LegalIntelligencePage mostra i conteggi come azioni pratiche')
 assertContains(legalIntelligencePage, 'fonti-monitorate-list', 'LegalIntelligencePage espone la lista fonti monitorate')

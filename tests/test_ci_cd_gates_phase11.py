@@ -70,7 +70,9 @@ def test_smoke_staging_workflow_is_manual_and_secret_safe() -> None:
     assert "name: staging" in workflow
     assert "IUSENTRA_ADMIN_PASSWORD: ${{ secrets.IUSENTRA_ADMIN_PASSWORD }}" in workflow
     assert "python scripts/smoke_app_v2_all.py --base-url" in workflow
-    assert "actions/upload-artifact@v4" in workflow
+    # version-agnostic: il gate verifica che l'upload artifact esista,
+    # non blocca i bump di manutenzione delle action (es. v4 -> v5 per Node 24)
+    assert "actions/upload-artifact@" in workflow
 
 
 def test_security_supply_chain_blocks_critical_dependency_regressions() -> None:

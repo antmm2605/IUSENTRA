@@ -1,0 +1,1 @@
+import{j as r,T as i}from"./index-BONMZB92.js";import{A as s,a as t,b as l}from"./alert-ZxqM2Kba.js";function c({title:e="Verifica richiesta",message:a}){return r.jsxs(s,{className:"border-amber-200 bg-amber-50 text-amber-950",children:[r.jsx(i,{"aria-hidden":"true"}),r.jsx(t,{children:e}),r.jsx(l,{children:a})]})}export{c as E};

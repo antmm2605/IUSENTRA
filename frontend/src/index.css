@@ -2449,3 +2449,4 @@ body:has(.iu-client-portal-public) #pct-ai-widget {
 .iu-client-portal-file--studio{justify-content:flex-start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 @media(max-width:640px){.iu-client-portal-form__grid{grid-template-columns:1fr}}
+.iu-client-portal-input-upper{text-transform:uppercase}

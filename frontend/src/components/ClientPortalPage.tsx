@@ -1023,13 +1023,13 @@ function ClientPortalClient() {
             <label>Nome e cognome *<input value={profileForm.displayName} onChange={updateProfileField('displayName')} autoComplete="name"/></label>
             <label>Email *<input type="email" value={profileForm.email} onChange={updateProfileField('email')} autoComplete="email"/></label>
             <label>Telefono *<input value={profileForm.phone} onChange={updateProfileField('phone')} autoComplete="tel"/></label>
-            <label>Codice fiscale *<input value={profileForm.fiscalCode} onChange={updateProfileField('fiscalCode')} style={{ textTransform: 'uppercase' }}/></label>
+            <label>Codice fiscale *<input className="iu-client-portal-input-upper" value={profileForm.fiscalCode} onChange={updateProfileField('fiscalCode')}/></label>
             <label>Data di nascita *<input type="date" value={profileForm.birthDate} onChange={updateProfileField('birthDate')}/></label>
             <label>Luogo di nascita *<input value={profileForm.birthPlace} onChange={updateProfileField('birthPlace')}/></label>
             <label>Indirizzo (via e civico) *<input value={profileForm.address} onChange={updateProfileField('address')} autoComplete="street-address"/></label>
             <label>CAP *<input value={profileForm.cap} onChange={updateProfileField('cap')} inputMode="numeric" maxLength={5}/></label>
             <label>Città *<input value={profileForm.city} onChange={updateProfileField('city')}/></label>
-            <label>Provincia *<input value={profileForm.province} onChange={updateProfileField('province')} maxLength={2} style={{ textTransform: 'uppercase' }}/></label>
+            <label>Provincia *<input className="iu-client-portal-input-upper" value={profileForm.province} onChange={updateProfileField('province')} maxLength={2}/></label>
             <label>PEC<input type="email" value={profileForm.pec} onChange={updateProfileField('pec')}/></label>
             <label>Partita IVA<input value={profileForm.vatNumber} onChange={updateProfileField('vatNumber')} inputMode="numeric"/></label>
             <label>Professione<input value={profileForm.profession} onChange={updateProfileField('profession')}/></label>

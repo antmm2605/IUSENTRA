@@ -429,7 +429,15 @@ Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazio
 | `railway.toml` | `#  version: X.Y.Z` | trigger redeploy Railway |
 | `docs/openapi.yaml` | `version: X.Y.Z` | **rigenerare, non editare a mano**: `python scripts/react-migration/generate_api_contracts.py` |
 
-**ATTENZIONE — gate CI sugli artefatti generati**: la CI verifica con `--check` che i documenti generati siano allineati al codice. Se uno qualsiasi è stale, la CI fallisce, i required checks restano rossi e il branch protetto `Codex/` rifiuta la sincronizzazione automatica. Dopo OGNI bump di versione e dopo OGNI modifica a route/endpoint backend eseguire l'intera batteria di generatori e committare gli output insieme alla modifica:
+**REGOLA OBBLIGATORIA — gate locale prima di OGNI push**: eseguire SEMPRE
+
+```bash
+bash scripts/ci_local_gate.sh
+```
+
+e pushare SOLO con esito "Tutti i gate verdi". Lo script replica i gate bloccanti della CI (artefatti generati, contratti React, design system governance — che vieta gli inline style nei .tsx —, App V2, UI coverage, typecheck, build Vite, pytest dei gate). Se la CI introduce un nuovo gate, aggiungerlo allo script nello stesso commit. Questa regola esiste perché ogni gate scoperto "a posteriori" in CI blocca la catena CI → sync Codex (branch protetto) → deploy Hetzner.
+
+**Dettaglio — artefatti generati**: la CI verifica con `--check` che i documenti generati siano allineati al codice. Se uno qualsiasi è stale, la CI fallisce, i required checks restano rossi e il branch protetto `Codex/` rifiuta la sincronizzazione automatica. Dopo OGNI bump di versione e dopo OGNI modifica a route/endpoint backend eseguire l'intera batteria di generatori e committare gli output insieme alla modifica:
 
 ```bash
 python scripts/react-migration/generate_api_contracts.py          # docs/openapi.yaml + contratti API (sensibile a versione e route)

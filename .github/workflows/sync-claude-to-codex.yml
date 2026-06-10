@@ -7,11 +7,14 @@ name: Sync Twin Branches
 #     per claude -> Codex l'esito dipende dai check già presenti sul commit)
 #   - al completamento dei workflow di CI (workflow_run): è il percorso che
 #     porta a buon fine claude -> Codex appena i required checks sono verdi.
+# Un rifiuto GH006 per check ancora pendenti NON è un errore: il sync viene
+# ritentato automaticamente al completamento del workflow successivo.
 #
-# Se il push fallisce con GH006 (required_status_checks non soddisfatti),
-# il workflow usa administration:write per rimuovere i required_status_checks
-# da Codex/ e riprova. Questo è sicuro perché il deploy avviene già da
-# claude/ direttamente e i check su Codex/ sono ridondanti.
+# NOTA: se GH006 persiste nonostante CI verde, i nomi dei check richiesti
+# dalla branch protection server-side non corrispondono a quelli prodotti dal
+# CI. In questo caso risolvere manualmente:
+#   GitHub → Settings → Branches → Codex/legal-electronic-filing-kIxcV
+#   → rimuovere tutti i "Required status checks" → Save
 
 on:
   push:
@@ -31,7 +34,6 @@ on:
 
 permissions:
   contents: write
-  administration: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -91,53 +93,18 @@ jobs:
 
       - name: Mirror source branch into twin branch
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
-          TARGET="${{ steps.branches.outputs.target }}"
-          OWNER="${GITHUB_REPOSITORY%/*}"
-          REPO="${GITHUB_REPOSITORY#*/}"
-          # URL-encode il branch name (sostituisce / con %2F)
-          ENCODED="${TARGET//\//%2F}"
-
-          # Tentativo 1: push normale
           if git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force 2>&1 | tee push.log; then
-            echo "Sync completato verso ${TARGET}."
+            echo "Sync completato verso ${{ steps.branches.outputs.target }}."
             exit 0
           fi
-
-          if ! grep -q "GH006" push.log; then
-            echo "::error::Push verso ${TARGET} fallito per una causa diversa dalla branch protection."
-            cat push.log
-            exit 1
-          fi
-
-          echo "::notice::GH006 — rimuovo required_status_checks da ${TARGET} e riprovo."
-
-          # Rimuove i required_status_checks dalla branch protection tramite API admin
-          cat > /tmp/protection.json << 'JSONEOF'
-          {
-            "required_status_checks": null,
-            "enforce_admins": false,
-            "required_pull_request_reviews": null,
-            "restrictions": null,
-            "allow_force_pushes": true,
-            "allow_deletions": false
-          }
-          JSONEOF
-
-          gh api "repos/${OWNER}/${REPO}/branches/${ENCODED}/protection" \
-            -X PUT --input /tmp/protection.json \
-            && echo "Branch protection aggiornata su ${TARGET}." \
-            || echo "::warning::Impossibile aggiornare branch protection (token insufficiente?)."
-
-          # Tentativo 2: push dopo rimozione protezione
-          if git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force 2>&1 | tee push2.log; then
-            echo "Sync completato verso ${TARGET} (dopo rimozione required_status_checks)."
+          if grep -q "GH006" push.log; then
+            echo "::warning::Push verso ${{ steps.branches.outputs.target }} rifiutato dalla branch protection (GH006)."
+            echo "::warning::I required_status_checks su Codex/ non corrispondono ai check CI prodotti."
+            echo "::warning::Per risolvere: GitHub Settings → Branches → Codex/legal-electronic-filing-kIxcV → rimuovere Required status checks."
             exit 0
           fi
-
-          echo "::error::Push verso ${TARGET} fallito anche dopo aggiornamento branch protection."
-          cat push2.log
+          echo "::error::Push verso ${{ steps.branches.outputs.target }} fallito per una causa diversa dalla branch protection."
+          cat push.log
           exit 1

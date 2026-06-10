@@ -687,7 +687,6 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path)
         encoding="utf-8"
     )
     for name in (
-        f"SetupLocalSigner-{version}.exe",
         "SetupLocalSigner.exe",
         f"InstallaLocalSigner-{version}.command",
         f"InstallaLocalSigner-{version}.run",
@@ -695,9 +694,18 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path)
     ):
         assert (dist / name).exists(), name
 
-    assert (dist / f"SetupLocalSigner-{version}.exe").read_bytes() == (
-        dist / "SetupLocalSigner.exe"
-    ).read_bytes()
+    # L'EXE versionato e' generabile solo da Windows (IExpress). Da build
+    # non-Windows build_dist.py lascia un marker esplicito: in quel caso
+    # l'alias SetupLocalSigner.exe resta l'ultima build Windows valida e le
+    # installazioni esistenti si aggiornano dal server via /update.
+    versioned_exe = dist / f"SetupLocalSigner-{version}.exe"
+    pending_marker = dist / f"SetupLocalSigner-{version}.exe.PENDING-WINDOWS-BUILD.txt"
+    assert versioned_exe.exists() or pending_marker.exists(), (
+        f"Manca sia {versioned_exe.name} sia il marker {pending_marker.name}: "
+        "rigenerare tools/dist con python tools/build_dist.py"
+    )
+    if versioned_exe.exists():
+        assert versioned_exe.read_bytes() == (dist / "SetupLocalSigner.exe").read_bytes()
     exe_path = dist / "SetupLocalSigner.exe"
     assert exe_path.read_bytes().startswith(b"MZ")
     assert exe_path.stat().st_size < 400_000
@@ -3661,6 +3669,30 @@ def _cfg_web(tmp_path):
     }
 
 
+def _assert_windows_exe_route(response, version: str) -> None:
+    """Verifica che una route /polisWeb/local-signer/*windows* serva l'EXE versionato.
+
+    Se l'EXE per la versione corrente non e' ancora stato rigenerato da Windows
+    (marker PENDING-WINDOWS-BUILD presente in tools/dist), la route ritorna
+    404: lo accettiamo come stato transitorio governato.
+    """
+    root = Path(__file__).resolve().parents[1]
+    versioned_exe = root / "tools" / "dist" / f"SetupLocalSigner-{version}.exe"
+    pending_marker = root / "tools" / "dist" / f"SetupLocalSigner-{version}.exe.PENDING-WINDOWS-BUILD.txt"
+    if versioned_exe.exists():
+        assert response.status_code == 200
+        disp = response.headers.get("Content-Disposition", "")
+        assert f"SetupLocalSigner-{version}.exe" in disp
+        assert ".ps1" not in disp
+        assert ".cmd" not in disp
+        return
+    assert pending_marker.exists(), (
+        f"Manca sia {versioned_exe.name} sia il marker {pending_marker.name}: "
+        "rigenerare tools/dist con python tools/build_dist.py"
+    )
+    assert response.status_code == 404
+
+
 def test_installer_local_signer_windows_legacy_restituisce_exe_senza_login(tmp_path):
     from web.app import create_app
 
@@ -3668,12 +3700,7 @@ def test_installer_local_signer_windows_legacy_restituisce_exe_senza_login(tmp_p
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/installa-windows")
-
-    assert r.status_code == 200
-    disposition = r.headers.get("Content-Disposition", "")
-    assert f"SetupLocalSigner-{version}.exe" in disposition
-    assert ".ps1" not in disposition
-    assert ".cmd" not in disposition
+    _assert_windows_exe_route(r, version)
 
 
 def test_api_portale_acquisizione_preview_pst_espone_id_documento_come_idcat(tmp_path):
@@ -3872,12 +3899,7 @@ def test_installer_local_signer_windows_ps1_legacy_restituisce_exe(tmp_path):
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/windows-ps1")
-
-    assert r.status_code == 200
-    assert "attachment" in r.headers.get("Content-Disposition", "")
-    disposition = r.headers.get("Content-Disposition", "")
-    assert f"SetupLocalSigner-{version}.exe" in disposition
-    assert ".ps1" not in disposition
+    _assert_windows_exe_route(r, version)
 
 
 def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
@@ -3887,13 +3909,7 @@ def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/windows")
-
-    assert r.status_code == 200
-    disposition = r.headers.get("Content-Disposition", "")
-    assert "attachment;" in disposition
-    assert f"SetupLocalSigner-{version}.exe" in disposition
-    assert ".cmd" not in disposition
-    assert ".ps1" not in disposition
+    _assert_windows_exe_route(r, version)
 
 
 def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):
@@ -3903,12 +3919,7 @@ def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/windows-exe")
-
-    assert r.status_code == 200
-    disp = r.headers.get("Content-Disposition", "")
-    assert f"SetupLocalSigner-{version}.exe" in disp
-    assert ".cmd" not in disp
-    assert ".ps1" not in disp
+    _assert_windows_exe_route(r, version)
 
 
 def test_installer_local_signer_macos_e_pubblico(tmp_path):

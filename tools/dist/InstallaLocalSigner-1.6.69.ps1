@@ -1,3 +1,7 @@
+# IUSENTRA Local Signer Setup v1.6.69
+# Pacchetto generato il 2026-06-10 14:30:15
+# Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma
+
 # IUSENTRA Local Signer - Installazione locale Windows
 # Usa i file gia' presenti nella cartella tools e configura l'avvio automatico.
 # Se Python non e' installato, scarica automaticamente Python portatile.

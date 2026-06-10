@@ -109,10 +109,11 @@ from local_signer_mod.security import (  # noqa: E402
 )
 from local_signer_mod.pec_bridge import send_pec_local, test_pec_smtp_local  # noqa: E402
 from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
+from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.68"
+VERSION = "1.6.69"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -8606,6 +8607,14 @@ class _Handler(BaseHTTPRequestHandler):
             build_attachment_prompt_block=build_attachment_prompt_block,
         )
 
+    def _support_facade(self) -> SupportAgentFacade:
+        return SupportAgentFacade(
+            read_json=self._read_json,
+            send_json=self._send_json,
+            logger=log,
+            version=VERSION,
+        )
+
     def do_OPTIONS(self):  # noqa: N802
         self.send_response(204)
         self._add_cors()
@@ -8637,6 +8646,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._seleziona_certificato()
         elif path == "/pst/status":
             self._pst_status()
+        elif path == "/support/status":
+            self._support_facade().status()
         elif re.fullmatch(r"/pst/jobs/[^/]+", path):
             self._pst_job_status(path)
         elif re.fullmatch(r"/portal-assistant/session/[^/]+/status", path):
@@ -8734,6 +8745,14 @@ class _Handler(BaseHTTPRequestHandler):
             self._pec_smtp_test()
         elif path == "/pec/send":
             self._pec_send()
+        elif path == "/support/arm":
+            self._support_facade().arm()
+        elif path == "/support/disarm":
+            self._support_facade().disarm()
+        elif path == "/support/screenshot":
+            self._support_facade().screenshot()
+        elif path == "/support/execute":
+            self._support_facade().execute()
         else:
             self._send_json({"errore": "Not found"}, 404)
 

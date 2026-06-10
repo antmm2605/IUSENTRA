@@ -76,6 +76,7 @@ def _local_signer_mod_files() -> list[Path]:
         "pec_bridge.py",
         "security.py",
         "server_bootstrap.py",
+        "support_agent.py",
     }
     found = {path.name for path in files}
     missing = sorted(required - found)
@@ -518,29 +519,53 @@ def main() -> None:
     linux_path.chmod(0o755)
     print(f"  [OK] Linux   : {linux_path.name}")
 
-    # Windows EXE piccolo con builder IExpress storico
-    if not args.no_windows:
-        if os.name != "nt":
-            print(
-                "ERRORE: il pacchetto Windows va generato da Windows con IExpress. "
-                "Usare --no-windows su altri sistemi.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    # Windows: EXE IExpress generabile SOLO da Windows. Su Linux/macOS e con
+    # --no-windows scrive comunque i sorgenti in dist/ (il server li serve via
+    # /polisWeb/local-signer/download/*: le installazioni esistenti si
+    # auto-aggiornano da li') e lascia un marker che indica di rigenerare
+    # l'EXE da Windows alla prossima build su quella piattaforma.
+    can_build_windows_exe = (
+        not args.no_windows
+        and os.name == "nt"
+        and WINDOWS_NATIVE_BUILDER.exists()
+    )
+    if can_build_windows_exe:
         win_path = DIST_DIR / f"SetupLocalSigner-{version}.exe"
         alias_path = DIST_DIR / "SetupLocalSigner.exe"
         ps1_path = DIST_DIR / f"InstallaLocalSigner-{version}.ps1"
-        if not WINDOWS_NATIVE_BUILDER.exists():
-            print(f"ERRORE: builder Windows nativo non trovato: {WINDOWS_NATIVE_BUILDER}", file=sys.stderr)
-            sys.exit(1)
         print("  Genero Windows EXE piccolo con IExpress storico...")
         exe_data = build_windows_exe(version, base_url)
         win_path.write_bytes(exe_data)
         alias_path.write_bytes(exe_data)
+        pending_marker = DIST_DIR / f"SetupLocalSigner-{version}.exe.PENDING-WINDOWS-BUILD.txt"
+        pending_marker.unlink(missing_ok=True)
         ps1_path.write_text(build_windows_ps1(version), encoding="utf-8")
         support_files = write_windows_support_files(DIST_DIR)
         print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size // 1024}KB)")
         print(f"  [OK] Alias   : SetupLocalSigner.exe aggiornato")
+        print(f"  [OK] Support : {ps1_path.name}")
+        print(f"  [OK] Files   : {', '.join(path.name for path in support_files)}")
+    else:
+        # Sorgenti in dist/ sempre allineati alla versione corrente (sono cio'
+        # che il server distribuisce ai client via /update). Solo l'EXE
+        # IExpress richiede Windows.
+        support_files = write_windows_support_files(DIST_DIR)
+        ps1_path = DIST_DIR / f"InstallaLocalSigner-{version}.ps1"
+        ps1_path.write_text(build_windows_ps1(version), encoding="utf-8")
+        if not args.no_windows:
+            pending_marker = DIST_DIR / f"SetupLocalSigner-{version}.exe.PENDING-WINDOWS-BUILD.txt"
+            reason = (
+                "ambiente non-Windows"
+                if os.name != "nt"
+                else f"builder mancante: {WINDOWS_NATIVE_BUILDER}"
+            )
+            pending_marker.write_text(
+                f"L'EXE Windows per la versione {version} non e' stato ancora generato ({reason}).\n"
+                "Generarlo da una macchina Windows con: python tools\\build_dist.py\n"
+                "Le installazioni esistenti si aggiornano comunque dal server via /update.\n",
+                encoding="utf-8",
+            )
+            print(f"  [!!] Windows : EXE non generato ({reason}) — marker {pending_marker.name}")
         print(f"  [OK] Support : {ps1_path.name}")
         print(f"  [OK] Files   : {', '.join(path.name for path in support_files)}")
 

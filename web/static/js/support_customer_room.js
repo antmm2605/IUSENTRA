@@ -44,6 +44,7 @@
   let dataChannel = null;
   let localStream = null;
   let micStream = null;
+  let screenStream = null;
   let stateTimer = null;
   let pingTimer = null;
   let wsReconnectTimer = null;
@@ -220,9 +221,17 @@
     return `${proto}://${window.location.host}${boot.wsBase}/${boot.publicId}?role=${encodeURIComponent(boot.role)}&token=${encodeURIComponent(boot.authToken)}`;
   }
 
-  function agentUrl(path) {
-    const base = String(boot.localControlBase || "http://127.0.0.1:27273").replace(/\/+$/, "");
-    return `${base}${path}`;
+  // Basi candidate per l'agente locale, in ordine di preferenza:
+  // 1) agente dedicato IUSENTRA Assistenza (porta 27273)
+  // 2) Local Signer gia' installato dallo studio (porta 27272, prefisso /support)
+  const agentBases = [
+    String(boot.localControlBase || "http://127.0.0.1:27273").replace(/\/+$/, ""),
+    "http://127.0.0.1:27272/support",
+  ];
+  let agentBaseActive = null;
+
+  function agentUrl(path, base) {
+    return `${base ?? agentBaseActive ?? agentBases[0]}${path}`;
   }
 
   async function fetchJson(url, options = {}) {
@@ -243,7 +252,7 @@
     return payload;
   }
 
-  async function fetchAgent(path, body = null) {
+  async function fetchAgentAt(base, path, body = null) {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 4500);
     try {
@@ -254,7 +263,7 @@
         signal: controller.signal,
         targetAddressSpace: "loopback",
       };
-      const response = await fetch(agentUrl(path), fetchOptions);
+      const response = await fetch(agentUrl(path, base), fetchOptions);
       const text = await response.text();
       let payload = {};
       try {
@@ -269,6 +278,36 @@
     } finally {
       window.clearTimeout(timeout);
     }
+  }
+
+  function _isAgentNetworkError(error) {
+    if (error?.name === "AbortError" || error?.name === "TypeError") return true;
+    return /failed to fetch|networkerror|load failed/i.test(String(error?.message || ""));
+  }
+
+  async function fetchAgent(path, body = null) {
+    // Base gia' individuata in questa sessione: usala direttamente.
+    if (agentBaseActive) {
+      return fetchAgentAt(agentBaseActive, path, body);
+    }
+    // Probe in ordine: agente dedicato (27273), poi Local Signer (27272/support).
+    // Passa alla base successiva SOLO per errori di rete (porta chiusa/timeout):
+    // un errore applicativo (es. token non valido) viene propagato subito.
+    let lastError = null;
+    for (const base of agentBases) {
+      try {
+        const payload = await fetchAgentAt(base, path, body);
+        agentBaseActive = base;
+        return payload;
+      } catch (error) {
+        lastError = error;
+        if (!_isAgentNetworkError(error)) {
+          agentBaseActive = base;
+          throw error;
+        }
+      }
+    }
+    throw lastError || new Error("Agente locale non raggiungibile.");
   }
 
   function appendChat(text, who = "other") {
@@ -561,6 +600,45 @@
     };
 
     const audioTracks = await acquireMicrophoneTracks();
+
+    // 1) Percorso primario: condivisione schermo nativa del browser
+    //    (getDisplayMedia). Funziona su qualsiasi browser moderno SENZA
+    //    installare l'agente locale: lo schermo viaggia come video track WebRTC.
+    if (navigator.mediaDevices?.getDisplayMedia) {
+      try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: { ideal: 15, max: 30 } },
+          audio: false,
+        });
+        const screenTracks = screenStream.getVideoTracks();
+        if (screenTracks.length) {
+          // Se l'utente ferma la condivisione dalla barra del browser, chiudiamo pulito.
+          screenTracks[0].addEventListener("ended", () => {
+            if (!sessionClosed && supportStarted) {
+              setStatus("Condivisione schermo interrotta dal cliente");
+              appendChat("Hai interrotto la condivisione dello schermo.", "me");
+            }
+          });
+          localStream = new MediaStream([...screenTracks, ...audioTracks]);
+          customerAudioTracks().forEach((track) => {
+            track.enabled = !customerMicMuted;
+          });
+          syncCustomerMicUi();
+          setStatus("Schermo condiviso");
+          return;
+        }
+      } catch (displayError) {
+        // L'utente ha annullato il prompt, oppure il browser non lo consente:
+        // proviamo l'agente locale come fallback.
+        console.warn("getDisplayMedia non disponibile, provo agente locale.", displayError);
+        if (displayError?.name === "NotAllowedError") {
+          appendChat("Condivisione schermo dal browser annullata: provo l'agente locale se installato.", "me");
+        }
+      }
+    }
+
+    // 2) Fallback: agente locale IUSENTRA Assistenza (richiede installazione).
+    //    Necessario solo se il browser non consente getDisplayMedia.
     try {
       await startAgentScreenShare();
       localStream = audioTracks.length ? new MediaStream(audioTracks) : null;
@@ -570,9 +648,10 @@
       syncCustomerMicUi();
       return;
     } catch (agentError) {
-      console.error("Agente locale non raggiungibile per assistenza remota completa.", agentError);
+      console.error("Né condivisione browser né agente locale disponibili.", agentError);
       throw new Error(
-        "Agente IUSENTRA Assistenza non raggiungibile: avvialo sul PC e consenti al browser l'accesso alla rete locale."
+        "Condivisione schermo non disponibile. Consenti la condivisione quando il browser la richiede, "
+        + "oppure installa l'agente IUSENTRA Assistenza per il controllo completo del PC."
       );
     }
   }
@@ -662,6 +741,10 @@
       localStream.getTracks().forEach((track) => track.stop());
       localStream = null;
     }
+    if (screenStream) {
+      screenStream.getTracks().forEach((track) => track.stop());
+      screenStream = null;
+    }
     if (micStream) {
       micStream.getTracks().forEach((track) => track.stop());
       micStream = null;
@@ -688,7 +771,15 @@
       }
       await syncState();
     } catch (error) {
-      setStatus(`Errore: ${error.message}`);
+      // "Failed to fetch" = agente non in esecuzione o rete locale bloccata dal browser.
+      const raw = String(error?.message || "");
+      const isAgentUnreachable = /failed to fetch|networkerror|load failed|agente.*non disponibile/i.test(raw);
+      const message = isAgentUnreachable
+        ? "Per il controllo del PC serve l'agente IUSENTRA Assistenza in esecuzione su questo computer. "
+          + "Scaricalo e avvialo, poi riprova ad approvare. La sola visualizzazione dello schermo funziona già senza agente."
+        : `Errore: ${raw}`;
+      setStatus(message);
+      appendChat(message, "me");
     }
   }
 

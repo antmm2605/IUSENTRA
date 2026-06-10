@@ -14,6 +14,7 @@ _LOCAL_SIGNER_MOD_FILES = {
     "pec_bridge.py",
     "security.py",
     "server_bootstrap.py",
+    "support_agent.py",
 }
 
 

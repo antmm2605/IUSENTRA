@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from flask import Blueprint, current_app, g, jsonify, request
 
-from pct.guida_pratica import GuidaPraticaService
+from pct.guida_pratica import GuidaPraticaService, get_guida_pratica_service
 from web.services.react_guida_pratica_bridge import (
     build_react_fascicolo_guida_pratica_payload,
     build_react_guida_pratica_catalog_payload,
@@ -67,12 +67,9 @@ def _fascicoli_loader() -> Callable[[], Any]:
 
 
 def _service() -> GuidaPraticaService:
-    service = current_app.extensions.get("guida_pratica_service")
-    if isinstance(service, GuidaPraticaService):
-        return service
-    service = GuidaPraticaService()
-    current_app.extensions["guida_pratica_service"] = service
-    return service
+    # Istanza unica di processo: evita una seconda copia del KB (~100 MB)
+    # accanto a quella già condivisa da bridge, lex e creazione fascicoli.
+    return get_guida_pratica_service()
 
 
 def _ensure_read_access() -> Any | None:

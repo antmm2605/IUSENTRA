@@ -12,7 +12,7 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, url
 
 from pct.clienti import Recapiti
 from pct.fascicoli import StatoFascicolo, TipoDocumento, TipoFascicolo
-from pct.guida_pratica import GuidaPraticaError, GuidaPraticaService, normalize_codice_materia
+from pct.guida_pratica import GuidaPraticaError, get_guida_pratica_service, normalize_codice_materia
 from pct.pratiche_collegate_catalog import (
     codice_oggetto_pst_entry,
     looks_like_codice_oggetto_pst,
@@ -211,14 +211,14 @@ def register_fascicoli_create_routes(
         explicit = normalize_codice_materia(form.get("codice_guida_pratica", ""))
         if explicit:
             try:
-                GuidaPraticaService().get_guidance(explicit, fascicolo=context)
+                get_guida_pratica_service().get_guidance(explicit, fascicolo=context)
             except GuidaPraticaError as exc:
                 raise ValueError("Codice Guida Pratica non valido. Scegli una scheda esistente.") from exc
             return explicit
         if codice_oggetto_pst:
             return ""
         try:
-            match = GuidaPraticaService().suggest_guidance_from_fascicolo(context)
+            match = get_guida_pratica_service().suggest_guidance_from_fascicolo(context)
         except Exception:
             return ""
         return normalize_codice_materia(match.get("codice")) if match else ""

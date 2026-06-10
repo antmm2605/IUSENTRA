@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .service import GuidaPraticaService
+from .service import GuidaPraticaService, get_guida_pratica_service
 
 
 @dataclass(slots=True)
@@ -26,7 +26,7 @@ class GuidaPraticaValidationEngine:
     """Validazione dei requisiti pratici prima di generazione/deposito."""
 
     def __init__(self, service: GuidaPraticaService | None = None) -> None:
-        self.service = service or GuidaPraticaService()
+        self.service = service or get_guida_pratica_service()
 
     def validate_business_rules(self, codice_materia: str, atto_data: dict[str, Any]) -> GuidaValidationResult:
         checklist = self.service.get_checklist(codice_materia, atto_data)

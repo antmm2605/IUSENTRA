@@ -6,6 +6,16 @@ Il modulo tiene separata la conoscenza giuridica dal codice applicativo:
 - i codici senza guida curata ricevono un profilo operativo base, marcato come da revisionare.
 """
 
-from .service import GuidaPraticaService, GuidaPraticaError, normalize_codice_materia
+from .service import (
+    GuidaPraticaError,
+    GuidaPraticaService,
+    get_guida_pratica_service,
+    normalize_codice_materia,
+)
 
-__all__ = ["GuidaPraticaService", "GuidaPraticaError", "normalize_codice_materia"]
+__all__ = [
+    "GuidaPraticaService",
+    "GuidaPraticaError",
+    "get_guida_pratica_service",
+    "normalize_codice_materia",
+]

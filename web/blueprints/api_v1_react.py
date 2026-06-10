@@ -89,6 +89,7 @@ from web.services.react_dashboard_cache import (
     clear_dashboard_payload_cache,
     get_dashboard_payload_cached,
 )
+from web.services.react_payload_cache import ReactPayloadTTLCache
 from web.services.security_redaction import redacted_json_response
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
 from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
@@ -7201,12 +7202,12 @@ def _react_template_guide_preview_payload(
 def _guide_selected_model_code(*, model_code: str, guide_code: str, selected_fascicolo: Any) -> str:
     try:
         from web.services.react_guida_pratica_bridge import build_document_plan_for_guida, fascicolo_guida_context
-        from pct.guida_pratica import GuidaPraticaService
+        from pct.guida_pratica import get_guida_pratica_service
 
         if not guide_code or not selected_fascicolo:
             return str(model_code or "").strip()
         fascicolo_context = fascicolo_guida_context(selected_fascicolo)
-        guida = GuidaPraticaService().get_guidance(guide_code, fascicolo=fascicolo_context)
+        guida = get_guida_pratica_service().get_guidance(guide_code, fascicolo=fascicolo_context)
         plan = build_document_plan_for_guida(guida, fascicolo_context)
         recommended = ((plan.get("template") or {}).get("recommended") or {}) if isinstance(plan, dict) else {}
         requested = str(model_code or "").strip()
@@ -7677,6 +7678,25 @@ def giurisprudenza_nuova_salva():
     return _jsonify_redacted(result), status
 
 
+_LEGAL_PAYLOAD_CACHE = ReactPayloadTTLCache(
+    ttl_seconds=float(os.getenv("IUSENTRA_REACT_LEGAL_PAYLOAD_TTL_SECONDS") or 120),
+    max_entries=8,
+)
+
+
+def _legal_intelligence_cache_key(page: str) -> tuple | None:
+    # Cache solo per le viste senza parametri: con una query la ricerca deve
+    # restare live. Il payload dipende dal tenant (conteggi studio), quindi il
+    # tenant entra nella chiave per non condividere dati tra studi.
+    if request.args or not _LEGAL_PAYLOAD_CACHE.enabled:
+        return None
+    tenant = getattr(g, "tenant", None)
+    tenant_slug = str(
+        getattr(tenant, "slug", "") or getattr(g, "tenant_context_slug", "") or ""
+    ).strip().lower()
+    return (page, tenant_slug)
+
+
 def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
     utente = g.get("utente_corrente")
     if not utente:
@@ -7686,8 +7706,13 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 legacy_contract=legacy_contract,
             )
         ), 403
+    cache_key = _legal_intelligence_cache_key(page)
+    if cache_key is not None:
+        cached = _LEGAL_PAYLOAD_CACHE.get(cache_key)
+        if cached is not None:
+            return current_app.response_class(cached, mimetype="application/json")
     try:
-        return redacted_json_response(
+        response = redacted_json_response(
             build_react_legal_intelligence_payload(
                 get_legal_intelligence=get_legal_intelligence,
                 get_legal_update_pipeline=get_legal_update_pipeline,
@@ -7700,6 +7725,9 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 config=dict(current_app.config),
             )
         )
+        if cache_key is not None and response.status_code == 200:
+            _LEGAL_PAYLOAD_CACHE.set(cache_key, response.get_data())
+        return response
     except Exception as exc:
         current_app.logger.exception("Errore Legal Intelligence React bridge: %s", exc)
         return jsonify(

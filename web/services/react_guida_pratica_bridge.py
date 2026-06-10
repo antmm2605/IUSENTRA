@@ -12,7 +12,12 @@ import unicodedata
 from urllib.parse import urlencode
 from typing import Any, Callable
 
-from pct.guida_pratica import GuidaPraticaError, GuidaPraticaService, normalize_codice_materia
+from pct.guida_pratica import (
+    GuidaPraticaError,
+    GuidaPraticaService,
+    get_guida_pratica_service,
+    normalize_codice_materia,
+)
 
 
 def _now() -> str:
@@ -525,7 +530,7 @@ def build_document_plan_for_guida(guida: dict[str, Any] | None, fascicolo: dict[
 
 
 def build_react_guida_pratica_payload(*, codice: str, fascicolo: dict[str, Any] | None = None, service: GuidaPraticaService | None = None) -> dict[str, Any]:
-    service = service or GuidaPraticaService()
+    service = service or get_guida_pratica_service()
     guida = service.get_guidance(codice, fascicolo=fascicolo or {})
     checklist = service.get_checklist(codice, {"fascicolo": fascicolo or {}})
     document_plan = build_document_plan_for_guida(guida, fascicolo or {})
@@ -565,7 +570,7 @@ def _mark_suggested_code_payload(payload: dict[str, Any], match: dict[str, Any])
 
 
 def build_react_guida_pratica_catalog_payload(*, query: str = "", coverage: str = "", limit: int = 500, service: GuidaPraticaService | None = None) -> dict[str, Any]:
-    service = service or GuidaPraticaService()
+    service = service or get_guida_pratica_service()
     rows = service.list_guidance(query=query, coverage=coverage, limit=limit)
     counts: dict[str, int] = {}
     for row in rows:
@@ -585,7 +590,7 @@ def build_react_guida_pratica_catalog_payload(*, query: str = "", coverage: str 
 
 
 def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], Any], id_fasc: str, service: GuidaPraticaService | None = None) -> dict[str, Any]:
-    service = service or GuidaPraticaService()
+    service = service or get_guida_pratica_service()
     fascicolo = resolve_fascicolo_for_guida(get_fascicoli, id_fasc)
     if not fascicolo:
         return {"ok": False, "generatedAt": _now(), "notFound": True, "message": "Fascicolo non trovato."}
@@ -623,7 +628,7 @@ def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], A
 
 
 def build_react_guida_pratica_checklist_payload(*, codice: str, dati: dict[str, Any], service: GuidaPraticaService | None = None) -> dict[str, Any]:
-    service = service or GuidaPraticaService()
+    service = service or get_guida_pratica_service()
     checklist = service.get_checklist(codice, dati)
     return {"ok": True, "generatedAt": _now(), "checklist": checklist}
 

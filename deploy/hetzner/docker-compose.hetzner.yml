@@ -10,9 +10,13 @@ x-iusentra-env: &iusentra-env
   REDIS_URL: redis://redis:6379/0
   RATELIMIT_STORAGE_URI: redis://redis:6379/1
   PROMETHEUS_ENABLED: ${PROMETHEUS_ENABLED:-1}
-  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+  # Presidio memoria: 3 worker gevent bastano per lo studio e liberano ~0,5-1 GB
+  # rispetto a 4; timeout 300s evita che richieste bloccate trattengano RAM per
+  # mezz'ora; il riciclo a 500 richieste contiene la frammentazione dei worker.
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-3}
   GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
-  GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-1800}
+  GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-300}
+  GUNICORN_MAX_REQUESTS: ${GUNICORN_MAX_REQUESTS:-500}
   # Ollama: punta a http://ollama:11434 se il profilo `ai` è attivo,
   # altrimenti a http://host.docker.internal:11434 per istanza host-level.
   # Impostare PCT_LOCAL_AI_ENABLED=0 per disabilitare completamente l'AI locale.
@@ -84,6 +88,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    mem_limit: ${IUSENTRA_REDIS_MEM_LIMIT:-512m}
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/redis:/data
@@ -157,6 +162,9 @@ services:
       context: ../..
       dockerfile: Dockerfile
     restart: unless-stopped
+    # Limite per container: un picco resta locale (riavvio del solo servizio)
+    # invece di innescare l'OOM killer del kernel sull'intero host → 503 globali.
+    mem_limit: ${IUSENTRA_APP_MEM_LIMIT:-5g}
     env_file:
       - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
     environment:
@@ -185,6 +193,7 @@ services:
       context: ../..
       dockerfile: Dockerfile
     restart: unless-stopped
+    mem_limit: ${IUSENTRA_SCHEDULER_MEM_LIMIT:-3g}
     command: ["python", "-m", "pct.scheduler_worker"]
     env_file:
       - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
@@ -210,6 +219,7 @@ services:
       context: ../..
       dockerfile: Dockerfile
     restart: unless-stopped
+    mem_limit: ${IUSENTRA_OCR_MEM_LIMIT:-2g}
     command: ["python", "-m", "pct.ocr_worker"]
     env_file:
       - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
@@ -255,6 +265,7 @@ services:
     profiles: ["ai"]
     image: ollama/ollama:latest
     restart: unless-stopped
+    mem_limit: ${IUSENTRA_OLLAMA_MEM_LIMIT:-5g}
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/ollama:/root/.ollama
     healthcheck:

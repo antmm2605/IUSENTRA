@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.251.18 - 2026-06-10
+
+- Memoria: il servizio Guida Pratica è ora un singleton di processo (`get_guida_pratica_service`); prima ogni richiesta su catalogo, schede, checklist, guida fascicolo, wizard template e creazione fascicoli ricaricava il KB da 22 MB + 104 moduli (~100-150 MB di picco e ~1,5 s di CPU per richiesta), causa primaria dei picchi RAM e dei 503 sotto carico.
+- Memoria: le pagine React di Ricerca Legale (`/ricerca-legale`, news, mediazione, dashboard) riusano per 120 secondi la risposta già serializzata quando non c'è una query (cache per tenant, disattivabile con `IUSENTRA_REACT_LEGAL_PAYLOAD_TTL_SECONDS=0`); le ricerche restano sempre live.
+- Memoria: la manutenzione AI locale ogni 30 minuti lavora a budget (default 100×40 chunk per giro, override `PCT_LOCAL_AI_EMBED_BATCH_SIZE` / `PCT_LOCAL_AI_EMBED_MAX_BATCHES`) invece di smaltire fino a 250.000 chunk in un giro solo sullo stesso host che serve l'app.
+- Deploy Hetzner: worker web da 4 a 3, `GUNICORN_TIMEOUT` da 1800 a 300 s, riciclo worker a 500 richieste e `mem_limit` per container (app 5g, scheduler 3g, OCR 2g, Ollama 5g, Redis 512m) così un picco riavvia il singolo servizio invece di innescare l'OOM killer dell'host.
+
 ## 2.249.42 - 2026-06-09
 
 - Fascicoli: aggiunto il controllo economico a griglia nella pagina React `/fascicoli`, con stato fascicolo sempre visibile, colonne per contributo unificato, fondo spese, liquidazione giudice e parcella, salvataggio rapido per riga e dettagli metodo/note apribili.

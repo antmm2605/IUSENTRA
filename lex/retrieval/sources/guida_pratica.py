@@ -9,11 +9,15 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from functools import lru_cache
 from typing import Any
 
 from lex.contracts import EvidenceItem
-from pct.guida_pratica.service import GuidaPraticaError, GuidaPraticaService, normalize_codice_materia
+from pct.guida_pratica.service import (
+    GuidaPraticaError,
+    GuidaPraticaService,
+    get_guida_pratica_service,
+    normalize_codice_materia,
+)
 
 _CODE_RE = re.compile(r"\b(?:\d{5,6}|GUIDA_[A-Z0-9_]{4,})\b", re.IGNORECASE)
 _GUIDE_HINTS = (
@@ -560,9 +564,10 @@ def _compact_metadata(guidance: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-@lru_cache(maxsize=1)
 def _default_service() -> GuidaPraticaService:
-    return GuidaPraticaService()
+    # Riusa l'istanza unica di processo: prima qui viveva un secondo singleton
+    # con una copia separata del KB (~100 MB duplicati per processo).
+    return get_guida_pratica_service()
 
 
 class GuidaPraticaSource:

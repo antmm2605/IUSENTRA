@@ -3178,6 +3178,27 @@ class LocalAIService:
         prepared = self.prepare_workspace_query(question=question, overview=overview)
         return self._complete_prepared_query(prepared=prepared, runtime=bootstrap, keep_alive=settings.keep_alive)
 
+    @staticmethod
+    def _maintenance_embed_budget() -> tuple[int, int]:
+        """Budget embedding per tick di manutenzione (il backlog scala in più giri).
+
+        Il tick gira ogni mezz'ora sul worker scheduler: senza budget un arretrato
+        grande occupa per decine di minuti CPU, RAM e Ollama dello stesso host che
+        serve l'app (il vecchio default 250 × 1000 = 250k chunk in un giro solo).
+        """
+
+        def _env_positive(name: str, default: int) -> int:
+            try:
+                value = int(str(os.getenv(name, "") or "").strip() or default)
+            except (TypeError, ValueError):
+                return default
+            return value if value > 0 else default
+
+        return (
+            _env_positive("PCT_LOCAL_AI_EMBED_BATCH_SIZE", 100),
+            _env_positive("PCT_LOCAL_AI_EMBED_MAX_BATCHES", 40),
+        )
+
     def scheduled_maintenance(self, fascicoli_gestore: Any | None = None, documents_dir: str | None = None) -> dict[str, Any]:
         bootstrap = self.bootstrap_runtime()
         if bootstrap.get("status") != "ready":
@@ -3193,7 +3214,8 @@ class LocalAIService:
                     error_total += len(outcome.get("errors") or [])
             except Exception as exc:
                 return {"status": "error", "error": str(exc)}
-        embeddings = self.embed_all_pending_chunks(batch_size=250, max_batches=1000)
+        batch_size, max_batches = self._maintenance_embed_budget()
+        embeddings = self.embed_all_pending_chunks(batch_size=batch_size, max_batches=max_batches)
         return {
             "status": "ready",
             "indexed": indexed_total,

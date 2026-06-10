@@ -17,6 +17,7 @@ import unicodedata
 from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -1301,3 +1302,17 @@ class GuidaPraticaService:
         out.extend({"type": "allegato_mancante", "id": _text(item.get("id")), "message": _text(item.get("label")), "bloccante": True} for item in attachments)
         out.extend({"type": "avvertimento_mancante", "message": _text(item.get("testo")), "bloccante": True} for item in warnings)
         return out
+
+
+@lru_cache(maxsize=1)
+def get_guida_pratica_service() -> GuidaPraticaService:
+    """Istanza condivisa di processo del servizio Guida Pratica.
+
+    Il KB completo pesa ~47 MB su disco (full JSON + moduli) e oltre 100 MB una
+    volta caricato: costruirlo per richiesta satura RAM e CPU dei worker web.
+    Il servizio è di sola lettura dopo `__init__` e `get_guidance` restituisce
+    copie (`deepcopy`), quindi l'istanza è condivisibile tra richieste.
+    I file KB cambiano solo con il deploy: la cache vive quanto il processo.
+    """
+
+    return GuidaPraticaService()

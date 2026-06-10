@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.251.20 - 2026-06-10
+
+- Governance repository: i soli branch autorizzati sono `claude/legal-electronic-filing-kIxcV`, `Codex/legal-electronic-filing-kIxcV` e `chore/monorepo-foundation`; vietata la creazione di nuovi branch (anche di sessione). Regola registrata in CLAUDE.md, branch non autorizzati rimossi dal remoto.
+
 ## 2.251.19 - 2026-06-10
 
 - Indicizzazione AI incrementale: i documenti già indicizzati e invariati su disco (stesso percorso, dimensione e mtime) vengono saltati senza essere riletti in RAM né spacchettati/hashati; prima ogni tick di manutenzione rileggeva integralmente ogni documento (PDF compresi) solo per scoprire che era invariato. Qualsiasi modifica al file riporta automaticamente alla verifica SHA-256 e alla re-indicizzazione.

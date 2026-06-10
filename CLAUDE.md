@@ -55,11 +55,13 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
 ## Igiene repository — Regola obbligatoria
 
 - Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\IUSENTRA`.
-- I **soli branch ammessi**, sia locali sia remoti, sono:
-  - `claude/legal-electronic-filing-kIxcV`
-  - `Codex/legal-electronic-filing-kIxcV`
+- I **soli branch autorizzati**, sia locali sia remoti, sono questi tre (decisione dell'utente del 10/06/2026):
+  - `claude/legal-electronic-filing-kIxcV` (sviluppo, fonte di verità)
+  - `Codex/legal-electronic-filing-kIxcV` (gemello protetto, sincronizzato dal workflow)
+  - `chore/monorepo-foundation`
+- **NON creare MAI nuovi branch**, né locali né remoti, nemmeno temporanei o di sessione (`claude/<nome>-<suffisso>`): si lavora e si pusha direttamente su `claude/legal-electronic-filing-kIxcV`. Se un ambiente impone un branch di sessione, a fine task i commit vanno portati su `claude/legal-electronic-filing-kIxcV` e il branch di sessione va cancellato subito.
 - Worktree, cartelle duplicate, branch temporanei e cloni di supporto devono essere rimossi a fine lavoro.
-- A fine task verificare sempre che i due branch ammessi puntino allo **stesso commit**.
+- A fine task verificare sempre che i due branch gemelli puntino allo **stesso commit**.
 - Per audit e cleanup usare lo script `scripts/repo_hygiene.ps1`.
 
 ## Progetto

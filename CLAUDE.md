@@ -62,7 +62,8 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
 - **NON creare MAI nuovi branch**, né locali né remoti, nemmeno temporanei o di sessione (`claude/<nome>-<suffisso>`): si lavora e si pusha direttamente su `claude/legal-electronic-filing-kIxcV`. Se un ambiente impone un branch di sessione, a fine task i commit vanno portati su `claude/legal-electronic-filing-kIxcV` e il branch di sessione va cancellato subito.
 - Worktree, cartelle duplicate, branch temporanei e cloni di supporto devono essere rimossi a fine lavoro.
 - A fine task verificare sempre che i due branch gemelli puntino allo **stesso commit**.
-- Per audit e cleanup usare lo script `scripts/repo_hygiene.ps1`.
+- Per eliminare i branch remoti non autorizzati usare il workflow **"Igiene branch"** (`.github/workflows/branch-hygiene.yml`, avvio manuale da Actions, opzione dry-run disponibile): cancella tutto ciò che è fuori dalla allowlist dei tre branch.
+- Per audit e cleanup locale usare lo script `scripts/repo_hygiene.ps1`.
 
 ## Progetto
 

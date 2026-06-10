@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.251.21 - 2026-06-10
+
+- Nuovo workflow "Igiene branch" (avvio manuale, con dry-run): elimina dal remoto ogni branch fuori dalla allowlist autorizzata (`claude/legal-electronic-filing-kIxcV`, `Codex/legal-electronic-filing-kIxcV`, `chore/monorepo-foundation`), applicando la regola di governance registrata in CLAUDE.md.
+
 ## 2.251.20 - 2026-06-10
 
 - Governance repository: i soli branch autorizzati sono `claude/legal-electronic-filing-kIxcV`, `Codex/legal-electronic-filing-kIxcV` e `chore/monorepo-foundation`; vietata la creazione di nuovi branch (anche di sessione). Regola registrata in CLAUDE.md, branch non autorizzati rimossi dal remoto.

@@ -1,0 +1,74 @@
+# =============================================================================
+#  Igiene branch — elimina i branch remoti fuori dalla allowlist autorizzata.
+#
+#  Regola repository (CLAUDE.md, decisione utente 10/06/2026): i soli branch
+#  autorizzati sono claude/legal-electronic-filing-kIxcV (sviluppo),
+#  Codex/legal-electronic-filing-kIxcV (gemello protetto) e
+#  chore/monorepo-foundation. Nessun nuovo branch va creato; i branch di
+#  sessione vanno portati sul branch di sviluppo e rimossi subito.
+#
+#  Solo avvio manuale (workflow_dispatch): nessuna pianificazione automatica,
+#  così un branch di sessione attivo non puo' essere cancellato a meta' lavoro.
+# =============================================================================
+name: Igiene branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Mostra cosa verrebbe eliminato senza cancellare nulla
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: branch-hygiene
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Elimina branch non autorizzati
+    runs-on: ubuntu-latest
+    steps:
+      - name: Elenca ed elimina i branch fuori allowlist
+        uses: actions/github-script@v7
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        with:
+          script: |
+            const allowed = new Set([
+              'claude/legal-electronic-filing-kIxcV',
+              'Codex/legal-electronic-filing-kIxcV',
+              'chore/monorepo-foundation',
+            ]);
+            const dryRun = String(process.env.DRY_RUN || '').toLowerCase() === 'true';
+            const { owner, repo } = context.repo;
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+            let removed = 0;
+            for (const branch of branches) {
+              if (allowed.has(branch.name)) {
+                core.info(`Autorizzato: ${branch.name}`);
+                continue;
+              }
+              if (branch.protected) {
+                core.warning(`Branch protetto fuori allowlist, non eliminabile dal token: ${branch.name}`);
+                continue;
+              }
+              if (dryRun) {
+                core.notice(`[dry-run] Da eliminare: ${branch.name} (${branch.commit.sha.slice(0, 8)})`);
+                continue;
+              }
+              core.notice(`Elimino branch non autorizzato: ${branch.name} (${branch.commit.sha.slice(0, 8)})`);
+              await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branch.name}` });
+              removed += 1;
+            }
+            core.summary
+              .addHeading('Igiene branch')
+              .addRaw(`Branch totali: ${branches.length} — eliminati: ${removed}${dryRun ? ' (dry-run)' : ''}`)
+              .write();

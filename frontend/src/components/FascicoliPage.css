@@ -189,8 +189,7 @@
 }
 
 @media(min-width:1900px){
-  .iu-fas-layout{grid-template-columns:minmax(0,1fr) minmax(340px,360px)}
-  .iu-fas-insights{position:sticky;top:92px;grid-template-columns:1fr}
+  .iu-fas-layout{grid-template-columns:1fr}
 }
 
 @media(max-width:1100px){

@@ -38,8 +38,9 @@ NON_OPERATIONAL_PORTAL_WORDS = ("demo", "sample", "mock")
 CLIENT_PORTAL_PUBLIC_ERROR = "Accesso cliente non valido o non più disponibile."
 
 
-def _text(value: Any) -> str:
-    return " ".join(str(value or "").split()).strip()
+def _text(value: Any, default: str = "") -> str:
+    text = " ".join(str(value or "").split()).strip()
+    return text if text else default
 
 
 def _invalid_invite_payload() -> dict[str, Any]:

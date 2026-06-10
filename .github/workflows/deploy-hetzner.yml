@@ -1,8 +1,8 @@
 name: Deploy Hetzner CPX42
 
-# Deploy automatico sul server Hetzner CPX42 dal branch operativo Codex.
-# Il branch gemello viene sincronizzato, ma non deve avviare un secondo deploy
-# concorrente né backup preventivi duplicati.
+# Deploy automatico sul server Hetzner CPX42.
+# Triggerato dal branch di sviluppo (claude/) e dal branch protetto (Codex/).
+# Il concurrency group impedisce deploy concorrenti.
 #
 # Requisiti GitHub Secrets:
 #   - HETZNER_SSH_PRIVATE_KEY  chiave SSH privata (OpenSSH PEM, senza passphrase)
@@ -19,6 +19,7 @@ name: Deploy Hetzner CPX42
 on:
   push:
     branches:
+      - claude/legal-electronic-filing-kIxcV
       - Codex/legal-electronic-filing-kIxcV
   workflow_dispatch:
     inputs:

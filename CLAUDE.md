@@ -429,7 +429,18 @@ Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazio
 | `railway.toml` | `#  version: X.Y.Z` | trigger redeploy Railway |
 | `docs/openapi.yaml` | `version: X.Y.Z` | **rigenerare, non editare a mano**: `python scripts/react-migration/generate_api_contracts.py` |
 
-**ATTENZIONE — gate CI**: il job "Lint + syntax" esegue `generate_api_contracts.py --check`: se `docs/openapi.yaml` non è riallineato dopo il bump, la CI fallisce, i required checks restano rossi e il branch protetto `Codex/` rifiuta la sincronizzazione automatica. Dopo ogni bump eseguire sempre il generatore e committare l'output insieme al bump.
+**ATTENZIONE — gate CI sugli artefatti generati**: la CI verifica con `--check` che i documenti generati siano allineati al codice. Se uno qualsiasi è stale, la CI fallisce, i required checks restano rossi e il branch protetto `Codex/` rifiuta la sincronizzazione automatica. Dopo OGNI bump di versione e dopo OGNI modifica a route/endpoint backend eseguire l'intera batteria di generatori e committare gli output insieme alla modifica:
+
+```bash
+python scripts/react-migration/generate_api_contracts.py          # docs/openapi.yaml + contratti API (sensibile a versione e route)
+python scripts/react-migration/generate_backend_security_map.py   # docs/backend-endpoint-security-map.md (sensibile a nuovi endpoint)
+python scripts/react-migration/generate_app_v2_page_registry.py   # registro pagine App V2
+python scripts/react-migration/generate_app_v2_test_docs.py       # docs/test-inventory.md + test-plan-app-v2.md
+python scripts/react-migration/generate_app_v2_area_requirements.py
+python tools/sync_packaging_files.py --check                      # verifica packaging (rigenera senza --check se fallisce)
+```
+
+Quando si modifica `frontend/src/**` ricompilare e committare anche il bundle (`npm --prefix frontend run build`): Railway usa il bundle committato; il Dockerfile Hetzner lo rigenera comunque nello stage `frontend-builder`.
 
 **La versione web è automaticamente sincronizzata** — `web/app.py` importa `pct.__version__` come `APP_VERSION` (riga 102) e la espone nel template `base.html` tramite `{{ app_version }}`. Non esiste una versione web separata.
 

@@ -14,13 +14,15 @@ from typing import Any
 from .base import RecordKind, RecordStatus, StagedRecord, ValidationIssue
 
 _REQUIRED: dict[RecordKind, tuple[str, ...]] = {
-    RecordKind.CLIENTE: ("nome",),
-    RecordKind.SOGGETTO: ("nome",),
     RecordKind.FASCICOLO: ("titolo",),
     RecordKind.SCADENZA: ("descrizione", "data"),
     RecordKind.FATTURA: ("numero", "importo"),
     RecordKind.DOCUMENTO: ("filename",),
 }
+
+# Per cliente/soggetto basta un identificativo: persona fisica (nome/cognome) o
+# persona giuridica (ragione sociale).
+_IDENTITY_FIELDS = ("nome", "cognome", "ragione_sociale", "denominazione")
 
 _DATE_FORMATS = ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y")
 
@@ -66,6 +68,9 @@ def _cf_valido(cf: str) -> bool:
 def validate_record(record: StagedRecord) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     data = record.data or {}
+    if record.kind in (RecordKind.CLIENTE, RecordKind.SOGGETTO):
+        if not any(str(data.get(f) or "").strip() for f in _IDENTITY_FIELDS):
+            issues.append(ValidationIssue("nome", "Manca un identificativo (nome/cognome o ragione sociale).", "error"))
     for required in _REQUIRED.get(record.kind, ()):  # campi obbligatori per tipo
         if not str(data.get(required) or "").strip():
             issues.append(ValidationIssue(required, f"Campo obbligatorio mancante: {required}.", "error"))

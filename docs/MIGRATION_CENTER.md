@@ -39,9 +39,21 @@ adapter.parse(raw, kind, mapping)      # sorgente -> record di staging (no write
 - **Tenant-aware**: il `RecordSink` reale (PR successivo) viene iniettato dal chiamante già nel contesto tenant corretto; il client non sceglie mai tenant/path.
 - **Rollback**: ogni run che scrive registra le creazioni; il rollback le annulla in ordine inverso.
 
+## Sink reali (wiring)
+
+| Sink | Modulo | Stato |
+|---|---|---|
+| Clienti | `web/services/import_center_runtime.py` (`ClientiRecordSink`) | **collegato** a `GestioneClienti` (tenant-aware): `create`/`delete`, dedup contro i clienti esistenti (`existing_client_keys`), commit/rollback reali; dry-run di default |
+| Fascicoli / Scadenze / Fatture / Documenti | — | prossimi PR |
+
+Il `GestioneClienti` è iniettato dal chiamante già nel contesto tenant corretto;
+il sink non sceglie il tenant. `import_clienti_from_staging(gestione, staging, dry_run=True)`
+simula; con `dry_run=False` scrive i clienti validi non duplicati e popola il
+RollbackLedger per l'eventuale annullamento.
+
 ## Prossimi PR
 
-1. Sink reali tenant-aware verso i repository (clienti/fascicoli/scadenze/fatture) + persistenza run e audit append-only.
+1. Sink reali per fascicoli/scadenze/fatture/documenti + persistenza run e audit append-only.
 2. Adapter gestionali: Studio Telematico (rifattorizzato), Cliens, Kleos, Netlex/EasyLex, Quadra/PCT.
 3. API `/api/v1/ui/import-center/*` (runs/analyze/preview/dry-run/commit/rollback) e UI React (Import Center, dettaglio run, mapping).
 

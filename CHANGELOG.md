@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.251.37 - 2026-06-11
+
+- Migration Center — sink reale clienti (primo wiring): nuovo `web/services/import_center_runtime.py` con `ClientiRecordSink` che traduce i record di staging di tipo CLIENTE in clienti reali tramite `GestioneClienti` (tenant-aware, iniettato nel contesto studio: il sink non sceglie il tenant). `import_clienti_from_staging(gestione, staging, dry_run=True)` simula; con `dry_run=False` crea i clienti validi non duplicati (persona fisica da nome/cognome, persona giuridica da ragione sociale/P.IVA, recapiti email/cellulare) e popola il RollbackLedger per l'annullamento; `existing_client_keys` deduplica contro i clienti già presenti. Il validatore del Migration Center ora accetta correttamente i clienti persona giuridica (identità da ragione sociale, non solo nome). Dry-run resta il default: nessuna scrittura senza commit esplicito. API `/api/v1/ui/import-center/*` e UI React, e i sink per fascicoli/scadenze/fatture, nei PR successivi.
+
 ## 2.251.36 - 2026-06-11
 
 - Portale Cliente — accesso sicuro magic-link + OTP (primitiva backend): nuovo `pct/client_portal_access.py` con `PortalAccessManager`. Magic-link opaco generato con `secrets`, salvato solo come hash, a tempo (TTL) e monouso; sfida OTP a tempo con limite tentativi (oltre la soglia la sfida è bloccata e nemmeno l'OTP corretto la sblocca); confronti a tempo costante; nessun segreto in chiaro nello store; storage-agnostico (`AccessStore` iniettabile, tenant-aware in produzione); tenant/cliente/pratica risolti lato server dal grant emesso dallo studio; revoca disponibile. Costruito sopra la filosofia del login guard dello studio. Consegna OTP sul canale, persistenza tenant-aware, aggancio alla sessione del portale ed endpoint pubblici con rate limit nei PR successivi. Documentato in `docs/PORTALE_CLIENTE_ACCESSO.md`.

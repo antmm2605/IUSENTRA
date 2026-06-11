@@ -864,6 +864,25 @@ def _merge_richer_record(current: dict[str, Any], incoming: Mapping[str, Any]) -
     return merged
 
 
+_INITIAL_OVERVIEW_PER_GROUP = 18
+_INITIAL_OVERVIEW_MAX = 130
+
+
+def _initial_records_overview(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Vista iniziale senza ricerca: campione bilanciato, non l'intero inventario.
+
+    L'inventario completo è cresciuto oltre le 950 schede (~7 MB di JSON) e il
+    rendering integrale faceva cadere la pagina con "errore di interfaccia".
+    La ricerca resta live sull'intero archivio; qui si mostra un'anteprima per
+    famiglia con il conteggio complessivo nelle metriche.
+    """
+
+    overview: list[dict[str, Any]] = []
+    for group in groups:
+        overview.extend(list(group or [])[:_INITIAL_OVERVIEW_PER_GROUP])
+    return _dedupe_records(overview, limit=_INITIAL_OVERVIEW_MAX)
+
+
 def _dedupe_records(records: list[dict[str, Any]], *, limit: int | None = None) -> list[dict[str, Any]]:
     positions: dict[str, int] = {}
     deduped: list[dict[str, Any]] = []
@@ -3634,16 +3653,16 @@ def build_react_legal_intelligence_payload(
         records = (
             combined_search
             if search_query
-            else _dedupe_records(
-                normative_db_records
-                + practice_research_records
-                + practice_nominal_reference_records
-                + source_delivery_records
-                + template_source_records
-                + guida_pratica_source_records
-                + news_records
-                + mediazione_official_records
-                + mediazione_records
+            else _initial_records_overview(
+                normative_db_records,
+                practice_research_records,
+                practice_nominal_reference_records,
+                source_delivery_records,
+                template_source_records,
+                guida_pratica_source_records,
+                news_records,
+                mediazione_official_records,
+                mediazione_records,
             )
         )
         if search_query and not records:

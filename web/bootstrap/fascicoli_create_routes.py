@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from pct.clienti import Recapiti
 from pct.fascicoli import StatoFascicolo, TipoDocumento, TipoFascicolo
@@ -569,9 +569,17 @@ def register_fascicoli_create_routes(
                     return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
                 target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id)
                 return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
-            except (ValueError, KeyError):
+            except (ValueError, KeyError) as exc:
+                current_app.logger.warning(
+                    "Creazione fascicolo non riuscita (%s): %s", type(exc).__name__, exc
+                )
+                # I ValueError di questo flusso portano messaggi di validazione
+                # curati in italiano (campi mancanti, codici non validi): vanno
+                # mostrati all'avvocato, non sostituiti dal testo generico.
+                dettaglio = str(exc).strip() if isinstance(exc, ValueError) else ""
                 failure = _risposta_errore_form(
-                    "Non è stato possibile creare il fascicolo: controlla i dati obbligatori e riprova.",
+                    dettaglio
+                    or "Non è stato possibile creare il fascicolo: controlla i dati obbligatori e riprova.",
                     status=400,
                 )
                 if failure is not None:

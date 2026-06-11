@@ -135,5 +135,7 @@ def test_console_pianificazioni_traduce_esiti_legali_senza_falsi_positivi(tmp_pa
     assert response.status_code == 200
     assert "Controllo completato, nessuna scheda pubblicata" in html
     assert "Fonte non raggiungibile" in html
-    assert "Da verificare" in html
+    # Un'esecuzione completata con avvisi annidati non è un fallimento rosso:
+    # il lavoro fatto resta valido e la console lo segnala come avviso.
+    assert "Completata con avvisi" in html
     assert "Interrotto, da verificare" in html

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.251.27 - 2026-06-11
+
+- Fix "Pagina temporaneamente non disponibile" su Ricerca Legale: la vista iniziale senza ricerca scaricava l'intero inventario fonti (950+ schede, ~7 MB di JSON, cresciuto con i set Guida Pratica 34-41) e il rendering integrale faceva cadere la pagina. Ora la vista iniziale è un'anteprima bilanciata (max 130 schede, payload ~0,9 MB) e la ricerca live continua a interrogare l'intero archivio; rete di sicurezza anche lato client (max 120 schede renderizzate).
+- Auto-ripristino delle pagine React: al primo errore di interfaccia la pagina si ricarica da sola una volta (guardia anti-loop in history.state) e riprende bundle e dati freschi — guarisce anche i tab rimasti sul deploy precedente; al secondo errore resta la schermata di cortesia.
+- Console Pianificazioni: le esecuzioni completate con avvisi annidati non vengono più marcate rosse "Da verificare" ma "Completata con avvisi" (il lavoro fatto resta valido); il riepilogo reale dell'agente fonte non viene più sovrascritto dal conteggio sintetico quando è significativo; attivare dalla console una fonte fuori dal gruppo verde della fase 9 ora viene bloccato con un messaggio chiaro invece di essere accettato e riazzerato in silenzio al giro successivo.
+- Creazione fascicolo: i messaggi di validazione curati (campi mancanti del Fascicolo Veloce, codici non validi) non vengono più sostituiti dal testo generico nel form e nelle risposte JSON; l'eccezione viene inoltre registrata nei log.
+
 ## 2.251.26 - 2026-06-11
 
 - Dashboard e Regia Operativa: normalizzati gli appuntamenti importati con fuso orario (`Z` / `+00:00`) in ora italiana prima dei confronti. Il caricamento non cade più con `can't compare offset-naive and offset-aware datetimes` quando l'agenda contiene eventi da calendari esterni.

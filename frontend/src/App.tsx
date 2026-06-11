@@ -163,6 +163,19 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
 
   componentDidCatch(error: unknown) {
     console.error('Errore interfaccia IUSENTRA', error)
+    // Primo errore di pagina: un reload riprende bundle e dati freschi e
+    // guarisce i casi "tab rimasto sul deploy precedente". La guardia in
+    // history.state evita loop: al secondo errore resta la schermata di cortesia.
+    try {
+      const state = (window.history.state || {}) as { iuBoundaryReloadAt?: number }
+      const last = Number(state.iuBoundaryReloadAt || 0)
+      if (Date.now() - last > CHUNK_RELOAD_GUARD_WINDOW_MS) {
+        window.history.replaceState({ ...state, iuBoundaryReloadAt: Date.now() }, '')
+        window.location.reload()
+      }
+    } catch {
+      // history non disponibile: si mostra la schermata di cortesia.
+    }
   }
 
   render() {

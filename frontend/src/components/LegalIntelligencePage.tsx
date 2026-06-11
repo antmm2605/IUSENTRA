@@ -1214,9 +1214,13 @@ export function LegalIntelligencePage() {
       return true
     })
   }, [mediazioneRegistryRecords, mediazioneContact, mediazioneSection, mediazioneStatus, mediazioneTerritory, mediazioneType, view])
-  const visibleRecords = view === 'mediazione'
+  // Rete di sicurezza lato client: oltre questa soglia il rendering integrale
+  // dell'inventario (950+ schede) fa cadere la pagina; il totale resta visibile
+  // nell'intestazione e la ricerca interroga comunque l'intero archivio.
+  const visibleRecords = (view === 'mediazione'
     ? [...mediazioneOfficialRecords, ...filteredMediazioneRegistryRecords]
     : filteredLegalRecords
+  ).slice(0, 120)
   const selectedRecord = visibleRecords.find((record) => record.id === selectedId) || visibleRecords[0]
   const updateSearchUrl = (value: string) => {
     const params = new URLSearchParams(window.location.search)

@@ -19,6 +19,10 @@ from pct.scheduler_registry import (
 from web.services.security_redaction import redact_exception_details
 
 
+class SchedulerConsoleError(ValueError):
+    """Errore di governance da mostrare così com'è nella console pianificazioni."""
+
+
 def _repository() -> SchedulerRegistryRepository:
     return scheduler_registry_repository(current_app.config)
 
@@ -163,17 +167,32 @@ def _legal_update_message(run: dict[str, Any]) -> str:
     )
 
 
+_GENERIC_RUN_MESSAGES = (
+    "esecuzione completata dal worker",
+    "esecuzione completata in",
+    "esecuzione agente in corso",
+)
+
+
+def _is_generic_run_message(message: str) -> bool:
+    lowered = str(message or "").strip().lower()
+    return not lowered or any(lowered.startswith(prefix) for prefix in _GENERIC_RUN_MESSAGES)
+
+
 def _surface_run(run: dict[str, Any]) -> dict[str, Any]:
     row = dict(run)
     status = str(row.get("status") or "").strip().lower()
     result = row.get("result") if isinstance(row.get("result"), dict) else {}
     errors = _payload_error_messages(result)
     if status == "completed" and errors:
-        row["status"] = "failed"
-        row["status_label"] = "Da verificare"
-        row["status_class"] = "danger"
-        if not str(row.get("message") or "").strip():
-            row["message"] = "; ".join(errors[:3])
+        # Esecuzione conclusa ma con avvisi annidati nel payload: non è un
+        # fallimento (il lavoro fatto resta valido) e non deve marcare rosso
+        # l'intera pianificazione.
+        row["status_label"] = "Completata con avvisi"
+        row["status_class"] = "warning"
+        base_message = str(row.get("message") or "").strip()
+        notice = "; ".join(errors[:2])
+        row["message"] = f"{base_message} Avvisi: {notice}" if base_message and not _is_generic_run_message(base_message) else f"Avvisi: {notice}"
         return row
     if _is_stale_running(row):
         row["status"] = "failed"
@@ -184,7 +203,11 @@ def _surface_run(run: dict[str, Any]) -> dict[str, Any]:
     row["status_class"] = _status_class(status)
     if status == "completed" and _is_legal_update_run(row):
         row["status_label"] = "Controllo completato"
-        row["message"] = _legal_update_message(row)
+        # Il riepilogo dell'agente ("presidio rinviato, fonte fuori dalla fase 9",
+        # "N documenti trovati, N lavorati…") è più utile del conteggio sintetico:
+        # si riscrive il messaggio solo quando è quello generico del worker.
+        if _is_generic_run_message(str(row.get("message") or "")):
+            row["message"] = _legal_update_message(row)
     return row
 
 
@@ -320,6 +343,21 @@ def build_scheduler_admin_surface() -> dict[str, Any]:
 
 
 def save_scheduler_job_from_payload(job_id: str, payload: dict[str, Any], *, username: str = "") -> dict[str, Any]:
+    job_key = str(job_id or "")
+    wants_enabled = str(payload.get("enabled") or "").strip().lower() in {"1", "true", "on", "yes", "si"}
+    if job_key.startswith("legal_source_") and wants_enabled:
+        from pct.legal_update_autofetch import is_legal_update_progressive_step1_source
+
+        source_code = job_key[len("legal_source_"):]
+        if not is_legal_update_progressive_step1_source(source_code):
+            # Prima il salvataggio accettava l'attivazione e il template della
+            # fase 9 la riazzerava in silenzio al giro successivo: il blocco
+            # esplicito spiega all'utente perché la fonte non è attivabile.
+            raise SchedulerConsoleError(
+                "Fonte fuori dal gruppo verde della fase 9: non attivabile dalla console. "
+                "Il presidio resta sul canale ufficiale alternativo o sull'avvio manuale; "
+                "entra nel ciclo automatico solo dopo il canary verde dedicato."
+            )
     repo = _repository()
     repo.upsert_default_jobs(current_app.config)
     updated = repo.save_job(

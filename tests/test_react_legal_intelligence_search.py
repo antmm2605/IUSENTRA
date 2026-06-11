@@ -192,6 +192,16 @@ def test_ricerca_legale_espone_monitor_acquisizione_fonti_reali(tmp_path):
     assert any(metric["id"] == "fonti_con_domanda_lex" and metric["value"] == 2 for metric in payload["metrics"])
 
 
+def test_ricerca_legale_vista_iniziale_resta_un_anteprima_leggera():
+    payload = _payload(_Repository(), page="ricerca-legale")
+
+    # Regressione del crash "errore di interfaccia": senza ricerca la pagina
+    # riceveva l'intero inventario (950+ schede, ~7 MB) e il rendering cadeva.
+    assert len(payload["records"]) <= 130
+    assert any(record["id"].startswith("guida-pratica-source:") for record in payload["records"])
+    assert any(record["id"].startswith("template-atti-source:") for record in payload["records"])
+
+
 def test_ricerca_legale_espone_fonti_web_template_atti():
     payload = _payload(_Repository(), page="ricerca-legale")
 
@@ -199,7 +209,9 @@ def test_ricerca_legale_espone_fonti_web_template_atti():
     assert "ricerche_web_modelli" in sections
     assert any(metric["id"] == "fonti_modelli" and metric["value"] > 0 for metric in payload["metrics"])
     assert any(record["id"].startswith("template-atti-source:") for record in payload["records"])
-    dm_217 = next(record for record in payload["records"] if record["id"] == "template-atti-source:normattiva_dm_217_2023_giustizia_telematica")
+    # La fonte specifica resta raggiungibile attraverso la ricerca live.
+    searched = _payload(_Repository(), page="ricerca-legale", query={"q": "DM 217/2023 giustizia telematica"})
+    dm_217 = next(record for record in searched["records"] if record["id"] == "template-atti-source:normattiva_dm_217_2023_giustizia_telematica")
     assert dm_217["sourceKind"] == "fonte secondaria collegata"
     assert "Modelli collegati per prefisso" in " ".join(dm_217["keyPoints"])
     assert dm_217["sourceHref"].startswith("https://www.normattiva.it/")
@@ -211,10 +223,14 @@ def test_ricerca_legale_espone_fonti_web_guida_pratica_e_rag():
     sections = {section["id"]: section for section in payload["sections"]}
     assert "ricerche_web_guida_pratica" in sections
     assert any(metric["id"] == "fonti_guida_pratica" and metric["value"] > 0 for metric in payload["metrics"])
-    source_ids = {record["id"] for record in payload["records"]}
-    assert "guida-pratica-source:cassazione_sentenzeweb" in source_ids
-    assert "guida-pratica-source:pst_udienze_da_remoto_2023" in source_ids
-    assert "guida-pratica-source:normattiva_whistleblowing_24_2023" in source_ids
+    # Le fonti specifiche restano raggiungibili attraverso la ricerca live.
+    for query, source_id in (
+        ("cassazione sentenzeweb", "guida-pratica-source:cassazione_sentenzeweb"),
+        ("udienze da remoto", "guida-pratica-source:pst_udienze_da_remoto_2023"),
+        ("whistleblowing", "guida-pratica-source:normattiva_whistleblowing_24_2023"),
+    ):
+        searched = _payload(_Repository(), page="ricerca-legale", query={"q": query})
+        assert source_id in {record["id"] for record in searched["records"]}, query
     guida_section = sections["ricerche_web_guida_pratica"]
     assert any(item["label"] == "Sentenze e giurisprudenza" and item["value"] > 0 for item in guida_section["items"])
     assert any(item["label"] == "Udienze e decreti" and item["value"] > 0 for item in guida_section["items"])

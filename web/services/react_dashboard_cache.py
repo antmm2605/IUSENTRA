@@ -30,6 +30,11 @@ def get_dashboard_payload_cached(
 
     payload = builder()
     with _LOCK:
+        now = monotonic()
+        # Spurgo delle voci scadute: con chiavi per utente/giorno la mappa
+        # crescerebbe lentamente ma senza limite nel processo.
+        for stale_key in [existing for existing, (expires_at, _) in _CACHE.items() if expires_at <= now]:
+            _CACHE.pop(stale_key, None)
         _CACHE[key] = (now + max(1.0, float(ttl_seconds or DASHBOARD_CACHE_TTL_SECONDS)), deepcopy(payload))
     return payload, False
 

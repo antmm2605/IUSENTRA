@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.251.25 - 2026-06-11
+
+- Rimossi i `mem_limit` di default introdotti in 2.251.18 su app, scheduler, OCR, Ollama e Redis: un cap rigido trasforma un picco in un kill-loop deterministico del container — in particolare Ollama, se il modello caricato supera il cap, viene ucciso e riavviato in continuazione e le richieste AI in attesa si accumulano nei worker dell'app fino al 503. I limiti restano attivabili esplicitamente (`mem_limit` nel compose + variabili `IUSENTRA_*_MEM_LIMIT`).
+- `GUNICORN_TIMEOUT` riportato al valore storico 1800 (il 300 introdotto in 2.251.18 poteva interrompere operazioni lunghe legittime).
+- Cache payload dashboard/top bar: spurgo automatico delle voci scadute (le chiavi per utente/giorno crescevano lentamente senza limite nel processo).
+
 ## 2.251.24 - 2026-06-11
 
 - Stabilizzazione presidio PEC automatico dopo i picchi di memoria in produzione: budget ridotti e prudenti (acquisizione 25→10 PEC per giro, job lavorati per giro 200→60 — l'OCR degli allegati è la fase più costosa e gira nel worker), override `IUSENTRA_PEC_AUTO_ACQUIRE_BATCH` (0 disattiva) e `IUSENTRA_PEC_WORKER_JOBS_PER_TICK`; scansione archivio limitata alle 250 email più recenti.

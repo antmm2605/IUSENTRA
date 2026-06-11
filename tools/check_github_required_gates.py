@@ -88,7 +88,12 @@ def expand_required_checks(config: dict[str, Any], event: str | None = None) -> 
 
 
 def branch_protection_contexts(config: dict[str, Any]) -> list[str]:
-    names = {check.name for check in expand_required_checks(config)}
+    # Solo i check producibili su push: i branch protetti ricevono push di
+    # mirroring (Sync Twin Branches), mai merge di PR. Un check PR-only
+    # (CodeQL umbrella, review dipendenze) non esiste mai su un commit
+    # pushato senza PR aperta: richiederlo nella protection rende il push
+    # del sync impossibile per sempre (GH006 "N of M expected").
+    names = {check.name for check in expand_required_checks(config, event="push")}
     final_gate = config.get("final_gate_check")
     if final_gate:
         names.add(str(final_gate))

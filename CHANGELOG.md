@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.251.29 - 2026-06-11
+
+- Branch protection dei gemelli: `branch_protection_contexts()` ora include solo i check producibili su push. I contesti PR-only ("CodeQL" umbrella e "Review dipendenze in ingresso") non esistono mai su un commit pushato senza PR aperta: richiederli nella protection di `Codex/` rendeva il push del workflow "Sync Twin Branches" impossibile per sempre (GH006 "2 of 86 required status checks are expected", verificato sul commit v2.251.28 con tutti gli 84 check di push verdi). Restano richiesti nel gate di valutazione in contesto pull_request. La protection live su GitHub va riallineata una volta (rimozione manuale dei 2 contesti o `--apply-branch-protection` con PAT admin).
+
 ## 2.251.28 - 2026-06-11
 
 - CI: il gate "CI reale eseguita sul commit corrente" in contesto pull_request valutava il merge commit sintetico (`GITHUB_SHA`), su cui nessun workflow viene eseguito → falliva sempre dopo 90 minuti (0/85 check trovati) e l'istanza rossa sul commit di testa bloccava il push del workflow "Sync Twin Branches" verso il branch protetto `Codex/` (GH006). Ora il gate valuta lo SHA di testa reale della PR (`github.event.pull_request.head.sha`), dove i check di push e quelli PR-only (CodeQL, review dipendenze) vivono davvero.

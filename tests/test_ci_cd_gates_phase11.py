@@ -97,9 +97,12 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     contexts = module.branch_protection_contexts(config)
     assert "CI reale eseguita sul commit corrente" in contexts
     assert "Lint + syntax" in contexts
-    assert "CodeQL" in contexts
+    # I check PR-only NON vanno nella branch protection: i branch gemelli
+    # ricevono push di mirroring, mai merge di PR, e un contesto che esiste
+    # solo nelle PR resterebbe "expected" per sempre bloccando il sync (GH006).
+    assert "CodeQL" not in contexts
     assert "Analyze (python)" in contexts
-    assert "Review dipendenze in ingresso" in contexts
+    assert "Review dipendenze in ingresso" not in contexts
     assert "Frontend React contratti" in contexts
     assert "Frontend React typecheck" in contexts
     assert "Frontend React build" in contexts

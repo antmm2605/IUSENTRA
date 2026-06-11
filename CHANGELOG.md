@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.251.30 - 2026-06-11
+
+- Sicurezza accesso (anti brute-force / credential stuffing): nuovo `core/security/login_guard.py`. Il login non aveva blocco dei tentativi falliti e il rate limit generico applicava solo un tetto per IP; un attaccante poteva provare password a ripetizione. Ora, dopo N fallimenti, la coppia (IP, username) viene bloccata a tempo e durante la finestra ogni tentativo è respinto **anche con la password corretta** (HTTP 429 + `Retry-After`), con un tetto separato per IP contro lo spraying su più account. Il blocco è per (IP, username) e non solo per username, così un attaccante non può causare un denial-of-service bloccando da remoto l'accesso della vittima. Evento tracciato in audit come `auth.login_bloccato`. Store Redis quando disponibile (condiviso fra i worker), con fallback in memoria a prova di errore. Attivo per default in produzione (`LOGIN_GUARD_ENABLED`, `LOGIN_GUARD_MAX_PER_USER=5`, `LOGIN_GUARD_MAX_PER_IP=20`, `LOGIN_GUARD_WINDOW_SECONDS=900`, `LOGIN_GUARD_LOCK_SECONDS=900`), disattivo di default solo in ambiente di test.
+- Test reali di tentativi di accesso (`tests/test_login_brute_force_guard.py`): blocco dopo soglia, password corretta respinta durante il blocco, azzeramento dopo login valido, nessun DoS sulla vittima da altro IP, header di sicurezza presenti sulla pagina di login.
+
 ## 2.251.29 - 2026-06-11
 
 - Branch protection dei gemelli: `branch_protection_contexts()` ora include solo i check producibili su push. I contesti PR-only ("CodeQL" umbrella e "Review dipendenze in ingresso") non esistono mai su un commit pushato senza PR aperta: richiederli nella protection di `Codex/` rendeva il push del workflow "Sync Twin Branches" impossibile per sempre (GH006 "2 of 86 required status checks are expected", verificato sul commit v2.251.28 con tutti gli 84 check di push verdi). Restano richiesti nel gate di valutazione in contesto pull_request. La protection live su GitHub va riallineata una volta (rimozione manuale dei 2 contesti o `--apply-branch-protection` con PAT admin).

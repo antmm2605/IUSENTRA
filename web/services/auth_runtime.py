@@ -7,8 +7,9 @@ from datetime import datetime
 from pathlib import Path
 import sqlite3
 
-from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, make_response, redirect, render_template, request, session, url_for
 
+from core.security.login_guard import get_login_guard
 from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
 from pct.core_storage_backend import build_core_storage_backend
 from web.services.storage_runtime import get_request_storage_runtime
@@ -522,6 +523,42 @@ def register_auth_runtime(
             username = request.form.get("username", "")
             password = request.form.get("password", "")
             studio_slug = request.form.get("studio_slug", "").strip().lower()
+
+            login_guard = get_login_guard(app)
+            client_ip = (
+                request.headers.get("X-Forwarded-For", request.remote_addr or "") or ""
+            ).split(",")[0].strip()
+            attempt_username = username.strip().lower()
+            locked_seconds = login_guard.lock_remaining_seconds(client_ip, attempt_username)
+            if locked_seconds > 0:
+                minuti = max(1, (locked_seconds + 59) // 60)
+                try:
+                    get_utenti().registra_evento(
+                        "auth.login_bloccato",
+                        username=attempt_username or username,
+                        ip=client_ip,
+                        dettagli=(
+                            "Accesso temporaneamente bloccato per troppi tentativi falliti "
+                            f"({locked_seconds}s residui)."
+                        ),
+                        esito="ERRORE",
+                    )
+                except Exception:
+                    app.logger.warning("Audit auth.login_bloccato non registrato", exc_info=True)
+                response = make_response(
+                    render_template(
+                        "auth/login.html",
+                        errore=(
+                            "Troppi tentativi di accesso falliti. "
+                            f"Per sicurezza l'accesso e' sospeso: riprova tra circa {minuti} "
+                            f"{'minuto' if minuti == 1 else 'minuti'}."
+                        ),
+                        multi_tenant=_runtime_multi_tenant_available(),
+                    ),
+                    429,
+                )
+                response.headers["Retry-After"] = str(locked_seconds)
+                return response
             selected_tenant_slug = ""
             manager = None
             utente = None
@@ -592,6 +629,9 @@ def register_auth_runtime(
                     utente = None
 
             if utente:
+                # Credenziali corrette: azzera i tentativi falliti della coppia
+                # (IP, username) prima di proseguire con sessione o secondo fattore.
+                login_guard.register_success(client_ip, attempt_username)
                 if utente.totp_attivato:
                     session.clear()
                     session["totp_pending_uid"] = utente.id
@@ -647,6 +687,27 @@ def register_auth_runtime(
                 ip=request.remote_addr or "",
                 esito="ERRORE",
             )
+            # Tentativo non andato a buon fine (tutti i percorsi di successo hanno
+            # gia' restituito un redirect): conta il fallimento e, alla soglia,
+            # blocca temporaneamente questa coppia (IP, username) e l'IP.
+            locked_after = login_guard.register_failure(client_ip, attempt_username)
+            if locked_after > 0:
+                minuti = max(1, (locked_after + 59) // 60)
+                errore = (
+                    "Troppi tentativi di accesso falliti. "
+                    f"Per sicurezza l'accesso e' sospeso: riprova tra circa {minuti} "
+                    f"{'minuto' if minuti == 1 else 'minuti'}."
+                )
+                response = make_response(
+                    render_template(
+                        "auth/login.html",
+                        errore=errore,
+                        multi_tenant=_runtime_multi_tenant_available(),
+                    ),
+                    429,
+                )
+                response.headers["Retry-After"] = str(locked_after)
+                return response
 
         return render_template(
             "auth/login.html",

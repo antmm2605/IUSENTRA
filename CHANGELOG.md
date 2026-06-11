@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.251.28 - 2026-06-11
+
+- CI: il gate "CI reale eseguita sul commit corrente" in contesto pull_request valutava il merge commit sintetico (`GITHUB_SHA`), su cui nessun workflow viene eseguito → falliva sempre dopo 90 minuti (0/85 check trovati) e l'istanza rossa sul commit di testa bloccava il push del workflow "Sync Twin Branches" verso il branch protetto `Codex/` (GH006). Ora il gate valuta lo SHA di testa reale della PR (`github.event.pull_request.head.sha`), dove i check di push e quelli PR-only (CodeQL, review dipendenze) vivono davvero.
+- Allineamento gemelli: chiusa la PR claude→Codex aperta manualmente — il meccanismo canonico di allineamento è il mirror "Sync Twin Branches" (fast-forward allo stesso commit), non il merge via PR, che creerebbe un merge commit divergente tra i due rami.
+
 ## 2.251.27 - 2026-06-11
 
 - Fix "Pagina temporaneamente non disponibile" su Ricerca Legale: la vista iniziale senza ricerca scaricava l'intero inventario fonti (950+ schede, ~7 MB di JSON, cresciuto con i set Guida Pratica 34-41) e il rendering integrale faceva cadere la pagina. Ora la vista iniziale è un'anteprima bilanciata (max 130 schede, payload ~0,9 MB) e la ricerca live continua a interrogare l'intero archivio; rete di sicurezza anche lato client (max 120 schede renderizzate).

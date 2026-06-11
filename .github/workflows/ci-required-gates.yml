@@ -35,11 +35,16 @@ jobs:
       - name: Verifica check GitHub dello SHA corrente
         env:
           GH_TOKEN: ${{ github.token }}
+          # In contesto pull_request GITHUB_SHA è il merge commit sintetico, su cui
+          # nessun workflow viene eseguito: i check reali vivono sullo SHA di testa
+          # della PR. Senza questo, il gate falliva sempre dopo il timeout (0/85)
+          # e l'istanza rossa bloccava il push del sync verso il branch protetto.
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           mkdir -p artifacts/ci
           python tools/check_github_required_gates.py \
             --repo "${GITHUB_REPOSITORY}" \
-            --sha "${GITHUB_SHA}" \
+            --sha "${TARGET_SHA}" \
             --event "${GITHUB_EVENT_NAME}" \
             --wait \
             --timeout-seconds 5400 \

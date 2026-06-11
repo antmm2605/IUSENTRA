@@ -280,3 +280,46 @@ def test_client_portal_shell_studio_e_cliente(tmp_path: Path):
     assert studio.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in studio.get_data(as_text=True)
     assert "react-shell-page--client-portal-studio" in studio.get_data(as_text=True)
+
+
+def test_client_portal_public_conversation_export_coerente_con_dashboard(tmp_path: Path):
+    """L'anonimo su /public/conversation-export riceve 401 come /public/dashboard.
+
+    Prima conversation-export rispondeva 403 (forbidden) dove la rotta gemella
+    dashboard rispondeva 401 (unauthorized): incoerenza di stato sulla stessa
+    superficie pubblica autenticata da token.
+    """
+    app = _app(tmp_path)
+
+    with app.test_client() as client:
+        dashboard = client.get("/api/v1/ui/client-portal/public/dashboard")
+        export = client.get("/api/v1/ui/client-portal/public/conversation-export?matterId=qualsiasi")
+
+    assert dashboard.status_code == 401
+    assert dashboard.get_json()["code"] == "unauthorized"
+    # Coerenza: stesso stato e stesso code sulla rotta gemella.
+    assert export.status_code == 401
+    assert export.get_json()["code"] == "unauthorized"
+    # Nessun dettaglio interno (tenant, pratica, stack) trapela.
+    body = export.get_data(as_text=True)
+    assert "Traceback" not in body
+    assert "tenant" not in body.lower()
+
+
+def test_public_row_non_espone_evidence_pack_al_cliente():
+    """Le evidenze di firma (hash IP, UA, token ref) restano lato studio."""
+    from web.services.react_client_portal_bridge import _public_row
+
+    row = {
+        "id": "sig-1",
+        "status": "firmato",
+        "evidence_json": '{"ipHash": "ipv:abc", "userAgent": "UA", "tokenRef": "tok:xyz"}',
+    }
+    client_view = _public_row(dict(row))
+    studio_view = _public_row(dict(row), include_private=True)
+
+    assert "evidence" not in client_view
+    assert "evidence_json" not in client_view
+    assert client_view["status"] == "firmato"
+    # Lato studio l'evidence resta disponibile per l'audit.
+    assert studio_view["evidence"]["ipHash"] == "ipv:abc"

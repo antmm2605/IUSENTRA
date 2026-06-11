@@ -27,6 +27,11 @@ from pct.client_portal import (
 )
 from pct.postgres_runtime_support import database_config_to_dsn, resolve_runtime_postgres_dsn
 from pct.tenant import GestioneTenant
+from web.services.client_signature_providers import (
+    InternalGraphicSignatureProvider,
+    SignatureType,
+    build_signature_evidence_pack,
+)
 from web.services.feature_flags import is_feature_enabled
 from web.services.tenant_paths import tenant_data_path
 
@@ -351,6 +356,10 @@ def _public_row(row: dict[str, Any], *, include_private: bool = False) -> dict[s
     if not include_private:
         cleaned.pop("created_by", None)
         cleaned.pop("updated_by", None)
+        # L'evidence pack di firma (hash IP, user agent, riferimento token, hash
+        # documenti) è materiale probatorio lato studio: non va mai restituito al
+        # cliente nel payload del portale.
+        cleaned.pop("evidence", None)
     return cleaned
 
 
@@ -727,6 +736,12 @@ def export_conversation(matter_id: str, *, token: str = "") -> dict[str, Any]:
         if _text(invite.get("matter_id")) != matter_id:
             return {"ok": False, "code": "forbidden", "message": "Conversazione non disponibile."}
     else:
+        # Senza token cliente: distinguiamo l'anonimo (nessuna sessione studio →
+        # 401, coerente con client_dashboard_payload) dall'utente studio
+        # autenticato ma privo di permesso (→ 403). Prima entrambi cadevano in
+        # "forbidden", incoerente con la rotta gemella /public/dashboard.
+        if not g.get("utente_corrente"):
+            return {"ok": False, "code": "unauthorized", "message": "Accesso cliente richiesto."}
         if not _can("clienti.leggi"):
             return {"ok": False, "code": "forbidden", "message": "Permesso clienti.leggi richiesto."}
         repo = repository_for_current_request()
@@ -1154,12 +1169,29 @@ def client_complete_signature(signature_id: str, payload: dict[str, Any]) -> dic
     try:
         token = _current_client_token()
         invite, repo = _invite_and_repo(token)
+        declaration = _text(payload.get("declaration")) or "Firma semplice acquisita dal Portale Cliente."
+        evidence = build_signature_evidence_pack(
+            signature_id=_text(signature_id),
+            signature_type=SignatureType.GRAPHIC_INTERNAL,
+            provider=InternalGraphicSignatureProvider.name,
+            tenant_id=_text(invite.get("tenant_id")),
+            client_id=_text(invite.get("client_id")),
+            matter_id=_text(invite.get("matter_id")),
+            consent_text=_text(payload.get("consentText")),
+            consent_version=_text(payload.get("consentVersion")) or "1",
+            declaration=declaration,
+            ip=_text(request.remote_addr),
+            user_agent=_text(request.user_agent.string if request.user_agent else ""),
+            token=token,
+        )
         item = repo.complete_signature(
             _text(invite.get("tenant_id")),
             signature_id,
             client_id=_text(invite.get("client_id")),
-            evidence={"declaration": _text(payload.get("declaration")) or "Firma semplice acquisita dal Portale Cliente.", "ip": _text(request.remote_addr)},
+            evidence=evidence,
         )
+        # _public_row(item) senza include_private rimuove l'evidence pack: al
+        # cliente torna solo lo stato della firma, le evidenze restano lato studio.
         return {"ok": True, "message": "Firma registrata.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
     except ClientPortalError:
         return _invalid_invite_payload()

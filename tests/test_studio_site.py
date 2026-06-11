@@ -170,7 +170,9 @@ def test_sito_studio_inizializza_seed_e_consente_preview_bozza(tmp_path: Path):
         assert login.status_code == 302
         response = client.get("/sito-studio/")
         assert response.status_code == 200
-        assert "Sito Studio" in response.get_data(as_text=True)
+        html = response.get_data(as_text=True)
+        assert '<html lang="it" class="react-shell-document">' in html
+        assert '<div id="root"></div>' in html
 
         with app.app_context():
             repo = studio_site_repository()

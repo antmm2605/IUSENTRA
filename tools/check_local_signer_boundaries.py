@@ -19,6 +19,7 @@ def main() -> int:
         "local_signer_mod/ai_cache.py",
         "local_signer_mod/ai_handlers.py",
         "local_signer_mod/server_bootstrap.py",
+        "local_signer_mod/support_agent.py",
     ):
         if not (REPO_ROOT / required).exists():
             failures.append(f"Manca {required}")
@@ -34,6 +35,7 @@ def main() -> int:
             "from local_signer_mod.security import (",
             "from local_signer_mod.ai_handlers import LocalAiHandlerFacade",
             "from local_signer_mod.server_bootstrap import print_startup_banner",
+            "from local_signer_mod.support_agent import SupportAgentFacade",
         )
         for snippet in expected_snippets:
             if snippet not in text:

@@ -50,6 +50,7 @@ def test_main_windows_default_usa_iexpress_storico_e_aggiorna_alias(monkeypatch,
         "pec_bridge.py",
         "security.py",
         "server_bootstrap.py",
+        "support_agent.py",
     ]:
         (module_dir / name).write_text("# ok\n", encoding="utf-8")
     ls_py.write_text(f'VERSION = "{versione}"\n', encoding="utf-8")
@@ -109,6 +110,7 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert 'Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $aiBridgeScript -Force' in contenuto
     assert 'Copy-Item (Join-Path $toolsDir "lex_document_context.py") $lexContextScript -Force' in contenuto
     assert "/polisWeb/local-signer/download/local-signer-mod/" in contenuto
+    assert "support_agent.py" in contenuto
     assert "reportlab" in contenuto
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
     assert "Uninstall-ExistingLocalSigner" in contenuto
@@ -134,6 +136,8 @@ def test_build_windows_exe_profile_resta_iexpress_1_6_35():
     assert "FILE6=uffici_ministero.json" in builder
     assert "FILE7=uffici_pst_pubblici.json" in builder
     assert "FILE14=local_signer_mod__server_bootstrap.py" in builder
+    assert "FILE15=local_signer_mod__support_agent.py" in builder
+    assert "pillow" in builder.lower()
 
 
 def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():

@@ -378,6 +378,12 @@ def customer_room(token: str):
         actor_name=row["customer_name"] or "Cliente",
         payload={"user_agent": request.headers.get("User-Agent", "")},
     )
+    try:
+        from web.services.local_signer_release import latest_local_signer_release
+
+        local_signer_latest_version = latest_local_signer_release().get("version", "")
+    except Exception:
+        local_signer_latest_version = ""
     bootstrap = {
         "publicId": row["public_id"],
         "role": "client",
@@ -385,6 +391,8 @@ def customer_room(token: str):
         "apiPrefix": f"/support/api/{row['public_id']}",
         "wsBase": "/support/ws",
         "localControlBase": str(current_app.config.get("SUPPORT_LOCAL_CONTROL_BASE") or "http://127.0.0.1:27273"),
+        "localSignerBase": "http://127.0.0.1:27272",
+        "localSignerLatestVersion": local_signer_latest_version,
         "customerName": row["customer_name"] or "",
         "status": row["status"],
         "closed": row["status"] == "closed",

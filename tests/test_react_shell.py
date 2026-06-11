@@ -102,8 +102,10 @@ def test_react_shell_sidebar_usa_profilo_reale_sessione(tmp_path: Path):
     payload = json.loads(match.group(1))
     assert payload["user"]["displayName"] == "Operatore Test"
     assert payload["user"]["username"] == "operatore"
+    assert payload["user"]["email"] == "operatore@example.it"
     assert payload["user"]["role"] == "AMMINISTRATORE"
     assert payload["user"]["initials"] == "O"
+    assert payload["tenant"] is None
     assert payload["actions"]["profile"] == "/profilo"
     assert payload["actions"]["logout"] == "/logout"
     assert "Avv. Roberto Rossi" not in html
@@ -514,8 +516,8 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             "/cartelle-condivise?_legacy=1",
             "/portali/pst/acquisizione?_legacy=1",
             "/statistiche/?_legacy=1",
-            "/legal-intelligence/news?_legacy=1",
-            "/legal-intelligence/mediazione?_legacy=1",
+            "/ricerca-legale/news?_legacy=1",
+            "/ricerca-legale/mediazione?_legacy=1",
             "/giurisprudenza/nuova?_legacy=1",
             "/sito-studio/builder?_legacy=1",
             "/sito-studio/contatti?_legacy=1",
@@ -532,6 +534,10 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             response = client.get(route)
             assert response.status_code == 200, route
             assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+
+        legacy_alias = client.get("/legal-intelligence/news?_legacy=1")
+        assert legacy_alias.status_code == 301
+        assert legacy_alias.headers["Location"].endswith("/ricerca-legale/news?_legacy=1")
 
         shortcut = client.get("/polisWeb/acquisizione?_legacy=1")
         assert shortcut.status_code in {302, 303}

@@ -1,5 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
+## Assistenza remota e Local Signer 1.6.72 - 2026-06-11
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `Failed to fetch` / `Not found` su `Approva controllo PC` | Prova reale Local Signer installato e endpoint `27272/support` | Risolto localmente, da pubblicare su server | La macchina aveva Local Signer `1.6.68`: `/ping` rispondeva, ma `/support/status` restituiva `404` perché il modulo assistenza non era nel pacchetto installato. Il pacchetto `1.6.72` include `support_agent.py`; dopo installazione reale `/support/status`, arm, execute dry-run e disarm sono verdi. | Pubblicare/deployare `SetupLocalSigner.exe` aggiornato su `app.iusentra.it`; dopo deploy verificare che un Local Signer vecchio scarichi davvero `1.6.72` da `/polisWeb/local-signer/setup/windows`. |
+| Card/monitor lato cliente | Browser reale su `127.0.0.1:8080/support/join/<token>` | Risolto localmente | La stanza cliente non mostra più la preview scura "Schermo condiviso"; il cliente vede solo consensi, microfono, chat e chiusura. | Non reintrodurre monitor o preview lato cliente; il video condiviso appartiene alla stanza operatore. |
+| Prova audio/video completa | Browser integrato Codex | Governato | Il browser integrato non ha accettato prompt fisici di condivisione schermo/microfono nella prova automatizzata. Sono verdi UI, codice WebRTC, assenza errori e Local Signer; la cattura fisica completa richiede due browser reali con consenso al prompt. | Ripetere con Edge cliente e Chrome amministratore dopo deploy, accettando manualmente i prompt schermo/microfono. |
+
 ## Dashboard agenda timezone e performance 2.251.26 - 2026-06-11
 
 - Rilevato in produzione su `2.251.25`: `/api/v1/ui/dashboard` loggava `TypeError: can't compare offset-naive and offset-aware datetimes` quando un appuntamento importato da calendario esterno conteneva offset (`+00:00` / `Z`). Fix applicato in `pct/agenda.py` e `pct/workspace_intelligente.py`, con regressione dedicata in `tests/test_workspace_intelligente.py`.

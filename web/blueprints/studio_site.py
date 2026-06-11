@@ -110,6 +110,9 @@ def _booking_rule_payload_from_form() -> dict[str, object]:
 @studio_site.get("/")
 @site_admin_required
 def dashboard():
+    if not _legacy_requested():
+        build_studio_site_dashboard_payload()
+        return render_react_shell_response("sito-studio")
     payload = build_studio_site_dashboard_payload()
     return render_template("studio_site/dashboard.html", payload=payload, weekday_labels=WEEKDAY_LABELS)
 

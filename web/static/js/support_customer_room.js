@@ -221,26 +221,161 @@
     return `${proto}://${window.location.host}${boot.wsBase}/${boot.publicId}?role=${encodeURIComponent(boot.role)}&token=${encodeURIComponent(boot.authToken)}`;
   }
 
-  // Basi candidate per l'agente locale, in ordine di preferenza.
-  // Il Local Signer (127.0.0.1:27272) e' il canale operativo locale UFFICIALE
-  // dello studio (firma, PEC, AI locale): la maggior parte degli studi ce l'ha
-  // gia' installato, quindi lo proviamo PER PRIMO (prefisso /support). L'agente
-  // dedicato 27273 resta come fallback per installazioni che lo usano.
-  // Provare 27272 per primo evita un timeout di ~4.5s verso un 27273 assente.
+  // Basi candidate per l'agente locale, in ordine di preferenza:
+  // 1) agente dedicato 27273, se lo studio lo usa ancora;
+  // 2) Local Signer 27272/support, gia' presente su molti PC per firma/PEC/PST.
   const agentBases = [];
   if (boot.localControlBase) {
     // Override esplicito dal server ha la precedenza assoluta.
     agentBases.push(String(boot.localControlBase).replace(/\/+$/, ""));
   }
-  agentBases.push("http://127.0.0.1:27272/support");
   agentBases.push("http://127.0.0.1:27273");
+  agentBases.push("http://127.0.0.1:27272/support");
   // Dedup preservando l'ordine.
   const _seenBase = new Set();
   const agentBasesUnique = agentBases.filter((b) => (_seenBase.has(b) ? false : _seenBase.add(b)));
   let agentBaseActive = null;
+  let localSignerUpdatePromise = null;
+  const localSignerBase = String(boot.localSignerBase || "http://127.0.0.1:27272").replace(/\/+$/, "");
+  const supportLocalSignerBase = `${localSignerBase}/support`;
+  const localSignerLatestVersion = String(boot.localSignerLatestVersion || "1.6.72").trim();
 
   function agentUrl(path, base) {
     return `${base ?? agentBaseActive ?? agentBasesUnique[0]}${path}`;
+  }
+
+  function versionParts(value) {
+    return String(value || "")
+      .replace(/^v/i, "")
+      .split(/[^\d]+/)
+      .filter(Boolean)
+      .map((part) => parseInt(part, 10) || 0);
+  }
+
+  function compareVersions(a, b) {
+    const left = versionParts(a);
+    const right = versionParts(b);
+    const max = Math.max(left.length, right.length);
+    for (let index = 0; index < max; index += 1) {
+      const av = left[index] || 0;
+      const bv = right[index] || 0;
+      if (av > bv) return 1;
+      if (av < bv) return -1;
+    }
+    return 0;
+  }
+
+  function isLocalSignerSupportBase(base) {
+    const normalized = String(base || "").replace(/\/+$/, "");
+    return normalized === supportLocalSignerBase || /:27272\/support$/.test(normalized);
+  }
+
+  async function fetchLoopbackJson(url, options = {}, timeoutMs = 4500) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json", ...(options.headers || {}) },
+        ...options,
+        signal: controller.signal,
+        targetAddressSpace: "loopback",
+      });
+      const text = await response.text();
+      let payload = {};
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (_) {
+        payload = {};
+      }
+      if (!response.ok || payload.ok === false) {
+        const error = new Error(payload.error || payload.description || payload.errore || text || `HTTP ${response.status}`);
+        error.status = response.status;
+        error.payload = payload;
+        throw error;
+      }
+      return payload;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  async function fetchLocalSigner(path, options = {}, timeoutMs = 4500) {
+    return fetchLoopbackJson(`${localSignerBase}${path}`, options, timeoutMs);
+  }
+
+  function requestLocalSignerProtocolUpdate() {
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = "iusentra-local-signer://update";
+      document.body.appendChild(iframe);
+      window.setTimeout(() => iframe.remove(), 2500);
+    } catch (_) {}
+  }
+
+  async function waitForLocalSignerSupportReady() {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      try {
+        const ping = await fetchLocalSigner("/ping?light=1", {}, 2500);
+        const installedVersion = ping.versione || ping.version || "";
+        if (localSignerLatestVersion && compareVersions(installedVersion, localSignerLatestVersion) < 0) {
+          continue;
+        }
+        const status = await fetchLocalSigner("/support/status", {}, 2500);
+        if (status && status.ok) {
+          return status;
+        }
+      } catch (_) {
+        // Il servizio puo' riavviarsi durante l'aggiornamento.
+      }
+    }
+    return null;
+  }
+
+  async function updateLocalSignerForSupport(reason) {
+    if (localSignerUpdatePromise) return localSignerUpdatePromise;
+    localSignerUpdatePromise = (async () => {
+      setStatus("Aggiorno Local Signer per il controllo PC");
+      try {
+        await fetchLocalSigner("/update", {}, 8000);
+      } catch (_) {
+        requestLocalSignerProtocolUpdate();
+      }
+      const ready = await waitForLocalSignerSupportReady();
+      if (!ready) {
+        throw new Error(
+          reason === "missing-support"
+            ? "Local Signer trovato ma il modulo assistenza non risponde ancora. Attendi l'aggiornamento e riprova."
+            : "Aggiornamento Local Signer non completato. Attendi qualche secondo e riprova."
+        );
+      }
+      setStatus("Local Signer pronto per il controllo PC");
+      return ready;
+    })().finally(() => {
+      localSignerUpdatePromise = null;
+    });
+    return localSignerUpdatePromise;
+  }
+
+  async function autoPrepareLocalSignerForSupport() {
+    try {
+      const ping = await fetchLocalSigner("/ping?light=1", {}, 2500);
+      const installedVersion = ping.versione || ping.version || "";
+      if (localSignerLatestVersion && compareVersions(installedVersion, localSignerLatestVersion) < 0) {
+        await updateLocalSignerForSupport("outdated");
+        return;
+      }
+      try {
+        await fetchLocalSigner("/support/status", {}, 2500);
+      } catch (error) {
+        if (error.status === 404 || /not found/i.test(String(error.message || ""))) {
+          await updateLocalSignerForSupport("missing-support");
+        }
+      }
+    } catch (_) {
+      // Nessun Local Signer in esecuzione: la condivisione schermo via browser resta disponibile.
+    }
   }
 
   async function fetchJson(url, options = {}) {
@@ -281,7 +416,12 @@
         payload = {};
       }
       if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error || payload.description || text || `HTTP ${response.status}`);
+        const error = new Error(payload.error || payload.description || payload.errore || text || `HTTP ${response.status}`);
+        error.status = response.status;
+        error.payload = payload;
+        error.base = base;
+        error.path = path;
+        throw error;
       }
       return payload;
     } finally {
@@ -310,6 +450,16 @@
         return payload;
       } catch (error) {
         lastError = error;
+        const supportMissing =
+          isLocalSignerSupportBase(base) &&
+          path === "/status" &&
+          (error.status === 404 || /not found/i.test(String(error.message || "")));
+        if (supportMissing) {
+          await updateLocalSignerForSupport("missing-support");
+          const payload = await fetchAgentAt(base, path, body);
+          agentBaseActive = base;
+          return payload;
+        }
         if (!_isAgentNetworkError(error)) {
           agentBaseActive = base;
           throw error;
@@ -646,7 +796,7 @@
       }
     }
 
-    // 2) Fallback: agente locale IUSENTRA Assistenza (richiede installazione).
+    // 2) Fallback: Local Signer o agente locale IUSENTRA Assistenza.
     //    Necessario solo se il browser non consente getDisplayMedia.
     try {
       await startAgentScreenShare();
@@ -660,7 +810,7 @@
       console.error("Né condivisione browser né agente locale disponibili.", agentError);
       throw new Error(
         "Condivisione schermo non disponibile. Consenti la condivisione quando il browser la richiede, "
-        + "oppure installa l'agente IUSENTRA Assistenza per il controllo completo del PC."
+        + "oppure usa Local Signer aggiornato o l'agente IUSENTRA Assistenza per il controllo completo del PC."
       );
     }
   }
@@ -782,13 +932,17 @@
     } catch (error) {
       // "Failed to fetch" = agente non in esecuzione o rete locale bloccata dal browser.
       const raw = String(error?.message || "");
-      const isAgentUnreachable = /failed to fetch|networkerror|load failed|agente.*non disponibile/i.test(raw);
+      const isAgentUnreachable = /failed to fetch|networkerror|load failed|agente.*non disponibile|local signer/i.test(raw);
       const message = isAgentUnreachable
         ? "Per il controllo del PC serve l'agente IUSENTRA Assistenza in esecuzione su questo computer. "
           + "Scaricalo e avvialo, poi riprova ad approvare. La sola visualizzazione dello schermo funziona già senza agente."
         : `Errore: ${raw}`;
-      setStatus(message);
-      appendChat(message, "me");
+      const visibleMessage = isAgentUnreachable
+        ? "Per il controllo del PC serve Local Signer aggiornato o l'agente IUSENTRA Assistenza su questo computer. "
+          + "IUSENTRA prova ad aggiornarlo automaticamente; se il servizio locale non risponde, apri il pacchetto ufficiale e riprova. La sola visualizzazione dello schermo funziona già dal browser."
+        : message;
+      setStatus(visibleMessage);
+      appendChat(visibleMessage, "me");
     }
   }
 
@@ -805,10 +959,10 @@
   }
 
   async function ensureLocalControlAgent() {
-    setStatus("Verifico agente IUSENTRA Assistenza sul PC");
+    setStatus("Verifico Local Signer o agente IUSENTRA Assistenza sul PC");
     const status = await fetchAgent("/status");
     if (!status.ok) {
-      throw new Error("Agente IUSENTRA Assistenza non disponibile sul PC.");
+      throw new Error("Local Signer o agente IUSENTRA Assistenza non disponibile sul PC.");
     }
     await fetchAgent("/arm", {
       session_id: boot.publicId,
@@ -925,6 +1079,7 @@
     syncCustomerLayout();
     syncCustomerMicUi();
     syncStartButtonUi();
+    autoPrepareLocalSignerForSupport();
     syncState();
     if (!stateTimer) {
       stateTimer = window.setInterval(syncState, statePollDelayMs);

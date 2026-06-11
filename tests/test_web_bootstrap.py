@@ -1142,14 +1142,20 @@ def test_local_signer_monitor_globale_verifica_versione_e_installer():
     assert "hideBanner();" in monitor_js
     assert "compareVersions" in monitor_js
     assert "verifyAfterUpdate" in monitor_js
+    assert "let updatePromise = null;" in monitor_js
     assert "cfg.baseUrl + '/update'" in monitor_js
     assert "openInstallerDownload" in monitor_js
     assert "updatePayload.ok !== true" in monitor_js
     assert "document.createElement('iframe')" in monitor_js
     assert "Fase 1: provo ad avviare" in monitor_js
     assert "Fase 2: versione rilevata" in monitor_js
+    assert "const updated = await verifyAfterUpdate(cfg)" in monitor_js
+    assert monitor_js.index("const updated = await verifyAfterUpdate(cfg)") < monitor_js.index(
+        "installerPromptAlreadyShown(cfg, 'outdated-auto')"
+    )
+    assert "Aggiornamento automatico Local Signer" in monitor_js
     assert "Aggiorna automaticamente" in monitor_js
-    assert "Se Windows non ha autorizzato" in monitor_js
+    assert "Ho tentato l’aggiornamento automatico" in monitor_js
     assert "Fase 4 completata" in monitor_js
     assert "autoOpenInstallerOnce" in monitor_js
 

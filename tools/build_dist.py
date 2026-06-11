@@ -318,7 +318,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$D
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
 
         cat > "$PLIST" <<PLISTEOF
         <?xml version="1.0" encoding="UTF-8"?>
@@ -394,7 +394,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$D
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
 
         cat > "$SERVICE" <<EOF
         [Unit]
@@ -463,7 +463,12 @@ def write_windows_support_files(dist_dir: Path) -> list[Path]:
         copied.append(target)
     module_dir = dist_dir / "local_signer_mod"
     module_dir.mkdir(exist_ok=True)
-    for source in _local_signer_mod_files():
+    module_sources = _local_signer_mod_files()
+    expected = {source.name for source in module_sources}
+    for stale in module_dir.glob("*.py"):
+        if stale.name not in expected:
+            stale.unlink()
+    for source in module_sources:
         target = module_dir / source.name
         shutil.copyfile(source, target)
         copied.append(target)

@@ -1,243 +1,166 @@
-# Assistenza Remota Cliente
+# Assistenza remota cliente
 
 ## Obiettivo
 
-Il modulo `Assistenza remota` permette al `SUPERADMIN` di piattaforma di aprire una sessione tecnica verso il cliente con:
+Il modulo `Assistenza remota` permette al `SUPERADMIN` di piattaforma di assistere uno studio cliente con:
 
-- condivisione schermo WebRTC;
-- microfono opzionale;
+- condivisione schermo reale dal browser, senza installare nulla;
+- microfono opzionale via WebRTC;
 - chat tecnica;
-- audit completo di sessione;
-- consensi espliciti del cliente;
-- controllo remoto reale del PC cliente tramite agente locale IUSENTRA Assistenza.
+- audit della sessione e dei consensi;
+- controllo remoto del PC cliente tramite Local Signer IUSENTRA già installato nello studio, oppure tramite agente dedicato se presente.
 
-Dal rilascio `2.239.0` la sessione base è pronta al primo avvio: IUSENTRA configura un endpoint STUN predefinito, crea il link cliente firmato, apre la stanza operatore e abilita chat/audit senza richiedere variabili manuali. TURN resta un presidio opzionale per reti difficili.
-
-Il controllo del PC non usa e non deve usare il Local Signer telematico. Il controllo remoto passa dall'agente locale separato `tools/support_remote_agent.py`, esposto solo su `127.0.0.1` e armato solo dopo consenso cliente.
-
-La regola prodotto è ferrea:
-
-- il `SUPERADMIN` può aprire sessioni dalla console piattaforma e prende sempre in carico la stanza operatore;
-- lo studio cliente può richiedere assistenza dalle pagine operative senza passare dalla console admin;
-- il cliente entra sempre da link firmato, generato dalla console o dalla richiesta autenticata dello studio;
-- schermo, audio e controllo del PC richiedono consenso esplicito;
-- il controllo del PC parte solo se l'agente locale IUSENTRA Assistenza risponde su `127.0.0.1`.
+La regola prodotto è questa: il cliente vede e approva, l'operatore assiste. Il cliente non deve guardare un secondo monitor dentro la pagina, perché sta già vedendo il proprio desktop; la stanza cliente mostra solo consensi, stato sessione, microfono, chiusura e chat tecnica.
 
 ## Superfici prodotto
 
 - `Piattaforma -> Assistenza remota` -> `/admin/supporto-remoto`
-- `Barra studio` -> pulsante `Assistenza`
-- `Dashboard studio` -> pulsante `Assistenza remota`, disponibile anche agli utenti dello studio
-- `Scheda cliente` -> pulsante `Assistenza cliente`, disponibile anche agli utenti dello studio
-- `Dettaglio fascicolo` -> pulsante `Sessione tecnica`, disponibile anche agli utenti dello studio
-- `Richiesta studio` -> `/support/studio/sessione`
-- `Link cliente` -> `/support/join/<token>`
-- `Stanza operatore` -> `/support/operatore/<public_id>`
+- topbar studio -> pulsante `Assistenza`
+- richiesta studio autenticata -> `/support/studio/sessione`
+- link cliente firmato -> `/support/join/<token>`
+- stanza operatore -> `/support/operatore/<public_id>`
 
-## Architettura
+La topbar React invia lo stesso contesto della vecchia topbar: nome ed email utente, studio, route corrente, eventuale pratica/cliente e note operative. La richiesta apre la stanza cliente firmata e il `SUPERADMIN` prende in carico la sessione dalla console.
 
-### Dominio e repository
+## Schermo e microfono senza installazione
 
-- `pct/support_remote.py`
-  helper di dominio, ICE/TURN, token operatore, story line audit, agente locale e input Windows reale.
-- `pct/support_repository.py`
-  repository SQL governato per `SQLite` e `PostgreSQL`.
-- `pct/sql/20260422_support_remote.sql`
-- `pct/sql/20260422_support_remote_postgres.sql`
+La condivisione schermo parte prima dal browser cliente:
 
-### Runtime e signaling
+1. il cliente preme `Avvia assistenza`;
+2. il browser chiede quale schermo o finestra condividere con `getDisplayMedia()`;
+3. il video viaggia via WebRTC;
+4. la stanza operatore riceve la traccia con `pc.ontrack` e la mostra nell'area cliente.
 
-- `web/extensions.py`
-  inizializza `Sock`.
-- `web/services/support_runtime.py`
-  autorizzazione operatore e studio, audit, payload sessione, signaling WebSocket.
-- `web/services/support_presence.py`
-  presenza e relay realtime con Redis pub/sub quando disponibile, con fallback locale per singola istanza.
-- `web/services/support_surface.py`
-  payload della console admin.
+Il microfono usa `getUserMedia({ audio: true })` solo se il cliente lascia attivo il consenso audio. Se il browser o il sistema negano il microfono, la sessione continua senza audio e la UI mostra un messaggio operativo non bloccante.
 
-### UI
+Requisiti browser:
 
-- `web/templates/admin/support_console.html`
-- `web/templates/support/operator_room.html`
-- `web/templates/support/customer_room.html`
-- `web/static/js/support_console.js`
-- `web/static/js/support_launch.js`
-- `web/static/js/support_operator_room.js`
-- `web/static/js/support_customer_room.js`
-- `frontend/src/components/SupportOperatorRoom.tsx`
-- `frontend/src/index.css`
-- `tools/support_remote_agent.py`
-- `tools/avvia_support_remote_agent.bat`
-
-## Storage
-
-Il dominio è piattaforma-first:
-
-- `JSON`: non usato;
-- `SQLite`: attivo con `PCT_SUPPORT_DB`;
-- `PostgreSQL`: attivo con DSN runtime dedicato.
-
-Percorso locale di default:
-
-```text
-/data/support/assistenza_remota.db
-```
-
-## Configurazione
-
-Variabili runtime principali:
-
-```env
-PCT_SUPPORT_DB=/data/support/assistenza_remota.db
-# Default già operativo se non impostato esplicitamente:
-PCT_SUPPORT_STUN_URLS=stun:stun.l.google.com:19302
-PCT_SUPPORT_TURN_URLS=turn:turn.tuodominio.it:3478?transport=udp,turns:turn.tuodominio.it:5349?transport=tcp
-PCT_SUPPORT_TURN_SHARED_SECRET=<secret-lungo-random>
-PCT_SUPPORT_TURN_TTL_SECONDS=3600
-```
-
-Dal prodotto queste stesse impostazioni sono gestibili anche in:
-
-- `Piattaforma -> Assistenza remota -> Presidio realtime`
-
-Il salvataggio aggiorna subito il runtime applicativo e persiste i valori nel file config piattaforma. Se il campo STUN viene lasciato vuoto, il prodotto mantiene il default pronto all'uso invece di degradare in stato da configurare.
-
-## Nginx e WebSocket
-
-Per funzionare dietro reverse proxy serve il blocco WebSocket dedicato su `/support/ws/`.
-
-La configurazione locale del repo include già:
-
-- `Upgrade`;
-- `Connection "upgrade"`;
-- timeout lunghi;
-- `proxy_buffering off`.
-
-Senza questo blocco la UI si apre ma il signaling non parte.
-
-## HTTPS e browser
-
-La condivisione schermo reale richiede:
-
-- `HTTPS` oppure `localhost`;
-- consenso esplicito del cliente;
-- browser moderni con `getDisplayMedia()` e `getUserMedia()`.
-
-I data channel WebRTC sono cifrati. Il default STUN consente l'avvio della sessione nella maggior parte degli scenari; `TURN` resta raccomandato per clienti dietro firewall o NAT restrittivi.
-
-La stanza operatore usa la Fullscreen API quando il browser la consente. Se il browser integrato o il contesto locale bloccano la Fullscreen API, viene attivata una modalità schermo pieno nel viewport: area cliente a tutta larghezza e pannello tecnico compatto sotto.
-
-## TURN self-hosted
-
-In produzione è raccomandato `coturn` con secret condiviso tra backend e relay.
-
-Regola operativa:
-
-- almeno un `STUN` è sempre presente grazie al default applicativo;
-- `TURN` è raccomandato, non bloccante, per reti con NAT o firewall difficili;
-- non distribuire credenziali TURN statiche al browser.
-
-## Audit e consensi
-
-Ogni sessione persiste:
-
-- stato;
-- operatore;
-- cliente;
-- studio e pratica collegati;
-- consensi schermo/audio/chat;
-- richiesta e approvazione del controllo remoto del PC;
-- timeline eventi in `support_event`.
-
-Il registro è leggibile dalla console come storia operativa, non solo come log tecnico.
-
-## Richiesta assistenza dallo studio
-
-Quando l'utente dello studio preme `Assistenza`, IUSENTRA crea una sessione autenticata con contesto tenant, utente, eventuale cliente o fascicolo e audit dell'azione. La stanza cliente viene aperta subito: l'utente conferma i consensi e attende il `SUPERADMIN`, che vede la sessione nella console `/admin/supporto-remoto` e apre la stanza operatore.
-
-Questo flusso non espone la console piattaforma allo studio e non consente allo studio di assumere il ruolo operatore. La richiesta serve solo ad aprire il canale cliente reale e tracciato.
-
-### Notifiche SUPERADMIN e cellulare
-
-Ogni richiesta aperta dal pulsante `Assistenza` crea anche una notifica urgente per il `SUPERADMIN` di piattaforma. La notifica interna appare nella console `/admin/supporto-remoto` e punta direttamente alla sessione da prendere in carico.
-
-Nella stessa console il `SUPERADMIN` può attivare le notifiche sul proprio cellulare. Quando Web Push è configurato sul server e il dispositivo è stato autorizzato, la richiesta arriva anche se app.iusentra.it non è aperto. Il payload esterno resta privacy-safe: mostra solo che è arrivata una richiesta assistenza e lo studio di provenienza; cliente, pratica e note restano visibili solo dopo login dentro IUSENTRA.
-
-La console consente anche di:
-
-- cambiare manualmente lo stato di una sessione;
-- cancellare una sessione;
-- cancellare le sessioni di prova/test generate dalle verifiche locali.
+- HTTPS in produzione oppure `localhost`/`127.0.0.1` in locale;
+- browser moderno con `getDisplayMedia()` e `getUserMedia()`;
+- consenso esplicito del cliente.
 
 ## Controllo remoto del PC
 
-Flusso:
+Il controllo completo del mouse e della tastiera non passa dal video WebRTC: passa da un servizio locale in loopback, armato solo dopo consenso.
 
-1. l'operatore entra nella stanza operatore;
-2. il cliente entra dal link firmato;
-3. l'operatore richiede il controllo del PC;
-4. il cliente approva o rifiuta;
-5. solo dopo l'approvazione la UI abilita tasti rapidi, testo e comandi mouse;
-6. il browser cliente arma l'agente locale su `127.0.0.1`;
-7. ogni comando viene inviato via WebSocket, eseguito dall'agente locale e confermato alla stanza operatore.
+Ordine di rilevamento lato cliente:
 
-L'agente accetta comandi solo per sessioni armate con token valido. A fine test o fine sessione va disarmato.
+1. agente dedicato `IUSENTRA Assistenza` su `http://127.0.0.1:27273`;
+2. Local Signer su `http://127.0.0.1:27272/support`.
 
-## Verifica reale locale del 1 giugno 2026
+Il Local Signer dalla versione `1.6.72` espone:
 
-Verifica eseguita sulla copia locale reale dell'utente `http://127.0.0.1:8080`, con agente PC separato `python -m pct.support_remote --host 127.0.0.1 --port 27273`.
+- `GET /support/status`
+- `POST /support/arm`
+- `POST /support/disarm`
+- `POST /support/screenshot`
+- `POST /support/execute`
 
-- richiesta partita dal bottone reale `Assistenza` nella top bar studio su `/fascicoli`;
-- richiesta visualizzata in `/admin/supporto-remoto` e presa in carico dal `SUPERADMIN`;
-- stanza cliente aperta su `/support/join/<token>` e stanza operatore React su `/support/operatore/<public_id>?token=...`;
-- corretto passaggio cliente da `Attendi operatore` a `Avvia assistenza` dopo la presa in carico;
-- `Entra` operatore non attiva più la sessione al posto del cliente;
-- il cliente avvia la sessione dopo consenso e lo schermo reale del PC viene mostrato all'operatore tramite agente locale;
-- muto microfono verificato lato operatore e lato cliente;
-- chat bidirezionale verificata con messaggi visibili da entrambe le parti;
-- richiesta controllo PC, approvazione cliente e badge finale `Controllo PC attivo`;
-- comando remoto reale `Tab` eseguito sul PC cliente e confermato in chat: `PC cliente: comando eseguito (Tab).`;
-- fullscreen cliente attivo con chat compatta sotto lo schermo e fullscreen operatore attivo con pannello tecnico compatto.
+La state machine è token-based:
 
-Problemi trovati durante la prova reale e corretti:
+- l'operatore richiede il controllo PC;
+- il cliente approva;
+- la pagina cliente arma il Local Signer o l'agente con `session_id` e token;
+- ogni comando operatore deve avere sessione armata e token valido;
+- a fine sessione il controllo viene disarmato.
 
-- agente locale vecchio ancora in ascolto su `27273`: riavviato l'agente corrente da `pct.support_remote`;
-- polling bloccato quando una finestra non era in primo piano: rimosso il blocco su `document.hidden`;
-- avvio sessione lato operatore: impedito, l'avvio resta responsabilità del cliente dopo consenso;
-- muto microfono disabilitato se il dispositivo audio è occupato o non leggibile: il consenso resta attivo e il tasto muto resta operativo.
+Comandi supportati:
 
-## Verifica reale locale del 31 maggio 2026
+- click sinistro;
+- click destro;
+- doppio click;
+- testo;
+- tasti rapidi;
+- tasti direzionali e operativi esposti in stanza operatore.
 
-Verifica eseguita sulla copia locale reale `http://127.0.0.1:8080`:
+Sicurezza:
 
-- login SUPERADMIN reale su Docker locale;
-- creazione sessione reale via `/support/api/session`;
-- apertura stanza operatore React su `/support/operatore/<public_id>?token=...`;
-- collegamento cliente via link firmato `/support/join/<token>`;
-- presenza operatore/cliente propagata su WebSocket anche con app Gunicorn multi-worker;
-- richiesta controllo PC;
-- approvazione cliente;
-- armamento agente locale `IUSENTRA Support Remote Agent` su `127.0.0.1:27273`;
-- attivazione schermo pieno operatore con pannello tecnico compatto;
-- esecuzione comando reale `Tab` sul PC Windows tramite agente locale;
-- conferma visibile in stanza operatore: `Comando PC eseguito` e `PC cliente: comando eseguito (Tab).`;
-- console browser senza errori o warning applicativi;
-- container `iusentra-app` healthy e `/api/pronto` 200.
+- solo loopback `127.0.0.1`;
+- CORS limitato agli origin IUSENTRA autorizzati;
+- token errato rifiutato con `400`;
+- origin non consentita rifiutata con `403`;
+- nessun controllo PC senza consenso cliente.
 
-## Verifiche minime release
+## Aggiornamento automatico Local Signer
 
-- `python -m pytest tests/test_support_remote.py -q`
-- `node --check web/static/js/support_operator_room.js`
+Il comportamento corretto è automatico:
+
+1. la pagina cliente e il monitor globale provano il Local Signer su `27272`;
+2. se la versione è vecchia o manca `/support/status`, chiamano `/update`;
+3. se il servizio si riavvia, la pagina attende che `ping` e `/support/status` tornino pronti;
+4. solo se il servizio non è installato o non può auto-aggiornarsi viene mostrato il pacchetto manuale.
+
+Il vecchio banner `Installazione Local Signer richiesta` non deve più comparire come primo passo quando un Local Signer raggiungibile può aggiornarsi. Se il servizio è spento o assente, il testo visibile è operativo: `Local Signer non raggiungibile`, con indicazione che IUSENTRA ha già tentato avvio e aggiornamento automatico.
+
+Nota importante: i Local Signer `1.6.68` non avevano le rotte `/support/*`. In quel caso `/support/status` rispondeva `404` e il cliente vedeva il blocco su `Failed to fetch` o `Not found`. Il pacchetto `1.6.72` include `local_signer_mod/support_agent.py` e risolve il problema.
+
+## Packaging Local Signer
+
+Il pacchetto Windows deve restare nel formato certificato già stabilito:
+
+- builder nativo IExpress da `tools/build_local_signer_windows_exe.ps1`;
+- file pubblico `SetupLocalSigner-<versione>.exe`;
+- alias stabile `SetupLocalSigner.exe`;
+- avvio installer con `powershell.exe -NoProfile -ExecutionPolicy Bypass -File installa_local_signer_locale.ps1`;
+- file principali copiati dal CAB locale;
+- nessun PyInstaller, NSIS o zip autoestraente.
+
+Dal pacchetto `1.6.72` sono obbligatori:
+
+- `local_signer.py`;
+- `local_ai_host_bridge.py`;
+- `lex_document_context.py`;
+- `visible_signature.py`;
+- `requirements_local_signer.txt`;
+- `uffici_ministero.json`;
+- `uffici_pst_pubblici.json`;
+- `local_signer_mod/__init__.py`;
+- `local_signer_mod/ai_cache.py`;
+- `local_signer_mod/ai_handlers.py`;
+- `local_signer_mod/pec_bridge.py`;
+- `local_signer_mod/security.py`;
+- `local_signer_mod/server_bootstrap.py`;
+- `local_signer_mod/support_agent.py`.
+
+## Stabilità sessione
+
+La sessione usa:
+
+- WebSocket per signaling e comandi;
+- polling di stato come rete di sicurezza;
+- nessun blocco su `document.hidden`, così cliente e operatore restano aggiornati anche se una finestra non è in primo piano;
+- keep-alive HTTP del Local Signer chiuso per evitare richieste pendenti dal browser;
+- conferme comando in chat tecnica.
+
+Se il WebRTC non può partire perché il cliente nega il prompt schermo, la chat resta attiva e il controllo PC può essere armato solo se il cliente approva esplicitamente.
+
+## Verifica reale locale dell'11 giugno 2026
+
+Verifica eseguita sulla copia Docker reale dell'utente `http://127.0.0.1:8080`, versione app `2.251.38`, Local Signer `1.6.72` sulla porta reale `27272`.
+
+Esiti:
+
+- `docker compose up -d --build app scheduler-worker ocr-worker`: container `app`, `scheduler` e `ocr` healthy;
+- `GET http://127.0.0.1:8080/api/pronto`: `ok=true`, versione `2.251.38`;
+- stanza operatore su `/support/operatore/<public_id>`: renderizzata senza errori console, controlli `Richiedi controllo PC`, `Microfono`, `Muta microfono`, `Schermo intero` presenti;
+- stanza cliente su `/support/join/<token>`: nessuna card/monitor scuro di anteprima cliente, consensi schermo/microfono/chat presenti, chat tecnica presente, nessun `Failed to fetch`;
+- bootstrap cliente: `localSignerBase=http://127.0.0.1:27272`, `localSignerLatestVersion=1.6.72`;
+- pagina studio dopo aggiornamento Local Signer: nessun banner `Installazione Local Signer richiesta`, nessun errore console, nessuna `Pagina temporaneamente non disponibile`;
+- Local Signer installato: `GET /ping?light=1` risponde `versione=1.6.72`;
+- Local Signer assistenza: `GET /support/status` risponde `IUSENTRA Assistenza (Local Signer)`;
+- controllo PC: `/support/arm` OK, `/support/execute` in dry-run OK, token errato `400`, origin non consentita `403`, `/support/disarm` OK.
+
+Limite della prova locale: il browser integrato non ha accettato prompt fisici di condivisione schermo/microfono durante la verifica automatizzata. Sono stati verificati presenza UI, codice WebRTC, assenza errori e disponibilità browser dove accessibile; la cattura audio/video completa resta da confermare con due browser reali e consenso esplicito al prompt.
+
+## Gate minimi prima del rilascio
+
+- `python -m py_compile web/blueprints/react_shell.py web/blueprints/studio_site.py tools/local_signer.py local_signer_mod/support_agent.py tools/dist/local_signer.py tools/dist/local_signer_mod/support_agent.py`
+- `node --check web/static/js/local-signer-monitor.js`
 - `node --check web/static/js/support_customer_room.js`
-- `pnpm --dir frontend exec tsc --noEmit --pretty false`
-- `pnpm --dir frontend build:vite`
-- `docker compose build app`
-- `docker compose up -d --no-deps --force-recreate app`
-- `/api/pronto` 200 su `http://127.0.0.1:8080`
-- `/admin/supporto-remoto` raggiungibile da `SUPERADMIN`
-- `/support/studio/sessione` raggiungibile da utente autenticato dello studio e non da anonimo
-- pulsante `Assistenza` visibile nella barra studio e collegato alla stanza cliente
-- link cliente pubblico funzionante
-- stanza operatore React funzionante
-- reverse proxy con WebSocket attivo
+- `python -m pytest -q tests/test_support_remote.py`
+- `python -m pytest -q tests/test_web_bootstrap.py::test_local_signer_monitor_globale_verifica_versione_e_installer`
+- `python -m pytest -q tests/test_build_dist.py tests/test_local_signer.py`
+- `pnpm --filter @iusentra/studio build`
+- `docker compose up -d --build app scheduler-worker ocr-worker`
+- `GET http://127.0.0.1:8080/api/pronto`
+- browser reale su `127.0.0.1:8080`: stanza cliente, stanza operatore e pagina studio senza errori console.

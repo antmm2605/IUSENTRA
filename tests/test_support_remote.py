@@ -461,7 +461,11 @@ def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path:
     topbar_source = Path("frontend/src/components/layout/TopBar.tsx").read_text(encoding="utf-8")
     assert "requestSupport" in topbar_source
     assert "fetch('/support/studio/sessione'" in topbar_source
-    assert "window.location.assign(String(payload.join_url))" in topbar_source
+    assert "customer_name: supportUser?.displayName || supportUser?.username || ''" in topbar_source
+    assert "customer_email: supportUser?.email || ''" in topbar_source
+    assert "studio_slug: supportTenant?.slug || ''" in topbar_source
+    assert "window.open(url, '_blank', 'noopener')" in topbar_source
+    assert "openSupportRoom(String(payload.join_url))" in topbar_source
     assert "Richiedi assistenza remota" in topbar_source
     assert "data-support-launch" not in topbar_source
     assert request_response.status_code == 200
@@ -784,12 +788,14 @@ def test_support_remote_operator_room_has_full_screen_control_panel(tmp_path: Pa
     operator_component = Path("frontend/src/components/SupportOperatorRoom.tsx").read_text(encoding="utf-8")
     assert "Stanza operatore" in operator_component
     assert "Richiedi controllo PC" in operator_component
+    assert "Local Signer aggiornato o agente IUSENTRA Assistenza" in operator_component
+    assert "Schermo cliente condiviso tramite Local Signer o agente locale" in operator_component
     assert 'id="remoteAudio"' in operator_component
     assert 'id="operatorMuteMicBtn"' in operator_component
     assert "Muta microfono" in operator_component
 
 
-def test_support_remote_pc_control_scripts_and_agent_are_separate_from_local_signer():
+def test_support_remote_pc_control_scripts_use_browser_screen_and_local_signer_fallback():
     operator_script = Path("web/static/js/support_operator_room.js").read_text(encoding="utf-8")
     customer_script = Path("web/static/js/support_customer_room.js").read_text(encoding="utf-8")
     agent_source = Path("pct/support_remote.py").read_text(encoding="utf-8")
@@ -805,12 +811,19 @@ def test_support_remote_pc_control_scripts_and_agent_are_separate_from_local_sig
     assert "remoteFrameMeta" in operator_script
     assert "remoteFrameMeta = {" in operator_script
     assert "getUserMedia({ audio: true, video: false })" in customer_script
+    assert "getDisplayMedia" in customer_script
+    assert "http://127.0.0.1:27273" in customer_script
+    assert "http://127.0.0.1:27272/support" in customer_script
+    assert "localSignerLatestVersion" in customer_script
+    assert "fetchLocalSigner(\"/update\"" in customer_script
+    assert "fetchLocalSigner(\"/support/status\"" in customer_script
+    assert "Local Signer pronto per il controllo PC" in customer_script
+    assert "Verifico Local Signer o agente IUSENTRA Assistenza sul PC" in customer_script
+    assert "La sola visualizzazione dello schermo funziona già dal browser." in customer_script
     assert "Microfono non autorizzato o non disponibile sul PC: assistenza avviata senza audio." in customer_script
     assert "Microfono non disponibile: assistenza avviata senza audio." in customer_script
     assert "return [];" in customer_script
     assert "localStream = audioTracks.length ? new MediaStream(audioTracks) : null" in customer_script
-    assert "Agente IUSENTRA Assistenza non raggiungibile" in customer_script
-    assert "getDisplayMedia" not in customer_script
     assert 'targetAddressSpace: "loopback"' in customer_script
     assert "await startAgentScreenShare();" in customer_script
     assert "wsOpenPromise = new Promise" in customer_script
@@ -850,6 +863,9 @@ def test_support_remote_pc_control_scripts_and_agent_are_separate_from_local_sig
     assert "IUSENTRA Support Remote Agent" in agent_source
     assert "SetCursorPos" in agent_source
     assert "SendInput" in agent_source
+    assert "from local_signer_mod.support_agent import SupportAgentFacade" in local_signer
+    assert 'elif path == "/support/status"' in local_signer
+    assert 'elif path == "/support/execute"' in local_signer
     assert "/remote-control/execute" not in local_signer
     assert "SupportPcAgentRequestHandler" not in local_signer
 
@@ -974,7 +990,11 @@ def test_support_remote_studio_launcher_opens_customer_room():
     assert 'id="customerMuteMicBtn"' in customer_page
     assert 'id="customerScreenPanel"' in customer_page
     assert 'id="customerChatPanel"' in customer_page
+    assert "Autorizzazioni assistenza" in customer_page
+    assert "Schermo condiviso: la visualizzazione" not in customer_page
+    assert "Il video del cliente comparir" not in customer_page
     assert 'id="customerChatPanel">\n        <div class="card-header fw-semibold">\n          <i class="bi bi-chat-dots' in customer_page
+    assert "Local Signer aggiornato o l'agente IUSENTRA Assistenza" in customer_page
     assert "Richiesta visualizzata dal SUPERADMIN" in customer_page
     assert "support-customer-shell--fullscreen" in customer_page
     assert "support-customer-chat--compact" in customer_page

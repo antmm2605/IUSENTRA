@@ -1,6 +1,7 @@
 (function () {
   const ROOT_ID = 'iusentra-local-signer-monitor';
   const STORAGE_KEY = 'iusentra-local-signer-installer-prompt';
+  let updatePromise = null;
 
   function root() {
     return document.getElementById(ROOT_ID);
@@ -102,6 +103,8 @@
     try {
       const response = await fetch(url, {
         method: 'GET',
+        cache: 'no-store',
+        mode: 'cors',
         signal: controller.signal,
       });
       return await response.json();
@@ -175,6 +178,12 @@
   }
 
   function renderBanner(kind, title, body, actions) {
+    if (title === 'Installazione Local Signer richiesta') {
+      title = 'Local Signer non raggiungibile';
+      body = 'Ho tentato avvio e aggiornamento automatico. Se il servizio non è installato su questo PC, apri il pacchetto ufficiale e poi IUSENTRA ricontrolla il collegamento.';
+    } else if (title === 'Aggiornamento Local Signer richiesto') {
+      body = 'Ho tentato l’aggiornamento automatico. Se Windows non ha autorizzato l’avvio, apri il pacchetto ufficiale qui sotto e poi verifica di nuovo.';
+    }
     const el = banner();
     el.className =
       'alert shadow position-fixed bottom-0 end-0 m-3 z-3 ' +
@@ -269,6 +278,10 @@
   }
 
   async function verifyAfterUpdate(cfg) {
+    if (updatePromise) {
+      return updatePromise;
+    }
+    updatePromise = (async function () {
     try {
       const updatePayload = await fetchJsonWithTimeout(cfg.baseUrl + '/update', 8000);
       if (!updatePayload || updatePayload.ok !== true) {
@@ -276,9 +289,6 @@
       }
     } catch (error) {
       requestUpdate(cfg);
-      window.setTimeout(function () {
-        openInstallerDownload(cfg);
-      }, 1500);
     }
     for (let attempt = 0; attempt < 70; attempt += 1) {
       await sleep(1200);
@@ -288,6 +298,12 @@
       }
     }
     return null;
+    })();
+    try {
+      return await updatePromise;
+    } finally {
+      updatePromise = null;
+    }
   }
 
   async function run(options) {
@@ -316,6 +332,20 @@
       if (!payload) {
         renderBanner(
           'warning',
+          'Aggiornamento automatico Local Signer',
+          'Il servizio non ha risposto al riavvio. Provo ad aprire il canale di aggiornamento locale e ricontrollo senza richiedere altri passaggi.',
+          [
+            { type: 'button', name: 'auto-update', label: 'Aggiorna automaticamente', className: 'btn-primary' },
+            { type: 'button', name: 'retry', label: 'Verifica di nuovo', className: 'btn-outline-primary' },
+          ]
+        );
+        const recovered = await verifyAfterUpdate(cfg);
+        if (recovered) {
+          hideBanner();
+          return { ok: true, version: recovered.versione || recovered.version || '', payload: recovered };
+        }
+        renderBanner(
+          'warning',
           'Installazione Local Signer richiesta',
           'Fase 3: il servizio locale non risponde ancora. Installa il pacchetto proposto, poi usa “Verifica di nuovo” per la fase 4.',
           [
@@ -323,6 +353,7 @@
             { type: 'button', name: 'retry', label: 'Verifica dopo installazione', className: 'btn-outline-primary' },
           ]
         );
+        openInstallerDownload(cfg);
         autoOpenInstallerOnce(cfg, 'missing');
         return { ok: false, reason: 'missing' };
       }
@@ -337,19 +368,24 @@
           installedVersion +
           ', versione richiesta ' +
           cfg.latestVersion +
-          '. Provo ad avviare automaticamente il pacchetto ufficiale e poi ricontrollo il servizio.',
+          '. Avvio automaticamente l’aggiornamento locale e poi ricontrollo il servizio.',
         [
           { type: 'button', name: 'auto-update', label: 'Aggiorna automaticamente', className: 'btn-primary' },
           { type: 'link', name: 'installer', label: installer.label, url: installer.url, className: 'btn-primary' },
           { type: 'button', name: 'retry', label: 'Verifica dopo aggiornamento', className: 'btn-outline-primary' },
         ]
       );
+      const updated = await verifyAfterUpdate(cfg);
+      if (updated) {
+        hideBanner();
+        return { ok: true, version: updated.versione || updated.version || '', payload: updated };
+      }
       if (cfg.autoInstallerPrompt && !installerPromptAlreadyShown(cfg, 'outdated-auto')) {
         rememberInstallerPrompt(cfg, 'outdated-auto');
-        const updated = await verifyAfterUpdate(cfg);
-        if (updated) {
+        const promptedUpdate = await verifyAfterUpdate(cfg);
+        if (promptedUpdate) {
           hideBanner();
-          return { ok: true, version: updated.versione || updated.version || '', payload: updated };
+          return { ok: true, version: promptedUpdate.versione || promptedUpdate.version || '', payload: promptedUpdate };
         }
       }
       renderBanner(

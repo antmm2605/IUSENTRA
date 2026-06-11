@@ -462,12 +462,20 @@ def _react_bootstrap_payload() -> dict[str, Any]:
 
     utente = getattr(g, "utente_corrente", None)
     if not utente:
-        return {"user": None, "permissions": [], "actions": {}}
+        return {"user": None, "tenant": None, "permissions": [], "actions": {}}
 
     ruolo = getattr(getattr(utente, "ruolo", ""), "value", getattr(utente, "ruolo", ""))
     nome = str(getattr(utente, "nome_completo", "") or getattr(utente, "username", "") or "").strip()
     username = str(getattr(utente, "username", "") or "").strip()
+    email = str(getattr(utente, "email", "") or "").strip()
     source = username or nome
+    tenant = getattr(g, "tenant", None)
+    tenant_payload = None
+    if tenant:
+        tenant_payload = {
+            "slug": str(getattr(tenant, "slug", "") or "").strip(),
+            "name": str(getattr(tenant, "nome", "") or getattr(tenant, "name", "") or "").strip(),
+        }
     permissions = sorted(
         {
             str(permission).strip()
@@ -480,9 +488,11 @@ def _react_bootstrap_payload() -> dict[str, Any]:
             "id": str(getattr(utente, "id", "") or ""),
             "username": username,
             "displayName": nome,
+            "email": email,
             "role": str(ruolo or "").strip(),
             "initials": _initials(source),
         },
+        "tenant": tenant_payload,
         "permissions": permissions,
         "actions": {
             "profile": url_for("profilo"),

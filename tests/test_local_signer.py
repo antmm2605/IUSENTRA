@@ -1650,13 +1650,32 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in launcher
 
 
-def test_local_signer_update_endpoint_avvia_installer_ufficiale_windows(monkeypatch, tmp_path):
+def test_local_signer_update_endpoint_preferisce_hot_update_sorgenti(monkeypatch):
+    module = _load_local_signer()
+
+    calls = {"hot_update": 0}
+
+    def _fake_hot_update():
+        calls["hot_update"] += 1
+        return {"ok": True, "metodo": "sorgenti", "versione_corrente": module.VERSION}
+
+    monkeypatch.setattr(module, "_aggiorna_sorgenti_local_signer", _fake_hot_update)
+
+    result = module._avvia_aggiornamento_local_signer()
+
+    assert result["ok"] is True
+    assert result["metodo"] == "sorgenti"
+    assert calls["hot_update"] == 1
+
+
+def test_local_signer_update_endpoint_usa_installer_ufficiale_se_hot_update_fallisce(monkeypatch, tmp_path):
     module = _load_local_signer()
     calls = {}
 
     monkeypatch.setattr(module.sys, "platform", "win32")
     monkeypatch.setattr(module.tempfile, "gettempdir", lambda: str(tmp_path))
     monkeypatch.setenv("IUSENTRA_LOCAL_SIGNER_UPDATE_URL", "https://app.iusentra.it/polisWeb/local-signer/setup/windows")
+    monkeypatch.setattr(module, "_aggiorna_sorgenti_local_signer", lambda: (_ for _ in ()).throw(RuntimeError("offline")))
 
     class _FakePopen:
         def __init__(self, args, **kwargs):
@@ -3865,6 +3884,7 @@ def test_download_moduli_local_signer_e_pubblico(tmp_path):
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py")
         pec = c.get("/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py")
+        support = c.get("/polisWeb/local-signer/download/local-signer-mod/support_agent.py")
         forbidden = c.get("/polisWeb/local-signer/download/local-signer-mod/../local_signer.py")
 
     assert r.status_code == 200
@@ -3874,6 +3894,10 @@ def test_download_moduli_local_signer_e_pubblico(tmp_path):
     assert pec.status_code == 200
     assert "pec_bridge.py" in pec.headers.get("Content-Disposition", "")
     assert "send_pec_local" in pec.data.decode("utf-8")
+    assert support.status_code == 200
+    assert "support_agent.py" in support.headers.get("Content-Disposition", "")
+    assert "class SupportAgentFacade" in support.data.decode("utf-8")
+    assert "/support/status" in support.data.decode("utf-8")
     assert forbidden.status_code == 404
 
 
@@ -3888,6 +3912,7 @@ def test_download_requirements_local_signer_e_pubblico(tmp_path):
     assert "attachment" in r.headers.get("Content-Disposition", "")
     assert "requirements_local_signer.txt" in r.headers.get("Content-Disposition", "")
     assert "cryptography" in r.data.decode("utf-8")
+    assert "pillow" in r.data.decode("utf-8").lower()
 
 
 def test_installer_local_signer_windows_ps1_legacy_restituisce_exe(tmp_path):
@@ -3938,7 +3963,9 @@ def test_installer_local_signer_macos_e_pubblico(tmp_path):
     assert "/polisWeb/local-signer/download" in body
     assert "/polisWeb/local-signer/download/visible-signature" in body
     assert "/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" in body
+    assert "/polisWeb/local-signer/download/local-signer-mod/support_agent.py" in body
     assert "zeep" in body
+    assert "pillow" in body.lower()
 
 
 def test_installer_local_signer_linux_e_pubblico(tmp_path):
@@ -3959,7 +3986,9 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
     assert "/polisWeb/local-signer/download" in body
     assert "/polisWeb/local-signer/download/visible-signature" in body
     assert "/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" in body
+    assert "/polisWeb/local-signer/download/local-signer-mod/support_agent.py" in body
     assert "zeep" in body
+    assert "pillow" in body.lower()
 
 
 def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_path):

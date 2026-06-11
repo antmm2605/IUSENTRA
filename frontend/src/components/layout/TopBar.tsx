@@ -11,6 +11,17 @@ import { IusTopBar } from '../iusentra'
 import type { TopbarCreateContext } from '../../types/topbar'
 
 type PanelName = 'create' | 'today' | 'notifications' | 'deadlines' | 'recent' | 'timer' | null
+type SupportBootstrap = {
+  user?: {
+    displayName?: string
+    username?: string
+    email?: string
+  } | null
+  tenant?: {
+    slug?: string
+    name?: string
+  } | null
+}
 
 function currentContext(path: string): TopbarCreateContext {
   const caseMatch = path.match(/^\/fascicoli\/([^/?#]+)/)
@@ -32,7 +43,24 @@ function todayLabel() {
   }).format(new Date())
 }
 
-export function TopBar({ onOpenMenu, activePath, supportEnabled = true }: { onOpenMenu: () => void; activePath: string; supportEnabled?: boolean }) {
+function openSupportRoom(url: string): boolean {
+  const opened = window.open(url, '_blank', 'noopener')
+  if (opened) return true
+  window.location.assign(url)
+  return false
+}
+
+export function TopBar({
+  onOpenMenu,
+  activePath,
+  supportEnabled = true,
+  bootstrap,
+}: {
+  onOpenMenu: () => void
+  activePath: string
+  supportEnabled?: boolean
+  bootstrap?: SupportBootstrap
+}) {
   const [openPanel, setOpenPanel] = useState<PanelName>(null)
   const [supportOpening, setSupportOpening] = useState(false)
   const [supportError, setSupportError] = useState('')
@@ -42,6 +70,8 @@ export function TopBar({ onOpenMenu, activePath, supportEnabled = true }: { onOp
   const requestSupport = async () => {
     if (supportOpening) return
     const contextLabel = `Richiesta aperta dalla barra dello studio: ${activePath || '/'}`
+    const supportUser = bootstrap?.user
+    const supportTenant = bootstrap?.tenant
     setSupportOpening(true)
     setSupportError('')
     try {
@@ -50,6 +80,10 @@ export function TopBar({ onOpenMenu, activePath, supportEnabled = true }: { onOp
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
+          customer_name: supportUser?.displayName || supportUser?.username || '',
+          customer_email: supportUser?.email || '',
+          studio_slug: supportTenant?.slug || '',
+          studio_nome: supportTenant?.name || '',
           context_label: contextLabel,
           practice_label: contextLabel,
           notes: contextLabel,
@@ -60,11 +94,11 @@ export function TopBar({ onOpenMenu, activePath, supportEnabled = true }: { onOp
         throw new Error(payload?.description || payload?.error || 'Richiesta assistenza non completata.')
       }
       if (payload.customer_entry && payload.join_url) {
-        window.location.assign(String(payload.join_url))
+        if (openSupportRoom(String(payload.join_url))) setSupportOpening(false)
         return
       }
       if (payload.operator_url) {
-        window.open(String(payload.operator_url), '_blank', 'noopener')
+        if (openSupportRoom(String(payload.operator_url))) setSupportOpening(false)
         return
       }
       throw new Error('Link assistenza non ricevuto.')

@@ -183,7 +183,12 @@ export const studioModules: StudioModuleConfig[] = [
   },
   {
     id: 'pst-acquisizione',
-    routes: ['/portali/pst/acquisizione', '/polisweb/acquisizione'],
+    routes: [
+      '/portali/pst/acquisizione',
+      '/polisweb/acquisizione',
+      '/importa-pratiche-studio-telematico',
+      '/import/quickorganizer',
+    ],
     title: 'Importa pratica da PST',
     section: 'PolisWeb / PST',
     subtitle: 'Pagina operativa per acquisire pratiche da PST con collegamento locale, file autorizzati e percorso guidato governato.',
@@ -196,12 +201,13 @@ export const studioModules: StudioModuleConfig[] = [
     ],
     cards: [
       { title: 'Acquisizione PST', body: 'Apri il percorso guidato PolisWeb / PST e verifica tutti i passaggi di importazione.', href: '/portali/pst/acquisizione', action: 'Apri acquisizione', icon: 'upload', tone: 'primary', meta: 'Guidato' },
+      { title: 'Importa pratiche da Studio Telematico', body: 'Carica il pacchetto esportato e collega fascicoli, soggetti, atti ed email alla pratica locale.', href: '/importa-pratiche-studio-telematico', action: 'Apri import', icon: 'upload', tone: 'purple', meta: 'Pacchetto' },
       { title: 'Checklist import PST', body: 'Controlla prerequisiti, mapping fascicolo e documenti prima dell importazione.', href: '/portali/pst/acquisizione#checklist-operativa', action: 'Verifica flusso', icon: 'briefcase', tone: 'success', meta: 'Presidio' },
       { title: 'Fascicoli', body: 'Controlla o crea la pratica locale prima di collegare documenti e buste.', href: '/fascicoli', action: 'Apri fascicoli', icon: 'folder', tone: 'warning', meta: 'Mapping' },
       { title: 'Centro telematico', body: 'Rientra nel quadro generale di PST, PDP, PAT e PTT.', href: '/telematico', action: 'Apri centro', icon: 'send', tone: 'purple', meta: 'Portali' },
     ],
     workflow: ['Verifica accesso locale', 'Seleziona fascicolo PST', 'Riconcilia documenti', 'Importa e controlla registro'],
-    links: [{ label: 'PolisWeb / PST', href: '/polisWeb' }, { label: 'Centro telematico', href: '/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }],
+    links: [{ label: 'PolisWeb / PST', href: '/polisWeb' }, { label: 'Centro telematico', href: '/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }, { label: 'Importa pratiche da Studio Telematico', href: '/importa-pratiche-studio-telematico' }],
   },
   {
     id: 'statistiche',

@@ -91,7 +91,8 @@ $moduleFiles = @(
     "ai_handlers.py",
     "pec_bridge.py",
     "security.py",
-    "server_bootstrap.py"
+    "server_bootstrap.py",
+    "support_agent.py"
 )
 foreach ($moduleFile in $moduleFiles) {
     $source = Join-Path $localSignerModDir $moduleFile
@@ -157,6 +158,7 @@ SourceFiles0=$escapedSource
 %FILE12%=
 %FILE13%=
 %FILE14%=
+%FILE15%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
@@ -173,6 +175,7 @@ FILE11=local_signer_mod__ai_handlers.py
 FILE12=local_signer_mod__pec_bridge.py
 FILE13=local_signer_mod__security.py
 FILE14=local_signer_mod__server_bootstrap.py
+FILE15=local_signer_mod__support_agent.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -226,9 +229,10 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handler
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -314,9 +318,10 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handler
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
 
 cat > "$SERVICE" <<EOF
 [Unit]

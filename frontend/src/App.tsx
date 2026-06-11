@@ -225,12 +225,17 @@ type ShellUserProfile = {
   id: string
   username: string
   displayName: string
+  email: string
   role: string
   initials: string
 }
 
 type ShellBootstrap = {
   user: ShellUserProfile | null
+  tenant: {
+    slug: string
+    name: string
+  } | null
   permissions: string[]
   actions: {
     profile?: string
@@ -310,7 +315,7 @@ function useVisibleTextGuard() {
   }, [])
 }
 
-const emptyShellBootstrap: ShellBootstrap = { user: null, permissions: [], actions: {} }
+const emptyShellBootstrap: ShellBootstrap = { user: null, tenant: null, permissions: [], actions: {} }
 
 function textFromRecord(record: Record<string, unknown>, key: string): string {
   return typeof record[key] === 'string' ? record[key].trim() : ''
@@ -334,6 +339,9 @@ function readShellBootstrap(): ShellBootstrap {
     const actionsPayload = root.actions && typeof root.actions === 'object' && !Array.isArray(root.actions)
       ? root.actions as Record<string, unknown>
       : {}
+    const tenantPayload = root.tenant && typeof root.tenant === 'object' && !Array.isArray(root.tenant)
+      ? root.tenant as Record<string, unknown>
+      : null
     const displayName = userPayload ? textFromRecord(userPayload, 'displayName') : ''
     const username = userPayload ? textFromRecord(userPayload, 'username') : ''
     const user = userPayload && (displayName || username)
@@ -341,12 +349,16 @@ function readShellBootstrap(): ShellBootstrap {
         id: textFromRecord(userPayload, 'id'),
         username,
         displayName: displayName || username,
+        email: textFromRecord(userPayload, 'email'),
         role: textFromRecord(userPayload, 'role'),
         initials: textFromRecord(userPayload, 'initials'),
       }
       : null
+    const tenantSlug = tenantPayload ? textFromRecord(tenantPayload, 'slug') : ''
+    const tenantName = tenantPayload ? textFromRecord(tenantPayload, 'name') : ''
     return {
       user,
+      tenant: tenantSlug || tenantName ? { slug: tenantSlug, name: tenantName } : null,
       permissions: stringList(root.permissions),
       actions: {
         profile: textFromRecord(actionsPayload, 'profile'),
@@ -1361,7 +1373,7 @@ export default function App() {
         <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)} bootstrap={shellBootstrap} appV2Navigation={appV2FlagProtectedPath}/>
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
-          <TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey} supportEnabled={Boolean(shellBootstrap.user)}/>
+          <TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey} supportEnabled={Boolean(shellBootstrap.user)} bootstrap={shellBootstrap}/>
           <Suspense fallback={<PageLoading/>}>
             <IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage}>
               {appV2UnknownRoute?<AppV2NotFoundPage/>:appV2FlagDenied?<FeatureUnavailablePage/>:isClientPortalStudioPage?<ClientPortalPage mode="studio"/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaImportPage?<AgendaImportPage/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isQuickOrganizerImportPage?<QuickOrganizerImportPage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isProfiloPage?<ProfiloPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isWorkflowAgentsRunPage?<AgentRunDetail/>:isWorkflowAgentsApprovalPage?<AgentApprovalQueue/>:isWorkflowAgentsHomePage?<WorkflowAgentsHome/>:isColdStartInterviewPage?<ColdStartInterviewPage/>:isLegalSkillsProfilePage?<PracticeProfilePage/>:isLegalSkillsRunPage?<LegalSkillRunPage/>:isLegalSkillsRunDetailPage?<SkillRunDetailPage/>:isLegalSkillsReviewQueuePage?<ReviewerQueuePage/>:isLegalSkillsCatalogPage?<LegalSkillsCatalogPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing} onRefresh={()=>refreshDashboard(true)} onSyncMailboxes={syncMailboxesNow}/>}

@@ -137,7 +137,7 @@ export default function SupportOperatorRoom({
         <div className="support-room__screen support-room__screen--operator" id="remoteScreen">
           <video id="remoteVideo" autoPlay playsInline />
           <audio id="remoteAudio" autoPlay />
-          <img id="remoteAgentFrame" className="support-room__agent-frame d-none" alt="Schermo cliente condiviso tramite agente locale" />
+          <img id="remoteAgentFrame" className="support-room__agent-frame d-none" alt="Schermo cliente condiviso tramite Local Signer o agente locale" />
           <div className="support-room__screen-empty" id="remoteVideoFallback">
             <Monitor size={34} />
             <span>In attesa dello schermo cliente. Appena il cliente avvia l'assistenza vedrai qui il suo desktop.</span>
@@ -157,7 +157,7 @@ export default function SupportOperatorRoom({
               {iconNode(<Copy size={15} />)}<span>Copia</span>
             </button>
           </div>
-          <p>Il controllo del PC richiede consenso separato del cliente e agente IUSENTRA Assistenza.</p>
+          <p>Il controllo del PC richiede consenso separato del cliente e Local Signer aggiornato o agente IUSENTRA Assistenza.</p>
         </article>
 
         <article className="iu-support-panel iu-support-panel--control">

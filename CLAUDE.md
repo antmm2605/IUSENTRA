@@ -420,6 +420,25 @@ Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazio
 - Tutte le date/ore **esposte in UI** devono usare formati italiani tramite i filtri template condivisi (`fmt_data`, `fmt_dataora`, `fmt_data_estesa`, ecc.), non `strftime('%B')` o `strftime('%A')` direttamente nei template.
 - Eccezione consentita: i valori tecnici per campi HTML `type=\"date\"`, `datetime-local`, attributi `data-*`, API o payload macchina possono restare in formato ISO.
 
+## Fuso orario e confronti datetime — REGOLA OBBLIGATORIA
+
+**L'utente lavora con date e orari italiani: il fuso di riferimento di TUTTA la logica utente è `Europe/Rome`** (agenda, scadenziario, dashboard/Panoramica, top bar, promemoria, calcolo termini). Lezione dell'11/06/2026: la Panoramica (`/api/v1/ui/dashboard`) crashava in produzione sul confronto tra datetime con e senza fuso, e l'eccezione ripetuta saturava i worker dell'app (la cache breve memorizza solo le costruzioni riuscite, quindi ogni richiesta rifaceva il lavoro da capo).
+
+Regole:
+1. **Mai confrontare datetime naive con datetime aware.** Prima di ogni confronto/sottrazione normalizzare entrambi i lati. Pattern condiviso:
+   ```python
+   from zoneinfo import ZoneInfo
+   ROME_TZ = ZoneInfo("Europe/Rome")
+
+   def _rome_aware(value: datetime) -> datetime:
+       return value.replace(tzinfo=ROME_TZ) if value.tzinfo is None else value.astimezone(ROME_TZ)
+   ```
+   I dati persistiti (JSON agenda/scadenze) possono contenere stringhe sia naive sia con offset: il parsing deve gestire entrambe.
+2. **"Oggi" e "adesso" lato utente** = `datetime.now(ROME_TZ)` / `datetime.now(ROME_TZ).date()`, mai `datetime.utcnow()` o `date.today()` nudi quando il confine di giornata conta (scadenze di oggi, agenda del giorno, conteggi della top bar): il server gira in UTC e tra mezzanotte e le 2 sbaglierebbe giorno.
+3. **Input utente in formato italiano** (`gg/mm/aaaa`) dove c'è inserimento manuale; ISO 8601 solo per campi tecnici, API e payload macchina (vedi sezione UI sopra).
+4. **Gli endpoint caldi (Panoramica, top bar) non devono mai propagare eccezioni di normalizzazione date**: gestire il dato sporco (skip della riga con log), perché un'eccezione ripetuta annulla la cache breve e satura i worker.
+5. Nei test di regressione su agenda/scadenze includere sempre almeno un caso con datetime aware e uno naive mescolati.
+
 ## Versioning — REGOLA OBBLIGATORIA
 
 **Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti i file versionati:**

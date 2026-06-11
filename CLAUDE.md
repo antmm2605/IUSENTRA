@@ -67,13 +67,48 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
 
 ## Progetto
 
-**IUSENTRA** — gestionale per studi legali (Python/Flask).
+**IUSENTRA** — gestionale web multi-dominio per studi legali italiani (Python/Flask + React).
 
-- Backend: `pct/` — modelli dati e logica di business (61 moduli)
-- Frontend: `web/app.py` (210+ route Flask) + `web/templates/` (177 template Jinja2) + `web/static/`
-- Persistenza: file JSON per clienti, fascicoli, agenda, ecc. + SQLite per full-text search
-- Stack: Python 3.12, Flask 3, Bootstrap 5, Bootstrap Icons, Gunicorn + gevent, Nginx
+- Dominio core: `pct/` (~280 moduli + 13 sottopacchetti, ~183K righe) — logica legale, telematica, economica
+- Web: `web/app.py` è un entry point di ~40 righe; il wiring vive in `web/bootstrap/` (53 moduli), gli ingressi in `web/blueprints/` (47), la logica applicativa in `web/services/` (149, di cui ~60 bridge React)
+- Lex AI: `lex/` (461 file) — motore RAG fail-closed con guardie anti-invenzione (vedi «Principio delle fonti certe»)
+- Frontend: `frontend/src/` (React + Vite, ~370 file) servito dalla shell `web/blueprints/react_shell.py`; i template Jinja2 in `web/templates/` restano per le aree legacy (lato studio/prodotto è full React)
+- Persistenza: JSON tenant-aware + SQLite dedicati (notifiche, ricerca, OCR, telematico, presidio PEC) + PostgreSQL opzionale
+- Stack: Python 3.12, Flask 3, React 18 + Vite, Gunicorn + gevent, Caddy (Hetzner) / Nginx (locale), Redis, APScheduler, Ollama opzionale
 - Versione corrente: leggere sempre `__version__` in `pct/__init__.py` (unica fonte di verità — non fidarsi di numeri di versione hardcoded nella documentazione, invecchiano)
+
+## Principio delle fonti certe — REGOLA FONDANTE
+
+**IUSENTRA è un software per studi legali: ogni funzionalità esiste perché esiste una normativa italiana precisa.** Niente viene inventato: comportamenti, calcoli, flussi e testi derivano da norme, specifiche ministeriali versionate e cataloghi ufficiali. Ogni nuova funzionalità deve dichiarare la propria base normativa (nel docstring/commento e, se rilevante, in `docs/specs/ministero/`); se una base normativa non esiste, la funzionalità non si implementa.
+
+### Ancoraggio funzione → norma
+
+| Dominio | Moduli chiave | Norme di riferimento |
+|---|---|---|
+| Deposito civile PCT (busta `.enc`, DatiAtto.xml, PEC) | `pct/deposito.py`, `busta.py`, `pec.py`, `validazione.py` | D.M. 44/2011 (artt. 12, 14, 18, 34) + Specifiche DGSIA rev. 04.01.24; D.P.R. 68/2005; D.L. 179/2012 |
+| Firma digitale CAdES/PAdES, PKCS#11 | `pct/firma.py`, `firma_pkcs11.py`, `firme_cades.py` | CAD D.Lgs. 82/2005; eIDAS 910/2014; D.M. 44/2011 art. 12 |
+| Deposito penale PDP | `pct/pdp.py`, `pdp_penale_workflow.py` | D.Lgs. 150/2022 (Cartabia); D.M. 217/2023; art. 56-bis disp. att. c.p.p. |
+| Processo amministrativo PAT/SIGA | `pct/pat.py` | D.Lgs. 104/2010 art. 136; D.P.C.M. 16/02/2016; D.P.C.S.G.A. 28/07/2021 |
+| Notifiche in proprio via PEC | `pct/notifiche_legali.py`, `notification_proof_matrix.py` | L. 53/1994 art. 3-bis; art. 196-undecies disp. att. c.p.c.; Corte Cost. 75/2019 (fasce orarie) |
+| Contributo unificato e spese | `pct/tariffario.py`, `strumenti_legali.py` | D.P.R. 115/2002 art. 13 (scaglioni versionati in docs/specs) |
+| Compensi forensi e preventivi | `pct/motore_preventivo.py`, `compensi_a_tempo.py`, `tariffario_catalogo.py` | D.M. 55/2014; D.M. 147/2022; equo compenso CDF art. 25-bis |
+| Mediazione e ADR | `pct/mediazione_dm150.py`, `normative_tables.py` | D.Lgs. 28/2010; D.M. 150/2023; D.L. 132/2014 |
+| Termini processuali e udienze | `pct/termini_processuali.py`, `scadenziario.py` | c.p.c. (artt. 127-ter, 171-ter, 183); D.Lgs. 149/2022 |
+| Fatturazione elettronica | `pct/fattura_pa.py`, `fatturazione.py` | FatturaPA v1.3.1 (Agenzia Entrate), canali SdI |
+| Privacy | `pct/privacy.py` | GDPR 2016/679 art. 30; D.Lgs. 196/2003 |
+| Codici oggetto/XSD PST e uffici | `pct/pst_catalog.py`, `procedure_xsd_mapper.py`, `uffici_giudiziari.py` | XSD/DTD ministeriali versionati; ReGInDE; Provv. DGSIA 7/8/2024 |
+| Template atti | `pct/template_atti_legal_sources.py`, `template_cartabia_rules.py`, `template_normative_compliance.py` | 50+ fonti citate per modello (codici, leggi speciali) |
+
+### Specifiche ministeriali versionate
+
+`docs/specs/ministero/`: Specifiche Tecniche DGSIA D.M. 44/2011 (rev. 04.01.24 + rettifiche), Specifiche PPT D.M. 217/2023, DTD 2018 (DatiAtto, IndiceBusta, Comunicazione, EsitoAtto), XSD SICID/SIGP/SICI versionate, WSDL Catalog PST v1.52, Documentazione servizi web PST v1.69, vademecum PDP, matrice probatoria notifiche, e `fonti_ufficiali/<data>/` con 40+ PDF/HTML scaricati e datati (D.P.R. 115/2002, FatturaPA, Garante, CNF…).
+
+### Meccanismi che impediscono comportamenti senza base normativa
+
+- **Cataloghi ufficiali bloccanti**: codici oggetto PST governati (`pct/data/cataloghi/`), 648 uffici con invarianti verificate, tariffe come snapshot datati, `FonteOperativa` con URL ufficiale + versione + data consultazione (`pct/normative_tables.py`).
+- **Fail-closed nel telematico**: canale sconosciuto → `UnknownChannelError`; procedura sconosciuta → `UnknownProcedureError`; controlli bloccanti su relata firmata, PEC mittente validata, ricevute complete (`pct/notifiche_legali.py`, `deposito_guidato.py`, `portal_direct_guard.py`).
+- **Lex non inventa mai**: pipeline `lex/orchestrator_workflow.py` con pre-guard (permessi/tenant/privacy) e post-guard — `lex/guards/hallucination_guard.py` estrae ogni riferimento giuridico dalla bozza e blocca quelli non supportati dalle evidenze; `citation_guard.py` e `legal_reference_guard.py` esigono citazioni e riferimenti verificati (ECLI, trust class A, URL ufficiale) nei workflow normativa/giurisprudenza/prassi; se le fonti mancano, Lex si astiene con messaggio controllato invece di rispondere. Catalogo domini ufficiali in `lex/research/official_sources.py`; contratti di risposta per workflow in `lex/contracts.py`.
+- **Evidenze probatorie**: `audit/` (hash-chain, Merkle tree, marca RFC 3161, WORM) e `pct/evidence_vault.py` rendono ricostruibile ogni azione rilevante.
 
 ## Modularizzazione governabile — Regola obbligatoria
 
@@ -119,24 +154,49 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
 
 ## Architettura del progetto
 
+Ricognizione completa dell'11/06/2026 (numeri reali; il vecchio schema «web/app.py ~9200 righe» non esiste più).
+
 ```
 iusentra/
-├── pct/                    # Pacchetto Python core (logica di business)
+├── pct/                      # Dominio legale core: ~280 moduli + 13 sottopacchetti (~183K righe)
 ├── web/
-│   ├── app.py              # Flask app (210+ route, ~9200 righe)
-│   ├── templates/          # 177 template Jinja2 organizzati per feature
-│   └── static/             # CSS/SCSS/JS/icone/manifest PWA
-├── tests/                  # 34 moduli di test (pytest)
-├── tools/                  # Local signer per Windows/Mac/Linux
-├── scripts/                # Script di build e utilità
-├── Dockerfile              # Build multi-stage (builder → sass → runtime)
-├── docker-compose.yml      # Stack locale (Flask + Nginx)
-├── nginx.conf              # Reverse proxy, gzip, SSE
-├── railway.toml            # Deploy Railway.app
-├── render.yaml             # Deploy Render.com
-├── wsgi.py                 # Entry point WSGI
-└── setup.py                # Packaging Python
+│   ├── app.py                # Entry point (~40 righe): delega tutto ai moduli sotto
+│   ├── bootstrap/            # 53 moduli di wiring/route per dominio (factory, registry, route)
+│   ├── blueprints/           # 47 blueprint API/UI (api_v1_react, react_shell, topbar, pec_*, admin…)
+│   ├── services/             # 149 servizi applicativi, di cui ~60 react_*_bridge.py
+│   ├── templates/            # Template Jinja2 (aree legacy; lato studio/prodotto è full React)
+│   └── static/               # CSS compilati da SCSS, bundle React in static/react/
+├── lex/                      # Motore Lex AI: 461 file, 30+ sottopacchetti (vedi sezione lex/)
+├── core/                     # Hardening condiviso: config, database, cache Redis, jobs RQ, health, metrics, security/, resilience/, storage/
+├── audit/                    # Evidenze legal-grade: hash-chain, Merkle, RFC 3161, WORM S3
+├── legal_deposit/            # Policy e validazione pre-deposito (office_rules, penal_rules, payment_policies, orchestrator)
+├── legal_document_ingestion/ # Intake documentale forense: ZIP sicuri, MIME, hash evidence, audit
+├── legal_ocr/                # OCR legal-grade (engines, pipeline, postprocess)
+├── legal_intelligence/       # Motore giornaliero fonti ufficiali (fetcher, detector, impact, store)
+├── legal_regex/              # Regex versionate per OCR/fascicoli
+├── integrations/             # SIGP/PST XML+sync, Lex deep research sidecar (privacy guard)
+├── frontend/                 # React + Vite (~370 file in src/), build in web/static/react/
+├── packages/                 # Workspace pnpm (ui, config, api-client)
+├── tests/                    # 100+ moduli pytest
+├── tools/                    # Local Signer (build, dist multi-OS)
+├── scripts/                  # Generatori artefatti CI, gate locale, utilità
+├── deploy/hetzner/           # Compose produzione (vedi tabella processi)
+├── docs/specs/ministero/     # Specifiche DGSIA/XSD/DTD/WSDL versionate (fonti certe)
+├── db/ + alembic/            # SQL hardening e migrazioni
+├── wsgi.py / gunicorn.conf.py / worker.py   # Entry web (gevent), worker RQ
+└── pct/scheduler_worker.py / pct/ocr_worker.py  # Processi worker dedicati
 ```
+
+### Processi runtime (deploy Hetzner)
+
+| Processo | Avvio | Ruolo |
+|---|---|---|
+| app | Gunicorn gevent (`wsgi.py`, WEB_CONCURRENCY=3) | HTTP, shell React, API `/api/v1/ui/*` |
+| scheduler-worker | `python -m pct.scheduler_worker` | TUTTI i job periodici (console Pianificazioni) |
+| ocr-worker | `python -m pct.ocr_worker` | Coda OCR documenti (thread pool) |
+| rq-worker (profilo hardening) | `python worker.py` | Code RQ: default, documents, email, ocr, imports |
+| redis / caddy | container | cache + rate limit / HTTPS |
+| ollama (profilo ai) | container | AI locale (chat `gemma3:1b` + embedding `embeddinggemma:300m`) |
 
 ### Moduli principali in pct/
 
@@ -178,6 +238,46 @@ iusentra/
 | `calendar_sync.py` | Sincronizzazione iCal (Google Calendar/Outlook) |
 | `portale.py` | Portale self-service per clienti |
 | `workflow_onboarding.py` | Onboarding nuovi clienti |
+
+### Moduli pct/ oltre la tabella storica (delta ricognizione 11/06/2026 — ~170 moduli)
+
+Raggruppati per dominio (una riga = un gruppo; aprire i file per il dettaglio):
+- **PEC/presidio**: `pec_pipeline.py` (presidio audit-grade: ingest MIME → parse → classify → OCR → signcheck → validate → link fascicolo, scadenze automatiche), `pec_control_tower.py`, `pec_ocr_pipeline.py`, `pec_legal_workflow.py` (classificatore famiglie/eventi/registri RG), `email_client.py`, `email_attachments.py`, `imap_runtime.py`, `polling_depositi.py`, `notification_proof_matrix.py`, `notifica.py`, `notifiche_wa.py`
+- **Deposito/conformità**: `deposito_guidato.py`, `telematic_deposit_workflow.py`, `digital_signature_workflow.py`, `validazione.py` (PDF/A), `responsabile_conformita.py`, `post_acceptance_obligations.py`, `evidence_vault.py`, `portal_direct_guard.py`, `procedure_xsd_mapper.py`, `deposito_simulazione.py`, `rfc3161.py`, `sigit.py` (PTT tributario)
+- **Aggiornamenti legali**: `legal_update_*.py` (12 moduli: pipeline, repository, autofetch fase 9 fonti verdi, job queue, batch runner, parser fonti, verifica web, health) + `legal_coverage_*.py` (6: audit → gap → draft AI → review → publish)
+- **Giurisprudenza/ricerca**: `giurisprudenza*.py` (4), `legal_intelligence(_repository).py`, `legal_practice_research_matrix.py`, `legal_reference_extractor.py`, `legal_relevance.py`, `legal_context_questions.py`
+- **Template atti**: 13 moduli `template_*` (catalogo master versionato, fonti legali per modello, regole Cartabia, conformità normativa, prefill, compiler bindings)
+- **Economia**: `motore_preventivo.py`, `tariffario(_catalogo).py`, `tassonomia_preventivi.py`, `economic_dashboard.py`, `economic_pipeline.py`, `economico_context.py`, `compensi_a_tempo.py`, `fattura_pa.py`, `mediazione_dm150.py`
+- **Procedure/pratica**: `procedure_lifecycle*.py`, `procedure_knowledge_*.py`, `procedure_source_*.py`, `practice_profiles.py`, `pratiche_collegate_catalog.py`, `termini_processuali.py`, `golden_paths.py`, `workflow_{pipeline,commerciale,onboarding}.py`
+- **PST/portali**: `pst_catalog.py`, `pst_services.py`, `pst_servizi_catalogo.py`, `legal_platform_{catalog,seed}.py`, `pdp_penale_workflow.py`
+- **AI locale**: `local_ai.py` (Ollama, RAG fascicoli con indicizzazione incrementale), `local_ai_runtime.py`, `assistente_redazionale.py`, `workspace_intelligente.py`
+- **Dati/infrastruttura**: `database.py`, `storage{,_postgres,_migration*}.py`, `core_storage_backend.py`, `postgres_runtime_support.py`, `cache.py`, `path_security.py`, `utf8_integrity.py`, `sync*.py`, `territorio_italia.py`, `codice_fiscale.py`, `runtime_{env,metrics,resilience}.py`, `operational_resilience*.py`, `scheduler_registry.py` (console Pianificazioni + agenti delegati)
+- **Calendari**: `calendar_sync_engine.py`, `calendar_{bindings,credentials,conflicts}.py`, `cal_token.py`, `ical(_import).py` + provider in `calendar_providers/` (Google, Microsoft, Apple CalDAV, WebCal)
+- **Studio/sito/supporto**: `studio_site*.py` (5), `studio_timbro.py`, `studio_demo.py`, `installation_*.py` (3), `support_{remote,repository}.py`, `product_governance.py`, `cli(_operational).py`, `client_portal.py`, `applicazioni_*.py` (3), `catalogo_strutturale.py`
+
+### Sottopacchetti pct/
+
+`practice_engine/` (19 moduli: regia operativa fascicolo — state machine, checklist, deadlines, deposit orchestrator, evidence pack), `editor_ai/` (11), `document_intelligence/` (12), `global_search/` (13), `guida_pratica/` (KB 22MB + 104 moduli → usare SEMPRE `get_guida_pratica_service()` singleton, mai `GuidaPraticaService()` diretto nei percorsi runtime), `notifications/` (centro notifiche + web push), `calendar_providers/`, `legal_rules/` (YAML Cartabia/PAT/PEC/PCT), `legal_sources/`, `template_atti_catalogo_data/` (asset JSON)
+
+### lex/ — Motore Lex AI (fail-closed)
+
+Flusso domanda: `routes.py` → `service.py` → `orchestrator.py` → **`orchestrator_workflow.run_workflow()`**: pre-guard (permessi/tenant/privacy) → retrieval → bozza LLM → post-guard → risposta. Sottopacchetti chiave: `retrieval/` (orchestrator + ranker + 18 sorgenti in `retrieval/sources/`: fascicoli, agenda, scadenziario, documenti, giurisprudenza, normative, legal_updates, guida_pratica, official_web, studio_database, telematico, preventivi…), `guards/` (29 guardie: hallucination, citation, legal_reference, permission, tenant, PII, lingua italiana…), `contracts.py` (AnswerContract per workflow: normativa/giurisprudenza esigono citazioni + fonti ufficiali con astensione ammessa; termini_processuali = provider deterministico), `operational_knowledge/` (source registry RBAC + micro-agenti notturni + tools), `research/` (ricerca pubblica governata, catalogo 26+ domini ufficiali), `router.py` (12 priorità di intent), `gateway/` + `providers/` (Ollama/deterministico), `memory/`, `telemetry/` (audit), `prompts/`, `workflows/`, `formatting/` (AnswerBuilder).
+
+### web/ — bootstrap, blueprint, servizi
+
+- `web/bootstrap/` (53): `flask_app_factory.py`, `app_wiring.py`, `runtime_bundle.py`, `blueprint_registry.py`, route per dominio (`fascicoli_*`, `clienti_routes`, `deposito_routes`, `telematico_*`, `scheduler_admin`, `react_route_gate`…)
+- `web/blueprints/` (47): `api_v1_react.py` (payload `/api/v1/ui/*`), `react_shell.py` (shell + route→componente), `topbar.py`, `pec_pipeline_api.py`, `pec_control_tower_api.py`, `legal_intelligence.py`, `global_search.py`, admin vari, portali
+- `web/services/` (149): ~60 `react_*_bridge.py` (un bridge per area → `build_react_*_payload()`), runtime per dominio (`fascicoli_runtime`, `mailbox_sync_runtime`, `pec_pipeline_runtime`, `telematico_runtime`, `local_ai_runtime`…), 18 moduli `assistente_*`, superfici admin (`scheduler_admin_surface`, `legal_update_surface`…), cache (`react_dashboard_cache`, `react_payload_cache`), `topbar_*`
+
+### frontend/ — React
+
+Shell: `web/blueprints/react_shell.py` registra route→componente (`_ROUTE_COMPONENTS`) e passa bootstrap (utente, permessi, feature flag). Pagine lazy in `frontend/src/components/*Page.tsx` (caricate via `lazyPage()` con auto-reload sui chunk di deploy precedenti), feature in `src/features/`, hook in `src/hooks/` (topbar: notifiche/scadenze), API client in `src/lib/apiClient.ts`, 77 feature flag in `src/lib/featureFlags.ts`. Design system: `src/components/ui/` (Radix + CVA, **inline style vietati** — gate CI). Dati: ogni pagina chiama `/api/v1/ui/<area>` servito dal bridge corrispondente.
+
+### Persistenza reale
+
+- JSON tenant-aware in `/data/tenants/<storage_key>/…` (agenda, clienti, fascicoli, soggetti, scadenze, parcelle, preventivi, messaggi, email, auth/audit, portale, template_atti, intelligence/…)
+- SQLite dedicati: `notifications.db`, `search/index.db`, `ocr_jobs.db`, `telematico/workflow.db`, `email/pec_audit.sqlite` (presidio PEC), `intelligence/scheduler_registry.sqlite`, RAG `local_ai`, archivi Normattiva/Gazzetta/lex_sources
+- PostgreSQL opzionale via `DATABASE_URL` (`pct/postgres_runtime_support.py`); parità struttura SQLite/PostgreSQL obbligatoria (vedi AGENTS.md)
 
 ### Struttura template web/templates/
 

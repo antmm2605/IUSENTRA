@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.251.33 - 2026-06-11
+
+- Migration Center (import multi-gestionale, PR 1/N — fondamenta backend in sola anteprima/dry-run): nuovo pacchetto `pct/importers/` (base, registry, validators, dedup, staging, commit, rollback + adapter `generic_csv`). Flusso parse→valida→deduplica→piano di commit, con anteprima sicura (nessun path/segreto). Default dry-run: nulla viene scritto sui dati reali finché non si approva il commit con un sink esplicito (non ancora collegato ai repository); record con campi obbligatori mancanti o CF non valido restano `invalid` e non vengono mai committati; deduplica per chiave naturale (CF/P.IVA, RG/anno, numero fattura) sia intra-batch sia verso i dati già presenti; rollback via ledger delle creazioni. Documentato in `docs/MIGRATION_CENTER.md`. I sink reali tenant-aware, gli adapter gestionali (Studio Telematico/Cliens/Kleos/Netlex/EasyLex/Quadra) e le API/UI arrivano nei PR successivi.
+
 ## 2.251.32 - 2026-06-11
 
 - OCR legale — esportazioni strutturate, NER e motori ensemble (estensione engine-independent di `legal_ocr/`): nuovi `legal_ocr/alto.py` (ALTO-XML v4 con coordinate e confidenza dai token), `legal_ocr/tables.py` (ricostruzione tabellare da coordinate, celle multi-parola unite via bande occupate, export CSV/HTML), `legal_ocr/ner_legal.py` (entità legali IT deterministiche: NumeroRuolo/R.G., Uffici, Parti, Date, Riferimenti normativi — non inventa, riporta il testo trovato). L'evidenza del documento espone ora `alto_xml_path`, `tables` e `legal_entities`, con evento `ocr.structured_export` nella audit-chain.

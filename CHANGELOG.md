@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.251.36 - 2026-06-11
+
+- Portale Cliente — accesso sicuro magic-link + OTP (primitiva backend): nuovo `pct/client_portal_access.py` con `PortalAccessManager`. Magic-link opaco generato con `secrets`, salvato solo come hash, a tempo (TTL) e monouso; sfida OTP a tempo con limite tentativi (oltre la soglia la sfida è bloccata e nemmeno l'OTP corretto la sblocca); confronti a tempo costante; nessun segreto in chiaro nello store; storage-agnostico (`AccessStore` iniettabile, tenant-aware in produzione); tenant/cliente/pratica risolti lato server dal grant emesso dallo studio; revoca disponibile. Costruito sopra la filosofia del login guard dello studio. Consegna OTP sul canale, persistenza tenant-aware, aggancio alla sessione del portale ed endpoint pubblici con rate limit nei PR successivi. Documentato in `docs/PORTALE_CLIENTE_ACCESSO.md`.
+
 ## 2.251.35 - 2026-06-11
 
 - KPI / controllo di gestione (issue #35, prima fase: motore di calcolo backend): nuovo `pct/kpi/engine.py` con `compute_kpis(...)` che produce il cruscotto direzionale dai dati di dominio — pratiche aperte/chiuse e valore, scadenze critiche/scadute, udienze 30/60/90, economia (parcelle emesse, incassato, insoluto, insoluto scaduto, WIP), tempo lavorato e non fatturato per fascicolo e per professionista, marginalità per cliente e rischio operativo per fascicolo (score scadenze scadute + udienza imminente → basso/medio/alto). Tutte le soglie temporali in `Europe/Rome` con parsing tollerante a date IT/ISO e importi IT/tecnici; nessun crash su campi mancanti o datetime misti naive/aware. Puro e deterministico (8 test). Wiring tenant-aware ai repository, endpoint `/api/v1/ui/statistiche` con export sicuro e drilldown React nei PR successivi. Documentato in `docs/KPI_CONTROLLO_GESTIONE.md`.

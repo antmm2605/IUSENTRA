@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p7.json",
+  "sha256": "4DAAFF97F8FC8FA6967C474880ADB924268C1A5AEF3DBDEB345C36D20A8897D4",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512320",
+    "512325",
+    "512330",
+    "512335",
+    "512340"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_STABILE_ORGANIZZAZIONE_IN_ITALIA_ACCERTAMENTO_E_CONTESTAZIONE_ART_162_DP_512320",
+    "GUIDA_REGIME_FORFETTARIO_ACCESSO_CAUSE_DI_ESCLUSIONE_E_CONTESTAZIONI_FISCALI_L_512325",
+    "GUIDA_CREDITO_D_IMPOSTA_PER_IMPOSTE_PAGATE_ALL_ESTERO_CALCOLO_LIMITE_E_CONTEST_512330",
+    "GUIDA_RESPONSABILIT_TRIBUTARIA_DEL_LIQUIDATORE_E_DEGLI_AMMINISTRATORI_PER_DEBI_512335",
+    "GUIDA_TASSA_AUTOMOBILISTICA_REGIONALE_CONTESTAZIONE_RIMBORSO_E_PRESCRIZIONE_D__512340"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512320",
+      "codice_integrato": "GUIDA_STABILE_ORGANIZZAZIONE_IN_ITALIA_ACCERTAMENTO_E_CONTESTAZIONE_ART_162_DP_512320",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512325",
+      "codice_integrato": "GUIDA_REGIME_FORFETTARIO_ACCESSO_CAUSE_DI_ESCLUSIONE_E_CONTESTAZIONI_FISCALI_L_512325",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512330",
+      "codice_integrato": "GUIDA_CREDITO_D_IMPOSTA_PER_IMPOSTE_PAGATE_ALL_ESTERO_CALCOLO_LIMITE_E_CONTEST_512330",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512335",
+      "codice_integrato": "GUIDA_RESPONSABILIT_TRIBUTARIA_DEL_LIQUIDATORE_E_DEGLI_AMMINISTRATORI_PER_DEBI_512335",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512340",
+      "codice_integrato": "GUIDA_TASSA_AUTOMOBILISTICA_REGIONALE_CONTESTAZIONE_RIMBORSO_E_PRESCRIZIONE_D__512340",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

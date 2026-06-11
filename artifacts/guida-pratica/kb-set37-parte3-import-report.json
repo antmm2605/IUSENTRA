@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p3.json",
+  "sha256": "7C3A6645FEC9A0550F63D9A5B358D621460B4F10A73284F465DF99CDBE3BA851",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "413165",
+    "413170",
+    "413175",
+    "413180",
+    "413185"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SOTTRAZIONE_INTERNAZIONALE_DI_MINORI_PROCEDURA_DI_RIMPATRIO_CONV_L_AIA_2_413165",
+    "GUIDA_AFFIDAMENTO_CONDIVISO_INADEMPIMENTO_DEGLI_ACCORDI_E_MODIFICA_DELLE_CONDI_413170",
+    "GUIDA_DECADENZA_E_LIMITAZIONE_DELLA_RESPONSABILIT_GENITORIALE_TUTELE_DEL_MINOR_413175",
+    "GUIDA_ADOZIONE_NAZIONALE_REQUISITI_PROCEDURA_E_CONTROVERSIE_L_184_1983_COME_MO_413180",
+    "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_MSNA_TUTELA_AFFIDAMENTO_E_ACCOGLIENZA__413185"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413165",
+      "codice_integrato": "GUIDA_SOTTRAZIONE_INTERNAZIONALE_DI_MINORI_PROCEDURA_DI_RIMPATRIO_CONV_L_AIA_2_413165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413170",
+      "codice_integrato": "GUIDA_AFFIDAMENTO_CONDIVISO_INADEMPIMENTO_DEGLI_ACCORDI_E_MODIFICA_DELLE_CONDI_413170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413175",
+      "codice_integrato": "GUIDA_DECADENZA_E_LIMITAZIONE_DELLA_RESPONSABILIT_GENITORIALE_TUTELE_DEL_MINOR_413175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413180",
+      "codice_integrato": "GUIDA_ADOZIONE_NAZIONALE_REQUISITI_PROCEDURA_E_CONTROVERSIE_L_184_1983_COME_MO_413180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413185",
+      "codice_integrato": "GUIDA_MINORE_STRANIERO_NON_ACCOMPAGNATO_MSNA_TUTELA_AFFIDAMENTO_E_ACCOGLIENZA__413185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

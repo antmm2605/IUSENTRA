@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p2.json",
+  "sha256": "7E42637D8F2EAB668A1ED37D0F986AC4E8E40647BB5D2538EEEC80107D684084",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "160365",
+    "160370",
+    "160375",
+    "160380",
+    "160385"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ROVINA_DI_EDIFICIO_RESPONSABILIT_OGGETTIVA_DEL_PROPRIETARIO_VERSO_I_TERZ_160365",
+    "GUIDA_DANNI_DA_INCENDIO_PROPAGATOSI_RESPONSABILIT_DEL_RESPONSABILE_DELL_INNESC_160370",
+    "GUIDA_RESPONSABILIT_DELLA_PA_PER_CADUTA_DEL_PEDONE_SU_STRADE_PUBBLICHE_ONERE_D_160375",
+    "GUIDA_DANNO_BIOLOGICO_E_NON_PATRIMONIALE_LIQUIDAZIONE_TABELLARE_E_CRITERI_DELL_160380",
+    "GUIDA_RESPONSABILIT_DEL_MEDICO_ESTETICO_E_DEL_CHIRURGO_PLASTICO_OBBLIGAZIONE_D_160385"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160365",
+      "codice_integrato": "GUIDA_ROVINA_DI_EDIFICIO_RESPONSABILIT_OGGETTIVA_DEL_PROPRIETARIO_VERSO_I_TERZ_160365",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160370",
+      "codice_integrato": "GUIDA_DANNI_DA_INCENDIO_PROPAGATOSI_RESPONSABILIT_DEL_RESPONSABILE_DELL_INNESC_160370",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160375",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_PA_PER_CADUTA_DEL_PEDONE_SU_STRADE_PUBBLICHE_ONERE_D_160375",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160380",
+      "codice_integrato": "GUIDA_DANNO_BIOLOGICO_E_NON_PATRIMONIALE_LIQUIDAZIONE_TABELLARE_E_CRITERI_DELL_160380",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160385",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_MEDICO_ESTETICO_E_DEL_CHIRURGO_PLASTICO_OBBLIGAZIONE_D_160385",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

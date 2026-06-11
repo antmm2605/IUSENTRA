@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p9.json",
+  "sha256": "358DA17896BF5155F6AE9C69D89B2D94F6D97B6B9795E96D29036EA8BF278997",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510090",
+    "510095",
+    "500060",
+    "500065",
+    "500070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_BENI_ASSOLUTAMENTE_IMPIGNORABILI_LIMITI_SPECIALI_ALL_ESECUZIONE_FORZATA__510090",
+    "GUIDA_OPPOSIZIONE_ALL_ESECUZIONE_PER_MANCANZA_DEL_TITOLO_ESECUTIVO_VIZI_DEL_TI_510095",
+    "GUIDA_LIQUIDAZIONE_COATTA_AMMINISTRATIVA_PRESUPPOSTI_PROCEDIMENTO_E_TUTELE_DEI_500060",
+    "GUIDA_SOVRAINDEBITAMENTO_DEL_CONSUMATORE_PIANO_DEL_CONSUMATORE_E_ACCORDO_CON_I_500065",
+    "GUIDA_ESDEBITAZIONE_DEL_SOVRAINDEBITATO_CONDIZIONI_PROCEDIMENTO_E_FRESH_START__500070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510090",
+      "codice_integrato": "GUIDA_BENI_ASSOLUTAMENTE_IMPIGNORABILI_LIMITI_SPECIALI_ALL_ESECUZIONE_FORZATA__510090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510095",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_ALL_ESECUZIONE_PER_MANCANZA_DEL_TITOLO_ESECUTIVO_VIZI_DEL_TI_510095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500060",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_COATTA_AMMINISTRATIVA_PRESUPPOSTI_PROCEDIMENTO_E_TUTELE_DEI_500060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500065",
+      "codice_integrato": "GUIDA_SOVRAINDEBITAMENTO_DEL_CONSUMATORE_PIANO_DEL_CONSUMATORE_E_ACCORDO_CON_I_500065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500070",
+      "codice_integrato": "GUIDA_ESDEBITAZIONE_DEL_SOVRAINDEBITATO_CONDIZIONI_PROCEDIMENTO_E_FRESH_START__500070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -4,15 +4,25 @@ Agenda digitale per studi legali.
 Gestione appuntamenti, udienze, scadenze processuali e reminder.
 """
 
-import json
 import uuid
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, asdict, field
 from enum import Enum
+from zoneinfo import ZoneInfo
 
 from pct.ical_import import EventoImportato
+
+
+_ROME_TZ = ZoneInfo("Europe/Rome")
+
+
+def _dt_locale(value: datetime | str) -> datetime:
+    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is not None:
+        return parsed.astimezone(_ROME_TZ).replace(tzinfo=None)
+    return parsed
 
 
 class TipoAppuntamento(str, Enum):
@@ -64,7 +74,7 @@ class Appuntamento:
 
     @property
     def data_ora_dt(self) -> datetime:
-        return datetime.fromisoformat(self.data_ora)
+        return _dt_locale(self.data_ora)
 
     @property
     def fine_dt(self) -> datetime:
@@ -384,7 +394,7 @@ class Agenda:
         Restituisce gli appuntamenti il cui reminder scade entro N minuti.
         Utile per sistemi di notifica.
         """
-        adesso = datetime.now()
+        adesso = datetime.now(_ROME_TZ).replace(tzinfo=None)
         soglia = adesso + timedelta(minutes=entro_minuti)
         return [
             a for a in self.tutti()
@@ -412,7 +422,7 @@ class Agenda:
         self, data_ora: str, durata_minuti: int, exclude_id: str = ""
     ) -> List[Appuntamento]:
         """Restituisce appuntamenti che si sovrappongono con la finestra data."""
-        nuovo_inizio = datetime.fromisoformat(data_ora)
+        nuovo_inizio = _dt_locale(data_ora)
         nuovo_fine = nuovo_inizio + timedelta(minutes=durata_minuti)
 
         sovrapposti = []

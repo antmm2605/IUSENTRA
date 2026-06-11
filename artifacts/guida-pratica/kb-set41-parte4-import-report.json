@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p4.json",
+  "sha256": "C781F0E900582D3D7F7996DDE4F16B38CE357BEB6D9F7487739CB885C916CDC1",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "199095",
+    "199100",
+    "199105",
+    "199110",
+    "211070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RICORSO_PER_CASSAZIONE_MOTIVI_AMMISSIBILI_FILTRO_E_INAMMISSIBILIT_ARTT_3_199095",
+    "GUIDA_PROCEDURA_EUROPEA_PER_LE_CONTROVERSIE_DI_MODESTA_ENTIT_AMMISSIBILIT_E_UT_199100",
+    "GUIDA_PROCEDIMENTO_SEMPLIFICATO_DI_COGNIZIONE_EX_SOMMARIO_RIFORMA_CARTABIA_ART_199105",
+    "GUIDA_GIUDICATO_ESTERNO_E_NE_BIS_IN_IDEM_CIVILE_EFFETTI_TRA_I_PROCESSI_ARTT_29_199110",
+    "GUIDA_PIATTAFORMA_ODR_EUROPEA_RISOLUZIONE_ONLINE_DELLE_CONTROVERSIE_DEI_CONSUM_211070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "199095",
+      "codice_integrato": "GUIDA_RICORSO_PER_CASSAZIONE_MOTIVI_AMMISSIBILI_FILTRO_E_INAMMISSIBILIT_ARTT_3_199095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199100",
+      "codice_integrato": "GUIDA_PROCEDURA_EUROPEA_PER_LE_CONTROVERSIE_DI_MODESTA_ENTIT_AMMISSIBILIT_E_UT_199100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199105",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_SEMPLIFICATO_DI_COGNIZIONE_EX_SOMMARIO_RIFORMA_CARTABIA_ART_199105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199110",
+      "codice_integrato": "GUIDA_GIUDICATO_ESTERNO_E_NE_BIS_IN_IDEM_CIVILE_EFFETTI_TRA_I_PROCESSI_ARTT_29_199110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211070",
+      "codice_integrato": "GUIDA_PIATTAFORMA_ODR_EUROPEA_RISOLUZIONE_ONLINE_DELLE_CONTROVERSIE_DEI_CONSUM_211070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

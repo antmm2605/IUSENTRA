@@ -16,20 +16,18 @@ export function useQuickDeadlines(open: boolean) {
       .finally(() => setLoading(false))
   }, [])
 
-  // Pre-fetch al mount per badge contatore + refresh ad ogni apertura.
+  // Le scadenze rapide si caricano solo quando il pannello viene aperto.
   useEffect(() => {
+    if (!open) return
     load()
-  }, [load])
-
-  useEffect(() => {
-    if (open) load()
   }, [load, open])
 
-  // Polling soft ogni 2 minuti per scadenze urgenti nuove.
+  // Il refresh periodico resta attivo solo durante la consultazione del pannello.
   useEffect(() => {
+    if (!open) return
     const timer = window.setInterval(load, 120000)
     return () => window.clearInterval(timer)
-  }, [load])
+  }, [load, open])
 
   return { data, loading, error, reload: load }
 }

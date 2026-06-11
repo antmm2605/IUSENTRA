@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p6.json",
+  "sha256": "4BCFA62F51592FCA66D57E84C6D10E2DA63069508FC5147FB969F2E0CE424E01",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "512270",
+    "512275",
+    "512280",
+    "512285",
+    "512290"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CREDITO_D_IMPOSTA_PER_INVESTIMENTI_IN_BENI_STRUMENTALI_INDUSTRIA_4_0_E_T_512270",
+    "GUIDA_IMPOSTA_DI_BOLLO_SU_CONTRATTI_FATTURE_ELETTRONICHE_E_ATTI_CONTESTAZIONE__512275",
+    "GUIDA_PREZZI_DI_TRASFERIMENTO_TRANSFER_PRICING_IN_OPERAZIONI_INFRAGRUPPO_ACCER_512280",
+    "GUIDA_IVA_DI_GRUPPO_LIQUIDAZIONE_IVA_CONSOLIDATA_E_CONTROVERSIE_DM_13_12_1979__512285",
+    "GUIDA_CREDITO_D_IMPOSTA_PER_IL_MEZZOGIORNO_E_ZONE_ECONOMICHE_SPECIALI_ZES_REQU_512290"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512270",
+      "codice_integrato": "GUIDA_CREDITO_D_IMPOSTA_PER_INVESTIMENTI_IN_BENI_STRUMENTALI_INDUSTRIA_4_0_E_T_512270",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512275",
+      "codice_integrato": "GUIDA_IMPOSTA_DI_BOLLO_SU_CONTRATTI_FATTURE_ELETTRONICHE_E_ATTI_CONTESTAZIONE__512275",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512280",
+      "codice_integrato": "GUIDA_PREZZI_DI_TRASFERIMENTO_TRANSFER_PRICING_IN_OPERAZIONI_INFRAGRUPPO_ACCER_512280",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512285",
+      "codice_integrato": "GUIDA_IVA_DI_GRUPPO_LIQUIDAZIONE_IVA_CONSOLIDATA_E_CONTROVERSIE_DM_13_12_1979__512285",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512290",
+      "codice_integrato": "GUIDA_CREDITO_D_IMPOSTA_PER_IL_MEZZOGIORNO_E_ZONE_ECONOMICHE_SPECIALI_ZES_REQU_512290",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

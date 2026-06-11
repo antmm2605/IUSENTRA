@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p7.json",
+  "sha256": "2A0EFB994F65F80E75AB3EB90B692A6B5A564D0FBF507B7F017428C28B2506C4",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE7",
+  "denominazione": "PARTE 7 di 8",
+  "codici_materia_originali": [
+    "240155",
+    "240160",
+    "240165",
+    "199065",
+    "199070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RICORSO_STRAORDINARIO_AL_PRESIDENTE_DELLA_REPUBBLICA_AMMISSIBILIT_PROCED_240155",
+    "GUIDA_CONTRATTI_PUBBLICI_ESCLUSIONE_DALLA_GARA_E_RICORSO_AL_TAR_D_LGS_36_2023__240160",
+    "GUIDA_INFORMATIVA_ANTIMAFIA_INTERDITTIVA_IMPUGNAZIONE_AL_TAR_ARTT_84_92_D_LGS__240165",
+    "GUIDA_SOSPENSIONE_FERIALE_DEI_TERMINI_PROCESSUALI_CALCOLO_E_APPLICAZIONE_L_742_199065",
+    "GUIDA_CORREZIONE_E_REVOCAZIONE_DELLA_SENTENZA_ERRORI_MATERIALI_E_MOTIVI_LIMITA_199070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240155",
+      "codice_integrato": "GUIDA_RICORSO_STRAORDINARIO_AL_PRESIDENTE_DELLA_REPUBBLICA_AMMISSIBILIT_PROCED_240155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240160",
+      "codice_integrato": "GUIDA_CONTRATTI_PUBBLICI_ESCLUSIONE_DALLA_GARA_E_RICORSO_AL_TAR_D_LGS_36_2023__240160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240165",
+      "codice_integrato": "GUIDA_INFORMATIVA_ANTIMAFIA_INTERDITTIVA_IMPUGNAZIONE_AL_TAR_ARTT_84_92_D_LGS__240165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199065",
+      "codice_integrato": "GUIDA_SOSPENSIONE_FERIALE_DEI_TERMINI_PROCESSUALI_CALCOLO_E_APPLICAZIONE_L_742_199065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199070",
+      "codice_integrato": "GUIDA_CORREZIONE_E_REVOCAZIONE_DELLA_SENTENZA_ERRORI_MATERIALI_E_MOTIVI_LIMITA_199070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

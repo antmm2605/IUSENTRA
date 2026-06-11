@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p4.json",
+  "sha256": "31C8EAFD17F4FD0817006BB907F28CBB736E1B97ABFEEEDF5FEEB94536C7C3F1",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "143150",
+    "211015",
+    "211020",
+    "191040",
+    "191045"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_SPONSORIZZAZIONE_SPORTIVA_E_COMMERCIALE_OBBLIGHI_INADEMPIME_143150",
+    "GUIDA_MEDIAZIONE_CIVILE_OBBLIGATORIA_PROCEDIMENTO_ACCORDO_E_CONDIZIONE_DI_PROC_211015",
+    "GUIDA_NEGOZIAZIONE_ASSISTITA_ACCORDO_E_TITOLO_ESECUTIVO_D_L_132_2014_ARTT_2_11_211020",
+    "GUIDA_DESCRIZIONE_E_SEQUESTRO_GIUDIZIARIO_A_FINI_PROBATORI_IN_MATERIA_DI_PROPR_191040",
+    "GUIDA_PROVVEDIMENTO_D_URGENZA_ATIPICO_EX_ART_700_C_P_C_PRESUPPOSTI_FORMA_E_REV_191045"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "143150",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_SPONSORIZZAZIONE_SPORTIVA_E_COMMERCIALE_OBBLIGHI_INADEMPIME_143150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211015",
+      "codice_integrato": "GUIDA_MEDIAZIONE_CIVILE_OBBLIGATORIA_PROCEDIMENTO_ACCORDO_E_CONDIZIONE_DI_PROC_211015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211020",
+      "codice_integrato": "GUIDA_NEGOZIAZIONE_ASSISTITA_ACCORDO_E_TITOLO_ESECUTIVO_D_L_132_2014_ARTT_2_11_211020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191040",
+      "codice_integrato": "GUIDA_DESCRIZIONE_E_SEQUESTRO_GIUDIZIARIO_A_FINI_PROBATORI_IN_MATERIA_DI_PROPR_191040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191045",
+      "codice_integrato": "GUIDA_PROVVEDIMENTO_D_URGENZA_ATIPICO_EX_ART_700_C_P_C_PRESUPPOSTI_FORMA_E_REV_191045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

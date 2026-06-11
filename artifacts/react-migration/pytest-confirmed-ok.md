@@ -1,5 +1,24 @@
 # Pytest shard confermati OK
 
+## Dashboard agenda timezone e performance 2.251.26 - 2026-06-11
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_agenda.py tests\test_workspace_intelligente.py tests\test_react_dashboard_cache.py tests\test_topbar_hooks.py tests\test_guida_pratica_set34_41_import.py tests\test_import_guida_pratica_termini_processuali.py -q --tb=short` | OK | 35/35: agenda, dashboard, cache single-flight, polling topbar chiuso, import Guida Pratica set 34-41 e bootstrap Scadenziario. |
+| `python -m pytest tests\test_guida_pratica_service.py tests\test_guida_pratica_api.py lex\tests\unit\test_guida_pratica_source.py -q --tb=short` | OK | 43/43: servizio, API e sorgente Lex continuano a leggere le guide curate senza regressioni. |
+| `python -m compileall -q pct\agenda.py pct\workspace_intelligente.py web\services\react_dashboard_cache.py .claude\hooks.py tests\test_workspace_intelligente.py tests\test_react_dashboard_cache.py tests\test_topbar_hooks.py tests\test_guida_pratica_set34_41_import.py` | OK | Sintassi confermata sui moduli toccati. |
+| `python -m ruff check pct\agenda.py pct\workspace_intelligente.py web\services\react_dashboard_cache.py scripts\import_guida_pratica_user_kb_modules.py scripts\import_guida_pratica_termini_processuali.py tests\test_workspace_intelligente.py tests\test_react_dashboard_cache.py tests\test_topbar_hooks.py tests\test_guida_pratica_set34_41_import.py tests\test_import_guida_pratica_termini_processuali.py` | OK | Lint mirato pulito dopo rimozione import inutili e marker `E402` sullo script CLI. |
+| `python -m py_compile .claude\hooks.py`; validazione JSON `.claude/settings.json` | OK | Hook Claude Code repo-locali validi e configurazione JSON leggibile. |
+| `python scripts\audit_guida_pratica_user_material_fields.py --fail-on-loss --report artifacts\guida-pratica\guida-pratica-user-material-field-audit-2026-06-11-set34-41.json --csv artifacts\guida-pratica\guida-pratica-user-material-field-audit-2026-06-11-set34-41.csv` | OK | 746 record guida controllati, 16.563 righe audit, nessuna perdita di campi software/UI/Lex. |
+| `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated --report artifacts\guida-pratica\guida-pratica-audit-2026-06-11-set34-41.json --missing-guidance-csv artifacts\guida-pratica\codici-ufficiali-senza-guida-curata-2026-06-11-set34-41.csv` | OK | 1.018/1.018 codici ufficiali depositabili coperti da guida curata; nessun codice ufficiale rimasto senza guida completa. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Contratti API rigenerati, OpenAPI allineato a `2.251.26` e valido. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi; warning storico sul chunk principale sopra 500 kB. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_react_asset_retention.py -q --tb=short` | OK | Packaging sincronizzato, readiness/consistenza release e retention asset React verdi `12/12`. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | UTF-8 verde `4/4`. |
+| `git diff --check` | OK | Nessun whitespace error; restano solo warning Git sui fine-riga dei file documentali/generati toccati. |
+| Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia reale `127.0.0.1:8080` healthy su versione `2.251.26`; app circa `0.04%` CPU e `496.5 MiB` RAM a caldo, log senza `offset-naive/offset-aware`. |
+| Benchmark sintetico `WorkspaceIntelligenteService.panoramica()` con 250 fascicoli e 200 appuntamenti con fuso | OK | Tempi osservati: 29,1 ms primo giro, poi 24,6 / 15,4 / 15,8 / 16,4 ms; `appointments=12`, `hot=8`. |
+
 ## Fascicoli controllo economico 2.249.42 - 2026-06-09
 
 | Comando / verifica | Esito | Nota |

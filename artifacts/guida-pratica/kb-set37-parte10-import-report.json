@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p10.json",
+  "sha256": "6A9A04A1AC306F24DAC84A5AD70AAAB1A44119E2A050107F55E776C8F3EEA6AA",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "415040",
+    "415045",
+    "180080",
+    "180085",
+    "170090"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TESTAMENTO_OLOGRAFO_AUTENTICIT_NULLIT_ANNULLABILIT_E_PUBBLICAZIONE_ARTT__415040",
+    "GUIDA_LEGATO_ACCETTAZIONE_ADEMPIMENTO_E_RIDUZIONE_PER_INTACCARE_LA_LEGITTIMA_A_415045",
+    "GUIDA_GARANZIA_LEGALE_DI_CONFORMIT_DEI_BENI_DI_CONSUMO_VIZI_RIMEDI_E_AZIONE_D__180080",
+    "GUIDA_CONTENUTO_DIGITALE_E_SERVIZI_DIGITALI_DIFETTOSI_CONFORMIT_AGGIORNAMENTI__180085",
+    "GUIDA_DIRITTO_D_AUTORE_SU_SOFTWARE_TUTELA_DEL_PROGRAMMATORE_E_CONTROVERSIE_SUL_170090"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "415040",
+      "codice_integrato": "GUIDA_TESTAMENTO_OLOGRAFO_AUTENTICIT_NULLIT_ANNULLABILIT_E_PUBBLICAZIONE_ARTT__415040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415045",
+      "codice_integrato": "GUIDA_LEGATO_ACCETTAZIONE_ADEMPIMENTO_E_RIDUZIONE_PER_INTACCARE_LA_LEGITTIMA_A_415045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180080",
+      "codice_integrato": "GUIDA_GARANZIA_LEGALE_DI_CONFORMIT_DEI_BENI_DI_CONSUMO_VIZI_RIMEDI_E_AZIONE_D__180080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180085",
+      "codice_integrato": "GUIDA_CONTENUTO_DIGITALE_E_SERVIZI_DIGITALI_DIFETTOSI_CONFORMIT_AGGIORNAMENTI__180085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170090",
+      "codice_integrato": "GUIDA_DIRITTO_D_AUTORE_SU_SOFTWARE_TUTELA_DEL_PROGRAMMATORE_E_CONTROVERSIE_SUL_170090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

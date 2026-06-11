@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p6.json",
+  "sha256": "3C8BF77B7EE4DC1E058479666FC29E61CFD8075DA674CC2716929061F0DB2775",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "220340",
+    "220345",
+    "220350",
+    "160320",
+    "160325"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CASSA_INTEGRAZIONE_GUADAGNI_CONTESTAZIONE_DEL_DINIEGO_INPS_E_TUTELE_DEL__220340",
+    "GUIDA_LICENZIAMENTO_COLLETTIVO_PROCEDURA_CONTESTAZIONE_E_INDENNIT_L_223_1991_A_220345",
+    "GUIDA_DISCRIMINAZIONE_DI_GENERE_NEL_LAVORO_TUTELE_E_RISARCIMENTO_D_LGS_198_200_220350",
+    "GUIDA_RESPONSABILIT_DELL_INTERMEDIARIO_FINANZIARIO_PER_INVESTIMENTI_INADEGUATI_160320",
+    "GUIDA_ANATOCISMO_BANCARIO_AZIONE_DI_RIPETIZIONE_DEGLI_INTERESSI_COMPOSTI_ILLEG_160325"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220340",
+      "codice_integrato": "GUIDA_CASSA_INTEGRAZIONE_GUADAGNI_CONTESTAZIONE_DEL_DINIEGO_INPS_E_TUTELE_DEL__220340",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220345",
+      "codice_integrato": "GUIDA_LICENZIAMENTO_COLLETTIVO_PROCEDURA_CONTESTAZIONE_E_INDENNIT_L_223_1991_A_220345",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220350",
+      "codice_integrato": "GUIDA_DISCRIMINAZIONE_DI_GENERE_NEL_LAVORO_TUTELE_E_RISARCIMENTO_D_LGS_198_200_220350",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160320",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELL_INTERMEDIARIO_FINANZIARIO_PER_INVESTIMENTI_INADEGUATI_160320",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160325",
+      "codice_integrato": "GUIDA_ANATOCISMO_BANCARIO_AZIONE_DI_RIPETIZIONE_DEGLI_INTERESSI_COMPOSTI_ILLEG_160325",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

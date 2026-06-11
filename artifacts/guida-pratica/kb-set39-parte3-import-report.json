@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p3.json",
+  "sha256": "45458C57EBD411D6C19047C43A542E59277713CE579FBCD0C15C92C763EAEF16",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "160055",
+    "170095",
+    "170100",
+    "180090",
+    "180095"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SINISTRO_AUTOSTRADALE_RESPONSABILIT_DEL_GESTORE_DELLA_RETE_PER_MANCATA_M_160055",
+    "GUIDA_KNOW_HOW_AZIENDALE_E_SEGRETI_COMMERCIALI_TUTELA_E_VIOLAZIONE_ARTT_98_99__170095",
+    "GUIDA_DESIGN_INDUSTRIALE_REGISTRATO_E_NON_REGISTRATO_CONTRAFFAZIONE_E_TUTELA_R_170100",
+    "GUIDA_MEDIATORE_CREDITIZIO_E_AGENTE_ASSICURATIVO_RESPONSABILIT_PROFESSIONALE_E_180090",
+    "GUIDA_ASSICURAZIONE_RC_AUTO_RISARCIMENTO_DIRETTO_E_CONTROVERSIE_CON_LA_COMPAGN_180095"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160055",
+      "codice_integrato": "GUIDA_SINISTRO_AUTOSTRADALE_RESPONSABILIT_DEL_GESTORE_DELLA_RETE_PER_MANCATA_M_160055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170095",
+      "codice_integrato": "GUIDA_KNOW_HOW_AZIENDALE_E_SEGRETI_COMMERCIALI_TUTELA_E_VIOLAZIONE_ARTT_98_99__170095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170100",
+      "codice_integrato": "GUIDA_DESIGN_INDUSTRIALE_REGISTRATO_E_NON_REGISTRATO_CONTRAFFAZIONE_E_TUTELA_R_170100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180090",
+      "codice_integrato": "GUIDA_MEDIATORE_CREDITIZIO_E_AGENTE_ASSICURATIVO_RESPONSABILIT_PROFESSIONALE_E_180090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180095",
+      "codice_integrato": "GUIDA_ASSICURAZIONE_RC_AUTO_RISARCIMENTO_DIRETTO_E_CONTROVERSIE_CON_LA_COMPAGN_180095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

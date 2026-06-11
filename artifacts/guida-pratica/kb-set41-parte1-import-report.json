@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p1.json",
+  "sha256": "86659A7A90F6C665444A3F168454AFD2A678846EC7DD6AAE4939D375FA640008",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE1",
+  "denominazione": "Quarantunesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130345",
+    "130350",
+    "130355",
+    "130360",
+    "130365"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_SOMMINISTRAZIONE_CONTINUATIVA_SOSPENSIONE_RISOLUZIONE_E_INA_130345",
+    "GUIDA_CONTRATTO_DI_ASSICURAZIONE_DANNI_OBBLIGHI_DEL_CONTRAENTE_DICHIARAZIONI_I_130350",
+    "GUIDA_POLIZZE_UNIT_LINKED_E_INDEX_LINKED_NULLIT_PER_MANCANZA_DI_CAUSA_ASSICURA_130355",
+    "GUIDA_CREDITO_AL_CONSUMO_TAEG_ERRATO_NULLIT_DELLE_CLAUSOLE_E_DIRITTI_DEL_CONSU_130360",
+    "GUIDA_DIFFAMAZIONE_A_MEZZO_STAMPA_E_ONLINE_AZIONE_CIVILE_E_RISARCIMENTO_DEL_DA_130365"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130345",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_SOMMINISTRAZIONE_CONTINUATIVA_SOSPENSIONE_RISOLUZIONE_E_INA_130345",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130350",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_ASSICURAZIONE_DANNI_OBBLIGHI_DEL_CONTRAENTE_DICHIARAZIONI_I_130350",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130355",
+      "codice_integrato": "GUIDA_POLIZZE_UNIT_LINKED_E_INDEX_LINKED_NULLIT_PER_MANCANZA_DI_CAUSA_ASSICURA_130355",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130360",
+      "codice_integrato": "GUIDA_CREDITO_AL_CONSUMO_TAEG_ERRATO_NULLIT_DELLE_CLAUSOLE_E_DIRITTI_DEL_CONSU_130360",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130365",
+      "codice_integrato": "GUIDA_DIFFAMAZIONE_A_MEZZO_STAMPA_E_ONLINE_AZIONE_CIVILE_E_RISARCIMENTO_DEL_DA_130365",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

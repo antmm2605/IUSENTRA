@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p9.json",
+  "sha256": "4896C254D798748E6EB8E47A8B1998CB11FC46775E5F7B89922E3D5CB6B45109",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "500045",
+    "500050",
+    "211035",
+    "211040",
+    "415035"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_APERTURA_EFFETTI_E_SPOSSESSAMENTO__500045",
+    "GUIDA_ACCORDO_DI_RISTRUTTURAZIONE_DEI_DEBITI_OMOLOGAZIONE_EFFETTI_PROTETTIVI_E_500050",
+    "GUIDA_LODO_IRRITUALE_ARBITRATO_LIBERO_NATURA_IMPUGNAZIONE_E_VALIDIT_ART_808_TE_211035",
+    "GUIDA_PERIZIA_CONTRATTUALE_E_TERZO_ARBITRATORE_CONTESTAZIONE_DELLA_DETERMINAZI_211040",
+    "GUIDA_COLLAZIONE_EREDITARIA_OBBLIGO_OGGETTO_E_CONTROVERSIE_TRA_COEREDI_ARTT_73_415035"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "500045",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_GIUDIZIALE_EX_FALLIMENTO_APERTURA_EFFETTI_E_SPOSSESSAMENTO__500045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500050",
+      "codice_integrato": "GUIDA_ACCORDO_DI_RISTRUTTURAZIONE_DEI_DEBITI_OMOLOGAZIONE_EFFETTI_PROTETTIVI_E_500050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211035",
+      "codice_integrato": "GUIDA_LODO_IRRITUALE_ARBITRATO_LIBERO_NATURA_IMPUGNAZIONE_E_VALIDIT_ART_808_TE_211035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211040",
+      "codice_integrato": "GUIDA_PERIZIA_CONTRATTUALE_E_TERZO_ARBITRATORE_CONTESTAZIONE_DELLA_DETERMINAZI_211040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415035",
+      "codice_integrato": "GUIDA_COLLAZIONE_EREDITARIA_OBBLIGO_OGGETTO_E_CONTROVERSIE_TRA_COEREDI_ARTT_73_415035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

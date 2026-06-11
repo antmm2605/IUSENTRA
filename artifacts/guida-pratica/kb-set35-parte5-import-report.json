@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p5.json",
+  "sha256": "A409B2B1947BD7FCFC63AE270AA37C962830DBA5D31AF6013A6283B5C42F010D",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "199030",
+    "199035",
+    "240095",
+    "240100",
+    "500030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ECCEZIONE_DI_COMPROMESSO_ARBITRALE_EFFETTI_SUL_GIUDIZIO_ORDINARIO_ART_81_199030",
+    "GUIDA_LITISPENDENZA_E_CONNESSIONE_TRA_CAUSE_SOSPENSIONE_E_RIUNIONE_ARTT_39_40__199035",
+    "GUIDA_SILENZIO_INADEMPIMENTO_DELLA_PA_E_AZIONE_AVVERSO_IL_SILENZIO_RICORSO_AL__240095",
+    "GUIDA_APPALTI_PUBBLICI_ESCLUSIONE_DALLA_GARA_E_RICORSO_AL_TAR_PER_ATTI_DI_GARA_240100",
+    "GUIDA_AMMINISTRAZIONE_STRAORDINARIA_DELLE_GRANDI_IMPRESE_IN_CRISI_PRESUPPOSTI__500030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "199030",
+      "codice_integrato": "GUIDA_ECCEZIONE_DI_COMPROMESSO_ARBITRALE_EFFETTI_SUL_GIUDIZIO_ORDINARIO_ART_81_199030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199035",
+      "codice_integrato": "GUIDA_LITISPENDENZA_E_CONNESSIONE_TRA_CAUSE_SOSPENSIONE_E_RIUNIONE_ARTT_39_40__199035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240095",
+      "codice_integrato": "GUIDA_SILENZIO_INADEMPIMENTO_DELLA_PA_E_AZIONE_AVVERSO_IL_SILENZIO_RICORSO_AL__240095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240100",
+      "codice_integrato": "GUIDA_APPALTI_PUBBLICI_ESCLUSIONE_DALLA_GARA_E_RICORSO_AL_TAR_PER_ATTI_DI_GARA_240100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500030",
+      "codice_integrato": "GUIDA_AMMINISTRAZIONE_STRAORDINARIA_DELLE_GRANDI_IMPRESE_IN_CRISI_PRESUPPOSTI__500030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

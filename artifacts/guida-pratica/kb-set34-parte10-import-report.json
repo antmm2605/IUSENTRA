@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p10.json",
+  "sha256": "8AE3034AA8F4355F9B7D6074311FA34D01E9EBCC4A1BA87740B6C061C2B0FD2F",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "415020",
+    "199025",
+    "220335",
+    "512185",
+    "512190"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_APERTURA_DELLA_TUTELA_DEL_MINORE_ORFANO_NOMINA_DEL_TUTORE_E_CURATELA_ART_415020",
+    "GUIDA_PROCEDIMENTO_EUROPEO_PER_LE_CONTROVERSIE_DI_MODESTA_ENTIT_REG_UE_861_200_199025",
+    "GUIDA_INFORTUNI_DOMESTICI_ASSICURAZIONE_OBBLIGATORIA_INAIL_E_AZIONE_CIVILE_D_L_220335",
+    "GUIDA_SANZIONE_PECUNIARIA_PER_ABUSO_EDILIZIO_ACCERTAMENTO_E_DEFINIZIONE_IN_SAN_512185",
+    "GUIDA_MODELLO_730_PRECOMPILATO_RETTIFICA_INTEGRAZIONE_E_RIMBORSO_DI_IMPOSTE_NO_512190"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "415020",
+      "codice_integrato": "GUIDA_APERTURA_DELLA_TUTELA_DEL_MINORE_ORFANO_NOMINA_DEL_TUTORE_E_CURATELA_ART_415020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199025",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_EUROPEO_PER_LE_CONTROVERSIE_DI_MODESTA_ENTIT_REG_UE_861_200_199025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220335",
+      "codice_integrato": "GUIDA_INFORTUNI_DOMESTICI_ASSICURAZIONE_OBBLIGATORIA_INAIL_E_AZIONE_CIVILE_D_L_220335",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512185",
+      "codice_integrato": "GUIDA_SANZIONE_PECUNIARIA_PER_ABUSO_EDILIZIO_ACCERTAMENTO_E_DEFINIZIONE_IN_SAN_512185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512190",
+      "codice_integrato": "GUIDA_MODELLO_730_PRECOMPILATO_RETTIFICA_INTEGRAZIONE_E_RIMBORSO_DI_IMPOSTE_NO_512190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

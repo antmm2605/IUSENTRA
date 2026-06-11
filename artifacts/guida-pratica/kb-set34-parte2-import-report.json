@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p2.json",
+  "sha256": "C0F6CFD203941502F3E2F2B8F3448E8FF5EF71FA63225ADCE8FD9A2DBB40FAB4",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "620020",
+    "620025",
+    "500015",
+    "500020",
+    "500025"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PIANO_DEL_CONSUMATORE_SOVRAINDEBITATO_OMOLOGAZIONE_E_CONTROVERSIE_ARTT_6_620020",
+    "GUIDA_LIQUIDAZIONE_CONTROLLATA_DEL_SOVRAINDEBITATO_PROCEDURA_E_ESDEBITAZIONE_A_620025",
+    "GUIDA_INSINUAZIONE_TARDIVA_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_E_OPPOSIZI_500015",
+    "GUIDA_AZIONE_REVOCATORIA_NELLA_LIQUIDAZIONE_GIUDIZIALE_ATTI_PREGIUDIZIEVOLI_AI_500020",
+    "GUIDA_AZIONE_DI_RESPONSABILIT_DEL_CURATORE_E_DEGLI_ORGANI_DELLA_LIQUIDAZIONE_G_500025"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "620020",
+      "codice_integrato": "GUIDA_PIANO_DEL_CONSUMATORE_SOVRAINDEBITATO_OMOLOGAZIONE_E_CONTROVERSIE_ARTT_6_620020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620025",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_CONTROLLATA_DEL_SOVRAINDEBITATO_PROCEDURA_E_ESDEBITAZIONE_A_620025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500015",
+      "codice_integrato": "GUIDA_INSINUAZIONE_TARDIVA_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_E_OPPOSIZI_500015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500020",
+      "codice_integrato": "GUIDA_AZIONE_REVOCATORIA_NELLA_LIQUIDAZIONE_GIUDIZIALE_ATTI_PREGIUDIZIEVOLI_AI_500020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500025",
+      "codice_integrato": "GUIDA_AZIONE_DI_RESPONSABILIT_DEL_CURATORE_E_DEGLI_ORGANI_DELLA_LIQUIDAZIONE_G_500025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

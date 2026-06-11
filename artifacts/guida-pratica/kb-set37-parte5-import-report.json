@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p5.json",
+  "sha256": "7458D8B86A039DC0323331E29B358B7498FA18B83EB4C5F52EB59FAA023102E6",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "240130",
+    "240135",
+    "240140",
+    "240145",
+    "240150"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIZZO_E_OPPOSIZIONE_DPR_327_2001_240130",
+    "GUIDA_PERMESSO_DI_COSTRUIRE_DINIEGO_E_IMPUGNAZIONE_DAVANTI_AL_TAR_DPR_380_2001_240135",
+    "GUIDA_SUAP_PROCEDIMENTO_UNICO_PER_LE_ATTIVIT_PRODUTTIVE_E_IMPUGNAZIONI_DPR_160_240140",
+    "GUIDA_ACCESSO_AGLI_ATTI_DELLA_PA_ISTANZA_SILENZIO_E_RICORSO_AL_TAR_ARTT_22_25__240145",
+    "GUIDA_RESPONSABILIT_DEL_PUBBLICO_DIPENDENTE_DANNO_ERARIALE_E_GIURISDIZIONE_DEL_240150"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240130",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIZZO_E_OPPOSIZIONE_DPR_327_2001_240130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240135",
+      "codice_integrato": "GUIDA_PERMESSO_DI_COSTRUIRE_DINIEGO_E_IMPUGNAZIONE_DAVANTI_AL_TAR_DPR_380_2001_240135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240140",
+      "codice_integrato": "GUIDA_SUAP_PROCEDIMENTO_UNICO_PER_LE_ATTIVIT_PRODUTTIVE_E_IMPUGNAZIONI_DPR_160_240140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240145",
+      "codice_integrato": "GUIDA_ACCESSO_AGLI_ATTI_DELLA_PA_ISTANZA_SILENZIO_E_RICORSO_AL_TAR_ARTT_22_25__240145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240150",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_PUBBLICO_DIPENDENTE_DANNO_ERARIALE_E_GIURISDIZIONE_DEL_240150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p8.json",
+  "sha256": "89BA951B94560561F3F90DB8D6068D2783C7E8CF01834107B68703A193F3D706",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "415065",
+    "415070",
+    "415075",
+    "415080",
+    "415085"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DIVISIONE_EREDITARIA_GIUDIZIALE_STIMA_COLLAZIONE_E_CONTROVERSIE_ARTT_713_415065",
+    "GUIDA_SOSTITUZIONE_FEDECOMMISSARIA_NULLIT_E_LIMITI_ARTT_692_699_C_C_415070",
+    "GUIDA_EREDIT_GIACENTE_NOMINA_DEL_CURATORE_E_ATTI_DI_CONSERVAZIONE_ARTT_528_534_415075",
+    "GUIDA_PETIZIONE_DELL_EREDIT_AZIONE_DEL_LEGITTIMO_EREDE_CONTRO_IL_POSSESSORE_DI_415080",
+    "GUIDA_BENEFICIO_D_INVENTARIO_ACCETTAZIONE_EFFETTI_E_DECADENZA_ARTT_484_512_C_C_415085"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "415065",
+      "codice_integrato": "GUIDA_DIVISIONE_EREDITARIA_GIUDIZIALE_STIMA_COLLAZIONE_E_CONTROVERSIE_ARTT_713_415065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415070",
+      "codice_integrato": "GUIDA_SOSTITUZIONE_FEDECOMMISSARIA_NULLIT_E_LIMITI_ARTT_692_699_C_C_415070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415075",
+      "codice_integrato": "GUIDA_EREDIT_GIACENTE_NOMINA_DEL_CURATORE_E_ATTI_DI_CONSERVAZIONE_ARTT_528_534_415075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415080",
+      "codice_integrato": "GUIDA_PETIZIONE_DELL_EREDIT_AZIONE_DEL_LEGITTIMO_EREDE_CONTRO_IL_POSSESSORE_DI_415080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415085",
+      "codice_integrato": "GUIDA_BENEFICIO_D_INVENTARIO_ACCETTAZIONE_EFFETTI_E_DECADENZA_ARTT_484_512_C_C_415085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

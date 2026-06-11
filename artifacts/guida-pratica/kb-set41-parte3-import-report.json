@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p3.json",
+  "sha256": "D56781D1750588A505FE27B87B489EE3B659B02BAF2079DB222D0D77E5AE5205",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "150200",
+    "150205",
+    "150210",
+    "150215",
+    "155060"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_R_L_UNIPERSONALE_RESPONSABILIT_DEL_SOCIO_UNICO_E_PERDITA_DEL_BENEFICIO_150200",
+    "GUIDA_START_UP_INNOVATIVA_REGIME_AGEVOLATO_EQUITY_CROWDFUNDING_E_CONTROVERSIE__150205",
+    "GUIDA_CESSIONE_D_AZIENDA_E_M_A_REPRESENTATIONS_AND_WARRANTIES_EARN_OUT_E_GARAN_150210",
+    "GUIDA_PATTI_PARASOCIALI_VALIDIT_DURATA_CONTROLLO_E_CONTROVERSIE_ARTT_2341_BIS__150215",
+    "GUIDA_ORGANISMO_DI_VIGILANZA_ODV_D_LGS_231_2001_COMPOSIZIONE_POTERI_E_RESPONSA_155060"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150200",
+      "codice_integrato": "GUIDA_S_R_L_UNIPERSONALE_RESPONSABILIT_DEL_SOCIO_UNICO_E_PERDITA_DEL_BENEFICIO_150200",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150205",
+      "codice_integrato": "GUIDA_START_UP_INNOVATIVA_REGIME_AGEVOLATO_EQUITY_CROWDFUNDING_E_CONTROVERSIE__150205",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150210",
+      "codice_integrato": "GUIDA_CESSIONE_D_AZIENDA_E_M_A_REPRESENTATIONS_AND_WARRANTIES_EARN_OUT_E_GARAN_150210",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150215",
+      "codice_integrato": "GUIDA_PATTI_PARASOCIALI_VALIDIT_DURATA_CONTROLLO_E_CONTROVERSIE_ARTT_2341_BIS__150215",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155060",
+      "codice_integrato": "GUIDA_ORGANISMO_DI_VIGILANZA_ODV_D_LGS_231_2001_COMPOSIZIONE_POTERI_E_RESPONSA_155060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p10.json",
+  "sha256": "C1CF8D721EADEE5DD3E3397D9856A3FA6327BDBD34401F10F4C1942B962585D8",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "211060",
+    "211065",
+    "130335",
+    "130340",
+    "190080"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ARBITRATO_NELLE_SOCIET_DI_CAPITALI_CLAUSOLA_COMPROMISSORIA_STATUTARIA_E__211060",
+    "GUIDA_ARBITRO_PER_LE_CONTROVERSIE_FINANZIARIE_ACF_DELLA_CONSOB_PROCEDIMENTO_PE_211065",
+    "GUIDA_CONTRATTO_DI_FRANCHISING_ROYALTIES_VIOLAZIONE_DEL_CONTRATTO_E_RECESSO_L__130335",
+    "GUIDA_CONTRATTO_DI_LICENZA_DI_MARCHIO_O_BREVETTO_ROYALTIES_SUBLICENZA_E_CONTRO_130340",
+    "GUIDA_AZIONE_DI_ACCERTAMENTO_NEGATIVO_DEL_DIRITTO_ALTRUI_ONERE_DELLA_PROVA_E_I_190080"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "211060",
+      "codice_integrato": "GUIDA_ARBITRATO_NELLE_SOCIET_DI_CAPITALI_CLAUSOLA_COMPROMISSORIA_STATUTARIA_E__211060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211065",
+      "codice_integrato": "GUIDA_ARBITRO_PER_LE_CONTROVERSIE_FINANZIARIE_ACF_DELLA_CONSOB_PROCEDIMENTO_PE_211065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130335",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_FRANCHISING_ROYALTIES_VIOLAZIONE_DEL_CONTRATTO_E_RECESSO_L__130335",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130340",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_LICENZA_DI_MARCHIO_O_BREVETTO_ROYALTIES_SUBLICENZA_E_CONTRO_130340",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190080",
+      "codice_integrato": "GUIDA_AZIONE_DI_ACCERTAMENTO_NEGATIVO_DEL_DIRITTO_ALTRUI_ONERE_DELLA_PROVA_E_I_190080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

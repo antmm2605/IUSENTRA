@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p1.json",
+  "sha256": "1EA247BD8A2072346E4A4AC71457D29E5EEF4268920DAEEE33394C708B376047",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE1",
+  "denominazione": "Trentanovesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130275",
+    "130280",
+    "130285",
+    "130290",
+    "130295"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SERVIT_DI_PASSAGGIO_COSTITUZIONE_ESTINZIONE_E_CONTROVERSIE_TRA_FONDI_ART_130275",
+    "GUIDA_DIRITTO_DI_SUPERFICIE_COSTITUZIONE_SCADENZA_E_CONTROVERSIE_ARTT_952_956__130280",
+    "GUIDA_LOCAZIONE_COMMERCIALE_INDENNIT_DI_AVVIAMENTO_E_RINNOVO_L_392_1978_ARTT_3_130285",
+    "GUIDA_LOCAZIONE_COMMERCIALE_CANONE_ADEGUAMENTO_ISTAT_E_SUBLOCAZIONE_L_392_1978_130290",
+    "GUIDA_LOCAZIONE_ABITATIVA_TIPI_CONTRATTUALI_CANONE_LIBERO_AGEVOLATO_DISDETTA_L_130295"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130275",
+      "codice_integrato": "GUIDA_SERVIT_DI_PASSAGGIO_COSTITUZIONE_ESTINZIONE_E_CONTROVERSIE_TRA_FONDI_ART_130275",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130280",
+      "codice_integrato": "GUIDA_DIRITTO_DI_SUPERFICIE_COSTITUZIONE_SCADENZA_E_CONTROVERSIE_ARTT_952_956__130280",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130285",
+      "codice_integrato": "GUIDA_LOCAZIONE_COMMERCIALE_INDENNIT_DI_AVVIAMENTO_E_RINNOVO_L_392_1978_ARTT_3_130285",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130290",
+      "codice_integrato": "GUIDA_LOCAZIONE_COMMERCIALE_CANONE_ADEGUAMENTO_ISTAT_E_SUBLOCAZIONE_L_392_1978_130290",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130295",
+      "codice_integrato": "GUIDA_LOCAZIONE_ABITATIVA_TIPI_CONTRATTUALI_CANONE_LIBERO_AGEVOLATO_DISDETTA_L_130295",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

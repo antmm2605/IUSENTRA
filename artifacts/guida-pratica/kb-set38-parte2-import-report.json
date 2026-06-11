@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p2.json",
+  "sha256": "56988838E1DC4F6B34CF570B993E9D893FB2CE00E51E108A57DE569357EC5B38",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE2",
+  "denominazione": "PARTE 2 di 8",
+  "codici_materia_originali": [
+    "512245",
+    "512250",
+    "512255",
+    "512260",
+    "512265"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_REATI_TRIBUTARI_OMESSO_VERSAMENTO_IVA_E_RITENUTE_SOGLIE_E_DIFESE_D_LGS_7_512245",
+    "GUIDA_TRANSAZIONE_FISCALE_NEL_CONCORDATO_PREVENTIVO_E_ACCORDO_DI_RISTRUTTURAZI_512250",
+    "GUIDA_ACCERTAMENTO_CON_ADESIONE_PROCEDIMENTO_VANTAGGI_E_IMPUGNAZIONE_DELL_ACCE_512255",
+    "GUIDA_INTERPELLO_TRIBUTARIO_RISPOSTA_VINCOLANTE_DELL_AE_E_TUTELA_DEL_CONTRIBUE_512260",
+    "GUIDA_RATEIZZAZIONE_DELLE_CARTELLE_DI_PAGAMENTO_DOMANDA_DECADENZA_E_IMPUGNAZIO_512265"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512245",
+      "codice_integrato": "GUIDA_REATI_TRIBUTARI_OMESSO_VERSAMENTO_IVA_E_RITENUTE_SOGLIE_E_DIFESE_D_LGS_7_512245",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512250",
+      "codice_integrato": "GUIDA_TRANSAZIONE_FISCALE_NEL_CONCORDATO_PREVENTIVO_E_ACCORDO_DI_RISTRUTTURAZI_512250",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512255",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_CON_ADESIONE_PROCEDIMENTO_VANTAGGI_E_IMPUGNAZIONE_DELL_ACCE_512255",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512260",
+      "codice_integrato": "GUIDA_INTERPELLO_TRIBUTARIO_RISPOSTA_VINCOLANTE_DELL_AE_E_TUTELA_DEL_CONTRIBUE_512260",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512265",
+      "codice_integrato": "GUIDA_RATEIZZAZIONE_DELLE_CARTELLE_DI_PAGAMENTO_DOMANDA_DECADENZA_E_IMPUGNAZIO_512265",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

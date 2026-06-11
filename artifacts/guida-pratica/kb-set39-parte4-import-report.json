@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p4.json",
+  "sha256": "91C395CC6610D6552CB80839943CAD7FDC91D18ECED96FF3CC8D54ED1CC2805E",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "190060",
+    "190065",
+    "211045",
+    "211050",
+    "191085"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PRIVATE_ENFORCEMENT_ANTITRUST_AZIONE_RISARCITORIA_PER_VIOLAZIONI_DELLA_C_190060",
+    "GUIDA_PROCEDIMENTO_SANZIONATORIO_DEL_GARANTE_PRIVACY_RICORSO_E_OPPOSIZIONE_ART_190065",
+    "GUIDA_MEDIAZIONE_OBBLIGATORIA_PROCEDIMENTO_TELEMATICO_VALIDIT_DEL_VERBALE_E_EF_211045",
+    "GUIDA_NEGOZIAZIONE_ASSISTITA_OBBLIGATORIA_E_FACOLTATIVA_PROCEDURA_E_ACCORDO_D__211050",
+    "GUIDA_PIGNORAMENTO_DELLO_STIPENDIO_E_DELLA_PENSIONE_LIMITI_ASSOLUTI_DI_IMPIGNO_191085"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190060",
+      "codice_integrato": "GUIDA_PRIVATE_ENFORCEMENT_ANTITRUST_AZIONE_RISARCITORIA_PER_VIOLAZIONI_DELLA_C_190060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190065",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_SANZIONATORIO_DEL_GARANTE_PRIVACY_RICORSO_E_OPPOSIZIONE_ART_190065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211045",
+      "codice_integrato": "GUIDA_MEDIAZIONE_OBBLIGATORIA_PROCEDIMENTO_TELEMATICO_VALIDIT_DEL_VERBALE_E_EF_211045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211050",
+      "codice_integrato": "GUIDA_NEGOZIAZIONE_ASSISTITA_OBBLIGATORIA_E_FACOLTATIVA_PROCEDURA_E_ACCORDO_D__211050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191085",
+      "codice_integrato": "GUIDA_PIGNORAMENTO_DELLO_STIPENDIO_E_DELLA_PENSIONE_LIMITI_ASSOLUTI_DI_IMPIGNO_191085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p1.json",
+  "sha256": "0AF78B6C8A80D13AA08788349A529C7BE4779B0922153C4501CCC261F2672B1F",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE1",
+  "denominazione": "Trentacinquesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "170070",
+    "170075",
+    "180050",
+    "180055",
+    "180060"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_MARCHIO_REGISTRATO_CONTRAFFAZIONE_NULLIT_E_DECADENZA_D_LGS_30_2005_COD_P_170070",
+    "GUIDA_DESIGN_INDUSTRIALE_REGISTRATO_CONTRAFFAZIONE_TUTELA_E_NULLIT_D_LGS_30_20_170075",
+    "GUIDA_PRATICHE_COMMERCIALI_SCORRETTE_AZIONE_INIBITORIA_E_RISARCIMENTO_DEL_CONS_180050",
+    "GUIDA_GARANZIA_LEGALE_DI_CONFORMIT_NEI_CONTRATTI_DI_VENDITA_AL_CONSUMATORE_VIZ_180055",
+    "GUIDA_DIRITTI_DEL_PASSEGGERO_AEREO_CANCELLAZIONE_RITARDO_PROLUNGATO_E_RIMBORSO_180060"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170070",
+      "codice_integrato": "GUIDA_MARCHIO_REGISTRATO_CONTRAFFAZIONE_NULLIT_E_DECADENZA_D_LGS_30_2005_COD_P_170070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170075",
+      "codice_integrato": "GUIDA_DESIGN_INDUSTRIALE_REGISTRATO_CONTRAFFAZIONE_TUTELA_E_NULLIT_D_LGS_30_20_170075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180050",
+      "codice_integrato": "GUIDA_PRATICHE_COMMERCIALI_SCORRETTE_AZIONE_INIBITORIA_E_RISARCIMENTO_DEL_CONS_180050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180055",
+      "codice_integrato": "GUIDA_GARANZIA_LEGALE_DI_CONFORMIT_NEI_CONTRATTI_DI_VENDITA_AL_CONSUMATORE_VIZ_180055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180060",
+      "codice_integrato": "GUIDA_DIRITTI_DEL_PASSEGGERO_AEREO_CANCELLAZIONE_RITARDO_PROLUNGATO_E_RIMBORSO_180060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

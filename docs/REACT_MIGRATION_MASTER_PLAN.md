@@ -1,5 +1,16 @@
 # Migrazione progressiva Flask + React
 
+## Dashboard, top bar e Guida Pratica set34-41 - 2026-06-11 - 2.251.26
+
+La Panoramica React e la Regia Operativa sono state stabilizzate dopo i picchi CPU osservati su Hetzner:
+
+- gli appuntamenti importati da calendari esterni con `Z` o `+00:00` vengono normalizzati in ora italiana prima dei confronti;
+- la Panoramica usa indici leggeri per fascicoli/appuntamenti e legge solo giurisprudenza già collegata direttamente, evitando ricerche full-text per ogni fascicolo;
+- la cache breve della dashboard è single-flight: richieste concorrenti sullo stesso payload non avviano build parallele;
+- notifiche e scadenze rapide della top bar non fanno più polling automatico a pannelli chiusi.
+
+Nella stessa tranche sono stati integrati i pacchetti Guida Pratica `files (23).zip` - `files (29).zip` come set34-41: 68 moduli KB, 340 schede, 343 termini grezzi, scadenziario a 3.908 termini / 1.184 template calcolabili e validazione forte con 1.018/1.018 codici ufficiali depositabili coperti da guida curata completa.
+
 ## Fascicoli - controllo economico a griglia - 2026-06-09 - 2.249.42
 
 La pagina React `/fascicoli` include ora un foglio operativo per aggiornare in elenco le voci economiche dei fascicoli senza entrare nel singolo fascicolo.

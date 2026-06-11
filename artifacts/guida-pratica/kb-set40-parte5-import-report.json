@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p5.json",
+  "sha256": "3C4511A88A85578DA8452D63150CF69BA722C7C82A74B1817F94CEE75B7C7F1F",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220420",
+    "220425",
+    "220430",
+    "620075",
+    "620080"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PARIT_DI_GENERE_SUL_LAVORO_DISCRIMINAZIONE_RETRIBUTIVA_E_AZIONI_POSITIVE_220420",
+    "GUIDA_LAVORO_AUTONOMO_NON_IMPRENDITORIALE_TUTELE_SPECIFICHE_E_CONTROVERSIE_L_8_220425",
+    "GUIDA_COLLABORAZIONI_COORDINATE_E_FALSE_PARTITE_IVA_RIQUALIFICAZIONE_IN_LAVORO_220430",
+    "GUIDA_IMPRESA_FAMILIARE_DIRITTI_DEI_COLLABORATORI_FAMILIARI_SCIOGLIMENTO_E_LIQ_620075",
+    "GUIDA_LAVORATORI_DOMESTICI_COLF_E_BADANTI_CONTRATTO_LICENZIAMENTO_E_TUTELE_L_3_620080"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220420",
+      "codice_integrato": "GUIDA_PARIT_DI_GENERE_SUL_LAVORO_DISCRIMINAZIONE_RETRIBUTIVA_E_AZIONI_POSITIVE_220420",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220425",
+      "codice_integrato": "GUIDA_LAVORO_AUTONOMO_NON_IMPRENDITORIALE_TUTELE_SPECIFICHE_E_CONTROVERSIE_L_8_220425",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220430",
+      "codice_integrato": "GUIDA_COLLABORAZIONI_COORDINATE_E_FALSE_PARTITE_IVA_RIQUALIFICAZIONE_IN_LAVORO_220430",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620075",
+      "codice_integrato": "GUIDA_IMPRESA_FAMILIARE_DIRITTI_DEI_COLLABORATORI_FAMILIARI_SCIOGLIMENTO_E_LIQ_620075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620080",
+      "codice_integrato": "GUIDA_LAVORATORI_DOMESTICI_COLF_E_BADANTI_CONTRATTO_LICENZIAMENTO_E_TUTELE_L_3_620080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p10.json",
+  "sha256": "B268CD824B9DC262D4E9276F70895C42B8947B48B59CFFCD2EF4843955A389E8",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "510050",
+    "510055",
+    "199040",
+    "199045",
+    "240105"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RILASCIO_FORZATO_DELL_IMMOBILE_PROCEDURA_ESECUTIVA_E_RESISTENZA_DEL_DETE_510050",
+    "GUIDA_VENDITA_SENZA_INCANTO_NELL_ESECUZIONE_IMMOBILIARE_OFFERTA_MINIMA_ASSEGNA_510055",
+    "GUIDA_TRASCRIZIONE_DELLA_DOMANDA_GIUDIZIALE_EFFETTI_CONSERVATIVI_E_TUTELA_DELL_199040",
+    "GUIDA_SEQUESTRO_CONSERVATIVO_OPPOSIZIONE_DEL_TERZO_PROPRIETARIO_DEL_BENE_SEQUE_199045",
+    "GUIDA_SILENZIO_ASSENSO_NELLA_PA_FORMAZIONE_PRESUPPOSTI_E_IMPUGNAZIONE_ART_20_L_240105"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510050",
+      "codice_integrato": "GUIDA_RILASCIO_FORZATO_DELL_IMMOBILE_PROCEDURA_ESECUTIVA_E_RESISTENZA_DEL_DETE_510050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510055",
+      "codice_integrato": "GUIDA_VENDITA_SENZA_INCANTO_NELL_ESECUZIONE_IMMOBILIARE_OFFERTA_MINIMA_ASSEGNA_510055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199040",
+      "codice_integrato": "GUIDA_TRASCRIZIONE_DELLA_DOMANDA_GIUDIZIALE_EFFETTI_CONSERVATIVI_E_TUTELA_DELL_199040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199045",
+      "codice_integrato": "GUIDA_SEQUESTRO_CONSERVATIVO_OPPOSIZIONE_DEL_TERZO_PROPRIETARIO_DEL_BENE_SEQUE_199045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240105",
+      "codice_integrato": "GUIDA_SILENZIO_ASSENSO_NELLA_PA_FORMAZIONE_PRESUPPOSTI_E_IMPUGNAZIONE_ART_20_L_240105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

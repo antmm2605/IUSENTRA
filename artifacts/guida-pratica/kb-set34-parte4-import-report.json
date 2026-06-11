@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p4.json",
+  "sha256": "9FBB04D9113479EA375A3D9BF7F68AFF7BEFAB8CC50D514EF8B6C9BD9D9CC40B",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "160300",
+    "160305",
+    "160310",
+    "160315",
+    "170050"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TRATTAMENTO_SANITARIO_OBBLIGATORIO_ILLEGITTIMO_E_RESPONSABILIT_DELLA_ASL_160300",
+    "GUIDA_DANNI_DA_CADUTA_DI_ALBERI_SU_STRADE_E_BENI_PUBBLICI_RESPONSABILIT_DELLA__160305",
+    "GUIDA_RESPONSABILIT_PER_CONTENZIONE_ILLEGITTIMA_IN_STRUTTURA_SANITARIA_LESIONE_160310",
+    "GUIDA_RESPONSABILIT_DA_PRODOTTO_ALIMENTARE_DIFETTOSO_O_ADULTERATO_RISARCIMENTO_160315",
+    "GUIDA_DIRITTO_D_AUTORE_VIOLAZIONE_PLAGIO_E_RISARCIMENTO_L_633_1941_DIR_UE_2019_170050"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160300",
+      "codice_integrato": "GUIDA_TRATTAMENTO_SANITARIO_OBBLIGATORIO_ILLEGITTIMO_E_RESPONSABILIT_DELLA_ASL_160300",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160305",
+      "codice_integrato": "GUIDA_DANNI_DA_CADUTA_DI_ALBERI_SU_STRADE_E_BENI_PUBBLICI_RESPONSABILIT_DELLA__160305",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160310",
+      "codice_integrato": "GUIDA_RESPONSABILIT_PER_CONTENZIONE_ILLEGITTIMA_IN_STRUTTURA_SANITARIA_LESIONE_160310",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160315",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_PRODOTTO_ALIMENTARE_DIFETTOSO_O_ADULTERATO_RISARCIMENTO_160315",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170050",
+      "codice_integrato": "GUIDA_DIRITTO_D_AUTORE_VIOLAZIONE_PLAGIO_E_RISARCIMENTO_L_633_1941_DIR_UE_2019_170050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

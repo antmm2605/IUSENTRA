@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p4.json",
+  "sha256": "265986D2503498D6B876D98875B1A1007A1D9152C64BC7CFB4DE051EB6E08D31",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE4",
+  "denominazione": "PARTE 4 di 8",
+  "codici_materia_originali": [
+    "413190",
+    "413195",
+    "415050",
+    "415055",
+    "415060"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_NOMINA_POTERI_DELL_AMMINISTRATORE_E_OPPOSIZI_413190",
+    "GUIDA_INTERDIZIONE_E_INABILITAZIONE_PROCEDIMENTO_REVOCA_E_REGIME_DELLA_CAPACIT_413195",
+    "GUIDA_DONAZIONE_NULLIT_REVOCAZIONE_PER_INGRATITUDINE_E_SOPRAVVENIENZA_DI_FIGLI_415050",
+    "GUIDA_ESECUTORE_TESTAMENTARIO_NOMINA_POTERI_E_RESPONSABILIT_ARTT_700_712_C_C_415055",
+    "GUIDA_TESTAMENTO_PUBBLICO_REQUISITI_FORMALI_NULLIT_E_DIFFERENZE_DALL_OLOGRAFO__415060"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413190",
+      "codice_integrato": "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_NOMINA_POTERI_DELL_AMMINISTRATORE_E_OPPOSIZI_413190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413195",
+      "codice_integrato": "GUIDA_INTERDIZIONE_E_INABILITAZIONE_PROCEDIMENTO_REVOCA_E_REGIME_DELLA_CAPACIT_413195",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415050",
+      "codice_integrato": "GUIDA_DONAZIONE_NULLIT_REVOCAZIONE_PER_INGRATITUDINE_E_SOPRAVVENIENZA_DI_FIGLI_415050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415055",
+      "codice_integrato": "GUIDA_ESECUTORE_TESTAMENTARIO_NOMINA_POTERI_E_RESPONSABILIT_ARTT_700_712_C_C_415055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415060",
+      "codice_integrato": "GUIDA_TESTAMENTO_PUBBLICO_REQUISITI_FORMALI_NULLIT_E_DIFFERENZE_DALL_OLOGRAFO__415060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

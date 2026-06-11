@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from pct.termini_processuali import DeadlinePracticeRepository
+from pct.termini_processuali import DeadlinePracticeRepository  # noqa: E402
 
 DEFAULT_DB = ROOT / "data" / "scadenziario" / "termini_processuali.json"
 DEFAULT_REPORT = ROOT / "artifacts" / "guida-pratica" / "termini-processuali-import-report.json"
@@ -234,9 +234,36 @@ def _template_from_term(row: Mapping[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def import_terms(rows: list[dict[str, Any]], db_path: Path) -> dict[str, Any]:
+def _terms_need_import(payload: Mapping[str, Any], rows: list[dict[str, Any]]) -> bool:
+    existing = payload.get("guida_pratica_terms")
+    if not isinstance(existing, list) or not existing:
+        return True
+    if len(existing) < len(rows):
+        return True
+    expected_sources = {str(row.get("source") or "") for row in rows if row.get("source")}
+    existing_sources = {str(row.get("source") or "") for row in existing if isinstance(row, dict) and row.get("source")}
+    if not expected_sources.issubset(existing_sources):
+        return True
+    expected_codes = {str(row.get("term_rule_code") or "") for row in rows if row.get("term_rule_code")}
+    existing_codes = {
+        str(row.get("term_rule_code") or "")
+        for row in existing
+        if isinstance(row, dict) and row.get("term_rule_code")
+    }
+    return not expected_codes.issubset(existing_codes)
+
+
+def import_terms(rows: list[dict[str, Any]], db_path: Path, *, only_if_stale: bool = False) -> dict[str, Any]:
     repo = DeadlinePracticeRepository.json(db_path)
     payload = repo._read_json()
+    if only_if_stale and not _terms_need_import(payload, rows):
+        return {
+            "imported_at": _utc_now(),
+            "records": len(rows),
+            "templates_upserted": 0,
+            "skipped": True,
+            "reason": "repository_already_aligned",
+        }
     payload["guida_pratica_terms"] = rows
     templates = {str(item.get("code")): dict(item) for item in payload.get("templates", []) if isinstance(item, dict)}
     imported_templates = 0
@@ -267,7 +294,7 @@ def bootstrap_guida_pratica_terms_repository(
 
     source_paths = [Path(item) for item in sources] if sources is not None else _default_sources()
     rows = collect_terms(source_paths)
-    return import_terms(rows, Path(db_path))
+    return import_terms(rows, Path(db_path), only_if_stale=True)
 
 
 def write_csv(rows: list[dict[str, Any]], path: Path) -> None:

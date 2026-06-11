@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p3.json",
+  "sha256": "0C5160F63BDD7D3E08B30111FD21CD3179833A1A1F7823E3508469D70CA6403B",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE3",
+  "denominazione": "PARTE 3 di 8",
+  "codici_materia_originali": [
+    "220380",
+    "220385",
+    "220390",
+    "220395",
+    "220400"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TRASFERIMENTO_D_AZIENDA_TUTELE_DEL_LAVORATORE_E_INFORMAZIONE_SINDACALE_A_220380",
+    "GUIDA_APPALTO_ILLECITO_E_INTERPOSIZIONE_FITTIZIA_DI_MANODOPERA_RESPONSABILIT_S_220385",
+    "GUIDA_DIMISSIONI_PER_GIUSTA_CAUSA_DIRITTO_ALL_INDENNIT_SOSTITUTIVA_DEL_PREAVVI_220390",
+    "GUIDA_LICENZIAMENTO_DISCRIMINATORIO_NULLIT_ASSOLUTA_E_TUTELA_REINTEGRATORIA_D__220395",
+    "GUIDA_WHISTLEBLOWER_TUTELE_DEL_SEGNALANTE_DA_RITORSIONI_D_LGS_24_2023_220400"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220380",
+      "codice_integrato": "GUIDA_TRASFERIMENTO_D_AZIENDA_TUTELE_DEL_LAVORATORE_E_INFORMAZIONE_SINDACALE_A_220380",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220385",
+      "codice_integrato": "GUIDA_APPALTO_ILLECITO_E_INTERPOSIZIONE_FITTIZIA_DI_MANODOPERA_RESPONSABILIT_S_220385",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220390",
+      "codice_integrato": "GUIDA_DIMISSIONI_PER_GIUSTA_CAUSA_DIRITTO_ALL_INDENNIT_SOSTITUTIVA_DEL_PREAVVI_220390",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220395",
+      "codice_integrato": "GUIDA_LICENZIAMENTO_DISCRIMINATORIO_NULLIT_ASSOLUTA_E_TUTELA_REINTEGRATORIA_D__220395",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220400",
+      "codice_integrato": "GUIDA_WHISTLEBLOWER_TUTELE_DEL_SEGNALANTE_DA_RITORSIONI_D_LGS_24_2023_220400",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

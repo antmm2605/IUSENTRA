@@ -1,0 +1,58 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p3.json",
+  "sha256": "FA6970278EE83F52E7CCA07D69C1D5AD40AD7B162EF8D3DC824A826330C0E3A0",
+  "changed": true,
+  "macro_area_id": "SET40_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "152060",
+    "154065",
+    "150140",
+    "155055",
+    "151120"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ASSOCIAZIONE_NON_RICONOSCIUTA_RESPONSABILIT_DEGLI_ASSOCIATI_DEI_DIRIGENT_152060",
+    "GUIDA_FONDAZIONE_GESTIONE_DEL_PATRIMONIO_RESPONSABILIT_DEGLI_ORGANI_E_SCIOGLIM_154065",
+    "GUIDA_S_P_A_SCIOGLIMENTO_PER_IMPOSSIBILIT_DI_FUNZIONAMENTO_E_DEADLOCK_TRA_SOCI_150140",
+    "GUIDA_AZIONE_DI_RESPONSABILIT_VERSO_IL_COLLEGIO_SINDACALE_PER_OMISSIONE_DI_VIG_155055",
+    "GUIDA_AZIONI_DI_CATEGORIA_SPA_ASSEMBLEA_SPECIALE_151120"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "152060",
+      "codice_integrato": "GUIDA_ASSOCIAZIONE_NON_RICONOSCIUTA_RESPONSABILIT_DEGLI_ASSOCIATI_DEI_DIRIGENT_152060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154065",
+      "codice_integrato": "GUIDA_FONDAZIONE_GESTIONE_DEL_PATRIMONIO_RESPONSABILIT_DEGLI_ORGANI_E_SCIOGLIM_154065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150140",
+      "codice_integrato": "GUIDA_S_P_A_SCIOGLIMENTO_PER_IMPOSSIBILIT_DI_FUNZIONAMENTO_E_DEADLOCK_TRA_SOCI_150140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155055",
+      "codice_integrato": "GUIDA_AZIONE_DI_RESPONSABILIT_VERSO_IL_COLLEGIO_SINDACALE_PER_OMISSIONE_DI_VIG_155055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "151120",
+      "codice_integrato": "GUIDA_AZIONI_DI_CATEGORIA_SPA_ASSEMBLEA_SPECIALE_151120",
+      "codici_ufficiali_correlati_da_valutare": [
+        "151120"
+      ],
+      "reason": "Il codice 151120 è ufficiale nel catalogo PST/XSD locale per rapporti sociali e cessione di partecipazioni; la scheda ricevuta riguarda in modo specifico azioni di categoria e assemblea speciale S.p.A. Resta guida interna collegata al codice ufficiale da valutare, senza sostituire l'oggetto ministeriale."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

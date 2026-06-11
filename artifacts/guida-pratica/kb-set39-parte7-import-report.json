@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p7.json",
+  "sha256": "CEDCB599EB8F2924CBB145810479C83C2A727B1B19708CCEAB08E8DCACCDCD71",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "220405",
+    "220410",
+    "220415",
+    "620065",
+    "620070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DIRITTO_DI_PRECEDENZA_NELLE_ASSUNZIONI_DOPO_LICENZIAMENTO_COLLETTIVO_L_2_220405",
+    "GUIDA_LICENZIAMENTO_COLLETTIVO_PROCEDURA_SINDACALE_OBBLIGATORIA_E_IMPUGNAZIONE_220410",
+    "GUIDA_CASSA_INTEGRAZIONE_GUADAGNI_ORDINARIA_STRAORDINARIA_E_CONTROVERSIE_D_LGS_220415",
+    "GUIDA_AGENTE_DI_COMMERCIO_INDENNIT_DI_FINE_RAPPORTO_PROVVIGIONI_E_SCIOGLIMENTO_620065",
+    "GUIDA_CONTRATTO_DI_DISTRIBUZIONE_ESCLUSIVA_RECESSO_UNILATERALE_INDENNIZZO_E_TU_620070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220405",
+      "codice_integrato": "GUIDA_DIRITTO_DI_PRECEDENZA_NELLE_ASSUNZIONI_DOPO_LICENZIAMENTO_COLLETTIVO_L_2_220405",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220410",
+      "codice_integrato": "GUIDA_LICENZIAMENTO_COLLETTIVO_PROCEDURA_SINDACALE_OBBLIGATORIA_E_IMPUGNAZIONE_220410",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220415",
+      "codice_integrato": "GUIDA_CASSA_INTEGRAZIONE_GUADAGNI_ORDINARIA_STRAORDINARIA_E_CONTROVERSIE_D_LGS_220415",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620065",
+      "codice_integrato": "GUIDA_AGENTE_DI_COMMERCIO_INDENNIT_DI_FINE_RAPPORTO_PROVVIGIONI_E_SCIOGLIMENTO_620065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620070",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_DISTRIBUZIONE_ESCLUSIVA_RECESSO_UNILATERALE_INDENNIZZO_E_TU_620070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

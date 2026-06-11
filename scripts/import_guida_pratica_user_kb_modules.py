@@ -164,6 +164,21 @@ CONVERSION_RULES: dict[str, ConversionRule] = {
         ("111214", "411640", "411679", "102002"),
         "Il codice 112001 è ufficiale nel catalogo locale come voce deprecata diversa; la scheda ricevuta riguarda fondo patrimoniale, opponibilità ai creditori e revocatoria. Resta guida interna e propone i codici ufficiali fondo patrimoniale/revocatoria da valutare nel fascicolo.",
     ),
+    "151120": ConversionRule(
+        "GUIDA_AZIONI_DI_CATEGORIA_SPA_ASSEMBLEA_SPECIALE_151120",
+        ("151120",),
+        "Il codice 151120 è ufficiale nel catalogo PST/XSD locale per rapporti sociali e cessione di partecipazioni; la scheda ricevuta riguarda in modo specifico azioni di categoria e assemblea speciale S.p.A. Resta guida interna collegata al codice ufficiale da valutare, senza sostituire l'oggetto ministeriale.",
+    ),
+    "211010": ConversionRule(
+        "GUIDA_ARBITRATO_IRRITUALE_VALIDITA_IMPUGNAZIONE_211010",
+        (),
+        "Il codice 211010 è ufficiale nel catalogo PST/XSD locale per provvedimento d'urgenza ex art. 700 in area lavoro; la scheda ricevuta riguarda arbitrato irrituale ex art. 808-ter c.p.c. Resta guida interna non depositabile e non sostituisce il codice ministeriale.",
+    ),
+    "510100": ConversionRule(
+        "GUIDA_ASSEGNAZIONE_CREDITO_PIGNORATO_ART_552_554_CPC_510100",
+        ("510100",),
+        "Il codice 510100 è ufficiale nel catalogo PST/XSD locale per deposito verbale di pagamento a mani dell'Ufficiale Giudiziario; la scheda ricevuta riguarda assegnazione del credito pignorato. Resta guida interna collegata al codice ufficiale da valutare, senza sostituire l'oggetto ministeriale.",
+    ),
 }
 
 WEB_SOURCE_LIBRARY = SOURCE_LIBRARY

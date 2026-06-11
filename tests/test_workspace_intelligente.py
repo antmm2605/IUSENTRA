@@ -152,6 +152,77 @@ def test_workspace_intelligente_aggrega_moduli(tmp_path: Path):
     assert any(item["id"] == fascicolo.id for item in overview["fascicoli_hot"])
 
 
+def test_workspace_intelligente_accetta_appuntamenti_con_fuso_orario(tmp_path: Path):
+    fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
+    domani = date.today() + timedelta(days=1)
+    agenda.aggiungi(
+        titolo="Udienza da calendario esterno",
+        tipo=TipoAppuntamento.UDIENZA,
+        data_ora=f"{domani.isoformat()}T12:00:00+00:00",
+        durata_minuti=45,
+        cliente="Anna Verdi",
+        id_cliente=fascicolo.id_cliente,
+        procedimento=fascicolo.numero,
+        allow_overlap=True,
+    )
+    profiles = sync.list_profiles()
+    assert profiles
+    sync.update_profile(
+        profiles[0]["id"],
+        last_status="ok",
+        last_sync_at=f"{domani.isoformat()}T06:00:00Z",
+    )
+
+    service = WorkspaceIntelligenteService(
+        agenda=agenda,
+        scadenziario=scadenziario,
+        fascicoli=fascicoli,
+        calendar_sync=sync,
+        giurisprudenza=giurisprudenza,
+    )
+
+    overview = service.panoramica(horizon_days=14)
+
+    titles = [item.titolo for item in overview["upcoming_appointments"]]
+    assert "Udienza da calendario esterno" in titles
+    assert overview["summary"]["appuntamenti_orizzonte"] >= 2
+
+
+def test_workspace_intelligente_panoramica_non_lancia_ricerca_giurisprudenziale_per_ogni_fascicolo(tmp_path: Path):
+    _fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
+    for idx in range(12):
+        fascicoli.nuovo(
+            titolo=f"Pratica seriale {idx}",
+            tipo=TipoFascicolo.CIVILE,
+            tribunale="Tribunale di Milano",
+            numero_rg=str(2000 + idx),
+            anno_rg=2026,
+            oggetto="Opposizione seriale",
+        )
+    calls: list[dict[str, object]] = []
+    original_cerca = giurisprudenza.cerca
+
+    def counted_cerca(**kwargs):
+        calls.append(dict(kwargs))
+        return original_cerca(**kwargs)
+
+    giurisprudenza.cerca = counted_cerca  # type: ignore[method-assign]
+
+    service = WorkspaceIntelligenteService(
+        agenda=agenda,
+        scadenziario=scadenziario,
+        fascicoli=fascicoli,
+        calendar_sync=sync,
+        giurisprudenza=giurisprudenza,
+    )
+
+    overview = service.panoramica(horizon_days=14)
+
+    assert overview["fascicoli_hot"]
+    assert len(calls) <= 1
+    assert all(not str(call.get("q") or "").strip() for call in calls)
+
+
 def test_workspace_intelligente_propone_sentenza_per_fascicolo(tmp_path: Path):
     fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
 

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p1.json",
+  "sha256": "4032884FE6D0B493D3E71A97F7DD74365AF5004CA494A5B63F993DF7EBFD98E1",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE1",
+  "denominazione": "Trentasettesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130225",
+    "130230",
+    "130235",
+    "130240",
+    "130245"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DELL_AVVOCATO_NEGLIGENZA_PROFESSIONALE_INADEMPIMENTO_DEL_M_130225",
+    "GUIDA_RESPONSABILIT_DEL_NOTAIO_ATTO_NULLO_LESIONE_DEL_CLIENTE_E_RISARCIMENTO_L_130230",
+    "GUIDA_DANNO_DA_VACANZA_ROVINATA_RIMBORSO_E_RISARCIMENTO_AL_TURISTA_D_LGS_62_20_130235",
+    "GUIDA_DANNI_DA_TRASPORTO_FERROVIARIO_RITARDO_CANCELLAZIONE_E_RIMBORSO_AL_PASSE_130240",
+    "GUIDA_DANNI_DA_TRASPORTO_AEREO_CANCELLAZIONE_VOLO_RITARDO_E_NEGATO_IMBARCO_REG_130245"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130225",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELL_AVVOCATO_NEGLIGENZA_PROFESSIONALE_INADEMPIMENTO_DEL_M_130225",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130230",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_NOTAIO_ATTO_NULLO_LESIONE_DEL_CLIENTE_E_RISARCIMENTO_L_130230",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130235",
+      "codice_integrato": "GUIDA_DANNO_DA_VACANZA_ROVINATA_RIMBORSO_E_RISARCIMENTO_AL_TURISTA_D_LGS_62_20_130235",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130240",
+      "codice_integrato": "GUIDA_DANNI_DA_TRASPORTO_FERROVIARIO_RITARDO_CANCELLAZIONE_E_RIMBORSO_AL_PASSE_130240",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130245",
+      "codice_integrato": "GUIDA_DANNI_DA_TRASPORTO_AEREO_CANCELLAZIONE_VOLO_RITARDO_E_NEGATO_IMBARCO_REG_130245",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

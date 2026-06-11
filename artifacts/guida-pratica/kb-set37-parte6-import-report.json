@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p6.json",
+  "sha256": "9A876C7C9AC921E52DEA453895FF1664DD889E8D328FFE1BF8B4A9913DA8A604",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "512220",
+    "512225",
+    "512230",
+    "512235",
+    "512240"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CREDITO_D_IMPOSTA_RICERCA_E_SVILUPPO_REVOCA_E_CONTESTAZIONE_D_L_145_2013_512220",
+    "GUIDA_IVA_DETRAIBILIT_PRO_RATA_RETTIFICA_DELLA_DETRAZIONE_E_CONTESTAZIONE_DPR__512225",
+    "GUIDA_CONTROLLO_FORMALE_36_TER_E_LIQUIDAZIONE_AUTOMATICA_36_BIS_CARTELLA_DI_PA_512230",
+    "GUIDA_DICHIARAZIONE_INFEDELE_E_OMESSA_DICHIARAZIONE_SANZIONI_E_RAVVEDIMENTO_OP_512235",
+    "GUIDA_ABUSO_DEL_DIRITTO_TRIBUTARIO_OPERAZIONI_PRIVE_DI_SOSTANZA_ECONOMICA_ART__512240"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512220",
+      "codice_integrato": "GUIDA_CREDITO_D_IMPOSTA_RICERCA_E_SVILUPPO_REVOCA_E_CONTESTAZIONE_D_L_145_2013_512220",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512225",
+      "codice_integrato": "GUIDA_IVA_DETRAIBILIT_PRO_RATA_RETTIFICA_DELLA_DETRAZIONE_E_CONTESTAZIONE_DPR__512225",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512230",
+      "codice_integrato": "GUIDA_CONTROLLO_FORMALE_36_TER_E_LIQUIDAZIONE_AUTOMATICA_36_BIS_CARTELLA_DI_PA_512230",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512235",
+      "codice_integrato": "GUIDA_DICHIARAZIONE_INFEDELE_E_OMESSA_DICHIARAZIONE_SANZIONI_E_RAVVEDIMENTO_OP_512235",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512240",
+      "codice_integrato": "GUIDA_ABUSO_DEL_DIRITTO_TRIBUTARIO_OPERAZIONI_PRIVE_DI_SOSTANZA_ECONOMICA_ART__512240",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

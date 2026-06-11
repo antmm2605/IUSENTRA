@@ -30,23 +30,26 @@ export function useNotifications(open: boolean) {
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Aggiornamento non riuscito.'))
   }, [])
 
-  // Carica all'avvio per popolare il badge contatore non letti, anche se il pannello è chiuso.
+  // Le notifiche si caricano solo quando il pannello viene aperto.
   useEffect(() => {
+    if (!open) return
     load()
-  }, [load])
+  }, [load, open])
 
-  // Polling continuo (60s a pannello chiuso, 30s a pannello aperto) per mantenere fresco badge e lista.
+  // Il refresh periodico resta attivo solo mentre l'avvocato consulta il pannello.
   useEffect(() => {
-    const interval = open ? 30000 : 60000
-    const timer = window.setInterval(load, interval)
+    if (!open) return
+    const timer = window.setInterval(load, 30000)
     return () => window.clearInterval(timer)
   }, [load, open])
 
   useEffect(() => {
-    const handleNotificationsUpdated = () => load()
+    const handleNotificationsUpdated = () => {
+      if (open) load()
+    }
     window.addEventListener('iusentra:notifications-updated', handleNotificationsUpdated)
     return () => window.removeEventListener('iusentra:notifications-updated', handleNotificationsUpdated)
-  }, [load])
+  }, [load, open])
 
   return { data, loading, error, reload: load, markRead, markAllRead }
 }

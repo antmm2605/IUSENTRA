@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p10.json",
+  "sha256": "C0C934F83BB1E5129AA4BCA76793B48B7567E94FC1378C9DDFA766E54FA3BA1B",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "199075",
+    "199080",
+    "130300",
+    "130305",
+    "156050"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_GIURISDIZIONE_INTERNAZIONALE_REGOLAMENTO_BRUXELLES_I_BIS_E_L_218_1995_AR_199075",
+    "GUIDA_RICONOSCIMENTO_DI_SENTENZA_STRANIERA_IN_ITALIA_PROCEDIMENTO_E_CONDIZIONI_199080",
+    "GUIDA_APPALTO_PRIVATO_RESPONSABILIT_DEL_COMMITTENTE_PER_INFORTUNI_DEL_SUBAPPAL_130300",
+    "GUIDA_CONTRATTO_DI_AGENZIA_INDENNIT_DI_FINE_RAPPORTO_PREAVVISO_E_CONTROVERSIE__130305",
+    "GUIDA_LEASING_FINANZIARIO_RISOLUZIONE_PER_INADEMPIMENTO_E_CONSEGUENZE_L_124_20_156050"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "199075",
+      "codice_integrato": "GUIDA_GIURISDIZIONE_INTERNAZIONALE_REGOLAMENTO_BRUXELLES_I_BIS_E_L_218_1995_AR_199075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199080",
+      "codice_integrato": "GUIDA_RICONOSCIMENTO_DI_SENTENZA_STRANIERA_IN_ITALIA_PROCEDIMENTO_E_CONDIZIONI_199080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130300",
+      "codice_integrato": "GUIDA_APPALTO_PRIVATO_RESPONSABILIT_DEL_COMMITTENTE_PER_INFORTUNI_DEL_SUBAPPAL_130300",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130305",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_AGENZIA_INDENNIT_DI_FINE_RAPPORTO_PREAVVISO_E_CONTROVERSIE__130305",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156050",
+      "codice_integrato": "GUIDA_LEASING_FINANZIARIO_RISOLUZIONE_PER_INADEMPIMENTO_E_CONSEGUENZE_L_124_20_156050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p1.json",
+  "sha256": "EE15B42E959929ABAE007B660BC7C733233C749CAF0A80C67F42003C344484C8",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE1",
+  "denominazione": "Quarantesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130310",
+    "130315",
+    "130320",
+    "130325",
+    "130330"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_MEDIAZIONE_COMMERCIALE_PROVVIGIONE_RESPONSABILIT_DEL_MEDIAT_130310",
+    "GUIDA_MANDATO_INADEMPIMENTO_REVOCA_MANDATO_IN_REM_PROPRIAM_E_AZIONE_DIRETTA_AR_130315",
+    "GUIDA_MUTUO_USURA_ANATOCISMO_E_NULLIT_DEL_TASSO_DI_INTERESSE_ARTT_1813_1822_C__130320",
+    "GUIDA_CONTRATTO_DI_TRASPORTO_DI_MERCI_RESPONSABILIT_DEL_VETTORE_PER_PERDITA_E__130325",
+    "GUIDA_CONTRATTO_DI_DEPOSITO_RESPONSABILIT_DEL_DEPOSITARIO_E_RESTITUZIONE_DELLA_130330"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130310",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_MEDIAZIONE_COMMERCIALE_PROVVIGIONE_RESPONSABILIT_DEL_MEDIAT_130310",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130315",
+      "codice_integrato": "GUIDA_MANDATO_INADEMPIMENTO_REVOCA_MANDATO_IN_REM_PROPRIAM_E_AZIONE_DIRETTA_AR_130315",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130320",
+      "codice_integrato": "GUIDA_MUTUO_USURA_ANATOCISMO_E_NULLIT_DEL_TASSO_DI_INTERESSE_ARTT_1813_1822_C__130320",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130325",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_TRASPORTO_DI_MERCI_RESPONSABILIT_DEL_VETTORE_PER_PERDITA_E__130325",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130330",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_DEPOSITO_RESPONSABILIT_DEL_DEPOSITARIO_E_RESTITUZIONE_DELLA_130330",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

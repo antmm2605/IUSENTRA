@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p10.json",
+  "sha256": "EC0DAF2A67F356D1B1AE3F2FBF53EB4CA5143A92A4649B85CD0FB1E8592A3ECF",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "150220",
+    "150225",
+    "199115",
+    "180105",
+    "180110"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CLAUSOLA_DI_EARN_OUT_NELLE_CESSIONI_D_AZIENDA_MECCANISMO_CALCOLO_E_CONTR_150220",
+    "GUIDA_GOLDEN_POWER_NOTIFICA_OBBLIGATORIA_ESERCIZIO_DEI_POTERI_E_TUTELA_DELLE_I_150225",
+    "GUIDA_QUERELA_DI_FALSO_CIVILE_PROCEDIMENTO_INCIDENTALE_E_RILEVANZA_PROBATORIA__199115",
+    "GUIDA_TUTELA_DEL_PASSEGGERO_IN_CROCIERA_RESPONSABILIT_DEL_VETTORE_MARITTIMO_PE_180105",
+    "GUIDA_ABUSO_DI_POSIZIONE_DOMINANTE_NEL_MERCATO_DIGITALE_TUTELA_DEL_CONCORRENTE_180110"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150220",
+      "codice_integrato": "GUIDA_CLAUSOLA_DI_EARN_OUT_NELLE_CESSIONI_D_AZIENDA_MECCANISMO_CALCOLO_E_CONTR_150220",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150225",
+      "codice_integrato": "GUIDA_GOLDEN_POWER_NOTIFICA_OBBLIGATORIA_ESERCIZIO_DEI_POTERI_E_TUTELA_DELLE_I_150225",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199115",
+      "codice_integrato": "GUIDA_QUERELA_DI_FALSO_CIVILE_PROCEDIMENTO_INCIDENTALE_E_RILEVANZA_PROBATORIA__199115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180105",
+      "codice_integrato": "GUIDA_TUTELA_DEL_PASSEGGERO_IN_CROCIERA_RESPONSABILIT_DEL_VETTORE_MARITTIMO_PE_180105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180110",
+      "codice_integrato": "GUIDA_ABUSO_DI_POSIZIONE_DOMINANTE_NEL_MERCATO_DIGITALE_TUTELA_DEL_CONCORRENTE_180110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

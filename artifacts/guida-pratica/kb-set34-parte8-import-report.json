@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p8.json",
+  "sha256": "F824186ABCD7AA5E215C6F12566B09526AC79EF0B22F565D9D161D0636EB2CFC",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "220310",
+    "220315",
+    "220320",
+    "220325",
+    "220330"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LAVORO_SPORTIVO_PROFESSIONISTICO_E_DILETTANTISTICO_CONTROVERSIE_E_TUTELE_220310",
+    "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_TRAMITE_AGENZIA_INTERINALE_CONTROVERSIE_TRA_S_220315",
+    "GUIDA_MALATTIA_DEL_LAVORATORE_DIRITTI_COMPORTO_GUARIGIONE_E_LICENZIAMENTO_ART__220320",
+    "GUIDA_INIDONEIT_FISICA_O_PSICHICA_DEL_LAVORATORE_TUTELE_E_LICENZIAMENTO_ART_3__220325",
+    "GUIDA_PROVVEDIMENTI_DISCIPLINARI_DEL_DATORE_PROCEDURA_IMPUGNAZIONE_E_DECADENZA_220330"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220310",
+      "codice_integrato": "GUIDA_LAVORO_SPORTIVO_PROFESSIONISTICO_E_DILETTANTISTICO_CONTROVERSIE_E_TUTELE_220310",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220315",
+      "codice_integrato": "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_TRAMITE_AGENZIA_INTERINALE_CONTROVERSIE_TRA_S_220315",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220320",
+      "codice_integrato": "GUIDA_MALATTIA_DEL_LAVORATORE_DIRITTI_COMPORTO_GUARIGIONE_E_LICENZIAMENTO_ART__220320",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220325",
+      "codice_integrato": "GUIDA_INIDONEIT_FISICA_O_PSICHICA_DEL_LAVORATORE_TUTELE_E_LICENZIAMENTO_ART_3__220325",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220330",
+      "codice_integrato": "GUIDA_PROVVEDIMENTI_DISCIPLINARI_DEL_DATORE_PROCEDURA_IMPUGNAZIONE_E_DECADENZA_220330",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

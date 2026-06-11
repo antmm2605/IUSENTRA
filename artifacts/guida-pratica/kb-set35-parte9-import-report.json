@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p9.json",
+  "sha256": "F0541360B6508644ABD13C8C4836E3991690000B6D9C7B7153EDD87E36C435FA",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "145045",
+    "220355",
+    "510035",
+    "510040",
+    "510045"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AFFITTO_DI_FONDI_RUSTICI_E_AGRARI_CANONE_DIRITTI_DEL_CONDUTTORE_E_PRELAZ_145045",
+    "GUIDA_PATTO_DI_NON_CONCORRENZA_POST_CONTRATTUALE_DURATA_CORRISPETTIVO_E_NULLIT_220355",
+    "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_SOSTITUZIONE_DEI_BENI_PIGNORATI_CON_SOMMA_D_510035",
+    "GUIDA_SOSPENSIONE_DELL_ESECUZIONE_SU_ISTANZA_DEL_DEBITORE_OPPOSIZIONE_E_INIBIT_510040",
+    "GUIDA_ESECUZIONE_FORZATA_SU_AUTOVEICOLI_PROCEDURA_DI_PIGNORAMENTO_E_VENDITA_AR_510045"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "145045",
+      "codice_integrato": "GUIDA_AFFITTO_DI_FONDI_RUSTICI_E_AGRARI_CANONE_DIRITTI_DEL_CONDUTTORE_E_PRELAZ_145045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220355",
+      "codice_integrato": "GUIDA_PATTO_DI_NON_CONCORRENZA_POST_CONTRATTUALE_DURATA_CORRISPETTIVO_E_NULLIT_220355",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510035",
+      "codice_integrato": "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_SOSTITUZIONE_DEI_BENI_PIGNORATI_CON_SOMMA_D_510035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510040",
+      "codice_integrato": "GUIDA_SOSPENSIONE_DELL_ESECUZIONE_SU_ISTANZA_DEL_DEBITORE_OPPOSIZIONE_E_INIBIT_510040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510045",
+      "codice_integrato": "GUIDA_ESECUZIONE_FORZATA_SU_AUTOVEICOLI_PROCEDURA_DI_PIGNORAMENTO_E_VENDITA_AR_510045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

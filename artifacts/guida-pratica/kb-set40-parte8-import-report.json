@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p8.json",
+  "sha256": "E8CF8AF3A946F6609E77AD0C1EBBCC48C494747BABE9B8513A5E1BF27F117A0A",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413200",
+    "413205",
+    "413210",
+    "413215",
+    "415090"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SEPARAZIONE_CONSENSUALE_CONIUGALE_ACCORDI_PATRIMONIALI_ASSEGNO_E_OMOLOGA_413200",
+    "GUIDA_DIVORZIO_ASSEGNO_DIVORZILE_CRITERI_CASS_SU_18287_2018_E_REVISIONE_L_898__413205",
+    "GUIDA_UNIONE_CIVILE_COSTITUZIONE_DIRITTI_E_SCIOGLIMENTO_L_76_2016_LEGGE_CIRINN_413210",
+    "GUIDA_CONVIVENZA_DI_FATTO_TUTELE_PATRIMONIALI_CONTRATTI_DI_CONVIVENZA_E_SCIOGL_413215",
+    "GUIDA_AZIONE_DI_RIDUZIONE_DELLE_DISPOSIZIONI_TESTAMENTARIE_E_DONAZIONI_LESIVE__415090"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413200",
+      "codice_integrato": "GUIDA_SEPARAZIONE_CONSENSUALE_CONIUGALE_ACCORDI_PATRIMONIALI_ASSEGNO_E_OMOLOGA_413200",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413205",
+      "codice_integrato": "GUIDA_DIVORZIO_ASSEGNO_DIVORZILE_CRITERI_CASS_SU_18287_2018_E_REVISIONE_L_898__413205",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413210",
+      "codice_integrato": "GUIDA_UNIONE_CIVILE_COSTITUZIONE_DIRITTI_E_SCIOGLIMENTO_L_76_2016_LEGGE_CIRINN_413210",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413215",
+      "codice_integrato": "GUIDA_CONVIVENZA_DI_FATTO_TUTELE_PATRIMONIALI_CONTRATTI_DI_CONVIVENZA_E_SCIOGL_413215",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415090",
+      "codice_integrato": "GUIDA_AZIONE_DI_RIDUZIONE_DELLE_DISPOSIZIONI_TESTAMENTARIE_E_DONAZIONI_LESIVE__415090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

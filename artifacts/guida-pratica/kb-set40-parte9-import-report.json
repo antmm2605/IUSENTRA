@@ -1,0 +1,58 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p9.json",
+  "sha256": "40FBF32C1EEAF45073F214F64EBB7F93DD3579A0271D0B22BE23C7355AF1130D",
+  "changed": true,
+  "macro_area_id": "SET40_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510100",
+    "510105",
+    "191090",
+    "191095",
+    "500075"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ASSEGNAZIONE_CREDITO_PIGNORATO_ART_552_554_CPC_510100",
+    "GUIDA_CUSTODIA_DEI_BENI_PIGNORATI_NOMINA_DEL_CUSTODE_RESPONSABILIT_E_DESTITUZI_510105",
+    "GUIDA_RICORSO_PER_DECRETO_INGIUNTIVO_PROVA_SCRITTA_COMPETENZA_E_REQUISITI_FORM_191090",
+    "GUIDA_SEQUESTRO_CONSERVATIVO_EUROPEO_DEI_CONTI_BANCARI_EAPO_PROCEDIMENTO_TRANS_191095",
+    "GUIDA_PIANO_DI_RISTRUTTURAZIONE_SOGGETTO_A_OMOLOGAZIONE_PRO_STRUMENTO_PROFESSI_500075"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510100",
+      "codice_integrato": "GUIDA_ASSEGNAZIONE_CREDITO_PIGNORATO_ART_552_554_CPC_510100",
+      "codici_ufficiali_correlati_da_valutare": [
+        "510100"
+      ],
+      "reason": "Il codice 510100 è ufficiale nel catalogo PST/XSD locale per deposito verbale di pagamento a mani dell'Ufficiale Giudiziario; la scheda ricevuta riguarda assegnazione del credito pignorato. Resta guida interna collegata al codice ufficiale da valutare, senza sostituire l'oggetto ministeriale."
+    },
+    {
+      "codice_originale": "510105",
+      "codice_integrato": "GUIDA_CUSTODIA_DEI_BENI_PIGNORATI_NOMINA_DEL_CUSTODE_RESPONSABILIT_E_DESTITUZI_510105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191090",
+      "codice_integrato": "GUIDA_RICORSO_PER_DECRETO_INGIUNTIVO_PROVA_SCRITTA_COMPETENZA_E_REQUISITI_FORM_191090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191095",
+      "codice_integrato": "GUIDA_SEQUESTRO_CONSERVATIVO_EUROPEO_DEI_CONTI_BANCARI_EAPO_PROCEDIMENTO_TRANS_191095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500075",
+      "codice_integrato": "GUIDA_PIANO_DI_RISTRUTTURAZIONE_SOGGETTO_A_OMOLOGAZIONE_PRO_STRUMENTO_PROFESSI_500075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

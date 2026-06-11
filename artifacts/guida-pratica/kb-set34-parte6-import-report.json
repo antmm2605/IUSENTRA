@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p6.json",
+  "sha256": "317C7D33777B87EBC0E159A5E7D31C99F081C570AEE8D1C27E3195107FFD0AA9",
+  "changed": true,
+  "macro_area_id": "SET34_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "512180",
+    "240080",
+    "240085",
+    "240090",
+    "211010"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ABUSO_DEL_DIRITTO_FISCALE_E_OPERAZIONI_PRIVE_DI_SOSTANZA_ECONOMICA_CONTE_512180",
+    "GUIDA_VARIANTE_URBANISTICA_IMPUGNAZIONE_E_TUTELA_DEL_PROPRIETARIO_L_1150_1942__240080",
+    "GUIDA_ESPROPRIO_PER_PUBBLICA_UTILIT_INDENNIT_OPPOSIZIONE_E_RISARCIMENTO_DPR_32_240085",
+    "GUIDA_RICORSO_STRAORDINARIO_AL_PRESIDENTE_DELLA_REPUBBLICA_ALTERNATIVA_AL_TAR__240090",
+    "GUIDA_ARBITRATO_IRRITUALE_VALIDITA_IMPUGNAZIONE_211010"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512180",
+      "codice_integrato": "GUIDA_ABUSO_DEL_DIRITTO_FISCALE_E_OPERAZIONI_PRIVE_DI_SOSTANZA_ECONOMICA_CONTE_512180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240080",
+      "codice_integrato": "GUIDA_VARIANTE_URBANISTICA_IMPUGNAZIONE_E_TUTELA_DEL_PROPRIETARIO_L_1150_1942__240080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240085",
+      "codice_integrato": "GUIDA_ESPROPRIO_PER_PUBBLICA_UTILIT_INDENNIT_OPPOSIZIONE_E_RISARCIMENTO_DPR_32_240085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240090",
+      "codice_integrato": "GUIDA_RICORSO_STRAORDINARIO_AL_PRESIDENTE_DELLA_REPUBBLICA_ALTERNATIVA_AL_TAR__240090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211010",
+      "codice_integrato": "GUIDA_ARBITRATO_IRRITUALE_VALIDITA_IMPUGNAZIONE_211010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Il codice 211010 è ufficiale nel catalogo PST/XSD locale per provvedimento d'urgenza ex art. 700 in area lavoro; la scheda ricevuta riguarda arbitrato irrituale ex art. 808-ter c.p.c. Resta guida interna non depositabile e non sostituisce il codice ministeriale."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

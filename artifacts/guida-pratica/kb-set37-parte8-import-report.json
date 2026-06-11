@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p8.json",
+  "sha256": "9C30DDE315C8D088451B8B62BF05F3B840594E5BB42309417B0F3DC8D144075C",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "510025",
+    "510060",
+    "510065",
+    "510070",
+    "510075"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TERZO_PIGNORATO_DICHIARAZIONE_CONTESTAZIONE_E_RESPONSABILIT_ARTT_547_549_510025",
+    "GUIDA_OPPOSIZIONE_ALLA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_FORZATA_ART__510060",
+    "GUIDA_INSINUAZIONE_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_DOMANDA_TARDIVA_E__510065",
+    "GUIDA_AZIONE_REVOCATORIA_NELLA_LIQUIDAZIONE_GIUDIZIALE_ATTI_A_TITOLO_GRATUITO__510070",
+    "GUIDA_CONCORDATO_PREVENTIVO_OPPOSIZIONE_ALL_OMOLOGAZIONE_E_CRAM_DOWN_ARTT_48_1_510075"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510025",
+      "codice_integrato": "GUIDA_TERZO_PIGNORATO_DICHIARAZIONE_CONTESTAZIONE_E_RESPONSABILIT_ARTT_547_549_510025",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510060",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_ALLA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_FORZATA_ART__510060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510065",
+      "codice_integrato": "GUIDA_INSINUAZIONE_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_DOMANDA_TARDIVA_E__510065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510070",
+      "codice_integrato": "GUIDA_AZIONE_REVOCATORIA_NELLA_LIQUIDAZIONE_GIUDIZIALE_ATTI_A_TITOLO_GRATUITO__510070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510075",
+      "codice_integrato": "GUIDA_CONCORDATO_PREVENTIVO_OPPOSIZIONE_ALL_OMOLOGAZIONE_E_CRAM_DOWN_ARTT_48_1_510075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

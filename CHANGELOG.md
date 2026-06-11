@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.251.26 - 2026-06-11
+
+- Dashboard e Regia Operativa: normalizzati gli appuntamenti importati con fuso orario (`Z` / `+00:00`) in ora italiana prima dei confronti. Il caricamento non cade più con `can't compare offset-naive and offset-aware datetimes` quando l'agenda contiene eventi da calendari esterni.
+- Agenda: `data_ora_dt`, `fine_dt`, reminder e controllo sovrapposizioni espongono orari locali `Europe/Rome` senza cambiare il formato salvato, così reminder, dashboard e viste operative restano coerenti con l'ora italiana.
+- Performance dashboard: l'incrocio fra appuntamenti e fascicoli usa indici leggeri per cliente/procedimento, la Panoramica non lancia più ricerche giurisprudenziali full-text per ogni fascicolo e la cache breve evita build concorrenti della stessa dashboard quando due richieste arrivano insieme.
+- Top bar React: notifiche e scadenze rapide non fanno più polling automatico a pannelli chiusi; i payload operativi si caricano quando l'avvocato apre il pannello o quando arriva un evento esplicito.
+- Coordinamento Claude Code/Codex: bonificata la configurazione `.claude` rimuovendo path esterni non pertinenti, aggiunti hook locali e reso `AGENTS.md` la fonte canonica comune per evitare regole divergenti tra agenti.
+- Guida Pratica e Scadenziario: integrati i pacchetti utente `files (23).zip` - `files (29).zip` come set34-41, con 68 moduli versionati, 340 schede ricevute/integrate, 343 termini processuali grezzi, KB completa a 1.755 schede curate e scadenziario rigenerato a 3.908 termini / 1.184 template calcolabili. I codici `151120`, `211010` e `510100` sono stati protetti come guide interne quando la descrizione ricevuta non coincideva con il catalogo ministeriale locale.
+
 ## 2.251.25 - 2026-06-11
 
 - Rimossi i `mem_limit` di default introdotti in 2.251.18 su app, scheduler, OCR, Ollama e Redis: un cap rigido trasforma un picco in un kill-loop deterministico del container — in particolare Ollama, se il modello caricato supera il cap, viene ucciso e riavviato in continuazione e le richieste AI in attesa si accumulano nei worker dell'app fino al 503. I limiti restano attivabili esplicitamente (`mem_limit` nel compose + variabili `IUSENTRA_*_MEM_LIMIT`).

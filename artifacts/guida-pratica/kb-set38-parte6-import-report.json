@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p6.json",
+  "sha256": "73B51D859827660D7BC01B68132D1336DD7B44DC7B3782015F84115A77548BC4",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE6",
+  "denominazione": "PARTE 6 di 8",
+  "codici_materia_originali": [
+    "130250",
+    "130255",
+    "130260",
+    "130265",
+    "130270"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_VIZI_DELLA_COSTRUZIONE_E_GARANZIA_DECENNALE_RESPONSABILIT_DEL_COSTRUTTOR_130250",
+    "GUIDA_CONTRATTO_PRELIMINARE_DI_COMPRAVENDITA_INADEMPIMENTO_ED_ESECUZIONE_IN_FO_130255",
+    "GUIDA_USUCAPIONE_ACCERTAMENTO_GIUDIZIALE_E_MODALIT_ARTT_1158_1163_C_C_130260",
+    "GUIDA_COMUNIONE_ORDINARIA_DIVISIONE_GIUDIZIALE_E_CONTROVERSIE_TRA_COMPROPRIETA_130265",
+    "GUIDA_CONDOMINIO_IMPUGNAZIONE_DELLE_DELIBERE_ASSEMBLEARI_INVALIDE_ART_1137_C_C_130270"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130250",
+      "codice_integrato": "GUIDA_VIZI_DELLA_COSTRUZIONE_E_GARANZIA_DECENNALE_RESPONSABILIT_DEL_COSTRUTTOR_130250",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130255",
+      "codice_integrato": "GUIDA_CONTRATTO_PRELIMINARE_DI_COMPRAVENDITA_INADEMPIMENTO_ED_ESECUZIONE_IN_FO_130255",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130260",
+      "codice_integrato": "GUIDA_USUCAPIONE_ACCERTAMENTO_GIUDIZIALE_E_MODALIT_ARTT_1158_1163_C_C_130260",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130265",
+      "codice_integrato": "GUIDA_COMUNIONE_ORDINARIA_DIVISIONE_GIUDIZIALE_E_CONTROVERSIE_TRA_COMPROPRIETA_130265",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130270",
+      "codice_integrato": "GUIDA_CONDOMINIO_IMPUGNAZIONE_DELLE_DELIBERE_ASSEMBLEARI_INVALIDE_ART_1137_C_C_130270",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

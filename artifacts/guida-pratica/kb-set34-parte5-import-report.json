@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p5.json",
+  "sha256": "5542168055F05F3CCD1A95FD4A02B3ED389ECF0D7CD3421E708D2E045A3A7F88",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "170055",
+    "170060",
+    "170065",
+    "512170",
+    "512175"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_BREVETTO_PER_INVENZIONE_CONTRAFFAZIONE_NULLIT_E_DIFESA_D_LGS_30_2005_ART_170055",
+    "GUIDA_SEGRETI_COMMERCIALI_E_KNOW_HOW_VIOLAZIONE_TUTELA_E_RISARCIMENTO_ARTT_98__170060",
+    "GUIDA_DENOMINAZIONI_DI_ORIGINE_PROTETTA_DOP_IGP_STG_CONTRAFFAZIONE_E_TUTELA_RE_170065",
+    "GUIDA_TRANSFER_PRICING_ACCERTAMENTO_SU_OPERAZIONI_INFRAGRUPPO_CON_L_ESTERO_E_A_512170",
+    "GUIDA_RESIDENZA_FISCALE_ACCERTAMENTO_E_CONTESTAZIONE_PER_TRASFERIMENTO_ALL_EST_512175"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170055",
+      "codice_integrato": "GUIDA_BREVETTO_PER_INVENZIONE_CONTRAFFAZIONE_NULLIT_E_DIFESA_D_LGS_30_2005_ART_170055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170060",
+      "codice_integrato": "GUIDA_SEGRETI_COMMERCIALI_E_KNOW_HOW_VIOLAZIONE_TUTELA_E_RISARCIMENTO_ARTT_98__170060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170065",
+      "codice_integrato": "GUIDA_DENOMINAZIONI_DI_ORIGINE_PROTETTA_DOP_IGP_STG_CONTRAFFAZIONE_E_TUTELA_RE_170065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512170",
+      "codice_integrato": "GUIDA_TRANSFER_PRICING_ACCERTAMENTO_SU_OPERAZIONI_INFRAGRUPPO_CON_L_ESTERO_E_A_512170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512175",
+      "codice_integrato": "GUIDA_RESIDENZA_FISCALE_ACCERTAMENTO_E_CONTESTAZIONE_PER_TRASFERIMENTO_ALL_EST_512175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

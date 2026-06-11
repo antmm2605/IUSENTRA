@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p7.json",
+  "sha256": "15BBB1AFF5C464A32952A65BA7C789C127CC55128335982DB4A5F81711149E05",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "620030",
+    "620035",
+    "620040",
+    "620045",
+    "620050"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PREVIDENZA_COMPLEMENTARE_E_FONDI_PENSIONE_CONTROVERSIE_SULL_EROGAZIONE_E_620030",
+    "GUIDA_INFORTUNI_SUL_LAVORO_E_MALATTIA_PROFESSIONALE_CONTROVERSIE_INAIL_E_RESPO_620035",
+    "GUIDA_ORARIO_DI_LAVORO_E_STRAORDINARIO_NON_REMUNERATO_CONTROVERSIE_E_RISARCIME_620040",
+    "GUIDA_ACCORDI_SINDACALI_AZIENDALI_IN_DEROGA_AL_CCNL_VALIDIT_E_APPLICAZIONE_ART_620045",
+    "GUIDA_CONTRATTO_DI_SOMMINISTRAZIONE_DI_LAVORO_IRREGOLARE_E_STAFF_LEASING_TUTEL_620050"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "620030",
+      "codice_integrato": "GUIDA_PREVIDENZA_COMPLEMENTARE_E_FONDI_PENSIONE_CONTROVERSIE_SULL_EROGAZIONE_E_620030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620035",
+      "codice_integrato": "GUIDA_INFORTUNI_SUL_LAVORO_E_MALATTIA_PROFESSIONALE_CONTROVERSIE_INAIL_E_RESPO_620035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620040",
+      "codice_integrato": "GUIDA_ORARIO_DI_LAVORO_E_STRAORDINARIO_NON_REMUNERATO_CONTROVERSIE_E_RISARCIME_620040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620045",
+      "codice_integrato": "GUIDA_ACCORDI_SINDACALI_AZIENDALI_IN_DEROGA_AL_CCNL_VALIDIT_E_APPLICAZIONE_ART_620045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620050",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_SOMMINISTRAZIONE_DI_LAVORO_IRREGOLARE_E_STAFF_LEASING_TUTEL_620050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

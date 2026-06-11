@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p9.json",
+  "sha256": "0D0DF407A3F56753832DA27D3FE475AA21C3033126494612E1B5461A83FC1B5C",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "415010",
+    "415015",
+    "150135",
+    "181001",
+    "130215"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_EREDIT_GIACENTE_NOMINA_DEL_CURATORE_E_GESTIONE_DEL_PATRIMONIO_ARTT_528_5_415010",
+    "GUIDA_SUCCESSIONE_INTERNAZIONALE_LEGGE_APPLICABILE_E_CERTIFICATO_SUCCESSORIO_E_415015",
+    "GUIDA_IMPRESA_FAMILIARE_DIRITTI_DEL_FAMILIARE_COLLABORATORE_E_AZIONE_DI_ACCERT_150135",
+    "GUIDA_AZIONE_DI_CLASSE_RISARCITORIA_COLLETTIVA_DEL_CONSUMATORE_D_LGS_206_2005__181001",
+    "GUIDA_ONERI_REALI_OBBLIGAZIONI_PROPTER_REM_E_VINCOLI_DI_DESTINAZIONE_TRASMISSI_130215"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "415010",
+      "codice_integrato": "GUIDA_EREDIT_GIACENTE_NOMINA_DEL_CURATORE_E_GESTIONE_DEL_PATRIMONIO_ARTT_528_5_415010",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415015",
+      "codice_integrato": "GUIDA_SUCCESSIONE_INTERNAZIONALE_LEGGE_APPLICABILE_E_CERTIFICATO_SUCCESSORIO_E_415015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150135",
+      "codice_integrato": "GUIDA_IMPRESA_FAMILIARE_DIRITTI_DEL_FAMILIARE_COLLABORATORE_E_AZIONE_DI_ACCERT_150135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "181001",
+      "codice_integrato": "GUIDA_AZIONE_DI_CLASSE_RISARCITORIA_COLLETTIVA_DEL_CONSUMATORE_D_LGS_206_2005__181001",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130215",
+      "codice_integrato": "GUIDA_ONERI_REALI_OBBLIGAZIONI_PROPTER_REM_E_VINCOLI_DI_DESTINAZIONE_TRASMISSI_130215",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

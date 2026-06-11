@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p8.json",
+  "sha256": "239A7F37D5BF4BA9FA32A6288C5D9B6E4380204455FA13C59526B5EFFBFB19C9",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "155035",
+    "155040",
+    "155045",
+    "145035",
+    "145040"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DEL_REVISORE_LEGALE_PER_CERTIFICAZIONE_ERRATA_E_DANNO_AGLI_155035",
+    "GUIDA_ARBITRO_BANCARIO_FINANZIARIO_ABF_PROCEDIMENTO_E_RICORSO_CONTRO_LE_BANCHE_155040",
+    "GUIDA_MEDIATORE_CIVILE_RESPONSABILIT_PROFESSIONALE_E_VIOLAZIONE_DEGLI_OBBLIGHI_155045",
+    "GUIDA_AFFITTO_DI_AZIENDA_OBBLIGHI_DEL_CONDUTTORE_INVENTARIO_E_CONTROVERSIE_ALL_145035",
+    "GUIDA_COMODATO_D_USO_GRATUITO_RESTITUZIONE_URGENTE_BISOGNO_E_CONTROVERSIE_ARTT_145040"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "155035",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_REVISORE_LEGALE_PER_CERTIFICAZIONE_ERRATA_E_DANNO_AGLI_155035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155040",
+      "codice_integrato": "GUIDA_ARBITRO_BANCARIO_FINANZIARIO_ABF_PROCEDIMENTO_E_RICORSO_CONTRO_LE_BANCHE_155040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155045",
+      "codice_integrato": "GUIDA_MEDIATORE_CIVILE_RESPONSABILIT_PROFESSIONALE_E_VIOLAZIONE_DEGLI_OBBLIGHI_155045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "145035",
+      "codice_integrato": "GUIDA_AFFITTO_DI_AZIENDA_OBBLIGHI_DEL_CONDUTTORE_INVENTARIO_E_CONTROVERSIE_ALL_145035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "145040",
+      "codice_integrato": "GUIDA_COMODATO_D_USO_GRATUITO_RESTITUZIONE_URGENTE_BISOGNO_E_CONTROVERSIE_ARTT_145040",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p1.json",
+  "sha256": "9EB064B3EC83ABCFB96EC3FD6DCDB16E8B378674C918D53DCCEF538D819F706A",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE1",
+  "denominazione": "Trentottesimo set – 40 nuovi codici – PARTE 1 di 8",
+  "codici_materia_originali": [
+    "150050",
+    "150180",
+    "150185",
+    "152050",
+    "154050"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_P_A_TRASFERIMENTO_DELLE_AZIONI_E_CLAUSOLE_LIMITATIVE_PRELAZIONE_GRADIM_150050",
+    "GUIDA_S_R_L_RIDUZIONE_DEL_CAPITALE_PER_PERDITE_PROCEDURA_E_TUTELE_DEI_CREDITOR_150180",
+    "GUIDA_S_R_L_AUMENTO_DEL_CAPITALE_SOCIALE_E_DIRITTO_DI_OPZIONE_DEI_SOCI_ARTT_24_150185",
+    "GUIDA_COOPERATIVA_RESPONSABILIT_DEI_SOCI_RECESSO_ED_ESCLUSIONE_ARTT_2511_2545__152050",
+    "GUIDA_RESPONSABILIT_PATRIMONIALE_DELL_IMPRENDITORE_INDIVIDUALE_E_PATRIMONI_DES_154050"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150050",
+      "codice_integrato": "GUIDA_S_P_A_TRASFERIMENTO_DELLE_AZIONI_E_CLAUSOLE_LIMITATIVE_PRELAZIONE_GRADIM_150050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150180",
+      "codice_integrato": "GUIDA_S_R_L_RIDUZIONE_DEL_CAPITALE_PER_PERDITE_PROCEDURA_E_TUTELE_DEI_CREDITOR_150180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150185",
+      "codice_integrato": "GUIDA_S_R_L_AUMENTO_DEL_CAPITALE_SOCIALE_E_DIRITTO_DI_OPZIONE_DEI_SOCI_ARTT_24_150185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "152050",
+      "codice_integrato": "GUIDA_COOPERATIVA_RESPONSABILIT_DEI_SOCI_RECESSO_ED_ESCLUSIONE_ARTT_2511_2545__152050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154050",
+      "codice_integrato": "GUIDA_RESPONSABILIT_PATRIMONIALE_DELL_IMPRENDITORE_INDIVIDUALE_E_PATRIMONI_DES_154050",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p7.json",
+  "sha256": "A285F61FD4FE912BD207BB4884C50A485AC32D746CDCEFF11BC29DF07A21E46E",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512295",
+    "512300",
+    "512305",
+    "512310",
+    "512315"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMU_ESENZIONI_AGEVOLAZIONI_E_CONTESTAZIONE_DELLE_ALIQUOTE_D_LGS_23_2011__512295",
+    "GUIDA_TARI_PRESUPPOSTO_ESENZIONI_RIDUZIONI_E_IMPUGNAZIONE_DELLA_CARTELLA_L_147_512300",
+    "GUIDA_CEDOLARE_SECCA_SUGLI_AFFITTI_OPZIONE_REVOCA_E_CONTESTAZIONE_DELL_IMPOSTA_512305",
+    "GUIDA_AGEVOLAZIONE_FISCALE_PRIMA_CASA_DECADENZA_RECUPERO_DELL_IMPOSTA_E_TUTELA_512310",
+    "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_E_SANATORIA_DELLE_IRREGOLARIT_L_512315"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512295",
+      "codice_integrato": "GUIDA_IMU_ESENZIONI_AGEVOLAZIONI_E_CONTESTAZIONE_DELLE_ALIQUOTE_D_LGS_23_2011__512295",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512300",
+      "codice_integrato": "GUIDA_TARI_PRESUPPOSTO_ESENZIONI_RIDUZIONI_E_IMPUGNAZIONE_DELLA_CARTELLA_L_147_512300",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512305",
+      "codice_integrato": "GUIDA_CEDOLARE_SECCA_SUGLI_AFFITTI_OPZIONE_REVOCA_E_CONTESTAZIONE_DELL_IMPOSTA_512305",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512310",
+      "codice_integrato": "GUIDA_AGEVOLAZIONE_FISCALE_PRIMA_CASA_DECADENZA_RECUPERO_DELL_IMPOSTA_E_TUTELA_512310",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512315",
+      "codice_integrato": "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_E_SANATORIA_DELLE_IRREGOLARIT_L_512315",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

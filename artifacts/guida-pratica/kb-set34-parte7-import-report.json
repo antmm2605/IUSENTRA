@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p7.json",
+  "sha256": "EEE55EFBA669236D351C7A3D9086D3C58DD0C3F01A8DF96BEF7B462E63D978C3",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "191035",
+    "150125",
+    "150130",
+    "113020",
+    "220305"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_ACCERTAMENTO_NEGATIVO_DEL_CREDITO_TUTELA_DEL_DEBITORE_ART_100__191035",
+    "GUIDA_TRUST_INTERNO_INADEMPIMENTO_DEL_TRUSTEE_E_TUTELA_DEL_DISPONENTE_E_DEI_BE_150125",
+    "GUIDA_ACQUISIZIONE_DI_AZIENDA_CON_DEBITI_OCCULTI_RESPONSABILIT_SOLIDALE_DELL_A_150130",
+    "GUIDA_SEPARAZIONE_E_DIVORZIO_CON_ELEMENTI_DI_INTERNAZIONALIT_GIURISDIZIONE_E_L_113020",
+    "GUIDA_LAVORO_PORTUALE_E_ATTIVIT_IN_BANCHINA_CONTROVERSIE_E_REGOLAMENTAZIONE_L__220305"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "191035",
+      "codice_integrato": "GUIDA_AZIONE_DI_ACCERTAMENTO_NEGATIVO_DEL_CREDITO_TUTELA_DEL_DEBITORE_ART_100__191035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150125",
+      "codice_integrato": "GUIDA_TRUST_INTERNO_INADEMPIMENTO_DEL_TRUSTEE_E_TUTELA_DEL_DISPONENTE_E_DEI_BE_150125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150130",
+      "codice_integrato": "GUIDA_ACQUISIZIONE_DI_AZIENDA_CON_DEBITI_OCCULTI_RESPONSABILIT_SOLIDALE_DELL_A_150130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "113020",
+      "codice_integrato": "GUIDA_SEPARAZIONE_E_DIVORZIO_CON_ELEMENTI_DI_INTERNAZIONALIT_GIURISDIZIONE_E_L_113020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220305",
+      "codice_integrato": "GUIDA_LAVORO_PORTUALE_E_ATTIVIT_IN_BANCHINA_CONTROVERSIE_E_REGOLAMENTAZIONE_L__220305",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

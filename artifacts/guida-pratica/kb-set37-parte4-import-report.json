@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p4.json",
+  "sha256": "B0253CAFAD4AD31EF6D3DA4693E8D4BFE57766DC988E256D704B5C866D66D0F4",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "199055",
+    "199060",
+    "191060",
+    "191065",
+    "191070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TRANSLATIO_IUDICII_RIASSUNZIONE_DELLA_CAUSA_DOPO_DICHIARAZIONE_DI_INCOMP_199055",
+    "GUIDA_OPPOSIZIONE_TARDIVA_AL_DECRETO_INGIUNTIVO_E_RIMESSIONE_IN_TERMINI_ART_65_199060",
+    "GUIDA_DENUNZIA_DI_NUOVA_OPERA_E_DANNO_TEMUTO_TUTELE_CONSERVATIVE_URGENTI_ARTT__191060",
+    "GUIDA_AZIONE_DI_MANUTENZIONE_DEL_POSSESSO_TURBATIVA_E_MOLESTIA_ART_1170_C_C_191065",
+    "GUIDA_AZIONE_DI_REINTEGRAZIONE_NEL_POSSESSO_SPOGLIO_VIOLENTO_O_CLANDESTINO_ART_191070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "199055",
+      "codice_integrato": "GUIDA_TRANSLATIO_IUDICII_RIASSUNZIONE_DELLA_CAUSA_DOPO_DICHIARAZIONE_DI_INCOMP_199055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199060",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_TARDIVA_AL_DECRETO_INGIUNTIVO_E_RIMESSIONE_IN_TERMINI_ART_65_199060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191060",
+      "codice_integrato": "GUIDA_DENUNZIA_DI_NUOVA_OPERA_E_DANNO_TEMUTO_TUTELE_CONSERVATIVE_URGENTI_ARTT__191060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191065",
+      "codice_integrato": "GUIDA_AZIONE_DI_MANUTENZIONE_DEL_POSSESSO_TURBATIVA_E_MOLESTIA_ART_1170_C_C_191065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191070",
+      "codice_integrato": "GUIDA_AZIONE_DI_REINTEGRAZIONE_NEL_POSSESSO_SPOGLIO_VIOLENTO_O_CLANDESTINO_ART_191070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

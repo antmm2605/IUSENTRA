@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p3.json",
+  "sha256": "677069690D5C6CA1462635635EC7A8754FA6B5BAE9B8B3B7FFFF1EA5F6EA95F6",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "154030",
+    "154035",
+    "141115",
+    "141120",
+    "143145"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DELLA_CAPOGRUPPO_PER_ABUSO_DI_DIREZIONE_UNITARIA_ART_2497__154030",
+    "GUIDA_CONTRATTI_DI_RETE_TRA_IMPRESE_CONTROVERSIE_E_INADEMPIMENTO_L_33_2009_D_L_154035",
+    "GUIDA_CONTRATTO_DI_FACTORING_CESSIONE_DI_CREDITI_COMMERCIALI_E_CONTESTAZIONE_D_141115",
+    "GUIDA_CONTRATTO_DI_FRANCHISING_INADEMPIMENTO_RECESSO_E_INDENNIT_DI_AVVIAMENTO__141120",
+    "GUIDA_CONTRATTO_DI_DISTRIBUZIONE_IN_ESCLUSIVA_RECESSO_INDENNIT_E_CLAUSOLE_ANTI_143145"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "154030",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_CAPOGRUPPO_PER_ABUSO_DI_DIREZIONE_UNITARIA_ART_2497__154030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154035",
+      "codice_integrato": "GUIDA_CONTRATTI_DI_RETE_TRA_IMPRESE_CONTROVERSIE_E_INADEMPIMENTO_L_33_2009_D_L_154035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141115",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_FACTORING_CESSIONE_DI_CREDITI_COMMERCIALI_E_CONTESTAZIONE_D_141115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141120",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_FRANCHISING_INADEMPIMENTO_RECESSO_E_INDENNIT_DI_AVVIAMENTO__141120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143145",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_DISTRIBUZIONE_IN_ESCLUSIVA_RECESSO_INDENNIT_E_CLAUSOLE_ANTI_143145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

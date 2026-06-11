@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p5.json",
+  "sha256": "1633AEF9184D0C2CAD72B655A3D6162256654AF7A9080EAB533A3D44A4D9F4F0",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "240180",
+    "240185",
+    "240190",
+    "240195",
+    "240200"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_VALUTAZIONE_DI_IMPATTO_AMBIENTALE_VIA_PROCEDIMENTO_E_IMPUGNAZIONE_DEL_PR_240180",
+    "GUIDA_VARIANTE_URBANISTICA_E_PIANO_REGOLATORE_GENERALE_IMPUGNAZIONE_DEGLI_STRU_240185",
+    "GUIDA_LICENZA_COMMERCIALE_E_AUTORIZZAZIONI_DI_POLIZIA_DINIEGO_E_IMPUGNAZIONE_T_240190",
+    "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_RINNOVO_PROROGA_E_CONTROVERSIE_D_L_194_2_240195",
+    "GUIDA_CONTRATTO_PUBBLICO_IN_ESECUZIONE_VARIANTI_RISERVE_E_CONTROVERSIE_ARTT_11_240200"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240180",
+      "codice_integrato": "GUIDA_VALUTAZIONE_DI_IMPATTO_AMBIENTALE_VIA_PROCEDIMENTO_E_IMPUGNAZIONE_DEL_PR_240180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240185",
+      "codice_integrato": "GUIDA_VARIANTE_URBANISTICA_E_PIANO_REGOLATORE_GENERALE_IMPUGNAZIONE_DEGLI_STRU_240185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240190",
+      "codice_integrato": "GUIDA_LICENZA_COMMERCIALE_E_AUTORIZZAZIONI_DI_POLIZIA_DINIEGO_E_IMPUGNAZIONE_T_240190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240195",
+      "codice_integrato": "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_RINNOVO_PROROGA_E_CONTROVERSIE_D_L_194_2_240195",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240200",
+      "codice_integrato": "GUIDA_CONTRATTO_PUBBLICO_IN_ESECUZIONE_VARIANTI_RISERVE_E_CONTROVERSIE_ARTT_11_240200",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p2.json",
+  "sha256": "7607F5EB8BA43DBBB2208BA410C72E92FF5C79C935DC71DE442E1C4DE13FD6EF",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "160065",
+    "160360",
+    "180100",
+    "170105",
+    "156055"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DEL_PRODUTTORE_PER_DANNI_DA_PRODOTTO_DIFETTOSO_AZIONE_DIRE_160065",
+    "GUIDA_DANNO_DA_BURN_OUT_E_STRESS_LAVORO_CORRELATO_RESPONSABILIT_DEL_DATORE_D_L_160360",
+    "GUIDA_PRATICHE_COMMERCIALI_SCORRETTE_TUTELA_DEL_CONSUMATORE_E_AZIONE_AGCM_D_LG_180100",
+    "GUIDA_DENOMINAZIONI_DI_ORIGINE_PROTETTA_DOP_IGP_STG_TUTELA_CONTRO_EVOCAZIONE_U_170105",
+    "GUIDA_CONTRATTO_DI_FACTORING_CESSIONE_DEL_CREDITO_PRO_SOLUTO_E_PRO_SOLVENDO_GA_156055"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160065",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_PRODUTTORE_PER_DANNI_DA_PRODOTTO_DIFETTOSO_AZIONE_DIRE_160065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160360",
+      "codice_integrato": "GUIDA_DANNO_DA_BURN_OUT_E_STRESS_LAVORO_CORRELATO_RESPONSABILIT_DEL_DATORE_D_L_160360",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180100",
+      "codice_integrato": "GUIDA_PRATICHE_COMMERCIALI_SCORRETTE_TUTELA_DEL_CONSUMATORE_E_AZIONE_AGCM_D_LG_180100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170105",
+      "codice_integrato": "GUIDA_DENOMINAZIONI_DI_ORIGINE_PROTETTA_DOP_IGP_STG_TUTELA_CONTRO_EVOCAZIONE_U_170105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156055",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_FACTORING_CESSIONE_DEL_CREDITO_PRO_SOLUTO_E_PRO_SOLVENDO_GA_156055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

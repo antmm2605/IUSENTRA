@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p6.json",
+  "sha256": "6789F51AA1071AE254F9A117C304DE07A4DF64B311F17AEA4EBB0173E16A8866",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240230",
+    "240235",
+    "240240",
+    "240245",
+    "240250"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SERVIZI_PUBBLICI_LOCALI_AFFIDAMENTO_IN_HOUSE_PROVIDING_E_CONTROVERSIE_D__240230",
+    "GUIDA_RENDITA_CATASTALE_AGGIORNAMENTO_CONTESTAZIONE_E_RICLASSIFICAZIONE_DEGLI__240235",
+    "GUIDA_PROCEDIMENTO_DISCIPLINARE_DEL_PUBBLICO_DIPENDENTE_FASI_GARANZIE_E_IMPUGN_240240",
+    "GUIDA_AUTORIZZAZIONE_PAESAGGISTICA_DINIEGO_E_CONTESTAZIONE_AL_TAR_D_LGS_42_200_240245",
+    "GUIDA_PERMESSO_DI_SOGGIORNO_RINNOVO_DINIEGO_E_TUTELE_GIURISDIZIONALI_D_LGS_286_240250"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240230",
+      "codice_integrato": "GUIDA_SERVIZI_PUBBLICI_LOCALI_AFFIDAMENTO_IN_HOUSE_PROVIDING_E_CONTROVERSIE_D__240230",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240235",
+      "codice_integrato": "GUIDA_RENDITA_CATASTALE_AGGIORNAMENTO_CONTESTAZIONE_E_RICLASSIFICAZIONE_DEGLI__240235",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240240",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_DISCIPLINARE_DEL_PUBBLICO_DIPENDENTE_FASI_GARANZIE_E_IMPUGN_240240",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240245",
+      "codice_integrato": "GUIDA_AUTORIZZAZIONE_PAESAGGISTICA_DINIEGO_E_CONTESTAZIONE_AL_TAR_D_LGS_42_200_240245",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240250",
+      "codice_integrato": "GUIDA_PERMESSO_DI_SOGGIORNO_RINNOVO_DINIEGO_E_TUTELE_GIURISDIZIONALI_D_LGS_286_240250",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

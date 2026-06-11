@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p9.json",
+  "sha256": "52447744E232A1E0B02653B7EA90046CE78D66D2E9BA4F0DFF3739A31E34C864",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510110",
+    "510115",
+    "500080",
+    "500085",
+    "510120"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_FONDO_PATRIMONIALE_FAMILIARE_LIMITI_ALLA_PIGNORABILIT_E_AZIONE_REVOCATOR_510110",
+    "GUIDA_ESECUZIONE_FORZATA_NEI_CONFRONTI_DELLA_PA_LIMITAZIONI_E_MECCANISMO_DEL_P_510115",
+    "GUIDA_CONCORDATO_PREVENTIVO_IN_CONTINUIT_AZIENDALE_PIANO_E_REQUISITI_ART_84_D__500080",
+    "GUIDA_ESDEBITAZIONE_DELL_IMPRENDITORE_POST_LIQUIDAZIONE_GIUDIZIALE_CONDIZIONI__500085",
+    "GUIDA_OPPOSIZIONE_AGLI_ATTI_ESECUTIVI_PER_VIZI_FORMALI_DELL_ESECUZIONE_ART_617_510120"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510110",
+      "codice_integrato": "GUIDA_FONDO_PATRIMONIALE_FAMILIARE_LIMITI_ALLA_PIGNORABILIT_E_AZIONE_REVOCATOR_510110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510115",
+      "codice_integrato": "GUIDA_ESECUZIONE_FORZATA_NEI_CONFRONTI_DELLA_PA_LIMITAZIONI_E_MECCANISMO_DEL_P_510115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500080",
+      "codice_integrato": "GUIDA_CONCORDATO_PREVENTIVO_IN_CONTINUIT_AZIENDALE_PIANO_E_REQUISITI_ART_84_D__500080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500085",
+      "codice_integrato": "GUIDA_ESDEBITAZIONE_DELL_IMPRENDITORE_POST_LIQUIDAZIONE_GIUDIZIALE_CONDIZIONI__500085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510120",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_AGLI_ATTI_ESECUTIVI_PER_VIZI_FORMALI_DELL_ESECUZIONE_ART_617_510120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

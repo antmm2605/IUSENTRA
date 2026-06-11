@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p5.json",
+  "sha256": "C870BCFE2AE41D966A980703FFE3A7B267BD9BFF920FCD8296E5D87A6FC1776C",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE5",
+  "denominazione": "PARTE 5 di 8",
+  "codici_materia_originali": [
+    "510080",
+    "510085",
+    "191075",
+    "191080",
+    "190055"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PIGNORAMENTO_DI_QUOTE_SOCIETARIE_ESECUZIONE_E_VENDITA_ART_2471_C_C_ART_6_510080",
+    "GUIDA_PIGNORAMENTO_DI_QUOTA_IN_COMUNIONE_ORDINARIA_ESECUZIONE_E_DIVISIONE_FORZ_510085",
+    "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_A_FINI_CONCILIATIVI_PROCEDURA_E_VALORE_P_191075",
+    "GUIDA_CONVALIDA_DI_LICENZA_PER_FINITA_LOCAZIONE_E_SFRATTO_OPPOSIZIONE_E_CONVER_191080",
+    "GUIDA_DECRETO_INGIUNTIVO_OPPOSIZIONE_E_SOSPENSIVA_DELL_ESECUTIVIT_PROVVISORIA__190055"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510080",
+      "codice_integrato": "GUIDA_PIGNORAMENTO_DI_QUOTE_SOCIETARIE_ESECUZIONE_E_VENDITA_ART_2471_C_C_ART_6_510080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510085",
+      "codice_integrato": "GUIDA_PIGNORAMENTO_DI_QUOTA_IN_COMUNIONE_ORDINARIA_ESECUZIONE_E_DIVISIONE_FORZ_510085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191075",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_A_FINI_CONCILIATIVI_PROCEDURA_E_VALORE_P_191075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191080",
+      "codice_integrato": "GUIDA_CONVALIDA_DI_LICENZA_PER_FINITA_LOCAZIONE_E_SFRATTO_OPPOSIZIONE_E_CONVER_191080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190055",
+      "codice_integrato": "GUIDA_DECRETO_INGIUNTIVO_OPPOSIZIONE_E_SOSPENSIVA_DELL_ESECUTIVIT_PROVVISORIA__190055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

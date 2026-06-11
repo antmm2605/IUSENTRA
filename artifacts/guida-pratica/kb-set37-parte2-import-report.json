@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (25).zip::kb_set37_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set37_p2.json",
+  "sha256": "29A436DE88BE5C551D3841522099F2F665C9EAA58DEC9B7CE7270529A886F446",
+  "changed": false,
+  "macro_area_id": "SET37_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "160045",
+    "150160",
+    "150165",
+    "150170",
+    "150175"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SINISTRO_CON_VEICOLO_NON_ASSICURATO_O_NON_IDENTIFICATO_AZIONE_CONTRO_IL__160045",
+    "GUIDA_S_R_L_ESCLUSIONE_DEL_SOCIO_PER_GIUSTA_CAUSA_E_CONTROVERSIE_ART_2473_BIS__150160",
+    "GUIDA_S_R_L_DIRITTI_PARTICOLARI_DEL_SOCIO_E_CLAUSOLA_DI_PRELAZIONE_SULLE_QUOTE_150165",
+    "GUIDA_S_R_L_INVALIDIT_DELLE_DELIBERE_ASSEMBLEARI_NULLIT_E_ANNULLABILIT_ART_247_150170",
+    "GUIDA_S_R_L_RESPONSABILIT_DEGLI_AMMINISTRATORI_E_AZIONE_DI_RESPONSABILIT_ARTT__150175"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160045",
+      "codice_integrato": "GUIDA_SINISTRO_CON_VEICOLO_NON_ASSICURATO_O_NON_IDENTIFICATO_AZIONE_CONTRO_IL__160045",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150160",
+      "codice_integrato": "GUIDA_S_R_L_ESCLUSIONE_DEL_SOCIO_PER_GIUSTA_CAUSA_E_CONTROVERSIE_ART_2473_BIS__150160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150165",
+      "codice_integrato": "GUIDA_S_R_L_DIRITTI_PARTICOLARI_DEL_SOCIO_E_CLAUSOLA_DI_PRELAZIONE_SULLE_QUOTE_150165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150170",
+      "codice_integrato": "GUIDA_S_R_L_INVALIDIT_DELLE_DELIBERE_ASSEMBLEARI_NULLIT_E_ANNULLABILIT_ART_247_150170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150175",
+      "codice_integrato": "GUIDA_S_R_L_RESPONSABILIT_DEGLI_AMMINISTRATORI_E_AZIONE_DI_RESPONSABILIT_ARTT__150175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

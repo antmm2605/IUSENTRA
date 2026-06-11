@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p6.json",
+  "sha256": "647183CA8C57F902922A9D1D6D868723DF10E848019B73FD01985AF6EB9BCEBB",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240205",
+    "240210",
+    "240215",
+    "240220",
+    "240225"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ACCESSO_CIVICO_GENERALIZZATO_FOIA_DINIEGO_ECCEZIONI_E_RICORSO_AL_TAR_D_L_240205",
+    "GUIDA_SANZIONE_AMMINISTRATIVA_PECUNIARIA_CONTESTAZIONE_E_OPPOSIZIONE_AL_GIUDIC_240210",
+    "GUIDA_ABUSO_EDILIZIO_SANZIONE_DEMOLITORIA_CONDONO_E_SANATORIA_PER_COMPATIBILIT_240215",
+    "GUIDA_RESPONSABILIT_EXTRACONTRATTUALE_DELLA_PA_PER_ATTI_ILLEGITTIMI_RISARCIMEN_240220",
+    "GUIDA_SILENZIO_INADEMPIMENTO_DELLA_PA_AZIONE_AVVERSO_IL_SILENZIO_E_NOMINA_DEL__240225"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240205",
+      "codice_integrato": "GUIDA_ACCESSO_CIVICO_GENERALIZZATO_FOIA_DINIEGO_ECCEZIONI_E_RICORSO_AL_TAR_D_L_240205",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240210",
+      "codice_integrato": "GUIDA_SANZIONE_AMMINISTRATIVA_PECUNIARIA_CONTESTAZIONE_E_OPPOSIZIONE_AL_GIUDIC_240210",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240215",
+      "codice_integrato": "GUIDA_ABUSO_EDILIZIO_SANZIONE_DEMOLITORIA_CONDONO_E_SANATORIA_PER_COMPATIBILIT_240215",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240220",
+      "codice_integrato": "GUIDA_RESPONSABILIT_EXTRACONTRATTUALE_DELLA_PA_PER_ATTI_ILLEGITTIMI_RISARCIMEN_240220",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240225",
+      "codice_integrato": "GUIDA_SILENZIO_INADEMPIMENTO_DELLA_PA_AZIONE_AVVERSO_IL_SILENZIO_E_NOMINA_DEL__240225",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

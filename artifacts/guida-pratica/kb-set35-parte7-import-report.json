@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p7.json",
+  "sha256": "405B34183AF56270F06586B579177BC033BF8056D85D945F75BCD6708BFC29C9",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "160330",
+    "130220",
+    "413150",
+    "413155",
+    "155030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DELL_HOSTING_PROVIDER_PER_CONTENUTI_ILLECITI_DEGLI_UTENTI__160330",
+    "GUIDA_MULTIPROPRIET_TIME_SHARING_CONTRATTO_RECESSO_E_TUTELE_DEL_CONSUMATORE_D__130220",
+    "GUIDA_RECLAMO_AVVERSO_I_PROVVEDIMENTI_DEL_GIUDICE_TUTELARE_E_PROCEDIMENTI_DI_V_413150",
+    "GUIDA_RIMPATRIO_COATTIVO_DEL_MINORE_SOTTRATTO_INTERNAZIONALMENTE_PROCEDURA_EX__413155",
+    "GUIDA_FINANZA_AGEVOLATA_RECUPERO_DI_CONTRIBUTI_E_CONTESTAZIONE_DEL_REVOCO_D_LG_155030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160330",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELL_HOSTING_PROVIDER_PER_CONTENUTI_ILLECITI_DEGLI_UTENTI__160330",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130220",
+      "codice_integrato": "GUIDA_MULTIPROPRIET_TIME_SHARING_CONTRATTO_RECESSO_E_TUTELE_DEL_CONSUMATORE_D__130220",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413150",
+      "codice_integrato": "GUIDA_RECLAMO_AVVERSO_I_PROVVEDIMENTI_DEL_GIUDICE_TUTELARE_E_PROCEDIMENTI_DI_V_413150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413155",
+      "codice_integrato": "GUIDA_RIMPATRIO_COATTIVO_DEL_MINORE_SOTTRATTO_INTERNAZIONALMENTE_PROCEDURA_EX__413155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155030",
+      "codice_integrato": "GUIDA_FINANZA_AGEVOLATA_RECUPERO_DI_CONTRIBUTI_E_CONTESTAZIONE_DEL_REVOCO_D_LG_155030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

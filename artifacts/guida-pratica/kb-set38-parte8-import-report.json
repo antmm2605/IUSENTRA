@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (26).zip::kb_set38_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set38_p8.json",
+  "sha256": "F28ED2C10CDD059CA5D8EBFD907818258D5E9485B1A4841A97EBFC38000C6336",
+  "changed": false,
+  "macro_area_id": "SET38_PARTE8",
+  "denominazione": "PARTE 8 di 8",
+  "codici_materia_originali": [
+    "240170",
+    "500055",
+    "620055",
+    "620060",
+    "240175"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONFISCA_DI_PREVENZIONE_PATRIMONIALE_PROCEDIMENTO_E_OPPOSIZIONE_ARTT_17__240170",
+    "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_REDAZIONE_ATTESTAZIONE_E_EFFETTI_PROTETTI_500055",
+    "GUIDA_LAVORO_INTERMITTENTE_A_CHIAMATA_DIRITTI_DEL_LAVORATORE_E_CONTESTAZIONE_D_620055",
+    "GUIDA_CONTRATTO_DI_APPRENDISTATO_RECESSO_FORMAZIONE_E_CONTROVERSIE_D_LGS_81_20_620060",
+    "GUIDA_PROTEZIONE_CIVILE_E_ORDINANZE_DI_EMERGENZA_IMPUGNAZIONE_E_TUTELA_DEL_PRI_240175"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240170",
+      "codice_integrato": "GUIDA_CONFISCA_DI_PREVENZIONE_PATRIMONIALE_PROCEDIMENTO_E_OPPOSIZIONE_ARTT_17__240170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500055",
+      "codice_integrato": "GUIDA_PIANO_ATTESTATO_DI_RISANAMENTO_REDAZIONE_ATTESTAZIONE_E_EFFETTI_PROTETTI_500055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620055",
+      "codice_integrato": "GUIDA_LAVORO_INTERMITTENTE_A_CHIAMATA_DIRITTI_DEL_LAVORATORE_E_CONTESTAZIONE_D_620055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620060",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_APPRENDISTATO_RECESSO_FORMAZIONE_E_CONTROVERSIE_D_LGS_81_20_620060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240175",
+      "codice_integrato": "GUIDA_PROTEZIONE_CIVILE_E_ORDINANZE_DI_EMERGENZA_IMPUGNAZIONE_E_TUTELA_DEL_PRI_240175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

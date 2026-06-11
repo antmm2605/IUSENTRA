@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (27).zip::kb_set39_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set39_p2.json",
+  "sha256": "DF3DB80B5DC9A8337C9184575354DCF935C2D7B392A92C330CB86F42FEFD625C",
+  "changed": false,
+  "macro_area_id": "SET39_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "150190",
+    "150195",
+    "152055",
+    "154055",
+    "154060"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_P_A_RIDUZIONE_VOLONTARIA_DEL_CAPITALE_E_OPPOSIZIONE_DEI_CREDITORI_ART__150190",
+    "GUIDA_S_P_A_EMISSIONE_DI_OBBLIGAZIONI_E_TUTELE_DEGLI_OBBLIGAZIONISTI_ARTT_2410_150195",
+    "GUIDA_CONSORZIO_TRA_IMPRENDITORI_CONTROVERSIE_TRA_CONSORZIATI_E_SCIOGLIMENTO_A_152055",
+    "GUIDA_CONTRATTO_DI_RETE_D_IMPRESE_GOVERNANCE_RESPONSABILIT_DEI_RETISTI_E_CONTR_154055",
+    "GUIDA_GRUPPO_DI_SOCIET_RESPONSABILIT_PER_ABUSO_DI_DIREZIONE_E_COORDINAMENTO_AR_154060"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150190",
+      "codice_integrato": "GUIDA_S_P_A_RIDUZIONE_VOLONTARIA_DEL_CAPITALE_E_OPPOSIZIONE_DEI_CREDITORI_ART__150190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150195",
+      "codice_integrato": "GUIDA_S_P_A_EMISSIONE_DI_OBBLIGAZIONI_E_TUTELE_DEGLI_OBBLIGAZIONISTI_ARTT_2410_150195",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "152055",
+      "codice_integrato": "GUIDA_CONSORZIO_TRA_IMPRENDITORI_CONTROVERSIE_TRA_CONSORZIATI_E_SCIOGLIMENTO_A_152055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154055",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_RETE_D_IMPRESE_GOVERNANCE_RESPONSABILIT_DEI_RETISTI_E_CONTR_154055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "154060",
+      "codice_integrato": "GUIDA_GRUPPO_DI_SOCIET_RESPONSABILIT_PER_ABUSO_DI_DIREZIONE_E_COORDINAMENTO_AR_154060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

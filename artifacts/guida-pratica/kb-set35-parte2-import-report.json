@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (24).zip::kb_set35_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set35_p2.json",
+  "sha256": "217FE72EE0557FC7AD92CD5F435B212BF555B94812F015C6AB3AA36C9EC01B84",
+  "changed": false,
+  "macro_area_id": "SET35_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "180065",
+    "156015",
+    "156020",
+    "152030",
+    "152035"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PACCHETTI_TURISTICI_CANCELLAZIONE_INADEMPIMENTO_E_RIMBORSO_D_LGS_62_2018_180065",
+    "GUIDA_CONTRATTI_DI_ASSICURAZIONE_CONTROVERSIE_CON_L_ASSICURATORE_SU_LIQUIDAZIO_156015",
+    "GUIDA_RESPONSABILIT_CIVILE_AUTO_RCA_PROCEDURA_DI_RISARCIMENTO_DIRETTO_E_CONTRO_156020",
+    "GUIDA_S_R_L_RECESSO_DEL_SOCIO_E_LIQUIDAZIONE_DELLA_QUOTA_ARTT_2469_2473_C_C_152030",
+    "GUIDA_S_R_L_IMPUGNAZIONE_DELLA_DELIBERA_ASSEMBLEARE_PER_NULLIT_O_ANNULLABILIT__152035"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "180065",
+      "codice_integrato": "GUIDA_PACCHETTI_TURISTICI_CANCELLAZIONE_INADEMPIMENTO_E_RIMBORSO_D_LGS_62_2018_180065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156015",
+      "codice_integrato": "GUIDA_CONTRATTI_DI_ASSICURAZIONE_CONTROVERSIE_CON_L_ASSICURATORE_SU_LIQUIDAZIO_156015",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156020",
+      "codice_integrato": "GUIDA_RESPONSABILIT_CIVILE_AUTO_RCA_PROCEDURA_DI_RISARCIMENTO_DIRETTO_E_CONTRO_156020",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "152030",
+      "codice_integrato": "GUIDA_S_R_L_RECESSO_DEL_SOCIO_E_LIQUIDAZIONE_DELLA_QUOTA_ARTT_2469_2473_C_C_152030",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "152035",
+      "codice_integrato": "GUIDA_S_R_L_IMPUGNAZIONE_DELLA_DELIBERA_ASSEMBLEARE_PER_NULLIT_O_ANNULLABILIT__152035",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 6
+}

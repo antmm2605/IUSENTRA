@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
+from zoneinfo import ZoneInfo
 
 from pct import cache as _cache
 from pct.agenda import Agenda, StatoAppuntamento
@@ -17,6 +16,9 @@ from pct.workspace_intelligence_repository import (
     WorkspaceIntelligenceRepository,
     derive_workspace_intelligence_repository_db_path,
 )
+
+
+ROME_TZ = ZoneInfo("Europe/Rome")
 
 
 FONTI_CALCOLO_PROCESSUALE: List[Dict[str, str]] = [
@@ -56,16 +58,36 @@ def _parse_date(value: str) -> Optional[date]:
         return None
 
 
+def _local_now() -> datetime:
+    return datetime.now(ROME_TZ).replace(tzinfo=None)
+
+
+def _local_naive_datetime(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        parsed = None
+        for sample in (text.replace("Z", "+00:00"), text[:19], text[:10]):
+            try:
+                parsed = datetime.fromisoformat(sample)
+                break
+            except ValueError:
+                continue
+        if parsed is None:
+            return None
+    if parsed.tzinfo is not None:
+        return parsed.astimezone(ROME_TZ).replace(tzinfo=None)
+    return parsed
+
+
 def _parse_datetime(value: str) -> Optional[datetime]:
     text = str(value or "").strip()
     if not text:
         return None
-    for sample in (text[:19], text):
-        try:
-            return datetime.fromisoformat(sample)
-        except ValueError:
-            continue
-    return None
+    return _local_naive_datetime(text)
 
 
 def _unique_strings(values: Iterable[str]) -> List[str]:
@@ -247,22 +269,23 @@ class WorkspaceIntelligenteService:
         )
 
     def _appointments_upcoming(self, horizon_days: int = 7, limit: int = 10) -> List[Any]:
-        now = datetime.now()
+        now = _local_now()
         until = now + timedelta(days=max(int(horizon_days or 7), 1))
-        rows = [
-            item
-            for item in self.agenda.tutti()
-            if item.stato not in (StatoAppuntamento.ANNULLATO, StatoAppuntamento.COMPLETATO)
-            and now <= item.data_ora_dt <= until
-        ]
-        rows.sort(key=lambda item: item.data_ora_dt)
-        return rows[:limit]
+        rows: List[tuple[datetime, Any]] = []
+        for item in self.agenda.tutti():
+            if item.stato in (StatoAppuntamento.ANNULLATO, StatoAppuntamento.COMPLETATO):
+                continue
+            starts_at = _local_naive_datetime(getattr(item, "data_ora", ""))
+            if starts_at and now <= starts_at <= until:
+                rows.append((starts_at, item))
+        rows.sort(key=lambda row: row[0])
+        return [item for _, item in rows[:limit]]
 
     def _sync_profiles_status(self) -> List[Dict[str, Any]]:
         if not self.calendar_sync:
             return []
         profiles = self.calendar_sync.list_profiles()
-        now = datetime.now()
+        now = _local_now()
         out: List[Dict[str, Any]] = []
         for profile in profiles:
             last_sync_at = _parse_datetime(profile.get("last_sync_at", ""))
@@ -341,6 +364,54 @@ class WorkspaceIntelligenteService:
                 if len(suggestions) >= limit:
                     return suggestions
         return suggestions[:limit]
+
+    def _giurisprudenza_diretta_per_fascicoli(
+        self,
+        fascicoli: Iterable[Fascicolo],
+        *,
+        limit_per_fascicolo: int = 3,
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        if not self.giurisprudenza:
+            return {}
+
+        lookup: Dict[str, set[str]] = defaultdict(set)
+        for fascicolo in fascicoli:
+            for raw_key in (
+                getattr(fascicolo, "id", ""),
+                getattr(fascicolo, "numero", ""),
+                getattr(fascicolo, "rg_completo", ""),
+            ):
+                key = str(raw_key or "").strip().lower()
+                if key:
+                    lookup[key].add(fascicolo.id)
+        if not lookup:
+            return {}
+
+        try:
+            rows = self.giurisprudenza.cerca()
+        except Exception:
+            return {}
+
+        out: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        seen: Dict[str, set[str]] = defaultdict(set)
+        for row in rows:
+            row_id = str(row.get("id", "") or "").strip()
+            if not row_id:
+                continue
+            linked_keys = {
+                str(item or "").strip().lower()
+                for item in (row.get("fascicoli_collegati") or [])
+                if str(item or "").strip()
+            }
+            if not linked_keys:
+                continue
+            for key in linked_keys:
+                for fascicolo_id in lookup.get(key, set()):
+                    if len(out[fascicolo_id]) >= limit_per_fascicolo or row_id in seen[fascicolo_id]:
+                        continue
+                    out[fascicolo_id].append(row)
+                    seen[fascicolo_id].add(row_id)
+        return dict(out)
 
     @staticmethod
     def _scadenze_operative_fascicolo(scadenze: List[Scadenza]) -> dict[str, List[Scadenza]]:
@@ -630,23 +701,46 @@ class WorkspaceIntelligenteService:
 
         appointments = self._appointments_upcoming(horizon_days=horizon_days, limit=200)
         appointments_by_fascicolo: Dict[str, List[Any]] = defaultdict(list)
+        fascicoli_by_cliente: Dict[str, List[Fascicolo]] = defaultdict(list)
+        fascicoli_by_procedimento: Dict[str, List[Fascicolo]] = defaultdict(list)
+        for fascicolo in fascicoli:
+            cliente_key = str(getattr(fascicolo, "id_cliente", "") or "").strip()
+            if cliente_key:
+                fascicoli_by_cliente[cliente_key].append(fascicolo)
+            for raw_key in (
+                getattr(fascicolo, "numero", ""),
+                getattr(fascicolo, "rg_completo", ""),
+                getattr(fascicolo, "titolo", ""),
+            ):
+                key = str(raw_key or "").strip().lower()
+                if key:
+                    fascicoli_by_procedimento[key].append(fascicolo)
         for item in appointments:
             procedimento = str(getattr(item, "procedimento", "") or "").strip().lower()
-            for fascicolo in fascicoli:
-                if item.id_cliente and fascicolo.id_cliente and item.id_cliente == fascicolo.id_cliente:
+            matched_ids: set[str] = set()
+            for fascicolo in fascicoli_by_cliente.get(str(getattr(item, "id_cliente", "") or "").strip(), []):
+                appointments_by_fascicolo[fascicolo.id].append(item)
+                matched_ids.add(fascicolo.id)
+            if procedimento:
+                candidates = list(fascicoli_by_procedimento.get(procedimento, []))
+                if not candidates and len(procedimento) >= 4:
+                    for fascicolo in fascicoli:
+                        if procedimento in str(fascicolo.titolo or "").strip().lower():
+                            candidates.append(fascicolo)
+                for fascicolo in candidates:
+                    if fascicolo.id in matched_ids:
+                        continue
                     appointments_by_fascicolo[fascicolo.id].append(item)
-                    continue
-                if procedimento and (
-                    procedimento == str(fascicolo.numero).strip().lower()
-                    or procedimento == str(getattr(fascicolo, "rg_completo", "") or "").strip().lower()
-                    or procedimento in str(fascicolo.titolo or "").strip().lower()
-                ):
-                    appointments_by_fascicolo[fascicolo.id].append(item)
+                    matched_ids.add(fascicolo.id)
+        direct_judgments_by_fascicolo = self._giurisprudenza_diretta_per_fascicoli(
+            fascicoli,
+            limit_per_fascicolo=3,
+        )
         hot: List[Dict[str, Any]] = []
         for fascicolo in fascicoli:
             fasc_deadlines = deadlines_by_fascicolo.get(fascicolo.id, [])
             fasc_apps = appointments_by_fascicolo.get(fascicolo.id, [])
-            judgments = self._giurisprudenza_per_fascicolo(fascicolo, limit=3)
+            judgments = direct_judgments_by_fascicolo.get(fascicolo.id, [])
             presidio = self._presidio_fascicolo(fascicolo, fasc_deadlines[:6], fasc_apps[:4], judgments)
             score = 0
             if presidio["scadenze_scadute"]:
@@ -788,7 +882,7 @@ class WorkspaceIntelligenteService:
             )
 
         return {
-            "generated_at": datetime.now().replace(microsecond=0).isoformat(),
+            "generated_at": _local_now().replace(microsecond=0).isoformat(),
             "summary": {
                 "scadenze_urgenti": len(urgent_deadlines),
                 "scadenze_orizzonte": len(horizon_deadlines),
@@ -861,7 +955,7 @@ class WorkspaceIntelligenteService:
 
     def save_snapshot(self, path: str, overview: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         payload = {
-            "generated_at": datetime.now().replace(microsecond=0).isoformat(),
+            "generated_at": _local_now().replace(microsecond=0).isoformat(),
             "overview": overview or self.panoramica(),
         }
         if self._snapshot_repository is not None:

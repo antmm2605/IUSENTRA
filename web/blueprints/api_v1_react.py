@@ -2719,10 +2719,6 @@ def _ensure_guida_pratica_terms_repository(repo: DeadlinePracticeRepository) -> 
     repo_key = str(repo.path.resolve())
     if repo_key in _GUIDA_PRATICA_TERMINI_BOOTSTRAPPED:
         return
-    payload = repo._read_json()
-    if payload.get("guida_pratica_terms"):
-        _GUIDA_PRATICA_TERMINI_BOOTSTRAPPED.add(repo_key)
-        return
     try:
         from scripts.import_guida_pratica_termini_processuali import bootstrap_guida_pratica_terms_repository
 

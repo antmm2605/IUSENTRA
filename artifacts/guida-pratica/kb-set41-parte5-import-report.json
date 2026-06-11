@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p5.json",
+  "sha256": "6CD518AFDA7BAA64F2D20667CB1FC46E38FA3E3B0C9638C773E487E22422E40B",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220435",
+    "220440",
+    "220445",
+    "620085",
+    "620090"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONGEDO_DI_MATERNIT_PATERNIT_E_PARENTALE_TUTELE_E_CONTROVERSIE_D_LGS_151_220435",
+    "GUIDA_PERMESSI_L_104_1992_PER_ASSISTENZA_A_FAMILIARI_DISABILI_DIRITTI_CONTROVE_220440",
+    "GUIDA_PATTO_DI_NON_CONCORRENZA_DURANTE_IL_RAPPORTO_DI_LAVORO_OBBLIGHI_DELL_OBB_220445",
+    "GUIDA_LAVORO_STAGIONALE_E_IN_AGRICOLTURA_CONTRATTO_GARANZIE_E_TUTELE_D_LGS_81__620085",
+    "GUIDA_TIROCINI_FORMATIVI_E_DI_ORIENTAMENTO_TUTELE_DEL_TIROCINANTE_E_RESPONSABI_620090"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220435",
+      "codice_integrato": "GUIDA_CONGEDO_DI_MATERNIT_PATERNIT_E_PARENTALE_TUTELE_E_CONTROVERSIE_D_LGS_151_220435",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220440",
+      "codice_integrato": "GUIDA_PERMESSI_L_104_1992_PER_ASSISTENZA_A_FAMILIARI_DISABILI_DIRITTI_CONTROVE_220440",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220445",
+      "codice_integrato": "GUIDA_PATTO_DI_NON_CONCORRENZA_DURANTE_IL_RAPPORTO_DI_LAVORO_OBBLIGHI_DELL_OBB_220445",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620085",
+      "codice_integrato": "GUIDA_LAVORO_STAGIONALE_E_IN_AGRICOLTURA_CONTRATTO_GARANZIE_E_TUTELE_D_LGS_81__620085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620090",
+      "codice_integrato": "GUIDA_TIROCINI_FORMATIVI_E_DI_ORIENTAMENTO_TUTELE_DEL_TIROCINANTE_E_RESPONSABI_620090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

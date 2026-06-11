@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (23).zip::kb_set34_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set34_p3.json",
+  "sha256": "1D87086B811A6C7E03382438A1B8CD1127F7CBFB27A8A3139FEF47B9E8A08757",
+  "changed": false,
+  "macro_area_id": "SET34_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "143135",
+    "143140",
+    "141110",
+    "130205",
+    "130210"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_AGENZIA_INDENNIT_DI_FINE_RAPPORTO_CLIENTELA_E_SUPPLETIVA_AR_143135",
+    "GUIDA_REVISIONE_DEI_PREZZI_NEGLI_APPALTI_PUBBLICI_E_PRIVATI_CLAUSOLE_E_CONTROV_143140",
+    "GUIDA_CHARTER_NAUTICO_E_LOCAZIONE_DI_IMBARCAZIONI_DA_DIPORTO_CONTROVERSIE_COD__141110",
+    "GUIDA_ENFITEUSI_CANONE_AFFRANCAZIONE_E_DEVOLUZIONE_ARTT_957_977_C_C_130205",
+    "GUIDA_DERIVAZIONI_DI_ACQUE_PUBBLICHE_CONTROVERSIE_TRA_PRIVATI_E_CON_LA_PA_R_D__130210"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "143135",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_AGENZIA_INDENNIT_DI_FINE_RAPPORTO_CLIENTELA_E_SUPPLETIVA_AR_143135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143140",
+      "codice_integrato": "GUIDA_REVISIONE_DEI_PREZZI_NEGLI_APPALTI_PUBBLICI_E_PRIVATI_CLAUSOLE_E_CONTROV_143140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141110",
+      "codice_integrato": "GUIDA_CHARTER_NAUTICO_E_LOCAZIONE_DI_IMBARCAZIONI_DA_DIPORTO_CONTROVERSIE_COD__141110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130205",
+      "codice_integrato": "GUIDA_ENFITEUSI_CANONE_AFFRANCAZIONE_E_DEVOLUZIONE_ARTT_957_977_C_C_130205",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130210",
+      "codice_integrato": "GUIDA_DERIVAZIONI_DI_ACQUE_PUBBLICHE_CONTROVERSIE_TRA_PRIVATI_E_CON_LA_PA_R_D__130210",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

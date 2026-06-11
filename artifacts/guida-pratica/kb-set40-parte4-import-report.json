@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (28).zip::kb_set40_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set40_p4.json",
+  "sha256": "6C9417924872AF419D84C65F6A21D9E30D0E05E81BF08F3060736B2083B66B5C",
+  "changed": false,
+  "macro_area_id": "SET40_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "190070",
+    "190075",
+    "199085",
+    "199090",
+    "211055"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_CLASSE_CLASS_ACTION_PROCEDURA_DI_AMMISSIBILIT_E_TUTELA_COLLETT_190070",
+    "GUIDA_PROCEDIMENTO_EUROPEO_PER_L_INGIUNZIONE_DI_PAGAMENTO_TRANSFRONTALIERA_REG_190075",
+    "GUIDA_NOTIFICAZIONI_CIVILI_MODALIT_VIZI_SANATORIA_E_NOTIFICA_A_MEZZO_PEC_ARTT__199085",
+    "GUIDA_APPELLO_CIVILE_FILTRO_UDIENZA_PREDIBATTIMENTALE_E_MOTIVI_SPECIFICI_ARTT__199090",
+    "GUIDA_MEDIAZIONE_DEMANDATA_DAL_GIUDICE_ORDINE_DEL_GIUDICE_E_CONSEGUENZE_DELLA__211055"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190070",
+      "codice_integrato": "GUIDA_AZIONE_DI_CLASSE_CLASS_ACTION_PROCEDURA_DI_AMMISSIBILIT_E_TUTELA_COLLETT_190070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190075",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_EUROPEO_PER_L_INGIUNZIONE_DI_PAGAMENTO_TRANSFRONTALIERA_REG_190075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199085",
+      "codice_integrato": "GUIDA_NOTIFICAZIONI_CIVILI_MODALIT_VIZI_SANATORIA_E_NOTIFICA_A_MEZZO_PEC_ARTT__199085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199090",
+      "codice_integrato": "GUIDA_APPELLO_CIVILE_FILTRO_UDIENZA_PREDIBATTIMENTALE_E_MOTIVI_SPECIFICI_ARTT__199090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211055",
+      "codice_integrato": "GUIDA_MEDIAZIONE_DEMANDATA_DAL_GIUDICE_ORDINE_DEL_GIUDICE_E_CONSEGUENZE_DELLA__211055",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

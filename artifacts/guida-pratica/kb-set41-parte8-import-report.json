@@ -1,0 +1,56 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (29).zip::kb_set41_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set41_p8.json",
+  "sha256": "E6981CFC6266BCBA4618BC9E4A53380CD8D70179CF368F9A6194929530CAB1F4",
+  "changed": false,
+  "macro_area_id": "SET41_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413220",
+    "413225",
+    "413230",
+    "415095",
+    "415100"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RICONOSCIMENTO_DEL_FIGLIO_NATO_FUORI_DAL_MATRIMONIO_IMPUGNAZIONE_DISCONO_413220",
+    "GUIDA_DICHIARAZIONE_GIUDIZIALE_DI_PATERNIT_E_MATERNIT_NATURALE_PROCEDIMENTO_E__413225",
+    "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IN_ITALIA_E_RICONOSCIMENTO_DEL_PROV_413230",
+    "GUIDA_CONDIZIONE_NEL_TESTAMENTO_CONDIZIONE_IMPOSSIBILE_ILLECITA_E_SUE_CONSEGUE_415095",
+    "GUIDA_RESPONSABILIT_DELL_EREDE_PER_I_DEBITI_EREDITARI_AZIONE_DEI_CREDITORI_E_S_415100"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413220",
+      "codice_integrato": "GUIDA_RICONOSCIMENTO_DEL_FIGLIO_NATO_FUORI_DAL_MATRIMONIO_IMPUGNAZIONE_DISCONO_413220",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413225",
+      "codice_integrato": "GUIDA_DICHIARAZIONE_GIUDIZIALE_DI_PATERNIT_E_MATERNIT_NATURALE_PROCEDIMENTO_E__413225",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413230",
+      "codice_integrato": "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_IN_ITALIA_E_RICONOSCIMENTO_DEL_PROV_413230",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415095",
+      "codice_integrato": "GUIDA_CONDIZIONE_NEL_TESTAMENTO_CONDIZIONE_IMPOSSIBILE_ILLECITA_E_SUE_CONSEGUE_415095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415100",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELL_EREDE_PER_I_DEBITI_EREDITARI_AZIONE_DEI_CREDITORI_E_S_415100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 5
+}

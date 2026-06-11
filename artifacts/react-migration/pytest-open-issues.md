@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## Dashboard agenda timezone e performance 2.251.26 - 2026-06-11
+
+- Rilevato in produzione su `2.251.25`: `/api/v1/ui/dashboard` loggava `TypeError: can't compare offset-naive and offset-aware datetimes` quando un appuntamento importato da calendario esterno conteneva offset (`+00:00` / `Z`). Fix applicato in `pct/agenda.py` e `pct/workspace_intelligente.py`, con regressione dedicata in `tests/test_workspace_intelligente.py`.
+- Docker locale reale `127.0.0.1:8080` verificato dopo rebuild no-cache e recreate di `app`, `scheduler-worker` e `ocr-worker`: `/api/pronto` risponde `2.251.26`, i container sono healthy e i log recenti non contengono più il `TypeError` dei datetime.
+- Resta da chiudere, prima della consegna, il flusso obbligatorio di rilascio: commit, push dei branch gemelli, check GitHub/CodeQL dello SHA corrente, deploy Hetzner e nuova verifica `/api/pronto` produzione.
+- Le modifiche Local Signer/supporto remoto 1.6.68 e dati runtime presenti prima del fix erano fuori perimetro e superate dal remoto `2.251.25`: gli stash temporanei `pre-dashboard-hotfix-unrelated-local-signer-runtime*` sono stati verificati e scartati. Gli stash storici non collegati al 503, compresi i WIP supporto remoto/Timesheet, sono stati lasciati come archivio separato e non applicati al hotfix.
+
 ## Fascicoli controllo economico 2.249.42 - 2026-06-09
 
 Nessuna issue aperta sul perimetro mirato dopo i test React Fascicoli. Durante il rilancio mirato è emerso un `window.confirm` residuo nella cancellazione massiva della pagina Fascicoli; risolto con modale React coerente con `PostAction`.

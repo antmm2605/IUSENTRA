@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.251.23 - 2026-06-11
+
+- Notifiche dal presidio PEC automatico: quando il presidio crea una scadenza automatica (scadenziario + agenda), ora invia anche la notifica al centro notifiche con push web a tutti gli utenti attivi dello studio con lettura scadenziario. Stessa `dedupe_key` del percorso manuale: nessun doppione se la stessa PEC passa da entrambi i percorsi; la notifica è best-effort e non blocca mai la registrazione della scadenza.
+
 ## 2.251.22 - 2026-06-10
 
 - Presidio PEC automatico: lo scheduler acquisisce da solo le PEC archiviate non ancora presidiate (budget per giro, default 25 ogni 5 minuti, override `IUSENTRA_PEC_AUTO_ACQUIRE_BATCH`, 0 disattiva) e i worker completano la catena senza azioni manuali: classificazione, report di validazione, scadenza automatica in scadenziario con collegamento agenda, link al fascicolo e digest. Prima l'ingest partiva solo dal pulsante manuale: le PEC restavano archiviate (es. 307 su 307) ma 0 presidiate, 0 scadenze, 0 agenda, 0 notifiche.

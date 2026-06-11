@@ -145,3 +145,67 @@ def test_acquisizione_rispetta_il_budget_per_giro(tmp_path: Path) -> None:
     second = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=2)
     assert second["ingested"] == 1, "il giro successivo completa l'arretrato"
     assert second["skipped_presided"] == 2
+
+
+def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) -> None:
+    from flask import Flask
+
+    from pct.auth import GestioneUtenti
+    from pct.notifications import NotificationRepository
+    from web.services.pec_pipeline_runtime import notify_auto_deadlines_for_paths
+
+    paths = _paths(tmp_path)
+    paths["AUTH_DB"] = str(tmp_path / "auth" / "utenti.json")
+    paths["AUDIT_DB"] = str(tmp_path / "auth" / "audit.json")
+    paths["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
+    # L'admin di bootstrap è l'utente attivo dello studio destinatario.
+    GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key="test-secret",
+        bootstrap_admin_credentials_path=str(tmp_path / "auth" / "bootstrap_admin.json"),
+    )
+
+    jobs = [
+        {
+            "job_type": "link",
+            "message_id": "pec_msg_auto_1",
+            "result": {
+                "auto_deadline": {
+                    "ok": True,
+                    "deadline_id": "SCAD-1",
+                    "due_date": "2026-07-01",
+                    "agenda": {"agenda_id": "AG-1"},
+                }
+            },
+        },
+        {"job_type": "parse", "message_id": "pec_msg_auto_1", "result": {}},
+    ]
+
+    app = Flask(__name__)
+    app.secret_key = "test-secret"
+    with app.app_context():
+        first = notify_auto_deadlines_for_paths(paths, tenant_label="default", jobs=jobs)
+        second = notify_auto_deadlines_for_paths(paths, tenant_label="default", jobs=jobs)
+
+    assert first["recipients"] >= 1
+    assert first["created"] == first["recipients"], "una notifica per ogni utente attivo"
+    assert first["errors"] == 0
+    assert second["created"] == 0, "stessa scadenza: la dedupe key evita doppioni"
+    assert second["duplicates"] == second["recipients"]
+
+    repo = NotificationRepository(paths["NOTIFICATIONS_DB"])
+    rows = repo.list_notifications(tenant_id="default", user_id=first_user_id(paths), limit=10)
+    assert rows, "la notifica deve essere leggibile dal centro notifiche"
+
+
+def first_user_id(paths: dict[str, str]) -> str:
+    from pct.auth import GestioneUtenti
+
+    gestore = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key="test-secret",
+        crea_admin_se_vuoto=False,
+    )
+    return str(gestore.tutti(solo_attivi=True)[0].id)

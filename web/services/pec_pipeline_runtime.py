@@ -39,12 +39,150 @@ def repository_for_current_request() -> PecAuditRepository:
 
 def run_workers_for_paths(paths: Mapping[str, Any], *, tenant_label: str, limit: int = 200) -> dict[str, Any]:
     repo = repository_from_paths(paths, tenant_label=tenant_label)
-    return repo.run_pending_jobs(limit=limit, actor="scheduler")
+    report = repo.run_pending_jobs(limit=limit, actor="scheduler")
+    try:
+        notified = notify_auto_deadlines_for_paths(
+            paths,
+            tenant_label=tenant_label,
+            jobs=list(report.get("jobs") or []),
+        )
+        if notified.get("created") or notified.get("errors"):
+            report["auto_deadline_notifications"] = notified
+    except Exception:
+        # La notifica è best-effort: la scadenza resta comunque registrata
+        # in scadenziario/agenda anche se il centro notifiche non è raggiungibile.
+        pass
+    return report
 
 
 def build_digest_for_paths(paths: Mapping[str, Any], *, tenant_label: str, digest_date: str | None = None) -> dict[str, Any]:
     repo = repository_from_paths(paths, tenant_label=tenant_label)
     return repo.build_daily_digest(digest_date=digest_date, actor="scheduler")
+
+
+def _tenant_notification_id(tenant_label: str) -> str:
+    """Stesso identificativo usato dal web (`current_tenant_id`): id studio, poi slug."""
+
+    slug = str(tenant_label or "").strip().lower()
+    if not slug or slug == "default":
+        return "default"
+    try:
+        from pct.tenant import GestioneTenant
+
+        registry = str(current_app.config.get("TENANTS_REGISTRY") or "").strip() if has_app_context() else ""
+        if registry:
+            studio = GestioneTenant(registry_path=registry).get(slug)
+            tenant_id = str(getattr(studio, "id", "") or "").strip()
+            if tenant_id:
+                return tenant_id
+    except Exception:
+        pass
+    return slug
+
+
+def _notification_recipients(paths: Mapping[str, Any]) -> list[str]:
+    """Utenti attivi dello studio con lettura scadenziario: destinatari del presidio."""
+
+    from pct.auth import GestioneUtenti
+
+    auth_db = _path_from_mapping(paths, "AUTH_DB", "./auth/utenti.json")
+    if not Path(auth_db).exists():
+        return []
+    audit_db = _path_from_mapping(paths, "AUDIT_DB", "./auth/audit.json")
+    secret = str(current_app.config.get("SECRET_KEY", "") or "scheduler") if has_app_context() else "scheduler"
+    gestore = GestioneUtenti(
+        db_path=auth_db,
+        audit_path=audit_db,
+        secret_key=secret,
+        crea_admin_se_vuoto=False,
+    )
+    recipients: list[str] = []
+    for user in gestore.tutti(solo_attivi=True):
+        try:
+            if hasattr(user, "ha_permesso") and not user.ha_permesso("scadenziario.leggi"):
+                continue
+        except Exception:
+            pass
+        user_id = str(getattr(user, "id", "") or getattr(user, "username", "") or "").strip()
+        if user_id:
+            recipients.append(user_id)
+    return recipients
+
+
+def notify_auto_deadlines_for_paths(
+    paths: Mapping[str, Any],
+    *,
+    tenant_label: str,
+    jobs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Notifica (centro notifiche + push) le scadenze create dal presidio automatico.
+
+    Speculare a `_notify_pec_deadline` del percorso manuale: stessa `dedupe_key`
+    per (tenant, utente), quindi nessun doppione se la stessa PEC passa da
+    entrambi i percorsi. Destinatari: utenti attivi con lettura scadenziario.
+    """
+
+    report = {"created": 0, "duplicates": 0, "errors": 0, "recipients": 0}
+    deadlines: list[tuple[str, dict[str, Any]]] = []
+    for job in jobs:
+        if str(job.get("job_type") or "") != "link":
+            continue
+        result = job.get("result") if isinstance(job.get("result"), dict) else {}
+        deadline = result.get("auto_deadline") if isinstance(result.get("auto_deadline"), dict) else {}
+        if deadline.get("ok") and str(deadline.get("deadline_id") or "").strip():
+            deadlines.append((str(job.get("message_id") or ""), deadline))
+    if not deadlines:
+        return report
+
+    from pct.notifications import NotificationRepository, NotificationService
+    from pct.notifications.web_push import load_web_push_config
+
+    recipients = _notification_recipients(paths)
+    report["recipients"] = len(recipients)
+    if not recipients:
+        return report
+    db_path = _path_from_mapping(paths, "NOTIFICATIONS_DB", "./notifications/notifications.db")
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    config = current_app.config if has_app_context() else {}
+    service = NotificationService(
+        NotificationRepository(db_path),
+        web_push_config=load_web_push_config(config),
+    )
+    tenant_id = _tenant_notification_id(tenant_label)
+    for message_id, deadline in deadlines:
+        agenda = deadline.get("agenda") if isinstance(deadline.get("agenda"), dict) else {}
+        agenda_id = str(agenda.get("agenda_id") or "")
+        due_date = str(deadline.get("due_date") or "")
+        source_id = message_id or str(deadline.get("deadline_id") or "")
+        agenda_text = " e all'agenda" if agenda_id else ""
+        due_text = f" per il {due_date}" if due_date else ""
+        body = f"Presidio PEC automatico: scadenza collegata allo scadenziario{agenda_text}{due_text}."
+        for user_id in recipients:
+            try:
+                _record, created, _summary = service.create_notification(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    type="pec_deadline",
+                    priority="important",
+                    title="Scadenza PEC registrata",
+                    body=body,
+                    href="/scadenziario?vista=pec",
+                    source_type="pec_deadline",
+                    source_id=source_id,
+                    dedupe_key=f"PEC_AUDIT:{source_id}:deadline",
+                    payload_json={
+                        "deadlineId": str(deadline.get("deadline_id") or ""),
+                        "agendaId": agenda_id,
+                        "dueDate": due_date,
+                        "alreadyExists": bool(deadline.get("already_exists")),
+                        "origin": "auto",
+                    },
+                    send_push=True,
+                )
+                report["created" if created else "duplicates"] += 1
+            except Exception:
+                report["errors"] += 1
+    return report
 
 
 def local_email_sort_key(email_obj: Any) -> str:

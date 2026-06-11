@@ -14,12 +14,15 @@ from legal_document_ingestion.repository import sanitize_filename
 from legal_document_ingestion.zip_safety import ZipSafetyConfig
 from legal_regex import validate_regex_pack
 
+from .alto import build_alto_xml
 from .config import LegalOcrConfig
 from .engines import OcrEngine, build_engine
 from .models import EngineRun
+from .ner_legal import extract_legal_entities
 from .postprocess import apply_deterministic_corrections, build_lex_export, build_notification_proposals, compute_metrics, suggested_hil_fixes
 from .preprocessing import rasterize_document
 from .storage import LegalOcrEvidenceStore
+from .tables import reconstruct_tables, table_to_csv, table_to_html
 
 SUPPORTED_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".zip", ".p7m", ".txt", ".xml", ".json", ".eml"}
 
@@ -90,6 +93,14 @@ class LegalOcrPipeline:
         raw_text_path = self.store.write_text(run_id, "raw.txt", selected.text)
         lex_export = build_lex_export(selected.tokens, min_confidence=self.config.lex_min_confidence)
         lex_export["path"] = self.store.write_text(run_id, "lex.txt", str(lex_export.get("text") or ""))
+        # Esportazioni strutturate (engine-independent): ALTO-XML, tabelle CSV/HTML, entità legali.
+        alto_xml_path = self.store.write_text(run_id, "alto.xml", build_alto_xml(selected.tokens, pages, source_file=filename))
+        tables = []
+        for index, table in enumerate(reconstruct_tables(selected.tokens), start=1):
+            csv_path = self.store.write_text(run_id, f"table_{index}.csv", table_to_csv(table))
+            tables.append({"index": index, "page": table.get("page"), "n_rows": table.get("n_rows"), "n_cols": table.get("n_cols"), "csv_path": csv_path, "html": table_to_html(table)})
+        legal_entities = extract_legal_entities(corrected)
+        self.store.append_audit(run_id, "ocr.structured_export", {"alto_xml_path": alto_xml_path, "tables": len(tables), "legal_entities": legal_entities.get("counts", {})})
         finish_ts = datetime.now(timezone.utc).isoformat()
         evidence = {
             "run_id": run_id,
@@ -112,6 +123,9 @@ class LegalOcrPipeline:
             "suggested_hil_fixes": suggested_hil_fixes(selected.text),
             "qc": {"banding": _banding(metrics), "hil_required": bool(hil_reasons), "hil_reasons": hil_reasons, "fallback_rule": "avg_confidence < 0.85 oppure pct_tokens_<0.75 > 10%", "engine_attempts": attempts},
             "lex_export": lex_export,
+            "alto_xml_path": alto_xml_path,
+            "tables": tables,
+            "legal_entities": legal_entities,
             "notification_proposals": build_notification_proposals(corrected, document_id=document_id, run_id=run_id, fascicolo_id=fascicolo_id),
             "audit": {"ingest_ts": ingest_ts, "finish_ts": finish_ts, "checksums": {"raw": f"sha256:{sha256_bytes(data)}", "pages": [f"sha256:{page.sha256}" for page in pages]}, "worker_id": self.config.worker_id or os.getenv("HOSTNAME") or "iusentra-node", "preprocessing": [asdict(page) for page in pages]},
             "event": {"type": "EvidenceReady", "avg_confidence": metrics["avg_confidence"], "banding": _banding(metrics), "hil_required": bool(hil_reasons), "review_url": f"/documenti/{document_id}/revisione-ocr" if document_id else ""},

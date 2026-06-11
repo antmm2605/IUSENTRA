@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.251.24 - 2026-06-11
+
+- Stabilizzazione presidio PEC automatico dopo i picchi di memoria in produzione: budget ridotti e prudenti (acquisizione 25→10 PEC per giro, job lavorati per giro 200→60 — l'OCR degli allegati è la fase più costosa e gira nel worker), override `IUSENTRA_PEC_AUTO_ACQUIRE_BATCH` (0 disattiva) e `IUSENTRA_PEC_WORKER_JOBS_PER_TICK`; scansione archivio limitata alle 250 email più recenti.
+- Guardia anti-rilettura: se il registro del presidio non è disponibile (run non creabile), l'acquisizione del giro viene saltata del tutto — con le foreign key attive gli esiti per email non sarebbero registrabili e le stesse PEC verrebbero rilette dal disco a ogni giro.
+- Il presidio resta governabile in tempo reale dalla console Pianificazioni ("Presidio PEC automatico" → Pausa) senza bisogno di deploy.
+
 ## 2.251.23 - 2026-06-11
 
 - Notifiche dal presidio PEC automatico: quando il presidio crea una scadenza automatica (scadenziario + agenda), ora invia anche la notifica al centro notifiche con push web a tutti gli utenti attivi dello studio con lettura scadenziario. Stessa `dedupe_key` del percorso manuale: nessun doppione se la stessa PEC passa da entrambi i percorsi; la notifica è best-effort e non blocca mai la registrazione della scadenza.

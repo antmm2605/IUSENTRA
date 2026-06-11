@@ -845,15 +845,21 @@ def start_scheduler(app):
                 )
 
                 try:
-                    auto_batch = int(os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_BATCH", "25") or 25)
+                    auto_batch = int(os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_BATCH", "10") or 10)
                 except (TypeError, ValueError):
-                    auto_batch = 25
+                    auto_batch = 10
+                try:
+                    worker_jobs = int(os.environ.get("IUSENTRA_PEC_WORKER_JOBS_PER_TICK", "60") or 60)
+                except (TypeError, ValueError):
+                    worker_jobs = 60
                 processed_targets = 0
                 processed_jobs = 0
                 for label, paths in _mailbox_sync_targets():
                     # Prima l'acquisizione automatica delle PEC archiviate non ancora
                     # presidiate (a budget, 0 = disattivata), poi i worker che lavorano
                     # classificazione, scadenze automatiche e collegamento fascicoli.
+                    # Budget prudenti: l'OCR degli allegati gira in questo processo e
+                    # un arretrato grande deve scalare in più giri senza saturare RAM.
                     if auto_batch > 0:
                         acquired = acquire_local_pec_for_paths(paths, tenant_label=label, batch_size=auto_batch)
                         if acquired.get("ingested") or acquired.get("missing_mime") or acquired.get("errors"):
@@ -865,7 +871,7 @@ def start_scheduler(app):
                                 acquired.get("missing_mime", 0),
                                 acquired.get("errors", 0),
                             )
-                    report = run_workers_for_paths(paths, tenant_label=label, limit=200)
+                    report = run_workers_for_paths(paths, tenant_label=label, limit=max(1, worker_jobs))
                     processed_targets += 1
                     processed_jobs += int(report.get("processed") or 0)
                     if report.get("processed") or report.get("failed"):

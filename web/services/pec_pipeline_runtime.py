@@ -271,8 +271,8 @@ def acquire_local_pec_for_paths(
     paths: Mapping[str, Any],
     *,
     tenant_label: str,
-    batch_size: int = 25,
-    scan_limit: int = 400,
+    batch_size: int = 10,
+    scan_limit: int = 250,
 ) -> dict[str, Any]:
     """Acquisisce nel presidio PEC le email rilevanti non ancora presidiate.
 
@@ -281,7 +281,9 @@ def acquire_local_pec_for_paths(
     (per Message-ID header o per ultimo esito registrato) e ingerisce solo le
     nuove. I job accodati vengono poi lavorati da `run_workers_for_paths`
     (parse, classificazione, validazione con scadenza automatica in
-    scadenziario/agenda, collegamento al fascicolo, digest).
+    scadenziario/agenda, collegamento al fascicolo, digest). Il budget per giro
+    è volutamente prudente: il presidio gira ogni 5 minuti sul worker e l'OCR
+    degli allegati è la fase più costosa in RAM/CPU.
     """
 
     from pct.email_client import GestioneEmailRicevute
@@ -304,7 +306,7 @@ def acquire_local_pec_for_paths(
         gestore._carica().values(),  # noqa: SLF001 - presidio tenant-aware sulla casella locale
         key=local_email_sort_key,
         reverse=True,
-    )[: max(1, int(scan_limit or 400))]
+    )[: max(1, int(scan_limit or 250))]
     report["scanned"] = len(emails)
     relevant = [item for item in emails if email_rilevante_per_presidio_pec(item)]
     report["relevant"] = len(relevant)
@@ -324,7 +326,7 @@ def acquire_local_pec_for_paths(
             report["skipped_presided"] += 1
             continue
         candidates.append(item)
-        if len(candidates) >= max(1, int(batch_size or 25)):
+        if len(candidates) >= max(1, int(batch_size or 10)):
             break
     if not candidates:
         return report
@@ -336,6 +338,11 @@ def acquire_local_pec_for_paths(
         run_id = str(run.get("id") or "")
     except Exception:
         run_id = ""
+    if not run_id:
+        # Senza run tracciabile non si ingerisce nulla: con le foreign key attive
+        # gli esiti per email non sarebbero registrabili e le stesse PEC
+        # verrebbero rilette dal disco a ogni giro del presidio.
+        return {**report, "skipped": True, "reason": "registro presidio non disponibile"}
     for item in candidates:
         email_id = str(getattr(item, "id", "") or "")
         subject = str(getattr(item, "oggetto", "") or "")[:240]

@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_strip_html_rimuove_script_e_style_con_tag_di_chiusura_spaziato():
-    raw = "<p>Testo utile</p><script>alert('x')</script ><style>.x{}</style >"
+    raw = "<p>Testo utile</p><script>alert('x')</script\t\n bar><style>.x{}</style\t\n bar>"
 
     cleaned = _strip_html(raw)
 

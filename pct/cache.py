@@ -150,6 +150,7 @@ def save(
     p.parent.mkdir(parents=True, exist_ok=True)
 
     text = json.dumps(data, ensure_ascii=False, indent=indent, default=str)
+    # lgtm[py/clear-text-storage-sensitive-data] Persistenza JSON runtime esistente; la cache in memoria cifra il payload.
     p.write_text(text, encoding="utf-8")
 
     try:

@@ -41,6 +41,7 @@ Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e r
 | Database e migrazioni | [database-and-migrations](database-and-migrations.md) | Stato SQLite/PostgreSQL, migrazioni e rollback dati. |
 | Notifiche e procedimenti telematici | [LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY](LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md) | L. 53/1994, relata, prova notifica, fail-closed e registry PCT/SIGP/UNEP/PAT/PTT/PDP. |
 | Procedure lifecycle knowledge pipeline | [procedure_lifecycle_knowledge_pipeline](procedure_lifecycle_knowledge_pipeline.md) | Inventario PST/XSD, mapping procedure, fonti, schede, lifecycle, firma, deposito, ricevute, notifica, prova, audit e gap queue. |
+| Procedure Completion Engine | [PROCEDURE_COMPLETION_ENGINE](PROCEDURE_COMPLETION_ENGINE.md) | Completamento governato delle schede procedura da catalogo PST/XSD, template e fonti ufficiali, con review avvocato obbligatoria. |
 | Audit repo lifecycle procedure | [procedure_lifecycle_repo_audit](procedure_lifecycle_repo_audit.md) | Inventario iniziale, moduli riusati, conflitti evitati, gap reali e piano definitivo della tranche. |
 
 ## Lex AI e fonti

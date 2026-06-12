@@ -2228,6 +2228,23 @@
         "agenda e fascicoli prioritari",
         "layout compatto e responsive"
       ]
+    },
+    {
+      "workspaceTarget": "/app/procedure-completion",
+      "route": "/procedure-completion",
+      "family": "lex",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/features/procedure-completion/ProcedureCompletionPage.tsx",
+      "targetData": "frontend/src/features/procedure-completion/procedureCompletionData.ts",
+      "targetBridge": "web/services/react_procedure_completion_bridge.py",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "schede procedura sempre marcate bozza per revisione avvocato",
+        "fonti e citazioni accanto a ogni punto giuridico",
+        "publish solo con fonti ufficiali, citazioni e review"
+      ],
+      "legacyContract": "artifacts/react-migration/legacy-contracts/procedure-completion.json"
     }
   ]
 }

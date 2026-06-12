@@ -66,6 +66,10 @@ export type FeatureFlagKey =
   | 'lex.workflowAgents.enabled'
   | 'lex.workflowAgents.writeActions'
   | 'lex.workflowAgents.scheduledRuns'
+  | 'lex.procedureCompletion.enabled'
+  | 'lex.procedureCompletion.voiceRead.enabled'
+  | 'lex.procedureCompletion.voiceRead.localOnly'
+  | 'routes.appV2.procedureCompletion.home'
   | 'routes.appV2.legalSkills.catalog'
   | 'routes.appV2.legalSkills.profile'
   | 'routes.appV2.legalSkills.run'
@@ -170,6 +174,7 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/legal-skills\/(?:run|packs\/[^/]+\/skills\/[^/]+\/run)(?:\/|$)/, 'routes.appV2.legalSkills.run'],
     [/^\/legal-skills\/(?:runs|review|review-queue)(?:\/|$)/, 'routes.appV2.legalSkills.reviewQueue'],
   [/^\/legal-skills(?:\/|$)/, 'routes.appV2.legalSkills.catalog'],
+  [/^\/procedure-completion(?:\/|$)/, 'routes.appV2.procedureCompletion.home'],
   [/^\/workflow-agents\/(?:runs|approvals)(?:\/|$)/, 'routes.appV2.workflowAgents.reviewQueue'],
   [/^\/(?:workflow-agents|regia-agentica)(?:\/|$)/, 'routes.appV2.workflowAgents.home'],
   [/^\/app\/portale-clienti(?:\/|$)/, 'routes.appV2.clientPortal.enabled'],

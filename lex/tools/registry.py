@@ -41,6 +41,13 @@ from .workflow_agent_tools import (
     CreateTimesheetEntryTool,
     UpdateChecklistTool,
 )
+from lex.tools.procedure_completion_tools import (
+    ProcedureCompletionExplainArticleTool,
+    ProcedureCompletionListGapsTool,
+    ProcedureCompletionPreviewTool,
+    ProcedureCompletionSearchTool,
+    ProcedureCompletionSuggestTemplateTool,
+)
 
 
 LEX_TOOL_REGISTRY_SCHEMA = "iusentra.lex_tool_registry.v1"
@@ -61,6 +68,10 @@ _PERMISSION_ALIASES: dict[str, tuple[str, ...]] = {
     "studio:atti:read": ("ai.usa", "fascicoli.leggi"),
     "studio:atti:write": ("ai.usa", "fascicoli.scrivi"),
     "studio:atti:export": ("ai.usa", "fascicoli.scrivi"),
+    "studio:procedure_completion:read": ("procedure_completion.leggi",),
+    "studio:procedure_completion:run": ("procedure_completion.esegui",),
+    "studio:procedure_completion:approve": ("procedure_completion.approva",),
+    "studio:procedure_completion:publish": ("procedure_completion.pubblica",),
 }
 
 
@@ -333,6 +344,36 @@ def _build_descriptors() -> dict[str, LexToolDescriptor]:
             mutates_state=True,
             description="Registra aggiornamenti checklist approvati.",
         ),
+        _descriptor(
+            "procedure_completion_preview",
+            category="governance",
+            permissions=("studio:procedure_completion:run",),
+            description="Anteprima governata della scheda procedura: card draft, fonti, gap e confidence.",
+        ),
+        _descriptor(
+            "procedure_completion_search",
+            category="governance",
+            permissions=("studio:procedure_completion:read",),
+            description="Ricerca le schede procedura esistenti con stato e confidence.",
+        ),
+        _descriptor(
+            "procedure_completion_explain_article",
+            category="governance",
+            permissions=("studio:procedure_completion:read",),
+            description="Spiega un articolo solo dalle citazioni gia' collegate alla scheda, senza consulenza automatica.",
+        ),
+        _descriptor(
+            "procedure_completion_suggest_template",
+            category="governance",
+            permissions=("studio:procedure_completion:read",),
+            description="Propone i template atti candidati per la scheda con motivi e gap.",
+        ),
+        _descriptor(
+            "procedure_completion_list_gaps",
+            category="governance",
+            permissions=("studio:procedure_completion:read",),
+            description="Coda dei gap delle schede procedura con azioni successive.",
+        ),
     ]
     return {row.tool_name: row for row in rows}
 
@@ -370,6 +411,11 @@ class LexToolRegistry:
             "create_fascicolo_draft": CreateFascicoloDraftTool(),
             "create_pec_draft": CreatePecDraftTool(),
             "update_checklist": UpdateChecklistTool(),
+            "procedure_completion_preview": ProcedureCompletionPreviewTool(),
+            "procedure_completion_search": ProcedureCompletionSearchTool(),
+            "procedure_completion_explain_article": ProcedureCompletionExplainArticleTool(),
+            "procedure_completion_suggest_template": ProcedureCompletionSuggestTemplateTool(),
+            "procedure_completion_list_gaps": ProcedureCompletionListGapsTool(),
         }
         self.descriptors = _build_descriptors()
         missing_descriptors = sorted(set(self.tools) - set(self.descriptors))

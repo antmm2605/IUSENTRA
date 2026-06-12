@@ -192,3 +192,23 @@ Regole:
 | `querela` | 90 | art. 124 c.p. |
 | `prescrizione_ordinaria` | 3650 | art. 2946 c.c. |
 | `prescrizione_breve` | 1825 | art. 2948-2955 c.c. |
+
+
+## Tool Procedure Completion Engine
+
+Cinque tool governati (categoria `governance`, transport `in_process`, mai web
+libero) collegati a `pct/procedure_completion/` — dettagli in
+[PROCEDURE_COMPLETION_ENGINE](PROCEDURE_COMPLETION_ENGINE.md):
+
+| Tool | Permesso RBAC | Output |
+|---|---|---|
+| `procedure_completion_preview` | `procedure_completion.esegui` | card draft, fonti, gap, confidence |
+| `procedure_completion_search` | `procedure_completion.leggi` | schede esistenti con stato e confidence |
+| `procedure_completion_explain_article` | `procedure_completion.leggi` | sintesi documentale solo dalle citazioni collegate |
+| `procedure_completion_suggest_template` | `procedure_completion.leggi` | template candidates con motivi e gap |
+| `procedure_completion_list_gaps` | `procedure_completion.leggi` | coda gap con azioni successive |
+
+Risposte sempre nel contratto governato (`official_sources`, `citations`,
+`compared_sources`, `coverage_gaps`, `confidence`, `answer_mode`,
+`needs_review`, `next_actions`); con fonti insufficienti il tool risponde
+`needs_review` con next actions, mai con contenuti inventati.

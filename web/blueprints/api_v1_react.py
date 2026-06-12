@@ -7911,6 +7911,182 @@ def redazione_atti_normativa_salva():
         return jsonify({"ok": False, "errore": "Salvataggio riferimento non riuscito."}), 200
 
 
+def _procedure_completion_guard(permesso: str):
+    """Verifica flag + permesso RBAC; restituisce (service, context, errore_eventuale)."""
+    from web.services.react_procedure_completion_bridge import (
+        build_service,
+        engine_enabled,
+        error_payload,
+        request_context,
+    )
+
+    utente = g.get("utente_corrente")
+    if not utente:
+        return None, None, (jsonify({"ok": False, "errore": "Sessione utente richiesta."}), 403)
+    if not engine_enabled():
+        payload, status = error_payload("Procedure Completion Engine non attivo per questo studio.", status=403)
+        return None, None, (jsonify(payload), status)
+    if not getattr(utente, "ha_permesso", lambda _p: False)(permesso):
+        payload, status = error_payload(f"Permesso mancante: {permesso}.", status=403)
+        return None, None, (jsonify(payload), status)
+    return build_service(), request_context(), None
+
+
+@api_v1_react.get("/procedure-completion")
+@_richiedi_auth
+def procedure_completion_dashboard():
+    try:
+        from web.services.react_procedure_completion_bridge import build_dashboard_payload
+
+        service, context, errore = _procedure_completion_guard("procedure_completion.leggi")
+        if errore is not None:
+            return errore
+        return _jsonify_redacted(build_dashboard_payload(service, context))
+    except Exception as exc:
+        current_app.logger.exception("Errore dashboard procedure completion: %s", exc)
+        return jsonify({"ok": False, "errore": "Dashboard non disponibile dal runtime corrente."}), 200
+
+
+@api_v1_react.post("/procedure-completion/preview")
+@_richiedi_auth
+def procedure_completion_preview():
+    try:
+        from pct.procedure_completion.service import ProcedureCompletionError
+        from web.services.react_procedure_completion_bridge import validate_client_payload
+
+        service, context, errore = _procedure_completion_guard("procedure_completion.esegui")
+        if errore is not None:
+            return errore
+        payload = request.get_json(silent=True) or {}
+        violazione = validate_client_payload(payload)
+        if violazione:
+            return jsonify({"ok": False, "errore": violazione, "code": "backend_security_control_param"}), 400
+        try:
+            esito = service.preview_completion(payload, context)
+        except ProcedureCompletionError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 200
+        return _jsonify_redacted(esito)
+    except Exception as exc:
+        current_app.logger.exception("Errore preview procedure completion: %s", exc)
+        return jsonify({"ok": False, "errore": "Anteprima non disponibile dal runtime corrente."}), 200
+
+
+@api_v1_react.get("/procedure-completion/cards/<card_id>")
+@_richiedi_auth
+def procedure_completion_card_detail(card_id: str):
+    try:
+        from pct.procedure_completion.service import ProcedureCompletionError
+        from pct.procedure_completion.validator import validate_card
+        from web.services.react_procedure_completion_bridge import card_detail_payload
+
+        service, context, errore = _procedure_completion_guard("procedure_completion.leggi")
+        if errore is not None:
+            return errore
+        try:
+            card = service.get_card(card_id, context)
+        except ProcedureCompletionError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 404
+        return _jsonify_redacted(card_detail_payload(card, validate_card(card).to_dict()))
+    except Exception as exc:
+        current_app.logger.exception("Errore dettaglio scheda procedure completion: %s", exc)
+        return jsonify({"ok": False, "errore": "Scheda non disponibile dal runtime corrente."}), 200
+
+
+@api_v1_react.post("/procedure-completion/cards/<card_id>/submit-review")
+@_richiedi_auth
+def procedure_completion_submit_review(card_id: str):
+    try:
+        from pct.procedure_completion.service import ProcedureCompletionError
+        from web.services.react_procedure_completion_bridge import validate_client_payload
+
+        service, context, errore = _procedure_completion_guard("procedure_completion.esegui")
+        if errore is not None:
+            return errore
+        payload = request.get_json(silent=True) or {}
+        violazione = validate_client_payload(payload)
+        if violazione:
+            return jsonify({"ok": False, "errore": violazione, "code": "backend_security_control_param"}), 400
+        try:
+            esito = service.submit_for_review(card_id, context, reason=str(payload.get("reason") or ""))
+        except ProcedureCompletionError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 200
+        return _jsonify_redacted(esito)
+    except Exception as exc:
+        current_app.logger.exception("Errore submit review procedure completion: %s", exc)
+        return jsonify({"ok": False, "errore": "Invio in revisione non disponibile."}), 200
+
+
+@api_v1_react.post("/procedure-completion/cards/<card_id>/approve")
+@_richiedi_auth
+def procedure_completion_approve(card_id: str):
+    try:
+        from pct.procedure_completion.service import ProcedureCompletionError
+        from web.services.react_procedure_completion_bridge import validate_client_payload
+
+        service, context, errore = _procedure_completion_guard("procedure_completion.approva")
+        if errore is not None:
+            return errore
+        payload = request.get_json(silent=True) or {}
+        violazione = validate_client_payload(payload)
+        if violazione:
+            return jsonify({"ok": False, "errore": violazione, "code": "backend_security_control_param"}), 400
+        try:
+            esito = service.approve_completion(
+                card_id,
+                reviewer=context.get("user_id") or "",
+                reason=str(payload.get("reason") or ""),
+                context=context,
+            )
+        except ProcedureCompletionError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 200
+        return _jsonify_redacted(esito)
+    except Exception as exc:
+        current_app.logger.exception("Errore approvazione procedure completion: %s", exc)
+        return jsonify({"ok": False, "errore": "Approvazione non disponibile."}), 200
+
+
+@api_v1_react.post("/procedure-completion/cards/<card_id>/publish")
+@_richiedi_auth
+def procedure_completion_publish(card_id: str):
+    try:
+        from pct.procedure_completion.service import ProcedureCompletionError
+
+        service, context, errore = _procedure_completion_guard("procedure_completion.pubblica")
+        if errore is not None:
+            return errore
+        try:
+            esito = service.publish_completion(card_id, context)
+        except ProcedureCompletionError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 200
+        return _jsonify_redacted(esito)
+    except Exception as exc:
+        current_app.logger.exception("Errore pubblicazione procedure completion: %s", exc)
+        return jsonify({"ok": False, "errore": "Pubblicazione non disponibile."}), 200
+
+
+@api_v1_react.get("/procedure-completion/gaps")
+@_richiedi_auth
+def procedure_completion_gaps():
+    try:
+        from pct.procedure_completion.service import ProcedureCompletionError
+
+        service, context, errore = _procedure_completion_guard("procedure_completion.leggi")
+        if errore is not None:
+            return errore
+        try:
+            gaps = service.list_gaps(
+                severita=str(request.args.get("severita") or ""),
+                card_id=str(request.args.get("card_id") or ""),
+                context=context,
+            )
+        except ProcedureCompletionError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 200
+        return _jsonify_redacted({"ok": True, "gaps": gaps, "totale": len(gaps)})
+    except Exception as exc:
+        current_app.logger.exception("Errore gap queue procedure completion: %s", exc)
+        return jsonify({"ok": False, "errore": "Gap queue non disponibile."}), 200
+
+
 @api_v1_react.get("/giurisprudenza")
 @_richiedi_auth
 def giurisprudenza_page():

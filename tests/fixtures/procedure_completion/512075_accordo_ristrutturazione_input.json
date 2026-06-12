@@ -1,0 +1,21 @@
+{
+  "_nota": "Fixture di test: input utente, NON verita' giuridica finale. Le fonti simulate nei test sono dichiaratamente fixture.",
+  "input": {
+    "codice": "512075",
+    "denominazione": "Accordo di ristrutturazione dei debiti (artt. 57-64 D.Lgs. 14/2019 CCII)",
+    "categoria": "Procedure concorsuali - accordo di ristrutturazione",
+    "rito": "Procedimento speciale davanti al Tribunale fallimentare",
+    "competenza": "Tribunale - sezione fallimentare - sede dell'impresa"
+  },
+  "fonti_simulate": [
+    {
+      "source_type": "official",
+      "source_title": "FIXTURE - D.Lgs. 14/2019, artt. 57-64 (Codice della crisi d'impresa)",
+      "source_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14",
+      "extracted_principle": "FIXTURE di test: gli accordi di ristrutturazione dei debiti sono disciplinati dal D.Lgs. 14/2019, artt. 57-64.",
+      "copyright_policy": "metadata_only",
+      "origin": "fixture",
+      "last_checked_at": "2026-06-06"
+    }
+  ]
+}

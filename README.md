@@ -118,6 +118,8 @@ python scripts\smoke_app_v2_all.py --suite health --read-only --json-output smok
 - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
 - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
 
+- **Procedure Completion Engine**: completamento governato delle schede procedura da catalogo PST/XSD, template e fonti ufficiali, sempre come bozza per revisione avvocato (vedi `docs/PROCEDURE_COMPLETION_ENGINE.md`).
+
 ## Architettura
 
 La struttura è organizzata per responsabilità:

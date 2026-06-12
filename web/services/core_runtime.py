@@ -446,6 +446,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["TEMPLATE_ATTI_DB"] = cfg.get(
         "TEMPLATE_ATTI_DB", os.getenv("PCT_TEMPLATE_ATTI_DB", "./template_atti/templates.json")
     )
+    app.config["PROCEDURE_COMPLETION_DB"] = cfg.get(
+        "PROCEDURE_COMPLETION_DB",
+        os.getenv("PROCEDURE_COMPLETION_DB", "./intelligence/procedure_completion.sqlite"),
+    )
     app.config["TEMPLATE_ATTI_PREFS_DB"] = cfg.get(
         "TEMPLATE_ATTI_PREFS_DB",
         os.getenv(

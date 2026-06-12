@@ -155,3 +155,15 @@ stato operativo; per ogni riga sono documentati protezione frontend, backend, re
 strategy, deep link, query params e test on/off. Le route ufficiali gia'
 `react_operational_full` restano governate dal manifest e dal route gate quando
 non entrano nella shell App V2.
+
+
+## Procedure Completion Engine
+
+| Flag | Default | Nota |
+|---|---|---|
+| `lex.procedureCompletion.enabled` | ON | Engine, API `/api/v1/ui/procedure-completion/*` e tool Lex; OFF = 403 fail-closed. |
+| `routes.appV2.procedureCompletion.home` | ON | Pagina `/procedure-completion` nella shell App V2. |
+| `lex.procedureCompletion.voiceRead.enabled` | OFF | Lettura vocale della scheda (TTS locale browser, opt-in). |
+| `lex.procedureCompletion.voiceRead.localOnly` | ON | Vincola la lettura al solo TTS locale, nessun provider esterno. |
+
+Override ambiente: `IUSENTRA_FF_LEX_PROCEDURECOMPLETION_ENABLED=0` e analoghi.

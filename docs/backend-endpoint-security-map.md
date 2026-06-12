@@ -8,11 +8,11 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 239.
-- Endpoint con `_richiedi_auth`: 239/239.
-- Endpoint con metodo di scrittura o cancellazione: 117.
+- Endpoint React API censiti: 246.
+- Endpoint con `_richiedi_auth`: 246/246.
+- Endpoint con metodo di scrittura o cancellazione: 121.
 - Endpoint con superficie file/upload/download/export/evidence: 13.
-- Route manifest censite: 111; critical: 18; high/P1: 73.
+- Route manifest censite: 112; critical: 18; high/P1: 73.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
 - Denial log: `policy_denied.backend_security` e warning applicativo `policy_denied backend_security_control_param` senza valori sensibili.
 
@@ -191,6 +191,13 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/preventivi/wizard/calculate` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/preventivi/wizard/create` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/privacy/registro` | Registro GDPR | P1 | `sessione/API tenant-aware` | trattamenti e audit privacy | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/procedure-completion` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/procedure-completion/cards/<card_id>` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/procedure-completion/cards/<card_id>/approve` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/procedure-completion/cards/<card_id>/publish` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/procedure-completion/cards/<card_id>/submit-review` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/procedure-completion/gaps` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/procedure-completion/preview` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/profili` | Profili e permessi | P0 | `utenti.leggi/scrivi` | matrice permessi e override | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/profili` | Profili e permessi | P0 | `utenti.leggi/scrivi` | matrice permessi e override | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/profilo` | Profilo utente | P1 | `sessione/API tenant-aware` | dati profilo e permessi correnti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

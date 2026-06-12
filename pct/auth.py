@@ -165,6 +165,11 @@ TUTTI_PERMESSI: List[Tuple[str, str, str]] = [
     ("Legal Skills", "legal_skills.profilo.scrivi", "Configura profilo"),
     ("Legal Skills", "legal_skills.trust_check", "Verifica fiducia"),
     ("Legal Skills", "legal_skills.scheduled.esegui", "Agenti schedulati"),
+    ("Procedure",    "procedure_completion.leggi",    "Consulta schede"),
+    ("Procedure",    "procedure_completion.esegui",   "Genera anteprime"),
+    ("Procedure",    "procedure_completion.approva",  "Approva schede"),
+    ("Procedure",    "procedure_completion.pubblica", "Pubblica schede"),
+    ("Procedure",    "procedure_completion.esporta",  "Esporta schede"),
     ("Backup",       "backup.leggi",         "Visualizza"),
     ("Backup",       "backup.esegui",        "Esegui"),
     ("Admin",        "admin.leggi",          "Accedi pannelli"),
@@ -195,6 +200,9 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "legal_skills.leggi", "legal_skills.esegui", "legal_skills.approva",
         "legal_skills.esporta", "legal_skills.profilo.scrivi", "legal_skills.trust_check",
         "legal_skills.scheduled.esegui",
+        "procedure_completion.leggi", "procedure_completion.esegui",
+        "procedure_completion.approva", "procedure_completion.pubblica",
+        "procedure_completion.esporta",
         "backup.leggi",
     ],
 
@@ -208,6 +216,7 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "telematico.leggi", "telematico.importa", "telematico.valida",
         "ai.usa",
         "legal_skills.leggi", "legal_skills.esegui",
+        "procedure_completion.leggi", "procedure_completion.esegui",
     ],
 
     RuoloUtente.PRATICANTE: [
@@ -220,6 +229,7 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "telematico.leggi",
         "ai.usa",
         "legal_skills.leggi",
+        "procedure_completion.leggi",
     ],
 
     RuoloUtente.SEGRETERIA: [

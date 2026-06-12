@@ -6,10 +6,10 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 
 ## Sintesi
 
-- Aree rilevate o governate: 16.
-- Route nel manifest: 111.
-- Priorita route: P0=31; P1=43; P2=37.
-- Stato aree: blocked=1; complete_tested=7; complete_unverified=4; partial=4.
+- Aree rilevate o governate: 17.
+- Route nel manifest: 112.
+- Priorita route: P0=31; P1=43; P2=38.
+- Stato aree: blocked=1; complete_tested=7; complete_unverified=5; partial=4.
 - `complete_tested` non viene assegnato a un'area con route legacy/parziali o senza gate fase 8.
 - Le aree non parificate restano `partial`, `pending` o `blocked` e non devono essere esposte come complete nella shell App V2.
 
@@ -25,6 +25,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 | Fatturazione e pagamenti | /fatturazione/*; /fatturazione; /fatturazione/nuova; /incassi-pagamenti | /app/mandato?tab=fatturazione; /app/mandato?tab=fatturazione; /app/mandato?tab=fatturazione&drawer=nuova; /app/mandato?tab=incassi | routes.appV2.billing.invoices; routes.appV2.billing.payments | fatturazione.leggi / fatturazione.scrivi; pagamenti protetti | fatture, parcelle, incassi, provider pagamento e dati fiscali | fatture; parcelle; pagamenti; export/download | fattura tenant B negata; export senza permesso 403; download tenant B negato; importo invalido 400/422 | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1 | partial |
 | Fascicoli | /fascicoli; /fascicoli/archivio; /fascicoli/nuovo | /app/fascicoli; /app/fascicoli/archivio; /app/fascicoli/nuovo | routes.appV2.cases.create; routes.appV2.cases.list | fascicoli.leggi / fascicoli.scrivi quando modifica | parti, controparti, documenti, timeline e scadenze | lista fascicoli; dettaglio fascicolo; documenti/scadenze collegati | lista tenant A; dettaglio cross-tenant negato; timeline senza leakage; readonly non muta | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Impostazioni e integrazioni | /impostazioni; /impostazioni-studio; /impostazioni/calendario; /impostazioni/pagamenti; /impostazioni/sdi; /notifiche; /notifiche-whatsapp; /sincronizzazione-calendari; +2 altre | /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; +4 altre | routes.appV2.settings.backup; routes.appV2.settings.calendarSync; routes.appV2.settings.notifications; routes.appV2.settings.payments; routes.appV2.settings.sdi; routes.appV2.settings.studio; +1 altre | impostazioni.leggi / impostazioni.scrivi; segreti mascherati | configurazioni studio, PEC/SMTP, notifiche, backup, calendari e segreti redatti | dati studio; PEC/SMTP; pagamenti; notifiche; backup; calendari | non autorizzato 403; tenant A non vede settings B; secret mascherato; form invalido 400/422 | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1; P2 | complete_tested |
+| Lex | /procedure-completion | /app/procedure-completion | routes.appV2.dashboard.home | sessione studio valida | da censire | workflow presente nel manifest | test area da censire | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Mandato, preventivi e compensi | /compensi-forensi/*; /preventivi/*; /tariffario/*; /compensi-forensi; /preventivi; /preventivi/conferimento/:id; /preventivi/conferimento/nuovo; /preventivi/nuovo; +2 altre | /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=tariffario; /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=conferimenti; +4 altre | routes.appV2.billing.compensi; routes.appV2.billing.quotes; routes.appV2.billing.tariffario | mandato.leggi / mandato.scrivi; calcoli backend | offerte, conferimenti, tariffe e dati economici | preventivi; wizard; conferimenti; compensi; tariffario | lista preventivi tenant A; modifica senza permesso 403; importo invalido 400/422; apri fascicolo auditato se previsto | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1 | partial |
 | Panoramica | / | /app | routes.appV2.dashboard.home | sessione studio valida | metriche aggregate; evitare PII non necessaria | dashboard tenant-safe; widget abilitati da flag/RBAC; azioni verso pagine permesse | dashboard con dati/empty/error; link nascosti se flag o permesso mancanti; conteggi tenant-safe | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Portale Cliente | /app/portale-clienti; /portale-cliente | /app/portale-clienti; /portale-cliente | routes.appV2.clientPortal.enabled | clienti.leggi / clienti.scrivi per studio; token cliente firmato e hashato per vista cliente | anagrafica cliente, pratica, documenti, consensi, messaggi e token invito | dashboard studio; invito sicuro; vista cliente; upload documenti; firme semplici; chat; appuntamenti | repository SQLite/PostgreSQL; API studio 401/400/success; API cliente con token valido/non valido; browser desktop/tablet/mobile | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1 | complete_tested |
@@ -163,6 +164,22 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 - Test richiesti: non autorizzato 403; tenant A non vede settings B; secret mascherato; form invalido 400/422.
 - Test presenti fase 8: tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite.
 - Rischio residuo: estendere smoke autenticato tenant A/B quando sono disponibili credenziali ambiente.
+
+### Lex
+
+- Stato: `complete_unverified` (area React full senza P0/P1; smoke workflow autenticato da estendere).
+- Route censite: 1; priorita: P2; migrazione: react_operational_full=1.
+- URL legacy principali: /procedure-completion.
+- URL App V2: /app/procedure-completion.
+- Endpoint API: da censire.
+- Feature flag: routes.appV2.dashboard.home.
+- RBAC: sessione studio valida.
+- PII: da censire.
+- Workflow principali: workflow presente nel manifest.
+- Requisiti specifici verificati o governati: tenant-safe; RBAC; stati UI completi.
+- Test richiesti: test area da censire.
+- Test presenti fase 8: tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere.
+- Rischio residuo: nessuna promozione ulteriore senza smoke autenticato area-specifico.
 
 ### Mandato, preventivi e compensi
 

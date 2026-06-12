@@ -1,0 +1,15 @@
+{
+  "route": "/procedure-completion",
+  "capturedAt": "2026-06-12",
+  "status": "react_operational_full",
+  "source": "feature nativa App V2: nessuna superficie legacy preesistente",
+  "preserve": [
+    "schede sempre marcate bozza per revisione avvocato fino a published",
+    "citazioni e badge fonte accanto a ogni punto giuridico",
+    "publish bloccato senza fonti ufficiali, citazioni e review",
+    "nessun dato demo in UI operativa",
+    "nessun tenant_id dal client"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun form POST HTML, errori sanificati, RBAC e feature flag fail-closed"
+}

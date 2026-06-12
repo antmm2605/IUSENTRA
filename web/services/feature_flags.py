@@ -38,6 +38,7 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "lex.legalSkills.scheduledAgents",
         "lex.workflowAgents.writeActions",
         "lex.workflowAgents.scheduledRuns",
+        "lex.procedureCompletion.voiceRead.enabled",
     }
 )
 
@@ -49,6 +50,9 @@ APP_V2_DEFAULT_ON_FLAGS = frozenset(
         "lex_validated_documents_only",
         "lex.legalSkills.enabled",
         "lex.workflowAgents.enabled",
+        "lex.procedureCompletion.enabled",
+        "lex.procedureCompletion.voiceRead.localOnly",
+        "routes.appV2.procedureCompletion.home",
         "routes.appV2.dashboard.home",
         "routes.appV2.dashboard.regia",
         "routes.appV2.search.global",
@@ -190,6 +194,10 @@ FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
     _flag("routes.appV2.billing.tariffario", "Tariffario nella shell App V2 sperimentale."),
     _flag("routes.appV2.notifications.mobilePush", "Notifiche Web Push su dispositivo mobile/tablet."),
     _flag("lex.legalSkills.enabled", "Legal Skills Engine governato per Lex."),
+    _flag("lex.procedureCompletion.enabled", "Procedure Completion Engine: schede procedura governate con review avvocato."),
+    _flag("lex.procedureCompletion.voiceRead.enabled", "Lettura vocale delle schede procedura (TTS locale del browser, opt-in)."),
+    _flag("lex.procedureCompletion.voiceRead.localOnly", "Vincola la lettura vocale al solo TTS locale, senza provider esterni."),
+    _flag("routes.appV2.procedureCompletion.home", "Pagina Procedure Completion nella shell App V2."),
     _flag("lex.legalSkills.trustLayer", "Controllo di fiducia per skill legali custom."),
     _flag("lex.legalSkills.customSkills", "Installazione skill Legal Skills custom."),
     _flag("lex.legalSkills.scheduledAgents", "Agenti Legal Skills schedulati read-only."),

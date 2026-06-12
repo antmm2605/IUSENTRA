@@ -37,7 +37,6 @@ def _write_studio_config(path: Path) -> None:
 def _cfg(tmp_root: Path) -> dict[str, str]:
     return {
         "TESTING": True,
-        "SECRET_KEY": "performance-smoke-secret",
         "AUTH_DB": str(tmp_root / "auth" / "utenti.json"),
         "AUDIT_DB": str(tmp_root / "auth" / "audit.json"),
         "CLIENTI_DB": str(tmp_root / "clienti" / "anagrafica.json"),
@@ -124,7 +123,8 @@ def main() -> int:
     if args.output:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(text, encoding="utf-8")
+        with output_path.open("w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False, indent=2)
 
     if not args.strict:
         return 0

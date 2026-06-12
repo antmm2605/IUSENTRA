@@ -779,7 +779,8 @@ def create_editor_draft(
             + rendered_text
         )
     title = clean_spaces((payload or {}).get("title") or model.get("name") or model_code or "Atto")
-    filename = _safe_editor_filename(title, model_code)
+    filename_hint = clean_spaces((payload or {}).get("_editor_filename_hint"))
+    filename = _safe_editor_filename(filename_hint or title, model_code)
     if document_writer is not None:
         try:
             result = document_writer(

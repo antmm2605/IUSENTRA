@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 232.
-- Endpoint con `_richiedi_auth`: 232/232.
-- Endpoint con metodo di scrittura o cancellazione: 115.
+- Endpoint React API censiti: 239.
+- Endpoint con `_richiedi_auth`: 239/239.
+- Endpoint con metodo di scrittura o cancellazione: 117.
 - Endpoint con superficie file/upload/download/export/evidence: 13.
 - Route manifest censite: 111; critical: 18; high/P1: 73.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -195,6 +195,13 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/profili` | Profili e permessi | P0 | `utenti.leggi/scrivi` | matrice permessi e override | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/profilo` | Profilo utente | P1 | `sessione/API tenant-aware` | dati profilo e permessi correnti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/redazione-atti` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/redazione-atti/anteprima/<model_code>` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/redazione-atti/clienti` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/redazione-atti/clienti/<id_cliente>/fascicoli` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/redazione-atti/fascicoli/<id_fascicolo>/contesto` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/redazione-atti/genera` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/redazione-atti/normativa` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/redazione-atti/normativa/<model_code>` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/redazione-atti/produci` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/registro-attivita` | Registro attivita | P0 | `audit.leggi` | PII e log operativi redatti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/ricerca-legale` | Ricerca legale | P1 | `sessione/API tenant-aware` | fonti e cronologia ricerca | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

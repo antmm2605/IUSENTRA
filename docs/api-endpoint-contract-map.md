@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 261.
-- Endpoint P0/P1 contrattualizzati: 230.
+- Endpoint React API contrattualizzati: 268.
+- Endpoint P0/P1 contrattualizzati: 237.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 246.
+- Endpoint con provider verification auth-error: 253.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -199,6 +199,13 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Profili e permessi | `/api/v1/ui/profili` | `POST` | Profili e permessi | P0 | verified | success+auth-error | `utenti.leggi/scrivi` | `n/a` | current_tenant | verified |
 | API React operativa | `/api/v1/ui/profilo` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/anteprima/{model_code}` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/clienti` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/clienti/{id_cliente}/fascicoli` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/fascicoli/{id_fascicolo}/contesto` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/genera` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/normativa` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/normativa/{model_code}` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti/produci` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Registro attivita | `/api/v1/ui/registro-attivita` | `GET` | Registro attivita | P0 | complete | auth-error | `audit.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale` | `GET` | Ricerca legale | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |

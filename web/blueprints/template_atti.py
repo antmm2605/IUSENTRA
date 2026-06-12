@@ -683,6 +683,7 @@ def _importa_compilazione_editor_professionale(
     compliance_result: Any = None,
     requested_draft: str = "final_draft",
     confirmed_warning: bool = False,
+    editor_html_builder: Any = None,
 ) -> dict[str, str] | None:
     id_fascicolo = str(getattr(selected_fascicolo, "id", "") or payload.get("case_id") or "").strip()
     if not id_fascicolo:
@@ -701,7 +702,7 @@ def _importa_compilazione_editor_professionale(
         model=model,
         fascicoli_repo=get_fascicoli(),
         encrypt_func=encrypt_doc,
-        editor_html_builder=lambda text: _sanitize_editor_html(_to_editor_html(text)),
+        editor_html_builder=editor_html_builder or (lambda text: _sanitize_editor_html(_to_editor_html(text))),
         audit_callback=_audit_template_event,
         compliance_result=compliance_result,
         requested_draft=requested_draft,

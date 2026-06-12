@@ -7604,6 +7604,313 @@ def redazione_atti_produci():
     return _jsonify_redacted(result), status
 
 
+def _redazione_normativa_db_path() -> str:
+    return _cfg_value("REDAZIONE_NORMATIVA_DB", "./template_atti/riferimenti_normativi.json")
+
+
+def _redazione_carica_fascicolo_cliente(id_fascicolo: str, id_cliente: str = ""):
+    """Carica fascicolo e cliente verificando l'associazione dichiarata."""
+    from web.services.react_redazione_guidata_bridge import verifica_fascicolo_del_cliente
+
+    fascicolo = get_fascicoli().get(str(id_fascicolo or "").strip()) if id_fascicolo else None
+    if fascicolo is None:
+        return None, None, "Fascicolo non trovato."
+    if id_cliente and not verifica_fascicolo_del_cliente(fascicolo, id_cliente):
+        return None, None, "Il fascicolo non appartiene al cliente selezionato."
+    cliente = None
+    cliente_id = str(id_cliente or getattr(fascicolo, "id_cliente", "") or "").strip()
+    if cliente_id:
+        cliente = get_clienti().get(cliente_id)
+    return fascicolo, cliente, ""
+
+
+@api_v1_react.get("/redazione-atti/clienti")
+@_richiedi_auth
+def redazione_atti_clienti():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errore": "Sessione utente richiesta.", "clienti": []}), 403
+    try:
+        from web.services.react_redazione_guidata_bridge import build_redazione_clienti_payload
+
+        return _jsonify_redacted(
+            build_redazione_clienti_payload(get_clienti=get_clienti, get_fascicoli=get_fascicoli)
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore elenco clienti redazione atti: %s", exc)
+        return jsonify({"ok": False, "errore": "Clienti non disponibili dal runtime corrente.", "clienti": []}), 200
+
+
+@api_v1_react.get("/redazione-atti/clienti/<id_cliente>/fascicoli")
+@_richiedi_auth
+def redazione_atti_fascicoli_cliente(id_cliente: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errore": "Sessione utente richiesta.", "fascicoli": []}), 403
+    try:
+        from web.services.react_redazione_guidata_bridge import build_redazione_fascicoli_payload
+
+        return _jsonify_redacted(
+            build_redazione_fascicoli_payload(get_fascicoli=get_fascicoli, cliente_id=id_cliente)
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore fascicoli cliente redazione atti: %s", exc)
+        return jsonify({"ok": False, "errore": "Fascicoli non disponibili dal runtime corrente.", "fascicoli": []}), 200
+
+
+@api_v1_react.get("/redazione-atti/fascicoli/<id_fascicolo>/contesto")
+@_richiedi_auth
+def redazione_atti_contesto_fascicolo(id_fascicolo: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errore": "Sessione utente richiesta."}), 403
+    try:
+        from web.blueprints.template_atti import _build_parti_template_context
+        from web.services.react_redazione_guidata_bridge import build_redazione_contesto_payload
+
+        id_cliente = str(request.args.get("id_cliente") or "").strip()
+        fascicolo, cliente, errore = _redazione_carica_fascicolo_cliente(id_fascicolo, id_cliente)
+        if errore:
+            return jsonify({"ok": False, "errore": errore}), 200
+        _, parti = _build_parti_template_context(str(getattr(fascicolo, "id", "") or ""))
+        return _jsonify_redacted(
+            build_redazione_contesto_payload(
+                fascicolo=fascicolo,
+                cliente=cliente,
+                parti=parti,
+                config=_studio_prefill_config(),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore contesto fascicolo redazione atti: %s", exc)
+        return jsonify({"ok": False, "errore": "Contesto fascicolo non disponibile dal runtime corrente."}), 200
+
+
+@api_v1_react.get("/redazione-atti/anteprima/<model_code>")
+@_richiedi_auth
+def redazione_atti_anteprima(model_code: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errore": "Sessione utente richiesta."}), 403
+    try:
+        from web.blueprints.template_atti import _build_parti_template_context, _get_studio_timbro
+        from web.services.react_redazione_guidata_bridge import build_redazione_anteprima_payload
+
+        id_fascicolo = str(request.args.get("id_fascicolo") or "").strip()
+        id_cliente = str(request.args.get("id_cliente") or "").strip()
+        if not id_fascicolo:
+            return jsonify({"ok": False, "errore": "Seleziona prima il fascicolo."}), 200
+        fascicolo, cliente, errore = _redazione_carica_fascicolo_cliente(id_fascicolo, id_cliente)
+        if errore:
+            return jsonify({"ok": False, "errore": errore}), 200
+        _, parti = _build_parti_template_context(id_fascicolo)
+        return _jsonify_redacted(
+            build_redazione_anteprima_payload(
+                model_code=model_code,
+                fascicolo=fascicolo,
+                cliente=cliente,
+                parti=parti,
+                utente=utente,
+                config=_studio_prefill_config(),
+                studio_timbro=_get_studio_timbro(),
+                normativa_db_path=_redazione_normativa_db_path(),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore anteprima redazione atti: %s", exc)
+        return jsonify({"ok": False, "errore": "Anteprima non disponibile dal runtime corrente."}), 200
+
+
+@api_v1_react.post("/redazione-atti/genera")
+@_richiedi_auth
+def redazione_atti_genera():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errore": "Sessione utente richiesta."}), 403
+    try:
+        from pct.compilatore_atti import get_modello, render_compiled_act
+        from web.blueprints.template_atti import (
+            _build_contextual_compliance,
+            _build_parti_template_context,
+            _get_studio_timbro,
+            _importa_compilazione_editor_professionale,
+            _sanitize_editor_html,
+            _to_editor_html,
+        )
+        from web.services.react_redazione_guidata_bridge import (
+            evidenzia_dati_mancanti_html,
+            prepara_payload_generazione,
+        )
+
+        dati = request.get_json(silent=True) or {}
+        model_code = str(dati.get("modelCode") or dati.get("model_code") or "").strip()
+        id_fascicolo = str(dati.get("idFascicolo") or dati.get("id_fascicolo") or "").strip()
+        id_cliente = str(dati.get("idCliente") or dati.get("id_cliente") or "").strip()
+        valori = dati.get("valori") if isinstance(dati.get("valori"), dict) else {}
+        riferimenti = dati.get("riferimenti") if isinstance(dati.get("riferimenti"), list) else []
+        conferma_bozza = bool(dati.get("confermaBozza"))
+        conferma_avvisi = bool(dati.get("confermaAvvisi"))
+
+        modello = get_modello(model_code)
+        if not modello:
+            return jsonify({"ok": False, "errore": "Modello atto non riconosciuto."}), 200
+        if not id_fascicolo:
+            return jsonify({"ok": False, "errore": "Seleziona il fascicolo: l'atto deve restare collegato alla pratica reale."}), 200
+        fascicolo, cliente, errore = _redazione_carica_fascicolo_cliente(id_fascicolo, id_cliente)
+        if errore:
+            return jsonify({"ok": False, "errore": errore}), 200
+        _, parti = _build_parti_template_context(id_fascicolo)
+
+        preparazione = prepara_payload_generazione(
+            model_code=model_code,
+            fascicolo=fascicolo,
+            cliente=cliente,
+            parti=parti,
+            utente=utente,
+            config=_studio_prefill_config(),
+            studio_timbro=_get_studio_timbro(),
+            valori_utente=valori,
+            riferimenti_selezionati=riferimenti,
+            conferma_bozza=conferma_bozza,
+        )
+        if not preparazione["ok"]:
+            return jsonify(
+                {
+                    "ok": False,
+                    "errore": "Campi obbligatori mancanti: completali o conferma la creazione di una bozza da revisionare.",
+                    "errors": preparazione["errors"],
+                    "campiMancanti": preparazione["mancanti"],
+                    "richiedeConfermaBozza": True,
+                }
+            ), 200
+
+        payload = preparazione["payload"]
+        marcati = preparazione["marcati"]
+        compliance_result = _build_contextual_compliance(
+            model_code,
+            payload=payload,
+            selected_cliente=cliente,
+            selected_fascicolo=fascicolo,
+        )
+        if compliance_result.overall_state == "block":
+            return jsonify(
+                {
+                    "ok": False,
+                    "errore": "La generazione e' bloccata dai controlli normativi applicabili.",
+                    "compliance": compliance_result.to_dict(),
+                }
+            ), 200
+        if compliance_result.overall_state == "warning" and not (conferma_avvisi or conferma_bozza):
+            return jsonify(
+                {
+                    "ok": False,
+                    "errore": "I controlli normativi richiedono conferma: posso creare una bozza di lavoro da revisionare.",
+                    "richiedeConfermaAvvisi": True,
+                    "compliance": compliance_result.to_dict(),
+                }
+            ), 200
+        requested_draft = "working_draft" if (marcati or compliance_result.overall_state == "warning") else "final_draft"
+
+        testo_generato = render_compiled_act(model_code, payload)
+        editor_import = _importa_compilazione_editor_professionale(
+            model_code=model_code,
+            model=modello,
+            payload=payload,
+            testo_generato=testo_generato,
+            selected_fascicolo=fascicolo,
+            compliance_result=compliance_result,
+            requested_draft=requested_draft,
+            confirmed_warning=True if requested_draft == "working_draft" else conferma_avvisi,
+            editor_html_builder=lambda text: _sanitize_editor_html(
+                evidenzia_dati_mancanti_html(_to_editor_html(text))
+            ),
+        )
+        if not editor_import:
+            return jsonify({"ok": False, "errore": "Generazione non riuscita: fascicolo non collegato."}), 200
+        return jsonify(
+            {
+                "ok": True,
+                "messaggio": "Atto generato con i dati reali del fascicolo e aperto nell'editor.",
+                "documentId": editor_import["document_id"],
+                "editorUrl": editor_import["editor_url"],
+                "signatureUrl": editor_import.get("signature_url", ""),
+                "createdAs": editor_import.get("created_as") or requested_draft,
+                "complianceState": editor_import.get("compliance_state") or compliance_result.overall_state,
+                "campiMarcati": marcati,
+            }
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore generazione redazione atti: %s", exc)
+        return jsonify({"ok": False, "errore": "Generazione non disponibile dal runtime corrente."}), 200
+
+
+@api_v1_react.get("/redazione-atti/normativa/<model_code>")
+@_richiedi_auth
+def redazione_atti_normativa(model_code: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errore": "Sessione utente richiesta."}), 403
+    try:
+        from pct.redazione_contesto import condizioni_dal_fascicolo
+        from pct.redazione_normativa import riferimenti_per_modello
+
+        id_fascicolo = str(request.args.get("id_fascicolo") or "").strip()
+        condizioni: dict[str, bool] = {}
+        materia = ""
+        if id_fascicolo:
+            fascicolo = get_fascicoli().get(id_fascicolo)
+            if fascicolo is not None:
+                condizioni = condizioni_dal_fascicolo(fascicolo)
+                tipo = getattr(fascicolo, "tipo", "")
+                materia = getattr(tipo, "value", str(tipo or ""))
+        return _jsonify_redacted(
+            {
+                "ok": True,
+                "normativa": riferimenti_per_modello(
+                    model_code,
+                    materia=materia,
+                    condizioni=condizioni,
+                    db_path=_redazione_normativa_db_path(),
+                ),
+            }
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore normativa redazione atti: %s", exc)
+        return jsonify({"ok": False, "errore": "Riferimenti normativi non disponibili."}), 200
+
+
+@api_v1_react.post("/redazione-atti/normativa")
+@_richiedi_auth
+def redazione_atti_normativa_salva():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errore": "Sessione utente richiesta."}), 403
+    try:
+        from pct.redazione_normativa import disattiva_riferimento, riattiva_riferimento, salva_riferimento
+
+        dati = request.get_json(silent=True) or {}
+        azione = str(dati.get("azione") or "salva").strip().lower()
+        db_path = _redazione_normativa_db_path()
+        if azione == "disattiva":
+            esito = disattiva_riferimento(str(dati.get("id") or ""), db_path=db_path)
+            if esito:
+                _audit_event("redazione.normativa.disattiva", "riferimento_normativo", str(dati.get("id") or ""), "Riferimento normativo disattivato dallo studio.")
+            return jsonify({"ok": esito})
+        if azione == "riattiva":
+            esito = riattiva_riferimento(str(dati.get("id") or ""), db_path=db_path)
+            if esito:
+                _audit_event("redazione.normativa.riattiva", "riferimento_normativo", str(dati.get("id") or ""), "Riferimento normativo riattivato dallo studio.")
+            return jsonify({"ok": esito})
+        riferimento = salva_riferimento(dati.get("riferimento") if isinstance(dati.get("riferimento"), dict) else dati, db_path=db_path)
+        _audit_event("redazione.normativa.salva", "riferimento_normativo", riferimento.id, f"Riferimento {riferimento.riferimento_breve()} aggiornato dallo studio.")
+        return jsonify({"ok": True, "riferimento": riferimento.to_dict()})
+    except ValueError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio normativa redazione atti: %s", exc)
+        return jsonify({"ok": False, "errore": "Salvataggio riferimento non riuscito."}), 200
+
+
 @api_v1_react.get("/giurisprudenza")
 @_richiedi_auth
 def giurisprudenza_page():

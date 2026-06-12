@@ -10,13 +10,23 @@ import pytest
 
 from lex.prompts.prompt_builder import build_assistente_prompt
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
-from pct.local_ai import LocalAIService
+from pct.local_ai import LocalAIService, _strip_html
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
 from pct.runtime_resilience import CircuitBreakerOpenError, clear_runtime_circuit_breakers
 from web.app import create_app
 from web.services.storage_runtime import get_request_studio_db
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_strip_html_rimuove_script_e_style_con_tag_di_chiusura_spaziato():
+    raw = "<p>Testo utile</p><script>alert('x')</script ><style>.x{}</style >"
+
+    cleaned = _strip_html(raw)
+
+    assert "Testo utile" in cleaned
+    assert "alert" not in cleaned
+    assert ".x" not in cleaned
 
 
 def _write_studio_config(path: Path, enabled: bool = True) -> None:

@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from urllib.parse import urlparse
 
 from pct.agenda import Agenda
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -72,6 +73,12 @@ def _cfg_web(tmp_path: Path) -> dict:
         "PORTALE_UPLOADS": str(tmp_path / "portale" / "uploads"),
         "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
     }
+
+
+def _assert_react_shell_html(html: str) -> None:
+    assert 'class="react-shell-document"' in html
+    assert 'id="iusentra-react-bootstrap"' in html
+    assert 'id="root"' in html
 
 
 def _seed_tenant_admin(
@@ -405,9 +412,7 @@ def test_sito_studio_builder_pro_template_tokens_e_sito_unico_per_tenant(tmp_pat
         response = client.get("/sito-studio/builder")
         assert response.status_code == 200
         html = response.get_data(as_text=True)
-        assert "Sito Studio Builder Pro" in html
-        assert "Classic Legal" in html
-        assert "Un solo sito per studio" in html
+        _assert_react_shell_html(html)
 
         apply_response = client.post(
             "/sito-studio/builder/applica-template",
@@ -477,7 +482,7 @@ def test_sito_studio_builder_generazione_validazione_e_render_pubblico(tmp_path:
             follow_redirects=True,
         )
         assert response.status_code == 200
-        assert "Blocchi disponibili" in response.get_data(as_text=True)
+        _assert_react_shell_html(response.get_data(as_text=True))
 
         validation = client.post("/sito-studio/builder/valida", headers={"Accept": "application/json"})
         assert validation.status_code == 200
@@ -496,7 +501,13 @@ def test_sito_studio_builder_generazione_validazione_e_render_pubblico(tmp_path:
         home = anonymous_client.get(f"/web/{public_slug}/")
         assert home.status_code == 200
         html = home.get_data(as_text=True)
-        assert "schema.org" in html
+        jsonld_start = '<script type="application/ld+json">'
+        jsonld_end = "</script>"
+        jsonld_start_index = html.index(jsonld_start) + len(jsonld_start)
+        jsonld_end_index = html.index(jsonld_end, jsonld_start_index)
+        schema_payload = json.loads(html[jsonld_start_index:jsonld_end_index])
+        schema_context = urlparse(schema_payload["@context"])
+        assert (schema_context.scheme, schema_context.netloc) == ("https", "schema.org")
         assert "og:title" in html
         assert "studio-site-nav-toggle" in html
         assert f"/web/{public_slug}/sitemap.xml" in anonymous_client.get(f"/web/{public_slug}/robots.txt").get_data(as_text=True)

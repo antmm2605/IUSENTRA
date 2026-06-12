@@ -281,8 +281,8 @@ def _normalize_text(text: str) -> str:
 
 
 def _strip_html(raw: str) -> str:
-    text = re.sub(r"<script[\s\S]*?</script>", " ", str(raw or ""), flags=re.I)
-    text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.I)
+    text = re.sub(r"<script\b[^>]*>[\s\S]*?</script\s*>", " ", str(raw or ""), flags=re.I)
+    text = re.sub(r"<style\b[^>]*>[\s\S]*?</style\s*>", " ", text, flags=re.I)
     text = re.sub(r"<[^>]+>", " ", text)
     text = html_lib.unescape(text)
     return _clean_spaces(text.replace(" .", "."))

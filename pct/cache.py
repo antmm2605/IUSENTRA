@@ -30,14 +30,58 @@ Utilizzo tipico:
 from __future__ import annotations
 
 import json
+import secrets
 import threading
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 # ------------------------------------------------------------------ stato globale
 
-_store: Dict[str, Tuple[float, Any]] = {}
+_store: Dict[str, Tuple[float, bytes]] = {}
 _lock = threading.Lock()
+_cache_key = secrets.token_bytes(32)
+_aesgcm_class: Any = None
+_aesgcm_unavailable = False
+_CACHE_MISS = object()
+
+
+def _get_aesgcm_class() -> Any:
+    """Carica AES-GCM solo quando la cache serve davvero."""
+    global _aesgcm_class, _aesgcm_unavailable
+    if _aesgcm_unavailable:
+        return None
+    if _aesgcm_class is None:
+        try:
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        except Exception:
+            _aesgcm_unavailable = True
+            return None
+        _aesgcm_class = AESGCM
+    return _aesgcm_class
+
+
+def _encode_cache_payload(value: Any) -> bytes | None:
+    aesgcm_class = _get_aesgcm_class()
+    if aesgcm_class is None:
+        return None
+    try:
+        serialized = json.dumps(value, ensure_ascii=False, default=str).encode("utf-8")
+    except (TypeError, ValueError):
+        return None
+    nonce = secrets.token_bytes(12)
+    ciphertext = aesgcm_class(_cache_key).encrypt(nonce, serialized, None)
+    return nonce + ciphertext
+
+
+def _decode_cache_payload(payload: bytes) -> Any:
+    aesgcm_class = _get_aesgcm_class()
+    if aesgcm_class is None or len(payload) <= 12:
+        return _CACHE_MISS
+    try:
+        serialized = aesgcm_class(_cache_key).decrypt(payload[:12], payload[12:], None)
+        return json.loads(serialized.decode("utf-8"))
+    except Exception:
+        return _CACHE_MISS
 
 # ------------------------------------------------------------------ API pubblica
 
@@ -68,7 +112,10 @@ def load(
     with _lock:
         entry = _store.get(str(p))
         if entry is not None and entry[0] == mtime:
-            return entry[1]
+            cached = _decode_cache_payload(entry[1])
+            if cached is not _CACHE_MISS:
+                return cached
+            _store.pop(str(p), None)
 
     # Lettura fuori dal lock per non bloccare altri greenlet/thread
     try:
@@ -77,8 +124,12 @@ def load(
     except (OSError, json.JSONDecodeError, UnicodeDecodeError):
         return fallback
 
+    payload = _encode_cache_payload(data)
     with _lock:
-        _store[str(p)] = (mtime, data)
+        if payload is None:
+            _store.pop(str(p), None)
+        else:
+            _store[str(p)] = (mtime, payload)
 
     return data
 
@@ -106,8 +157,12 @@ def save(
     except OSError:
         mtime = 0.0
 
+    payload = _encode_cache_payload(data)
     with _lock:
-        _store[str(p)] = (mtime, data)
+        if payload is None:
+            _store.pop(str(p), None)
+        else:
+            _store[str(p)] = (mtime, payload)
 
 
 def invalidate(path: Union[str, Path]) -> None:
@@ -126,9 +181,7 @@ def stats() -> Dict[str, Any]:
     """Restituisce statistiche sulla cache (per debug/admin)."""
     with _lock:
         entries = list(_store.items())
-    total_size = sum(
-        len(json.dumps(v, default=str)) for _, (_, v) in entries
-    )
+    total_size = sum(len(v) for _, (_, v) in entries)
     return {
         "entries": len(entries),
         "total_bytes_estimated": total_size,

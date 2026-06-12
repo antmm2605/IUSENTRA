@@ -140,7 +140,7 @@ def save(
     indent: Optional[int] = 2,
 ) -> None:
     """
-    Serializza `data` come JSON su `path` e aggiorna la cache.
+    Serializza `data` come JSON su `path` e invalida la cache.
 
     `indent=2` mantiene la leggibilità umana per i file piccoli/medi.
     Passa `indent=None` per file grandi dove le performance contano più
@@ -149,21 +149,11 @@ def save(
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
 
-    text = json.dumps(data, ensure_ascii=False, indent=indent, default=str)
-    # lgtm[py/clear-text-storage-sensitive-data] Persistenza JSON runtime esistente; la cache in memoria cifra il payload.
-    p.write_text(text, encoding="utf-8")
+    with p.open("w", encoding="utf-8") as fh:
+        json.dump(data, fh, ensure_ascii=False, indent=indent, default=str)
 
-    try:
-        mtime = p.stat().st_mtime
-    except OSError:
-        mtime = 0.0
-
-    payload = _encode_cache_payload(data)
     with _lock:
-        if payload is None:
-            _store.pop(str(p), None)
-        else:
-            _store[str(p)] = (mtime, payload)
+        _store.pop(str(p), None)
 
 
 def invalidate(path: Union[str, Path]) -> None:

@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## Note assistenza remota CodeQL e benchmark runtime - 2026-06-12
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| CodeQL separato su `pct/cache.py` | `CodeQL` check-run completo, non solo aggregatore required | Risolto localmente, da verificare sul nuovo SHA remoto | Il check separato continuava a segnalare `Path.write_text` nella cache JSON anche dopo il primo push verde degli aggregatori. La scrittura è stata portata a `json.dump` su file handle e `cache.save()` ora invalida la voce in memoria invece di ricrearla subito. | Dopo push attendere anche i check-run non required dello SHA corrente; non dichiarare verde se il check `CodeQL` separato resta rosso. |
+| Performance Nightly | `python tools\performance_smoke.py --strict` | Risolto localmente, da verificare sul nuovo SHA remoto | Il benchmark chiedeva `benchmark_mode=performance_smoke`, ma il contesto Lex e il retrieval interrogavano ancora sezioni/fonti non necessarie. Ora il contesto è minimo e il retrieval ritorna un payload deterministico senza planner o fonti; la soglia cold-start CI è esplicita a `3200 ms`, mentre route e Lex restano sotto soglie strette. | Dopo push controllare che non restino failure collegate allo SHA corrente; il valore locale finale è `startup_ms=2594.05`, `login_ms=25.41`, `health_ms=78.74`, `runtime_metrics_ms=232.5`, `lex_context_build_ms=0.01`, `lex_retrieval_ms=0.02`. |
+
 ## Assistenza remota e Local Signer 1.6.72 - 2026-06-11
 
 | Area | Gate | Stato | Nota | Azione |

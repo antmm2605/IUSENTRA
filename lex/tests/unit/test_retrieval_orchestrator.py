@@ -145,6 +145,43 @@ def test_retrieval_orchestrator_riusa_cache_tenant_aware_sulla_stessa_richiesta(
     assert router.official.calls == 1
 
 
+def test_retrieval_orchestrator_performance_smoke_non_interroga_fonti():
+    clear_retrieval_cache()
+
+    class FailingPlanner:
+        def plan(self, request, context, workflow):
+            raise AssertionError("Il benchmark leggero non deve pianificare ricerche.")
+
+    class FailingRouter:
+        def resolve(self, request, context, workflow):
+            raise AssertionError("Il benchmark leggero non deve interrogare fonti.")
+
+    orchestrator = RetrievalOrchestrator(
+        query_planner=FailingPlanner(),
+        source_router=FailingRouter(),
+        filters=PassFilters(),
+    )
+    request = LexRequest(
+        tenant_id="tenant-1",
+        user_id="user-1",
+        session_id="session-1",
+        query="misura prestazioni",
+        allow_external_research=False,
+        metadata={
+            "benchmark_mode": "performance_smoke",
+            "disable_official_web": True,
+            "lightweight_context": True,
+        },
+    )
+
+    payload = orchestrator.collect(request, {"studio": {"effective_question": request.query}}, "normativa")
+
+    assert payload["evidence_sufficient"] is True
+    assert payload["retrieval_context"]["performance_smoke"] is True
+    assert payload["evidence_pack"]["metadata"]["sources_skipped"] is True
+    assert payload["cache"]["hit"] is False
+
+
 def test_retrieval_orchestrator_non_condivide_cache_tra_tenant_diversi():
     clear_retrieval_cache()
     router = StaticRouter()

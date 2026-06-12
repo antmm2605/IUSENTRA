@@ -4543,3 +4543,11 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Browser integrato su `/redazione-atti`, `/ricerca-legale`, `/giurisprudenza/`, `/compensi-forensi`, `/sito-studio/` | OK | Pagine React caricate senza `Pagina temporaneamente non disponibile` e senza errori console; `/sito-studio/` ora serve shell React salvo `_legacy=1`. |
 | Installazione reale `tools\dist\SetupLocalSigner-1.6.72.exe /Q`; `GET http://127.0.0.1:27272/ping?light=1`; `GET http://127.0.0.1:27272/support/status` | OK | Macchina locale aggiornata da `1.6.68` a `1.6.72`; `/support/status` risponde `IUSENTRA Assistenza (Local Signer)`. |
 | Endpoint reali `27272/support`: arm, execute dry-run, token errato, origin non consentita, disarm | OK | `arm_ok=true`, `execute_ok=true`, token errato `400`, origin esterna `403`, disarm OK e sessioni armate tornate a `0`. |
+
+## Assistenza remota hardening CodeQL e performance smoke - 2026-06-12
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\cache.py lex\context\builder.py lex\retrieval\orchestrator.py tools\performance_smoke.py` | OK | Sintassi confermata dopo la rimozione della scrittura `Path.write_text` segnalata dal check CodeQL separato e dopo il percorso benchmark minimo Lex. |
+| `python -m pytest -q tests\test_cache_security.py tests\test_performance_budget.py lex\tests\unit\test_retrieval_orchestrator.py::test_retrieval_orchestrator_performance_smoke_non_interroga_fonti lex\tests\unit\test_retrieval_orchestrator.py::test_retrieval_orchestrator_riusa_cache_tenant_aware_sulla_stessa_richiesta` | OK | 6/6 passati: cache in memoria senza JSON in chiaro, contesto performance minimo, retrieval smoke senza planner/fonti e cache tenant-aware preservata. |
+| `python tools\performance_smoke.py --strict --output "$env:TEMP\iusentra-performance-smoke-final.json"` | OK | Smoke strict verde: `startup_ms=2594.05` su soglia cold-start CI `3200`, `login_ms=25.41`, `health_ms=78.74`, `runtime_metrics_ms=232.5`, `lex_context_build_ms=0.01`, `lex_retrieval_ms=0.02`; il benchmark non interroga sorgenti Lex lente. |

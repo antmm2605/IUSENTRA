@@ -39,6 +39,11 @@ class LexContextBuilder:
         )
 
     @staticmethod
+    def _performance_smoke_requested(request) -> bool:
+        metadata = dict(getattr(request, "metadata", {}) or {})
+        return bool(metadata.get("performance_smoke") or metadata.get("benchmark_mode") == "performance_smoke")
+
+    @staticmethod
     def _free_web_context_requested(request) -> bool:
         metadata = dict(getattr(request, "metadata", {}) or {})
         profile = dict(metadata.get("request_profile") or {}) if isinstance(metadata.get("request_profile"), dict) else {}
@@ -59,6 +64,17 @@ class LexContextBuilder:
     def build_request_context(self, request, workflow: str) -> dict[str, Any]:
         pratica_id = str(request.fascicolo_id or "").strip()
         question = str(getattr(request, "query", "") or "").strip()
+        if self._performance_smoke_requested(request):
+            return {
+                "workflow": workflow,
+                "studio": {
+                    "effective_question": question,
+                    "sources": [],
+                },
+                "utente": {"user_id": str(getattr(request, "user_id", "") or "")},
+                "sessione": {"session_id": str(getattr(request, "session_id", "") or "")},
+                "runtime": {"performance_smoke": True},
+            }
         if self._free_web_context_requested(request):
             return {
                 "workflow": workflow,

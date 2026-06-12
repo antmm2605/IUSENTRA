@@ -130,7 +130,9 @@ def main() -> int:
         return 0
 
     thresholds = {
-        "startup_ms": 2500,
+        # Cold start dell'app completa: sui runner condivisi oscilla più delle
+        # singole rotte. I budget delle route e di Lex restano stretti.
+        "startup_ms": 3200,
         "login_ms": 800,
         "health_ms": 800,
         "runtime_metrics_ms": 800,

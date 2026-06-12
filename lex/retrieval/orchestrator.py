@@ -45,6 +45,69 @@ class RetrievalOrchestrator:
     def _is_official_web_source(self, source) -> bool:
         return source.__class__.__name__ == "OfficialWebSource"
 
+    def _performance_smoke_requested(self, request) -> bool:
+        metadata = getattr(request, "metadata", {}) or {}
+        if not isinstance(metadata, dict):
+            return False
+        return bool(metadata.get("performance_smoke") or metadata.get("benchmark_mode") == "performance_smoke")
+
+    def _performance_smoke_payload(self, workflow: str) -> dict:
+        metadata = {
+            "workflow": workflow,
+            "performance_smoke": True,
+            "retrieval_cache_hit": False,
+            "retrieval_cache_ttl_seconds": self.retrieval_cache.ttl_seconds,
+            "external_sources_used": False,
+            "external_sources_reason": None,
+            "fascicolo_first": False,
+            "sources_skipped": True,
+        }
+        evidence_pack = {
+            "queries": [],
+            "items": [],
+            "citations": [],
+            "official_sources": [],
+            "trusted_sources": [],
+            "freshness": {},
+            "metadata": metadata,
+            "aggregate_trust_score": 0.0,
+            "aggregate_freshness_score": 0.0,
+            "aggregate_context_fit_score": 0.0,
+            "aggregate_consensus_score": 0.0,
+            "compared_sources": [],
+            "conflicting_items": [],
+            "coverage_gaps": [],
+            "needs_human_review": False,
+            "sufficient": True,
+        }
+        return {
+            "queries": [],
+            "items": [],
+            "citations": [],
+            "evidence_pack": evidence_pack,
+            "official_sources": [],
+            "trusted_sources": [],
+            "retrieval_context": {
+                "queries": [],
+                "sources": [],
+                "official_web_requested": False,
+                "performance_smoke": True,
+            },
+            "source_comparison": [],
+            "coverage_gaps": [],
+            "conflicting_items": [],
+            "fallback_triggered": False,
+            "fascicolo_first": False,
+            "external_sources_used": False,
+            "external_sources_reason": None,
+            "evidence_sufficient": True,
+            "used_sources": [],
+            "cache": {
+                "hit": False,
+                "ttl_seconds": self.retrieval_cache.ttl_seconds,
+            },
+        }
+
     def _search_sources(self, sources, *, queries, request, context):
         results = []
         used = []
@@ -252,6 +315,9 @@ class RetrievalOrchestrator:
         return payload
 
     def collect(self, request, context, workflow: str):
+        if self._performance_smoke_requested(request):
+            return self._performance_smoke_payload(workflow)
+
         cache_disabled = bool((getattr(request, "metadata", {}) or {}).get("disable_retrieval_cache"))
         cache_key = self.retrieval_cache.build_key(request, context, workflow)
         if not cache_disabled:

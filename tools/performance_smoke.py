@@ -63,6 +63,24 @@ def _measure(callable_):
     return result, round((monotonic() - started) * 1000, 2)
 
 
+def _public_metrics_report(payload: dict[str, object]) -> dict[str, object]:
+    status_codes = payload.get("status_codes") if isinstance(payload.get("status_codes"), dict) else {}
+    return {
+        "startup_ms": float(payload.get("startup_ms") or 0.0),
+        "login_ms": float(payload.get("login_ms") or 0.0),
+        "health_ms": float(payload.get("health_ms") or 0.0),
+        "runtime_metrics_ms": float(payload.get("runtime_metrics_ms") or 0.0),
+        "lex_context_build_ms": float(payload.get("lex_context_build_ms") or 0.0),
+        "lex_retrieval_ms": float(payload.get("lex_retrieval_ms") or 0.0),
+        "status_codes": {
+            "login": int(status_codes.get("login") or 0),
+            "health": int(status_codes.get("health") or 0),
+            "runtime_metrics": int(status_codes.get("runtime_metrics") or 0),
+        },
+        "lex_retrieval_items": int(payload.get("lex_retrieval_items") or 0),
+    }
+
+
 def run_performance_smoke() -> dict[str, object]:
     tmp_root = Path(tempfile.mkdtemp(prefix="iusentra-performance-smoke-"))
     _write_studio_config(tmp_root / "config" / "studio.json")
@@ -117,7 +135,7 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true", help="Fallisce se supera le soglie base.")
     args = parser.parse_args()
 
-    payload = run_performance_smoke()
+    payload = _public_metrics_report(run_performance_smoke())
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     print(text)
     if args.output:

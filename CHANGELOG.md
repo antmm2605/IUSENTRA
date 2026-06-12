@@ -8,7 +8,7 @@
 - Topbar React assistenza: allineato il payload alla vecchia topbar funzionante, includendo email utente, studio, tenant e contesto pagina; la richiesta dalla barra studio apre la stanza cliente firmata con dati reali.
 - Route React segnalate: verificati su Docker reale `127.0.0.1:8080` i caricamenti di `Redazione Atti`, `Ricerca Legale`, `Archivio Giurisprudenza`, `Compensi Forensi` e `Sito Studio`, senza `Pagina temporaneamente non disponibile` né errori console.
 - Packaging e prova reale: rigenerati `SetupLocalSigner-1.6.72.exe` e alias `SetupLocalSigner.exe`; installazione locale reale aggiornata da `1.6.68` a `1.6.72` e verificata su `27272` con `/ping?light=1`, `/support/status`, arm, execute dry-run, token errato `400`, origin non consentita `403` e disarm.
-- Hardening gate finali: eliminata la scrittura `Path.write_text` segnalata dal check CodeQL separato nella cache JSON, mantenendo la cache in memoria cifrata e invalidata dopo ogni salvataggio; il benchmark `performance_smoke` usa ora un contesto Lex minimo, un retrieval deterministico senza planner/fonti e un report senza `SECRET_KEY` sintetica, con soglia cold-start CI esplicita a `3200 ms` e smoke strict verde.
+- Hardening gate finali: eliminata la scrittura `Path.write_text` segnalata dal check CodeQL separato nella cache JSON, mantenendo la cache in memoria cifrata e invalidata dopo ogni salvataggio; il benchmark `performance_smoke` usa ora un contesto Lex minimo, un retrieval deterministico senza planner/fonti e un report pubblico normalizzato senza `SECRET_KEY` sintetica, con soglia cold-start CI esplicita a `3200 ms` e smoke strict verde.
 
 ## 2.251.37 - 2026-06-11
 

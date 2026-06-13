@@ -573,13 +573,8 @@ def register_fascicoli_create_routes(
                 current_app.logger.warning(
                     "Creazione fascicolo non riuscita (%s): %s", type(exc).__name__, exc
                 )
-                # I ValueError di questo flusso portano messaggi di validazione
-                # curati in italiano (campi mancanti, codici non validi): vanno
-                # mostrati all'avvocato, non sostituiti dal testo generico.
-                dettaglio = str(exc).strip() if isinstance(exc, ValueError) else ""
                 failure = _risposta_errore_form(
-                    dettaglio
-                    or "Non è stato possibile creare il fascicolo: controlla i dati obbligatori e riprova.",
+                    "Non è stato possibile creare il fascicolo: controlla i dati obbligatori e riprova.",
                     status=400,
                 )
                 if failure is not None:

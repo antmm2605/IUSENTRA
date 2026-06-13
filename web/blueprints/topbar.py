@@ -45,6 +45,18 @@ def _json_error(message: str, status: int):
     return jsonify({"ok": False, "error": message}), status
 
 
+def _public_topbar_error(status: int) -> str:
+    if status == 401:
+        return "Autenticazione richiesta."
+    if status == 403:
+        return "Operazione non autorizzata."
+    if status == 404:
+        return "Elemento non trovato."
+    if status < 500:
+        return "Richiesta top bar non valida."
+    return "Top bar non disponibile."
+
+
 def _require_auth(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
@@ -73,7 +85,8 @@ def _handle(fn):
     try:
         return jsonify(fn())
     except core_service.TopbarApiError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.info("Errore API top bar governato: %s", exc)
+        return _json_error(_public_topbar_error(exc.status_code), exc.status_code)
     except Exception:
         current_app.logger.exception("Errore API top bar")
         return _json_error("Errore operativo della top bar.", 500)

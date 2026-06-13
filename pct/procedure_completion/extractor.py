@@ -13,27 +13,12 @@ from typing import Any
 from pct.procedure_completion.models import ProcedureCompletionCitation
 
 _MAX_SNIPPET = 320
-
-# "artt. 57-64" / "art. 633" / "art. 163-bis, comma 2"
-_ART_RE = re.compile(
-    r"artt?\.\s*(?P<articoli>\d+(?:[\-/]\w+)?(?:\s*[,e\-]\s*\d+(?:[\-/]\w+)?)*)"
-    r"(?:\s*,?\s*comma\s*(?P<comma>[\divxIVX]+))?"
-    r"\s*(?P<atto>"
+_MAX_CANDIDATE_WINDOW = 180
+_ARTICLE_MARK_RE = re.compile(r"artt?\.", re.IGNORECASE)
+_ARTICLE_TOKEN_RE = re.compile(r"\d{1,4}(?:[\-/][A-Za-z0-9]{1,12})?")
+_COMMA_RE = re.compile(r"\s*,?\s*comma\s*(?P<comma>[\divxIVX]+)", re.IGNORECASE)
+_ATTO_PATTERN = (
     r"c\.p\.c\.|c\.c\.|c\.p\.|c\.p\.p\.|c\.p\.a\.|disp\.\s*att\.\s*c\.p\.c\.|"
-    r"d\.?\s*lgs\.?\s*(?:n\.\s*)?\d+/\d{4}|"
-    r"d\.?\s*l\.?\s*(?:n\.\s*)?\d+/\d{4}|"
-    r"d\.?p\.?r\.?\s*(?:n\.\s*)?\d+/\d{4}|"
-    r"d\.?m\.?\s*(?:n\.\s*)?\d+/\d{4}|"
-    r"l\.?\s*(?:n\.\s*)?\d+/\d{4}|"
-    r"r\.?d\.?\s*(?:n\.\s*)?\d+/\d{4}"
-    r")",
-    re.IGNORECASE,
-)
-
-# Ordine inverso, comune nei titoli delle fonti: "D.Lgs. 14/2019, artt. 57-64"
-# o "Codice di procedura civile - art. 633".
-_ATTO_FIRST_RE = re.compile(
-    r"(?P<atto>"
     r"codice di procedura civile|codice civile|codice penale|"
     r"codice di procedura penale|codice del processo amministrativo|"
     r"d\.?\s*lgs\.?\s*(?:n\.\s*)?\d+/\d{4}|"
@@ -42,11 +27,9 @@ _ATTO_FIRST_RE = re.compile(
     r"d\.?m\.?\s*(?:n\.\s*)?\d+/\d{4}|"
     r"l\.?\s*(?:n\.\s*)?\d+/\d{4}|"
     r"r\.?d\.?\s*(?:n\.\s*)?\d+/\d{4}"
-    r")"
-    r"\s*[-,;]?\s*artt?\.\s*(?P<articoli>\d+(?:[\-/]?\w+)?(?:\s*[,e\-]\s*\d+(?:[\-/]?\w+)?)*)"
-    r"(?:\s*,?\s*comma\s*(?P<comma>[\divxIVX]+))?",
-    re.IGNORECASE,
 )
+_ATTO_AFTER_RE = re.compile(rf"\s*[,;]?\s*(?P<atto>{_ATTO_PATTERN})", re.IGNORECASE)
+_ATTO_BEFORE_RE = re.compile(rf"(?P<atto>{_ATTO_PATTERN})\s*[-,;]?\s*$", re.IGNORECASE)
 
 _NOMI_ESTESI = {
     "codice di procedura civile": "c.p.c.",
@@ -91,6 +74,60 @@ def _split_articoli(raw: str) -> list[str]:
             return [str(n) for n in range(inizio, fine + 1)]
     parti = re.split(r"\s*[,e]\s*", testo)
     return [parte.strip() for parte in parti if parte.strip()]
+
+
+def _parse_articoli(window: str, start: int) -> tuple[str, int] | None:
+    pos = start
+    tokens = 0
+    last_token_end = start
+    while tokens <= 20:
+        while pos < len(window) and window[pos].isspace():
+            pos += 1
+        match = _ARTICLE_TOKEN_RE.match(window, pos)
+        if not match:
+            break
+        tokens += 1
+        pos = match.end()
+        last_token_end = pos
+
+        after_token = pos
+        while pos < len(window) and window[pos].isspace():
+            pos += 1
+        separator_start = pos
+        if pos < len(window) and window[pos] in ",-":
+            pos += 1
+        elif window[pos:pos + 1].lower() == "e" and (
+            pos + 1 == len(window) or window[pos + 1].isspace()
+        ):
+            pos += 1
+        else:
+            pos = after_token
+            break
+
+        while pos < len(window) and window[pos].isspace():
+            pos += 1
+        if not _ARTICLE_TOKEN_RE.match(window, pos):
+            pos = after_token
+            break
+        if separator_start == after_token and pos == separator_start:
+            break
+
+    if tokens == 0:
+        return None
+    return window[start:last_token_end].strip(" \t\r\n,;-"), last_token_end
+
+
+def _parse_comma_e_atto(window: str, start: int) -> tuple[str, str, int] | None:
+    pos = start
+    comma = ""
+    comma_match = _COMMA_RE.match(window, pos)
+    if comma_match:
+        comma = str(comma_match.group("comma") or "").strip()
+        pos = comma_match.end()
+    atto_match = _ATTO_AFTER_RE.match(window, pos)
+    if not atto_match:
+        return None
+    return atto_match.group("atto"), comma, atto_match.end()
 
 
 def _snippet_intorno(testo: str, start: int, end: int) -> str:
@@ -138,10 +175,36 @@ def extract_normative_references(
                 )
             )
 
-    for match in _ART_RE.finditer(testo):
-        _aggiungi(match.group("atto"), match.group("articoli"), match.group("comma"), match.start(), match.end())
-    for match in _ATTO_FIRST_RE.finditer(testo):
-        _aggiungi(match.group("atto"), match.group("articoli"), match.group("comma"), match.start(), match.end())
+    for marker in _ARTICLE_MARK_RE.finditer(testo):
+        marker_start = marker.start()
+        forward_end = min(len(testo), marker_start + _MAX_CANDIDATE_WINDOW)
+        forward_window = testo[marker_start:forward_end]
+        articoli = _parse_articoli(forward_window, marker.end() - marker_start)
+        if articoli:
+            articoli_raw, articoli_end = articoli
+            direct = _parse_comma_e_atto(forward_window, articoli_end)
+        else:
+            direct = None
+        if direct:
+            atto_raw, comma_raw, end_offset = direct
+            _aggiungi(
+                atto_raw,
+                articoli_raw,
+                comma_raw,
+                marker_start,
+                marker_start + end_offset,
+            )
+
+        reverse_start = max(0, marker_start - 160)
+        atto_before = _ATTO_BEFORE_RE.search(testo[reverse_start:marker_start])
+        if atto_before and articoli:
+            _aggiungi(
+                atto_before.group("atto"),
+                articoli_raw,
+                "",
+                reverse_start + atto_before.start(),
+                marker_start + articoli_end,
+            )
     return citazioni
 
 

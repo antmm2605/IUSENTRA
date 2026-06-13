@@ -32,6 +32,10 @@ BACKUP_ARCHIVE_SUFFIXES = (".tar.zst", ".tar.gz")
 DOCKER_SOCKET_PATH = "/var/run/docker.sock"
 
 
+def _public_runtime_error(message: str = "Operazione non completata.") -> str:
+    return message
+
+
 @dataclass(frozen=True)
 class StorageArea:
     code: str
@@ -651,7 +655,9 @@ def _docker_api_request(method: str, path: str, *, timeout_seconds: float = 5.0)
         text = body.decode("utf-8", errors="replace")
         return {"ok": 200 <= status < 300, "status": status, "error": "", "body": text}
     except Exception as exc:
-        return {"ok": False, "status": 0, "error": str(exc), "body": ""}
+        if has_app_context():
+            current_app.logger.warning("Docker API non disponibile: %s", exc)
+        return {"ok": False, "status": 0, "error": _public_runtime_error("Docker non disponibile."), "body": ""}
 
 
 def _docker_df_from_api() -> dict[str, Any] | None:
@@ -866,7 +872,9 @@ def run_backup_retention(
                     bytes_reclaimed += int(size)
                     deleted_this_archive = True
                 except OSError as exc:
-                    errors.append(f"{candidate.name}: {exc}")
+                    if has_app_context():
+                        current_app.logger.warning("Rimozione archivio backup non completata per %s: %s", candidate, exc)
+                    errors.append(f"{candidate.name}: archivio non rimosso")
             if deleted_this_archive:
                 deleted_archives += 1
 
@@ -1011,7 +1019,9 @@ def run_tenant_backup_retention(
                 deleted_files += 1
                 bytes_reclaimed += int(size)
             except OSError as exc:
-                errors.append(f"{archive.path.name}: {exc}")
+                if has_app_context():
+                    current_app.logger.warning("Rimozione archivio tenant non completata per %s: %s", archive.path, exc)
+                errors.append(f"{archive.path.name}: archivio non rimosso")
         for backup_dir, rows in by_backup_dir.items():
             complete_rows = [item for item in rows if item.kind == "completo" and item.path.exists()]
             keep = max(complete_rows or [item for item in rows if item.path.exists()], key=lambda item: item.mtime, default=None)
@@ -1023,7 +1033,9 @@ def run_tenant_backup_retention(
                 deleted_mirror_dirs += 1
                 bytes_reclaimed += int(size)
             except OSError as exc:
-                errors.append(f"{mirror_dir}: {exc}")
+                if has_app_context():
+                    current_app.logger.warning("Rimozione mirror backup non completata per %s: %s", mirror_dir, exc)
+                errors.append(f"{mirror_dir}: cartella non rimossa")
 
     return {
         "mock_fallback": False,
@@ -1153,7 +1165,9 @@ def run_inactive_tenant_cleanup(
                 removed += 1
                 bytes_reclaimed += int(size)
             except OSError as exc:
-                errors.append(f"{target}: {exc}")
+                if has_app_context():
+                    current_app.logger.warning("Rimozione tenant inattivo non completata per %s: %s", target, exc)
+                errors.append(f"{target}: cartella non rimossa")
 
     reclaimable = sum(int(item.get("size_bytes", 0) or 0) for item in candidates)
     return {
@@ -1187,7 +1201,9 @@ def run_temporary_snapshot_cleanup(
             shutil.rmtree(target)
             removed = True
         except OSError as exc:
-            error = str(exc)
+            if has_app_context():
+                current_app.logger.warning("Pulizia snapshot temporaneo non completata: %s", exc)
+            error = _public_runtime_error("Snapshot temporaneo non rimosso.")
     return {
         "mock_fallback": False,
         "applied": apply,
@@ -1240,7 +1256,9 @@ def run_normativa_global_cleanup(
                 shutil.rmtree(resolved_target)
                 deleted = True
         except OSError as exc:
-            errors.append(f"{backup_dir}: {exc}")
+            if has_app_context():
+                current_app.logger.warning("Rimozione backup Normattiva non completata per %s: %s", backup_dir, exc)
+            errors.append(f"{backup_dir}: cartella non rimossa")
 
     return {
         "mock_fallback": False,
@@ -1299,7 +1317,9 @@ def run_system_log_cleanup(
         )
         after_text = after.stdout.strip() or after.stderr.strip()
     except Exception as exc:
-        error = str(exc)
+        if has_app_context():
+            current_app.logger.warning("Pulizia journal di sistema non completata: %s", exc)
+        error = _public_runtime_error("Pulizia log di sistema non completata.")
     return {
         "mock_fallback": False,
         "applied": apply,
@@ -2357,6 +2377,8 @@ def _optimize_json_file(path: Path, *, apply: bool) -> dict[str, Any]:
         raw = path.read_text(encoding="utf-8")
         payload = json.loads(raw)
     except Exception as exc:
+        if has_app_context():
+            current_app.logger.warning("Ottimizzazione JSON non completata per %s: %s", path, exc)
         return {
             "path": str(path),
             "type": "json",
@@ -2365,7 +2387,7 @@ def _optimize_json_file(path: Path, *, apply: bool) -> dict[str, Any]:
             "after_bytes": before,
             "bytes_reclaimable": 0,
             "bytes_reclaimed": 0,
-            "error": str(exc),
+            "error": _public_runtime_error("File JSON non ottimizzabile."),
         }
     compact = (json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
     reclaimable = max(0, before - len(compact))
@@ -2412,6 +2434,8 @@ def _optimize_sqlite_file(path: Path, *, apply: bool) -> dict[str, Any]:
                     "error": "Formato SQLite non riconosciuto.",
                 }
     except OSError as exc:
+        if has_app_context():
+            current_app.logger.warning("Lettura SQLite non completata per %s: %s", path, exc)
         return {
             "path": str(path),
             "type": "sqlite",
@@ -2420,7 +2444,7 @@ def _optimize_sqlite_file(path: Path, *, apply: bool) -> dict[str, Any]:
             "after_bytes": before,
             "bytes_reclaimable": 0,
             "bytes_reclaimed": 0,
-            "error": str(exc),
+            "error": _public_runtime_error("Archivio SQLite non leggibile."),
         }
 
     try:
@@ -2466,6 +2490,8 @@ def _optimize_sqlite_file(path: Path, *, apply: bool) -> dict[str, Any]:
             "error": "",
         }
     except sqlite3.Error as exc:
+        if has_app_context():
+            current_app.logger.warning("Ottimizzazione SQLite non completata per %s: %s", path, exc)
         return {
             "path": str(path),
             "type": "sqlite",
@@ -2474,7 +2500,7 @@ def _optimize_sqlite_file(path: Path, *, apply: bool) -> dict[str, Any]:
             "after_bytes": before,
             "bytes_reclaimable": 0,
             "bytes_reclaimed": 0,
-            "error": str(exc),
+            "error": _public_runtime_error("Archivio SQLite non ottimizzabile."),
         }
 
 
@@ -2495,6 +2521,8 @@ def run_database_optimization(
                 result = _optimize_json_file(path, apply=apply)
             result["display_path"] = _display_storage_path(str(path.relative_to(root)).replace("\\", "/"))
         except Exception as exc:
+            if has_app_context():
+                current_app.logger.warning("Ottimizzazione archivio non completata per %s: %s", path, exc)
             result = {
                 "path": str(path),
                 "display_path": _display_storage_path(str(path)),
@@ -2504,7 +2532,7 @@ def run_database_optimization(
                 "after_bytes": 0,
                 "bytes_reclaimable": 0,
                 "bytes_reclaimed": 0,
-                "error": str(exc),
+                "error": _public_runtime_error("Archivio non ottimizzabile."),
             }
         results.append(result)
     reclaimable = sum(int(item.get("bytes_reclaimable", 0) or 0) for item in results)
@@ -2565,6 +2593,8 @@ def run_mail_attachment_archive_compression(
             result = gestore.comprimi_allegati(apply=apply)
             result["display_path"] = _display_storage_path(str(path.relative_to(root)).replace("\\", "/"))
         except Exception as exc:
+            if has_app_context():
+                current_app.logger.warning("Compressione allegati non completata per %s: %s", path, exc)
             result = {
                 "mailbox": str(path),
                 "display_path": _display_storage_path(str(path)),
@@ -2572,7 +2602,7 @@ def run_mail_attachment_archive_compression(
                 "archived_existing": 0,
                 "bytes_reclaimable": 0,
                 "bytes_reclaimed": 0,
-                "error": str(exc),
+                "error": _public_runtime_error("Allegati non compressi."),
             }
         results.append(result)
     reclaimable = sum(int(item.get("bytes_reclaimable", 0) or 0) for item in results)
@@ -2653,7 +2683,9 @@ def trigger_backup(*, backup_script_path: str | Path | None = None) -> dict[str,
         )
         return {"ok": True, "pid": proc.pid, "log": str(log_path), "script": str(script)}
     except Exception as exc:
-        return {"ok": False, "error": str(exc), "pid": None}
+        if has_app_context():
+            current_app.logger.warning("Avvio backup esterno non completato: %s", exc)
+        return {"ok": False, "error": _public_runtime_error("Backup esterno non avviato."), "pid": None}
 
 
 def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
@@ -2712,6 +2744,8 @@ def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
             "bytes_reclaimed_label": human_bytes(estimated),
         }
     except Exception as exc:
+        if has_app_context():
+            current_app.logger.warning("Pulizia Docker non completata: %s", exc)
         return {
             "applied": False,
             "dry_run": False,
@@ -2720,7 +2754,7 @@ def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
             "bytes_reclaimable_label": human_bytes(0),
             "bytes_reclaimed": 0,
             "bytes_reclaimed_label": human_bytes(0),
-            "error": str(exc) or str(response.get("error") or ""),
+            "error": _public_runtime_error("Pulizia Docker non completata."),
         }
 
 

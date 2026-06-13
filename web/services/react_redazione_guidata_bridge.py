@@ -9,6 +9,7 @@ generazione. Nessun dato finto: tutto proviene dai repository reali.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from html import escape
 from typing import Any, Callable, Optional
 
 from pct.redazione_contesto import (
@@ -268,10 +269,29 @@ def prepara_payload_generazione(
 
 def evidenzia_dati_mancanti_html(html: str) -> str:
     """Evidenzia i marcatori [DATO MANCANTE: ...] nell'HTML dell'editor."""
-    import re
-
-    return re.sub(
-        r"\[DATO MANCANTE:\s*([^\]]+)\]",
-        lambda m: f'<mark class="iu-dato-mancante" data-campo-mancante="1">DATO MANCANTE: {m.group(1).strip()}</mark>',
-        str(html or ""),
-    )
+    testo = str(html or "")
+    marker = "[DATO MANCANTE:"
+    parti: list[str] = []
+    posizione = 0
+    while True:
+        inizio = testo.find(marker, posizione)
+        if inizio < 0:
+            parti.append(testo[posizione:])
+            break
+        fine = testo.find("]", inizio + len(marker))
+        if fine < 0:
+            parti.append(testo[posizione:])
+            break
+        parti.append(testo[posizione:inizio])
+        etichetta = testo[inizio + len(marker):fine].strip()
+        if not etichetta:
+            parti.append(testo[inizio:fine + 1])
+        else:
+            etichetta_sicura = escape(etichetta[:160], quote=False)
+            parti.append(
+                '<mark class="iu-dato-mancante" data-campo-mancante="1">'
+                f"DATO MANCANTE: {etichetta_sicura}"
+                "</mark>"
+            )
+        posizione = fine + 1
+    return "".join(parti)

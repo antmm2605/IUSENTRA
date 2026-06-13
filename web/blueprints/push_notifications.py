@@ -23,6 +23,18 @@ def _json_error(message: str, status: int):
     return jsonify({"ok": False, "error": message, "message": message}), status
 
 
+def _public_notification_error(status: int) -> str:
+    if status == 401:
+        return "Autenticazione richiesta."
+    if status == 403:
+        return "Operazione non autorizzata."
+    if status == 404:
+        return "Notifica non trovata."
+    if status < 500:
+        return "Richiesta notifiche non valida."
+    return "Notifiche su dispositivo non disponibili."
+
+
 def _require_auth(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
@@ -113,7 +125,8 @@ def public_key():
             }
         )
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.info("Errore notifiche dispositivo governato: %s", exc)
+        return _json_error(_public_notification_error(exc.status_code), exc.status_code)
     except Exception:
         current_app.logger.exception("Errore lettura chiave pubblica notifiche dispositivo")
         return _json_error("Notifiche su dispositivo non disponibili.", 500)
@@ -146,7 +159,8 @@ def subscribe():
             }
         )
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.info("Errore attivazione notifiche dispositivo governato: %s", exc)
+        return _json_error(_public_notification_error(exc.status_code), exc.status_code)
     except Exception:
         current_app.logger.exception("Errore salvataggio subscription push")
         return _json_error("Attivazione notifiche non completata.", 500)
@@ -176,7 +190,8 @@ def unsubscribe():
             }
         )
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.info("Errore revoca notifiche dispositivo governato: %s", exc)
+        return _json_error(_public_notification_error(exc.status_code), exc.status_code)
     except Exception:
         current_app.logger.exception("Errore revoca subscription push")
         return _json_error("Disattivazione notifiche non completata.", 500)
@@ -210,7 +225,8 @@ def test_push():
             }
         )
     except NotificationServiceError as exc:
-        return _json_error(str(exc), exc.status_code)
+        current_app.logger.info("Errore test notifiche dispositivo governato: %s", exc)
+        return _json_error(_public_notification_error(exc.status_code), exc.status_code)
     except Exception:
         current_app.logger.exception("Errore invio notifica di test")
         return _json_error("Notifica di test non completata.", 500)

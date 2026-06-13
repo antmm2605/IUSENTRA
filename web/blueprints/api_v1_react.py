@@ -7976,7 +7976,8 @@ def redazione_atti_normativa_salva():
         _audit_event("redazione.normativa.salva", "riferimento_normativo", riferimento.id, f"Riferimento {riferimento.riferimento_breve()} aggiornato dallo studio.")
         return jsonify({"ok": True, "riferimento": riferimento.to_dict()})
     except ValueError as exc:
-        return jsonify({"ok": False, "errore": str(exc)}), 200
+        current_app.logger.warning("Riferimento normativo non valido: %s", exc)
+        return jsonify({"ok": False, "errore": "Riferimento normativo non valido."}), 200
     except Exception as exc:
         current_app.logger.exception("Errore salvataggio normativa redazione atti: %s", exc)
         return jsonify({"ok": False, "errore": "Salvataggio riferimento non riuscito."}), 200
@@ -8001,6 +8002,11 @@ def _procedure_completion_guard(permesso: str):
         payload, status = error_payload(f"Permesso mancante: {permesso}.", status=403)
         return None, None, (jsonify(payload), status)
     return build_service(), request_context(), None
+
+
+def _procedure_completion_public_error(message: str, exc: Exception, *, status: int = 200):
+    current_app.logger.warning("Errore governato Procedure Completion: %s", exc)
+    return jsonify({"ok": False, "errore": message}), status
 
 
 @api_v1_react.get("/procedure-completion")
@@ -8035,7 +8041,7 @@ def procedure_completion_preview():
         try:
             esito = service.preview_completion(payload, context)
         except ProcedureCompletionError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return _procedure_completion_public_error("Anteprima non disponibile per questa richiesta.", exc)
         return _jsonify_redacted(esito)
     except Exception as exc:
         current_app.logger.exception("Errore preview procedure completion: %s", exc)
@@ -8056,7 +8062,7 @@ def procedure_completion_card_detail(card_id: str):
         try:
             card = service.get_card(card_id, context)
         except ProcedureCompletionError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 404
+            return _procedure_completion_public_error("Scheda non disponibile.", exc, status=404)
         return _jsonify_redacted(card_detail_payload(card, validate_card(card).to_dict()))
     except Exception as exc:
         current_app.logger.exception("Errore dettaglio scheda procedure completion: %s", exc)
@@ -8080,7 +8086,7 @@ def procedure_completion_submit_review(card_id: str):
         try:
             esito = service.submit_for_review(card_id, context, reason=str(payload.get("reason") or ""))
         except ProcedureCompletionError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return _procedure_completion_public_error("Invio in revisione non disponibile.", exc)
         return _jsonify_redacted(esito)
     except Exception as exc:
         current_app.logger.exception("Errore submit review procedure completion: %s", exc)
@@ -8109,7 +8115,7 @@ def procedure_completion_approve(card_id: str):
                 context=context,
             )
         except ProcedureCompletionError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return _procedure_completion_public_error("Approvazione non disponibile.", exc)
         return _jsonify_redacted(esito)
     except Exception as exc:
         current_app.logger.exception("Errore approvazione procedure completion: %s", exc)
@@ -8128,7 +8134,7 @@ def procedure_completion_publish(card_id: str):
         try:
             esito = service.publish_completion(card_id, context)
         except ProcedureCompletionError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return _procedure_completion_public_error("Pubblicazione non disponibile.", exc)
         return _jsonify_redacted(esito)
     except Exception as exc:
         current_app.logger.exception("Errore pubblicazione procedure completion: %s", exc)
@@ -8151,7 +8157,7 @@ def procedure_completion_gaps():
                 context=context,
             )
         except ProcedureCompletionError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return _procedure_completion_public_error("Elenco dati mancanti non disponibile.", exc)
         return _jsonify_redacted({"ok": True, "gaps": gaps, "totale": len(gaps)})
     except Exception as exc:
         current_app.logger.exception("Errore gap queue procedure completion: %s", exc)

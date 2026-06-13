@@ -46,7 +46,8 @@ def _lex_product_runtime_status() -> tuple[bool, str]:
         try:
             importlib.import_module(module_name)
         except Exception as exc:
-            errors.append(f"{module_name}: {exc}")
+            current_app.logger.warning("Runtime Lex non importabile per %s: %s", module_name, exc)
+            errors.append(f"{module_name}: modulo non disponibile")
     if errors:
         return False, "; ".join(errors)
     return True, "Runtime Lex installato: orchestrazione, gateway provider e bridge AI locale sono importabili."

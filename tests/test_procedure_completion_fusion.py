@@ -1,6 +1,8 @@
 """Fusione dei layer nella scheda operativa."""
 from __future__ import annotations
 
+from time import perf_counter
+
 from pct.procedure_completion.extractor import extract_normative_references, summarize_passage
 from pct.procedure_completion.fusion import AVVERTIMENTO_BOZZA, fuse_card
 from pct.procedure_completion.schema import normalize_request
@@ -23,6 +25,15 @@ def test_estrattore_riconosce_entrambi_gli_ordini_di_citazione():
     assert "art. 644 c.p.c." in riferimenti
     assert any("D.Lgs. 14/2019" in rif and "57" in rif for rif in riferimenti)
     assert all(cit.verificabile for cit in citazioni)
+
+
+def test_estrattore_normativo_resiste_a_input_patologico():
+    testo = "art. " + ("0,0-" * 2_000) + " c.p.c. " + "D.Lgs. 14/2019, artt. " + ("57-64-" * 2_000)
+    inizio = perf_counter()
+    citazioni = extract_normative_references(testo, source_id="redos", url="https://www.normattiva.it")
+    durata = perf_counter() - inizio
+    assert isinstance(citazioni, list)
+    assert durata < 2.0
 
 
 def test_summarize_e_troncamento_non_riscrittura():

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.6 - 2026-06-13
+
+- Sicurezza CodeQL: chiuse le segnalazioni nuove su regex vulnerabili a input patologici nell'estrattore normativo Procedure Completion e nella marcatura dei dati mancanti della Redazione Atti guidata.
+- Sicurezza messaggi pubblici: le route annotate da CodeQL non espongono più dettagli tecnici o stack trace nei messaggi restituiti all'utente; i dettagli restano nei log applicativi.
+- Test mirati: aggiunte prove di regressione su citazioni normative ostili e marcatori `[DATO MANCANTE: ...]` con escaping HTML, per impedire il ritorno delle vulnerabilità.
+
 ## 2.253.5 - 2026-06-13
 
 - Governance CI: spostata la governance di avvio in `web/bootstrap/startup_governance.py`, lasciando `runtime_bundle.py` sotto il limite governato senza cambiare il comportamento runtime.

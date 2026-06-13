@@ -67,7 +67,7 @@ def esegui():
             flash(f"Report generato: {report['report_path']}", "info")
     except Exception as exc:
         current_app.logger.exception("Errore crash test operativo: %s", exc)
-        flash(f"Errore durante il crash test operativo: {exc}", "danger")
+        flash("Errore durante il crash test operativo.", "danger")
     return redirect(url_for("operational_resilience_admin.dashboard", slug=selected_slug))
 
 
@@ -89,5 +89,5 @@ def backup():
             flash(f"Report backup: {report['report_path']}", "info")
     except Exception as exc:
         current_app.logger.exception("Errore backup blindato: %s", exc)
-        flash(f"Errore durante il backup blindato: {exc}", "danger")
+        flash("Errore durante il backup blindato.", "danger")
     return redirect(url_for("operational_resilience_admin.dashboard", slug=selected_slug))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import wraps
 
-from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from web.services.installation_pack_surface import build_installation_pack_surface
 
@@ -50,7 +50,8 @@ def refresh():
         build_installation_pack_surface(selected_slug=selected_slug)
         flash("Bootstrap installazione, manifest Product Pack, Studio Local Pack e Update Pack riallineati.", "success")
     except Exception as exc:  # pragma: no cover - difensivo UI
-        flash(f"Errore nel refresh dei pack di installazione: {exc}", "danger")
+        current_app.logger.exception("Errore refresh pack installazione: %s", exc)
+        flash("Errore nel refresh dei pack di installazione.", "danger")
     if selected_slug:
         return redirect(url_for("installation_pack_admin.dashboard", slug=selected_slug))
     return redirect(url_for("installation_pack_admin.dashboard"))

@@ -676,8 +676,8 @@ def studio_document_download(document_id: str) -> tuple[Path, str, str] | dict[s
         return {"ok": False, "code": "not_found", "message": "Documento non trovato."}
     try:
         return _document_download_tuple(repo, row)
-    except ClientPortalError as exc:
-        return {"ok": False, "code": "not_found", "message": str(exc)}
+    except ClientPortalError:
+        return {"ok": False, "code": "not_found", "message": "Documento non disponibile."}
 
 
 def client_document_download(document_id: str, *, token: str = "") -> tuple[Path, str, str] | dict[str, Any]:

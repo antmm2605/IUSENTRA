@@ -8,6 +8,7 @@ cliente/fascicolo.
 """
 from __future__ import annotations
 
+from time import perf_counter
 from types import SimpleNamespace
 
 import pytest
@@ -401,6 +402,17 @@ def test_bozza_confermata_evidenzia_dati_mancanti_senza_inventarli(cliente_mario
     html = evidenzia_dati_mancanti_html("<p>[DATO MANCANTE: Data Udienza]</p>")
     assert '<mark class="iu-dato-mancante"' in html
     assert "Data Udienza" in html
+
+
+def test_evidenzia_dati_mancanti_resiste_a_input_patologico():
+    html_sorgente = "<p>[DATO MANCANTE:" + ("\t" * 5_000) + "<script>alert(1)</script>]</p>"
+    inizio = perf_counter()
+    html = evidenzia_dati_mancanti_html(html_sorgente)
+    durata = perf_counter() - inizio
+    assert durata < 1.0
+    assert '<mark class="iu-dato-mancante"' in html
+    assert "<script>" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
 
 
 def test_marcatori_su_payload(cliente_mario, fascicolo_preliminare):

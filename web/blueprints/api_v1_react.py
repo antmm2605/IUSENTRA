@@ -2029,7 +2029,7 @@ def _voice_cliente_error_message(error: Exception) -> str:
         return "Il codice fiscale non ha un formato valido."
     if "Cliente con CF" in message and "presente" in message:
         return "Un cliente con questo codice fiscale è già presente."
-    return message or "Cliente non aggiunto. Controlla i dati obbligatori."
+    return "Cliente non aggiunto. Controlla i dati obbligatori."
 
 
 @api_v1_react.post("/clienti/voce/crea")

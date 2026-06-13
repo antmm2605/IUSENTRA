@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.8 - 2026-06-13
+
+- Sicurezza CodeQL: chiuse le 3 annotazioni medium residue rimaste sul check separato CodeQL, eliminando il passaggio di messaggi eccezione/traceback verso risposte JSON e superfici admin.
+- Superfici admin: i dettagli tecnici di AI locale e crash test operativo restano nei log riservati, mentre UI e API mostrano messaggi operativi controllati per il superadmin.
+- Test mirati: aggiunta regressione per impedire che report di resilienza operativa con traceback entrino nel payload pubblico e aggiornata la prova del Product Pack sul dettaglio AI locale.
+
 ## 2.253.7 - 2026-06-13
 
 - Sicurezza CodeQL: chiuse anche le 4 annotazioni medium residue dopo il primo hardening, proteggendo risposte API admin e cambio stato fascicolo da dettagli tecnici provenienti da eccezioni.

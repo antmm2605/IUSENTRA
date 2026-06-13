@@ -4618,3 +4618,11 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m py_compile web\services\react_fascicoli_bridge.py web\blueprints\installation_pack_admin.py web\blueprints\operational_resilience_admin.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata dopo messaggi pubblici fissi per cambio stato fascicolo, API pack installazione e API resilienza operativa. |
 | `python -m pytest tests/test_operational_resilience.py tests/test_installation_packs.py tests/test_redazione_guidata.py tests/test_procedure_completion_fusion.py tests/test_utf8_integrity.py -q --tb=short` | OK | 51/51 passati; warning editor preesistente su truth-testing ElementTree non collegato alla patch. |
 | `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\sync_packaging_files.py --check` | OK | Contratti API, OpenAPI e packaging riallineati alla versione `2.253.7`. |
+
+## Hardening CodeQL annotazioni residue 2.253.8 - 2026-06-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\blueprints\api_v1_react.py web\services\installation_pack_surface.py web\services\operational_resilience_surface.py pct\operational_resilience.py tests\test_installation_packs.py tests\test_operational_resilience.py` | OK | Sintassi confermata dopo rimozione dei fallback pubblici da eccezione e dopo il filtro dei dettagli tecnici nei payload admin. |
+| `python -m pytest tests\test_installation_packs.py tests\test_operational_resilience.py tests\test_studio_voice_assistant.py tests\test_utf8_integrity.py -q --tb=short` | OK | 23/23 passati: Product Pack non espone piu' `last_error`, resilienza operativa non espone traceback nel payload pubblico, assistente vocale e UTF-8 invariati. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\sync_packaging_files.py --check`; `python tools\check_repo_governance.py`; `git diff --check` | OK | OpenAPI/contratti e packaging riallineati alla versione `2.253.8`; governance OK. Il primo `git diff --check` aveva intercettato solo runtime backup/audit generato dai test, poi ripulito prima dello stage. |

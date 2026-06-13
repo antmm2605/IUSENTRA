@@ -183,6 +183,50 @@ def test_build_operational_crash_surface_legge_l_ultimo_backup_reale(tmp_path: P
     assert report["report_path"] == payload["latest_backup_report"]["report_path"]
 
 
+def test_build_operational_crash_surface_non_espone_traceback_pubblici(tmp_path: Path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    _seed_runtime(cfg)
+    app = create_app(cfg)
+
+    def _phase_con_traceback(selectors, **kwargs):
+        return {
+            "status": "failed",
+            "return_code": 1,
+            "duration_seconds": 0.1,
+            "output_excerpt": 'Traceback (most recent call last):\n  File "segreto.py", line 1\nRuntimeError: percorso interno',
+        }
+
+    monkeypatch.setattr("pct.operational_resilience._run_pytest_phase", _phase_con_traceback)
+
+    with app.app_context():
+        repository = OperationalResilienceRepository(
+            sqlite_path=str(Path(app.config["BACKUP_DIR"]) / "operational_resilience.db")
+        )
+        run_operational_crash_test(
+            tenant_slug="",
+            report_dir=str(Path(app.config["BACKUP_DIR"]) / "operational_crash_tests"),
+            repair_dir=str(Path(app.config["BACKUP_DIR"]) / "repair_queue"),
+            repository=repository,
+            health_snapshot_factory=lambda: {
+                "db": "ok",
+                "scheduler": "ok",
+                "ocr": "ok",
+                "ai": "ok",
+                "actions_required": [],
+            },
+            auto_repair=False,
+            max_attempts=1,
+            cwd=str(tmp_path),
+        )
+        payload = build_operational_crash_surface()
+
+    payload_text = str(payload)
+    assert "Traceback" not in payload_text
+    assert "segreto.py" not in payload_text
+    assert "Dettaglio tecnico disponibile solo nei log operativi riservati." in payload_text
+
+
 def test_run_pytest_phase_usa_fallback_runtime_quando_pytest_non_e_disponibile(monkeypatch):
     monkeypatch.setattr("pct.operational_resilience._pytest_available", lambda: False)
     monkeypatch.setattr(

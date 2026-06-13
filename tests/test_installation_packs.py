@@ -270,5 +270,6 @@ def test_installation_pack_separa_lex_da_provider_ai_locale(tmp_path: Path):
     assert lex_card["status"] == "ok"
     assert "AI locale non ancora pronta" not in lex_card["detail"]
     assert local_ai_card["status"] == "warning"
-    assert "Ollama non raggiungibile" in local_ai_card["detail"]
+    assert "Ollama non raggiungibile" not in local_ai_card["detail"]
+    assert "log operativi riservati" in local_ai_card["detail"]
     assert "Chunk RAG: 5 pendenti su 5" in local_ai_card["meta"]

@@ -160,6 +160,49 @@ def _load_json_report(path_value: str) -> dict[str, Any]:
         return {}
 
 
+_RESERVED_TECHNICAL_DETAIL = "Dettaglio tecnico disponibile solo nei log operativi riservati."
+_RESERVED_REPORT_KEYS = {
+    "exception",
+    "exc_info",
+    "output_excerpt",
+    "stack",
+    "stacktrace",
+    "stack_trace",
+    "stderr",
+    "stdout",
+    "traceback",
+}
+_EXCEPTION_TEXT_MARKERS = (
+    "Traceback (most recent call last):",
+    "\n  File ",
+    "RuntimeError:",
+    "ValueError:",
+    "Exception:",
+    "sqlite3.",
+    "psycopg",
+)
+
+
+def _looks_like_exception_text(value: str) -> bool:
+    return any(marker in value for marker in _EXCEPTION_TEXT_MARKERS)
+
+
+def _public_operational_payload(value: Any, key: str = "") -> Any:
+    normalized_key = str(key or "").strip().lower()
+    if isinstance(value, dict):
+        return {
+            str(item_key): _public_operational_payload(item_value, str(item_key))
+            for item_key, item_value in value.items()
+        }
+    if isinstance(value, list):
+        return [_public_operational_payload(item) for item in value]
+    if isinstance(value, str):
+        if normalized_key in _RESERVED_REPORT_KEYS or _looks_like_exception_text(value):
+            return _RESERVED_TECHNICAL_DETAIL
+        return value
+    return value
+
+
 def build_operational_crash_surface(selected_slug: str = "") -> dict[str, Any]:
     context = _resolve_context(selected_slug)
     repository = _repository(context)
@@ -174,13 +217,17 @@ def build_operational_crash_surface(selected_slug: str = "") -> dict[str, Any]:
             "crash_tests": list(OPERATIONAL_CRASH_SCHEDULES),
             "backup": dict(OPERATIONAL_BACKUP_SCHEDULE),
         },
-        "latest_run": latest_run,
-        "latest_report": latest_report,
-        "repair_tickets": repository.list_repair_tickets(tenant_slug=context["tenant_slug"], limit=12),
-        "backup_runs": repository.list_backup_runs(tenant_slug=context["tenant_slug"], limit=12),
-        "latest_backup_report": latest_backup_report,
-        "latest_backup_payload": latest_backup_payload,
-        "system_health": build_system_health_api_payload(),
+        "latest_run": _public_operational_payload(latest_run or {}),
+        "latest_report": _public_operational_payload(latest_report),
+        "repair_tickets": _public_operational_payload(
+            repository.list_repair_tickets(tenant_slug=context["tenant_slug"], limit=12)
+        ),
+        "backup_runs": _public_operational_payload(
+            repository.list_backup_runs(tenant_slug=context["tenant_slug"], limit=12)
+        ),
+        "latest_backup_report": _public_operational_payload(latest_backup_report),
+        "latest_backup_payload": _public_operational_payload(latest_backup_payload),
+        "system_health": _public_operational_payload(build_system_health_api_payload()),
         "backend_label": context["backend_label"],
     }
 

@@ -14,7 +14,6 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 from time import monotonic
-import traceback
 from typing import Any, Callable
 
 from click.testing import CliRunner
@@ -637,17 +636,17 @@ def _run_runtime_publish_safety_check(runtime_context: dict[str, Any] | None = N
                 raise RuntimeError("Database coverage non raggiungibile durante il publish di prova.")
 
             repository.apply_generated_sql = _broken_apply
-            failure_message = ""
+            failure_intercepted = False
             try:
                 try:
                     publish_single_draft(repository, draft_id, apply_to_db=True)
-                except RuntimeError as exc:
-                    failure_message = str(exc)
+                except RuntimeError:
+                    failure_intercepted = True
             finally:
                 repository.apply_generated_sql = original_apply
 
             _assert_runtime(
-                "Database coverage non raggiungibile" in failure_message,
+                failure_intercepted,
                 "Il failure mode del publish non e' stato intercettato.",
             )
             draft = repository.get_draft(draft_id)
@@ -663,7 +662,7 @@ def _run_runtime_publish_safety_check(runtime_context: dict[str, Any] | None = N
         return "\n".join(
             [
                 f"Draft coverage preservato: {draft_id}",
-                f"Messaggio di failure: {failure_message}",
+                "Failure controllata intercettata senza esporre il dettaglio tecnico.",
                 "Nessuna pubblicazione SQL parziale",
                 "Draft rimasto in stato approved con audit integro",
             ]
@@ -909,7 +908,9 @@ def _run_runtime_check(
             "status": "failed",
             "return_code": 1,
             "duration_seconds": round(monotonic() - started, 2),
-            "output_excerpt": _phase_excerpt(traceback.format_exc()),
+            "output_excerpt": _phase_excerpt(
+                "Controllo runtime non completato. Dettaglio tecnico disponibile nei log operativi riservati."
+            ),
         }
 
 

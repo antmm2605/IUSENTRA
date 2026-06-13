@@ -92,7 +92,7 @@ def _runtime_dependency_cards(observability: dict[str, Any]) -> list[dict[str, A
     enabled = bool(settings.get("enabled", True))
     runtime_status = str(runtime.get("status") or "").strip()
     runtime_online = bool(local_ai.get("runtime_online")) or runtime_status.lower() in {"ready", "available"}
-    last_error = str(runtime.get("last_error") or "").strip()
+    has_reserved_runtime_detail = bool(str(runtime.get("last_error") or "").strip())
     api_base_url = str(runtime.get("api_base_url") or "").strip()
     chunks_pending = int(counts.get("chunks_pending") or 0)
     chunks_total = int(counts.get("chunks_total") or 0)
@@ -106,8 +106,8 @@ def _runtime_dependency_cards(observability: dict[str, Any]) -> list[dict[str, A
     else:
         status = "warning"
         reason = f"stato {runtime_status}" if runtime_status else "stato non disponibile"
-        if last_error:
-            reason = f"{reason} - {last_error}"
+        if has_reserved_runtime_detail:
+            reason = f"{reason}; dettaglio tecnico disponibile nei log operativi riservati"
         detail = f"AI locale abilitata ma non pronta sul PC dello studio: {reason}."
 
     meta: list[str] = []

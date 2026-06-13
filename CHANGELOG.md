@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.5 - 2026-06-13
+
+- Governance CI: spostata la governance di avvio in `web/bootstrap/startup_governance.py`, lasciando `runtime_bundle.py` sotto il limite governato senza cambiare il comportamento runtime.
+- Test bootstrap: aggiornati i test al nuovo modulo di governance e reso esplicito il salvataggio della configurazione PEC nel tenant autenticato prima della verifica Local Signer.
+
 ## 2.253.4 - 2026-06-13
 
 - Assistente vocale Studio: il PIN vocale ora resta voce-first. Se Chrome non sente il codice, non legge cifre valide o legge un PIN errato, l'assistente parla, ripete cosa ha capito quando possibile e riapre automaticamente l'ascolto fino a tre tentativi; il campo manuale compare solo come ripiego.

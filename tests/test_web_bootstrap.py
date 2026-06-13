@@ -6,6 +6,7 @@ from flask import g
 
 from pct import __version__ as APP_VERSION
 from pct.auth import GestioneUtenti, RuoloUtente
+from pct.config_studio import GestioneConfigStudio
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.storage import StudioDB
 from pct.tenant import GestioneTenant
@@ -137,6 +138,11 @@ def _seed_tenant_admin(
     )
     bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio.slug)
     paths = tm.percorsi_dati(studio.slug)
+    root_config = Path(str(app.config.get("STUDIO_CONFIG") or app.config.get("CONFIG_STUDIO_DB") or ""))
+    if root_config.exists():
+        GestioneConfigStudio(config_path=paths["CONFIG_STUDIO_DB"]).aggiorna(
+            GestioneConfigStudio(config_path=str(root_config)).config
+        )
     utenti = GestioneUtenti(
         db_path=paths["AUTH_DB"],
         audit_path=paths["AUDIT_DB"],
@@ -259,17 +265,17 @@ def test_runtime_bundle_cloud_gestito_rinvia_governance_pesante(monkeypatch, tmp
         def __init__(self, registry_path):
             self.registry_path = registry_path
 
-        def sync_user_directory(self, secret_key):
+        def sync_user_directory(self, secret_key, **kwargs):
             called["sync"] += 1
 
     monkeypatch.setattr("web.bootstrap.runtime_bundle.is_managed_cloud_runtime", lambda: True)
-    monkeypatch.setattr("web.bootstrap.runtime_bundle.GestioneTenant", _FakeTenantManager)
+    monkeypatch.setattr("web.bootstrap.startup_governance.GestioneTenant", _FakeTenantManager)
     monkeypatch.setattr(
-        "web.bootstrap.runtime_bundle.bootstrap_pack_governance",
+        "web.bootstrap.startup_governance.bootstrap_pack_governance",
         lambda **kwargs: called.__setitem__("pack", called["pack"] + 1),
     )
     monkeypatch.setattr(
-        "web.bootstrap.runtime_bundle.bootstrap_legacy_tenant_runtime_data",
+        "web.bootstrap.startup_governance.bootstrap_legacy_tenant_runtime_data",
         lambda app, tenant_slug=None: called.__setitem__("legacy", called["legacy"] + 1) or {},
     )
 
@@ -280,9 +286,12 @@ def test_runtime_bundle_cloud_gestito_rinvia_governance_pesante(monkeypatch, tmp
 
 
 def test_runtime_bundle_startup_sync_directory_non_rilancia_reconcile_pesante():
-    source = (REPO_ROOT / "web" / "bootstrap" / "runtime_bundle.py").read_text(encoding="utf-8")
+    bundle_source = (REPO_ROOT / "web" / "bootstrap" / "runtime_bundle.py").read_text(encoding="utf-8")
+    source = (REPO_ROOT / "web" / "bootstrap" / "startup_governance.py").read_text(encoding="utf-8")
     runner = (REPO_ROOT / "web" / "bootstrap" / "startup_governance_runner.py").read_text(encoding="utf-8")
 
+    assert "from web.bootstrap.startup_governance import _schedule_startup_governance" in bundle_source
+    assert "_schedule_startup_governance(app)" in bundle_source
     assert "sync_user_directory(" in source
     assert "reconcile_storage=False" in source
     assert "web.bootstrap.startup_governance_runner" in source

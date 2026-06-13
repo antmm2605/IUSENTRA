@@ -1494,7 +1494,7 @@ def test_bootstrap_legacy_runtime_data_non_riconcilia_storage_in_startup(
     assert "CLIENTI_DB" in result["copied"]
 
 
-def test_login_route_bootstraps_legacy_root_data_for_single_tenant_install(tmp_path: Path):
+def test_login_route_rinvia_bootstrap_legacy_root_data_fuori_dalla_navigazione(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
 
@@ -1547,13 +1547,23 @@ def test_login_route_bootstraps_legacy_root_data_for_single_tenant_install(tmp_p
 
     dashboard = client.get("/", follow_redirects=False)
     tenant_paths = tm.percorsi_dati(studio.slug)
+    assert response.status_code == 302
+    assert dashboard.status_code == 200
+
     conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
     clienti_count = conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0]
     conn.close()
 
-    assert response.status_code == 302
-    assert clienti_count >= 1
-    assert dashboard.status_code == 200
+    assert clienti_count == 0
+
+    report = bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio.slug)
+
+    conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
+    clienti_count_after_bootstrap = conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0]
+    conn.close()
+
+    assert report["ok"] is True
+    assert clienti_count_after_bootstrap >= 1
 
 
 def test_bootstrap_legacy_runtime_data_non_semina_root_quando_esistono_due_tenant(

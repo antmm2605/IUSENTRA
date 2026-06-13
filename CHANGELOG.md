@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.10 - 2026-06-13
+
+- Sicurezza CodeQL: le API admin Product Pack e Resilienza operativa restituiscono JSON tramite un confine di risposta controllato, evitando il sink diretto `jsonify(build_...)` che continuava a generare annotazioni pur con payload filtrati.
+
 ## 2.253.9 - 2026-06-13
 
 - Sicurezza CodeQL: rafforzato il Product Pack e l'osservabilità runtime per non usare dettagli tecnici o `last_error` nei payload pubblici delle API admin.

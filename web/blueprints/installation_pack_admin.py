@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from functools import wraps
+from typing import Any
 
 from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
@@ -29,6 +31,13 @@ def superadmin_required(fn):
     return wrapper
 
 
+def _admin_json_response(payload: Any):
+    return current_app.response_class(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str),
+        mimetype="application/json",
+    )
+
+
 @installation_pack_admin.route("/")
 @superadmin_required
 def dashboard():
@@ -40,7 +49,8 @@ def dashboard():
 @superadmin_required
 def api_dashboard():
     try:
-        return jsonify(build_installation_pack_surface(selected_slug=request.args.get("slug", "")))
+        payload = build_installation_pack_surface(selected_slug=request.args.get("slug", ""))
+        return _admin_json_response(payload)
     except Exception as exc:  # pragma: no cover - difensivo UI
         current_app.logger.exception("Errore API pack installazione: %s", exc)
         return jsonify({"ok": False, "message": "Pack installazione non disponibili."}), 200

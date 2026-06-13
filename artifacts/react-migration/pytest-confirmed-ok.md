@@ -4632,3 +4632,11 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
 | `python -m pytest tests\test_installation_packs.py tests\test_operational_resilience.py tests\test_observability_runtime.py tests\test_studio_voice_assistant.py tests\test_utf8_integrity.py -q --tb=short` | OK | 32/32 passati: Product Pack, crash test operativo e osservabilità non espongono `last_error`, traceback o messaggi interni nei payload pubblici; assistente vocale e UTF-8 invariati. |
+
+## Hardening sink JSON admin CodeQL 2.253.10 - 2026-06-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\blueprints\installation_pack_admin.py web\blueprints\operational_resilience_admin.py web\services\observability_runtime.py web\services\installation_pack_surface.py` | OK | Sintassi confermata dopo il confine JSON controllato sulle due API admin annotate da CodeQL. |
+| `python -m pytest tests\test_installation_packs.py tests\test_operational_resilience.py tests\test_observability_runtime.py tests\test_studio_voice_assistant.py tests\test_utf8_integrity.py -q --tb=short` | OK | 32/32 passati anche dopo il cambio di risposta JSON controllata sulle API admin. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\sync_packaging_files.py --check`; `git diff --check` | OK | Contratti API, OpenAPI, packaging e whitespace allineati alla versione `2.253.10`; solo warning CRLF Git non bloccanti. |

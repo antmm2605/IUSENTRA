@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from typing import Any
+
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from web.blueprints.admin import superadmin_required
@@ -27,6 +30,13 @@ def _redirect_back() -> object:
     return redirect(url_for("operational_resilience_admin.dashboard", slug=_selected_slug()))
 
 
+def _admin_json_response(payload: Any):
+    return current_app.response_class(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str),
+        mimetype="application/json",
+    )
+
+
 @operational_resilience_admin.get("")
 @superadmin_required
 def dashboard():
@@ -38,7 +48,8 @@ def dashboard():
 @superadmin_required
 def api_dashboard():
     try:
-        return jsonify(build_operational_crash_surface(selected_slug=_selected_slug()))
+        payload = build_operational_crash_surface(selected_slug=_selected_slug())
+        return _admin_json_response(payload)
     except Exception as exc:  # pragma: no cover - difensivo UI
         current_app.logger.exception("Errore API resilienza operativa: %s", exc)
         return jsonify({"ok": False, "message": "Resilienza operativa non disponibile."}), 200

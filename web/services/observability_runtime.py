@@ -72,10 +72,11 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
 
         payload["providers"]["local_ai"] = get_local_ai_service().monitoring_snapshot()
     except Exception as exc:
+        runtime_app.logger.warning("Monitor AI locale non disponibile: %s", exc)
         payload["ok"] = False
         payload["providers"]["local_ai"] = {
             "runtime": {"status": "error"},
-            "errore": str(exc),
+            "errore": "Runtime AI locale non disponibile.",
         }
 
     try:
@@ -83,10 +84,11 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
 
         payload["providers"]["advanced_ai"] = build_advanced_ai_capabilities()
     except Exception as exc:
+        runtime_app.logger.warning("Capability AI avanzate non disponibili: %s", exc)
         payload["ok"] = False
         payload["providers"]["advanced_ai"] = {
             "ok": False,
-            "errore": str(exc),
+            "errore": "Capability AI avanzate non disponibili.",
             "capabilities": {},
         }
 
@@ -176,8 +178,51 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
     }
+    payload["providers"] = _public_provider_payload(payload.get("providers") or {})
 
     return payload
+
+
+_RESERVED_PROVIDER_DETAIL = "Dettaglio tecnico disponibile nei log operativi riservati."
+_RESERVED_PROVIDER_KEYS = {
+    "errore",
+    "exception",
+    "last_error",
+    "open_message",
+    "stack",
+    "stacktrace",
+    "stack_trace",
+    "stderr",
+    "stdout",
+    "traceback",
+}
+_RESERVED_PROVIDER_MARKERS = (
+    "Traceback (most recent call last):",
+    "\n  File ",
+    "RuntimeError:",
+    "ValueError:",
+    "Exception:",
+    "sqlite3.",
+    "psycopg",
+)
+
+
+def _public_provider_payload(value: Any, key: str = "") -> Any:
+    normalized_key = str(key or "").strip().lower()
+    if isinstance(value, dict):
+        return {
+            str(item_key): _public_provider_payload(item_value, str(item_key))
+            for item_key, item_value in value.items()
+        }
+    if isinstance(value, list):
+        return [_public_provider_payload(item) for item in value]
+    if isinstance(value, str):
+        if not value:
+            return value
+        if normalized_key in _RESERVED_PROVIDER_KEYS or any(marker in value for marker in _RESERVED_PROVIDER_MARKERS):
+            return _RESERVED_PROVIDER_DETAIL
+        return value
+    return value
 
 
 def _build_storage_runtime_payload(app: Flask) -> dict[str, Any]:
@@ -542,14 +587,16 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
     local_ai = dict((payload.get("providers") or {}).get("local_ai") or {})
     local_ai_runtime = dict(local_ai.get("runtime") or {})
     local_ai_status = str(local_ai_runtime.get("status") or "").strip().lower()
-    local_ai_error = str(local_ai_runtime.get("last_error") or local_ai.get("errore") or "").strip()
+    local_ai_error_present = bool(str(local_ai_runtime.get("last_error") or local_ai.get("errore") or "").strip())
     local_ai_breaker = dict(local_ai.get("circuit_breaker") or {})
     ai_enabled = bool((local_ai.get("settings") or {}).get("enabled", True))
     ai_online = bool(local_ai.get("runtime_online"))
     ai_breaker_open = bool(local_ai_breaker.get("open"))
-    if ai_breaker_open and not local_ai_error:
-        local_ai_error = str(local_ai_breaker.get("open_message") or local_ai_breaker.get("last_error") or "").strip()
-    if ai_enabled and (local_ai_error or local_ai_status in {"error", "missing", "unsupported"} or not ai_online or ai_breaker_open):
+    if ai_breaker_open and not local_ai_error_present:
+        local_ai_error_present = bool(
+            str(local_ai_breaker.get("open_message") or local_ai_breaker.get("last_error") or "").strip()
+        )
+    if ai_enabled and (local_ai_error_present or local_ai_status in {"error", "missing", "unsupported"} or not ai_online or ai_breaker_open):
         alerts.append(
             {
                 "severity": "danger",
@@ -557,8 +604,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 "component": "Runtime AI locale",
                 "code": "LOCAL_AI_RUNTIME_DOWN",
                 "title": "Runtime AI locale non operativo",
-                "detail": local_ai_error
-                or "Il provider locale non e' pronto oppure non risponde dal runtime applicativo.",
+                "detail": "Il provider locale non e' pronto oppure non risponde dal runtime applicativo.",
                 "threshold": str((thresholds.get("local_ai_runtime") or {}).get("label") or ""),
                 "operator_message": "AI locale non disponibile: il prodotto resta operativo, ma Lex e i motori assistiti vanno usati solo dopo il ripristino del runtime.",
                 "remediation": (
@@ -589,11 +635,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 "component": "PEC / IMAP",
                 "code": "IMAP_CIRCUIT_OPEN",
                 "title": "Sincronizzazione PEC temporaneamente sospesa",
-                "detail": str(
-                    imap_breaker.get("open_message")
-                    or imap_breaker.get("last_error")
-                    or "Il circuito IMAP e' aperto dopo errori ripetuti."
-                ),
+                "detail": "Il circuito IMAP e' aperto dopo errori ripetuti.",
                 "threshold": str((thresholds.get("imap_circuit_open") or {}).get("label") or ""),
                 "operator_message": "PEC temporaneamente sospesa: verifica server, rete o credenziali prima di rilanciare aggiorna o auto-esiti.",
                 "remediation": (
@@ -623,10 +665,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 "component": "Portali telematici",
                 "code": "PORTAL_CIRCUIT_OPEN",
                 "title": "Canale portale temporaneamente sospeso",
-                "detail": (
-                    f"Il circuito {name} e' aperto dopo errori ripetuti: "
-                    f"{str(snapshot.get('last_error') or 'errore non disponibile')}"
-                ),
+                "detail": f"Il circuito {name} e' aperto dopo errori ripetuti.",
                 "threshold": str((thresholds.get("portal_circuit_open") or {}).get("label") or ""),
                 "operator_message": "Portale telematico sospeso: controlla certificati, rete o canale ufficiale prima di rilanciare la consultazione.",
                 "remediation": (

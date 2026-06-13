@@ -261,7 +261,7 @@ def test_installation_pack_separa_lex_da_provider_ai_locale(tmp_path: Path):
     }
 
     with app.app_context():
-        services = _service_runtime_cards(product_pack, observability)
+        services = _service_runtime_cards(product_pack)
         dependencies = _runtime_dependency_cards(observability)
 
     lex_card = next(item for item in services if item["service_id"] == "iusentra-lex")

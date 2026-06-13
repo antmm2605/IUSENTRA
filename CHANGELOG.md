@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.9 - 2026-06-13
+
+- Sicurezza CodeQL: rafforzato il Product Pack e l'osservabilità runtime per non usare dettagli tecnici o `last_error` nei payload pubblici delle API admin.
+- Messaggi operativi: AI locale, PEC/IMAP e portali telematici ora espongono solo descrizioni controllate, lasciando stack trace e messaggi interni ai log riservati.
+
 ## 2.253.8 - 2026-06-13
 
 - Sicurezza CodeQL: chiuse le 3 annotazioni medium residue rimaste sul check separato CodeQL, eliminando il passaggio di messaggi eccezione/traceback verso risposte JSON e superfici admin.

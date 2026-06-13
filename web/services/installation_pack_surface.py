@@ -13,7 +13,6 @@ from pct.installation_pack_repository import InstallationPackRepository
 from pct.installation_packs import bootstrap_pack_governance
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.tenant import GestioneTenant
-from web.services.observability_runtime import build_observability_payload
 
 
 def _tenant_manager() -> GestioneTenant:
@@ -53,7 +52,7 @@ def _lex_product_runtime_status() -> tuple[bool, str]:
     return True, "Runtime Lex installato: orchestrazione, gateway provider e bridge AI locale sono importabili."
 
 
-def _service_runtime_cards(product_pack: dict[str, Any], observability: dict[str, Any]) -> list[dict[str, Any]]:
+def _service_runtime_cards(product_pack: dict[str, Any]) -> list[dict[str, Any]]:
     auto_index = bool(current_app.config.get("LOCAL_AI_AUTO_INDEX_DOCUMENTS"))
     updater_ready = bool(product_pack.get("manifest_hash_sha256") or product_pack.get("signature"))
     lex_ready, lex_detail = _lex_product_runtime_status()
@@ -82,6 +81,22 @@ def _service_runtime_cards(product_pack: dict[str, Any], observability: dict[str
             }
         )
     return items
+
+
+def _local_ai_observability() -> dict[str, Any]:
+    try:
+        from lex.providers.local_ai_service import get_local_ai_service
+
+        local_ai = get_local_ai_service().monitoring_snapshot()
+    except Exception as exc:
+        current_app.logger.warning("Monitor AI locale non disponibile per Product Pack: %s", exc)
+        local_ai = {
+            "settings": {"enabled": True},
+            "runtime": {"status": "error"},
+            "runtime_online": False,
+            "counts": {},
+        }
+    return {"providers": {"local_ai": local_ai}}
 
 
 def _runtime_dependency_cards(observability: dict[str, Any]) -> list[dict[str, Any]]:
@@ -152,7 +167,7 @@ def build_installation_pack_surface(*, selected_slug: str = "") -> dict[str, Any
     for payload in bootstrap.studio_local_packs:
         repo.upsert_studio_local_pack(payload)
 
-    observability = build_observability_payload(current_app._get_current_object())
+    observability = _local_ai_observability()
     selected_studio_pack = _select_studio_pack(bootstrap.studio_local_packs, selected_slug)
 
     return {
@@ -166,7 +181,7 @@ def build_installation_pack_surface(*, selected_slug: str = "") -> dict[str, Any
         "product_pack": bootstrap.product_pack,
         "update_pack": bootstrap.update_pack,
         "repository": repo.storage_stats(),
-        "service_runtime": _service_runtime_cards(bootstrap.product_pack, observability),
+        "service_runtime": _service_runtime_cards(bootstrap.product_pack),
         "runtime_dependencies": _runtime_dependency_cards(observability),
         "studios": [
             {

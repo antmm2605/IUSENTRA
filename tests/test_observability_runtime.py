@@ -109,6 +109,7 @@ def test_runtime_metrics_endpoint_segnala_degradi_e_rimedi(tmp_path, monkeypatch
     assert "verifica il runtime Ollama" in remediations
     assert "Errore applicativo reale" in operator_messages
     assert "AI locale non disponibile" in operator_messages
+    assert "Runtime Ollama non raggiungibile" not in str(payload)
 
 
 def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
@@ -237,6 +238,7 @@ def test_runtime_metrics_endpoint_segnala_circuit_breaker_pec(tmp_path):
     active_codes = set(payload["error_taxonomy"]["active_codes"])
     assert "IMAP_CIRCUIT_OPEN" in active_codes
     assert any(alert["code"] == "IMAP_CIRCUIT_OPEN" for alert in payload["alerts"])
+    assert "Server PEC non raggiungibile" not in str(payload)
 
 
 def test_runtime_metrics_endpoint_segnala_circuit_breaker_portali(tmp_path):
@@ -257,3 +259,4 @@ def test_runtime_metrics_endpoint_segnala_circuit_breaker_portali(tmp_path):
     active_codes = set(payload["error_taxonomy"]["active_codes"])
     assert "PORTAL_CIRCUIT_OPEN" in active_codes
     assert any(alert["code"] == "PORTAL_CIRCUIT_OPEN" for alert in payload["alerts"])
+    assert "Proxy PST non raggiungibile" not in str(payload)

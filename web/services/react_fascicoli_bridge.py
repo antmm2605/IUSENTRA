@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from flask import current_app, has_app_context
+
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
@@ -822,10 +824,12 @@ def update_react_fascicolo_status(
             if callable(saver):
                 saver()
     except Exception as exc:  # pragma: no cover - dipende dal repository concreto
+        if has_app_context():
+            current_app.logger.warning("Cambio stato fascicolo non completato per %s: %s", fid, exc)
         return {
             "ok": False,
-            "message": f"Cambio stato non riuscito: {exc}",
-            "errors": {"stato": str(exc)},
+            "message": "Cambio stato non riuscito. Controlla il fascicolo e riprova.",
+            "errors": {"stato": "Cambio stato non riuscito."},
         }, 400
     return {
         "ok": True,

@@ -37,7 +37,11 @@ def dashboard():
 @operational_resilience_admin.get("/api")
 @superadmin_required
 def api_dashboard():
-    return jsonify(build_operational_crash_surface(selected_slug=_selected_slug()))
+    try:
+        return jsonify(build_operational_crash_surface(selected_slug=_selected_slug()))
+    except Exception as exc:  # pragma: no cover - difensivo UI
+        current_app.logger.exception("Errore API resilienza operativa: %s", exc)
+        return jsonify({"ok": False, "message": "Resilienza operativa non disponibile."}), 200
 
 
 @operational_resilience_admin.post("/esegui")

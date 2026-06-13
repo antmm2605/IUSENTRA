@@ -39,7 +39,11 @@ def dashboard():
 @installation_pack_admin.route("/api")
 @superadmin_required
 def api_dashboard():
-    return jsonify(build_installation_pack_surface(selected_slug=request.args.get("slug", "")))
+    try:
+        return jsonify(build_installation_pack_surface(selected_slug=request.args.get("slug", "")))
+    except Exception as exc:  # pragma: no cover - difensivo UI
+        current_app.logger.exception("Errore API pack installazione: %s", exc)
+        return jsonify({"ok": False, "message": "Pack installazione non disponibili."}), 200
 
 
 @installation_pack_admin.route("/refresh", methods=["POST"])

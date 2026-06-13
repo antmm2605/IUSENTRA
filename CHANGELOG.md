@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.7 - 2026-06-13
+
+- Sicurezza CodeQL: chiuse anche le 4 annotazioni medium residue dopo il primo hardening, proteggendo risposte API admin e cambio stato fascicolo da dettagli tecnici provenienti da eccezioni.
+
 ## 2.253.6 - 2026-06-13
 
 - Sicurezza CodeQL: chiuse le segnalazioni nuove su regex vulnerabili a input patologici nell'estrattore normativo Procedure Completion e nella marcatura dei dati mancanti della Redazione Atti guidata.

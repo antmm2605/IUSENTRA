@@ -14,7 +14,8 @@ export function sectionFromUrl(): SettingsSection {
   const path = window.location.pathname.replace(/\/+$/, '').toLowerCase()
   if (path === '/impostazioni/pagamenti') return 'pagamenti'
   if (path === '/impostazioni/sdi' || path === '/impostazioni/canali-sdi') return 'sdi'
-  if (path === '/notifiche' || path === '/notifiche-whatsapp') return 'notifiche'
+  if (path === '/notifiche') return 'notifiche'
+  if (path === '/notifiche-whatsapp') return 'whatsapp'
   if (path === '/backup') return 'backup'
   if (path === '/impostazioni/calendario' || path === '/sincronizzazione-calendari') return 'calendari'
   const raw = new URLSearchParams(window.location.search).get('tab') || window.location.hash.replace('#', '')
@@ -67,6 +68,18 @@ export function useImpostazioni() {
   }, [])
 
   useEffect(() => load(), [load])
+
+  useEffect(() => {
+    const syncSectionFromUrl = () => {
+      setActiveSection(sectionFromUrl())
+    }
+    window.addEventListener('popstate', syncSectionFromUrl)
+    window.addEventListener('hashchange', syncSectionFromUrl)
+    return () => {
+      window.removeEventListener('popstate', syncSectionFromUrl)
+      window.removeEventListener('hashchange', syncSectionFromUrl)
+    }
+  }, [])
 
   const openSection = useCallback((section: SettingsSection) => {
     setActiveSection(section)

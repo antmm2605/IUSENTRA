@@ -281,16 +281,48 @@ def test_runtime_bundle_cloud_gestito_rinvia_governance_pesante(monkeypatch, tmp
 
 def test_runtime_bundle_startup_sync_directory_non_rilancia_reconcile_pesante():
     source = (REPO_ROOT / "web" / "bootstrap" / "runtime_bundle.py").read_text(encoding="utf-8")
+    runner = (REPO_ROOT / "web" / "bootstrap" / "startup_governance_runner.py").read_text(encoding="utf-8")
 
     assert "sync_user_directory(" in source
     assert "reconcile_storage=False" in source
+    assert "web.bootstrap.startup_governance_runner" in source
+    assert "IUSENTRA_STARTUP_GOVERNANCE_CHILD" in source
+    assert "_startup_governance_child()" in source
+    assert "IUSENTRA_STARTUP_GOVERNANCE_AUTORUN" in source
+    assert "_startup_governance_autorun(app)" in source
+    assert "startup-governance-dispatch" in source
+    assert "_claim_startup_marker" in source
+    assert "subprocess.Popen" in source
+    assert "_run_startup_governance(app)" in runner
 
 
 def test_auth_runtime_request_non_rilancia_reconcile_storage_pesante():
     source = (REPO_ROOT / "web" / "services" / "auth_runtime.py").read_text(encoding="utf-8")
 
     assert "tenants.reconcile_storage_aliases(tenant_slug)" not in source
-    assert "tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)" in source
+    assert "reconcile_aliases=False" in source
+    assert "ensure_baseline=False" in source
+    assert "IUSENTRA_LEGACY_TENANT_BOOTSTRAP_ON_REQUEST" in source
+    assert "rinviato fuori dalla navigazione ordinaria" in source
+
+
+def test_auth_runtime_login_tenant_non_aggancia_studio_db_operativo():
+    source = (REPO_ROOT / "web" / "services" / "auth_runtime.py").read_text(encoding="utf-8")
+
+    assert "def _tenant_user_manager(tenant_slug: str, *, include_studio_db: bool = True)" in source
+    assert "if include_studio_db and studio:" in source
+    assert "_tenant_user_manager(studio_slug, include_studio_db=False)" in source
+    assert "_tenant_user_manager(slug, include_studio_db=False)" in source
+    assert "_tenant_user_manager(resolved_tenant_slug, include_studio_db=False)" in source
+    assert "_tenant_user_manager(session_tenant_slug, include_studio_db=False)" in source
+
+
+def test_tenant_percorsi_dati_fast_path_non_avvia_baseline_runtime():
+    source = (REPO_ROOT / "pct" / "tenant.py").read_text(encoding="utf-8")
+
+    assert "ensure_baseline: bool | None = None" in source
+    assert "ensure_baseline = reconcile_aliases" in source
+    assert "if ensure_baseline and baseline_key not in TENANT_RUNTIME_BASELINE_IN_PROGRESS:" in source
 
 
 def test_create_app_cloud_gestito_rinvia_bootstrap_moduli_ma_get_database_lo_esegue(
@@ -1085,7 +1117,8 @@ def test_brand_asset_iusentra_restano_coerenti():
 
     assert manifest["name"] == "IUSENTRA"
     assert manifest["short_name"] == "IUSENTRA"
-    assert manifest["icons"][0]["src"] == "/static/icons/icon.svg"
+    assert manifest["icons"][0]["src"] == "/static/icons/icon-192.png"
+    assert manifest["icons"][0]["type"] == "image/png"
     assert "IUSENTRA" in static_icon
     assert "IUSENTRA" in legacy_icon
 
@@ -1146,18 +1179,33 @@ def test_local_signer_monitor_globale_verifica_versione_e_installer():
     assert "cfg.baseUrl + '/update'" in monitor_js
     assert "openInstallerDownload" in monitor_js
     assert "updatePayload.ok !== true" in monitor_js
-    assert "document.createElement('iframe')" in monitor_js
-    assert "Fase 1: provo ad avviare" in monitor_js
+    assert "triggerHiddenLink" in monitor_js
+    assert "document.createElement('a')" in monitor_js
+    assert '" target="_blank" rel="noopener" download data-local-signer-action="' in monitor_js
+    assert "Il servizio locale non sta rispondendo" in monitor_js
     assert "Fase 2: versione rilevata" in monitor_js
+    assert "Avvia Local Signer" in monitor_js
+    assert "verifyAfterStart(cfg, 10, 900)" in monitor_js
+    assert "Local Signer da installare su questo PC" in monitor_js
+    assert "Scarica installer ufficiale" in monitor_js
+    assert "renderInstallRequired" in monitor_js
     assert "const updated = await verifyAfterUpdate(cfg)" in monitor_js
     assert monitor_js.index("const updated = await verifyAfterUpdate(cfg)") < monitor_js.index(
         "installerPromptAlreadyShown(cfg, 'outdated-auto')"
     )
-    assert "Aggiornamento automatico Local Signer" in monitor_js
     assert "Aggiorna automaticamente" in monitor_js
     assert "Ho tentato l’aggiornamento automatico" in monitor_js
     assert "Fase 4 completata" in monitor_js
     assert "autoOpenInstallerOnce" in monitor_js
+
+
+def test_impostazioni_route_alias_whatsapp_sincronizza_tab_react():
+    hook = (REPO_ROOT / "frontend/src/features/impostazioni/hooks/useImpostazioni.ts").read_text(encoding="utf-8")
+
+    assert "if (path === '/notifiche') return 'notifiche'" in hook
+    assert "if (path === '/notifiche-whatsapp') return 'whatsapp'" in hook
+    assert "window.addEventListener('popstate', syncSectionFromUrl)" in hook
+    assert "window.removeEventListener('popstate', syncSectionFromUrl)" in hook
 
 
 def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):

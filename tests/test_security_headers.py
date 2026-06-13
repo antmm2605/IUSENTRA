@@ -59,6 +59,7 @@ def test_support_remote_rooms_allow_microphone_and_display_capture() -> None:
         response = apply_security_headers(app.response_class("ok"), app)
     policy = response.headers["Permissions-Policy"]
 
+    assert "camera=(self)" in policy
     assert "microphone=(self)" in policy
     assert "display-capture=(self)" in policy
     assert "local-network-access=(self)" in policy
@@ -67,14 +68,16 @@ def test_support_remote_rooms_allow_microphone_and_display_capture() -> None:
     assert "geolocation=()" in policy
 
 
-def test_regular_pages_keep_microphone_denied_by_default() -> None:
+def test_regular_pages_allow_studio_media_only_on_same_origin() -> None:
     app = Flask(__name__)
     app.config.update(SECURITY_HEADERS_ENABLED=True)
 
     with app.test_request_context("/fascicoli"):
         response = apply_security_headers(app.response_class("ok"), app)
 
-    assert "microphone=()" in response.headers["Permissions-Policy"]
-    assert "local-network-access=()" in response.headers["Permissions-Policy"]
-    assert "local-network=()" in response.headers["Permissions-Policy"]
-    assert "loopback-network=()" in response.headers["Permissions-Policy"]
+    policy = response.headers["Permissions-Policy"]
+    assert "camera=(self)" in policy
+    assert "microphone=(self)" in policy
+    assert "local-network-access=()" in policy
+    assert "local-network=()" in policy
+    assert "loopback-network=()" in policy

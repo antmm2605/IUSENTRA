@@ -1,5 +1,5 @@
 import { Bell, CalendarClock, Clock3, FolderClock, Headphones, PanelLeftOpen, Plus, Settings2, TriangleAlert } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Suspense, lazy, useMemo, useState } from 'react'
 import { TopBarCreateMenu } from './TopBarCreateMenu'
 import { TopBarDeadlines } from './TopBarDeadlines'
 import { TopBarNotifications } from './TopBarNotifications'
@@ -9,6 +9,8 @@ import { TopBarTimeTracker } from './TopBarTimeTracker'
 import { TopBarTodayMenu } from './TopBarTodayMenu'
 import { IusTopBar } from '../iusentra'
 import type { TopbarCreateContext } from '../../types/topbar'
+
+const StudioVoiceAssistant = lazy(() => import('../StudioVoiceAssistant'))
 
 type PanelName = 'create' | 'today' | 'notifications' | 'deadlines' | 'recent' | 'timer' | null
 type SupportBootstrap = {
@@ -114,6 +116,9 @@ export function TopBar({
         <PanelLeftOpen size={18} />
       </button>
       <TopBarSearch />
+      <Suspense fallback={<div className="iu-voice-assistant__fallback" aria-hidden="true" />}>
+        <StudioVoiceAssistant activePath={activePath} />
+      </Suspense>
       {supportEnabled ? (
         <div className="iu-support-request-wrap">
           <button
@@ -126,7 +131,7 @@ export function TopBar({
             title="Richiedi assistenza remota"
           >
             <Headphones size={16} />
-            <span>{supportOpening ? 'Apro assistenza...' : 'Assistenza'}</span>
+            <span>{supportOpening ? 'Apro assistenza...' : 'Assistenza remota'}</span>
           </button>
           {supportError ? <div className="iu-support-request-error" role="alert">{supportError}</div> : null}
         </div>

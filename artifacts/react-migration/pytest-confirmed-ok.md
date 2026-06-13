@@ -1,5 +1,22 @@
 # Pytest shard confermati OK
 
+## Dettatura unica assistente Studio 2.253.3 - 2026-06-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `node tests\js\lex_tts_voice_contract.test.mjs` | OK | Motore `PctLexVoice` con pre-controllo microfono, `onStart` reale, normalizzazione dettatura, export `IusentraVoiceInput` e formattazione email/punteggiatura. |
+| `node frontend\scripts\check-studio-voice-assistant.mjs` | OK | Catalogo a 368 frasi, 328 aggiunte, 59 destinazioni; guardrail su "Studio detta", servizio unico, Lex su `onStart`, ultimo campo selezionato, ascolto persistente tra pagine, PIN vocale parlato e comandi modifica cliente/soggetto. |
+| `python -m pytest tests\test_studio_voice_assistant.py tests\test_security_headers.py -q --tb=short` | OK | 9/9: catalogo, API cliente vocale, header sicurezza e static guard su dettatura unica. |
+| `python -m pytest tests\test_studio_voice_assistant.py -q --tb=short` | OK | 4/4: guardrail aggiornati su ascolto che resta attivo nella scheda dopo cambio pagina, prompt PIN parlato, retry PIN errato e comandi "modifica cliente/soggetto". |
+| `python -m pytest tests\test_studio_voice_assistant.py tests\test_utf8_integrity.py -q --tb=short` | OK | 8/8: assistente vocale e integrità UTF-8 dopo le note operative aggiornate. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4: integrità UTF-8 confermata dopo documentazione e testi visibili aggiornati. |
+| `pnpm --filter @iusentra/studio test` | OK | Contratti React, preset UI, governance design system, App V2 frontend, assistente vocale, legal skills e coverage UI verdi. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo collegamento editor professionale e servizio `IusentraVoiceInput`. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite verde in 14,98s; asset React rigenerati con `StudioVoiceAssistant-BGM7uoVN.js`. Resta il warning storico sul chunk principale sopra 500 kB, registrato come issue aperta prestazionale. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | 2/2: pulizia asset React generati vecchi dopo build, manifest e file referenziati coerenti. |
+| Docker reale `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia reale `127.0.0.1:8080` healthy su versione `2.253.3`, con asset `StudioVoiceAssistant-CIWyN6nn.js` e `pct-lex-assistant-voice.js?v=2.253.3` caricati da Chrome. |
+| Conferma macchina reale utente, 13 giugno 2026 | OK | Dopo la correzione del servizio microfono l'utente ha confermato che sulla macchina reale il microfono funziona. |
+
 ## Dashboard agenda timezone e performance 2.251.26 - 2026-06-11
 
 | Comando / verifica | Esito | Nota |
@@ -4551,3 +4568,28 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m py_compile pct\cache.py lex\context\builder.py lex\retrieval\orchestrator.py tools\performance_smoke.py` | OK | Sintassi confermata dopo la rimozione della scrittura `Path.write_text` segnalata dal check CodeQL separato e dopo il percorso benchmark minimo Lex. |
 | `python -m pytest -q tests\test_cache_security.py tests\test_performance_budget.py lex\tests\unit\test_retrieval_orchestrator.py::test_retrieval_orchestrator_performance_smoke_non_interroga_fonti lex\tests\unit\test_retrieval_orchestrator.py::test_retrieval_orchestrator_riusa_cache_tenant_aware_sulla_stessa_richiesta` | OK | 6/6 passati: cache in memoria senza JSON in chiaro, contesto performance minimo, retrieval smoke senza planner/fonti e cache tenant-aware preservata. |
 | `python tools\performance_smoke.py --strict --output "$env:TEMP\iusentra-performance-smoke-public.json"` | OK | Smoke strict verde con report pubblico normalizzato e senza `SECRET_KEY` sintetica nel config benchmark: `startup_ms=2503.22` su soglia cold-start CI `3200`, `login_ms=17.52`, `health_ms=65.86`, `runtime_metrics_ms=129.35`, `lex_context_build_ms=0.01`, `lex_retrieval_ms=0.02`; il benchmark non interroga sorgenti Lex lente. |
+
+## Assistente vocale Studio 2.253.1 - 2026-06-12
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `node frontend\scripts\check-studio-voice-assistant.mjs` | OK | Catalogo governato: 330 frasi totali, 290 aggiunte rispetto ai comandi utente e 59 destinazioni. |
+| `python -m py_compile web\blueprints\api_v1_react.py pct\clienti.py` | OK | Sintassi backend confermata dopo il nuovo endpoint cliente vocale. |
+| `python -m pytest tests\test_studio_voice_assistant.py tests\test_utf8_integrity.py -q --tb=short` | OK | 8/8 passati: catalogo, topbar, API cliente vocale, validazioni obbligatorie e integrità UTF-8. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio test`; `pnpm --filter @iusentra/studio build` | OK | TypeScript, gate React/design/contratti e build Vite verdi; assistente caricato lazy, senza nuova dipendenza frontend. |
+| `node frontend\scripts\check-studio-voice-assistant.mjs`; `pnpm --filter @iusentra/studio typecheck`; `python -m pytest tests\test_studio_voice_assistant.py -q --tb=short`; `pnpm --filter @iusentra/studio build`; `docker compose build app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Rilancio dopo calibrazione 30 secondi, frase di attivazione personalizzabile, PIN mascherato, stop audio sintetico durante calibrazione e messaggio microfono aggiornato. Docker reale `127.0.0.1:8080` risponde `versione=2.253.1`. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\react-migration\generate_backend_security_map.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI, mappa contratti e mappa sicurezza allineate al nuovo endpoint `POST /api/v1/ui/clienti/voce/crea`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `GET http://127.0.0.1:8080/api/pronto`; `docker compose ps app scheduler-worker ocr-worker` | OK | Copia Docker reale dell'utente ricostruita; app, scheduler e OCR healthy; `/api/pronto` risponde `versione=2.253.1`. |
+| `IUSENTRA_VOICE_E2E_PASSWORD=<utente temporaneo> node scripts\react-migration\studio_voice_assistant_browser_audit.mjs` | OK | Audit browser automatizzato su `127.0.0.1:8080` con microfono e riconoscimento simulati in pagina: ascolto, disattivazione, Lex, ricerca, indietro, ricarica, nuovo cliente guidato e 59 destinazioni vocali; zero failure e zero errori console. La password del test non è versionata. |
+| Browser integrato visibile su `127.0.0.1:8080`, click materiale su `Registra voce e PIN` | Bloccato da permesso browser | Il browser ha mostrato `Microfono non autorizzato. Consenti il microfono dal browser, poi reinserisci il PIN e premi di nuovo Registra voce e PIN.`; la calibrazione fisica di 30 secondi non è partita, il profilo non è stato salvato, il PIN è mascherato e viene svuotato dopo l'errore. |
+
+## Assistente vocale Studio 2.253.4 - 2026-06-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `node --check web\static\js\pct-lex-assistant-voice.js`; `node --check scripts\react-migration\studio_voice_assistant_browser_audit.mjs`; `node frontend\scripts\check-studio-voice-assistant.mjs` | OK | Sintassi e guardrail assistente voce verdi; catalogo 390 frasi, 350 aggiunte, 59 destinazioni. |
+| `python -m pytest tests\test_studio_voice_assistant.py tests\test_utf8_integrity.py -q --tb=short` | OK | 8/8 passati dopo alias reali `doc_numero`/`numero_doc` e ricerca senza ripetere `Studio`. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript verde e build Vite verde; resta warning governato su chunk principale `index-D9Xs3IhZ.js` 503,51 kB minificato. |
+| `docker compose build --no-cache app`; `docker compose up -d --no-deps --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale ricostruita e healthy; `/api/pronto` risponde `versione=2.253.4`. |
+| `IUSENTRA_VOICE_E2E_VISIBLE=1 CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" node scripts\react-migration\studio_voice_assistant_browser_audit.mjs` | OK | Audit visibile in Google Chrome installato: permesso microfono `granted`, registrazione/PIN, richiamo "Studio", note `appunti`, responsive desktop/tablet/mobile, dettatura campi reali, ricerca `cerca Rossi`, Lex, aiuto, nuovo cliente creato/ripulito, disattivazione/riattivazione e 59 destinazioni. Zero failure e zero errori console nel report `artifacts/react-migration/studio-voice-assistant-browser-audit.json`. |
+| `node scripts\react-migration\visual-load-audit.mjs` | OK | Baseline visuale Docker finale: 15/15 controlli desktop/tablet/mobile verdi su `/`, `/fascicoli`, `/statistiche`, `/sito-studio/contatti`, `/sito-studio/builder`. |

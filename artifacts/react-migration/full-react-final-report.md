@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-06-12T14:00:00+02:00: assistente vocale Studio 2.253.1.
+La topbar React monta l'assistente vocale con caricamento pigro, catalogo governato
+di 330 frasi e pannello responsive. Il flusso "Studio nuovo cliente" usa API
+JSON reale, permessi, audit e repository clienti; la chiusura di rilascio resta
+subordinata a build finale, Docker `127.0.0.1:8080`, browser verification,
+push branch gemelli e deploy Hetzner.
+
 Aggiornamento 2026-05-31T13:30:00+02:00: supporto remoto avviabile dallo
 studio 2.248.93.
 La shell React espone ora un comando `Assistenza` visibile nella topbar dello
@@ -1156,3 +1163,11 @@ import Guida Pratica e termini, build Vite, Docker reale `127.0.0.1:8080` con
 controlli OK e Browser integrato Codex con toolbar sticky, collegamento fascicolo
 visibile e nessun overflow pagina/pannello/card. Report:
 `artifacts/react-migration/template-editor-browser-2.249.15.json`.
+
+## Assistente vocale Studio 2.253.1
+
+La topbar React espone ora l'assistente vocale Studio con caricamento pigro, registrazione locale di voce e PIN, attivazione con tono voce e PIN pronunciato, ascolto continuo e disattivazione vocale. Il catalogo è governato in `frontend/src/studioVoiceCommands.json`: 330 frasi totali, 290 aggiunte rispetto alla lista utente e 59 destinazioni operative.
+
+Il flusso "Studio nuovo cliente" chiede solo nome, cognome e codice fiscale, rilegge i dati e salva dopo conferma tramite `POST /api/v1/ui/clienti/voce/crea`, con permesso `clienti.scrivi`, repository clienti, audit e sincronizzazione.
+
+Gate locali e prove reali: test catalogo, pytest API/UTF-8, typecheck, test React, build Vite, OpenAPI/security map, Docker no-cache `127.0.0.1:8080` con `/api/pronto` `2.253.1`, audit CDP voce/PIN/cliente/59 route e visual load audit desktop/tablet/mobile su cinque pagine rappresentative. Esito locale: zero failure browser, zero errori console, zero overflow e nessun testo tecnico vietato.

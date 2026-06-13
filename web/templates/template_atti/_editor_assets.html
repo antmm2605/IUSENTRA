@@ -603,6 +603,28 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     sync(editorId);
   }
 
+  async function startVoiceDictation(editorId) {
+    const state = editors.get(editorId);
+    const voiceInput = window.IusentraVoiceInput;
+    if (!state || !voiceInput?.startForTarget) {
+      if (state) setLayoutStatus(state, 'Dettatura non disponibile in questa sessione.', 'danger');
+      return;
+    }
+    setLayoutStatus(state, 'Controllo microfono editor...', 'muted');
+    try {
+      const inserted = await voiceInput.startForTarget(state.surface, {
+        context: 'template-atti-editor',
+        lang: 'it-IT',
+        silenceMs: 3200,
+        onStart: () => setLayoutStatus(state, 'Dettatura attiva nell’editor.', 'primary'),
+      });
+      sync(editorId);
+      setLayoutStatus(state, inserted ? 'Dettatura inserita nel testo.' : 'Nessun testo vocale rilevato.', inserted ? 'success' : 'muted');
+    } catch (error) {
+      setLayoutStatus(state, error?.message || 'Dettatura non disponibile.', 'danger');
+    }
+  }
+
   function insertImage(editorId, dataUrl, alt = 'Documento acquisito') {
     const caption = escapeHtml(alt);
     const safeAlt = escapeAttribute(alt);
@@ -690,6 +712,10 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
 
     root.querySelector('[data-editor-open-acquisition]')?.addEventListener('click', () => {
       openAcquisition(editorId);
+    });
+
+    root.querySelector('[data-editor-voice-dictation]')?.addEventListener('click', () => {
+      startVoiceDictation(editorId);
     });
   }
 

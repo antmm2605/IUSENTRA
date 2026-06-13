@@ -111,10 +111,10 @@ services:
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=5)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
 
     # Limiti risorse — adatta alla tua macchina (rimuovi il commento per attivarli)
     # deploy:

@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.253.4 - 2026-06-13
+
+- Assistente vocale Studio: il PIN vocale ora resta voce-first. Se Chrome non sente il codice, non legge cifre valide o legge un PIN errato, l'assistente parla, ripete cosa ha capito quando possibile e riapre automaticamente l'ascolto fino a tre tentativi; il campo manuale compare solo come ripiego.
+- Dettatura nei campi: con sessione operativa attiva, se la frase pronunciata non corrisponde a un comando autorizzato e un campo valido è selezionato, IUSENTRA prova a scrivere direttamente nel campo attivo o nell'ultimo campo valido ricordato. I comandi riconosciuti restano prioritari rispetto al testo libero.
+- Dettatura nel campo stesso: con "detta" o "scrivi qui" il testo ascoltato compare come anteprima direttamente nel campo selezionato; con dettatura libera il testo finale resta selezionato per controllo visivo, senza aprire pannelli aggiuntivi.
+- Normalizzazione campi vocali: il primo carattere dei campi testuali dettati viene uniformato in maiuscolo; codice fiscale e numero documento vengono compattati anche con nomi campo reali come `doc_numero`; telefono, CAP, civico e campi numerici non perdono gli zeri iniziali; email/PEC, URL, date italiane e campi a scelta come sesso/genere vengono trattati in base al tipo reale del campo.
+- Ricerca vocale: durante la sessione operativa sono validi anche "cerca Rossi", "trova Rossi" e "ricerca Rossi", senza ripetere la frase di attivazione.
+- UI Voce Studio: durante l'ascolto PIN viene mostrato uno stato compatto "Sto ascoltando automaticamente" invece di spingere subito l'avvocato sul pulsante "Conferma PIN".
+- Richiamo vocale: lo stato ora spiega anche il comando "stop": "Richiamo pronto. Di’ “Studio” per attivare la sessione operativa. Di’ “stop” per bloccare la sessione operativa e tornare al richiamo.", sostituendo "Studio" con la frase personalizzata dallo studio.
+- Documentazione e guardrail: aggiornati `docs/STUDIO_VOICE_ASSISTANT.md`, `artifacts/react-migration/studio-voice-assistant-lavoro.md`, `frontend/scripts/check-studio-voice-assistant.mjs` e `tests/test_studio_voice_assistant.py` per bloccare regressioni su PIN automatico, dettatura libera, ricerca senza ripetere "Studio" e normalizzazione dei campi reali.
+- Audit reale visibile: Google Chrome installato su `127.0.0.1:8080`, permesso microfono `granted`, 390 frasi, 59 destinazioni, note vocali `appunti`, responsive desktop/tablet/mobile, dettatura campi reali, ricerca `cerca Rossi`, nuovo cliente creato/ripulito e disattivazione/riattivazione senza failure nel report `studio-voice-assistant-browser-audit.json`.
+- Nota prestazionale aperta: la build resta verde ma segnala ancora il chunk principale React sopra 500 kB (`index-D9Xs3IhZ.js`, 503,51 kB minificato). Non è risolto in questo hotfix e resta da trattare con una tranche dedicata di code splitting.
+
+## 2.253.3 - 2026-06-13
+
+- Assistente vocale Studio: l'ascolto resta attivo nella stessa scheda anche cambiando pagina o aprendo la modifica di un cliente; si spegne solo con disattivazione esplicita, rimozione profilo o revoca reale del microfono.
+- PIN vocale: dopo il riconoscimento del tono, il messaggio "Sto ascoltando il PIN. Pronuncia solo le cifre oppure inseriscile a mano." viene pronunciato prima dell'ascolto; se il PIN è errato o non letto l'assistente lo dice e richiede la ripetizione.
+- Comandi vocali: aggiunte le frasi "Studio modifica cliente", "Studio modifica clienti", "Studio modifica soggetto" e "Studio modifica soggetti e parti", con apertura della modifica del record corrente quando il contesto contiene già cliente o soggetto.
+- Dettatura unica IUSENTRA: introdotto il servizio centrale `IusentraVoiceInput`, riusato da assistente Studio, Lex AI, editor documento, editor professionale e template atti, senza microfoni duplicati su ogni campo.
+- Comandi vocali: aggiunto "Studio detta" con varianti per cliente, soggetto, scadenziario, agenda, appuntamento, Ricerca Studio, email e PEC; il testo entra nel campo attivo o nell'ultimo campo valido selezionato.
+- Lex AI: il microfono passa allo stato di ascolto solo dopo l'avvio reale del riconoscimento vocale e usa lo stesso controllo permessi del servizio comune, evitando messaggi incoerenti quando Chrome ha già concesso il microfono.
+- Microfono reale: il pre-controllo ora richiede prima un flusso audio semplice e applica dopo, solo se disponibili, cancellazione eco, riduzione rumore e controllo guadagno; dopo rebuild Docker `2.253.3` l'utente ha confermato il funzionamento sulla macchina reale.
+- Dettatura legale: normalizzazione centrale di punteggiatura e simboli dettati, inclusi virgola, punto, punto e virgola, punto interrogativo, punto esclamativo, spazio, trattino, più, meno, diviso, chiocciola, underscore/ancscore e asterisco/aterisco.
+- Documentazione: aggiunta la sezione "Dettatura unica sul campo attivo" in `docs/STUDIO_VOICE_ASSISTANT.md` e aggiornata la nota operativa dell'incarico.
+
+## 2.253.2 - 2026-06-13
+
+- Assistente vocale Studio: migliorata la tolleranza dell'ascolto reale, con frase di attivazione che accetta varianti controllate come "lo Studio", "ok Studio" e alias prudenti quando la parola personalizzata è "IUSENTRA".
+- Comandi vocali: aggiunta corrispondenza leggera singolare/plurale per evitare falsi negativi tipici della dettatura, ad esempio "fascicolo" rispetto a "fascicoli", mantenendo prioritaria la corrispondenza esatta.
+- Registrazione tono: la qualità della lettura non usa più un confronto rigido parola per parola, ma parole chiave con alias realistici per trascrizioni come "ios centro" al posto di "IUSENTRA"; aggiornata anche la frase consigliata in modo più leggibile.
+- Gate mirati: aggiornati `tests/test_studio_voice_assistant.py` e `frontend/scripts/check-studio-voice-assistant.mjs` per bloccare regressioni su qualità lettura, varianti di attivazione e normalizzazione dei comandi.
+- Nota prestazionale aperta: la build resta verde ma segnala ancora il chunk principale React sopra 500 kB (`index-BTzQ4cui.js`, 503,52 kB minificato). Non è considerato risolto e richiede una tranche dedicata di code splitting.
+
+## 2.253.1 - 2026-06-12
+
+- Assistente vocale Studio: integrato nella topbar React con caricamento pigro, calibrazione locale del tono voce di 30 secondi, PIN mascherato, frase di attivazione personalizzabile, ascolto continuo, disattivazione vocale e pannello responsive in italiano.
+- Comandi vocali: catalogo governato in `frontend/src/studioVoiceCommands.json` con i 40 comandi iniziali dell'utente, 296 frasi aggiunte, 336 frasi totali e 59 destinazioni o aree apribili, incluse navigazione studio, telematico, ricerca, Lex, impostazioni, amministrazione e sito studio.
+- Nuovo cliente da voce: il comando "Studio nuovo cliente" chiede nome, cognome e codice fiscale, rilegge i dati e salva solo dopo conferma tramite la nuova API `POST /api/v1/ui/clienti/voce/crea`, con permesso `clienti.scrivi`, validazioni dominio, audit e sincronizzazione.
+- Note vocali Studio: aggiunto il sotto-modulo "Studio, note" con comando note personalizzabile per studio, dettatura libera, chiusura "fine nota/fine note", salvataggio locale della sola trascrizione, estrazione prudente di data e ora, promemoria browser 10 minuti prima e visualizzazione in ora italiana `Europe/Rome`; documentato il limite della notifica frontend quando il browser è chiuso.
+- Documentazione e guardrail: aggiunti `docs/STUDIO_VOICE_ASSISTANT.md`, `artifacts/react-migration/studio-voice-assistant-lavoro.md`, `frontend/scripts/check-studio-voice-assistant.mjs` e `tests/test_studio_voice_assistant.py`; la frase consigliata per la calibrazione è visibile nel pannello.
+- Audit reale e limite osservato: Docker locale no-cache su `127.0.0.1:8080` pronto con `2.253.1`, audit automatizzato con microfono e riconoscimento simulati verde su 59 destinazioni e 330 frasi, visual load audit desktop/tablet/mobile verde su 15 controlli, fix responsive della rail Fascicoli mobile e manifest PWA riallineato a icone PNG valide. Nel browser visibile il click su `Registra voce e PIN` ha confermato il blocco `Microfono non autorizzato`: con permesso negato il profilo vocale non viene salvato, il PIN resta mascherato e viene svuotato dopo l'errore.
+
 ## 2.251.38 - 2026-06-11
 
 - Assistenza remota e Local Signer: ripristinato il controllo completo del PC cliente senza installare un agente separato quando nello studio è già presente il Local Signer. Il pacchetto Windows `1.6.72` include ora `local_signer_mod/support_agent.py` e gli endpoint `/support/status`, `/support/arm`, `/support/disarm`, `/support/screenshot`, `/support/execute`; il controllo resta armato solo dopo consenso cliente, con token di sessione, CORS loopback e rifiuto di token/origin non validi.

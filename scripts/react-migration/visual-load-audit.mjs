@@ -58,6 +58,7 @@ const allRoutes = [
   ['Strumenti Forensi', '/strumenti-legali'],
   ['Strumenti Operativi', '/strumenti-operativi'],
   ['Sito Studio', '/sito-studio'],
+  ['Contatti Sito Studio', '/sito-studio/contatti'],
   ['Sito Studio Builder', '/sito-studio/builder'],
   ['Amministrazione', '/amministrazione'],
   ['Utenti', '/utenti'],

@@ -1,0 +1,1710 @@
+{
+  "generatedAt": "2026-06-13T17:46:41.764Z",
+  "baseUrl": "http://127.0.0.1:8080",
+  "chromePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "visibleBrowser": true,
+  "totalPhrases": 390,
+  "routeCommandCount": 59,
+  "specialCommandCount": 11,
+  "screenshots": {
+    "desktop": "artifacts\\react-migration\\studio-voice-assistant-desktop.png",
+    "mobile": "artifacts\\react-migration\\studio-voice-assistant-mobile.png"
+  },
+  "consoleErrors": [],
+  "responsive": [
+    {
+      "name": "desktop",
+      "width": 1365,
+      "height": 768,
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": []
+    },
+    {
+      "name": "tablet",
+      "width": 820,
+      "height": 1180,
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": []
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": []
+    }
+  ],
+  "special": {
+    "afterRegister": {
+      "href": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "mainH1": "Panoramica",
+      "mainText": "Panoramica Centro operativo dello studio Dati aggiornati Aggiorna Sincronizza comunicazioni Azioni urgenti URGENTE 1 Vai alle azioni PEC da leggere OGGI 254 Apri PEC Messaggi clienti 0 Vai ai messaggi Preventivi in scadenza 0 Apri preventivi Conferimenti mancanti 0 Completa ora Ultime PEC ricevute 5 Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 24 1 giu Vai alla casella PEC -> Email recenti 5 Klarna Il tuo prossimo viaggio inizia qui 29 mag github-advanced-security[bot] Re: [antmm2605/IUSENTRA] Automatizza presidi PEC giudiziari (PR #37) 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag Vai alle email ordinarie -> Messaggi recenti dai clienti 0 Nessun elemento da presidiare. Vai ai messaggi -> Agenda e udienze 0 Oggi - Sabato 13 giugno 2026 Nessun impegno per oggi. Domani - Domenica 14 giugno 2026 Nessun impegno programmato. Vai all'agenda completa -> Anagrafiche ancora da completare 26 4% Completate Da completare: 26 Clienti 23 Soggetti 3 Vai alle anagrafiche -> Conferimenti incarico mancanti 0 Nessun elemento da presidiare. Vai -> Fascicoli con priorità alta 0 Nessun elemento da presidiare. Vai -> Scadenze per priorità 8 8 Totali 0 scadenze critiche 0% 0 scadenze ad alta priorita 0% 3 scadenze a priorita media 38% 5 scadenze a bassa priorita 62% Vai a Scadenze e Termini -> Economico rapido Fatturato mese EUR 0,00 0 parcelle emesse Incassi mese EUR 0,00 0 pagamenti registrati Da incassare EUR 0,00 0 parcelle aperte Ore lavorate 0,0 h 0 voci timesheet Vai al controllo economico -> Suggerimenti Lex AI 2 Verifica le azioni urgenti prima di aggiornare agenda e fascicoli. Completa le anagrafiche mancanti per evitare blocchi in preventivi, incarichi e atti. Apri Lex AI -> Fascicoli da presidiare Fascicoli reali ad alta priorità da seguire nel quadro operativo. 0 Nessun fascicolo prioritario nell'orizzonte operativo. Apri tutti i fascicoli -> Fonti operative collegate Fonti applicative alimentate dai conteggi reali dello studio. 5 Scadenziario 8 8 termini aperti classificati per priorità; 0 risultano urgenti nel riepilogo operativo. Fonte operativa Agenda e calendari 0 0 appuntamenti nell’orizzonte della Cruscotto, pronti per sincronizzazione calendari. Fonte operativa Fascicoli 287 287 fascicoli attivi e 0 pratiche con priorita alta nel riepilogo operativo. Fonte operativa PEC, email e messaggi 254 254 PEC da leggere, 5 email recenti e 0 messaggi cliente recenti. Fonte operativa Economico rapido OK Importo da incassare: EUR 0,00. La sezione usa fatturazione, pagamenti e timesheet reali. Fonte operativa",
+      "voiceState": "idle",
+      "microphonePermission": "granted",
+      "microphoneUnlockVisible": false,
+      "microphoneUnlockText": "",
+      "commandCount": "390",
+      "panelOpen": true,
+      "panelVisible": true,
+      "panelRect": {
+        "x": 706,
+        "y": 74,
+        "width": 620,
+        "height": 606
+      },
+      "status": "Voce e PIN salvati su questo dispositivo. Calibrazione di 30 secondi completata.",
+      "clientMessage": "",
+      "clientHref": "",
+      "clientStep": "",
+      "noteTriggerValue": "",
+      "noteTriggerStored": "",
+      "noteDraft": "Studio legale IUSENTRA autorizzo l’assistente vocale dello studio apri panoramica clienti calendario e fascicoli la mia voce è naturale chiara costante e professionale ripeto con lo stesso tono autorizzo l’assistente dello studio",
+      "noteCards": [],
+      "noteMeta": "",
+      "auditNotifications": [],
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": [
+        "Comando note personalizzato",
+        "Fuso orario: Roma",
+        "Promemoria"
+      ],
+      "textSample": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nC\nUtente temporaneo audit vocale\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nVoce Studio\nAssistente vocale Studio\n390 frasi riconosciute, 59 destinazioni, 11 azioni rapide.\nVoce e PIN salvati su questo dispositivo. Calibrazione di 30 secondi completata.\nStudio non in ascolto\nPremi Attiva ascolto nella sezione Configurazione.\n\nNessun comando operativo eseguito in questa sessione.\n\nConfigurazione\nComandi autorizzati\nRichieste operative\nNote vocali\nInizializzazione assistente\nVoce, PIN e frase di attivazione restano su questo dispositivo.\nVoce registrata\nProfilo salvato il 13 giu 2026, 19:47.\nMicrofono: consentito\nPuoi registrare il tono di voce e attivare l’assistente.\nUltimo controllo: 13 giu 2026, 19:47.\nVerifica microfono\nFrase di attivazione\nSalva frase\nAttiva ascolto\nDisattiva\nRimuovi profilo\nRegistrazione del tono\nDurante i 30 secondi vedi timer, avanzamento e parole riconosciute.\nFrase consigliata per registrare bene il tono\n\nLeggila con voce naturale per 30 secondi. Se finisce prima, rileggila con lo stesso ritmo. Scandisci bene \"IUSENTRA\" e \"Studio\", restando vicino al microfono.\n\nStudio legale IUSENTRA. "
+    },
+    "activation": {
+      "href": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "mainH1": "Panoramica",
+      "mainText": "Panoramica Centro operativo dello studio Dati aggiornati Aggiorna Sincronizza comunicazioni Azioni urgenti URGENTE 1 Vai alle azioni PEC da leggere OGGI 254 Apri PEC Messaggi clienti 0 Vai ai messaggi Preventivi in scadenza 0 Apri preventivi Conferimenti mancanti 0 Completa ora Ultime PEC ricevute 5 Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 24 1 giu Vai alla casella PEC -> Email recenti 5 Klarna Il tuo prossimo viaggio inizia qui 29 mag github-advanced-security[bot] Re: [antmm2605/IUSENTRA] Automatizza presidi PEC giudiziari (PR #37) 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag Vai alle email ordinarie -> Messaggi recenti dai clienti 0 Nessun elemento da presidiare. Vai ai messaggi -> Agenda e udienze 0 Oggi - Sabato 13 giugno 2026 Nessun impegno per oggi. Domani - Domenica 14 giugno 2026 Nessun impegno programmato. Vai all'agenda completa -> Anagrafiche ancora da completare 26 4% Completate Da completare: 26 Clienti 23 Soggetti 3 Vai alle anagrafiche -> Conferimenti incarico mancanti 0 Nessun elemento da presidiare. Vai -> Fascicoli con priorità alta 0 Nessun elemento da presidiare. Vai -> Scadenze per priorità 8 8 Totali 0 scadenze critiche 0% 0 scadenze ad alta priorita 0% 3 scadenze a priorita media 38% 5 scadenze a bassa priorita 62% Vai a Scadenze e Termini -> Economico rapido Fatturato mese EUR 0,00 0 parcelle emesse Incassi mese EUR 0,00 0 pagamenti registrati Da incassare EUR 0,00 0 parcelle aperte Ore lavorate 0,0 h 0 voci timesheet Vai al controllo economico -> Suggerimenti Lex AI 2 Verifica le azioni urgenti prima di aggiornare agenda e fascicoli. Completa le anagrafiche mancanti per evitare blocchi in preventivi, incarichi e atti. Apri Lex AI -> Fascicoli da presidiare Fascicoli reali ad alta priorità da seguire nel quadro operativo. 0 Nessun fascicolo prioritario nell'orizzonte operativo. Apri tutti i fascicoli -> Fonti operative collegate Fonti applicative alimentate dai conteggi reali dello studio. 5 Scadenziario 8 8 termini aperti classificati per priorità; 0 risultano urgenti nel riepilogo operativo. Fonte operativa Agenda e calendari 0 0 appuntamenti nell’orizzonte della Cruscotto, pronti per sincronizzazione calendari. Fonte operativa Fascicoli 287 287 fascicoli attivi e 0 pratiche con priorita alta nel riepilogo operativo. Fonte operativa PEC, email e messaggi 254 254 PEC da leggere, 5 email recenti e 0 messaggi cliente recenti. Fonte operativa Economico rapido OK Importo da incassare: EUR 0,00. La sezione usa fatturazione, pagamenti e timesheet reali. Fonte operativa",
+      "voiceState": "active",
+      "microphonePermission": "granted",
+      "microphoneUnlockVisible": false,
+      "microphoneUnlockText": "",
+      "commandCount": "390",
+      "panelOpen": true,
+      "panelVisible": true,
+      "panelRect": {
+        "x": 706,
+        "y": 74,
+        "width": 620,
+        "height": 606
+      },
+      "status": "PIN corretto. Richiamo pronto. Di’ “Studio” per attivare la sessione operativa. Di’ “stop” per bloccare la sessione operativa e tornare al richiamo.",
+      "clientMessage": "",
+      "clientHref": "",
+      "clientStep": "",
+      "noteTriggerValue": "",
+      "noteTriggerStored": "",
+      "noteDraft": "Studio legale IUSENTRA autorizzo l’assistente vocale dello studio apri panoramica clienti calendario e fascicoli la mia voce è naturale chiara costante e professionale ripeto con lo stesso tono autorizzo l’assistente dello studio",
+      "noteCards": [],
+      "noteMeta": "",
+      "auditNotifications": [],
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": [
+        "Comando note personalizzato",
+        "Fuso orario: Roma",
+        "Promemoria"
+      ],
+      "textSample": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nC\nUtente temporaneo audit vocale\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nVoce Studio\nAssistente vocale Studio\n390 frasi riconosciute, 59 destinazioni, 11 azioni rapide.\nPIN corretto. Richiamo pronto. Di’ “Studio” per attivare la sessione operativa. Di’ “stop” per bloccare la sessione operativa e tornare al richiamo.\nRichiamo vocale pronto\nRichiamo pronto. Di’ “Studio” per attivare la sessione operativa. Di’ “stop” per bloccare la sessione operativa e tornare al richiamo.\n\nPIN corretto. L’assistente resta pronto al richiamo “Studio” anche dopo cambio pagina.\n\nDisattiva ascolto\nConfigurazione\nComandi autorizzati\nRichieste operative\nNote vocali\nInizializzazione assistente\nVoce, PIN e frase di attivazione restano su questo dispositivo.\nVoce registrata\nProfilo salvato il 13 giu 2026, 19:47.\nMicrofono: consentito\nPuoi registrare il tono di voce e attivare l’assistente.\nUltimo controllo: 13 giu 2026, 19:47.\nVerifica microfono\nFrase di attivazione\nSalva frase\nAttiva ascolto\nDisattiva\nRimuovi profilo\nRegistrazione del tono\nDurante i 30 secondi vedi timer, avanzamento e parole riconosciute.\nFrase consigliata per regis"
+    },
+    "voiceNotes": {
+      "trigger": "appunti",
+      "firstNote": "Domani alle 18 ricordami di controllare la pec del fascicolo bianchi Creata: 13 giu 2026, 19:47 Evento: 14 giu 2026, 18:00 Promemoria browser: 14 giu 2026, 17:50",
+      "noteMeta": "Fuso orario: Roma Promemoria: 10 minuti prima Notifiche: abilitate",
+      "reminderStatus": "Promemoria nota: Ricordami tra 1 minuto di richiamare il cliente",
+      "notificationCount": 1
+    },
+    "fieldDictation": {
+      "href": "http://127.0.0.1:8080/clienti/nuovo",
+      "h1": "Nuovo Cliente",
+      "values": {
+        "nome": "Mario",
+        "telefono": "00100",
+        "cap": "00100",
+        "numeroDocumento": "CA61007P",
+        "email": "antmm2605@gmail.com",
+        "pec": "studio-legale@example.com",
+        "sitoWeb": "www.marco.rossi.it",
+        "dataNascita": "2026-06-13",
+        "dataRilascio": "2026-06-07",
+        "sesso": "F"
+      },
+      "visibleText": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE Anagrafica Nuovo Cliente Cartelle Condivise Portale Clienti SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE C Utente temporaneo audit vocale AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota sab 13 giu Nuovo Torna all'anagrafica ANAGRAFICA GUIDATA Nuovo Cliente Nuova anagrafica cliente con dati fiscali, recapiti, documento, indirizzi e onboarding preventivo. Anagrafiche Soggetti e parti CLIENTI 0 0 attivi PERSONE FISICHE 0 PF in archivio PERSONE GIURIDICHE 0 Societa ed enti DA COMPLETARE 0 0 documenti scaduti Nuovo Cliente Nuovo Soggetto Caricamento dati... Tipo cliente Nuova anagrafica governata Persona fisica Privato, professionista o assistito Persona giuridica Societa, ente o organizzazione Dati persona fisica Campi coerenti con l'anagrafica dello studio Lettore documento PDF, JPG o PNG di carta identità, passaporto o documento compatibile Carica documento Leggi documento / MRZ Carica un PDF, JPG o PNG del documento per leggere dati an",
+      "activeName": "sesso",
+      "expected": {
+        "nome": "Mario",
+        "telefono": "00100",
+        "cap": "00100",
+        "numeroDocumento": "CA61007P",
+        "email": "antmm2605@gmail.com",
+        "pec": "studio-legale@example.com",
+        "sitoWeb": "www.marco.rossi.it",
+        "dataNascita": "2026-06-13",
+        "dataRilascio": "2026-06-07",
+        "sesso": "F"
+      },
+      "mismatches": [],
+      "screenshot": "artifacts\\react-migration\\studio-voice-assistant-field-dictation.png"
+    },
+    "help": {
+      "href": "http://127.0.0.1:8080/clienti/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo Cliente",
+      "mainH1": "Nuovo Cliente",
+      "mainText": "Torna all'anagrafica ANAGRAFICA GUIDATA Nuovo Cliente Nuova anagrafica cliente con dati fiscali, recapiti, documento, indirizzi e onboarding preventivo. Anagrafiche Soggetti e parti CLIENTI 0 0 attivi PERSONE FISICHE 0 PF in archivio PERSONE GIURIDICHE 0 Societa ed enti DA COMPLETARE 0 0 documenti scaduti Nuovo Cliente Nuovo Soggetto Caricamento dati... Tipo cliente Nuova anagrafica governata Persona fisica Privato, professionista o assistito Persona giuridica Societa, ente o organizzazione Dati persona fisica Campi coerenti con l'anagrafica dello studio Lettore documento PDF, JPG o PNG di carta identità, passaporto o documento compatibile Carica documento Leggi documento / MRZ Carica un PDF, JPG o PNG del documento per leggere dati anagrafici e MRZ. Cognome* Nome* Sesso* - Maschile Femminile Codice fiscale Genera CF Data di nascita Luogo di nascita Provincia nascita Nazionalita Recapiti Usati da conferimenti, messaggi e PEC Telefono Cellulare Email PEC Fax Sito web Residenza e domicilio Campi coerenti con il modello anagrafico dello studio Via residenza Civico CAP Comune Provincia Nazione Domicilio via Domicilio comune Domicilio provincia Documento e studio Documento salvato dal servizio anagrafico esteso Tipo documento Carta d'identita Passaporto Patente Permesso di soggiorno Altro Numero documento Rilasciato da Data rilascio Data scadenza Avvocato referente Provenienza Note Crea preventivo iniziale dopo il salvataggio Prosegue con preventivo, conferimento e fascicolo collegati. Salva cliente Annulla Qualita anagrafica 4 Dati fiscali verificati Almeno un recapito presente Indirizzo utile al conferimento Documento identita controllato Statistiche rapide CLIENTI DA COMPLETARE 0 prima del conferimento SOGGETTI NON COLLEGATI 0 da associare se necessario DOCUMENTI SCADUTI 0 da aggiornare Azioni collegate Anagrafica clienti Soggetti e parti Cerca duplicati Preventivi e incarichi",
+      "voiceState": "active",
+      "microphonePermission": "granted",
+      "microphoneUnlockVisible": false,
+      "microphoneUnlockText": "",
+      "commandCount": "390",
+      "panelOpen": true,
+      "panelVisible": true,
+      "panelRect": {
+        "x": 706,
+        "y": -588,
+        "width": 620,
+        "height": 606
+      },
+      "status": "Elenco comandi aperto.",
+      "clientMessage": "",
+      "clientHref": "",
+      "clientStep": "",
+      "noteTriggerValue": "",
+      "noteTriggerStored": "appunti",
+      "noteDraft": "",
+      "noteCards": [],
+      "noteMeta": "",
+      "auditNotifications": [],
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": [
+        "Comando note personalizzato",
+        "Fuso orario: Roma",
+        "Promemoria"
+      ],
+      "textSample": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nAnagrafica\nNuovo Cliente\nCartelle Condivise\nPortale Clienti\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nC\nUtente temporaneo audit vocale\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nVoce Studio\nAssistente vocale Studio\n390 frasi riconosciute, 59 destinazioni, 11 azioni rapide.\nElenco comandi aperto.\nSessione operativa attiva\nPronuncia direttamente i comandi; di’ “stop” quando hai finito.\n\nComando eseguito: elenco comandi autorizzati aperto.\n\nStop sessione\nDisattiva ascolto\nConfigurazione\nComandi autorizzati\nRichieste operative\nNote vocali\nCosa ho ascoltato\nQui vedi il testo riconosciuto quando parli.\naiuto\n\nUltimo ascolto: aiuto\n\nComandi autorizzati\nCon il richiamo vocale pronto, attiva la sessione e poi pronuncia i comandi senza ripetere la frase di attivazione.\n40 comandi iniziali\n350 frasi aggiunte\n59 aree apribili\nClienti\nInserimento cliente guidato\nnuovo cliente · inserisci cliente · aggiungi cliente con voce\nModifica cliente\nmodifica cliente · modifica clienti · apri modifica cliente\nModifica soggetto o parte\nmodifica soggetto · modifica soggetti · modifica soggetti e parti\nClienti\napri Clienti · apri i clienti · apri anagrafiche clienti\nNuovo Client"
+    },
+    "lex": {
+      "href": "http://127.0.0.1:8080/clienti/nuovo",
+      "status": "Lex AI aperto nel contesto corrente.",
+      "hasLexText": true
+    },
+    "search": {
+      "href": "http://127.0.0.1:8080/global-search?q=rossi",
+      "title": "IUSENTRA",
+      "h1": "Nuovo Cliente",
+      "mainH1": "Nuovo Cliente",
+      "mainText": "Torna all'anagraficaAnagrafica guidataNuovo ClienteNuova anagrafica cliente con dati fiscali, recapiti, documento, indirizzi e onboarding preventivo.AnagraficheSoggetti e partiClienti243 attiviPersone fisiche22PF in archivioPersone giuridiche2Societa ed entiDa completare230 documenti scadutiNuovo ClienteNuovo SoggettoSalvataggio sicuro attivoTipo clienteNuova anagrafica governataPersona fisicaPrivato, professionista o assistitoPersona giuridicaSocieta, ente o organizzazioneDati persona fisicaCampi coerenti con l'anagrafica dello studioLettore documentoPDF, JPG o PNG di carta identità, passaporto o documento compatibile Carica documento Leggi documento / MRZCarica un PDF, JPG o PNG del documento per leggere dati anagrafici e MRZ.Cognome*Nome*Sesso*-MaschileFemminileCodice fiscaleGenera CFData di nascitaLuogo di nascitaProvincia nascitaNazionalitaRecapitiUsati da conferimenti, messaggi e PECTelefonoCellulareEmailPECFaxSito webResidenza e domicilioCampi coerenti con il modello anagrafico dello studioVia residenzaCivicoCAPComuneProvinciaNazioneDomicilio viaDomicilio comuneDomicilio provinciaDocumento e studioDocumento salvato dal servizio anagrafico estesoTipo documentoCarta IdentitaPassaportoPatentePermesso SoggiornoAltroNumero documentoRilasciato daData rilascioData scadenzaAvvocato referenteProvenienzaNoteCrea preventivo iniziale dopo il salvataggioProsegue con preventivo, conferimento e fascicolo collegati.Salva clienteAnnullaQualita anagrafica4Dati fiscali verificatiAlmeno un recapito presenteIndirizzo utile al conferimentoDocumento identita controllatoStatistiche rapideClienti da completare23prima del conferimentoSoggetti non collegati0da associare se necessarioDocumenti scaduti0da aggiornareAzioni collegateAnagrafica clientiSoggetti e partiCerca duplicatiPreventivi e incarichi",
+      "voiceState": "active",
+      "microphonePermission": "granted",
+      "microphoneUnlockVisible": false,
+      "microphoneUnlockText": "",
+      "commandCount": "390",
+      "panelOpen": true,
+      "panelVisible": true,
+      "panelRect": {
+        "x": 721,
+        "y": 74,
+        "width": 620,
+        "height": 606
+      },
+      "status": "Eseguo: Cerca nello studio.",
+      "clientMessage": "",
+      "clientHref": "",
+      "clientStep": "",
+      "noteTriggerValue": "",
+      "noteTriggerStored": "appunti",
+      "noteDraft": "",
+      "noteCards": [],
+      "noteMeta": "",
+      "auditNotifications": [],
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": [
+        "Comando note personalizzato",
+        "Fuso orario: Roma",
+        "Promemoria"
+      ],
+      "textSample": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nAnagrafica\nNuovo Cliente\nCartelle Condivise\nPortale Clienti\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nC\nUtente temporaneo audit vocale\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nVoce Studio\nAssistente vocale Studio\n390 frasi riconosciute, 59 destinazioni, 11 azioni rapide.\nEseguo: Cerca nello studio.\nSessione operativa attiva\nPronuncia direttamente i comandi; di’ “stop” quando hai finito.\n\nComando eseguito: ricerca studio per \"rossi\".\n\nStop sessione\nDisattiva ascolto\nConfigurazione\nComandi autorizzati\nRichieste operative\nNote vocali\nCosa ho ascoltato\nQui vedi il testo riconosciuto quando parli.\ncerca Rossi\napri Lex\naiuto\n\nUltimo ascolto: cerca Rossi\n\nComandi autorizzati\nCon il richiamo vocale pronto, attiva la sessione e poi pronuncia i comandi senza ripetere la frase di attivazione.\n40 comandi iniziali\n350 frasi aggiunte\n59 aree apribili\nClienti\nInserimento cliente guidato\nnuovo cliente · inserisci cliente · aggiungi cliente con voce\nModifica cliente\nmodifica cliente · modifica clienti · apri modifica cliente\nModifica soggetto o parte\nmodifica soggetto · modifica soggetti · modifica soggetti e parti\nClienti\napri Clienti · apri i clienti · apri anagraf"
+    },
+    "newClient": {
+      "fiscalCode": "VRDLCU90A01H867X",
+      "confirmation": "Ho aggiornato codice fiscale. Nome Luca, cognome Verdi, codice fiscale VRDLCU90A01H867X. Confermi l'inserimento?",
+      "message": "Cliente Verdi Luca aggiunto.",
+      "href": "/clienti/4578E442",
+      "createdId": "4578E442",
+      "cleanup": {
+        "status": 200,
+        "payload": {
+          "deleted": [
+            "4578E442"
+          ],
+          "message": "Cliente eliminato.",
+          "missing": [],
+          "ok": true
+        }
+      }
+    },
+    "stop": {
+      "href": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "mainH1": "Panoramica",
+      "mainText": "Panoramica Centro operativo dello studio Dati aggiornati Aggiorna Sincronizza comunicazioni Azioni urgenti URGENTE 1 Vai alle azioni PEC da leggere OGGI 254 Apri PEC Messaggi clienti 0 Vai ai messaggi Preventivi in scadenza 0 Apri preventivi Conferimenti mancanti 0 Completa ora Ultime PEC ricevute 5 Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 24 1 giu Vai alla casella PEC -> Email recenti 5 Klarna Il tuo prossimo viaggio inizia qui 29 mag github-advanced-security[bot] Re: [antmm2605/IUSENTRA] Automatizza presidi PEC giudiziari (PR #37) 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag Vai alle email ordinarie -> Messaggi recenti dai clienti 0 Nessun elemento da presidiare. Vai ai messaggi -> Agenda e udienze 0 Oggi - Sabato 13 giugno 2026 Nessun impegno per oggi. Domani - Domenica 14 giugno 2026 Nessun impegno programmato. Vai all'agenda completa -> Anagrafiche ancora da completare 26 4% Completate Da completare: 26 Clienti 23 Soggetti 3 Vai alle anagrafiche -> Conferimenti incarico mancanti 0 Nessun elemento da presidiare. Vai -> Fascicoli con priorità alta 0 Nessun elemento da presidiare. Vai -> Scadenze per priorità 8 8 Totali 0 scadenze critiche 0% 0 scadenze ad alta priorita 0% 3 scadenze a priorita media 38% 5 scadenze a bassa priorita 62% Vai a Scadenze e Termini -> Economico rapido Fatturato mese EUR 0,00 0 parcelle emesse Incassi mese EUR 0,00 0 pagamenti registrati Da incassare EUR 0,00 0 parcelle aperte Ore lavorate 0,0 h 0 voci timesheet Vai al controllo economico -> Suggerimenti Lex AI 2 Verifica le azioni urgenti prima di aggiornare agenda e fascicoli. Completa le anagrafiche mancanti per evitare blocchi in preventivi, incarichi e atti. Apri Lex AI -> Fascicoli da presidiare Fascicoli reali ad alta priorità da seguire nel quadro operativo. 0 Nessun fascicolo prioritario nell'orizzonte operativo. Apri tutti i fascicoli -> Fonti operative collegate Fonti applicative alimentate dai conteggi reali dello studio. 5 Scadenziario 8 8 termini aperti classificati per priorità; 0 risultano urgenti nel riepilogo operativo. Fonte operativa Agenda e calendari 0 0 appuntamenti nell’orizzonte della Cruscotto, pronti per sincronizzazione calendari. Fonte operativa Fascicoli 287 287 fascicoli attivi e 0 pratiche con priorita alta nel riepilogo operativo. Fonte operativa PEC, email e messaggi 254 254 PEC da leggere, 5 email recenti e 0 messaggi cliente recenti. Fonte operativa Economico rapido OK Importo da incassare: EUR 0,00. La sezione usa fatturazione, pagamenti e timesheet reali. Fonte operativa",
+      "voiceState": "idle",
+      "microphonePermission": "granted",
+      "microphoneUnlockVisible": false,
+      "microphoneUnlockText": "",
+      "commandCount": "390",
+      "panelOpen": true,
+      "panelVisible": true,
+      "panelRect": {
+        "x": 706,
+        "y": 74,
+        "width": 620,
+        "height": 606
+      },
+      "status": "Assistente vocale disattivato.",
+      "clientMessage": "Cliente Verdi Luca aggiunto.",
+      "clientHref": "/clienti/4578E442",
+      "clientStep": "success",
+      "noteTriggerValue": "",
+      "noteTriggerStored": "appunti",
+      "noteDraft": "",
+      "noteCards": [],
+      "noteMeta": "",
+      "auditNotifications": [],
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": [
+        "Comando note personalizzato",
+        "Fuso orario: Roma",
+        "Promemoria"
+      ],
+      "textSample": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nC\nUtente temporaneo audit vocale\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nVoce Studio\nAssistente vocale Studio\n390 frasi riconosciute, 59 destinazioni, 11 azioni rapide.\nAssistente vocale disattivato.\nStudio non in ascolto\nPremi Attiva ascolto nella sezione Configurazione.\n\nAscolto disattivato. Puoi riattivarlo dalla sezione Configurazione.\n\nConfigurazione\nComandi autorizzati\nRichieste operative\nNote vocali\nNuovo cliente guidato\nDi’: “nuovo cliente”, poi nome, cognome e codice fiscale.\nNome\nCognome\nCodice fiscale\nAvvia guida\nAggiungi cliente\n\nCliente Verdi Luca aggiunto.\n\nApri scheda cliente\nAssistenza remota\nsab 13 giu\nNuovo\nPanoramica\n\nCentro operativo dello studio\n\nDati aggiornati\nAggiorna\nSincronizza comunicazioni\nAzioni urgenti\nURGENTE\n1\nVai alle azioni\nPEC da leggere\nOGGI\n254\nApri PEC\nMessaggi clienti\n0\nVai ai messaggi\nPreventivi in scadenza\n0\nApri preventivi\nConferimenti mancanti\n0\nCompleta ora\nUltime PEC ricevute\n5\nPer conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 32\n1 giu\nPer conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 31\n1 giu\nPer conto di: giuseppe.montagnese94@pec.it\nPOST"
+    },
+    "back": {
+      "href": "http://127.0.0.1:8080/audit",
+      "title": "IUSENTRA",
+      "h1": "Registro dei trattamenti",
+      "mainH1": "Registro dei trattamenti",
+      "mainText": "Registro GDPR Art. 30Registro dei trattamentiCaricamento del registro GDPR.Nuovo trattamentoEsporta auditTrattamenti0schede nel registroAttivi00 inattiviExtra UE0da presidiareMisure mancanti0sicurezza da completareAvvisi0campi da verificareTuttiAttiviInattiviTrasferimenti extra UEDa completareNuovo trattamentoSincronizzazione...Trattamenti registratiElenco operativo con controlli di completezza essenziali.0Nessun trattamento nella vista correnteModifica ricerca o filtro, oppure aggiungi una nuova scheda al registro.Azioni operativeCollegamenti reali del gestionale.Nuovo trattamentoClienti e consensiRegistro attivitàImpostazioni studioChecklist GDPRPresidi minimi prima della revisione.Finalità e base giuridicaFinalità e base giuridica compilateCategorie datiCategorie dati e interessati indicatiConservazioneTermine di conservazione esplicitoSicurezzaMisure tecniche e organizzative presentiExtra UETrasferimenti extra UE verificatiFonti ufficialiFonti salvate e consultabili.",
+      "voiceState": "active",
+      "microphonePermission": "granted",
+      "microphoneUnlockVisible": false,
+      "microphoneUnlockText": "",
+      "commandCount": "390",
+      "panelOpen": true,
+      "panelVisible": true,
+      "panelRect": {
+        "x": 721,
+        "y": 74,
+        "width": 620,
+        "height": 606
+      },
+      "status": "Eseguo: Torna indietro.",
+      "clientMessage": "",
+      "clientHref": "",
+      "clientStep": "",
+      "noteTriggerValue": "",
+      "noteTriggerStored": "appunti",
+      "noteDraft": "Quando registri, qui vedrai le parole che il sistema sta riconoscendo.",
+      "noteCards": [],
+      "noteMeta": "",
+      "auditNotifications": [],
+      "bodyOverflowX": false,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "emptyVisibleButtons": [],
+      "overflowingButtons": [],
+      "requiredVoiceTextsMissing": [
+        "Comando note personalizzato",
+        "Fuso orario: Roma",
+        "Promemoria"
+      ],
+      "textSample": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nAmministrazione\nUtenti\nProfili e Permessi\nRegistro Attività\nImporta pratiche da Studio Telematico\nDatabase\nRegistro GDPR\nC\nUtente temporaneo audit vocale\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nVoce Studio\nAssistente vocale Studio\n390 frasi riconosciute, 59 destinazioni, 11 azioni rapide.\nEseguo: Torna indietro.\nSessione operativa attiva\nPronuncia direttamente i comandi; di’ “stop” quando hai finito.\n\nComando eseguito: ritorno alla pagina precedente.\n\nStop sessione\nDisattiva ascolto\nConfigurazione\nComandi autorizzati\nRichieste operative\nNote vocali\nInizializzazione assistente\nVoce, PIN e frase di attivazione restano su questo dispositivo.\nVoce registrata\nProfilo salvato il 13 giu 2026, 19:47.\nMicrofono: consentito\nPuoi registrare il tono di voce e attivare l’assistente.\nUltimo controllo: 13 giu 2026, 19:48.\nVerifica microfono\nFrase di attivazione\nSalva frase\nAttiva ascolto\nDisattiva\nRimuovi profilo\nRegistrazione del tono\nDurante i 30 secondi vedi timer, avanzamento e parole riconosciute.\nFrase consigliata per registrare bene il tono\n\nLeggila con voce naturale per 30 secondi. Se finisce prima, rileggila con l"
+    },
+    "reload": {
+      "before": "http://127.0.0.1:8080/audit",
+      "after": "http://127.0.0.1:8080/audit"
+    }
+  },
+  "routes": [
+    {
+      "id": "panoramica",
+      "label": "Panoramica",
+      "phrase": "apri Panoramica",
+      "expected": "/",
+      "expectedContent": [
+        "Panoramica",
+        "Ultime PEC ricevute",
+        "Agenda"
+      ],
+      "matchedContent": [
+        "Panoramica",
+        "Ultime PEC ricevute",
+        "Agenda"
+      ],
+      "before": "http://127.0.0.1:8080/",
+      "href": "http://127.0.0.1:8080/",
+      "h1": "Panoramica",
+      "commandCount": "390",
+      "elapsedMs": 3265,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "regia-operativa",
+      "label": "Regia Operativa",
+      "phrase": "apri Regia Operativa",
+      "expected": "/workspace-intelligente",
+      "expectedContent": [
+        "Regia Operativa",
+        "priorità",
+        "prossime azioni"
+      ],
+      "matchedContent": [
+        "Regia Operativa",
+        "priorità"
+      ],
+      "before": "http://127.0.0.1:8080/",
+      "href": "http://127.0.0.1:8080/workspace-intelligente",
+      "h1": "Regia Operativa",
+      "commandCount": "390",
+      "elapsedMs": 53,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "ricerca-studio",
+      "label": "Ricerca Studio",
+      "phrase": "apri Ricerca",
+      "expected": "/app-v2/ricerca-studio",
+      "expectedContent": [
+        "Ricerca Studio",
+        "Cerca"
+      ],
+      "matchedContent": [
+        "Ricerca Studio",
+        "Cerca"
+      ],
+      "before": "http://127.0.0.1:8080/workspace-intelligente",
+      "href": "http://127.0.0.1:8080/app-v2/ricerca-studio",
+      "h1": "Trova tutto ciò che serve allo studio",
+      "commandCount": "390",
+      "elapsedMs": 379,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "calendario",
+      "label": "Calendario",
+      "phrase": "apri Calendario",
+      "expected": "/agenda",
+      "expectedContent": [
+        "Calendario",
+        "Agenda"
+      ],
+      "matchedContent": [
+        "Agenda"
+      ],
+      "before": "http://127.0.0.1:8080/app-v2/ricerca-studio",
+      "href": "http://127.0.0.1:8080/agenda",
+      "h1": "Agenda",
+      "commandCount": "390",
+      "elapsedMs": 672,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "nuovo-appuntamento",
+      "label": "Nuovo Appuntamento",
+      "phrase": "nuovo appuntamento",
+      "expected": "/agenda/nuovo",
+      "expectedContent": [
+        "Nuovo Appuntamento",
+        "Nuovo appuntamento",
+        "Appuntamento"
+      ],
+      "matchedContent": [
+        "Nuovo Appuntamento",
+        "Nuovo appuntamento",
+        "Appuntamento"
+      ],
+      "before": "http://127.0.0.1:8080/agenda",
+      "href": "http://127.0.0.1:8080/agenda/nuovo",
+      "h1": "Agenda",
+      "commandCount": "390",
+      "elapsedMs": 44,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "timesheet",
+      "label": "Timesheet",
+      "phrase": "apri Timesheet",
+      "expected": "/timesheet",
+      "expectedContent": [
+        "Timesheet"
+      ],
+      "matchedContent": [
+        "Timesheet"
+      ],
+      "before": "http://127.0.0.1:8080/agenda/nuovo",
+      "href": "http://127.0.0.1:8080/timesheet",
+      "h1": "",
+      "commandCount": "390",
+      "elapsedMs": 359,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "fascicoli",
+      "label": "Fascicoli",
+      "phrase": "apri Fascicoli",
+      "expected": "/fascicoli",
+      "expectedContent": [
+        "Fascicoli"
+      ],
+      "matchedContent": [
+        "Fascicoli"
+      ],
+      "before": "http://127.0.0.1:8080/timesheet",
+      "href": "http://127.0.0.1:8080/fascicoli",
+      "h1": "Fascicoli",
+      "commandCount": "390",
+      "elapsedMs": 972,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "tutti-fascicoli",
+      "label": "Tutti i Fascicoli",
+      "phrase": "apri tutti i fascicoli",
+      "expected": "/fascicoli",
+      "expectedContent": [
+        "Tutti i Fascicoli",
+        "Fascicoli"
+      ],
+      "matchedContent": [
+        "Fascicoli"
+      ],
+      "before": "http://127.0.0.1:8080/fascicoli",
+      "href": "http://127.0.0.1:8080/fascicoli",
+      "h1": "Fascicoli",
+      "commandCount": "390",
+      "elapsedMs": 26,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "nuovo-fascicolo",
+      "label": "Nuovo Fascicolo",
+      "phrase": "nuovo fascicolo",
+      "expected": "/fascicoli/nuovo",
+      "expectedContent": [
+        "Nuovo Fascicolo",
+        "Nuovo fascicolo",
+        "Fascicolo"
+      ],
+      "matchedContent": [
+        "Nuovo Fascicolo",
+        "Nuovo fascicolo",
+        "Fascicolo"
+      ],
+      "before": "http://127.0.0.1:8080/fascicoli",
+      "href": "http://127.0.0.1:8080/fascicoli/nuovo",
+      "h1": "Apertura nuovo fascicolo",
+      "commandCount": "390",
+      "elapsedMs": 145,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "archivio-fascicoli",
+      "label": "Archivio Fascicoli",
+      "phrase": "apri archivio fascicoli",
+      "expected": "/fascicoli/archivio",
+      "expectedContent": [
+        "Archivio Fascicoli",
+        "Archivio",
+        "Fascicoli"
+      ],
+      "matchedContent": [
+        "Archivio Fascicoli",
+        "Archivio",
+        "Fascicoli"
+      ],
+      "before": "http://127.0.0.1:8080/fascicoli/nuovo",
+      "href": "http://127.0.0.1:8080/fascicoli/archivio",
+      "h1": "Archivio Fascicoli",
+      "commandCount": "390",
+      "elapsedMs": 67,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "clienti",
+      "label": "Clienti",
+      "phrase": "apri Clienti",
+      "expected": "/clienti",
+      "expectedContent": [
+        "Clienti",
+        "Anagrafiche"
+      ],
+      "matchedContent": [
+        "Clienti",
+        "Anagrafiche"
+      ],
+      "before": "http://127.0.0.1:8080/fascicoli/archivio",
+      "href": "http://127.0.0.1:8080/clienti",
+      "h1": "Anagrafica Clienti",
+      "commandCount": "390",
+      "elapsedMs": 662,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "cliente-manuale",
+      "label": "Nuovo Cliente Manuale",
+      "phrase": "apri scheda nuovo cliente",
+      "expected": "/clienti/nuovo",
+      "expectedContent": [
+        "Nuovo Cliente Manuale",
+        "Nuovo cliente",
+        "Cliente"
+      ],
+      "matchedContent": [
+        "Nuovo cliente",
+        "Cliente"
+      ],
+      "before": "http://127.0.0.1:8080/clienti",
+      "href": "http://127.0.0.1:8080/clienti/nuovo",
+      "h1": "Anagrafica Clienti",
+      "commandCount": "390",
+      "elapsedMs": 39,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "cartelle-condivise",
+      "label": "Cartelle Condivise",
+      "phrase": "apri cartelle condivise",
+      "expected": "/cartelle-condivise",
+      "expectedContent": [
+        "Cartelle Condivise",
+        "Cartelle condivise"
+      ],
+      "matchedContent": [
+        "Cartelle Condivise",
+        "Cartelle condivise"
+      ],
+      "before": "http://127.0.0.1:8080/clienti/nuovo",
+      "href": "http://127.0.0.1:8080/cartelle-condivise",
+      "h1": "",
+      "commandCount": "390",
+      "elapsedMs": 344,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "soggetti",
+      "label": "Soggetti e Parti",
+      "phrase": "apri Soggetti e Parti",
+      "expected": "/soggetti",
+      "expectedContent": [
+        "Soggetti e Parti",
+        "Soggetti",
+        "Parti"
+      ],
+      "matchedContent": [
+        "Soggetti e Parti",
+        "Soggetti",
+        "Parti"
+      ],
+      "before": "http://127.0.0.1:8080/cartelle-condivise",
+      "href": "http://127.0.0.1:8080/soggetti",
+      "h1": "Anagrafica soggetti",
+      "commandCount": "390",
+      "elapsedMs": 1250,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "nuovo-soggetto",
+      "label": "Nuovo Soggetto",
+      "phrase": "nuovo soggetto",
+      "expected": "/soggetti/nuovo",
+      "expectedContent": [
+        "Nuovo Soggetto",
+        "Nuovo soggetto",
+        "Soggetto"
+      ],
+      "matchedContent": [
+        "Nuovo Soggetto",
+        "Nuovo soggetto",
+        "Soggetto"
+      ],
+      "before": "http://127.0.0.1:8080/soggetti",
+      "href": "http://127.0.0.1:8080/soggetti/nuovo",
+      "h1": "Nuovo Soggetto",
+      "commandCount": "390",
+      "elapsedMs": 123,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "pec",
+      "label": "PEC",
+      "phrase": "apri PEC",
+      "expected": "/email/",
+      "expectedContent": [
+        "PEC",
+        "Email"
+      ],
+      "matchedContent": [
+        "PEC",
+        "Email"
+      ],
+      "before": "http://127.0.0.1:8080/soggetti/nuovo",
+      "href": "http://127.0.0.1:8080/email/",
+      "h1": "Nuovo Soggetto",
+      "commandCount": "390",
+      "elapsedMs": 70,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "email-ordinaria",
+      "label": "Email SMTP",
+      "phrase": "apri email ordinaria",
+      "expected": "/email-ordinaria/",
+      "expectedContent": [
+        "Email SMTP",
+        "Email",
+        "SMTP"
+      ],
+      "matchedContent": [
+        "Email",
+        "SMTP"
+      ],
+      "before": "http://127.0.0.1:8080/email/",
+      "href": "http://127.0.0.1:8080/email-ordinaria/",
+      "h1": "Casella email ordinaria dello studio",
+      "commandCount": "390",
+      "elapsedMs": 663,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "notifiche",
+      "label": "Notifiche",
+      "phrase": "apri Notifiche",
+      "expected": "/notifiche",
+      "expectedContent": [
+        "Notifiche"
+      ],
+      "matchedContent": [
+        "Notifiche"
+      ],
+      "before": "http://127.0.0.1:8080/email-ordinaria/",
+      "href": "http://127.0.0.1:8080/notifiche",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 5016,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "notifiche-whatsapp",
+      "label": "Notifiche WhatsApp",
+      "phrase": "apri notifiche WhatsApp",
+      "expected": "/notifiche-whatsapp",
+      "expectedContent": [
+        "Notifiche WhatsApp",
+        "WhatsApp",
+        "Notifiche"
+      ],
+      "matchedContent": [
+        "WhatsApp",
+        "Notifiche"
+      ],
+      "before": "http://127.0.0.1:8080/notifiche",
+      "href": "http://127.0.0.1:8080/notifiche-whatsapp",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 1590,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "messaggi",
+      "label": "Messaggi",
+      "phrase": "apri Messaggi",
+      "expected": "/messaggi",
+      "expectedContent": [
+        "Messaggi"
+      ],
+      "matchedContent": [
+        "Messaggi"
+      ],
+      "before": "http://127.0.0.1:8080/notifiche-whatsapp",
+      "href": "http://127.0.0.1:8080/messaggi",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 29,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "nuovo-messaggio",
+      "label": "Nuovo SMS o WhatsApp",
+      "phrase": "nuovo messaggio",
+      "expected": "/messaggi/nuovo",
+      "expectedContent": [
+        "Nuovo SMS o WhatsApp",
+        "Nuovo",
+        "messaggio"
+      ],
+      "matchedContent": [
+        "Nuovo",
+        "messaggio"
+      ],
+      "before": "http://127.0.0.1:8080/messaggi",
+      "href": "http://127.0.0.1:8080/messaggi/nuovo",
+      "h1": "Nuovo messaggio",
+      "commandCount": "390",
+      "elapsedMs": 352,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "scadenze",
+      "label": "Scadenze",
+      "phrase": "apri Scadenze",
+      "expected": "/scadenziario",
+      "expectedContent": [
+        "Scadenze",
+        "Scadenziario"
+      ],
+      "matchedContent": [
+        "Scadenze",
+        "Scadenziario"
+      ],
+      "before": "http://127.0.0.1:8080/messaggi/nuovo",
+      "href": "http://127.0.0.1:8080/scadenziario",
+      "h1": "Scadenziario Legale",
+      "commandCount": "390",
+      "elapsedMs": 400,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "nuova-scadenza",
+      "label": "Nuova Scadenza",
+      "phrase": "nuova scadenza",
+      "expected": "/scadenziario/nuova",
+      "expectedContent": [
+        "Nuova Scadenza",
+        "Nuova scadenza",
+        "Scadenza"
+      ],
+      "matchedContent": [
+        "Nuova Scadenza",
+        "Nuova scadenza",
+        "Scadenza"
+      ],
+      "before": "http://127.0.0.1:8080/scadenziario",
+      "href": "http://127.0.0.1:8080/scadenziario/nuova",
+      "h1": "Scadenziario Legale",
+      "commandCount": "390",
+      "elapsedMs": 46,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "preparazione-udienza",
+      "label": "Preparazione Udienza",
+      "phrase": "apri preparazione udienza",
+      "expected": "/wizard-pro/",
+      "expectedContent": [
+        "Preparazione Udienza",
+        "Preparazione",
+        "Udienza"
+      ],
+      "matchedContent": [
+        "Udienza"
+      ],
+      "before": "http://127.0.0.1:8080/scadenziario/nuova",
+      "href": "http://127.0.0.1:8080/wizard-pro/",
+      "h1": "",
+      "commandCount": "390",
+      "elapsedMs": 367,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "controlli-atti",
+      "label": "Controlli Atti",
+      "phrase": "apri controlli atti",
+      "expected": "/deposito/checklist",
+      "expectedContent": [
+        "Controlli Atti",
+        "Deposito"
+      ],
+      "matchedContent": [
+        "Deposito"
+      ],
+      "before": "http://127.0.0.1:8080/wizard-pro/",
+      "href": "http://127.0.0.1:8080/deposito/checklist",
+      "h1": "PolisWeb / PST",
+      "commandCount": "390",
+      "elapsedMs": 951,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "servizi-telematici",
+      "label": "Servizi Telematici",
+      "phrase": "apri Servizi Telematici",
+      "expected": "/telematico",
+      "expectedContent": [
+        "Servizi Telematici",
+        "Telematico"
+      ],
+      "matchedContent": [
+        "Servizi Telematici",
+        "Telematico"
+      ],
+      "before": "http://127.0.0.1:8080/deposito/checklist",
+      "href": "http://127.0.0.1:8080/telematico",
+      "h1": "PolisWeb / PST",
+      "commandCount": "390",
+      "elapsedMs": 44,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "polisweb",
+      "label": "PolisWeb",
+      "phrase": "apri PolisWeb",
+      "expected": "/polisWeb",
+      "expectedContent": [
+        "PolisWeb"
+      ],
+      "matchedContent": [
+        "PolisWeb"
+      ],
+      "before": "http://127.0.0.1:8080/telematico",
+      "href": "http://127.0.0.1:8080/polisWeb",
+      "h1": "PolisWeb / PST",
+      "commandCount": "390",
+      "elapsedMs": 74,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "pdp",
+      "label": "PDP",
+      "phrase": "apri PDP",
+      "expected": "/pdp",
+      "expectedContent": [
+        "PDP"
+      ],
+      "matchedContent": [
+        "PDP"
+      ],
+      "before": "http://127.0.0.1:8080/polisWeb",
+      "href": "http://127.0.0.1:8080/pdp",
+      "h1": "PDP Penale",
+      "commandCount": "390",
+      "elapsedMs": 4137,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "pat",
+      "label": "PAT",
+      "phrase": "apri PAT",
+      "expected": "/pat",
+      "expectedContent": [
+        "PAT"
+      ],
+      "matchedContent": [
+        "PAT"
+      ],
+      "before": "http://127.0.0.1:8080/pdp",
+      "href": "http://127.0.0.1:8080/pat",
+      "h1": "PAT Amministrativo",
+      "commandCount": "390",
+      "elapsedMs": 1295,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "ptt",
+      "label": "PTT",
+      "phrase": "apri PTT",
+      "expected": "/sigit",
+      "expectedContent": [
+        "PTT"
+      ],
+      "matchedContent": [
+        "PTT"
+      ],
+      "before": "http://127.0.0.1:8080/pat",
+      "href": "http://127.0.0.1:8080/sigit",
+      "h1": "PTT Tributario",
+      "commandCount": "390",
+      "elapsedMs": 1299,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "studio",
+      "label": "Studio",
+      "phrase": "apri organizzazione",
+      "expected": "/studio",
+      "expectedContent": [
+        "Studio"
+      ],
+      "matchedContent": [
+        "Studio"
+      ],
+      "before": "http://127.0.0.1:8080/sigit",
+      "href": "http://127.0.0.1:8080/studio",
+      "h1": "Studio",
+      "commandCount": "390",
+      "elapsedMs": 359,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "fatture",
+      "label": "Fatture",
+      "phrase": "apri Fatture",
+      "expected": "/fatturazione/",
+      "expectedContent": [
+        "Fatture",
+        "Parcelle"
+      ],
+      "matchedContent": [
+        "Fatture",
+        "Parcelle"
+      ],
+      "before": "http://127.0.0.1:8080/studio",
+      "href": "http://127.0.0.1:8080/fatturazione/",
+      "h1": "Fatturazione",
+      "commandCount": "390",
+      "elapsedMs": 1883,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "preventivi",
+      "label": "Preventivi",
+      "phrase": "apri Preventivi",
+      "expected": "/preventivi/",
+      "expectedContent": [
+        "Preventivi"
+      ],
+      "matchedContent": [
+        "Preventivi"
+      ],
+      "before": "http://127.0.0.1:8080/fatturazione/",
+      "href": "http://127.0.0.1:8080/preventivi/",
+      "h1": "Preventivi e incarichi",
+      "commandCount": "390",
+      "elapsedMs": 330,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "preventivo-nuovo",
+      "label": "Nuovo Preventivo",
+      "phrase": "nuovo preventivo",
+      "expected": "/preventivi/nuovo",
+      "expectedContent": [
+        "Nuovo Preventivo",
+        "Nuovo preventivo",
+        "Preventivo"
+      ],
+      "matchedContent": [
+        "Nuovo Preventivo",
+        "Nuovo preventivo",
+        "Preventivo"
+      ],
+      "before": "http://127.0.0.1:8080/preventivi/",
+      "href": "http://127.0.0.1:8080/preventivi/nuovo",
+      "h1": "Nuovo preventivo",
+      "commandCount": "390",
+      "elapsedMs": 29,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "compensi",
+      "label": "Compensi Forensi",
+      "phrase": "apri compensi",
+      "expected": "/compensi-forensi",
+      "expectedContent": [
+        "Compensi Forensi",
+        "Compensi"
+      ],
+      "matchedContent": [
+        "Compensi Forensi",
+        "Compensi"
+      ],
+      "before": "http://127.0.0.1:8080/preventivi/nuovo",
+      "href": "http://127.0.0.1:8080/compensi-forensi",
+      "h1": "Compensi forensi",
+      "commandCount": "390",
+      "elapsedMs": 2527,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "documenti",
+      "label": "Documenti",
+      "phrase": "apri Documenti",
+      "expected": "/documenti",
+      "expectedContent": [
+        "Documenti"
+      ],
+      "matchedContent": [
+        "Documenti"
+      ],
+      "before": "http://127.0.0.1:8080/compensi-forensi",
+      "href": "http://127.0.0.1:8080/documenti",
+      "h1": "Documenti",
+      "commandCount": "390",
+      "elapsedMs": 352,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "template-atti",
+      "label": "Template Atti",
+      "phrase": "apri template atti",
+      "expected": "/template-atti",
+      "expectedContent": [
+        "Template Atti",
+        "Modelli"
+      ],
+      "matchedContent": [
+        "Modelli"
+      ],
+      "before": "http://127.0.0.1:8080/documenti",
+      "href": "http://127.0.0.1:8080/template-atti",
+      "h1": "Documenti",
+      "commandCount": "390",
+      "elapsedMs": 43,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "redazione-atti",
+      "label": "Redazione Atti",
+      "phrase": "apri Redazione Atti",
+      "expected": "/redazione-atti",
+      "expectedContent": [
+        "Redazione Atti",
+        "Atti"
+      ],
+      "matchedContent": [
+        "Redazione Atti",
+        "Atti"
+      ],
+      "before": "http://127.0.0.1:8080/template-atti",
+      "href": "http://127.0.0.1:8080/redazione-atti",
+      "h1": "Redazione atti",
+      "commandCount": "390",
+      "elapsedMs": 2226,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "statistiche",
+      "label": "Statistiche",
+      "phrase": "apri statistiche",
+      "expected": "/statistiche",
+      "expectedContent": [
+        "Statistiche"
+      ],
+      "matchedContent": [
+        "Statistiche"
+      ],
+      "before": "http://127.0.0.1:8080/redazione-atti",
+      "href": "http://127.0.0.1:8080/statistiche",
+      "h1": "Statistiche",
+      "commandCount": "390",
+      "elapsedMs": 340,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "ricerca-legale",
+      "label": "Ricerca Legale",
+      "phrase": "apri Ricerca Legale",
+      "expected": "/ricerca-legale",
+      "expectedContent": [
+        "Ricerca Legale"
+      ],
+      "matchedContent": [
+        "Ricerca Legale"
+      ],
+      "before": "http://127.0.0.1:8080/statistiche",
+      "href": "http://127.0.0.1:8080/ricerca-legale",
+      "h1": "Ricerca Legale",
+      "commandCount": "390",
+      "elapsedMs": 27575,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "news-legali",
+      "label": "News disponibili",
+      "phrase": "apri news disponibili",
+      "expected": "/ricerca-legale/news",
+      "expectedContent": [
+        "News disponibili",
+        "News",
+        "Ricerca Legale"
+      ],
+      "matchedContent": [
+        "News"
+      ],
+      "before": "http://127.0.0.1:8080/ricerca-legale",
+      "href": "http://127.0.0.1:8080/ricerca-legale/news",
+      "h1": "News Legali",
+      "commandCount": "390",
+      "elapsedMs": 16601,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "archivio-giurisprudenza",
+      "label": "Archivio Giurisprudenza",
+      "phrase": "apri archivio giurisprudenza",
+      "expected": "/giurisprudenza/",
+      "expectedContent": [
+        "Archivio Giurisprudenza",
+        "Giurisprudenza"
+      ],
+      "matchedContent": [
+        "Archivio Giurisprudenza",
+        "Giurisprudenza"
+      ],
+      "before": "http://127.0.0.1:8080/ricerca-legale/news",
+      "href": "http://127.0.0.1:8080/giurisprudenza/",
+      "h1": "News Legali",
+      "commandCount": "390",
+      "elapsedMs": 67,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "strumenti-forensi",
+      "label": "Strumenti Forensi",
+      "phrase": "apri strumenti forensi",
+      "expected": "/strumenti-legali/",
+      "expectedContent": [
+        "Strumenti Forensi"
+      ],
+      "matchedContent": [
+        "Strumenti Forensi"
+      ],
+      "before": "http://127.0.0.1:8080/giurisprudenza/",
+      "href": "http://127.0.0.1:8080/strumenti-legali/",
+      "h1": "Strumenti Forensi",
+      "commandCount": "390",
+      "elapsedMs": 82,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "strumenti-operativi",
+      "label": "Strumenti Operativi",
+      "phrase": "apri strumenti operativi",
+      "expected": "/strumenti-operativi",
+      "expectedContent": [
+        "Strumenti Operativi"
+      ],
+      "matchedContent": [
+        "Strumenti Operativi"
+      ],
+      "before": "http://127.0.0.1:8080/strumenti-legali/",
+      "href": "http://127.0.0.1:8080/strumenti-operativi",
+      "h1": "Strumenti Operativi",
+      "commandCount": "390",
+      "elapsedMs": 125,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "sito-studio",
+      "label": "Sito Studio",
+      "phrase": "apri Sito",
+      "expected": "/sito-studio/",
+      "expectedContent": [
+        "Sito Studio"
+      ],
+      "matchedContent": [
+        "Sito Studio"
+      ],
+      "before": "http://127.0.0.1:8080/strumenti-operativi",
+      "href": "http://127.0.0.1:8080/sito-studio/",
+      "h1": "Sito Studio",
+      "commandCount": "390",
+      "elapsedMs": 1002,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "sito-builder",
+      "label": "Builder Sito",
+      "phrase": "apri builder sito",
+      "expected": "/sito-studio/builder",
+      "expectedContent": [
+        "Builder Sito",
+        "Builder",
+        "Sito"
+      ],
+      "matchedContent": [
+        "Sito"
+      ],
+      "before": "http://127.0.0.1:8080/sito-studio/",
+      "href": "http://127.0.0.1:8080/sito-studio/builder",
+      "h1": "Sito Studio",
+      "commandCount": "390",
+      "elapsedMs": 68,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "sito-redazione",
+      "label": "Redazione AI Sito",
+      "phrase": "apri redazione sito",
+      "expected": "/sito-studio/redazione-ai",
+      "expectedContent": [
+        "Redazione AI Sito",
+        "Redazione",
+        "Sito"
+      ],
+      "matchedContent": [
+        "Redazione",
+        "Sito"
+      ],
+      "before": "http://127.0.0.1:8080/sito-studio/builder",
+      "href": "http://127.0.0.1:8080/sito-studio/redazione-ai",
+      "h1": "Redazione assistita Sito Studio",
+      "commandCount": "390",
+      "elapsedMs": 381,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "sito-contatti",
+      "label": "Contatti Sito",
+      "phrase": "apri contatti sito",
+      "expected": "/sito-studio/contatti",
+      "expectedContent": [
+        "Contatti Sito",
+        "Ingressi pubblici"
+      ],
+      "matchedContent": [
+        "Contatti Sito"
+      ],
+      "before": "http://127.0.0.1:8080/sito-studio/redazione-ai",
+      "href": "http://127.0.0.1:8080/sito-studio/contatti",
+      "h1": "Contatti Sito Studio",
+      "commandCount": "390",
+      "elapsedMs": 30,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "impostazioni",
+      "label": "Impostazioni",
+      "phrase": "apri Impostazioni",
+      "expected": "/impostazioni",
+      "expectedContent": [
+        "Impostazioni"
+      ],
+      "matchedContent": [
+        "Impostazioni"
+      ],
+      "before": "http://127.0.0.1:8080/sito-studio/contatti",
+      "href": "http://127.0.0.1:8080/impostazioni",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 45,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "impostazioni-pec",
+      "label": "Impostazioni PEC",
+      "phrase": "configura PEC",
+      "expected": "/impostazioni?tab=pec",
+      "expectedContent": [
+        "Impostazioni PEC",
+        "PEC",
+        "Impostazioni"
+      ],
+      "matchedContent": [
+        "PEC",
+        "Impostazioni"
+      ],
+      "before": "http://127.0.0.1:8080/impostazioni",
+      "href": "http://127.0.0.1:8080/impostazioni?tab=pec",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 1269,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "impostazioni-firma",
+      "label": "Firma Digitale",
+      "phrase": "apri firma digitale",
+      "expected": "/impostazioni?tab=firma-digitale",
+      "expectedContent": [
+        "Firma Digitale",
+        "Impostazioni"
+      ],
+      "matchedContent": [
+        "Firma Digitale",
+        "Impostazioni"
+      ],
+      "before": "http://127.0.0.1:8080/impostazioni?tab=pec",
+      "href": "http://127.0.0.1:8080/impostazioni?tab=firma-digitale",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 98,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "impostazioni-backup",
+      "label": "Backup",
+      "phrase": "apri backup",
+      "expected": "/backup",
+      "expectedContent": [
+        "Backup"
+      ],
+      "matchedContent": [
+        "Backup"
+      ],
+      "before": "http://127.0.0.1:8080/impostazioni?tab=firma-digitale",
+      "href": "http://127.0.0.1:8080/backup",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 1610,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "calendari",
+      "label": "Sincronizzazione Calendari",
+      "phrase": "apri sincronizzazione calendari",
+      "expected": "/sincronizzazione-calendari",
+      "expectedContent": [
+        "Sincronizzazione Calendari",
+        "Calendari",
+        "Sincronizzazione"
+      ],
+      "matchedContent": [
+        "Calendari"
+      ],
+      "before": "http://127.0.0.1:8080/backup",
+      "href": "http://127.0.0.1:8080/sincronizzazione-calendari",
+      "h1": "Impostazioni",
+      "commandCount": "390",
+      "elapsedMs": 1281,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "amministrazione",
+      "label": "Amministrazione",
+      "phrase": "apri Amministrazione",
+      "expected": "/amministrazione",
+      "expectedContent": [
+        "Amministrazione"
+      ],
+      "matchedContent": [
+        "Amministrazione"
+      ],
+      "before": "http://127.0.0.1:8080/sincronizzazione-calendari",
+      "href": "http://127.0.0.1:8080/amministrazione",
+      "h1": "Amministrazione",
+      "commandCount": "390",
+      "elapsedMs": 335,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "utenti",
+      "label": "Utenti",
+      "phrase": "apri Utenti",
+      "expected": "/utenti",
+      "expectedContent": [
+        "Utenti"
+      ],
+      "matchedContent": [
+        "Utenti"
+      ],
+      "before": "http://127.0.0.1:8080/amministrazione",
+      "href": "http://127.0.0.1:8080/utenti",
+      "h1": "Amministrazione",
+      "commandCount": "390",
+      "elapsedMs": 29,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "profili",
+      "label": "Profili e Permessi",
+      "phrase": "apri Profili e Permessi",
+      "expected": "/profili",
+      "expectedContent": [
+        "Profili e Permessi",
+        "Profili",
+        "Permessi"
+      ],
+      "matchedContent": [
+        "Profili e Permessi",
+        "Profili",
+        "Permessi"
+      ],
+      "before": "http://127.0.0.1:8080/utenti",
+      "href": "http://127.0.0.1:8080/profili",
+      "h1": "Profili e permessi",
+      "commandCount": "390",
+      "elapsedMs": 333,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "database",
+      "label": "Database",
+      "phrase": "apri Database",
+      "expected": "/admin/database",
+      "expectedContent": [
+        "Database"
+      ],
+      "matchedContent": [
+        "Database"
+      ],
+      "before": "http://127.0.0.1:8080/profili",
+      "href": "http://127.0.0.1:8080/admin/database",
+      "h1": "Gestione Database",
+      "commandCount": "390",
+      "elapsedMs": 346,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "registro-attivita",
+      "label": "Registro Attività",
+      "phrase": "apri registro attività",
+      "expected": "/audit",
+      "expectedContent": [
+        "Registro Attività",
+        "Registro attività",
+        "Audit"
+      ],
+      "matchedContent": [
+        "Registro Attività",
+        "Registro attività"
+      ],
+      "before": "http://127.0.0.1:8080/admin/database",
+      "href": "http://127.0.0.1:8080/audit",
+      "h1": "Gestione Database",
+      "commandCount": "390",
+      "elapsedMs": 35,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    },
+    {
+      "id": "registro-gdpr",
+      "label": "Registro GDPR",
+      "phrase": "apri Registro GDPR",
+      "expected": "/privacy/registro",
+      "expectedContent": [
+        "Registro GDPR",
+        "Privacy"
+      ],
+      "matchedContent": [
+        "Registro GDPR"
+      ],
+      "before": "http://127.0.0.1:8080/audit",
+      "href": "http://127.0.0.1:8080/privacy/registro",
+      "h1": "Registro dei trattamenti",
+      "commandCount": "390",
+      "elapsedMs": 333,
+      "forbiddenVisible": [],
+      "forbiddenContexts": [],
+      "bodyOverflowX": false
+    }
+  ],
+  "failures": [],
+  "performance": {
+    "navigation": {
+      "type": "reload",
+      "domContentLoaded": 0,
+      "loadEventEnd": 0,
+      "duration": 0
+    },
+    "legacyNavigation": {
+      "domContentLoaded": 0,
+      "loadEventEnd": 0,
+      "responseEnd": 579
+    },
+    "resources": [],
+    "voiceNavigation": {
+      "count": 59,
+      "minMs": 26,
+      "avgMs": 1432,
+      "p95Ms": 5016,
+      "maxMs": 27575,
+      "slowestRoutes": [
+        {
+          "id": "ricerca-legale",
+          "label": "Ricerca Legale",
+          "href": "http://127.0.0.1:8080/ricerca-legale",
+          "elapsedMs": 27575
+        },
+        {
+          "id": "news-legali",
+          "label": "News disponibili",
+          "href": "http://127.0.0.1:8080/ricerca-legale/news",
+          "elapsedMs": 16601
+        },
+        {
+          "id": "notifiche",
+          "label": "Notifiche",
+          "href": "http://127.0.0.1:8080/notifiche",
+          "elapsedMs": 5016
+        },
+        {
+          "id": "pdp",
+          "label": "PDP",
+          "href": "http://127.0.0.1:8080/pdp",
+          "elapsedMs": 4137
+        },
+        {
+          "id": "panoramica",
+          "label": "Panoramica",
+          "href": "http://127.0.0.1:8080/",
+          "elapsedMs": 3265
+        },
+        {
+          "id": "compensi",
+          "label": "Compensi Forensi",
+          "href": "http://127.0.0.1:8080/compensi-forensi",
+          "elapsedMs": 2527
+        },
+        {
+          "id": "redazione-atti",
+          "label": "Redazione Atti",
+          "href": "http://127.0.0.1:8080/redazione-atti",
+          "elapsedMs": 2226
+        },
+        {
+          "id": "fatture",
+          "label": "Fatture",
+          "href": "http://127.0.0.1:8080/fatturazione/",
+          "elapsedMs": 1883
+        }
+      ]
+    }
+  }
+}

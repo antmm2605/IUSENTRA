@@ -30,7 +30,40 @@ function makeContext(options = {}) {
       }
     },
     dispatchEvent() {},
+    document: {
+      activeElement: null,
+      addEventListener() {},
+      contains() {
+        return true
+      },
+      execCommand() {
+        return true
+      },
+    },
     location: { origin: 'https://app.iusentra.it' },
+    navigator: {
+      permissions: {
+        query() {
+          return Promise.resolve({ state: 'granted' })
+        },
+      },
+      mediaDevices: {
+        getUserMedia() {
+          const tracks = [{ stop() {}, applyConstraints() { return Promise.resolve() } }]
+          return Promise.resolve({
+            getTracks() {
+              return tracks
+            },
+            getAudioTracks() {
+              return tracks
+            },
+          })
+        },
+        enumerateDevices() {
+          return Promise.resolve([{ kind: 'audioinput', label: 'Microfono studio' }])
+        },
+      },
+    },
     fetch() {
       return Promise.resolve({ ok: false })
     },
@@ -94,6 +127,9 @@ class FakeRecognition {
 
   start() {
     this.started += 1
+    if (this.onstart) {
+      this.onstart()
+    }
   }
 
   stop() {
@@ -121,20 +157,34 @@ recognitionContext.webkitSpeechRecognition = FakeRecognition
 loadScript(recognitionContext, 'web/static/js/pct-lex-assistant-voice.js')
 assert.equal(recognitionContext.PctLexVoice.supportsRecognition(), true)
 const transcriptEvents = []
+let startEvents = 0
 const listeningPromise = recognitionContext.PctLexVoice.startListening({
   lang: 'it-IT',
   silenceMs: 3000,
+  onStart() {
+    startEvents += 1
+  },
   onTranscript(text, interim) {
     transcriptEvents.push({ text, interim })
   },
 })
+await Promise.resolve()
+await Promise.resolve()
+for (let index = 0; index < 50 && !FakeRecognition.last; index += 1) {
+  await Promise.resolve()
+}
 assert.equal(FakeRecognition.last.started, 1)
+assert.equal(startEvents, 1)
 assert.equal(recognitionContext.timers.length, 0)
 FakeRecognition.last.emitResult('spiegami il documento caricato', false)
-assert.equal(transcriptEvents.at(-1).text, 'spiegami il documento caricato')
+assert.equal(transcriptEvents.at(-1).text, 'Spiegami il documento caricato')
 assert.equal(transcriptEvents.at(-1).interim, true)
 assert.equal(recognitionContext.timers.length, 1)
 recognitionContext.PctLexVoice.stopListening()
-assert.equal(await listeningPromise, 'spiegami il documento caricato')
+assert.equal(await listeningPromise, 'Spiegami il documento caricato')
+assert.equal(recognitionContext.PctLexVoice.formatDictationText('mario punto rossi chiocciola studio punto it'), 'mario.rossi@studio.it')
+assert.equal(recognitionContext.PctLexVoice.formatDictationText('ciao virgola prova punto escamativo'), 'Ciao, prova!')
+assert.equal(typeof recognitionContext.IusentraVoiceInput.startForActiveField, 'function')
+assert.equal(typeof recognitionContext.IusentraVoiceInput.verifyMicrophoneAccess, 'function')
 
 console.log('lex_tts_voice_contract.test.mjs OK')

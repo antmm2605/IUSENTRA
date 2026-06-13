@@ -3657,12 +3657,15 @@
           setStatus('Dettatura interrotta.');
           return;
         }
-        state.listening = true;
-        updateVoiceUi();
-        setStatus('Lex sta ascoltando la tua richiesta...');
+        setStatus('Controllo microfono Lex...');
         voice.startListening({
           lang: 'it-IT',
           silenceMs: 3000,
+          onStart: function () {
+            state.listening = true;
+            updateVoiceUi();
+            setStatus('Lex sta ascoltando la tua richiesta...');
+          },
           onTranscript: function (transcript) {
             if (input) {
               input.value = transcript || '';

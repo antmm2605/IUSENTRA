@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
+import os
 from pathlib import Path
 import sqlite3
 
@@ -63,14 +64,18 @@ def register_auth_runtime(
         "static",
     }
 
-    def _tenant_user_manager(tenant_slug: str) -> GestioneUtenti:
+    def _tenant_user_manager(tenant_slug: str, *, include_studio_db: bool = True) -> GestioneUtenti:
         from pct.tenant import GestioneTenant
 
         tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
         studio = tenants.get(tenant_slug)
-        paths = tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)
+        paths = tenants.percorsi_dati(
+            tenant_slug,
+            reconcile_aliases=False,
+            ensure_baseline=False,
+        )
         studio_db = None
-        if studio:
+        if include_studio_db and studio:
             try:
                 studio_db = build_core_storage_backend(
                     studio.database,
@@ -169,7 +174,7 @@ def register_auth_runtime(
             resolved_tenant_slug = auth_tenant_slug or session_tenant_slug
             if not resolved_tenant_slug:
                 return get_utenti(), None, "tenant", ""
-            manager = _tenant_user_manager(resolved_tenant_slug)
+            manager = _tenant_user_manager(resolved_tenant_slug, include_studio_db=False)
             user = manager.get(uid) if uid else None
             return manager, user, "tenant", resolved_tenant_slug
 
@@ -179,7 +184,7 @@ def register_auth_runtime(
             return manager, user, "global", ""
 
         if session_tenant_slug and multi_tenant_enabled:
-            manager = _tenant_user_manager(session_tenant_slug)
+            manager = _tenant_user_manager(session_tenant_slug, include_studio_db=False)
             user = manager.get(uid) if uid else None
             if user:
                 return manager, user, "tenant", session_tenant_slug
@@ -190,7 +195,7 @@ def register_auth_runtime(
             return manager, user, "global", ""
 
         if session_tenant_slug and multi_tenant_enabled:
-            manager = _tenant_user_manager(session_tenant_slug)
+            manager = _tenant_user_manager(session_tenant_slug, include_studio_db=False)
             user = manager.get(uid) if uid else None
             return manager, user, "tenant", session_tenant_slug
 
@@ -229,33 +234,50 @@ def register_auth_runtime(
             },
         )
 
+    def _legacy_bootstrap_on_request() -> bool:
+        value = app.config.get("IUSENTRA_LEGACY_TENANT_BOOTSTRAP_ON_REQUEST")
+        if value is None:
+            value = os.environ.get("IUSENTRA_LEGACY_TENANT_BOOTSTRAP_ON_REQUEST")
+        return str(value or "").strip().lower() in {"1", "true", "yes", "si", "on"}
+
     def _ensure_tenant_runtime_ready(tenants, tenant_slug: str) -> None:
         state = _tenant_runtime_entry(tenant_slug)
 
         if not state.get("legacy_bootstrap_completed"):
-            try:
-                bootstrap_report = bootstrap_legacy_tenant_runtime_data(
-                    app,
-                    tenant_slug=tenant_slug,
-                )
-                state["legacy_bootstrap_completed"] = True
-                if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
-                    app.logger.info(
-                        "Bootstrap dati legacy per tenant %s: copied=%s sqlite=%s",
-                        tenant_slug,
-                        ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
-                        bootstrap_report.get("sqlite_migrated", False),
+            if _legacy_bootstrap_on_request():
+                try:
+                    bootstrap_report = bootstrap_legacy_tenant_runtime_data(
+                        app,
+                        tenant_slug=tenant_slug,
                     )
-            except Exception as exc:
-                app.logger.exception(
-                    "Errore bootstrap dati legacy per tenant %s: %s",
+                    state["legacy_bootstrap_completed"] = True
+                    if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
+                        app.logger.info(
+                            "Bootstrap dati legacy per tenant %s: copied=%s sqlite=%s",
+                            tenant_slug,
+                            ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
+                            bootstrap_report.get("sqlite_migrated", False),
+                        )
+                except Exception as exc:
+                    app.logger.exception(
+                        "Errore bootstrap dati legacy per tenant %s: %s",
+                        tenant_slug,
+                        exc,
+                    )
+            else:
+                state["legacy_bootstrap_completed"] = True
+                app.logger.info(
+                    "Bootstrap dati legacy per tenant %s rinviato fuori dalla navigazione ordinaria.",
                     tenant_slug,
-                    exc,
                 )
 
         if not state.get("storage_reconciled"):
             try:
-                tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)
+                tenants.percorsi_dati(
+                    tenant_slug,
+                    reconcile_aliases=False,
+                    ensure_baseline=False,
+                )
                 state["storage_reconciled"] = True
             except Exception as exc:
                 app.logger.exception(
@@ -297,7 +319,7 @@ def register_auth_runtime(
             slug = str(getattr(studio, "slug", "") or "").strip().lower()
             if not slug:
                 continue
-            manager = _tenant_user_manager(slug)
+            manager = _tenant_user_manager(slug, include_studio_db=False)
             utente = manager.autentica(username, password)
             if utente:
                 matches.append((slug, manager, utente))
@@ -378,7 +400,11 @@ def register_auth_runtime(
         studio = tenants.get(tenant_slug)
         if studio:
             g.tenant = studio
-            g.data_paths = tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)
+            g.data_paths = tenants.percorsi_dati(
+                tenant_slug,
+                reconcile_aliases=False,
+                ensure_baseline=False,
+            )
             g.storage_runtime = get_request_storage_runtime(g.data_paths["CLIENTI_DB"]).to_dict()
             _ensure_tenant_runtime_ready(tenants, tenant_slug)
         elif g.tenant_context_required:
@@ -576,7 +602,7 @@ def register_auth_runtime(
                         errore="Studio non trovato.",
                         multi_tenant=True,
                     )
-                manager = _tenant_user_manager(studio_slug)
+                manager = _tenant_user_manager(studio_slug, include_studio_db=False)
                 utente = manager.autentica(username, password)
                 selected_tenant_slug = studio_slug
                 auth_scope = "tenant"
@@ -748,9 +774,9 @@ def register_auth_runtime(
             and pending_auth_tenant_slug
             and multi_tenant_enabled
         ):
-            manager = _tenant_user_manager(pending_auth_tenant_slug)
+            manager = _tenant_user_manager(pending_auth_tenant_slug, include_studio_db=False)
         elif pending_tenant_slug and multi_tenant_enabled:
-            manager = _tenant_user_manager(pending_tenant_slug)
+            manager = _tenant_user_manager(pending_tenant_slug, include_studio_db=False)
         else:
             manager = get_utenti()
         utente = manager.get(uid)

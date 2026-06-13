@@ -2,6 +2,14 @@
 
 Generato: 2026-06-02T14:15:11.421Z
 
+## Aggiornamento assistente vocale Studio 2.253.1 - 2026-06-12
+
+Il pannello vocale non è un mascheramento UI: i comandi di navigazione puntano a
+rotte reali, la ricerca compone `/global-search?q=...`, Lex usa l'evento
+applicativo corrente e il nuovo cliente guidato salva via API React reale con
+permesso `clienti.scrivi`, audit, sincronizzazione e validazioni dominio.
+Restano da registrare le prove browser su Docker reale prima della chiusura.
+
 ## Aggiornamento Template Atti 2.249.15 - 2026-06-04
 
 La superficie `/template-atti/compila/<codice>` resta governata come React
@@ -159,3 +167,15 @@ senza modifiche Lex automatiche non accettate.
 | /utenti/nuovo | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /wizard-pro | frontend/src/components/WizardProPage.tsx | frontend/src/wizardProData.ts | web/services/react_wizard_pro_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /workspace-intelligente | frontend/src/App.tsx | frontend/src/data.ts | web/services/react_dashboard_cache.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
+
+## Aggiornamento 2.253.1 - 2026-06-12
+
+L'assistente vocale Studio è stato verificato contro superfici reali e non come pannello dimostrativo:
+
+- il catalogo da 330 frasi apre 59 destinazioni reali della shell React o delle route operative esistenti;
+- `Studio cerca Rossi` apre davvero `/global-search?q=rossi`;
+- `Studio apri Lex` usa l'evento applicativo Lex nel contesto corrente;
+- `Studio nuovo cliente` invoca `POST /api/v1/ui/clienti/voce/crea`, con permesso `clienti.scrivi`, repository clienti, audit e sincronizzazione;
+- l'audit CDP ha confermato voce/PIN, ascolto, disattivazione, cliente guidato, navigazione e responsive su Docker reale `127.0.0.1:8080`.
+
+Esito: zero fallback mock, zero CTA primaria verso vista classica, zero testo tecnico vietato e zero failure browser.

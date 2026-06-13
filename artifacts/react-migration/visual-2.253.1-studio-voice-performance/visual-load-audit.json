@@ -1,0 +1,4475 @@
+{
+  "startedAt": "2026-06-12T13:43:38.004Z",
+  "finishedAt": "2026-06-12T13:45:04.798Z",
+  "host": "http://127.0.0.1:8080",
+  "cdpHost": "http://127.0.0.1:9224",
+  "browser": "Chrome CDP",
+  "reuseTab": false,
+  "screenshotMode": "failures",
+  "fullPageScreenshots": false,
+  "routeCount": 5,
+  "totalChecks": 15,
+  "failures": [],
+  "results": [
+    {
+      "routeName": "Panoramica",
+      "route": "/",
+      "viewport": "desktop",
+      "elapsedMs": 7259,
+      "url": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "h2": "",
+      "textLength": 3503,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 73,
+      "cards": 67,
+      "links": [
+        {
+          "text": "Azioni urgenti\nURGENTE\n1\nVai alle azioni",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "PEC da leggere\nOGGI\n254\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Messaggi clienti\n0\nVai ai messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi in scadenza\n0\nApri preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Conferimenti mancanti\n0\nCompleta ora",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 32\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 31\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 28\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 28\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 24\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Vai alla casella PEC ->",
+          "href": "/email/"
+        },
+        {
+          "text": "Klarna\nIl tuo prossimo viaggio inizia qui\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "github-advanced-security[bot]\nRe: [antmm2605/IUSENTRA] Automatizza presidi PEC giudiziari (PR #37)\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "noreply@statuspage.io\nClaude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "noreply@statuspage.io\nClaude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "noreply@statuspage.io\nClaude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Vai alle email ordinarie ->",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Vai ai messaggi ->",
+          "href": "/messaggi"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2665,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 98,
+          "left": 260,
+          "text": "Panoramica Centro operativo dello studio Dati aggiornati Aggiorna Sincronizza comunicazion"
+        },
+        {
+          "index": 1,
+          "slot": "primary-actions",
+          "order": 30,
+          "top": 252,
+          "left": 260,
+          "text": "Azioni urgenti URGENTE 1 Vai alle azioni PEC da leggere OGGI 254 Apri PEC Messaggi clienti"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 554,
+          "left": 260,
+          "text": "Ultime PEC ricevute 5 Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 g"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          706,
+          1412,
+          1685
+        ],
+        "stepCount": 4,
+        "scrollHeight": 2665,
+        "viewportHeight": 980,
+        "maxY": 1685,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 980,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Panoramica",
+              "Aggiorna",
+              "Sincronizza comunicazioni",
+              "Azioni urgenti URGENTE 1 Vai alle azioni",
+              "PEC da leggere OGGI 254 Apri PEC",
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu"
+            ]
+          },
+          {
+            "y": 706,
+            "viewportBottom": 1686,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 24 1 giu",
+              "Vai alla casella PEC ->",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "Vai alle email ordinarie ->",
+              "Vai ai messaggi ->",
+              "Vai all'agenda completa ->"
+            ]
+          },
+          {
+            "y": 1412,
+            "viewportBottom": 2392,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai alle anagrafiche ->",
+              "Vai ->",
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa"
+            ]
+          },
+          {
+            "y": 1685,
+            "viewportBottom": 2665,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa",
+              "Fascicoli",
+              "Fonte operativa"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Panoramica",
+              "Aggiorna",
+              "Sincronizza comunicazioni",
+              "Azioni urgenti URGENTE 1 Vai alle azioni",
+              "PEC da leggere OGGI 254 Apri PEC",
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu"
+            ]
+          },
+          {
+            "y": 706,
+            "items": [
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 24 1 giu",
+              "Vai alla casella PEC ->",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "Vai alle email ordinarie ->",
+              "Vai ai messaggi ->",
+              "Vai all'agenda completa ->"
+            ]
+          },
+          {
+            "y": 1412,
+            "items": [
+              "Vai alle anagrafiche ->",
+              "Vai ->",
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa"
+            ]
+          },
+          {
+            "y": 1685,
+            "items": [
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa",
+              "Fascicoli",
+              "Fonte operativa"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Fascicoli",
+      "route": "/fascicoli",
+      "viewport": "desktop",
+      "elapsedMs": 3019,
+      "url": "http://127.0.0.1:8080/fascicoli",
+      "title": "IUSENTRA",
+      "h1": "Fascicoli",
+      "h2": "",
+      "textLength": 2139,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 61,
+      "cards": 21,
+      "links": [
+        {
+          "text": "Esporta",
+          "href": "/fascicoli/esporta"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "ECONOMICO\n0\nda completare — apri vista economica",
+          "href": "?vista=economica"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Redazione atti",
+          "href": "/redazione-atti"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "PolisWeb / PST",
+          "href": "/polisWeb"
+        },
+        {
+          "text": "PDP Penale",
+          "href": "/pdp"
+        },
+        {
+          "text": "PAT Amministrativo",
+          "href": "/pat"
+        },
+        {
+          "text": "PTT Tributario",
+          "href": "/sigit"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1725,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "main-content",
+          "order": 0,
+          "top": 98,
+          "left": 260,
+          "text": "FASCICOLI Fascicoli Procedimenti civili, penali, amministrativi e tributari con scadenze, "
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": false,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": null,
+      "routeRails": [
+        {
+          "width": 1093,
+          "columnCount": 3,
+          "childMinWidth": 355
+        }
+      ],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          706,
+          745
+        ],
+        "stepCount": 3,
+        "scrollHeight": 1725,
+        "viewportHeight": 980,
+        "maxY": 745,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 980,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fascicoli",
+              "Esporta",
+              "Archivio",
+              "Nuovo fascicolo",
+              "ECONOMICO 0 da completare — apri vista economica",
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica"
+            ]
+          },
+          {
+            "y": 706,
+            "viewportBottom": 1686,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo"
+            ]
+          },
+          {
+            "y": 745,
+            "viewportBottom": 1725,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Fascicoli",
+              "Esporta",
+              "Archivio",
+              "Nuovo fascicolo",
+              "ECONOMICO 0 da completare — apri vista economica",
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica"
+            ]
+          },
+          {
+            "y": 706,
+            "items": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo"
+            ]
+          },
+          {
+            "y": 745,
+            "items": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Statistiche",
+      "route": "/statistiche",
+      "viewport": "desktop",
+      "elapsedMs": 7466,
+      "url": "http://127.0.0.1:8080/statistiche",
+      "title": "IUSENTRA",
+      "h1": "Statistiche",
+      "h2": "Fascicoli per tipo",
+      "textLength": 2768,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 55,
+      "cards": 81,
+      "links": [
+        {
+          "text": "Aggiorna",
+          "href": "/statistiche"
+        },
+        {
+          "text": "Esporta clienti",
+          "href": "/export/clienti.csv"
+        },
+        {
+          "text": "Esporta fascicoli",
+          "href": "/export/fascicoli.csv"
+        },
+        {
+          "text": "Clienti registrati\n23\nAnagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Fascicoli totali\n332\nArchivio fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Parcelle\n0\nFatturazione",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Scadenze\n235\nScadenziario",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "PEC\n308\nCasella PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Email ordinarie\n2092\nPosta ordinaria",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Messaggi clienti\n8\nComunicazioni",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi\n1\nPreventivi e incarichi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Incarichi\n1\nConferimenti incarico",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Voci timesheet\n0\nTempo e produttivita",
+          "href": "/timesheet"
+        },
+        {
+          "text": "Durata media fascicoli\n1015\nGiorni",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Tasso chiusura fascicoli\n26%\nChiusi: 87",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4177,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 98,
+          "left": 260,
+          "text": "Statistiche Indicatori reali letti dagli archivi operativi dello studio. Aggiorna Esporta "
+        },
+        {
+          "index": 1,
+          "slot": "primary-actions",
+          "order": 30,
+          "top": 252,
+          "left": 260,
+          "text": "CLIENTI STATO 23 Anagrafiche reali in archivio FASCICOLI ATTIVI STATO 245 Totale fascicoli"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 547,
+          "left": 260,
+          "text": "Fascicoli per tipo distribution CIVILE 325 AMMINISTRATIVO 5 LAVORO 1 PENALE 1 Fascicoli pe"
+        },
+        {
+          "index": 3,
+          "slot": "main-content",
+          "order": 60,
+          "top": 3493,
+          "left": 260,
+          "text": "Indicatori principali Collegamenti verso i moduli operativi collegati. Clienti registrati "
+        },
+        {
+          "index": 4,
+          "slot": "main-content",
+          "order": 60,
+          "top": 3928,
+          "left": 260,
+          "text": "Presidio dati Origine e azioni governate per questa vista. Origine: Dati dello studio Gene"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          706,
+          1412,
+          2118,
+          2824,
+          3197
+        ],
+        "stepCount": 6,
+        "scrollHeight": 4177,
+        "viewportHeight": 980,
+        "maxY": 3197,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 980,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Statistiche",
+              "Aggiorna",
+              "Esporta clienti",
+              "Esporta fascicoli",
+              "Fascicoli per tipo",
+              "Fascicoli per stato"
+            ]
+          },
+          {
+            "y": 706,
+            "viewportBottom": 1686,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fascicoli per tipo",
+              "Fascicoli per stato",
+              "Scadenze per priorita",
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 1412,
+            "viewportBottom": 2392,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": []
+          },
+          {
+            "y": 2118,
+            "viewportBottom": 3098,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fatturato mensile",
+              "Trend depositi",
+              "Comunicazioni per canale",
+              "Preventivi per stato"
+            ]
+          },
+          {
+            "y": 2824,
+            "viewportBottom": 3804,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Comunicazioni per canale",
+              "Preventivi per stato",
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC"
+            ]
+          },
+          {
+            "y": 3197,
+            "viewportBottom": 4177,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Indicatori principali",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Statistiche",
+              "Aggiorna",
+              "Esporta clienti",
+              "Esporta fascicoli",
+              "Fascicoli per tipo",
+              "Fascicoli per stato"
+            ]
+          },
+          {
+            "y": 706,
+            "items": [
+              "Fascicoli per tipo",
+              "Fascicoli per stato",
+              "Scadenze per priorita",
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 1412,
+            "items": []
+          },
+          {
+            "y": 2118,
+            "items": [
+              "Fatturato mensile",
+              "Trend depositi",
+              "Comunicazioni per canale",
+              "Preventivi per stato"
+            ]
+          },
+          {
+            "y": 2824,
+            "items": [
+              "Comunicazioni per canale",
+              "Preventivi per stato",
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC"
+            ]
+          },
+          {
+            "y": 3197,
+            "items": [
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Indicatori principali",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Contatti Sito Studio",
+      "route": "/sito-studio/contatti",
+      "viewport": "desktop",
+      "elapsedMs": 5773,
+      "url": "http://127.0.0.1:8080/sito-studio/contatti",
+      "title": "IUSENTRA",
+      "h1": "Contatti Sito Studio",
+      "h2": "Avvisi operativi",
+      "textLength": 1917,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 31,
+      "links": [
+        {
+          "text": "Cruscotto sito",
+          "href": "/sito-studio"
+        },
+        {
+          "text": "Apri modulo contatti",
+          "href": "/web/studio-legale-montagnese/contatti"
+        },
+        {
+          "text": "Apri prenotazione",
+          "href": "/web/studio-legale-montagnese/prenota"
+        },
+        {
+          "text": "Apri sito pubblico",
+          "href": "http://127.0.0.1:8080/web/studio-legale-montagnese/"
+        },
+        {
+          "text": "Apri modulo contatti",
+          "href": "/web/studio-legale-montagnese/contatti"
+        },
+        {
+          "text": "Apri prenotazione",
+          "href": "/web/studio-legale-montagnese/prenota"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/sito-studio/contatti?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2583,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 98,
+          "left": 260,
+          "text": "Contatti Sito Studio Richieste contatto e prenotazioni gestite con servizi sicuri. Cruscot"
+        },
+        {
+          "index": 1,
+          "slot": "context-filters",
+          "order": 50,
+          "top": 252,
+          "left": 260,
+          "text": "Contatti e prenotazioni reali La scheda resta operativa anche quando non ci sono richieste"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 341,
+          "left": 260,
+          "text": "Avvisi operativi azioni_contatto_limitate Questa scheda consente collegamento cliente e ge"
+        },
+        {
+          "index": 3,
+          "slot": "main-content",
+          "order": 60,
+          "top": 655,
+          "left": 260,
+          "text": "Ingressi pubblici Accessi usati dai visitatori per inviare nuove richieste. Apri modulo co"
+        },
+        {
+          "index": 4,
+          "slot": "main-content",
+          "order": 60,
+          "top": 912,
+          "left": 260,
+          "text": "Ricerca contatti 0 richieste visibili"
+        },
+        {
+          "index": 5,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1166,
+          "left": 260,
+          "text": "Richieste contatto 0 richieste reali Nessuna richiesta contatto ricevuta Quando un visitat"
+        },
+        {
+          "index": 6,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1604,
+          "left": 260,
+          "text": "Prenotazioni 0 richieste reali Nessuna prenotazione ricevuta Quando un visitatore richiede"
+        },
+        {
+          "index": 7,
+          "slot": "main-content",
+          "order": 60,
+          "top": 2043,
+          "left": 260,
+          "text": "Percorso di recupero Sono abilitate le azioni sicure gia collegate: creazione cliente, col"
+        },
+        {
+          "index": 8,
+          "slot": "main-content",
+          "order": 60,
+          "top": 2320,
+          "left": 260,
+          "text": "Stato dati Dati e azioni disponibili per questa pagina. Origine: Dati dello studio Generat"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          706,
+          1412,
+          1603
+        ],
+        "stepCount": 4,
+        "scrollHeight": 2583,
+        "viewportHeight": 980,
+        "maxY": 1603,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 980,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Contatti Sito Studio",
+              "Cruscotto sito",
+              "Aggiorna",
+              "Avvisi operativi",
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico"
+            ]
+          },
+          {
+            "y": 706,
+            "viewportBottom": 1686,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico",
+              "Ricerca contatti",
+              "Richieste contatto",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti"
+            ]
+          },
+          {
+            "y": 1412,
+            "viewportBottom": 2392,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Richieste contatto",
+              "Apri modulo contatti",
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero"
+            ]
+          },
+          {
+            "y": 1603,
+            "viewportBottom": 2583,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Contatti Sito Studio",
+              "Cruscotto sito",
+              "Aggiorna",
+              "Avvisi operativi",
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico"
+            ]
+          },
+          {
+            "y": 706,
+            "items": [
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico",
+              "Ricerca contatti",
+              "Richieste contatto",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti"
+            ]
+          },
+          {
+            "y": 1412,
+            "items": [
+              "Richieste contatto",
+              "Apri modulo contatti",
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero"
+            ]
+          },
+          {
+            "y": 1603,
+            "items": [
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Sito Studio Builder",
+      "route": "/sito-studio/builder",
+      "viewport": "desktop",
+      "elapsedMs": 4557,
+      "url": "http://127.0.0.1:8080/sito-studio/builder",
+      "title": "IUSENTRA",
+      "h1": "Sito Studio Builder Pro",
+      "h2": "Aspetto",
+      "textLength": 2897,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 69,
+      "cards": 8,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1949,
+      "presetActive": false,
+      "sequenceRoot": false,
+      "sequenceItems": [],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": false,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": null,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          706,
+          969
+        ],
+        "stepCount": 3,
+        "scrollHeight": 1949,
+        "viewportHeight": 980,
+        "maxY": 969,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 980,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Sito Studio Builder Pro",
+              "Salva",
+              "Controlla",
+              "Pubblica",
+              "Setup",
+              "Pagine",
+              "Blocchi",
+              "Testi",
+              "Aspetto",
+              "Media"
+            ]
+          },
+          {
+            "y": 706,
+            "viewportBottom": 1686,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "SEO",
+              "Privacy",
+              "AI",
+              "Pubblica",
+              "Civilista Equilibrato per civile, famiglia, lavoro e contratti.",
+              "Tributario Tecnico, chiaro su scadenze, accertamenti e contenzioso.",
+              "Amministrativo Istituzionale per TAR, appalti, PA, urbanistica e accesso agli atti.",
+              "380px",
+              "Metodo professionale",
+              "Aree di attivita"
+            ]
+          },
+          {
+            "y": 969,
+            "viewportBottom": 1949,
+            "documentWidth": 1425,
+            "viewportWidth": 1440,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "380px",
+              "Come lavoriamo",
+              "Professionisti",
+              "Prenota un confronto",
+              "Apri agenda",
+              "Contatta lo studio"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Sito Studio Builder Pro",
+              "Salva",
+              "Controlla",
+              "Pubblica",
+              "Setup",
+              "Pagine",
+              "Blocchi",
+              "Testi",
+              "Aspetto",
+              "Media"
+            ]
+          },
+          {
+            "y": 706,
+            "items": [
+              "SEO",
+              "Privacy",
+              "AI",
+              "Pubblica",
+              "Civilista Equilibrato per civile, famiglia, lavoro e contratti.",
+              "Tributario Tecnico, chiaro su scadenze, accertamenti e contenzioso.",
+              "Amministrativo Istituzionale per TAR, appalti, PA, urbanistica e accesso agli atti.",
+              "380px",
+              "Metodo professionale",
+              "Aree di attivita"
+            ]
+          },
+          {
+            "y": 969,
+            "items": [
+              "380px",
+              "Come lavoriamo",
+              "Professionisti",
+              "Prenota un confronto",
+              "Apri agenda",
+              "Contatta lo studio"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Panoramica",
+      "route": "/",
+      "viewport": "tablet",
+      "elapsedMs": 4541,
+      "url": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "h2": "",
+      "textLength": 3199,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 73,
+      "cards": 67,
+      "links": [
+        {
+          "text": "Azioni urgenti\nURGENTE\n1\nVai alle azioni",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "PEC da leggere\nOGGI\n254\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Messaggi clienti\n0\nVai ai messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi in scadenza\n0\nApri preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Conferimenti mancanti\n0\nCompleta ora",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 32\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 31\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 28\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 28\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Per conto di: giuseppe.montagnese94@pec.it\nPOSTA CERTIFICATA: 24\n1 giu",
+          "href": "/email/"
+        },
+        {
+          "text": "Vai alla casella PEC ->",
+          "href": "/email/"
+        },
+        {
+          "text": "Klarna\nIl tuo prossimo viaggio inizia qui\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "github-advanced-security[bot]\nRe: [antmm2605/IUSENTRA] Automatizza presidi PEC giudiziari (PR #37)\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "noreply@statuspage.io\nClaude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "noreply@statuspage.io\nClaude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "noreply@statuspage.io\nClaude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026\n29 mag",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Vai alle email ordinarie ->",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Vai ai messaggi ->",
+          "href": "/messaggi"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3025,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 98,
+          "left": 260,
+          "text": "Panoramica Centro operativo dello studio Dati aggiornati Aggiorna Sincronizza comunicazion"
+        },
+        {
+          "index": 1,
+          "slot": "primary-actions",
+          "order": 30,
+          "top": 277,
+          "left": 260,
+          "text": "Azioni urgenti URGENTE 1 Vai alle azioni PEC da leggere OGGI 254 Apri PEC Messaggi clienti"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 649,
+          "left": 260,
+          "text": "Ultime PEC ricevute 5 Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 g"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          648,
+          1296,
+          1944,
+          2125
+        ],
+        "stepCount": 5,
+        "scrollHeight": 3025,
+        "viewportHeight": 900,
+        "maxY": 2125,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 900,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Panoramica",
+              "Aggiorna",
+              "Sincronizza comunicazioni",
+              "Azioni urgenti URGENTE 1 Vai alle azioni",
+              "PEC da leggere OGGI 254 Apri PEC",
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu"
+            ]
+          },
+          {
+            "y": 648,
+            "viewportBottom": 1548,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 24 1 giu",
+              "Vai alla casella PEC ->",
+              "Klarna Il tuo prossimo viaggio inizia qui 29 mag",
+              "github-advanced-security[bot] Re: [antmm2605/IUSENTRA] Automatizza presidi PEC giudiziari (PR #37) 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag"
+            ]
+          },
+          {
+            "y": 1296,
+            "viewportBottom": 2196,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai all'agenda completa ->",
+              "Vai alle anagrafiche ->",
+              "Vai ->",
+              "Vai ->",
+              "Vai a Scadenze e Termini ->",
+              "Apri Lex AI ->"
+            ]
+          },
+          {
+            "y": 1944,
+            "viewportBottom": 2844,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa",
+              "Fascicoli",
+              "Fonte operativa"
+            ]
+          },
+          {
+            "y": 2125,
+            "viewportBottom": 3025,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa",
+              "Fascicoli",
+              "Fonte operativa",
+              "PEC, email e messaggi"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Panoramica",
+              "Aggiorna",
+              "Sincronizza comunicazioni",
+              "Azioni urgenti URGENTE 1 Vai alle azioni",
+              "PEC da leggere OGGI 254 Apri PEC",
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu"
+            ]
+          },
+          {
+            "y": 648,
+            "items": [
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 32 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 31 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 28 1 giu",
+              "Per conto di: giuseppe.montagnese94@pec.it POSTA CERTIFICATA: 24 1 giu",
+              "Vai alla casella PEC ->",
+              "Klarna Il tuo prossimo viaggio inizia qui 29 mag",
+              "github-advanced-security[bot] Re: [antmm2605/IUSENTRA] Automatizza presidi PEC giudiziari (PR #37) 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag",
+              "noreply@statuspage.io Claude Incident - Elevated errors on Claude Opus 4.8 - 29 May 2026 29 mag"
+            ]
+          },
+          {
+            "y": 1296,
+            "items": [
+              "Vai all'agenda completa ->",
+              "Vai alle anagrafiche ->",
+              "Vai ->",
+              "Vai ->",
+              "Vai a Scadenze e Termini ->",
+              "Apri Lex AI ->"
+            ]
+          },
+          {
+            "y": 1944,
+            "items": [
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa",
+              "Fascicoli",
+              "Fonte operativa"
+            ]
+          },
+          {
+            "y": 2125,
+            "items": [
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->",
+              "Scadenziario",
+              "Fonte operativa",
+              "Agenda e calendari",
+              "Fonte operativa",
+              "Fascicoli",
+              "Fonte operativa",
+              "PEC, email e messaggi"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Fascicoli",
+      "route": "/fascicoli",
+      "viewport": "tablet",
+      "elapsedMs": 3023,
+      "url": "http://127.0.0.1:8080/fascicoli",
+      "title": "IUSENTRA",
+      "h1": "Fascicoli",
+      "h2": "",
+      "textLength": 1709,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 61,
+      "cards": 21,
+      "links": [
+        {
+          "text": "Esporta",
+          "href": "/fascicoli/esporta"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "ECONOMICO\n0\nda completare — apri vista economica",
+          "href": "?vista=economica"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Redazione atti",
+          "href": "/redazione-atti"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "PolisWeb / PST",
+          "href": "/polisWeb"
+        },
+        {
+          "text": "PDP Penale",
+          "href": "/pdp"
+        },
+        {
+          "text": "PAT Amministrativo",
+          "href": "/pat"
+        },
+        {
+          "text": "PTT Tributario",
+          "href": "/sigit"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1892,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "main-content",
+          "order": 60,
+          "top": 98,
+          "left": 260,
+          "text": "FASCICOLI Fascicoli Procedimenti civili, penali, amministrativi e tributari con scadenze, "
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": false,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [
+        {
+          "width": 677,
+          "columnCount": 3,
+          "childMinWidth": 216
+        }
+      ],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          648,
+          992
+        ],
+        "stepCount": 3,
+        "scrollHeight": 1892,
+        "viewportHeight": 900,
+        "maxY": 992,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 900,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fascicoli",
+              "Esporta",
+              "Archivio",
+              "Nuovo fascicolo",
+              "ECONOMICO 0 da completare — apri vista economica"
+            ]
+          },
+          {
+            "y": 648,
+            "viewportBottom": 1548,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo"
+            ]
+          },
+          {
+            "y": 992,
+            "viewportBottom": 1892,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo",
+              "Nuova scadenza",
+              "Redazione atti"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Fascicoli",
+              "Esporta",
+              "Archivio",
+              "Nuovo fascicolo",
+              "ECONOMICO 0 da completare — apri vista economica"
+            ]
+          },
+          {
+            "y": 648,
+            "items": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo"
+            ]
+          },
+          {
+            "y": 992,
+            "items": [
+              "Operativa",
+              "Economica",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima",
+              "Nuovo fascicolo",
+              "Nuova scadenza",
+              "Redazione atti"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Statistiche",
+      "route": "/statistiche",
+      "viewport": "tablet",
+      "elapsedMs": 6724,
+      "url": "http://127.0.0.1:8080/statistiche",
+      "title": "IUSENTRA",
+      "h1": "Statistiche",
+      "h2": "Fascicoli per tipo",
+      "textLength": 2256,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 55,
+      "cards": 81,
+      "links": [
+        {
+          "text": "Aggiorna",
+          "href": "/statistiche"
+        },
+        {
+          "text": "Esporta clienti",
+          "href": "/export/clienti.csv"
+        },
+        {
+          "text": "Esporta fascicoli",
+          "href": "/export/fascicoli.csv"
+        },
+        {
+          "text": "Clienti registrati\n23\nAnagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Fascicoli totali\n332\nArchivio fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Parcelle\n0\nFatturazione",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Scadenze\n235\nScadenziario",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "PEC\n308\nCasella PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Email ordinarie\n2092\nPosta ordinaria",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Messaggi clienti\n8\nComunicazioni",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi\n1\nPreventivi e incarichi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Incarichi\n1\nConferimenti incarico",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Voci timesheet\n0\nTempo e produttivita",
+          "href": "/timesheet"
+        },
+        {
+          "text": "Durata media fascicoli\n1015\nGiorni",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Tasso chiusura fascicoli\n26%\nChiusi: 87",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4497,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 98,
+          "left": 260,
+          "text": "Statistiche Indicatori reali letti dagli archivi operativi dello studio. Aggiorna Esporta "
+        },
+        {
+          "index": 1,
+          "slot": "primary-actions",
+          "order": 30,
+          "top": 277,
+          "left": 260,
+          "text": "CLIENTI STATO 23 Anagrafiche reali in archivio FASCICOLI ATTIVI STATO 245 Totale fascicoli"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 724,
+          "left": 260,
+          "text": "Fascicoli per tipo distribution CIVILE 325 AMMINISTRATIVO 5 LAVORO 1 PENALE 1 Fascicoli pe"
+        },
+        {
+          "index": 3,
+          "slot": "main-content",
+          "order": 60,
+          "top": 3669,
+          "left": 260,
+          "text": "Indicatori principali Collegamenti verso i moduli operativi collegati. Clienti registrati "
+        },
+        {
+          "index": 4,
+          "slot": "main-content",
+          "order": 60,
+          "top": 4221,
+          "left": 260,
+          "text": "Presidio dati Origine e azioni governate per questa vista. Origine: Dati dello studio Gene"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          648,
+          1296,
+          1944,
+          2592,
+          3240,
+          3597
+        ],
+        "stepCount": 7,
+        "scrollHeight": 4497,
+        "viewportHeight": 900,
+        "maxY": 3597,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 900,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Statistiche",
+              "Aggiorna",
+              "Esporta clienti",
+              "Esporta fascicoli"
+            ]
+          },
+          {
+            "y": 648,
+            "viewportBottom": 1548,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fascicoli per tipo",
+              "Fascicoli per stato",
+              "Scadenze per priorita",
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 1296,
+            "viewportBottom": 2196,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Scadenze per priorita",
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 1944,
+            "viewportBottom": 2844,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fatturato mensile",
+              "Trend depositi"
+            ]
+          },
+          {
+            "y": 2592,
+            "viewportBottom": 3492,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fatturato mensile",
+              "Trend depositi",
+              "Comunicazioni per canale",
+              "Preventivi per stato",
+              "Incarichi per stato",
+              "Nessuna voce tempo disponibile."
+            ]
+          },
+          {
+            "y": 3240,
+            "viewportBottom": 4140,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Indicatori principali",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria"
+            ]
+          },
+          {
+            "y": 3597,
+            "viewportBottom": 4497,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Indicatori principali",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria",
+              "Messaggi clienti 8 Comunicazioni",
+              "Preventivi 1 Preventivi e incarichi",
+              "Incarichi 1 Conferimenti incarico"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Statistiche",
+              "Aggiorna",
+              "Esporta clienti",
+              "Esporta fascicoli"
+            ]
+          },
+          {
+            "y": 648,
+            "items": [
+              "Fascicoli per tipo",
+              "Fascicoli per stato",
+              "Scadenze per priorita",
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 1296,
+            "items": [
+              "Scadenze per priorita",
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 1944,
+            "items": [
+              "Fatturato mensile",
+              "Trend depositi"
+            ]
+          },
+          {
+            "y": 2592,
+            "items": [
+              "Fatturato mensile",
+              "Trend depositi",
+              "Comunicazioni per canale",
+              "Preventivi per stato",
+              "Incarichi per stato",
+              "Nessuna voce tempo disponibile."
+            ]
+          },
+          {
+            "y": 3240,
+            "items": [
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Indicatori principali",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria"
+            ]
+          },
+          {
+            "y": 3597,
+            "items": [
+              "Indicatori principali",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria",
+              "Messaggi clienti 8 Comunicazioni",
+              "Preventivi 1 Preventivi e incarichi",
+              "Incarichi 1 Conferimenti incarico"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Contatti Sito Studio",
+      "route": "/sito-studio/contatti",
+      "viewport": "tablet",
+      "elapsedMs": 4614,
+      "url": "http://127.0.0.1:8080/sito-studio/contatti",
+      "title": "IUSENTRA",
+      "h1": "Contatti Sito Studio",
+      "h2": "Avvisi operativi",
+      "textLength": 1557,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 31,
+      "links": [
+        {
+          "text": "Cruscotto sito",
+          "href": "/sito-studio"
+        },
+        {
+          "text": "Apri modulo contatti",
+          "href": "/web/studio-legale-montagnese/contatti"
+        },
+        {
+          "text": "Apri prenotazione",
+          "href": "/web/studio-legale-montagnese/prenota"
+        },
+        {
+          "text": "Apri sito pubblico",
+          "href": "http://127.0.0.1:8080/web/studio-legale-montagnese/"
+        },
+        {
+          "text": "Apri modulo contatti",
+          "href": "/web/studio-legale-montagnese/contatti"
+        },
+        {
+          "text": "Apri prenotazione",
+          "href": "/web/studio-legale-montagnese/prenota"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/sito-studio/contatti?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2743,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 98,
+          "left": 260,
+          "text": "Contatti Sito Studio Richieste contatto e prenotazioni gestite con servizi sicuri. Cruscot"
+        },
+        {
+          "index": 1,
+          "slot": "context-filters",
+          "order": 50,
+          "top": 252,
+          "left": 260,
+          "text": "Contatti e prenotazioni reali La scheda resta operativa anche quando non ci sono richieste"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 360,
+          "left": 260,
+          "text": "Avvisi operativi azioni_contatto_limitate Questa scheda consente collegamento cliente e ge"
+        },
+        {
+          "index": 3,
+          "slot": "main-content",
+          "order": 60,
+          "top": 712,
+          "left": 260,
+          "text": "Ingressi pubblici Accessi usati dai visitatori per inviare nuove richieste. Apri modulo co"
+        },
+        {
+          "index": 4,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1027,
+          "left": 260,
+          "text": "Ricerca contatti 0 richieste visibili"
+        },
+        {
+          "index": 5,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1281,
+          "left": 260,
+          "text": "Richieste contatto 0 richieste reali Nessuna richiesta contatto ricevuta Quando un visitat"
+        },
+        {
+          "index": 6,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1719,
+          "left": 260,
+          "text": "Prenotazioni 0 richieste reali Nessuna prenotazione ricevuta Quando un visitatore richiede"
+        },
+        {
+          "index": 7,
+          "slot": "main-content",
+          "order": 60,
+          "top": 2157,
+          "left": 260,
+          "text": "Percorso di recupero Sono abilitate le azioni sicure gia collegate: creazione cliente, col"
+        },
+        {
+          "index": 8,
+          "slot": "main-content",
+          "order": 60,
+          "top": 2435,
+          "left": 260,
+          "text": "Stato dati Dati e azioni disponibili per questa pagina. Origine: Dati dello studio Generat"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          648,
+          1296,
+          1843
+        ],
+        "stepCount": 4,
+        "scrollHeight": 2743,
+        "viewportHeight": 900,
+        "maxY": 1843,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 900,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Contatti Sito Studio",
+              "Cruscotto sito",
+              "Aggiorna",
+              "Avvisi operativi",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico"
+            ]
+          },
+          {
+            "y": 648,
+            "viewportBottom": 1548,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico",
+              "Ricerca contatti",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti"
+            ]
+          },
+          {
+            "y": 1296,
+            "viewportBottom": 2196,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Richieste contatto",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti",
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione"
+            ]
+          },
+          {
+            "y": 1843,
+            "viewportBottom": 2743,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Contatti Sito Studio",
+              "Cruscotto sito",
+              "Aggiorna",
+              "Avvisi operativi",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico"
+            ]
+          },
+          {
+            "y": 648,
+            "items": [
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico",
+              "Ricerca contatti",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti"
+            ]
+          },
+          {
+            "y": 1296,
+            "items": [
+              "Richieste contatto",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti",
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione"
+            ]
+          },
+          {
+            "y": 1843,
+            "items": [
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Sito Studio Builder",
+      "route": "/sito-studio/builder",
+      "viewport": "tablet",
+      "elapsedMs": 3209,
+      "url": "http://127.0.0.1:8080/sito-studio/builder",
+      "title": "IUSENTRA",
+      "h1": "Sito Studio Builder Pro",
+      "h2": "Aspetto",
+      "textLength": 2891,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 69,
+      "cards": 8,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2742,
+      "presetActive": false,
+      "sequenceRoot": false,
+      "sequenceItems": [],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": false,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": null,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          648,
+          1296,
+          1842
+        ],
+        "stepCount": 4,
+        "scrollHeight": 2742,
+        "viewportHeight": 900,
+        "maxY": 1842,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 900,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Sito Studio Builder Pro",
+              "Salva",
+              "Controlla",
+              "Pubblica",
+              "Setup",
+              "Pagine",
+              "Blocchi",
+              "Testi",
+              "Aspetto",
+              "Media"
+            ]
+          },
+          {
+            "y": 648,
+            "viewportBottom": 1548,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "SEO",
+              "Privacy",
+              "AI",
+              "Pubblica",
+              "Civilista Equilibrato per civile, famiglia, lavoro e contratti.",
+              "Tributario Tecnico, chiaro su scadenze, accertamenti e contenzioso.",
+              "Amministrativo Istituzionale per TAR, appalti, PA, urbanistica e accesso agli atti."
+            ]
+          },
+          {
+            "y": 1296,
+            "viewportBottom": 2196,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile"
+            ]
+          },
+          {
+            "y": 1842,
+            "viewportBottom": 2742,
+            "documentWidth": 1009,
+            "viewportWidth": 1024,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile",
+              "Studio Legale Montagnese",
+              "Richiedi un appuntamento",
+              "Metodo professionale"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Sito Studio Builder Pro",
+              "Salva",
+              "Controlla",
+              "Pubblica",
+              "Setup",
+              "Pagine",
+              "Blocchi",
+              "Testi",
+              "Aspetto",
+              "Media"
+            ]
+          },
+          {
+            "y": 648,
+            "items": [
+              "SEO",
+              "Privacy",
+              "AI",
+              "Pubblica",
+              "Civilista Equilibrato per civile, famiglia, lavoro e contratti.",
+              "Tributario Tecnico, chiaro su scadenze, accertamenti e contenzioso.",
+              "Amministrativo Istituzionale per TAR, appalti, PA, urbanistica e accesso agli atti."
+            ]
+          },
+          {
+            "y": 1296,
+            "items": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile"
+            ]
+          },
+          {
+            "y": 1842,
+            "items": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile",
+              "Studio Legale Montagnese",
+              "Richiedi un appuntamento",
+              "Metodo professionale"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Panoramica",
+      "route": "/",
+      "viewport": "mobile",
+      "elapsedMs": 1959,
+      "url": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "h2": "",
+      "textLength": 1675,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 58,
+      "cards": 57,
+      "links": [
+        {
+          "text": "Azioni urgenti\n0\nVai alle azioni",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "PEC da leggere\n0\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Messaggi clienti\n0\nVai ai messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi in scadenza\n0\nApri preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Conferimenti mancanti\n0\nCompleta ora",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Vai alla casella PEC ->",
+          "href": "/email/"
+        },
+        {
+          "text": "Vai alle email ordinarie ->",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Vai ai messaggi ->",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Vai all'agenda completa ->",
+          "href": "/agenda"
+        },
+        {
+          "text": "Vai alle anagrafiche ->",
+          "href": "/clienti"
+        },
+        {
+          "text": "Vai ->",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Vai ->",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Vai a Scadenze e Termini ->",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "Vai al controllo economico ->",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Apri Lex AI ->",
+          "href": "#lex"
+        },
+        {
+          "text": "Apri tutti i fascicoli ->",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3525,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 73,
+          "left": 10,
+          "text": "Panoramica Centro operativo dello studio Aggiorna Sincronizza comunicazioni"
+        },
+        {
+          "index": 1,
+          "slot": "primary-actions",
+          "order": 30,
+          "top": 304,
+          "left": 10,
+          "text": "Azioni urgenti 0 Vai alle azioni PEC da leggere 0 Apri PEC Messaggi clienti 0 Vai ai messa"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 868,
+          "left": 10,
+          "text": "Ultime PEC ricevute 0 Nessun elemento da presidiare. Vai alla casella PEC -> Email recenti"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          608,
+          1216,
+          1824,
+          2432,
+          2681
+        ],
+        "stepCount": 6,
+        "scrollHeight": 3525,
+        "viewportHeight": 844,
+        "maxY": 2681,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 844,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Panoramica",
+              "Aggiorna",
+              "Sincronizza comunicazioni",
+              "Azioni urgenti 0 Vai alle azioni",
+              "PEC da leggere 0 Apri PEC",
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora"
+            ]
+          },
+          {
+            "y": 608,
+            "viewportBottom": 1452,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora",
+              "Vai alla casella PEC ->",
+              "Vai alle email ordinarie ->",
+              "Vai ai messaggi ->"
+            ]
+          },
+          {
+            "y": 1216,
+            "viewportBottom": 2060,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai ai messaggi ->",
+              "Vai all'agenda completa ->",
+              "Vai alle anagrafiche ->",
+              "Vai ->"
+            ]
+          },
+          {
+            "y": 1824,
+            "viewportBottom": 2668,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai alle anagrafiche ->",
+              "Vai ->",
+              "Vai ->",
+              "Vai a Scadenze e Termini ->"
+            ]
+          },
+          {
+            "y": 2432,
+            "viewportBottom": 3276,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->"
+            ]
+          },
+          {
+            "y": 2681,
+            "viewportBottom": 3525,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Panoramica",
+              "Aggiorna",
+              "Sincronizza comunicazioni",
+              "Azioni urgenti 0 Vai alle azioni",
+              "PEC da leggere 0 Apri PEC",
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora"
+            ]
+          },
+          {
+            "y": 608,
+            "items": [
+              "Messaggi clienti 0 Vai ai messaggi",
+              "Preventivi in scadenza 0 Apri preventivi",
+              "Conferimenti mancanti 0 Completa ora",
+              "Vai alla casella PEC ->",
+              "Vai alle email ordinarie ->",
+              "Vai ai messaggi ->"
+            ]
+          },
+          {
+            "y": 1216,
+            "items": [
+              "Vai ai messaggi ->",
+              "Vai all'agenda completa ->",
+              "Vai alle anagrafiche ->",
+              "Vai ->"
+            ]
+          },
+          {
+            "y": 1824,
+            "items": [
+              "Vai alle anagrafiche ->",
+              "Vai ->",
+              "Vai ->",
+              "Vai a Scadenze e Termini ->"
+            ]
+          },
+          {
+            "y": 2432,
+            "items": [
+              "Vai a Scadenze e Termini ->",
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->"
+            ]
+          },
+          {
+            "y": 2681,
+            "items": [
+              "Vai al controllo economico ->",
+              "Apri Lex AI ->",
+              "Apri tutti i fascicoli ->"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Fascicoli",
+      "route": "/fascicoli",
+      "viewport": "mobile",
+      "elapsedMs": 3400,
+      "url": "http://127.0.0.1:8080/fascicoli",
+      "title": "IUSENTRA",
+      "h1": "Fascicoli",
+      "h2": "",
+      "textLength": 1592,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 61,
+      "cards": 21,
+      "links": [
+        {
+          "text": "Esporta",
+          "href": "/fascicoli/esporta"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "ECONOMICO\n0\nda completare — apri vista economica",
+          "href": "?vista=economica"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Redazione atti",
+          "href": "/redazione-atti"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "PolisWeb / PST",
+          "href": "/polisWeb"
+        },
+        {
+          "text": "PDP Penale",
+          "href": "/pdp"
+        },
+        {
+          "text": "PAT Amministrativo",
+          "href": "/pat"
+        },
+        {
+          "text": "PTT Tributario",
+          "href": "/sigit"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3328,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "main-content",
+          "order": 60,
+          "top": 73,
+          "left": 10,
+          "text": "FASCICOLI Fascicoli Procedimenti civili, penali, amministrativi e tributari con scadenze, "
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": false,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [
+        {
+          "width": 350,
+          "columnCount": 1,
+          "childMinWidth": 350
+        }
+      ],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          608,
+          1216,
+          1824,
+          2432,
+          2484
+        ],
+        "stepCount": 6,
+        "scrollHeight": 3328,
+        "viewportHeight": 844,
+        "maxY": 2484,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 844,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fascicoli",
+              "Esporta",
+              "Archivio",
+              "Nuovo fascicolo",
+              "ECONOMICO 0 da completare — apri vista economica"
+            ]
+          },
+          {
+            "y": 608,
+            "viewportBottom": 1452,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "ECONOMICO 0 da completare — apri vista economica",
+              "Filtri",
+              "Aggiorna fascicoli"
+            ]
+          },
+          {
+            "y": 1216,
+            "viewportBottom": 2060,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima"
+            ]
+          },
+          {
+            "y": 1824,
+            "viewportBottom": 2668,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Nuovo fascicolo",
+              "Nuova scadenza",
+              "Redazione atti",
+              "Archivio"
+            ]
+          },
+          {
+            "y": 2432,
+            "viewportBottom": 3276,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Nuova scadenza",
+              "Redazione atti",
+              "Archivio",
+              "PolisWeb / PST",
+              "PDP Penale",
+              "PAT Amministrativo",
+              "PTT Tributario"
+            ]
+          },
+          {
+            "y": 2484,
+            "viewportBottom": 3328,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Redazione atti",
+              "Archivio",
+              "PolisWeb / PST",
+              "PDP Penale",
+              "PAT Amministrativo",
+              "PTT Tributario"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Fascicoli",
+              "Esporta",
+              "Archivio",
+              "Nuovo fascicolo",
+              "ECONOMICO 0 da completare — apri vista economica"
+            ]
+          },
+          {
+            "y": 608,
+            "items": [
+              "ECONOMICO 0 da completare — apri vista economica",
+              "Filtri",
+              "Aggiorna fascicoli"
+            ]
+          },
+          {
+            "y": 1216,
+            "items": [
+              "Filtri",
+              "Aggiorna fascicoli",
+              "Prima",
+              "Precedente",
+              "1",
+              "Successiva",
+              "Ultima"
+            ]
+          },
+          {
+            "y": 1824,
+            "items": [
+              "Nuovo fascicolo",
+              "Nuova scadenza",
+              "Redazione atti",
+              "Archivio"
+            ]
+          },
+          {
+            "y": 2432,
+            "items": [
+              "Nuova scadenza",
+              "Redazione atti",
+              "Archivio",
+              "PolisWeb / PST",
+              "PDP Penale",
+              "PAT Amministrativo",
+              "PTT Tributario"
+            ]
+          },
+          {
+            "y": 2484,
+            "items": [
+              "Redazione atti",
+              "Archivio",
+              "PolisWeb / PST",
+              "PDP Penale",
+              "PAT Amministrativo",
+              "PTT Tributario"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Statistiche",
+      "route": "/statistiche",
+      "viewport": "mobile",
+      "elapsedMs": 7043,
+      "url": "http://127.0.0.1:8080/statistiche",
+      "title": "IUSENTRA",
+      "h1": "Statistiche",
+      "h2": "Fascicoli per tipo",
+      "textLength": 2301,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 55,
+      "cards": 81,
+      "links": [
+        {
+          "text": "Aggiorna",
+          "href": "/statistiche"
+        },
+        {
+          "text": "Esporta clienti",
+          "href": "/export/clienti.csv"
+        },
+        {
+          "text": "Esporta fascicoli",
+          "href": "/export/fascicoli.csv"
+        },
+        {
+          "text": "Clienti registrati\n23\nAnagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Fascicoli totali\n332\nArchivio fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Parcelle\n0\nFatturazione",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Scadenze\n235\nScadenziario",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "PEC\n308\nCasella PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Email ordinarie\n2092\nPosta ordinaria",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Messaggi clienti\n8\nComunicazioni",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi\n1\nPreventivi e incarichi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Incarichi\n1\nConferimenti incarico",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Voci timesheet\n0\nTempo e produttivita",
+          "href": "/timesheet"
+        },
+        {
+          "text": "Durata media fascicoli\n1015\nGiorni",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Tasso chiusura fascicoli\n26%\nChiusi: 87",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 9543,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 73,
+          "left": 10,
+          "text": "Statistiche Indicatori reali letti dagli archivi operativi dello studio. Aggiorna Esporta "
+        },
+        {
+          "index": 1,
+          "slot": "primary-actions",
+          "order": 30,
+          "top": 387,
+          "left": 10,
+          "text": "CLIENTI STATO 23 Anagrafiche reali in archivio FASCICOLI ATTIVI STATO 245 Totale fascicoli"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1264,
+          "left": 10,
+          "text": "Fascicoli per tipo distribution CIVILE 325 AMMINISTRATIVO 5 LAVORO 1 PENALE 1 Fascicoli pe"
+        },
+        {
+          "index": 3,
+          "slot": "main-content",
+          "order": 60,
+          "top": 8138,
+          "left": 10,
+          "text": "Indicatori principali Collegamenti verso i moduli operativi collegati. Clienti registrati "
+        },
+        {
+          "index": 4,
+          "slot": "main-content",
+          "order": 60,
+          "top": 9058,
+          "left": 10,
+          "text": "Presidio dati Origine e azioni governate per questa vista. Origine: Dati dello studio Gene"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          608,
+          1216,
+          1824,
+          2432,
+          3040,
+          3648,
+          4256,
+          4864,
+          5472,
+          6080,
+          6688,
+          7296,
+          7904,
+          8512,
+          8699
+        ],
+        "stepCount": 16,
+        "scrollHeight": 9543,
+        "viewportHeight": 844,
+        "maxY": 8699,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 844,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Statistiche",
+              "Aggiorna",
+              "Esporta clienti",
+              "Esporta fascicoli"
+            ]
+          },
+          {
+            "y": 608,
+            "viewportBottom": 1452,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": []
+          },
+          {
+            "y": 1216,
+            "viewportBottom": 2060,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fascicoli per tipo"
+            ]
+          },
+          {
+            "y": 1824,
+            "viewportBottom": 2668,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fascicoli per stato"
+            ]
+          },
+          {
+            "y": 2432,
+            "viewportBottom": 3276,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Scadenze per priorita"
+            ]
+          },
+          {
+            "y": 3040,
+            "viewportBottom": 3884,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 3648,
+            "viewportBottom": 4492,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": []
+          },
+          {
+            "y": 4256,
+            "viewportBottom": 5100,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fatturato mensile"
+            ]
+          },
+          {
+            "y": 4864,
+            "viewportBottom": 5708,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Fatturato mensile"
+            ]
+          },
+          {
+            "y": 5472,
+            "viewportBottom": 6316,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": []
+          },
+          {
+            "y": 6080,
+            "viewportBottom": 6924,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Trend depositi"
+            ]
+          },
+          {
+            "y": 6688,
+            "viewportBottom": 7532,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Comunicazioni per canale",
+              "Preventivi per stato"
+            ]
+          },
+          {
+            "y": 7296,
+            "viewportBottom": 8140,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Preventivi per stato",
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile."
+            ]
+          },
+          {
+            "y": 7904,
+            "viewportBottom": 8748,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria",
+              "Messaggi clienti 8 Comunicazioni",
+              "Preventivi 1 Preventivi e incarichi"
+            ]
+          },
+          {
+            "y": 8512,
+            "viewportBottom": 9356,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Indicatori principali",
+              "Email ordinarie 2092 Posta ordinaria",
+              "Messaggi clienti 8 Comunicazioni",
+              "Preventivi 1 Preventivi e incarichi",
+              "Incarichi 1 Conferimenti incarico",
+              "Voci timesheet 0 Tempo e produttivita",
+              "Durata media fascicoli 1015 Giorni",
+              "Tasso chiusura fascicoli 26% Chiusi: 87",
+              "Presidio dati"
+            ]
+          },
+          {
+            "y": 8699,
+            "viewportBottom": 9543,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Indicatori principali",
+              "Incarichi 1 Conferimenti incarico",
+              "Voci timesheet 0 Tempo e produttivita",
+              "Durata media fascicoli 1015 Giorni",
+              "Tasso chiusura fascicoli 26% Chiusi: 87",
+              "Presidio dati"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Statistiche",
+              "Aggiorna",
+              "Esporta clienti",
+              "Esporta fascicoli"
+            ]
+          },
+          {
+            "y": 608,
+            "items": []
+          },
+          {
+            "y": 1216,
+            "items": [
+              "Fascicoli per tipo"
+            ]
+          },
+          {
+            "y": 1824,
+            "items": [
+              "Fascicoli per stato"
+            ]
+          },
+          {
+            "y": 2432,
+            "items": [
+              "Scadenze per priorita"
+            ]
+          },
+          {
+            "y": 3040,
+            "items": [
+              "Appuntamenti per tipo"
+            ]
+          },
+          {
+            "y": 3648,
+            "items": []
+          },
+          {
+            "y": 4256,
+            "items": [
+              "Fatturato mensile"
+            ]
+          },
+          {
+            "y": 4864,
+            "items": [
+              "Fatturato mensile"
+            ]
+          },
+          {
+            "y": 5472,
+            "items": []
+          },
+          {
+            "y": 6080,
+            "items": [
+              "Trend depositi"
+            ]
+          },
+          {
+            "y": 6688,
+            "items": [
+              "Comunicazioni per canale",
+              "Preventivi per stato"
+            ]
+          },
+          {
+            "y": 7296,
+            "items": [
+              "Preventivi per stato",
+              "Incarichi per stato",
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile."
+            ]
+          },
+          {
+            "y": 7904,
+            "items": [
+              "Timesheet per stato",
+              "Nessuna voce tempo disponibile.",
+              "Clienti registrati 23 Anagrafica clienti",
+              "Fascicoli totali 332 Archivio fascicoli",
+              "Parcelle 0 Fatturazione",
+              "Scadenze 235 Scadenziario",
+              "PEC 308 Casella PEC",
+              "Email ordinarie 2092 Posta ordinaria",
+              "Messaggi clienti 8 Comunicazioni",
+              "Preventivi 1 Preventivi e incarichi"
+            ]
+          },
+          {
+            "y": 8512,
+            "items": [
+              "Indicatori principali",
+              "Email ordinarie 2092 Posta ordinaria",
+              "Messaggi clienti 8 Comunicazioni",
+              "Preventivi 1 Preventivi e incarichi",
+              "Incarichi 1 Conferimenti incarico",
+              "Voci timesheet 0 Tempo e produttivita",
+              "Durata media fascicoli 1015 Giorni",
+              "Tasso chiusura fascicoli 26% Chiusi: 87",
+              "Presidio dati"
+            ]
+          },
+          {
+            "y": 8699,
+            "items": [
+              "Indicatori principali",
+              "Incarichi 1 Conferimenti incarico",
+              "Voci timesheet 0 Tempo e produttivita",
+              "Durata media fascicoli 1015 Giorni",
+              "Tasso chiusura fascicoli 26% Chiusi: 87",
+              "Presidio dati"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Contatti Sito Studio",
+      "route": "/sito-studio/contatti",
+      "viewport": "mobile",
+      "elapsedMs": 4328,
+      "url": "http://127.0.0.1:8080/sito-studio/contatti",
+      "title": "IUSENTRA",
+      "h1": "Contatti Sito Studio",
+      "h2": "Avvisi operativi",
+      "textLength": 1602,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 31,
+      "links": [
+        {
+          "text": "Cruscotto sito",
+          "href": "/sito-studio"
+        },
+        {
+          "text": "Apri modulo contatti",
+          "href": "/web/studio-legale-montagnese/contatti"
+        },
+        {
+          "text": "Apri prenotazione",
+          "href": "/web/studio-legale-montagnese/prenota"
+        },
+        {
+          "text": "Apri sito pubblico",
+          "href": "http://127.0.0.1:8080/web/studio-legale-montagnese/"
+        },
+        {
+          "text": "Apri modulo contatti",
+          "href": "/web/studio-legale-montagnese/contatti"
+        },
+        {
+          "text": "Apri prenotazione",
+          "href": "/web/studio-legale-montagnese/prenota"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/sito-studio/contatti?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3327,
+      "presetActive": true,
+      "sequenceRoot": true,
+      "sequenceItems": [
+        {
+          "index": 0,
+          "slot": "page-header",
+          "order": 10,
+          "top": 73,
+          "left": 10,
+          "text": "Contatti Sito Studio Richieste contatto e prenotazioni gestite con servizi sicuri. Cruscot"
+        },
+        {
+          "index": 1,
+          "slot": "context-filters",
+          "order": 50,
+          "top": 333,
+          "left": 10,
+          "text": "Contatti e prenotazioni reali La scheda resta operativa anche quando non ci sono richieste"
+        },
+        {
+          "index": 2,
+          "slot": "main-content",
+          "order": 60,
+          "top": 459,
+          "left": 10,
+          "text": "Avvisi operativi azioni_contatto_limitate Questa scheda consente collegamento cliente e ge"
+        },
+        {
+          "index": 3,
+          "slot": "main-content",
+          "order": 60,
+          "top": 895,
+          "left": 10,
+          "text": "Ingressi pubblici Accessi usati dai visitatori per inviare nuove richieste. Apri modulo co"
+        },
+        {
+          "index": 4,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1289,
+          "left": 10,
+          "text": "Ricerca contatti 0 richieste visibili"
+        },
+        {
+          "index": 5,
+          "slot": "main-content",
+          "order": 60,
+          "top": 1542,
+          "left": 10,
+          "text": "Richieste contatto 0 richieste reali Nessuna richiesta contatto ricevuta Quando un visitat"
+        },
+        {
+          "index": 6,
+          "slot": "main-content",
+          "order": 60,
+          "top": 2023,
+          "left": 10,
+          "text": "Prenotazioni 0 richieste reali Nessuna prenotazione ricevuta Quando un visitatore richiede"
+        },
+        {
+          "index": 7,
+          "slot": "main-content",
+          "order": 60,
+          "top": 2504,
+          "left": 10,
+          "text": "Percorso di recupero Sono abilitate le azioni sicure gia collegate: creazione cliente, col"
+        },
+        {
+          "index": 8,
+          "slot": "main-content",
+          "order": 60,
+          "top": 2823,
+          "left": 10,
+          "text": "Stato dati Dati e azioni disponibili per questa pagina. Origine: Dati dello studio Generat"
+        }
+      ],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": true,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": 255,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          608,
+          1216,
+          1824,
+          2432,
+          2483
+        ],
+        "stepCount": 6,
+        "scrollHeight": 3327,
+        "viewportHeight": 844,
+        "maxY": 2483,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 844,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Contatti Sito Studio",
+              "Cruscotto sito",
+              "Aggiorna",
+              "Avvisi operativi"
+            ]
+          },
+          {
+            "y": 608,
+            "viewportBottom": 1452,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Avvisi operativi",
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico",
+              "Ricerca contatti"
+            ]
+          },
+          {
+            "y": 1216,
+            "viewportBottom": 2060,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Ricerca contatti",
+              "Richieste contatto",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti"
+            ]
+          },
+          {
+            "y": 1824,
+            "viewportBottom": 2668,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Richieste contatto",
+              "Apri modulo contatti",
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero"
+            ]
+          },
+          {
+            "y": 2432,
+            "viewportBottom": 3276,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          },
+          {
+            "y": 2483,
+            "viewportBottom": 3327,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Contatti Sito Studio",
+              "Cruscotto sito",
+              "Aggiorna",
+              "Avvisi operativi"
+            ]
+          },
+          {
+            "y": 608,
+            "items": [
+              "Avvisi operativi",
+              "Ingressi pubblici",
+              "Apri modulo contatti",
+              "Apri prenotazione",
+              "Apri sito pubblico",
+              "Ricerca contatti"
+            ]
+          },
+          {
+            "y": 1216,
+            "items": [
+              "Ricerca contatti",
+              "Richieste contatto",
+              "Nessuna richiesta contatto ricevuta",
+              "Apri modulo contatti"
+            ]
+          },
+          {
+            "y": 1824,
+            "items": [
+              "Richieste contatto",
+              "Apri modulo contatti",
+              "Prenotazioni",
+              "Nessuna prenotazione ricevuta",
+              "Apri prenotazione",
+              "Percorso di recupero",
+              "Percorso di recupero"
+            ]
+          },
+          {
+            "y": 2432,
+            "items": [
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          },
+          {
+            "y": 2483,
+            "items": [
+              "Percorso di recupero",
+              "Percorso di recupero",
+              "Stato dati"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Sito Studio Builder",
+      "route": "/sito-studio/builder",
+      "viewport": "mobile",
+      "elapsedMs": 4951,
+      "url": "http://127.0.0.1:8080/sito-studio/builder",
+      "title": "IUSENTRA",
+      "h1": "Sito Studio Builder Pro",
+      "h2": "Aspetto",
+      "textLength": 2891,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 69,
+      "cards": 8,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3413,
+      "presetActive": false,
+      "sequenceRoot": false,
+      "sequenceItems": [],
+      "sequenceUnordered": 0,
+      "sequenceHeaderFirst": false,
+      "sequenceBeforeHeader": [],
+      "headerLuminance": null,
+      "routeRails": [],
+      "emailSplit": null,
+      "agendaWeek": null,
+      "scrollAudit": {
+        "checked": true,
+        "positions": [
+          0,
+          608,
+          1216,
+          1824,
+          2432,
+          2569
+        ],
+        "stepCount": 6,
+        "scrollHeight": 3413,
+        "viewportHeight": 844,
+        "maxY": 2569,
+        "snapshots": [
+          {
+            "y": 0,
+            "viewportBottom": 844,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Sito Studio Builder Pro",
+              "Salva",
+              "Controlla",
+              "Pubblica",
+              "Setup",
+              "Pagine",
+              "Blocchi",
+              "Testi",
+              "Aspetto",
+              "Media"
+            ]
+          },
+          {
+            "y": 608,
+            "viewportBottom": 1452,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Classic Legal Istituzionale, sobrio e leggibile, pensato per studi generalisti.",
+              "Boutique elegante Premium, editoriale e caldo, adatto a studi boutique.",
+              "Corporate Premium Strutturato, con servizi, indicatori, team e sedi in evidenza.",
+              "Digital Modern Moderno, con gradienti leggeri e card dinamiche.",
+              "Penalista Scuro, serio e orientato a urgenze e difesa.",
+              "Civilista Equilibrato per civile, famiglia, lavoro e contratti.",
+              "Tributario Tecnico, chiaro su scadenze, accertamenti e contenzioso.",
+              "Amministrativo Istituzionale per TAR, appalti, PA, urbanistica e accesso agli atti."
+            ]
+          },
+          {
+            "y": 1216,
+            "viewportBottom": 2060,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": []
+          },
+          {
+            "y": 1824,
+            "viewportBottom": 2668,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile"
+            ]
+          },
+          {
+            "y": 2432,
+            "viewportBottom": 3276,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile",
+              "Studio Legale Montagnese",
+              "Richiedi un appuntamento"
+            ]
+          },
+          {
+            "y": 2569,
+            "viewportBottom": 3413,
+            "documentWidth": 390,
+            "viewportWidth": 390,
+            "horizontalOverflow": false,
+            "overflowNodes": [],
+            "loadingTexts": [],
+            "composeButtons": [],
+            "actionIssues": [],
+            "visibleLandmarks": [
+              "Desktop",
+              "Tablet",
+              "Mobile",
+              "Studio Legale Montagnese",
+              "Richiedi un appuntamento",
+              "Metodo professionale"
+            ]
+          }
+        ],
+        "bottomReached": true,
+        "overflow": [],
+        "loadingTexts": [],
+        "composeButtons": [],
+        "actionIssues": [],
+        "visibleLandmarks": [
+          {
+            "y": 0,
+            "items": [
+              "Sito Studio Builder Pro",
+              "Salva",
+              "Controlla",
+              "Pubblica",
+              "Setup",
+              "Pagine",
+              "Blocchi",
+              "Testi",
+              "Aspetto",
+              "Media"
+            ]
+          },
+          {
+            "y": 608,
+            "items": [
+              "Classic Legal Istituzionale, sobrio e leggibile, pensato per studi generalisti.",
+              "Boutique elegante Premium, editoriale e caldo, adatto a studi boutique.",
+              "Corporate Premium Strutturato, con servizi, indicatori, team e sedi in evidenza.",
+              "Digital Modern Moderno, con gradienti leggeri e card dinamiche.",
+              "Penalista Scuro, serio e orientato a urgenze e difesa.",
+              "Civilista Equilibrato per civile, famiglia, lavoro e contratti.",
+              "Tributario Tecnico, chiaro su scadenze, accertamenti e contenzioso.",
+              "Amministrativo Istituzionale per TAR, appalti, PA, urbanistica e accesso agli atti."
+            ]
+          },
+          {
+            "y": 1216,
+            "items": []
+          },
+          {
+            "y": 1824,
+            "items": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile"
+            ]
+          },
+          {
+            "y": 2432,
+            "items": [
+              "Salva aspetto",
+              "Anteprima live",
+              "Desktop",
+              "Tablet",
+              "Mobile",
+              "Studio Legale Montagnese",
+              "Richiedi un appuntamento"
+            ]
+          },
+          {
+            "y": 2569,
+            "items": [
+              "Desktop",
+              "Tablet",
+              "Mobile",
+              "Studio Legale Montagnese",
+              "Richiedi un appuntamento",
+              "Metodo professionale"
+            ]
+          }
+        ],
+        "expectedCompose": false
+      },
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "",
+      "warnings": [],
+      "failures": []
+    }
+  ]
+}

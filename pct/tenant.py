@@ -1457,12 +1457,26 @@ class GestioneTenant:
             "sqlite_records": sqlite_records,
         }
 
-    def percorsi_dati(self, slug: str, *, reconcile_aliases: bool = True) -> Dict[str, str]:
-        """Restituisce il dizionario di configurazione data paths per questo tenant."""
+    def percorsi_dati(
+        self,
+        slug: str,
+        *,
+        reconcile_aliases: bool = True,
+        ensure_baseline: bool | None = None,
+    ) -> Dict[str, str]:
+        """Restituisce il dizionario di configurazione data paths per questo tenant.
+
+        I percorsi sono necessari anche in flussi caldi come login, sessione e
+        health check. In quei casi il chiamante passa ``reconcile_aliases=False``
+        e la preparazione completa del baseline runtime resta fuori dal percorso
+        immediato.
+        """
         if reconcile_aliases:
             self.reconcile_storage_aliases(slug)
+        if ensure_baseline is None:
+            ensure_baseline = reconcile_aliases
         baseline_key = str(self._data_dir(slug).resolve())
-        if baseline_key not in TENANT_RUNTIME_BASELINE_IN_PROGRESS:
+        if ensure_baseline and baseline_key not in TENANT_RUNTIME_BASELINE_IN_PROGRESS:
             self._ensure_runtime_baseline(slug)
         base = str(self._data_dir(slug))
         return {

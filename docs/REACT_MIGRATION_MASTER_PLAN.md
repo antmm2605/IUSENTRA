@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## Assistente vocale Studio - 2026-06-12 - 2.253.1
+
+La topbar React integra l'assistente vocale Studio come componente caricato in modo pigro, con pannello responsive e testi italiani per l'uso operativo dello studio legale.
+
+Copertura implementata:
+
+- catalogo governato con i 40 comandi vocali iniziali dell'utente, 290 frasi aggiunte e 59 destinazioni o aree apribili;
+- attivazione locale con registrazione tono voce, PIN pronunciato o inserito e ascolto continuo;
+- comandi per navigazione, ricerca studio, Lex AI, aiuto, indietro, ricarica e disattivazione assistente;
+- flusso "Studio nuovo cliente" con nome, cognome, codice fiscale, rilettura dati e salvataggio reale solo dopo conferma;
+- API `POST /api/v1/ui/clienti/voce/crea` con permesso `clienti.scrivi`, validazioni dominio, audit e sincronizzazione.
+
+Verifiche locali già eseguite sul perimetro mirato: catalogo frontend, `py_compile`, pytest dedicato e typecheck React. Restano prima della chiusura di rilascio: build/gate finali, Docker reale `127.0.0.1:8080`, browser desktop/tablet/mobile, commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner.
+
 ## Dashboard, top bar e Guida Pratica set34-41 - 2026-06-11 - 2.251.26
 
 La Panoramica React e la Regia Operativa sono state stabilizzate dopo i picchi CPU osservati su Hetzner:
@@ -3019,3 +3033,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Guida Pratica e Scadenziario sono stati estesi con i materiali utente fino a `kb_set20`: 73 record integrati, 7 moduli KB nuovi, 3.321 termini processuali e 1.075 template calcolabili. Gli audit confermano 0 perdite verso KB completo, UI Guida Pratica e Lex.
 - La stanza cliente dell'assistenza remota non mostra più l'anteprima del proprio schermo; la condivisione resta destinata al lato operatore/SUPERADMIN.
 - Verifiche locali confermate: `py_compile` mirato, 36/36 pytest template/assistenza/Lex/UTF-8, import/merge/validazione Guida Pratica, `pnpm --dir frontend build`, Docker reale su `127.0.0.1:8080` con `/api/pronto` `2.249.15`, browser Playwright 74/74 e Browser integrato Codex con nessun overflow pagina/pannello/card.
+
+## Aggiornamento 2026-06-12: assistente vocale Studio 2.253.1
+
+- La topbar React include l'assistente vocale Studio con caricamento lazy, registrazione locale voce/PIN, attivazione con PIN pronunciato, ascolto continuo e disattivazione vocale.
+- Il catalogo comandi è governato in `frontend/src/studioVoiceCommands.json`: 40 comandi base dell'utente, 290 frasi aggiunte, 330 frasi totali e 59 destinazioni operative.
+- `Studio nuovo cliente` usa un flusso guidato con soli campi obbligatori, rilettura e conferma; il salvataggio passa da `POST /api/v1/ui/clienti/voce/crea` con permesso `clienti.scrivi`, validazioni, audit e sincronizzazione.
+- Verifiche locali confermate: catalogo, pytest mirati, UTF-8, typecheck, test React, build Vite, contratti OpenAPI, Docker reale `127.0.0.1:8080` con `/api/pronto` `2.253.1`, audit CDP voce/PIN/cliente/59 destinazioni e visual load audit desktop/tablet/mobile.

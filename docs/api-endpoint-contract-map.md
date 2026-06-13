@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 275.
-- Endpoint P0/P1 contrattualizzati: 244.
+- Endpoint React API contrattualizzati: 276.
+- Endpoint P0/P1 contrattualizzati: 245.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 260.
+- Endpoint con provider verification auth-error: 261.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -77,6 +77,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Clienti | `/api/v1/ui/clienti/delete` | `POST` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Clienti | `/api/v1/ui/clienti/nuovo` | `GET` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Clienti | `/api/v1/ui/clienti/nuovo/documento/leggi` | `POST` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Clienti | `/api/v1/ui/clienti/voce/crea` | `POST` | Clienti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Compensi forensi | `/api/v1/ui/compensi-forensi` | `GET` | Compensi forensi | P1 | verified | success+auth-error | `fatturazione.leggi` | `n/a` | current_tenant | verified |
 | Compensi forensi | `/api/v1/ui/compensi-forensi/calcola` | `POST` | Compensi forensi | P1 | complete | auth-error | `fatturazione.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Conferimenti | `/api/v1/ui/conferimenti/{conferimento_id}/apri-fascicolo` | `POST` | Conferimenti | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |

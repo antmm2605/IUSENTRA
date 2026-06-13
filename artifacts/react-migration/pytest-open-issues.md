@@ -1,5 +1,23 @@
 # Pytest issue aperte e risoluzioni
 
+## Dettatura unica assistente Studio 2.253.4 - 2026-06-13
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Verifica reale Chrome | Chrome installato + copia Docker `127.0.0.1:8080` | Risolto localmente | Audit visibile in Google Chrome installato `C:/Program Files/Google/Chrome/Application/chrome.exe`, microfono `granted`, responsive desktop/tablet/mobile, 390 frasi e 59 destinazioni senza failure. Il replay vocale è stato pilotato in pagina per eseguire autonomamente la prova senza voce umana dell'utente. | Dopo push/deploy ripetere solo smoke reale se GitHub o deploy modificano il bundle. |
+| Dettatura campi reali | `/clienti/nuovo` su Chrome reale | Risolto localmente | Verificati valori reali: `Mario`, telefono/CAP `00100`, `doc_numero` -> `CA61007P`, email `antmm2605@gmail.com`, PEC con trattino legittimo, sito normalizzato, date italiane e sesso `F`. | Mantenere guardrail `frontend/scripts/check-studio-voice-assistant.mjs` e `tests/test_studio_voice_assistant.py`. |
+| Ricerca senza ripetere Studio | Sessione operativa attiva | Risolto localmente | L'audit ha trovato che `cerca Rossi` non partiva senza vecchio prefisso `Studio`; aggiunti prefissi `cerca`, `trova`, `ricerca` e verificato `/global-search?q=rossi`. | Verificare dopo deploy che la ricerca vocale apra la route in produzione autenticata. |
+| Riattivazione dopo disattivazione | Chrome reale + copia Docker `127.0.0.1:8080` | Risolto localmente | Dopo `disattiva assistente` il test torna su Configurazione, ripete PIN e richiamo `Studio`, poi verifica le route. | Nessuna azione locale aperta; resta controllo post-deploy se necessario. |
+| Chunk principale React | `pnpm --filter @iusentra/studio build` | Aperto | Build verde ma warning Vite ancora presente: `assets/index-D9Xs3IhZ.js` 503,51 kB minificato, 146,38 kB gzip. Non è stato causato o risolto da questa tranche e non va liquidato come "noto" senza spiegazione. | Tranche dedicata di code splitting sul bootstrap React principale, con baseline prima/dopo e prova reale di caricamento. |
+| Release finale | Branch gemelli, GitHub, Hetzner | In corso | La tranche non è chiusa finché non sono completati Docker reale, browser reale, commit, push, check-run dello SHA corrente, deploy Hetzner, `/api/pronto` produzione e prune Docker. | Seguire `docs/COMMIT_PUSH_REQUIRED_GATES.md` e non dichiarare completato prima del deploy verificato. |
+
+## Assistente vocale Studio 2.253.1 - 2026-06-12
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Browser voce e responsive | Docker reale `127.0.0.1:8080` + browser desktop/tablet/mobile | Parziale | Codice, catalogo, API, typecheck, audit automatizzato con microfono simulato e verifica visiva pannello sono verdi. La registrazione fisica del tono resta bloccata perché il browser nega il microfono. | Concedere il microfono dal browser, reinserire il PIN e ripetere la calibrazione leggendo la frase consigliata per 30 secondi. |
+| Release finale | Branch gemelli, GitHub, Hetzner | In corso | La tranche non è chiusa finché non sono completati commit, push, check-run dello SHA corrente, deploy Hetzner, `/api/pronto` produzione e prune Docker. | Seguire `docs/COMMIT_PUSH_REQUIRED_GATES.md` e non dichiarare completato prima del deploy verificato. |
+
 ## Note assistenza remota CodeQL e benchmark runtime - 2026-06-12
 
 | Area | Gate | Stato | Nota | Azione |
@@ -1474,3 +1492,11 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- | --- |
 | Test Scadenziario React/API | `tests/test_scadenziario.py` | Risolto localmente | Il blocco completo aveva 5 rossi perché i vecchi test leggevano HTML server-rendered mentre `/scadenziario` è full React. I test sono stati portati sul payload reale `/api/v1/ui/scadenziario` e la pagina dettaglio usa `vista=tutte` quando la route contiene un ID scadenza. | Mantenere i test sul payload API React: una scadenza non deve essere dichiarata visibile se non compare nei dati che alimentano la UI. |
 | Script audit struttura tenant | `python scripts\audit_tenant_data_structure.py --repair` | Risolto localmente | Il primo lancio diretto non trovava il package `pct`; lo script ora inserisce la root repo in `sys.path` e parte da console. L'audit locale reale è verde e non crea backup o snapshot. | Usare questo script prima di chiudere modifiche su JSON, SQLite, PostgreSQL, PEC, agenda, scadenziario, notifiche o creazione studi. |
+
+## Note assistente vocale Studio 2.253.1 - 2026-06-12
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Assistente vocale Studio | Test mirati, Docker reale, audit CDP e visual load | Risolto localmente, da verificare sul nuovo SHA remoto | Catalogo 330 frasi, attivazione/disattivazione con riconoscimento simulato, nuovo cliente guidato, 59 destinazioni vocali e baseline responsive sono verdi su `127.0.0.1:8080` con versione `2.253.1`. | Completare commit, push branch gemelli, controlli GitHub/CodeQL e deploy Hetzner prima di dichiarare chiusa la consegna. |
+| Registrazione fisica tono voce | Browser integrato visibile su `127.0.0.1:8080` | Bloccato dal permesso microfono | Il click reale su "Registra voce e PIN" è stato eseguito dopo rebuild Docker. Il browser ha risposto "Microfono non autorizzato"; quindi la calibrazione di 30 secondi non è partita e non si può dichiarare salvato il profilo vocale fisico. Il PIN resta mascherato e viene svuotato dopo errore; il profilo non viene salvato. | Concedere il microfono dal browser e ripetere la prova leggendo la frase consigliata per 30 secondi. Solo dopo il messaggio "Voce e PIN salvati su questo dispositivo" si potrà dichiarare salvata la voce. |
+| Dati runtime locali generati dagli audit | `git status --short` | Governato | Login temporaneo, audit e Docker hanno aggiornato file sotto `data/**`; non fanno parte della consegna e vanno ripristinati prima del commit. | Prima dello stage mantenere solo sorgente, test, documentazione, report e asset statici referenziati dalla build corrente. |

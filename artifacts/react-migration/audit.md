@@ -16,9 +16,13 @@ Legacy operational prefixes: 15
 
 ## App React
 
-Lazy components: 45
+Lazy components: 46
 Route checks: 60
 Studio module routes: 53
+
+## Aggiornamento manuale 2026-06-12
+
+Assistente vocale Studio 2.253.1 aggiunto come componente topbar caricato in modo pigro. Il catalogo comandi è testato separatamente e il flusso cliente usa API reale con permessi, audit e repository. Audit browser CDP su Docker reale `127.0.0.1:8080`: 330 frasi, 59 destinazioni, voce/PIN, cliente guidato, responsive desktop/tablet/mobile e visual load baseline confermati senza failure.
 
 ## Nota operativa
 

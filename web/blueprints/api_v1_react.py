@@ -26,6 +26,7 @@ from werkzeug.exceptions import HTTPException
 from pct import __version__ as APP_VERSION
 from pct.applicazioni_runtime import TOOL_SCHEMAS, build_tool_result
 from pct.auth import RuoloUtente, totp_uri
+from pct.clienti import TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
@@ -487,6 +488,10 @@ def _puo_importare_studio_telematico() -> bool:
         _session_user_can("admin.configura")
         or (_session_user_can("fascicoli.scrivi") and _session_user_can("clienti.scrivi"))
     )
+
+
+def _puo_scrivere_clienti() -> bool:
+    return _api_key_valida() or _session_user_can("clienti.scrivi")
 
 
 def _request_from_loopback() -> bool:
@@ -2008,6 +2013,72 @@ def clienti_react_delete():
     else:
         message = f"{len(deleted)} clienti eliminati."
     return jsonify({"ok": True, "message": message, "deleted": deleted, "missing": missing})
+
+
+def _voice_cliente_text(value: Any) -> str:
+    return " ".join(str(value or "").strip().split())
+
+
+def _voice_cliente_cf(value: Any) -> str:
+    return re.sub(r"[^A-Za-z0-9]", "", str(value or "")).upper()
+
+
+def _voice_cliente_error_message(error: Exception) -> str:
+    message = str(error or "").strip()
+    if "Codice fiscale non valido" in message:
+        return "Il codice fiscale non ha un formato valido."
+    if "Cliente con CF" in message and "presente" in message:
+        return "Un cliente con questo codice fiscale è già presente."
+    return message or "Cliente non aggiunto. Controlla i dati obbligatori."
+
+
+@api_v1_react.post("/clienti/voce/crea")
+@_richiedi_auth
+def clienti_react_voce_crea():
+    if not _puo_scrivere_clienti():
+        return jsonify({"ok": False, "message": "Permesso non sufficiente per aggiungere clienti."}), 403
+
+    data = _request_payload()
+    nome = _voice_cliente_text(data.get("nome"))
+    cognome = _voice_cliente_text(data.get("cognome"))
+    codice_fiscale = _voice_cliente_cf(data.get("codice_fiscale"))
+    errors: dict[str, str] = {}
+    if not nome:
+        errors["nome"] = "Inserisci il nome."
+    if not cognome:
+        errors["cognome"] = "Inserisci il cognome."
+    if not codice_fiscale:
+        errors["codice_fiscale"] = "Inserisci il codice fiscale."
+    elif len(codice_fiscale) != 16:
+        errors["codice_fiscale"] = "Il codice fiscale deve avere 16 caratteri."
+    if errors:
+        return _json_validation_error("Completa nome, cognome e codice fiscale.", errors, status=400)
+
+    try:
+        cliente = get_clienti().nuovo(
+            TipoCliente.PERSONA_FISICA,
+            nome=nome,
+            cognome=cognome,
+            codice_fiscale=codice_fiscale,
+        )
+    except ValueError as exc:
+        message = _voice_cliente_error_message(exc)
+        return _json_validation_error(message, {"codice_fiscale": message}, status=400)
+
+    _sync_event("crea", "clienti", cliente.id)
+    _audit_event(
+        "clienti.voce.crea",
+        "cliente",
+        cliente.id,
+        "Cliente aggiunto tramite assistente vocale Studio.",
+    )
+    label = str(getattr(cliente, "nome_completo", "") or f"{cognome} {nome}".strip())
+    return jsonify({
+        "ok": True,
+        "id": cliente.id,
+        "message": f"Cliente {label} aggiunto.",
+        "redirect": f"/clienti/{cliente.id}",
+    }), 201
 
 
 @api_v1_react.get("/clienti/nuovo")

@@ -4,6 +4,7 @@ Generato: 2026-05-08
 
 ## Controlli applicati
 
+- 2026-06-12: assistente vocale Studio 2.253.1. Il trigger topbar espone `aria-label`, `aria-expanded` e title; il pannello ha `aria-label`, stato con `role=status`, pulsanti con testo o label, input PIN mascherato con `inputMode=numeric`, campi cliente con label visibili, registro `Cosa ho ascoltato` leggibile e comandi raggruppati in `details/summary` nativi. Audit CDP su desktop/tablet/mobile: nessun pulsante vuoto, nessun testo pulsante tagliato, testi richiesti presenti, stato ascolto e conferma cliente leggibili. La prova visibile del microfono negato mostra un messaggio operativo e svuota il PIN senza salvare un profilo incompleto.
 - 2026-06-04: editor Template Atti 2.249.14 verificato nel browser reale su desktop/tablet/mobile. I pulsanti icona della toolbar, le azioni campi, i tab Campi/Stile/Lex/Fonti/Controlli/Export, Lex diff accetta/rifiuta, import, export, compilazione multipla e firma espongono testo o `aria-label`/`title` operativo; i controlli restano raggiungibili dopo scroll e non producono sovrapposizioni.
 - Nuovi componenti con `role=status`, `aria-live`, `aria-label` e focus ring compatibili con il design system.
 - `IusErrorState` separa messaggio utente e dettagli tecnici espandibili.

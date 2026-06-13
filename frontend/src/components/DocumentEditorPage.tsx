@@ -21,6 +21,7 @@ import {
   ListChecks,
   ListOrdered,
   LoaderCircle,
+  Mic,
   Palette,
   Pilcrow,
   Redo2,
@@ -71,6 +72,21 @@ type EditorAIDetail = {
   sources: EditorAISource[]
   edit_proposals: EditorAIProposal[]
   versions: Array<{ id: string; version_number: number; source: string; created_at: string }>
+}
+type IusentraVoiceInputService = {
+  startForTarget?: (target: HTMLElement, options?: {
+    context?: string
+    lang?: string
+    silenceMs?: number
+    onStart?: () => void
+    onInserted?: (text: string) => void
+  }) => Promise<string>
+}
+
+declare global {
+  interface Window {
+    IusentraVoiceInput?: IusentraVoiceInputService
+  }
 }
 
 const defaultStats: EditorStats = { words: 0, chars: 0, readingMinutes: 1 }
@@ -383,6 +399,7 @@ export function DocumentEditorPage() {
   const [editorAiInstructions, setEditorAiInstructions] = useState('')
   const [editorAiDocumentIds, setEditorAiDocumentIds] = useState<string[]>([])
   const [editorAiEditInstructions, setEditorAiEditInstructions] = useState('')
+  const [voiceDictating, setVoiceDictating] = useState(false)
 
   const updateStats = useCallback(() => {
     const text = editorRef.current?.innerText.trim() || ''
@@ -785,6 +802,30 @@ export function DocumentEditorPage() {
     runCommand('insertHTML', '<table><tbody><tr><th>Intestazione</th><th>Intestazione</th></tr><tr><td>Testo</td><td>Testo</td></tr></tbody></table><p><br></p>')
   }
 
+  const startEditorDictation = () => {
+    if (conversionLocked || !editorRef.current) return
+    const service = window.IusentraVoiceInput
+    if (!service?.startForTarget) {
+      setStatus({ tone: 'danger', label: 'Dettatura non disponibile in questa sessione' })
+      return
+    }
+    setVoiceDictating(true)
+    setStatus({ tone: 'loading', label: 'Controllo microfono editor' })
+    void service.startForTarget(editorRef.current, {
+      context: 'editor-professionale',
+      lang: 'it-IT',
+      silenceMs: 3200,
+      onStart: () => setStatus({ tone: 'loading', label: 'Dettatura attiva nell’editor' }),
+    }).then((insertedText) => {
+      setStatus({ tone: insertedText ? 'warning' : 'neutral', label: insertedText ? 'Dettatura inserita, da salvare' : 'Nessun testo vocale rilevato' })
+      if (insertedText) markChanged()
+    }).catch((error) => {
+      setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Dettatura non disponibile' })
+    }).finally(() => {
+      setVoiceDictating(false)
+    })
+  }
+
   const findText = (backwards = false) => {
     if (!searchTerm.trim()) return
     editorRef.current?.focus()
@@ -1084,6 +1125,7 @@ export function DocumentEditorPage() {
             <ToolbarButton title="Elenco numerato" onClick={() => runCommand('insertOrderedList')}><ListOrdered size={16}/></ToolbarButton>
             <ToolbarButton title="Tabella" onClick={insertTable}><Table size={16}/></ToolbarButton>
             <ToolbarButton title="Collegamento" onClick={insertLink}><Link size={16}/></ToolbarButton>
+            <ToolbarButton title={voiceDictating ? 'Dettatura in corso' : 'Detta nel documento'} onClick={startEditorDictation} disabled={!editorEnabled || voiceDictating}><Mic size={16}/></ToolbarButton>
             <span className="iu-de-separator"/>
             <label className="iu-de-color" title="Colore testo"><Palette size={15}/><input type="color" onChange={(event) => runCommand('foreColor', event.target.value)} defaultValue="#111827"/></label>
             <label className="iu-de-color" title="Evidenziatore"><Highlighter size={15}/><input type="color" onChange={(event) => runCommand('hiliteColor', event.target.value)} defaultValue="#fef3c7"/></label>

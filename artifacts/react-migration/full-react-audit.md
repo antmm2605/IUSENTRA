@@ -2,6 +2,12 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-06-12T14:00:00+02:00: assistente vocale Studio 2.253.1.
+La nuova superficie React in topbar non sostituisce pagine esistenti e resta
+governata da catalogo dati, test statici e API reale per il cliente vocale.
+Da verificare nel browser reale su Docker locale: apertura pannello, attivazione,
+disattivazione, PIN vocale, nuovo cliente guidato e resa responsive.
+
 Aggiornamento 2026-05-26T09:15:00+02:00: uffici competenti inline nel fascicolo
 2.248.62.
 Il dettaglio fascicolo mantiene la superficie React e aggiunge un pannello
@@ -600,3 +606,9 @@ primaria, nessun invio Lex esterno, nessuna modifica automatica senza
 accettazione, fonti normative inseribili solo su click e import documento
 governato da encoding/font rilevati. Browser reale 73/73 OK su Docker
 `127.0.0.1:8080`.
+
+## Aggiornamento 2.253.1 - 2026-06-12
+
+L'assistente vocale Studio è integrato nella topbar React senza sostituire le superfici esistenti: resta un acceleratore operativo che apre le stesse route full React, richiama Lex e usa API reali. Il catalogo contiene 330 frasi, comprese le frasi utente originali e 290 estensioni, con 59 destinazioni.
+
+Verifica reale su Docker `127.0.0.1:8080`: registrazione voce/PIN, attivazione, disattivazione, aiuto, Lex, ricerca, indietro, ricarica, nuovo cliente guidato e tutte le destinazioni vocali sono stati provati con CDP e riconoscimento sintetico del browser. Esito: zero failure, zero errori console, zero overflow e zero testi tecnici vietati.

@@ -1,0 +1,998 @@
+{
+  "baseUserCommands": [
+    "apri Panoramica",
+    "apri Regia Operativa",
+    "apri Ricerca",
+    "apri Calendario",
+    "nuovo appuntamento",
+    "apri Timesheet",
+    "apri Fascicoli",
+    "nuovo fascicolo",
+    "apri Clienti",
+    "nuovo cliente",
+    "apri Soggetti e Parti",
+    "apri PEC",
+    "apri Notifiche",
+    "apri Messaggi",
+    "apri Scadenze",
+    "nuova scadenza",
+    "apri Servizi Telematici",
+    "apri PolisWeb",
+    "apri PDP",
+    "apri PAT",
+    "apri PTT",
+    "apri organizzazione",
+    "apri Fatture",
+    "apri Preventivi",
+    "apri Documenti",
+    "apri Redazione Atti",
+    "apri Ricerca Legale",
+    "apri Sito",
+    "apri Impostazioni",
+    "apri Amministrazione",
+    "apri Utenti",
+    "apri Profili e Permessi",
+    "apri Database",
+    "apri Registro GDPR",
+    "cerca Rossi",
+    "apri Lex",
+    "aiuto",
+    "torna indietro",
+    "ricarica pagina",
+    "disattiva assistente"
+  ],
+  "routeCommands": [
+    {
+      "id": "panoramica",
+      "label": "Panoramica",
+      "href": "/",
+      "group": "Studio",
+      "phrases": [
+        "apri Panoramica",
+        "vai alla panoramica",
+        "mostra panoramica",
+        "apri quadro generale",
+        "torna alla schermata iniziale"
+      ]
+    },
+    {
+      "id": "regia-operativa",
+      "label": "Regia Operativa",
+      "href": "/workspace-intelligente",
+      "group": "Studio",
+      "phrases": [
+        "apri Regia Operativa",
+        "mostra regia operativa",
+        "vai alla regia",
+        "apri priorità operative",
+        "mostra prossime azioni"
+      ]
+    },
+    {
+      "id": "ricerca-studio",
+      "label": "Ricerca Studio",
+      "href": "/app-v2/ricerca-studio",
+      "group": "Ricerca",
+      "phrases": [
+        "apri Ricerca",
+        "apri ricerca generale",
+        "mostra Ricerca",
+        "cerca",
+        "apri cerca fascicoli e clienti"
+      ]
+    },
+    {
+      "id": "calendario",
+      "label": "Calendario",
+      "href": "/agenda",
+      "group": "Agenda",
+      "phrases": [
+        "apri Calendario",
+        "apri agenda",
+        "mostra appuntamenti",
+        "vai al calendario",
+        "apri udienze e appuntamenti"
+      ]
+    },
+    {
+      "id": "nuovo-appuntamento",
+      "label": "Nuovo Appuntamento",
+      "href": "/agenda/nuovo",
+      "group": "Agenda",
+      "phrases": [
+        "nuovo appuntamento",
+        "crea appuntamento",
+        "inserisci udienza",
+        "fissa appuntamento",
+        "aggiungi appuntamento in agenda"
+      ]
+    },
+    {
+      "id": "timesheet",
+      "label": "Timesheet",
+      "href": "/timesheet",
+      "group": "Agenda",
+      "phrases": [
+        "apri Timesheet",
+        "apri tempi di lavoro",
+        "mostra attività registrate",
+        "vai al timesheet",
+        "apri rendiconto ore"
+      ]
+    },
+    {
+      "id": "fascicoli",
+      "label": "Fascicoli",
+      "href": "/fascicoli",
+      "group": "Fascicoli",
+      "phrases": [
+        "apri Fascicoli",
+        "mostra fascicoli",
+        "vai ai fascicoli",
+        "apri pratiche",
+        "mostra pratiche aperte",
+        "apri i fascicoli",
+        "mostra i fascicoli"
+      ]
+    },
+    {
+      "id": "tutti-fascicoli",
+      "label": "Tutti i Fascicoli",
+      "href": "/fascicoli",
+      "group": "Fascicoli",
+      "phrases": [
+        "apri tutti i fascicoli",
+        "mostra elenco fascicoli",
+        "apri anagrafica fascicoli",
+        "mostra fascicoli",
+        "elenco pratiche"
+      ]
+    },
+    {
+      "id": "nuovo-fascicolo",
+      "label": "Nuovo Fascicolo",
+      "href": "/fascicoli/nuovo",
+      "group": "Fascicoli",
+      "phrases": [
+        "nuovo fascicolo",
+        "crea fascicolo",
+        "inserisci pratica",
+        "apri nuovo fascicolo",
+        "aggiungi nuovo incarico"
+      ]
+    },
+    {
+      "id": "archivio-fascicoli",
+      "label": "Archivio Fascicoli",
+      "href": "/fascicoli/archivio",
+      "group": "Fascicoli",
+      "phrases": [
+        "apri archivio fascicoli",
+        "mostra fascicoli archiviati",
+        "vai all'archivio pratiche",
+        "apri pratiche concluse",
+        "elenco fascicoli archiviati"
+      ]
+    },
+    {
+      "id": "clienti",
+      "label": "Clienti",
+      "href": "/clienti",
+      "group": "Clienti",
+      "phrases": [
+        "apri Clienti",
+        "apri i clienti",
+        "apri anagrafiche clienti",
+        "mostra clienti",
+        "mostra i clienti",
+        "vai ai clienti",
+        "apri rubrica clienti"
+      ]
+    },
+    {
+      "id": "cliente-manuale",
+      "label": "Nuovo Cliente Manuale",
+      "href": "/clienti/nuovo",
+      "group": "Clienti",
+      "phrases": [
+        "apri scheda nuovo cliente",
+        "apri modulo cliente",
+        "compila cliente manualmente",
+        "apri scheda cliente da compilare",
+        "apri anagrafica nuovo cliente"
+      ]
+    },
+    {
+      "id": "cartelle-condivise",
+      "label": "Cartelle Condivise",
+      "href": "/cartelle-condivise",
+      "group": "Clienti",
+      "phrases": [
+        "apri cartelle condivise",
+        "mostra condivisioni clienti",
+        "apri area condivisioni",
+        "vai alle cartelle condivise",
+        "mostra documenti condivisi"
+      ]
+    },
+    {
+      "id": "soggetti",
+      "label": "Soggetti e Parti",
+      "href": "/soggetti",
+      "group": "Clienti",
+      "phrases": [
+        "apri Soggetti e Parti",
+        "apri soggetti",
+        "mostra parti",
+        "vai a soggetti e parti",
+        "apri anagrafiche parti",
+        "apri i soggetti e le parti",
+        "apri le parti"
+      ]
+    },
+    {
+      "id": "nuovo-soggetto",
+      "label": "Nuovo Soggetto",
+      "href": "/soggetti/nuovo",
+      "group": "Clienti",
+      "phrases": [
+        "nuovo soggetto",
+        "crea soggetto",
+        "inserisci parte",
+        "apri nuovo soggetto",
+        "aggiungi parte al fascicolo"
+      ]
+    },
+    {
+      "id": "pec",
+      "label": "PEC",
+      "href": "/email/",
+      "group": "Comunicazioni",
+      "phrases": [
+        "apri PEC",
+        "apri posta certificata",
+        "mostra PEC",
+        "vai alla casella PEC",
+        "apri comunicazioni PEC",
+        "apri la PEC"
+      ]
+    },
+    {
+      "id": "email-ordinaria",
+      "label": "Email SMTP",
+      "href": "/email-ordinaria/",
+      "group": "Comunicazioni",
+      "phrases": [
+        "apri email ordinaria",
+        "apri email SMTP",
+        "mostra posta ordinaria",
+        "vai alla mail ordinaria",
+        "apri casella non certificata"
+      ]
+    },
+    {
+      "id": "notifiche",
+      "label": "Notifiche",
+      "href": "/notifiche",
+      "group": "Comunicazioni",
+      "phrases": [
+        "apri Notifiche",
+        "mostra notifiche",
+        "apri notifiche legali",
+        "vai alle notifiche",
+        "prepara notifiche",
+        "apri le notifiche",
+        "mostra le notifiche"
+      ]
+    },
+    {
+      "id": "notifiche-whatsapp",
+      "label": "Notifiche WhatsApp",
+      "href": "/notifiche-whatsapp",
+      "group": "Comunicazioni",
+      "phrases": [
+        "apri notifiche WhatsApp",
+        "mostra promemoria WhatsApp",
+        "vai alle comunicazioni WhatsApp",
+        "apri invii WhatsApp",
+        "prepara messaggio WhatsApp"
+      ]
+    },
+    {
+      "id": "messaggi",
+      "label": "Messaggi",
+      "href": "/messaggi",
+      "group": "Comunicazioni",
+      "phrases": [
+        "apri Messaggi",
+        "mostra messaggi",
+        "apri SMS e WhatsApp",
+        "vai ai messaggi",
+        "apri comunicazioni rapide",
+        "apri i messaggi",
+        "mostra i messaggi"
+      ]
+    },
+    {
+      "id": "nuovo-messaggio",
+      "label": "Nuovo SMS o WhatsApp",
+      "href": "/messaggi/nuovo",
+      "group": "Comunicazioni",
+      "phrases": [
+        "nuovo messaggio",
+        "crea SMS",
+        "invia WhatsApp",
+        "apri nuovo SMS",
+        "prepara comunicazione veloce"
+      ]
+    },
+    {
+      "id": "scadenze",
+      "label": "Scadenze",
+      "href": "/scadenziario",
+      "group": "Scadenze",
+      "phrases": [
+        "apri Scadenze",
+        "apri scadenziario",
+        "mostra termini",
+        "vai alle scadenze",
+        "controlla termini processuali",
+        "apri le scadenze",
+        "mostra le scadenze"
+      ]
+    },
+    {
+      "id": "nuova-scadenza",
+      "label": "Nuova Scadenza",
+      "href": "/scadenziario/nuova",
+      "group": "Scadenze",
+      "phrases": [
+        "nuova scadenza",
+        "crea scadenza",
+        "inserisci termine",
+        "aggiungi scadenza",
+        "apri nuovo termine"
+      ]
+    },
+    {
+      "id": "preparazione-udienza",
+      "label": "Preparazione Udienza",
+      "href": "/wizard-pro/",
+      "group": "Scadenze",
+      "phrases": [
+        "apri preparazione udienza",
+        "apri udienza guidata",
+        "prepara udienza",
+        "mostra checklist udienza",
+        "vai al percorso udienza"
+      ]
+    },
+    {
+      "id": "controlli-atti",
+      "label": "Controlli Atti",
+      "href": "/deposito/checklist",
+      "group": "Telematico",
+      "phrases": [
+        "apri controlli atti",
+        "apri checklist deposito",
+        "controlla busta",
+        "mostra verifiche deposito",
+        "prepara controlli telematici"
+      ]
+    },
+    {
+      "id": "servizi-telematici",
+      "label": "Servizi Telematici",
+      "href": "/telematico",
+      "group": "Telematico",
+      "phrases": [
+        "apri Servizi Telematici",
+        "apri centro telematico",
+        "mostra servizi telematici",
+        "vai al telematico",
+        "apri depositi telematici",
+        "apri i servizi telematici"
+      ]
+    },
+    {
+      "id": "polisweb",
+      "label": "PolisWeb",
+      "href": "/polisWeb",
+      "group": "Telematico",
+      "phrases": [
+        "apri PolisWeb",
+        "apri PST",
+        "consulta PolisWeb",
+        "vai a PolisWeb",
+        "apri fascicoli ministeriali"
+      ]
+    },
+    {
+      "id": "pdp",
+      "label": "PDP",
+      "href": "/pdp",
+      "group": "Telematico",
+      "phrases": [
+        "apri PDP",
+        "apri penale telematico",
+        "vai al PDP",
+        "mostra deposito penale",
+        "apri servizi penali"
+      ]
+    },
+    {
+      "id": "pat",
+      "label": "PAT",
+      "href": "/pat",
+      "group": "Telematico",
+      "phrases": [
+        "apri PAT",
+        "apri amministrativo telematico",
+        "vai al PAT",
+        "mostra deposito amministrativo",
+        "apri servizi amministrativi"
+      ]
+    },
+    {
+      "id": "ptt",
+      "label": "PTT",
+      "href": "/sigit",
+      "group": "Telematico",
+      "phrases": [
+        "apri PTT",
+        "apri tributario telematico",
+        "vai al PTT",
+        "apri SIGIT",
+        "mostra servizi tributari"
+      ]
+    },
+    {
+      "id": "studio",
+      "label": "Studio",
+      "href": "/studio",
+      "group": "Gestione",
+      "phrases": [
+        "apri organizzazione",
+        "apri dati organizzazione",
+        "mostra scheda organizzazione",
+        "vai alla sezione organizzazione",
+        "apri organizzazione organizzazione"
+      ]
+    },
+    {
+      "id": "fatture",
+      "label": "Fatture",
+      "href": "/fatturazione/",
+      "group": "Gestione",
+      "phrases": [
+        "apri Fatture",
+        "apri fatturazione",
+        "mostra parcelle",
+        "vai alle fatture",
+        "apri incassi e parcelle",
+        "apri le fatture"
+      ]
+    },
+    {
+      "id": "preventivi",
+      "label": "Preventivi",
+      "href": "/preventivi/",
+      "group": "Gestione",
+      "phrases": [
+        "apri Preventivi",
+        "apri incarichi",
+        "mostra preventivi",
+        "vai a preventivi e incarichi",
+        "apri conferimenti incarico",
+        "apri i preventivi"
+      ]
+    },
+    {
+      "id": "preventivo-nuovo",
+      "label": "Nuovo Preventivo",
+      "href": "/preventivi/nuovo",
+      "group": "Gestione",
+      "phrases": [
+        "nuovo preventivo",
+        "crea preventivo",
+        "prepara incarico",
+        "apri nuovo preventivo",
+        "aggiungi preventivo"
+      ]
+    },
+    {
+      "id": "compensi",
+      "label": "Compensi Forensi",
+      "href": "/compensi-forensi",
+      "group": "Gestione",
+      "phrases": [
+        "apri compensi",
+        "apri compensi forensi",
+        "calcola compenso",
+        "vai ai parametri forensi",
+        "mostra calcolo compensi"
+      ]
+    },
+    {
+      "id": "documenti",
+      "label": "Documenti",
+      "href": "/documenti",
+      "group": "Documenti",
+      "phrases": [
+        "apri Documenti",
+        "mostra documenti",
+        "vai ai documenti",
+        "apri atti e allegati",
+        "cerca documenti",
+        "apri i documenti"
+      ]
+    },
+    {
+      "id": "template-atti",
+      "label": "Template Atti",
+      "href": "/template-atti",
+      "group": "Documenti",
+      "phrases": [
+        "apri template atti",
+        "mostra modelli atti",
+        "apri modelli documento",
+        "vai ai template atti",
+        "prepara modello atto"
+      ]
+    },
+    {
+      "id": "redazione-atti",
+      "label": "Redazione Atti",
+      "href": "/redazione-atti",
+      "group": "Documenti",
+      "phrases": [
+        "apri Redazione Atti",
+        "apri produzione atti",
+        "redigi atto",
+        "prepara documento",
+        "vai alla redazione atti"
+      ]
+    },
+    {
+      "id": "statistiche",
+      "label": "Statistiche",
+      "href": "/statistiche",
+      "group": "Analisi",
+      "phrases": [
+        "apri statistiche",
+        "mostra andamento organizzazione",
+        "apri indicatori",
+        "vai ai dati",
+        "mostra numeri"
+      ]
+    },
+    {
+      "id": "ricerca-legale",
+      "label": "Ricerca Legale",
+      "href": "/ricerca-legale",
+      "group": "Ricerca",
+      "phrases": [
+        "apri Ricerca Legale",
+        "apri fonti legali",
+        "cerca normativa",
+        "vai alla ricerca legale",
+        "apri aggiornamenti giuridici"
+      ]
+    },
+    {
+      "id": "news-legali",
+      "label": "News disponibili",
+      "href": "/ricerca-legale/news",
+      "group": "Ricerca",
+      "phrases": [
+        "apri news disponibili",
+        "mostra news legali",
+        "apri aggiornamenti disponibili",
+        "vai alle notizie legali",
+        "apri schede news"
+      ]
+    },
+    {
+      "id": "archivio-giurisprudenza",
+      "label": "Archivio Giurisprudenza",
+      "href": "/giurisprudenza/",
+      "group": "Ricerca",
+      "phrases": [
+        "apri archivio giurisprudenza",
+        "apri Giurisprudenza",
+        "mostra sentenze",
+        "vai alla giurisprudenza",
+        "apri massime e precedenti"
+      ]
+    },
+    {
+      "id": "strumenti-forensi",
+      "label": "Strumenti Forensi",
+      "href": "/strumenti-legali/",
+      "group": "Strumenti",
+      "phrases": [
+        "apri strumenti forensi",
+        "apri strumenti legali",
+        "mostra utilità forensi",
+        "vai agli strumenti forensi",
+        "apri calcoli legali"
+      ]
+    },
+    {
+      "id": "strumenti-operativi",
+      "label": "Strumenti Operativi",
+      "href": "/strumenti-operativi",
+      "group": "Strumenti",
+      "phrases": [
+        "apri strumenti operativi",
+        "mostra strumenti operativi",
+        "vai agli strumenti di lavoro",
+        "apri utilità operative",
+        "mostra strumenti"
+      ]
+    },
+    {
+      "id": "sito-studio",
+      "label": "Sito Studio",
+      "href": "/sito-studio/",
+      "group": "Sito Studio",
+      "phrases": [
+        "apri Sito",
+        "mostra Sito",
+        "vai al Sito",
+        "apri presenza online",
+        "apri area sito"
+      ]
+    },
+    {
+      "id": "sito-builder",
+      "label": "Builder Sito",
+      "href": "/sito-studio/builder",
+      "group": "Sito Studio",
+      "phrases": [
+        "apri builder sito",
+        "modifica Sito",
+        "apri pagine sito",
+        "vai alla costruzione sito",
+        "aggiorna Sito"
+      ]
+    },
+    {
+      "id": "sito-redazione",
+      "label": "Redazione AI Sito",
+      "href": "/sito-studio/redazione-ai",
+      "group": "Sito Studio",
+      "phrases": [
+        "apri redazione sito",
+        "crea articolo sito",
+        "apri contenuti sito",
+        "prepara testo sito",
+        "vai alla redazione del sito"
+      ]
+    },
+    {
+      "id": "sito-contatti",
+      "label": "Contatti Sito",
+      "href": "/sito-studio/contatti",
+      "group": "Sito Studio",
+      "phrases": [
+        "apri contatti sito",
+        "mostra richieste dal sito",
+        "apri prenotazioni sito",
+        "vai ai contatti pubblici",
+        "controlla ingressi pubblici"
+      ]
+    },
+    {
+      "id": "impostazioni",
+      "label": "Impostazioni",
+      "href": "/impostazioni",
+      "group": "Impostazioni",
+      "phrases": [
+        "apri Impostazioni",
+        "apri configurazione organizzazione",
+        "mostra impostazioni",
+        "vai alle preferenze",
+        "apri pannello impostazioni",
+        "apri le impostazioni"
+      ]
+    },
+    {
+      "id": "impostazioni-pec",
+      "label": "Impostazioni PEC",
+      "href": "/impostazioni?tab=pec",
+      "group": "Impostazioni",
+      "phrases": [
+        "configura PEC",
+        "apri impostazioni PEC",
+        "mostra configurazione PEC",
+        "vai alla sezione PEC",
+        "controlla casella PEC"
+      ]
+    },
+    {
+      "id": "impostazioni-firma",
+      "label": "Firma Digitale",
+      "href": "/impostazioni?tab=firma-digitale",
+      "group": "Impostazioni",
+      "phrases": [
+        "apri firma digitale",
+        "configura firma digitale",
+        "controlla Local Signer",
+        "vai alla firma",
+        "mostra certificato firma"
+      ]
+    },
+    {
+      "id": "impostazioni-backup",
+      "label": "Backup",
+      "href": "/backup",
+      "group": "Impostazioni",
+      "phrases": [
+        "apri backup",
+        "mostra copie di sicurezza",
+        "controlla backup",
+        "vai ai salvataggi",
+        "apri protezione dati"
+      ]
+    },
+    {
+      "id": "calendari",
+      "label": "Sincronizzazione Calendari",
+      "href": "/sincronizzazione-calendari",
+      "group": "Impostazioni",
+      "phrases": [
+        "apri sincronizzazione calendari",
+        "collega calendario",
+        "mostra calendari collegati",
+        "vai ai calendari esterni",
+        "controlla conflitti calendario"
+      ]
+    },
+    {
+      "id": "amministrazione",
+      "label": "Amministrazione",
+      "href": "/amministrazione",
+      "group": "Amministrazione",
+      "phrases": [
+        "apri Amministrazione",
+        "mostra amministrazione",
+        "vai alla gestione organizzazione",
+        "apri presidio amministrativo",
+        "controlla area amministrativa"
+      ]
+    },
+    {
+      "id": "utenti",
+      "label": "Utenti",
+      "href": "/utenti",
+      "group": "Amministrazione",
+      "phrases": [
+        "apri Utenti",
+        "mostra utenti",
+        "vai agli utenti",
+        "apri operatori organizzazione",
+        "gestisci accessi",
+        "apri gli utenti"
+      ]
+    },
+    {
+      "id": "profili",
+      "label": "Profili e Permessi",
+      "href": "/profili",
+      "group": "Amministrazione",
+      "phrases": [
+        "apri Profili e Permessi",
+        "apri permessi",
+        "mostra ruoli",
+        "vai ai profili",
+        "controlla autorizzazioni"
+      ]
+    },
+    {
+      "id": "database",
+      "label": "Database",
+      "href": "/admin/database",
+      "group": "Amministrazione",
+      "phrases": [
+        "apri Database",
+        "apri archivio dati",
+        "mostra stato dati",
+        "vai al presidio dati",
+        "controlla integrità dati"
+      ]
+    },
+    {
+      "id": "registro-attivita",
+      "label": "Registro Attività",
+      "href": "/audit",
+      "group": "Amministrazione",
+      "phrases": [
+        "apri registro attività",
+        "mostra attività utenti",
+        "vai al registro operazioni",
+        "controlla tracciamenti",
+        "apri storico attività"
+      ]
+    },
+    {
+      "id": "registro-gdpr",
+      "label": "Registro GDPR",
+      "href": "/privacy/registro",
+      "group": "Amministrazione",
+      "phrases": [
+        "apri Registro GDPR",
+        "apri privacy",
+        "mostra registro privacy",
+        "vai al GDPR",
+        "controlla trattamenti dati"
+      ]
+    }
+  ],
+  "specialCommands": [
+    {
+      "id": "new-client-flow",
+      "label": "Inserimento cliente guidato",
+      "kind": "new-client-flow",
+      "group": "Clienti",
+      "phrases": [
+        "nuovo cliente",
+        "inserisci cliente",
+        "aggiungi cliente con voce",
+        "crea cliente guidato",
+        "registra cliente"
+      ]
+    },
+    {
+      "id": "modifica-cliente-corrente",
+      "label": "Modifica cliente",
+      "kind": "edit-current-record",
+      "group": "Clienti",
+      "phrases": [
+        "modifica cliente",
+        "modifica clienti",
+        "apri modifica cliente",
+        "apri scheda modifica cliente",
+        "correggi cliente",
+        "aggiorna cliente"
+      ]
+    },
+    {
+      "id": "modifica-soggetto-corrente",
+      "label": "Modifica soggetto o parte",
+      "kind": "edit-current-record",
+      "group": "Clienti",
+      "phrases": [
+        "modifica soggetto",
+        "modifica soggetti",
+        "modifica soggetti e parti",
+        "apri modifica soggetto",
+        "apri modifica soggetti e parti",
+        "correggi parte",
+        "aggiorna soggetto"
+      ]
+    },
+    {
+      "id": "voice-notes",
+      "label": "Note vocali",
+      "kind": "note-flow",
+      "group": "Studio",
+      "phrases": [
+        "note",
+        "nota",
+        "prendi nota",
+        "nuova nota",
+        "registra nota",
+        "dettatura nota"
+      ]
+    },
+    {
+      "id": "voice-dictation",
+      "label": "Detta nel campo attivo",
+      "kind": "dictation",
+      "group": "Studio",
+      "phrases": [
+        "Scrivi",
+        "Scrivi qui",
+        "detta",
+        "dettatura",
+        "avvia dettatura",
+        "detta nel campo",
+        "inserisci testo",
+        "continua a dettare",
+        "scrivi nel campo",
+        "detta cliente",
+        "detta soggetto",
+        "detta scadenza",
+        "detta scadenziario",
+        "detta agenda",
+        "detta appuntamento",
+        "detta Ricerca",
+        "scrivi in Ricerca",
+        "scrivi nella Ricerca",
+        "detta email",
+        "detta PEC"
+      ]
+    },
+    {
+      "id": "search",
+      "label": "Cerca nello studio",
+      "kind": "search",
+      "group": "Ricerca",
+      "phrases": [
+        "cerca Rossi",
+        "cerca",
+        "trova",
+        "ricerca"
+      ]
+    },
+    {
+      "id": "lex",
+      "label": "Lex AI",
+      "kind": "lex",
+      "group": "Aiuto",
+      "phrases": [
+        "apri Lex",
+        "chiedi a Lex",
+        "assistenza Lex",
+        "apri assistente legale",
+        "consulta Lex"
+      ]
+    },
+    {
+      "id": "help",
+      "label": "Elenco comandi",
+      "kind": "help",
+      "group": "Aiuto",
+      "phrases": [
+        "aiuto",
+        "mostra comandi",
+        "elenco comandi",
+        "cosa posso dire",
+        "guida vocale"
+      ]
+    },
+    {
+      "id": "back",
+      "label": "Torna indietro",
+      "kind": "back",
+      "group": "Navigazione",
+      "phrases": [
+        "torna indietro",
+        "pagina precedente",
+        "torna alla pagina prima",
+        "indietro",
+        "torna"
+      ]
+    },
+    {
+      "id": "reload",
+      "label": "Ricarica pagina",
+      "kind": "reload",
+      "group": "Navigazione",
+      "phrases": [
+        "ricarica pagina",
+        "aggiorna pagina",
+        "ricarica",
+        "aggiorna schermata",
+        "riprova caricamento"
+      ]
+    },
+    {
+      "id": "stop",
+      "label": "Disattiva assistente",
+      "kind": "stop",
+      "group": "Navigazione",
+      "phrases": [
+        "stop",
+        "sospendi sessione",
+        "pausa comandi",
+        "disattiva assistente",
+        "ferma ascolto",
+        "stop ascolto",
+        "chiudi assistente",
+        "basta ascolto"
+      ]
+    }
+  ]
+}

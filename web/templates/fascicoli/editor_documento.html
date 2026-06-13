@@ -653,6 +653,7 @@
       <div class="ed-tb-sep"></div>
 
       <button class="ed-tb-btn" id="tb-table" title="Inserisci tabella"><i class="bi bi-table"></i></button>
+      <button class="ed-tb-btn" id="tb-voice-dictation" title="Detta nel documento"><i class="bi bi-mic"></i></button>
 
       <div class="ed-tb-sep"></div>
 
@@ -1112,6 +1113,34 @@ tb('tb-hr',            () => editor.chain().focus().setHorizontalRule().run())
 tb('tb-undo',          () => editor.chain().focus().undo().run())
 tb('tb-redo',          () => editor.chain().focus().redo().run())
 tb('tb-table',         () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())
+
+function startVoiceDictationInEditor() {
+  const voice = window.PctLexVoice
+  if (!voice?.startListening || !voice?.supportsRecognition?.()) {
+    setStatus('error', 'Dettatura non disponibile in questa sessione')
+    return
+  }
+  setStatus('saving', 'Controllo microfono editor')
+  voice.startListening({
+    lang: 'it-IT',
+    silenceMs: 3200,
+    onStart: () => setStatus('saving', 'Dettatura attiva nell’editor'),
+  }).then(text => {
+    if (!text) {
+      setStatus('', 'Nessun testo vocale rilevato')
+      return
+    }
+    editor.chain().focus().insertContent(text).run()
+    _dirty = true
+    updateWordCount()
+    updateSelectionInfo()
+    scheduleAutosave()
+    setStatus('saving', 'Dettatura inserita, da salvare')
+  }).catch(error => {
+    setStatus('error', error?.message || 'Dettatura non disponibile')
+  })
+}
+tb('tb-voice-dictation', startVoiceDictationInEditor)
 
 document.getElementById('tb-heading')?.addEventListener('change', e => {
   const v = e.target.value

@@ -113,15 +113,27 @@
     }
   }
 
+  function triggerHiddenLink(url, options) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.style.display = 'none';
+    if (options && options.download) {
+      link.download = '';
+    }
+    if (options && options.blank) {
+      link.target = '_blank';
+      link.rel = 'noopener';
+    }
+    document.body.appendChild(link);
+    link.click();
+    window.setTimeout(function () {
+      link.remove();
+    }, 2500);
+  }
+
   function openInstallerDownload(cfg) {
     const installer = installerFor(cfg);
-    const iframe = document.createElement('iframe');
-    iframe.hidden = true;
-    iframe.src = installer.url;
-    document.body.appendChild(iframe);
-    window.setTimeout(function () {
-      iframe.remove();
-    }, 30000);
+    triggerHiddenLink(installer.url, { download: true, blank: true });
   }
 
   async function ping(cfg) {
@@ -137,14 +149,7 @@
   }
 
   function requestProtocol(uri) {
-    const iframe = document.createElement('iframe');
-    iframe.className = 'd-none';
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.src = uri;
-    document.body.appendChild(iframe);
-    window.setTimeout(function () {
-      iframe.remove();
-    }, 2500);
+    triggerHiddenLink(uri, {});
   }
 
   function requestStart(cfg) {
@@ -155,16 +160,39 @@
     requestProtocol(cfg.updateProtocol);
   }
 
+  function layoutBanner(el) {
+    const narrow = window.matchMedia('(max-width: 767px)').matches;
+    el.style.left = narrow ? '12px' : 'auto';
+    el.style.right = narrow ? '12px' : '88px';
+    el.style.bottom = narrow ? '88px' : '16px';
+    el.style.margin = '0';
+    el.style.maxWidth = narrow ? 'calc(100vw - 24px)' : 'min(680px, calc(100vw - 120px))';
+    el.style.zIndex = '1080';
+  }
+
+  function bindBannerLayout(el) {
+    layoutBanner(el);
+    if (el.dataset.localSignerLayoutBound === '1') {
+      return;
+    }
+    el.dataset.localSignerLayoutBound = '1';
+    window.addEventListener('resize', function () {
+      layoutBanner(el);
+    });
+  }
+
   function banner() {
     let el = document.getElementById('iusentra-local-signer-status');
     if (el) {
+      bindBannerLayout(el);
       return el;
     }
     el = document.createElement('div');
     el.id = 'iusentra-local-signer-status';
-    el.className = 'alert alert-warning shadow position-fixed bottom-0 end-0 m-3 z-3 d-none';
+    el.className = 'alert alert-warning shadow position-fixed d-none';
     el.setAttribute('role', 'status');
     el.setAttribute('aria-live', 'polite');
+    bindBannerLayout(el);
     document.body.appendChild(el);
     return el;
   }
@@ -177,16 +205,32 @@
     }
   }
 
+  function renderInstallRequired(cfg, installer) {
+    renderBanner(
+      'warning',
+      'Installazione Local Signer richiesta',
+      'Il servizio locale non risponde: se Local Signer è già installato, avvialo dal pulsante dedicato; altrimenti usa il pacchetto ufficiale.',
+      [
+        { type: 'button', name: 'start', label: 'Avvia Local Signer', className: 'btn-primary' },
+        { type: 'link', name: 'installer', label: 'Scarica installer ufficiale', url: installer.url, className: 'btn-outline-primary' },
+        { type: 'button', name: 'retry', label: 'Verifica dopo installazione', className: 'btn-outline-secondary' },
+      ]
+    );
+    openInstallerDownload(cfg);
+    autoOpenInstallerOnce(cfg, 'missing');
+  }
+
   function renderBanner(kind, title, body, actions) {
     if (title === 'Installazione Local Signer richiesta') {
-      title = 'Local Signer non raggiungibile';
-      body = 'Ho tentato avvio e aggiornamento automatico. Se il servizio non è installato su questo PC, apri il pacchetto ufficiale e poi IUSENTRA ricontrolla il collegamento.';
+      title = 'Local Signer da installare su questo PC';
+      body = 'IUSENTRA ha già provato ad avviare il servizio locale. Apri l’installer ufficiale; al termine premi Verifica dopo installazione.';
     } else if (title === 'Aggiornamento Local Signer richiesto') {
       body = 'Ho tentato l’aggiornamento automatico. Se Windows non ha autorizzato l’avvio, apri il pacchetto ufficiale qui sotto e poi verifica di nuovo.';
     }
     const el = banner();
+    bindBannerLayout(el);
     el.className =
-      'alert shadow position-fixed bottom-0 end-0 m-3 z-3 ' +
+      'alert shadow position-fixed ' +
       (kind === 'success' ? 'alert-success' : kind === 'danger' ? 'alert-danger' : 'alert-warning');
     const actionHtml = (actions || [])
       .map(function (action) {
@@ -206,7 +250,7 @@
           escapeHtml(action.className || 'btn-primary') +
           '" href="' +
           escapeHtml(action.url) +
-          '" target="_blank" rel="noopener" data-local-signer-action="' +
+          '" target="_blank" rel="noopener" download data-local-signer-action="' +
           escapeHtml(action.name || 'installer') +
           '">' +
           escapeHtml(action.label) +
@@ -259,16 +303,19 @@
       link.href = installer.url;
       link.target = '_blank';
       link.rel = 'noopener';
+      link.download = '';
       document.body.appendChild(link);
       link.click();
       link.remove();
     }, 1200);
   }
 
-  async function verifyAfterStart(cfg) {
+  async function verifyAfterStart(cfg, attempts, delayMs) {
     requestStart(cfg);
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      await sleep(900);
+    const maxAttempts = attempts || 4;
+    const delay = delayMs || 700;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      await sleep(delay);
       const payload = await ping(cfg);
       if (payload) {
         return payload;
@@ -322,41 +369,14 @@
       renderBanner(
         'warning',
         'Local Signer non rilevato',
-        'Fase 1: provo ad avviare il servizio locale sul PC. Se non parte, preparo il pacchetto ufficiale per questo dispositivo.',
+        'Il servizio locale non sta rispondendo. Se è già installato, avvialo da qui; altrimenti scarica il pacchetto ufficiale e poi verifica.',
         [
-          { type: 'button', name: 'retry', label: 'Verifica di nuovo', className: 'btn-outline-primary' },
-          { type: 'link', name: 'installer', label: installer.label, url: installer.url, className: 'btn-primary' },
+          { type: 'button', name: 'start', label: 'Avvia Local Signer', className: 'btn-primary' },
+          { type: 'link', name: 'installer', label: installer.label, url: installer.url, className: 'btn-outline-primary' },
+          { type: 'button', name: 'retry', label: 'Verifica di nuovo', className: 'btn-outline-secondary' },
         ]
       );
-      payload = await verifyAfterStart(cfg);
-      if (!payload) {
-        renderBanner(
-          'warning',
-          'Aggiornamento automatico Local Signer',
-          'Il servizio non ha risposto al riavvio. Provo ad aprire il canale di aggiornamento locale e ricontrollo senza richiedere altri passaggi.',
-          [
-            { type: 'button', name: 'auto-update', label: 'Aggiorna automaticamente', className: 'btn-primary' },
-            { type: 'button', name: 'retry', label: 'Verifica di nuovo', className: 'btn-outline-primary' },
-          ]
-        );
-        const recovered = await verifyAfterUpdate(cfg);
-        if (recovered) {
-          hideBanner();
-          return { ok: true, version: recovered.versione || recovered.version || '', payload: recovered };
-        }
-        renderBanner(
-          'warning',
-          'Installazione Local Signer richiesta',
-          'Fase 3: il servizio locale non risponde ancora. Installa il pacchetto proposto, poi usa “Verifica di nuovo” per la fase 4.',
-          [
-            { type: 'link', name: 'installer', label: installer.label, url: installer.url, className: 'btn-primary' },
-            { type: 'button', name: 'retry', label: 'Verifica dopo installazione', className: 'btn-outline-primary' },
-          ]
-        );
-        openInstallerDownload(cfg);
-        autoOpenInstallerOnce(cfg, 'missing');
-        return { ok: false, reason: 'missing' };
-      }
+      return { ok: false, reason: 'missing' };
     }
 
     const installedVersion = payload.versione || payload.version || '';
@@ -422,6 +442,29 @@
     if (action === 'retry') {
       event.preventDefault();
       run({ showOk: true });
+    } else if (action === 'start') {
+      event.preventDefault();
+      (async function () {
+        const cfg = config();
+        const installer = installerFor(cfg);
+        renderBanner(
+          'warning',
+          'Avvio Local Signer',
+          'Apro il collegamento locale sul PC e ricontrollo il servizio. Se Windows chiede conferma, autorizza IUSENTRA Local Signer.',
+          [{ type: 'button', name: 'retry', label: 'Verifica', className: 'btn-outline-primary' }]
+        );
+        const started = await verifyAfterStart(cfg, 10, 900);
+        if (started) {
+          renderBanner(
+            'success',
+            'Local Signer attivo',
+            'Il servizio locale risponde con la versione ' + (started.versione || started.version || cfg.latestVersion) + '.',
+            [{ type: 'button', name: 'close', label: 'Chiudi', className: 'btn-outline-success' }]
+          );
+          return;
+        }
+        renderInstallRequired(cfg, installer);
+      })();
     } else if (action === 'auto-update') {
       event.preventDefault();
       (async function () {

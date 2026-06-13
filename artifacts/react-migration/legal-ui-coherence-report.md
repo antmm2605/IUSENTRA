@@ -1,5 +1,11 @@
 # Legal UI coherence report
 
+## Aggiornamento 2.253.1 - 2026-06-12
+
+- L'assistente vocale Studio usa linguaggio da studio legale: navigazione, cliente guidato, Lex, ricerca e impostazioni sono presentati come azioni operative, senza lessico tecnico visibile.
+- Il comando "Studio nuovo cliente" chiede solo nome, cognome e codice fiscale, rilegge il riepilogo e salva dopo conferma, così l'avvocato non deve interpretare campi interni o form tecnici.
+- Il profilo voce resta locale e viene descritto come presidio di comodità, non come decisione automatica o sostituto dei permessi dello studio.
+
 Generato: 2026-05-08T10:03:02.066Z
 
 ## Aggiornamento 2.249.15 - 2026-06-04
@@ -215,3 +221,10 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 - Amministrazione, Utenti, Profili e Permessi, Registro Attività, Database, Registro GDPR, Sito Studio Contatti e Sito Studio sono stati verificati come superfici React operative, con preset IUSENTRA attivo, contenuti reali e microcopy professionale.
 - La verifica browser in-app autenticata ha coperto desktop, tablet e mobile con scroll alto/meta/fondo: 81 snapshot verdi, nessun errore console nuovo, nessun testo tecnico vietato e nessun controllo con testo o icona tagliati.
 - Il preset condiviso ora impone CTA e link operativi da 44 px anche quando la regola specifica di pagina è più forte; Database usa una resa mobile a schede invece della tabella larga.
+
+## Aggiornamento 2.253.1 - 2026-06-12
+
+- L'assistente vocale Studio parla all'avvocato, non allo sviluppatore: `Voce e PIN locale`, `Nuovo cliente guidato`, `Elenco comandi`, `Aggiungi cliente`, `Apri scheda cliente`, messaggi di conferma e stati ascolto sono in italiano operativo.
+- Il catalogo espone comandi per aree dello studio e non per dettagli tecnici: Panoramica, Fascicoli, Clienti, PEC, Scadenze, Servizi Telematici, Ricerca Legale, Sito Studio, Impostazioni e Amministrazione.
+- Audit CDP su 59 destinazioni vocali: nessun termine tecnico vietato visibile (`backend`, `frontend`, `payload`, `runtime`, `json_api`, `provider`, `webhook`, `legacy`, `undefined`, `null`, `demo`, `sample`, `repository`), zero errori console e nessun overflow.
+- Il flusso cliente da voce chiede solo nome, cognome e codice fiscale, rilegge i dati in linguaggio naturale e salva solo dopo conferma, senza mostrare dati di payload o codici interni.

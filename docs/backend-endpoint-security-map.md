@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 246.
-- Endpoint con `_richiedi_auth`: 246/246.
-- Endpoint con metodo di scrittura o cancellazione: 121.
+- Endpoint React API censiti: 247.
+- Endpoint con `_richiedi_auth`: 247/247.
+- Endpoint con metodo di scrittura o cancellazione: 122.
 - Endpoint con superficie file/upload/download/export/evidence: 13.
 - Route manifest censite: 112; critical: 18; high/P1: 73.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -73,6 +73,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/clienti/delete` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/clienti/nuovo` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/clienti/nuovo/documento/leggi` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/clienti/voce/crea` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/compensi-forensi` | Compensi forensi | P1 | `fatturazione.leggi` | calcoli tariffari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/compensi-forensi/calcola` | Compensi forensi | P1 | `fatturazione.leggi` | calcoli tariffari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/conferimenti/<conferimento_id>/apri-fascicolo` | Conferimenti | P0 | `fatturazione.leggi/scrivi` | apertura fascicolo da incarico | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

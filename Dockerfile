@@ -1,4 +1,4 @@
-#  version: 2.253.0
+#  version: 2.253.4
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -113,7 +113,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.253.0" \
+      org.opencontainers.image.version="2.253.4" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -244,7 +244,7 @@ RUN mkdir -p /data
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=6 \
   CMD python -c "import os, urllib.request; port=os.getenv('PORT', '8080'); urllib.request.urlopen(f'http://127.0.0.1:{port}/api/pronto', timeout=5)"
 
 ENTRYPOINT ["python", "/usr/local/bin/iusentra-entrypoint.py"]

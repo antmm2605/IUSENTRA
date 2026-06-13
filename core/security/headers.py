@@ -11,12 +11,12 @@ _SUPPORT_MEDIA_PATH_PREFIXES = ("/support/join/", "/support/operatore/")
 def _permissions_policy_for_current_request() -> str:
     if has_request_context() and request.path.startswith(_SUPPORT_MEDIA_PATH_PREFIXES):
         return (
-            "camera=(), microphone=(self), display-capture=(self), "
+            "camera=(self), microphone=(self), display-capture=(self), "
             "local-network-access=(self), local-network=(self), loopback-network=(self), "
             "geolocation=(), payment=()"
         )
     return (
-        "camera=(), microphone=(), local-network-access=(), local-network=(), "
+        "camera=(self), microphone=(self), local-network-access=(), local-network=(), "
         "loopback-network=(), geolocation=(), payment=()"
     )
 

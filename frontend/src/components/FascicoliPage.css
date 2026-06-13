@@ -1154,6 +1154,9 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 }
 
 @media(max-width:760px){
+  .iusentra-route-preset--active .iu-fas-insights.iusentra-support-rail.iusentra-route-rail{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
   .iu-fas-doc-list .iu-fas-post,
   .iu-fas-doc-section-list .iu-fas-post{
     width:44px;

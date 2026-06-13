@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-## Dettatura unica assistente Studio 2.253.4 - 2026-06-13
+## Dettatura unica assistente Studio 2.253.5 - 2026-06-13
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
@@ -9,6 +9,7 @@
 | Ricerca senza ripetere Studio | Sessione operativa attiva | Risolto localmente | L'audit ha trovato che `cerca Rossi` non partiva senza vecchio prefisso `Studio`; aggiunti prefissi `cerca`, `trova`, `ricerca` e verificato `/global-search?q=rossi`. | Verificare dopo deploy che la ricerca vocale apra la route in produzione autenticata. |
 | Riattivazione dopo disattivazione | Chrome reale + copia Docker `127.0.0.1:8080` | Risolto localmente | Dopo `disattiva assistente` il test torna su Configurazione, ripete PIN e richiamo `Studio`, poi verifica le route. | Nessuna azione locale aperta; resta controllo post-deploy se necessario. |
 | Chunk principale React | `pnpm --filter @iusentra/studio build` | Aperto | Build verde ma warning Vite ancora presente: `assets/index-D9Xs3IhZ.js` 503,51 kB minificato, 146,38 kB gzip. Non è stato causato o risolto da questa tranche e non va liquidato come "noto" senza spiegazione. | Tranche dedicata di code splitting sul bootstrap React principale, con baseline prima/dopo e prova reale di caricamento. |
+| Coverage GitHub 1/12 | `Coverage moduli critici parte 1/12` | Risolto localmente, da verificare sul nuovo SHA remoto | Lo shard remoto `db46e9b5e` falliva perché il test tenant pretendeva ancora un bootstrap legacy durante `/login`. Il comportamento governato è il rinvio fuori dalla navigazione ordinaria, senza reconcile pesante. | Pushare il fix e attendere di nuovo tutti i check-run dello SHA corrente. |
 | Release finale | Branch gemelli, GitHub, Hetzner | In corso | La tranche non è chiusa finché non sono completati Docker reale, browser reale, commit, push, check-run dello SHA corrente, deploy Hetzner, `/api/pronto` produzione e prune Docker. | Seguire `docs/COMMIT_PUSH_REQUIRED_GATES.md` e non dichiarare completato prima del deploy verificato. |
 
 ## Assistente vocale Studio 2.253.1 - 2026-06-12

@@ -4,6 +4,7 @@
 
 - Governance CI: spostata la governance di avvio in `web/bootstrap/startup_governance.py`, lasciando `runtime_bundle.py` sotto il limite governato senza cambiare il comportamento runtime.
 - Test bootstrap: aggiornati i test al nuovo modulo di governance e reso esplicito il salvataggio della configurazione PEC nel tenant autenticato prima della verifica Local Signer.
+- Coverage CI: aggiornato il test tenant per il comportamento attuale di `auth_runtime`, dove il bootstrap legacy viene rinviato fuori dalla richiesta `/login` e non rilancia riconciliazioni pesanti.
 
 ## 2.253.4 - 2026-06-13
 

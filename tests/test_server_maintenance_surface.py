@@ -136,7 +136,8 @@ def test_server_maintenance_surface_mostra_consumi_per_studio(tmp_path: Path):
 
 
 def test_server_maintenance_surface_separa_cartelle_legacy_da_studi_attivi(tmp_path: Path):
-    registry = tmp_path / "tenants.json"
+    registry = tmp_path / "registry" / "tenants.json"
+    registry.parent.mkdir()
     registry.write_text(
         '{"tenants": [{"slug": "studio-a", "storage_key": "tenant-a", "nome": "Studio A", "attivo": true}]}',
         encoding="utf-8",
@@ -201,6 +202,130 @@ def test_tenant_backup_retention_conserva_solo_ultimo_completo_e_tmp(tmp_path: P
     assert not temporary.exists()
     assert not partial.exists()
     assert not (backup_root / "mirror").exists()
+
+
+def test_tenant_backup_retention_ignora_cartelle_storiche_non_attive(tmp_path: Path):
+    import zipfile
+
+    registry = tmp_path / "registry" / "tenants.json"
+    registry.parent.mkdir()
+    registry.write_text(
+        '{"tenants": [{"slug": "studio-a", "storage_key": "tenant-a", "nome": "Studio A", "attivo": true}]}',
+        encoding="utf-8",
+    )
+    active_backup = tmp_path / "tenants" / "tenant-a" / "backup"
+    legacy_backup = tmp_path / "tenants" / "studio-a" / "backup"
+    active_backup.mkdir(parents=True)
+    legacy_backup.mkdir(parents=True)
+
+    active_old = active_backup / "old.zip"
+    active_new = active_backup / "new.zip"
+    legacy_old = legacy_backup / "old-legacy.zip"
+    legacy_new = legacy_backup / "new-legacy.zip"
+    for archive in (active_old, active_new, legacy_old, legacy_new):
+        with zipfile.ZipFile(archive, "w") as handle:
+            handle.writestr("fascicoli/documenti/atto.pdf", "contenuto")
+    for index, archive in enumerate((active_old, active_new, legacy_old, legacy_new), start=1):
+        mtime = 1_700_000_000 + index
+        os.utime(archive, (mtime, mtime))
+
+    cfg = {"TENANTS_REGISTRY": str(registry)}
+    analysis = run_tenant_backup_retention(apply=False, data_root=tmp_path, config=cfg)
+
+    assert analysis["tenant_backup_roots"] == 1
+    assert analysis["backup_archives_scanned"] == 2
+    assert analysis["archives_to_delete"] == 1
+    assert [item["tenant_slug"] for item in analysis["kept_archives"]] == ["tenant-a"]
+    assert len(analysis["kept_archives"][0]["tenant_hash"]) == 64
+
+    applied = run_tenant_backup_retention(apply=True, data_root=tmp_path, config=cfg)
+
+    assert applied["archives_deleted"] == 1
+    assert not active_old.exists()
+    assert active_new.exists()
+    assert legacy_old.exists()
+    assert legacy_new.exists()
+
+    explicit_root = tmp_path / "tenants" / "tenant-a" / "backup"
+    active_old_again = explicit_root / "old-again.zip"
+    active_new_again = explicit_root / "new-again.zip"
+    for archive in (active_old_again, active_new_again):
+        with zipfile.ZipFile(archive, "w") as handle:
+            handle.writestr("fascicoli/documenti/atto.pdf", "contenuto")
+    os.utime(active_old_again, (1_700_000_010, 1_700_000_010))
+    os.utime(active_new_again, (1_700_000_020, 1_700_000_020))
+
+    explicit = run_tenant_backup_retention(
+        apply=True,
+        data_root=tmp_path,
+        tenant_slug="studio-a",
+        config=cfg,
+    )
+
+    assert explicit["tenant_backup_roots"] == 1
+    assert explicit["backup_archives_scanned"] == 3
+    assert not active_old_again.exists()
+    assert active_new_again.exists()
+    assert legacy_old.exists()
+    assert legacy_new.exists()
+
+    blocked = run_tenant_backup_retention(
+        apply=False,
+        data_root=tmp_path,
+        tenant_slug="studio-non-registrato",
+        config=cfg,
+    )
+
+    assert blocked["tenant_backup_roots"] == 0
+    assert blocked["backup_archives_scanned"] == 0
+
+
+def test_tenant_backup_retention_tiene_separati_due_studi_attivi(tmp_path: Path):
+    import zipfile
+
+    registry = tmp_path / "registry" / "tenants.json"
+    registry.parent.mkdir()
+    registry.write_text(
+        """
+        {
+          "tenants": [
+            {"slug": "studio-a", "storage_key": "tenant-a", "nome": "Studio A", "attivo": true},
+            {"slug": "studio-b", "storage_key": "tenant-b", "nome": "Studio B", "attivo": true}
+          ]
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    archives: dict[str, dict[str, Path]] = {}
+    for tenant_index, tenant in enumerate(("tenant-a", "tenant-b"), start=1):
+        backup = tmp_path / "tenants" / tenant / "backup"
+        backup.mkdir(parents=True)
+        old_archive = backup / f"{tenant}-old.zip"
+        new_archive = backup / f"{tenant}-new.zip"
+        for archive in (old_archive, new_archive):
+            with zipfile.ZipFile(archive, "w") as handle:
+                handle.writestr(f"fascicoli/{tenant}/atto.pdf", "contenuto")
+        os.utime(old_archive, (1_700_000_000 + tenant_index, 1_700_000_000 + tenant_index))
+        os.utime(new_archive, (1_700_000_100 + tenant_index, 1_700_000_100 + tenant_index))
+        archives[tenant] = {"old": old_archive, "new": new_archive}
+
+    cfg = {"TENANTS_REGISTRY": str(registry)}
+    analysis = run_tenant_backup_retention(apply=False, data_root=tmp_path, config=cfg)
+
+    assert analysis["tenant_backup_roots"] == 2
+    assert analysis["backup_archives_scanned"] == 4
+    assert analysis["archives_to_delete"] == 2
+    assert {item["tenant_slug"] for item in analysis["kept_archives"]} == {"tenant-a", "tenant-b"}
+    assert len({item["tenant_hash"] for item in analysis["kept_archives"]}) == 2
+    assert all(len(item["tenant_hash"]) == 64 for item in analysis["kept_archives"])
+
+    applied = run_tenant_backup_retention(apply=True, data_root=tmp_path, config=cfg)
+
+    assert applied["archives_deleted"] == 2
+    for tenant in ("tenant-a", "tenant-b"):
+        assert not archives[tenant]["old"].exists()
+        assert archives[tenant]["new"].exists()
 
 
 def test_normativa_global_cleanup_rimuove_solo_backup(tmp_path: Path):

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+import hashlib
 import json
 import os
 import shutil
@@ -62,6 +63,7 @@ class BackupArchive:
 class TenantBackupArchive:
     path: Path
     tenant_slug: str
+    tenant_hash: str
     backup_dir: Path
     size_bytes: int
     mtime: float
@@ -456,6 +458,7 @@ def _registered_tenant_index(data_root: Path, config: dict[str, Any]) -> dict[st
         state = str(item.get("stato") or ("ATTIVO" if item.get("attivo", True) is not False else "SOSPESO")).upper()
         active = item.get("attivo", True) is not False and state not in {"SOSPESO", "SCADUTO", "DISATTIVATO"}
         record = {
+            "id": str(item.get("id") or item.get("tenant_id") or "").strip(),
             "storage_key": storage_key,
             "slug": slug or storage_key,
             "name": str(item.get("nome") or item.get("name") or slug or storage_key).strip(),
@@ -522,6 +525,128 @@ def _tenant_dir_identity(tenant_dir: Path, registry_index: dict[str, Any]) -> di
         "display_name": name,
         "warning": "Cartella presente su disco ma assente dalla registry tenant: non e' conteggiata come studio attivo.",
     }
+
+
+def _active_registered_tenant_dirs(
+    data_root: Path,
+    config: dict[str, Any] | None = None,
+) -> list[Path]:
+    return [Path(context["root"]) for context in _active_registered_tenant_contexts(data_root, config)]
+
+
+def _is_path_inside(child: Path, parent: Path) -> bool:
+    try:
+        child.resolve().relative_to(parent.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _tenant_identity_hash(record: dict[str, Any]) -> str:
+    parts = [
+        str(record.get("id") or "").strip(),
+        str(record.get("storage_key") or "").strip(),
+        str(record.get("slug") or "").strip(),
+        str(record.get("registry_key") or "").strip(),
+    ]
+    payload = "|".join(part.lower() for part in parts if part)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _tenant_context_from_record(data_root: Path, record: dict[str, Any]) -> dict[str, Any] | None:
+    tenants_root = data_root / "tenants"
+    storage_key = str(record.get("storage_key") or record.get("slug") or "").strip()
+    if not storage_key:
+        return None
+    root = tenants_root / storage_key
+    if not root.is_dir() or not _is_path_inside(root, tenants_root):
+        return None
+    tenant_hash = _tenant_identity_hash(record)
+    if not tenant_hash:
+        return None
+    context = dict(record)
+    context.update({"root": root, "tenant_hash": tenant_hash})
+    return context
+
+
+def _active_registered_tenant_contexts(
+    data_root: Path,
+    config: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    tenants_root = data_root / "tenants"
+    if not tenants_root.is_dir():
+        return []
+
+    registry_index = _registered_tenant_index(data_root, _runtime_config(config))
+    if not registry_index.get("available"):
+        contexts: list[dict[str, Any]] = []
+        roots = sorted(
+            [item for item in tenants_root.iterdir() if item.is_dir()],
+            key=lambda item: str(item),
+        )
+        for root in roots:
+            record = {
+                "id": "",
+                "storage_key": root.name,
+                "slug": root.name,
+                "name": root.name,
+                "state": "ATTIVO",
+                "active": True,
+                "registry_key": root.name,
+            }
+            context = _tenant_context_from_record(data_root, record)
+            if context:
+                contexts.append(context)
+        return contexts
+
+    contexts = []
+    for record in dict(registry_index.get("by_storage") or {}).values():
+        if not bool(record.get("active")):
+            continue
+        context = _tenant_context_from_record(data_root, dict(record))
+        if context:
+            contexts.append(context)
+    return sorted(contexts, key=lambda item: str(item["root"]))
+
+
+def _active_tenant_context_for_slug(
+    data_root: Path,
+    tenant_slug: str,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    tenants_root = data_root / "tenants"
+    slug = str(tenant_slug or "").strip()
+    if not slug or not tenants_root.is_dir():
+        return None
+
+    registry_index = _registered_tenant_index(data_root, _runtime_config(config))
+    if registry_index.get("available"):
+        record = dict(registry_index.get("by_storage") or {}).get(slug) or dict(
+            registry_index.get("aliases") or {}
+        ).get(slug)
+        if not record or not bool(record.get("active")):
+            return None
+        return _tenant_context_from_record(data_root, dict(record))
+    else:
+        record = {
+            "id": "",
+            "storage_key": slug,
+            "slug": slug,
+            "name": slug,
+            "state": "ATTIVO",
+            "active": True,
+            "registry_key": slug,
+        }
+        return _tenant_context_from_record(data_root, record)
+
+
+def _active_tenant_root_for_slug(
+    data_root: Path,
+    tenant_slug: str,
+    config: dict[str, Any] | None = None,
+) -> Path | None:
+    context = _active_tenant_context_for_slug(data_root, tenant_slug, config)
+    return Path(context["root"]) if context else None
 
 
 def resolve_host_root(config: dict[str, Any] | None = None) -> Path | None:
@@ -911,24 +1036,42 @@ def _zip_contains_operational_documents(path: Path) -> bool:
     return any(name.startswith(("fascicoli/", "documenti/", "archivio/")) for name in names)
 
 
-def _tenant_backup_roots(data_root: Path, tenant_slug: str = "") -> list[Path]:
-    tenants_root = data_root / "tenants"
+def _tenant_backup_contexts(
+    data_root: Path,
+    tenant_slug: str = "",
+    config: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     slug = str(tenant_slug or "").strip()
     if slug:
-        root = tenants_root / slug / "backup"
-        return [root] if root.is_dir() else []
-    if not tenants_root.is_dir():
-        return []
-    return sorted(
-        [item / "backup" for item in tenants_root.iterdir() if (item / "backup").is_dir()],
-        key=lambda item: str(item),
-    )
+        context = _active_tenant_context_for_slug(data_root, slug, config)
+        contexts = [context] if context else []
+    else:
+        contexts = _active_registered_tenant_contexts(data_root, config)
+
+    result: list[dict[str, Any]] = []
+    for context in contexts:
+        if not context:
+            continue
+        backup_dir = Path(context["root"]) / "backup"
+        if backup_dir.is_dir():
+            item = dict(context)
+            item["backup_dir"] = backup_dir
+            result.append(item)
+    return sorted(result, key=lambda item: str(item["backup_dir"]))
 
 
-def _tenant_backup_archives(data_root: Path, tenant_slug: str = "") -> list[TenantBackupArchive]:
+def _tenant_backup_archives(
+    data_root: Path,
+    tenant_slug: str = "",
+    config: dict[str, Any] | None = None,
+) -> list[TenantBackupArchive]:
     archives: list[TenantBackupArchive] = []
-    for backup_root in _tenant_backup_roots(data_root, tenant_slug):
-        tenant_name = backup_root.parent.name
+    for context in _tenant_backup_contexts(data_root, tenant_slug, config):
+        backup_root = Path(context["backup_dir"])
+        tenant_name = str(context.get("storage_key") or backup_root.parent.name)
+        tenant_hash = str(context.get("tenant_hash") or "")
+        if not tenant_hash:
+            continue
         for path in backup_root.glob("*.zip"):
             if not path.is_file():
                 continue
@@ -943,6 +1086,7 @@ def _tenant_backup_archives(data_root: Path, tenant_slug: str = "") -> list[Tena
                 TenantBackupArchive(
                     path=path,
                     tenant_slug=tenant_name,
+                    tenant_hash=tenant_hash,
                     backup_dir=backup_root,
                     size_bytes=int(stat.st_size),
                     mtime=float(stat.st_mtime),
@@ -984,7 +1128,7 @@ def run_tenant_backup_retention(
     cfg = _runtime_config(config)
     root = Path(data_root) if data_root else resolve_data_root(cfg)
     settings = backup_retention_settings(cfg)
-    archives = _tenant_backup_archives(root, tenant_slug)
+    archives = _tenant_backup_archives(root, tenant_slug, cfg)
     by_backup_dir: dict[Path, list[TenantBackupArchive]] = {}
     for archive in archives:
         by_backup_dir.setdefault(archive.backup_dir, []).append(archive)
@@ -1057,6 +1201,7 @@ def run_tenant_backup_retention(
         "kept_archives": [
             {
                 "tenant_slug": item.tenant_slug,
+                "tenant_hash": item.tenant_hash,
                 "path": str(item.path),
                 "name": item.path.name,
                 "kind": item.kind,
@@ -2349,9 +2494,10 @@ def _iter_studio_archive_files(data_root: Path, *, tenant_slug: str = "") -> lis
     slug = str(tenant_slug or "").strip()
     tenants_root = data_root / "tenants"
     if slug:
-        roots = [tenants_root / slug]
+        tenant_root = _active_tenant_root_for_slug(data_root, slug)
+        roots = [tenant_root] if tenant_root else []
     elif tenants_root.is_dir():
-        roots = [item for item in tenants_root.iterdir() if item.is_dir()]
+        roots = _active_registered_tenant_dirs(data_root)
     else:
         roots = [data_root]
 
@@ -2560,9 +2706,10 @@ def _iter_mailbox_databases(data_root: Path, *, tenant_slug: str = "") -> list[P
     roots: list[Path] = []
     tenants_root = data_root / "tenants"
     if slug:
-        roots = [tenants_root / slug]
+        tenant_root = _active_tenant_root_for_slug(data_root, slug)
+        roots = [tenant_root] if tenant_root else []
     elif tenants_root.is_dir():
-        roots = [item for item in tenants_root.iterdir() if item.is_dir()]
+        roots = _active_registered_tenant_dirs(data_root)
     else:
         roots = [data_root]
 

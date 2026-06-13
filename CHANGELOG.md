@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.11 - 2026-06-14
+
+- Manutenzione tenant locale: rimossa dalla macchina reale la cartella storica non attiva `antonella-mammola`; resta registrato come studio operativo solo `tenant-8bf98719c459`.
+- Backup e manutenzione storage: retention backup, ottimizzazione archivi e compressione allegati lavorano ora sui soli tenant attivi registrati quando esiste `tenants.json`, evitando che cartelle storiche o alias legacy vengano trattati come studi operativi.
+- Isolamento multi-studio: anche quando viene richiesto uno studio esplicito, la manutenzione risolve lo slug dal registro attivo, usa solo la cartella storage canonica e associa un hash SHA-256 di identità tenant al contesto backup; tenant non registrati o non attivi vengono rifiutati.
+- Test mirati: aggiunte regressioni con cartella legacy, slug esplicito, hash tenant e due studi attivi, verificando che la retention elimini solo dentro il tenant corretto e mantenga separati i backup di ogni studio.
+
 ## 2.253.10 - 2026-06-13
 
 - Sicurezza CodeQL: le API admin Product Pack e Resilienza operativa restituiscono JSON tramite un confine di risposta controllato, evitando il sink diretto `jsonify(build_...)` che continuava a generare annotazioni pur con payload filtrati.

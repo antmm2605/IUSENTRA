@@ -112,9 +112,21 @@ export type TopbarRecentItem = {
   lastAccessedAt: string | null
 }
 
+export type TopbarRecentSearch = {
+  id: string
+  query: string
+  title: string
+  subtitle: string | null
+  href: string
+  searchedAt: string | null
+  total: number
+}
+
 export type TopbarRecentPayload = {
   ok: boolean
   items: TopbarRecentItem[]
+  searches?: TopbarRecentSearch[]
+  totalCount?: number
 }
 
 export type TimeTrackingActivityType =

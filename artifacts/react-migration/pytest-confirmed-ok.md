@@ -1,5 +1,22 @@
 # Pytest shard confermati OK
 
+## Topbar Recenti e ricerche 2.253.25 - 2026-06-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\topbar_recent.py web\blueprints\topbar.py pct\data_flow_contract.py` | OK | Sintassi confermata dopo API `/api/recent/search` e contratto topbar esteso alle ricerche recenti. |
+| `python -m pytest tests\test_topbar_operational_api.py tests\test_data_flow_contract.py::test_topbar_operativa_resta_collegata_a_dati_reali_e_testi_professionali -q` | OK | 4/4: notifiche, scadenze, recenti, ricerche recenti, deduplica query, badge `totalCount` e static guard React/API. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo pannello `Recenti e ricerche` e tracking dalla ricerca globale. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite riuscita dopo la modifica topbar; resta il warning storico del chunk principale sopra 500 kB. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti React coerenti dopo API e pannello `Recenti e ricerche`. |
+| `node scripts\react-migration\check-route-gate.mjs` | OK | Route gate coerente. |
+| `python scripts\audit_data_flow_contract.py --registry data\tenants.json --json` | OK | Audit tenant locale verde; `quick_check=ok`, `moduli_json_records` leggibile, topbar include `/api/recent/search`. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | 2/2: manifest React e asset referenziati coerenti dopo build `2.253.25`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker locale reale ricostruita; app, scheduler e OCR healthy; `/api/pronto` risponde `ok=true`, `versione=2.253.25`. |
+| Chrome visibile installato `C:/Program Files/Google/Chrome/Application/chrome.exe` su `http://127.0.0.1:8080` | OK | Login reale, `/studio` React senza `?_legacy=1`, ricerca topbar `RG`, apertura `/fascicoli/8804C177`, payload `/api/recent` con `items=1`, `searches=1`, `totalCount=2`, pannello `Recenti e ricerche (2)` con `Elementi aperti` e `Ricerche recenti`, nessun errore console; screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-topbar-recenti-ricerche.png`. |
+| `python scripts\react-migration\generate_backend_security_map.py --check` | OK | Mappa sicurezza backend allineata dopo il nuovo endpoint `/api/recent/search`; conteggio route manifest aggiornato a 115. |
+| `python -m pytest -q tests/test_auth.py tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py tests/test_openapi_contracts_phase6.py --tb=short` | OK | 79/79: gruppo RBAC/tenant/App V2/OpenAPI locale rilanciato dopo il rosso GitHub su `docs/backend-endpoint-security-map.md`. |
+
 ## Deposito telematico e gate CI 2.253.20 - 2026-06-14
 
 | Comando / verifica | Esito | Nota |
@@ -4773,3 +4790,29 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m py_compile web\bootstrap\deposito_routes.py web\services\deposito_route_helpers.py`; `python tools\check_repo_governance.py`; conteggio righe `deposito_routes.py` | OK | Helper deposito estratti; `deposito_routes.py` a 997 righe e governance repo verde. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | Packaging sincronizzato, release readiness, UTF-8 e OpenAPI `19/19` passati prima del rebuild Docker. |
 | `python scripts\verify_openapi_provider.py`; `git diff --check` | OK | Provider verification `auth-error=261`, `public-safe=15`, `success=29`, `backend-security=1`; whitespace check senza errori, con soli warning Git CRLF non bloccanti su file già modificati. |
+
+## Contratto dati, tenant, sottomenu e topbar 2.253.23 - 2026-06-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\audit_data_flow_contract.py --registry data\tenants.json --repair-json-mirror --repair-search-index --json` | OK | Sul tenant locale reale `tenant-8bf98719c459` il mirror `moduli_json_records` e l'indice FTS `search_documenti` sono stati riparati solo come cache rigenerabili; `PRAGMA quick_check=ok`, mirror leggibile con 3734 record. |
+| `python scripts\audit_data_flow_contract.py --registry data\tenants.json --json` | OK | Controllo a freddo senza riparazioni: contratto dati/tenant/route React/sottomenu/topbar verde; `clienti=12`, `fascicoli=7`, `appuntamenti=390`, `scadenze=235`, `messaggi=1`, `moduli_dati=42`, `moduli_json_records=3734`. |
+| `python -m py_compile scripts\audit_data_flow_contract.py pct\data_flow_contract.py pct\storage_migration.py pct\storage_migration_full.py pct\storage_postgres.py` | OK | Sintassi confermata per audit, contratto dati e migrazioni SQLite/PostgreSQL. |
+| `python -m pytest tests\test_data_flow_contract.py tests\test_storage_postgres_migration.py::test_migrate_core_storage_to_postgres_produce_report_consistente tests\test_topbar_operational_api.py::test_topbar_today_notifications_deadlines_recent_and_timer tests\test_topbar_operational_api.py::test_topbar_react_traccia_recenti_sulle_rotte_profonde tests\test_support_remote.py::test_support_remote_studio_user_can_request_assistance_from_studio tests\test_studio_voice_assistant.py::test_studio_voice_assistant_file_senza_mojibake_e_collegato -q` | OK | 10/10 passati: struttura dati, migrazione Postgres, topbar operativa, assistenza remota e assistente Studio restano collegati a dati/API reali. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs` | OK | Contratti React e route gate coerenti dopo l'inserimento governato di `Legal Skills` e `Regia Agentica`. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo microcopy topbar e aggiornamento gate React. |
+| `python tools\sync_packaging_files.py --check`; `git diff --check` | OK | Packaging sincronizzato; whitespace senza errori, con soli warning CRLF su file già modificati/runtime. |
+
+## Gestione Studio full React e topbar 2.253.24 - 2026-06-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\audit_data_flow_contract.py --registry data\tenants.json --json` | OK | Controllo a freddo senza riparazioni: contratto dati/tenant/route React/sottomenu/topbar verde; `moduli_json_records=3735`, `search_documenti` leggibile. |
+| `python -m pytest tests\test_data_flow_contract.py tests\test_topbar_operational_api.py::test_topbar_today_notifications_deadlines_recent_and_timer tests\test_topbar_operational_api.py::test_topbar_react_traccia_recenti_sulle_rotte_profonde -q` | OK | 7/7 passati su contratto dati e topbar operativa. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs` | OK | Contratti React e route gate coerenti dopo correzione microcopy e route Studio governate. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite passati; resta solo warning storico sui chunk grandi. |
+| `python tools\sync_packaging_files.py --check`; `python -m py_compile pct\__init__.py scripts\audit_data_flow_contract.py pct\data_flow_contract.py pct\storage_migration.py pct\storage_migration_full.py pct\storage_postgres.py` | OK | Packaging sincronizzato a `2.253.24` e sintassi confermata. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale dell'utente ricostruita; app, scheduler e OCR healthy; `/api/pronto` risponde `versione=2.253.24`. |
+| Browser reale Chrome su `http://127.0.0.1:8080/studio` | OK | Studio aperto, scroll top/medio/fondo, `#root` React presente, sidebar Studio con 13 sottovoci, nessun `?_legacy=1`, nessun testo tecnico vietato reale; dati tenant visibili: fascicoli, clienti, operatori, backup. |
+| Browser reale Chrome su route Studio | OK | Verificate e scrollate `/studio`, `/fatturazione`, `/preventivi`, `/compensi-forensi`, `/documenti`, `/redazione-atti`, `/statistiche`, `/ricerca-legale`, `/legal-skills`, `/workflow-agents`, `/giurisprudenza`, `/strumenti-legali`, `/strumenti-operativi`: tutte con `#root`, menu Studio completo e nessun fallback legacy. |
+| Browser reale Chrome topbar | OK | Verificati pannelli `Voce Studio`, `Timer attività`, data italiana, `Scadenze rapide`, `Ultimi elementi aperti`, `Notifiche operative`, `Nuovo`; `Assistenza remota` crea sessione protetta reale e la sessione di test è stata chiusa come `Chiusa`. |

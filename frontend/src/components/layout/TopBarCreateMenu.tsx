@@ -40,7 +40,7 @@ function buildActions(context: TopbarCreateContext): TopbarCreateAction[] {
     contextual.push(
       {
         id: 'case-activity',
-        label: 'Nuova attivita',
+        label: 'Nuova attività',
         description: 'Registra un passaggio operativo nel fascicolo corrente.',
         icon: 'activity',
         href: `/fascicoli/${encodeURIComponent(caseId)}?focus=attivita`,
@@ -57,7 +57,7 @@ function buildActions(context: TopbarCreateContext): TopbarCreateAction[] {
       {
         id: 'case-deadline',
         label: 'Nuova scadenza',
-        description: 'Crea una scadenza gia collegata al fascicolo.',
+        description: 'Crea una scadenza già collegata al fascicolo.',
         icon: 'deadline',
         href: withContext('/scadenziario/nuova', context),
         requiresPermission: 'scadenziario.scrivi',
@@ -135,7 +135,7 @@ function buildActions(context: TopbarCreateContext): TopbarCreateAction[] {
     },
     {
       id: 'new-activity',
-      label: 'Nuova attivita',
+      label: 'Nuova attività',
       description: 'Registra tempo o lavoro svolto nel timesheet.',
       icon: 'activity',
       href: '/timesheet',

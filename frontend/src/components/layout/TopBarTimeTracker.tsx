@@ -67,25 +67,25 @@ export function TopBarTimeTracker({
         className={`iu-icon iu-timer-button ${timer ? 'is-active' : ''}`}
         type="button"
         onClick={onToggle}
-        aria-label="Timer attivita"
+        aria-label="Timer attività"
         aria-haspopup="dialog"
         aria-expanded={open}
-        title="Timer attivita"
+        title="Timer attività"
       >
         {icon}
         {timer ? <small>{formatElapsed(elapsedSeconds)}</small> : null}
       </button>
       {open ? (
-        <div className="iu-topbar-panel iu-timer-panel" role="dialog" aria-label="Timer attivita">
+        <div className="iu-topbar-panel iu-timer-panel" role="dialog" aria-label="Timer attività">
           <header>
-            <strong>Timer attivita</strong>
-            <small>{timer ? (timer.status === 'paused' ? 'In pausa' : 'In corso') : 'Avvia attivita'}</small>
+            <strong>Timer attività</strong>
+            <small>{timer ? (timer.status === 'paused' ? 'In pausa' : 'In corso') : 'Avvia attività'}</small>
           </header>
           {error ? <p className="iu-panel-state is-error">{error}</p> : null}
           {timer ? (
             <div className="iu-timer-active">
               <strong>{formatElapsed(elapsedSeconds)}</strong>
-              <small>{activities.find((item) => item.value === timer.activityType)?.label ?? 'Attivita'}</small>
+              <small>{activities.find((item) => item.value === timer.activityType)?.label ?? 'Attività'}</small>
               {timer.description ? <p>{timer.description}</p> : null}
               <div className="iu-timer-actions">
                 {timer.status === 'paused' ? (
@@ -99,7 +99,7 @@ export function TopBarTimeTracker({
           ) : (
             <div className="iu-timer-form">
               <label>
-                <span>Tipo attivita</span>
+                <span>Tipo attività</span>
                 <select value={activityType} onChange={(event) => setActivityType(event.target.value as TimeTrackingActivityType)}>
                   {activities.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
@@ -116,11 +116,11 @@ export function TopBarTimeTracker({
               </div>
               <label>
                 <span>Descrizione</span>
-                <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Attivita svolta" />
+                <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Attività svolta" />
               </label>
               <button type="button" className="iu-timer-start" onClick={handleStart} disabled={loading}>
                 {loading ? <Loader2 className="iu-spin" size={16} /> : <Play size={16} />}
-                Avvia attivita
+                Avvia attività
               </button>
             </div>
           )}

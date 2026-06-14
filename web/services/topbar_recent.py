@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlencode
 
 from flask import session
 
@@ -34,7 +35,9 @@ def recent_payload(user: Any) -> dict[str, Any]:
                 "lastAccessedAt": _clean_text(item.get("lastAccessedAt") or item.get("ultimo_accesso") or "") or None,
             }
         )
-    return {"ok": True, "items": _dedupe_recent_items(items)[:10]}
+    deduped_items = _dedupe_recent_items(items)[:10]
+    searches = _recent_searches()[:8]
+    return {"ok": True, "items": deduped_items, "searches": searches, "totalCount": len(deduped_items) + len(searches)}
 
 
 def track_recent_payload(user: Any, entity_type: str, entity_id: str) -> dict[str, Any]:
@@ -53,6 +56,40 @@ def track_recent_payload(user: Any, entity_type: str, entity_id: str) -> dict[st
     rows = [row for row in rows if not (_recent_type_to_api(row.get("tipo")) == etype and str(row.get("id")) == eid)]
     rows.insert(0, resolved)
     session["recenti"] = rows[:10]
+    session.modified = True
+    return recent_payload(user)
+
+
+def track_recent_search_payload(user: Any, query: str, total: Any = None) -> dict[str, Any]:
+    _require_any_permission(
+        user,
+        ["fascicoli.leggi", "clienti.leggi", "agenda.leggi", "scadenziario.leggi", "messaggi.leggi"],
+    )
+    clean_query = _clean_text(query, limit=120)
+    if len(clean_query) < 2:
+        raise TopbarApiError("Inserisci almeno 2 caratteri.", 400)
+    try:
+        result_count = max(0, int(total or 0))
+    except (TypeError, ValueError):
+        result_count = 0
+    now = datetime.now(ROME_TZ).isoformat(timespec="seconds")
+    href = "/global-search?" + urlencode({"q": clean_query})
+    current = _recent_searches()
+    dedupe_key = clean_query.casefold()
+    rows = [row for row in current if str(row.get("query") or "").casefold() != dedupe_key]
+    rows.insert(
+        0,
+        {
+            "id": f"search:{dedupe_key}",
+            "query": clean_query,
+            "title": clean_query,
+            "subtitle": f"{result_count} risultati" if result_count else "Ricerca Studio",
+            "href": href,
+            "searchedAt": now,
+            "total": result_count,
+        },
+    )
+    session["ricerche_recenti"] = rows[:8]
     session.modified = True
     return recent_payload(user)
 
@@ -86,6 +123,37 @@ def _dedupe_recent_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen.add(key)
         deduped.append(item)
     return deduped
+
+
+def _recent_searches() -> list[dict[str, Any]]:
+    raw = session.get("ricerche_recenti", [])
+    rows = [row for row in raw if isinstance(row, dict)] if isinstance(raw, list) else []
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        query = _clean_text(row.get("query") or row.get("title") or "", limit=120)
+        if len(query) < 2:
+            continue
+        key = query.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            total = max(0, int(row.get("total") or 0))
+        except (TypeError, ValueError):
+            total = 0
+        result.append(
+            {
+                "id": _clean_text(row.get("id") or f"search:{key}", limit=160),
+                "query": query,
+                "title": _clean_text(row.get("title") or query, limit=160),
+                "subtitle": _clean_text(row.get("subtitle") or (f"{total} risultati" if total else "Ricerca Studio"), limit=160),
+                "href": _react_href(row.get("href") or ("/global-search?" + urlencode({"q": query}))) or "/global-search",
+                "searchedAt": _clean_text(row.get("searchedAt") or row.get("searched_at") or "", limit=80) or None,
+                "total": total,
+            }
+        )
+    return result
 
 
 def _resolve_recent_entity(entity_type: str, entity_id: str) -> dict[str, Any] | None:

@@ -197,6 +197,25 @@ CREATE TABLE IF NOT EXISTS timesheet_entries (
     dati_json TEXT DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS time_tracking_timers (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    username TEXT,
+    id_fascicolo TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    id_cliente TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    activity_type TEXT NOT NULL DEFAULT 'other',
+    description TEXT,
+    started_at TEXT NOT NULL,
+    paused_at TEXT,
+    ended_at TEXT,
+    elapsed_seconds INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'running',
+    timesheet_entry_id TEXT REFERENCES timesheet_entries(id) ON DELETE SET NULL,
+    created_at TEXT,
+    updated_at TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
 CREATE TABLE IF NOT EXISTS preventivi_records (
     preventivo_id TEXT PRIMARY KEY,
     numero TEXT NOT NULL,
@@ -320,6 +339,23 @@ CREATE TABLE IF NOT EXISTS settings_config (
     dati_json TEXT NOT NULL DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS messaggi (
+    id TEXT PRIMARY KEY,
+    canale TEXT NOT NULL DEFAULT 'EMAIL',
+    stato TEXT NOT NULL DEFAULT 'BOZZA',
+    oggetto TEXT,
+    corpo TEXT,
+    email_destinatario TEXT,
+    telefono_destinatario TEXT,
+    id_cliente TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_fascicolo TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    tipo_automazione TEXT,
+    inviato_il TEXT,
+    errore_invio TEXT,
+    creato_il TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
 CREATE TABLE IF NOT EXISTS moduli_dati (
     nome TEXT PRIMARY KEY,
     percorso TEXT NOT NULL,
@@ -338,6 +374,60 @@ CREATE TABLE IF NOT EXISTS moduli_json_records (
     FOREIGN KEY (modulo) REFERENCES moduli_dati(nome) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS privacy_trattamenti (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    finalita TEXT,
+    categoria_dati TEXT,
+    base_giuridica TEXT,
+    soggetti_interessati TEXT,
+    destinatari TEXT,
+    trasferimento_extra_ue INTEGER DEFAULT 0,
+    paese_destinazione TEXT,
+    termine_conservazione TEXT,
+    misure_sicurezza TEXT,
+    responsabile TEXT,
+    attivo INTEGER DEFAULT 1,
+    note TEXT,
+    creato_il TEXT,
+    modificato_il TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS notifiche_log (
+    id BIGSERIAL PRIMARY KEY,
+    timestamp TEXT,
+    tipo TEXT,
+    cliente TEXT,
+    numero TEXT,
+    utente TEXT,
+    esito_json TEXT DEFAULT '{}',
+    payload_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS backup_config (
+    chiave TEXT PRIMARY KEY,
+    valore TEXT,
+    payload_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS backup_records (
+    id TEXT PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    stato TEXT NOT NULL,
+    percorso_file TEXT,
+    hash_file TEXT,
+    dimensione_bytes INTEGER DEFAULT 0,
+    num_file INTEGER DEFAULT 0,
+    componenti_json TEXT DEFAULT '[]',
+    cifrato INTEGER DEFAULT 0,
+    nota TEXT,
+    errore TEXT,
+    backup_base_id TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
 CREATE INDEX IF NOT EXISTS idx_clienti_cf ON clienti(codice_fiscale);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_cliente ON fascicoli(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_stato ON fascicoli(stato);
@@ -353,6 +443,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
 CREATE INDEX IF NOT EXISTS idx_timesheet_fascicolo ON timesheet_entries(id_fascicolo);
 CREATE INDEX IF NOT EXISTS idx_timesheet_utente ON timesheet_entries(id_utente);
 CREATE INDEX IF NOT EXISTS idx_timesheet_data ON timesheet_entries(data_attivita);
+CREATE INDEX IF NOT EXISTS idx_time_tracking_user_status ON time_tracking_timers(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_time_tracking_fascicolo ON time_tracking_timers(id_fascicolo);
+CREATE INDEX IF NOT EXISTS idx_time_tracking_cliente ON time_tracking_timers(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_time_tracking_started ON time_tracking_timers(started_at);
 CREATE INDEX IF NOT EXISTS idx_preventivi_records_cliente ON preventivi_records(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_preventivi_records_stato ON preventivi_records(stato, data_emissione);
 CREATE INDEX IF NOT EXISTS idx_conferimenti_records_cliente ON conferimenti_records(id_cliente);
@@ -364,7 +458,17 @@ CREATE INDEX IF NOT EXISTS idx_payment_links_cliente ON payment_links(id_cliente
 CREATE INDEX IF NOT EXISTS idx_payment_links_parcella ON payment_links(id_parcella);
 CREATE INDEX IF NOT EXISTS idx_payment_links_stato ON payment_links(stato, creato_il);
 CREATE INDEX IF NOT EXISTS idx_settings_config_updated ON settings_config(updated_at);
+CREATE INDEX IF NOT EXISTS idx_msg_stato ON messaggi(stato);
+CREATE INDEX IF NOT EXISTS idx_msg_canale ON messaggi(canale);
+CREATE INDEX IF NOT EXISTS idx_msg_cliente ON messaggi(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_moduli_json_records_modulo ON moduli_json_records(modulo);
+CREATE INDEX IF NOT EXISTS idx_privacy_attivo ON privacy_trattamenti(attivo);
+CREATE INDEX IF NOT EXISTS idx_privacy_nome ON privacy_trattamenti(nome);
+CREATE INDEX IF NOT EXISTS idx_notifiche_ts ON notifiche_log(timestamp);
+CREATE INDEX IF NOT EXISTS idx_notifiche_tipo ON notifiche_log(tipo);
+CREATE INDEX IF NOT EXISTS idx_backup_timestamp ON backup_records(timestamp);
+CREATE INDEX IF NOT EXISTS idx_backup_stato ON backup_records(stato);
+CREATE INDEX IF NOT EXISTS idx_backup_tipo ON backup_records(tipo);
 """
 
 
@@ -518,6 +622,24 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "modificato_il",
         "dati_json",
     ),
+    "time_tracking_timers": (
+        "id",
+        "user_id",
+        "username",
+        "id_fascicolo",
+        "id_cliente",
+        "activity_type",
+        "description",
+        "started_at",
+        "paused_at",
+        "ended_at",
+        "elapsed_seconds",
+        "status",
+        "timesheet_entry_id",
+        "created_at",
+        "updated_at",
+        "dati_json",
+    ),
     "preventivi_records": (
         "preventivo_id",
         "numero",
@@ -635,6 +757,22 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "secret_fields_json",
         "dati_json",
     ),
+    "messaggi": (
+        "id",
+        "canale",
+        "stato",
+        "oggetto",
+        "corpo",
+        "email_destinatario",
+        "telefono_destinatario",
+        "id_cliente",
+        "id_fascicolo",
+        "tipo_automazione",
+        "inviato_il",
+        "errore_invio",
+        "creato_il",
+        "dati_json",
+    ),
     "moduli_dati": (
         "nome",
         "percorso",
@@ -648,6 +786,56 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "record_index",
         "record_kind",
         "payload_json",
+    ),
+    "privacy_trattamenti": (
+        "id",
+        "nome",
+        "finalita",
+        "categoria_dati",
+        "base_giuridica",
+        "soggetti_interessati",
+        "destinatari",
+        "trasferimento_extra_ue",
+        "paese_destinazione",
+        "termine_conservazione",
+        "misure_sicurezza",
+        "responsabile",
+        "attivo",
+        "note",
+        "creato_il",
+        "modificato_il",
+        "dati_json",
+    ),
+    "notifiche_log": (
+        "id",
+        "timestamp",
+        "tipo",
+        "cliente",
+        "numero",
+        "utente",
+        "esito_json",
+        "payload_json",
+    ),
+    "backup_config": (
+        "chiave",
+        "valore",
+        "payload_json",
+    ),
+    "backup_records": (
+        "id",
+        "timestamp",
+        "tipo",
+        "stato",
+        "percorso_file",
+        "hash_file",
+        "dimensione_bytes",
+        "num_file",
+        "componenti_json",
+        "cifrato",
+        "nota",
+        "errore",
+        "backup_base_id",
+        "dati_json",
     ),
 }
 

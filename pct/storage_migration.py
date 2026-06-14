@@ -29,6 +29,7 @@ _CORE_TABLES = {
     "scadenze": "scadenze",
     "timesheet": "timesheet_entries",
     "time_tracking": "time_tracking_timers",
+    "messaggi": "messaggi",
     "preventivi": "preventivi_records",
     "conferimenti": "conferimenti_records",
     "fatturazione": "parcelle",
@@ -37,6 +38,10 @@ _CORE_TABLES = {
     "impostazioni": "settings_config",
     "utenti": "utenti",
     "audit": "audit_log",
+    "privacy": "privacy_trattamenti",
+    "notifiche": "notifiche_log",
+    "backup_config": "backup_config",
+    "backup": "backup_records",
     "moduli_dati": "moduli_dati",
     "moduli_json_records": "moduli_json_records",
 }
@@ -295,6 +300,159 @@ def _copy_time_tracking(sqlite_backend, target_backend) -> None:
         )
 
     target_backend.salva_tabella("time_tracking_timers", list(rows), _insert)
+
+
+def _copy_messaggi(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM messaggi").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO messaggi
+            (id, canale, stato, oggetto, corpo, email_destinatario,
+             telefono_destinatario, id_cliente, id_fascicolo, tipo_automazione,
+             inviato_il, errore_invio, creato_il, dati_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("canale", "EMAIL"),
+                raw.get("stato", "BOZZA"),
+                raw.get("oggetto", ""),
+                raw.get("corpo", ""),
+                raw.get("email_destinatario", ""),
+                raw.get("telefono_destinatario", ""),
+                raw.get("id_cliente"),
+                raw.get("id_fascicolo"),
+                raw.get("tipo_automazione", ""),
+                raw.get("inviato_il", ""),
+                raw.get("errore_invio", ""),
+                raw.get("creato_il", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("messaggi", list(rows), _insert)
+
+
+def _copy_privacy_trattamenti(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM privacy_trattamenti").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO privacy_trattamenti
+            (id, nome, finalita, categoria_dati, base_giuridica,
+             soggetti_interessati, destinatari, trasferimento_extra_ue,
+             paese_destinazione, termine_conservazione, misure_sicurezza,
+             responsabile, attivo, note, creato_il, modificato_il, dati_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("nome", ""),
+                raw.get("finalita", ""),
+                raw.get("categoria_dati", ""),
+                raw.get("base_giuridica", ""),
+                raw.get("soggetti_interessati", ""),
+                raw.get("destinatari", ""),
+                int(raw.get("trasferimento_extra_ue") or 0),
+                raw.get("paese_destinazione", ""),
+                raw.get("termine_conservazione", ""),
+                raw.get("misure_sicurezza", ""),
+                raw.get("responsabile", ""),
+                int(raw.get("attivo") if raw.get("attivo") is not None else 1),
+                raw.get("note", ""),
+                raw.get("creato_il", ""),
+                raw.get("modificato_il", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("privacy_trattamenti", list(rows), _insert)
+
+
+def _copy_notifiche_log(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM notifiche_log").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO notifiche_log
+            (id, timestamp, tipo, cliente, numero, utente, esito_json, payload_json)
+            VALUES (?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id"),
+                raw.get("timestamp", ""),
+                raw.get("tipo", ""),
+                raw.get("cliente", ""),
+                raw.get("numero", ""),
+                raw.get("utente", ""),
+                raw.get("esito_json", "{}"),
+                raw.get("payload_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("notifiche_log", list(rows), _insert)
+
+
+def _copy_backup_config(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM backup_config").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO backup_config
+            (chiave, valore, payload_json)
+            VALUES (?,?,?)
+            """,
+            (
+                raw.get("chiave", ""),
+                raw.get("valore", ""),
+                raw.get("payload_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("backup_config", list(rows), _insert)
+
+
+def _copy_backup_records(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM backup_records").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO backup_records
+            (id, timestamp, tipo, stato, percorso_file, hash_file,
+             dimensione_bytes, num_file, componenti_json, cifrato, nota,
+             errore, backup_base_id, dati_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("timestamp", ""),
+                raw.get("tipo", ""),
+                raw.get("stato", ""),
+                raw.get("percorso_file", ""),
+                raw.get("hash_file", ""),
+                int(raw.get("dimensione_bytes") or 0),
+                int(raw.get("num_file") or 0),
+                raw.get("componenti_json", "[]"),
+                int(raw.get("cifrato") or 0),
+                raw.get("nota", ""),
+                raw.get("errore", ""),
+                raw.get("backup_base_id", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("backup_records", list(rows), _insert)
 
 
 def _copy_payment_config(sqlite_backend, target_backend) -> None:
@@ -567,6 +725,11 @@ def _copy_core_state_to_target(
         timesheet_dst._salva()
 
     _copy_time_tracking(sqlite_backend, target_backend)
+    _copy_messaggi(sqlite_backend, target_backend)
+    _copy_privacy_trattamenti(sqlite_backend, target_backend)
+    _copy_notifiche_log(sqlite_backend, target_backend)
+    _copy_backup_config(sqlite_backend, target_backend)
+    _copy_backup_records(sqlite_backend, target_backend)
 
     preventivi_path = paths.get("PREVENTIVI_DB", "")
     if preventivi_path:
@@ -645,6 +808,7 @@ def migrate_core_storage_to_postgres(
         "scadenze": _json_record_count(paths.get("SCADENZIARIO_DB", "")),
         "timesheet": _json_record_count(paths.get("TIMESHEET_DB", "")),
         "time_tracking": _json_record_count(paths.get("TIME_TRACKING_DB", "")),
+        "messaggi": _json_record_count(paths.get("MESSAGGI_DB", "")),
         "preventivi": _json_record_count(paths.get("PREVENTIVI_DB", "")),
         "conferimenti": _json_record_count(
             str(Path(paths.get("PREVENTIVI_DB", "")).with_name("conferimenti.json"))
@@ -662,6 +826,16 @@ def migrate_core_storage_to_postgres(
         else 0,
         "utenti": _json_record_count(paths.get("AUTH_DB", "")),
         "audit": _json_record_count(paths.get("AUDIT_DB", "")),
+        "privacy": _json_record_count(paths.get("PRIVACY_DB", "")),
+        "notifiche": _json_record_count(paths.get("NOTIFICHE_LOG", "")),
+        "backup_config": 1
+        if Path(str(Path(paths.get("BACKUP_DIR", "")) / "config.json")).exists()
+        else 0,
+        "backup": _json_record_count(
+            str(Path(paths.get("BACKUP_DIR", "")) / "registro.json")
+            if paths.get("BACKUP_DIR")
+            else ""
+        ),
     }
     sqlite_counts_before = {
         key: _count_rows(sqlite_backend, table_name)

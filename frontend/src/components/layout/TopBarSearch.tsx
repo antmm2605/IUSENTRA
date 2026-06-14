@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { isCommandK, useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 import { useGlobalSearch } from '../../hooks/useGlobalSearch'
+import { trackRecentItem, trackRecentSearch } from '../../services/topbarApi'
 import type { GlobalSearchResult, TopbarEntityType } from '../../types/topbar'
 
 const groupLabels: Record<TopbarEntityType, string> = {
@@ -23,7 +24,7 @@ const groupLabels: Record<TopbarEntityType, string> = {
   deadline: 'Scadenze',
   hearing: 'Udienze',
   document: 'Documenti',
-  activity: 'Attivita',
+  activity: 'Attività',
   communication: 'Comunicazioni',
   invoice: 'Fatture',
 }
@@ -40,8 +41,51 @@ const icons: Record<TopbarEntityType, ReactNode> = {
   invoice: <ReceiptText size={17} />,
 }
 
-function openResult(result: GlobalSearchResult) {
-  window.location.href = result.href || '/global-search'
+function recentEntityFromResult(result: GlobalSearchResult): { entityType: string; entityId: string } | null {
+  if (['case', 'client', 'matter', 'document'].includes(result.type) && result.id) {
+    return { entityType: result.type, entityId: result.id }
+  }
+  const destination = result.href || ''
+  const documentMatch = destination.match(/^\/fascicoli\/([^/?#]+)\/documenti\/([^/?#]+)/)
+  if (documentMatch?.[2]) {
+    return { entityType: 'document', entityId: decodeURIComponent(documentMatch[2]) }
+  }
+  const caseMatch = destination.match(/^\/fascicoli\/([^/?#]+)/)
+  if (caseMatch?.[1] && !['nuovo', 'esporta', 'archivio'].includes(caseMatch[1])) {
+    return { entityType: 'case', entityId: decodeURIComponent(caseMatch[1]) }
+  }
+  const clientMatch = destination.match(/^\/clienti\/([^/?#]+)/)
+  if (clientMatch?.[1] && clientMatch[1] !== 'nuovo') {
+    return { entityType: 'client', entityId: decodeURIComponent(clientMatch[1]) }
+  }
+  return null
+}
+
+async function openResult(result: GlobalSearchResult, query: string, total: number) {
+  const cleanQuery = query.trim()
+  const destination = result.href || '/global-search'
+  let recentChanged = false
+  if (cleanQuery.length >= 2) {
+    try {
+      await trackRecentSearch(cleanQuery, total)
+      recentChanged = true
+    } catch {
+      // La navigazione resta prioritaria: una mancata registrazione non deve bloccare l'apertura del risultato.
+    }
+  }
+  const recentTarget = recentEntityFromResult(result)
+  if (recentTarget) {
+    try {
+      await trackRecentItem(recentTarget.entityType, recentTarget.entityId)
+      recentChanged = true
+    } catch {
+      // La navigazione resta prioritaria: una mancata registrazione non deve bloccare l'apertura del risultato.
+    }
+  }
+  if (recentChanged) {
+    window.dispatchEvent(new CustomEvent('iusentra:recent-items-updated'))
+  }
+  window.location.href = destination
 }
 
 function trapFocus(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElement | null) {
@@ -67,6 +111,7 @@ export function TopBarSearch() {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const normalizedQuery = query.trim()
   const shortcutMatcher = useCallback((event: globalThis.KeyboardEvent) => isCommandK(event), [])
   const shortcutHandler = useCallback((event: globalThis.KeyboardEvent) => {
     event.preventDefault()
@@ -108,7 +153,7 @@ export function TopBarSearch() {
     }
     if (event.key === 'Enter' && activeResult) {
       event.preventDefault()
-      openResult(activeResult)
+      void openResult(activeResult, normalizedQuery, results.length)
     }
   }
 
@@ -163,7 +208,7 @@ export function TopBarSearch() {
                         className={`iu-command-result is-${item.priority} ${selected ? 'is-active' : ''}`}
                         key={`${item.type}-${item.id}-${item.href}`}
                         onMouseEnter={() => setSelectedIndex(currentIndex)}
-                        onClick={() => openResult(item)}
+                        onClick={() => { void openResult(item, normalizedQuery, results.length) }}
                       >
                         <span className="iu-command-result__icon">{icons[item.type]}</span>
                         <span className="iu-command-result__body">

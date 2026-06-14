@@ -721,7 +721,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-actions .iu-fas-post--danger{color:#b91c1c;border-color:rgba(185,28,28,.22);background:rgba(254,226,226,.82)}
 .iu-fas-actions .iu-fas-post--danger:hover{color:#991b1b;border-color:rgba(185,28,28,.36);background:#fff1f2}
 .iu-fas-actions button:disabled,.iu-fas-post:disabled{opacity:.62;cursor:wait}
-.iu-fas-package-board{display:grid;grid-template-columns:minmax(210px,1.35fr) repeat(3,minmax(130px,.8fr));gap:10px;margin-bottom:12px}
+.iu-fas-package-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(156px,1fr));gap:10px;margin-bottom:12px}
 .iu-fas-package-board article,.iu-fas-package-docs article{display:grid;gap:6px;padding:11px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
 .iu-fas-package-board article strong{color:#111827;font-size:18px;font-weight:950;line-height:1.2;overflow-wrap:break-word;word-break:normal}
 .iu-fas-package-board article span,.iu-fas-package-board article small{color:var(--iu-slate-600);font-size:12px;font-weight:760;line-height:1.35}
@@ -731,20 +731,26 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-package-main a,.iu-fas-package-docs a{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:max-content;max-width:100%;padding:0 10px;border:1px solid rgba(37,99,235,.2);border-radius:9px;background:#eff6ff;color:var(--iu-blue-700);font-size:12px;font-weight:900;text-decoration:none}
 .iu-fas-package-docs{display:grid;gap:8px;margin-bottom:12px}
 .iu-fas-package-docs article{grid-template-columns:22px minmax(0,1fr) auto;align-items:center}
+.iu-fas-package-docs article>div{display:grid;gap:2px;min-width:0}
 .iu-fas-package-docs svg{color:var(--iu-blue-700)}
 .iu-fas-package-docs strong{color:#111827;font-size:13px;font-weight:930;overflow-wrap:anywhere}
 .iu-fas-package-docs span{color:var(--iu-slate-500);font-size:12px;font-weight:760}
 .iu-fas-package-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .iu-fas-package-actions .iu-fas-post,.iu-fas-package-actions .iu-fas-side-link{width:auto;height:auto;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 13px;border-radius:10px;font-size:12px;font-weight:930}
+.iu-fas-package-actions .iu-fas-post:disabled{cursor:not-allowed;background:#f8fafc;color:#64748b;border-color:var(--iu-border);box-shadow:none}
 .iu-fas-package-actions small{flex-basis:100%;color:var(--iu-slate-600);font-size:12px;font-weight:760}
+.iu-fas-action-blocked{display:flex;align-items:center;gap:6px;color:#92400e!important}
 .iu-fas-deposit-selection{display:grid;gap:10px;margin-bottom:12px;padding:12px;border:1px solid rgba(37,99,235,.18);border-radius:12px;background:#f8fbff}
 .iu-fas-deposit-selection>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .iu-fas-deposit-selection>header>div{display:grid;gap:3px;min-width:0}
 .iu-fas-deposit-selection>header strong{color:#0f172a;font-size:14px;font-weight:950;line-height:1.25}
 .iu-fas-deposit-selection>header span{color:#475569;font-size:12px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
 .iu-fas-deposit-selection__tools{display:flex;gap:8px;flex-wrap:wrap}
-.iu-fas-deposit-selection__tools button{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border:1px solid rgba(37,99,235,.18);border-radius:9px;background:#fff;color:var(--iu-blue-700);font-size:11.5px;font-weight:900;cursor:pointer}
-.iu-fas-deposit-selection__tools button:hover{background:#eff6ff}
+.iu-fas-deposit-selection__tools button,.iu-fas-deposit-selection__tools a{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border:1px solid rgba(37,99,235,.18);border-radius:9px;background:#fff;color:var(--iu-blue-700);font-size:11.5px;font-weight:900;cursor:pointer;text-decoration:none}
+.iu-fas-deposit-selection__tools button:hover,.iu-fas-deposit-selection__tools a:hover{background:#eff6ff}
+.iu-fas-deposit-upload{border:1px dashed rgba(37,99,235,.25);border-radius:11px;background:#fff}
+.iu-fas-deposit-upload>summary{min-height:34px;display:flex;align-items:center;gap:7px;padding:0 10px;color:var(--iu-blue-700);font-size:12px;font-weight:930;cursor:pointer}
+.iu-fas-deposit-upload .iu-fas-doc-workspace{padding:10px;margin:0}
 .iu-fas-deposit-selection__list{display:grid;gap:7px}
 .iu-fas-deposit-selection__row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:9px;align-items:center;padding:8px 9px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;cursor:pointer}
 .iu-fas-deposit-selection__row.is-selected{border-color:rgba(37,99,235,.32);background:#f8fbff}
@@ -752,7 +758,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-deposit-selection__row input{width:17px;height:17px;margin:0;accent-color:var(--iu-blue-600);cursor:pointer}
 .iu-fas-deposit-selection__row>div{display:grid;gap:2px;min-width:0}
 .iu-fas-deposit-selection__row strong{color:#0f172a;font-size:12.75px;font-weight:930;line-height:1.22;overflow-wrap:anywhere}
-.iu-fas-deposit-selection__row span{color:#64748b;font-size:11.5px;font-weight:760;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-deposit-selection__row span{color:#64748b;font-size:11.5px;font-weight:760;line-height:1.25;overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
 .iu-fas-deposit-selection__row small{color:#9a3412;font-size:11px;font-weight:850;line-height:1.25}
 .iu-fas-batch-signature{display:grid;gap:12px;margin:0 0 12px;padding:12px;border:1px solid rgba(37,99,235,.18);border-radius:14px;background:linear-gradient(135deg,#fff,rgba(37,99,235,.045))}
 .iu-fas-batch-signature__controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
@@ -765,12 +771,18 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-guided-block strong{color:#7c2d12;font-size:13px;font-weight:950;line-height:1.25;overflow-wrap:anywhere}
 .iu-fas-guided-block p{margin:0;color:#7c2d12;font-size:12px;font-weight:780;line-height:1.4}
 .iu-fas-guided-block ul{margin:0;padding-left:18px;display:grid;gap:4px;color:#7c2d12;font-size:12px;font-weight:780;line-height:1.35}
+.iu-fas-deposit-advisory{margin-top:10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
+.iu-fas-deposit-advisory>summary{min-height:38px;display:flex;align-items:center;gap:7px;padding:0 11px;color:#334155;font-size:12px;font-weight:930;cursor:pointer}
+.iu-fas-deposit-advisory>summary svg{color:#f59e0b}
+.iu-fas-deposit-advisory .iu-fas-deposit-check-list{padding:0 10px 10px}
+.iu-fas-deposit-check-list--advisory article{background:#fbfdff}
+.iu-fas-deposit-check-list__decisive{border-color:rgba(245,158,11,.30)!important;background:#fffaf0!important}
 .iu-fas-slot-row{grid-template-columns:auto minmax(0,1fr)!important}
 .iu-fas-slot-link-form{grid-column:2;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:4px}
 .iu-fas-slot-link-form select,.iu-fas-slot-link-form button{min-height:34px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;padding:0 9px;font-size:12px;font-weight:830}
 .iu-fas-slot-link-form button{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--iu-blue-600);border-color:var(--iu-blue-600);color:#fff;white-space:nowrap}
 @media(max-width:1100px){.iu-fas-package-board{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.iu-fas-package-board,.iu-fas-package-docs article,.iu-fas-slot-link-form,.iu-fas-batch-signature__controls{grid-template-columns:1fr}.iu-fas-deposit-selection>header{display:grid}.iu-fas-deposit-selection__row{grid-template-columns:20px minmax(0,1fr)}.iu-fas-deposit-selection__row .iu-badge{grid-column:2;width:max-content;max-width:100%}.iu-fas-package-main strong,.iu-fas-package-main span,.iu-fas-package-main a{grid-column:auto}.iu-fas-package-actions .iu-fas-post,.iu-fas-package-actions .iu-fas-side-link,.iu-fas-package-docs a,.iu-fas-batch-signature__actions .iu-fas-submit,.iu-fas-batch-signature__actions .iu-fas-mini-action,.iu-fas-deposit-selection__tools button{width:100%}}
+@media(max-width:700px){.iu-fas-package-board,.iu-fas-package-docs article,.iu-fas-slot-link-form,.iu-fas-batch-signature__controls{grid-template-columns:1fr}.iu-fas-deposit-selection>header{display:grid}.iu-fas-deposit-selection__row{grid-template-columns:20px minmax(0,1fr)}.iu-fas-deposit-selection__row .iu-badge{grid-column:2;width:max-content;max-width:100%}.iu-fas-package-main strong,.iu-fas-package-main span,.iu-fas-package-main a{grid-column:auto}.iu-fas-package-actions .iu-fas-post,.iu-fas-package-actions .iu-fas-side-link,.iu-fas-package-docs a,.iu-fas-batch-signature__actions .iu-fas-submit,.iu-fas-batch-signature__actions .iu-fas-mini-action,.iu-fas-deposit-selection__tools button,.iu-fas-deposit-selection__tools a{width:100%}}
 .iu-fas-toast{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:9px 12px;border:1px solid var(--iu-border);border-radius:13px;background:#fff;box-shadow:var(--iu-shadow-sm);font-size:13px;font-weight:850}
 .iu-fas-toast--success{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.08);color:#047857}.iu-fas-toast--danger{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.07);color:#991b1b}
 .iu-fas-toast button{min-height:30px;border:1px solid currentColor;border-radius:9px;background:#fff;color:inherit;padding:0 10px;font-size:12px;font-weight:900;cursor:pointer}
@@ -815,9 +827,11 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-regia__deposit strong{display:block;margin:7px 0 4px;color:#0f172a;font-size:15px;font-weight:950}
 .iu-fas-regia__deposit p{margin:0;color:var(--iu-slate-600);font-size:13px;font-weight:760;line-height:1.4}
 .iu-fas-regia__deposit ul{margin:8px 0 0;padding-left:18px;color:#991b1b;font-size:12px;font-weight:800;line-height:1.35}
-.iu-fas-deposit-prepare-box{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+.iu-fas-deposit-prepare-box{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .iu-fas-deposit-prepare-box>div:first-child{min-width:0;display:grid;gap:8px}
-.iu-fas-deposit-prepare-box>.iu-fas-regia__actions{align-content:start;justify-content:flex-end}
+.iu-fas-deposit-prepare-box>.iu-fas-regia__actions{align-content:start;justify-content:flex-start}
+.iu-fas-deposit-prepare-box>.iu-fas-regia__actions .iu-fas-post,
+.iu-fas-deposit-prepare-box>.iu-fas-regia__actions a{flex:0 0 auto;min-width:158px;white-space:nowrap}
 .iu-fas-confirm-modal,.iu-fas-preview-modal{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.52)}
 .iu-fas-confirm-modal__box{width:min(420px,calc(100vw - 36px));max-width:100%;display:grid;gap:12px;padding:18px;border-radius:14px;background:#fff;box-shadow:0 24px 80px rgba(15,23,42,.24);overflow:hidden}
 .iu-fas-confirm-modal__box strong{font-size:15px;color:#111827}.iu-fas-confirm-modal__box p{margin:0;color:var(--iu-slate-600);font-size:13px;line-height:1.45}.iu-fas-inline-error{color:#991b1b;font-size:12px;font-weight:850}
@@ -839,14 +853,38 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-cockpit .iu-fas-stat>span{font-size:10px;letter-spacing:.04em}
 .iu-fas-cockpit .iu-fas-stat>strong{justify-self:end;font-size:19px;letter-spacing:0}
 .iu-fas-cockpit .iu-fas-stat>small{font-size:10.5px;line-height:1.15}
-.iu-fas-deposit-cockpit{grid-template-columns:repeat(auto-fit,minmax(142px,1fr));align-items:stretch;gap:8px}
+.iu-fas-deposit-cockpit{grid-template-columns:repeat(auto-fit,minmax(162px,1fr));align-items:stretch;gap:8px}
 .iu-fas-deposit-cockpit .iu-fas-stat{min-height:66px;grid-template-columns:30px minmax(0,1fr);grid-template-areas:"icon label" "icon value" "icon note";gap:1px 8px;padding:8px 9px;border-radius:12px}
 .iu-fas-deposit-cockpit .iu-fas-stat>div{width:30px;height:30px;border-radius:9px}
-.iu-fas-deposit-cockpit .iu-fas-stat>span{font-size:11px;line-height:1.15;letter-spacing:0;text-transform:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-deposit-cockpit .iu-fas-stat>span{font-size:11px;line-height:1.15;letter-spacing:0;text-transform:none;overflow:visible;text-overflow:clip;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .iu-fas-deposit-cockpit .iu-fas-stat>strong{justify-self:start;font-size:19px;line-height:1;letter-spacing:0;max-width:100%;text-align:left}
 .iu-fas-deposit-cockpit .iu-fas-stat>small{font-size:10.75px;line-height:1.18;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:normal;overflow-wrap:anywhere}
+.iu-fascicolo-deposit-page .iu-fas-detail-section{scroll-margin-top:110px}
+.iu-fas-deposit-phases{display:grid;gap:10px;margin:0 0 14px;padding:10px;border:1px solid rgba(37,99,235,.16);border-radius:14px;background:#fff;box-shadow:var(--iu-shadow-sm)}
+.iu-fas-deposit-phases>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.iu-fas-deposit-phases>header>div{display:grid;gap:3px;min-width:0}
+.iu-fas-deposit-phases>header strong{color:#0f172a;font-size:14px;font-weight:950;line-height:1.2}
+.iu-fas-deposit-phases>header span{color:#475569;font-size:12px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-deposit-phases nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.iu-fas-deposit-phase{min-width:0;min-height:64px;display:grid;grid-template-columns:26px minmax(0,1fr) auto 15px;gap:6px;align-items:center;padding:8px;border:1px solid var(--iu-border);border-radius:12px;background:#f8fafc;color:#0f172a;text-decoration:none;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.iu-fas-deposit-phase:hover{transform:translateY(-1px);border-color:rgba(37,99,235,.30);box-shadow:0 10px 22px rgba(15,23,42,.07)}
+.iu-fas-deposit-phase__index{width:26px;height:26px;display:grid;place-items:center;border-radius:9px;background:rgba(37,99,235,.10);color:var(--iu-blue-700);font-size:12px;font-weight:950}
+.iu-fas-deposit-phase__copy{min-width:0;display:grid;gap:2px}
+.iu-fas-deposit-phase__copy strong{color:#0f172a;font-size:12.5px;font-weight:950;line-height:1.15}
+.iu-fas-deposit-phase__copy small{color:#64748b;font-size:11px;font-weight:760;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.iu-fas-deposit-phase .ius-status-badge{max-width:126px;justify-self:end;white-space:normal;text-align:center;line-height:1.05}
+.iu-fas-deposit-phase>svg{color:#94a3b8}
+.iu-fas-deposit-phase--success{background:#f8fffb;border-color:rgba(16,185,129,.22)}
+.iu-fas-deposit-phase--warning{background:#fffaf0;border-color:rgba(245,158,11,.26)}
+.iu-fas-deposit-phase--danger{background:#fff5f5;border-color:rgba(239,68,68,.24)}
+.iu-fas-deposit-phase--info,.iu-fas-deposit-phase--primary{background:#f8fbff;border-color:rgba(37,99,235,.22)}
+.iu-fas-deposit-phase-note{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 9px;margin:0 0 10px;padding:10px;border:1px solid rgba(37,99,235,.16);border-radius:12px;background:#f8fbff}
+.iu-fas-deposit-phase-note .ius-status-badge{grid-row:1/3;align-self:start}
+.iu-fas-deposit-phase-note strong{color:#0f172a;font-size:13px;font-weight:950;line-height:1.25}
+.iu-fas-deposit-phase-note span{color:#475569;font-size:12px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
 @media(max-width:980px){.iu-fas-ai-board{grid-template-columns:1fr}.iu-fas-ai-board>div.iu-fas-ai-actions{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:760px){.iu-fas-ai-board>div.iu-fas-ai-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-deposit-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1120px){.iu-fas-deposit-phases nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.iu-fas-ai-board>div.iu-fas-ai-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-deposit-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-deposit-phases>header{display:grid}.iu-fas-deposit-phases nav{grid-template-columns:1fr}.iu-fas-deposit-phase{grid-template-columns:26px minmax(0,1fr) auto}.iu-fas-deposit-phase>svg{display:none}.iu-fas-deposit-phase .ius-status-badge{max-width:112px}.iu-fas-deposit-phase-note{grid-template-columns:1fr}.iu-fas-deposit-phase-note .ius-status-badge{grid-row:auto;justify-self:start}}
 @media(max-width:520px){.iu-fas-ai-board>div.iu-fas-ai-actions,.iu-fas-cockpit,.iu-fas-deposit-cockpit{grid-template-columns:1fr}}
 
 .iu-fas-relata-monitor{display:grid;gap:12px}.iu-fas-relata-monitor>header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(37,99,235,.16);border-radius:14px;background:linear-gradient(135deg,rgba(248,250,252,.98),rgba(239,246,255,.72))}.iu-fas-relata-monitor>header h3{margin:6px 0 3px;color:#111827;font-size:16px;line-height:1.2}.iu-fas-relata-monitor>header p{margin:0;color:var(--iu-slate-600);font-size:12.5px;font-weight:700;line-height:1.4}.iu-fas-relata-monitor>header>strong{min-width:46px;height:46px;display:grid;place-items:center;border:1px solid var(--iu-border);border-radius:13px;background:var(--iu-bg-card);color:var(--iu-blue-700);font-size:20px}.iu-fas-relata-actions{display:flex;flex-wrap:wrap;gap:8px}.iu-fas-relata-actions a{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 12px;border:1px solid rgba(37,99,235,.2);border-radius:10px;background:var(--iu-bg-card);color:var(--iu-blue-700);font-size:12px;font-weight:900}.iu-fas-relata-actions a:first-child{background:var(--iu-blue-600);border-color:var(--iu-blue-600);color:oklch(98% .006 255)}.iu-fas-relata-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:8px}.iu-fas-relata-flow__step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:7px;align-items:start;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:var(--iu-bg-card)}.iu-fas-relata-flow__step>span{width:26px;height:26px;display:grid;place-items:center;border-radius:9px;background:rgba(37,99,235,.09);color:var(--iu-blue-700);font-size:11px;font-weight:950}.iu-fas-relata-flow__step strong{display:block;color:#111827;font-size:12.5px}.iu-fas-relata-flow__step small{display:block;margin-top:3px;color:var(--iu-slate-600);font-size:11.5px;line-height:1.35}.iu-fas-relata-flow__step em{grid-column:2;width:max-content;max-width:100%;padding:3px 7px;border-radius:999px;background:rgba(100,116,139,.1);color:var(--iu-slate-600);font-size:10px;font-style:normal;font-weight:900;text-transform:capitalize}.iu-fas-relata-flow__step.is-superato em{background:rgba(34,197,94,.12);color:#166534}.iu-fas-relata-flow__step.is-da_acquisire em,.iu-fas-relata-flow__step.is-da_completare em,.iu-fas-relata-flow__step.is-da_preparare em,.iu-fas-relata-flow__step.is-da_firmare em{background:rgba(245,158,11,.14);color:#92400e}.iu-fas-relata-list{display:grid;gap:8px}.iu-fas-relata-list h4{margin:2px 0 0;color:#111827;font-size:13px}.iu-fas-relata-list article{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:var(--iu-bg-card)}.iu-fas-relata-list svg{color:var(--iu-blue-700)}.iu-fas-relata-list strong{display:block;color:#111827;font-size:12.5px}.iu-fas-relata-list strong a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}.iu-fas-relata-list span{display:block;margin-top:2px;color:var(--iu-slate-500);font-size:11.5px;font-weight:700;line-height:1.35}.iu-fas-relata-monitor--warning>header{border-color:rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(255,251,235,.9),rgba(239,246,255,.64))}.iu-fas-relata-monitor--success>header{border-color:rgba(34,197,94,.28);background:linear-gradient(135deg,rgba(240,253,244,.9),rgba(239,246,255,.62))}@media(max-width:760px){.iu-fas-relata-monitor>header,.iu-fas-relata-list article{grid-template-columns:1fr}.iu-fas-relata-monitor>header>strong{justify-self:start}.iu-fas-relata-actions a{width:100%;justify-content:center}}

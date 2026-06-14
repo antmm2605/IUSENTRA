@@ -28,7 +28,7 @@
 	@default_permissions {
 		not path /support/join/* /support/operatore/*
 	}
-	header @default_permissions Permissions-Policy "camera=(self), microphone=(self), local-network-access=(), local-network=(), loopback-network=(), geolocation=()"
+	header @default_permissions Permissions-Policy "camera=(self), microphone=(self), local-network-access=(self), local-network=(self), loopback-network=(self), geolocation=()"
 
 	# Rate limiting sulle route di autenticazione gestito da Flask-Limiter
 	# con backend Redis (RATELIMIT_STORAGE_URI=redis://redis:6379/1).

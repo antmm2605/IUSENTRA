@@ -4,6 +4,7 @@
 
 - CI e deploy: il gate obbligatorio GitHub riconosce i check duplicati dei due branch gemelli e non scambia una cancellazione di concorrenza per un fallimento reale quando esiste lo stesso check riuscito sullo SHA corrente.
 - Anti falso-verde: aggiunta regressione sul selettore dei check richiesti, così i report di rilascio restano bloccanti sui fallimenti veri ma non impediscono il deploy per cancellazioni duplicate già coperte da una run verde.
+- Lex/fonti: integrato l'adapter Brocardi come fonte secondaria disabilitata di default, con import campione senza rete e guardrail che ricordano di preferire Normattiva o Gazzetta Ufficiale per la citazione ufficiale.
 
 ## 2.253.19 - 2026-06-14
 

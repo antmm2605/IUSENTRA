@@ -14,9 +14,13 @@ from web.blueprints.react_shell import render_react_shell_response
 from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_routes
 from web.services.deposito_route_helpers import (
     allegati_busta as _allegati_busta,
+    deposito_oggetto as _deposito_oggetto,
     guided_transport_completion_response as _guided_transport_completion_response,
+    manual_deposito_payload as _manual_deposito_payload,
     ufficio_da_nome as _ufficio_da_nome,
+    validate_busta_document_selection as _validate_busta_document_selection,
     validation_summary as _validation_summary,
+    wants_json_response as _wants_json_response,
 )
 from web.services.local_pec_runtime import (
     deposito_pec_subject,
@@ -66,23 +70,14 @@ def register_deposito_routes(
         utente = g.utente_corrente
         form = request.form
         try:
+            actor = utente.username if utente else ""
             gestore_fascicoli.aggiungi_esito_deposito(
                 id_fasc=id_fasc,
-                tipo_atto=form.get("tipo_atto", "ATTO"),
-                pec_destinatario=form.get("pec_destinatario", ""),
-                stato=form.get("stato", "INVIATO"),
-                messaggio=form.get("messaggio", ""),
-                ricevuta_accettazione=form.get("ricevuta_accettazione", ""),
-                ricevuta_consegna=form.get("ricevuta_consegna", ""),
-                ricevuta_controlli_automatici=form.get("ricevuta_controlli_automatici", ""),
-                esito_controlli=form.get("esito_controlli", ""),
-                ricevuta_cancelleria=form.get("ricevuta_cancelleria", ""),
-                note=form.get("note", ""),
-                registrato_da=utente.username if utente else "",
+                **_manual_deposito_payload(form, actor, actor_key="registrato_da"),
             )
             flash("Esito deposito registrato nel fascicolo.", "success")
             audit("fascicoli.deposito.aggiungi", "fascicolo", id_fasc)
-            sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
+            sync_pubblica("modifica", "fascicoli", id_fasc, utente=actor)
         except (ValueError, KeyError) as exc:
             app.logger.warning("Deposito manuale non valido %s: %s", id_fasc, exc)
             flash("Esito deposito non registrato. Verifica i dati e riprova.", "danger")
@@ -95,24 +90,15 @@ def register_deposito_routes(
         utente = g.utente_corrente
         form = request.form
         try:
+            actor = utente.username if utente else ""
             gestore_fascicoli.modifica_esito_deposito(
                 id_fasc=id_fasc,
                 id_dep=id_dep,
-                tipo_atto=form.get("tipo_atto", "ATTO"),
-                pec_destinatario=form.get("pec_destinatario", ""),
-                stato=form.get("stato", "INVIATO"),
-                messaggio=form.get("messaggio", ""),
-                ricevuta_accettazione=form.get("ricevuta_accettazione", ""),
-                ricevuta_consegna=form.get("ricevuta_consegna", ""),
-                ricevuta_controlli_automatici=form.get("ricevuta_controlli_automatici", ""),
-                esito_controlli=form.get("esito_controlli", ""),
-                ricevuta_cancelleria=form.get("ricevuta_cancelleria", ""),
-                note=form.get("note", ""),
-                modificato_da=utente.username if utente else "",
+                **_manual_deposito_payload(form, actor, actor_key="modificato_da"),
             )
             flash("Deposito aggiornato.", "success")
             audit("fascicoli.deposito.modifica", "fascicolo", id_fasc)
-            sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
+            sync_pubblica("modifica", "fascicoli", id_fasc, utente=actor)
         except (ValueError, KeyError) as exc:
             app.logger.warning("Modifica deposito non valida %s/%s: %s", id_fasc, id_dep, exc)
             flash("Deposito non aggiornato. Verifica i dati e riprova.", "danger")
@@ -155,12 +141,7 @@ def register_deposito_routes(
 
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
-        oggetto = (
-            form.get("codice_oggetto_pst", "").strip()
-            or str(getattr(fascicolo, "codice_oggetto_pst", "") or "").strip()
-            or form.get("oggetto", "").strip()
-            or fascicolo.titolo
-        )
+        oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
         anno_rg = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fascicolo.anno_rg or None)
@@ -184,6 +165,20 @@ def register_deposito_routes(
 
         if not atto_id:
             flash("Seleziona l'atto principale da includere nella busta.", "danger")
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+
+        selection_error = _validate_busta_document_selection(
+            fascicolo,
+            gestore_fascicoli,
+            id_fasc,
+            form,
+            atto_id,
+            allegati_ids,
+        )
+        if selection_error:
+            if _wants_json_response(request.headers):
+                return jsonify({"ok": False, "errore": selection_error}), 400
+            flash(selection_error, "danger")
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
 
         try:
@@ -261,12 +256,7 @@ def register_deposito_routes(
 
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
-        oggetto = (
-            form.get("codice_oggetto_pst", "").strip()
-            or str(getattr(fascicolo, "codice_oggetto_pst", "") or "").strip()
-            or form.get("oggetto", "").strip()
-            or fascicolo.titolo
-        )
+        oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
         anno_rg = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fascicolo.anno_rg or None)
@@ -294,6 +284,17 @@ def register_deposito_routes(
 
         if not atto_id:
             return jsonify({"ok": False, "errore": "Seleziona l'atto principale."}), 400
+
+        selection_error = _validate_busta_document_selection(
+            fascicolo,
+            gestore_fascicoli,
+            id_fasc,
+            form,
+            atto_id,
+            allegati_ids,
+        )
+        if selection_error:
+            return jsonify({"ok": False, "errore": selection_error}), 400
 
         try:
             atto_path = str(gestore_fascicoli.percorso_documento(id_fasc, atto_id))
@@ -719,12 +720,7 @@ def register_deposito_routes(
         codice_registro = form.get("codice_registro", "RG").strip()
         numero_rg = form.get("numero_rg", "").strip()
         anno_rg_str = form.get("anno_rg", "").strip()
-        oggetto = (
-            form.get("codice_oggetto_pst", "").strip()
-            or str(getattr(fascicolo, "codice_oggetto_pst", "") or "").strip()
-            or form.get("oggetto", "").strip()
-            or fascicolo.titolo
-        )
+        oggetto = _deposito_oggetto(form, fascicolo)
         note = form.get("note", "").strip()
         tribunale_nome = form.get("tribunale_nome", "").strip()
         tribunale_pec = form.get("tribunale_pec", "").strip()
@@ -754,6 +750,20 @@ def register_deposito_routes(
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
         if not atto_id:
             flash("Seleziona l'atto principale da includere nella busta.", "danger")
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+
+        selection_error = _validate_busta_document_selection(
+            fascicolo,
+            gestore_fascicoli,
+            id_fasc,
+            form,
+            atto_id,
+            allegati_ids,
+        )
+        if selection_error:
+            if _wants_json_response(request.headers):
+                return jsonify({"ok": False, "errore": selection_error}), 400
+            flash(selection_error, "danger")
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
 
         anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else (fascicolo.anno_rg or 0)

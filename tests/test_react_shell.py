@@ -4389,12 +4389,18 @@ def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: P
     assert profile["Cliente"] == "Spagnolo Sara (da collegare in anagrafica)"
     assert payload["fascicolo"]["codiceOggettoPst"] == "222050 - Retribuzione"
     assert profile["Codice oggetto"] == "222050 - Retribuzione"
+    assert payload["regia"]["header"]["channel"] == "PCT lavoro / SICID"
+    assert payload["regia"]["header"]["channelCode"] == "PCT_LAVORO"
+    assert payload["regia"]["profile"]["code"] == "PROC_LAV_RETRIB_001"
+    assert payload["regia"]["profile"]["needsManualConfirmation"] is False
+    assert payload["regia"]["deposit"]["deliveryPolicy"]["officialChannel"] == "PCT lavoro / SICID"
     assert [doc["name"] for doc in documents[:2]] == ["Atto giudiziario", "Provvedimento - sentenza"]
-    assert all(not doc["name"].startswith("202603") for doc in documents)
-    assert all(doc["source"] == "Importazione QuickOrganizer" for doc in documents)
+    imported_documents = [doc for doc in documents if doc["id"] in {documents[0]["id"], documents[1]["id"]}]
+    assert all(not doc["name"].startswith("202603") for doc in imported_documents)
+    assert all(doc["source"] == "Importazione fascicolo" for doc in imported_documents)
     assert documents[0]["portalClass"] == "Atto giudiziario"
     assert documents[1]["portalClass"] == "Provvedimento - sentenza"
-    assert any("File originale: 20260328104059747.PDF" in tag for tag in documents[0]["tags"])
+    assert any("Nome file originale: 20260328104059747.PDF" in tag for tag in documents[0]["tags"])
 
 
 def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_path: Path):

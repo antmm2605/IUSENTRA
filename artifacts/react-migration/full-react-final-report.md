@@ -1171,3 +1171,21 @@ La topbar React espone ora l'assistente vocale Studio con caricamento pigro, reg
 Il flusso "Studio nuovo cliente" chiede solo nome, cognome e codice fiscale, rilegge i dati e salva dopo conferma tramite `POST /api/v1/ui/clienti/voce/crea`, con permesso `clienti.scrivi`, repository clienti, audit e sincronizzazione.
 
 Gate locali e prove reali: test catalogo, pytest API/UTF-8, typecheck, test React, build Vite, OpenAPI/security map, Docker no-cache `127.0.0.1:8080` con `/api/pronto` `2.253.1`, audit CDP voce/PIN/cliente/59 route e visual load audit desktop/tablet/mobile su cinque pagine rappresentative. Esito locale: zero failure browser, zero errori console, zero overflow e nessun testo tecnico vietato.
+
+## Firma multipla deposito 2.253.18
+
+La pagina React `Prepara deposito` non deve più lasciare l'avvocato davanti a un comando di firma che sembra disponibile ma non produce esito. Quando Local Signer rileva il token solo tramite controllo fresco e chiede riavvio, il pannello firma multipla nasconde il comando `Firma N documenti` e mostra le sole azioni operative: `Riavvia Local Signer`, `Riverifica` e `Diagnosi locale`. Quando il token è pronto ma il PIN manca, il click sulla firma mostra un errore visibile e porta il focus sul campo PIN.
+
+Gate locali verdi: typecheck React, test mirati UI deposito e batch PKCS#11, build Vite, contratti API/OpenAPI, provider verification, packaging/readiness/UTF-8, frontend governance, repo governance e OpenAPI fase 6. La prova effettiva con PIN reale e salvataggio di più `.p7m` resta aperta: non va dichiarata verificata finché l'utente non inserisce il PIN sulla macchina reale e il fascicolo non viene aggiornato con gli esiti firmati.
+
+## Deposito ministeriale, catalogo codici e documentazione 2.253.19
+
+Il deposito ora usa il codice oggetto ministeriale scelto in apertura fascicolo come dato operativo del flusso: il valore viene normalizzato da forme come `222050 - Retribuzione` al codice puro `222050`, validato contro il catalogo ufficiale PST e passato ai controlli di deposito e a `DatiAtto.xml`. Il guardrail automatico percorre tutti i 1018 codici ufficiali importati dagli XSD PST, compresi codici numerici e alfanumerici.
+
+La matrice canali resta esplicita: PCT SICID, PCT lavoro/SICID, PCT SIECIC, SIGP/Giudice di Pace, PDP penale, PAT/SIGA, PTT/SIGIT, UNEP, PEC stragiudiziale e notifiche PEC non possono essere ridotti a due soli canali o a un generico `da verificare` quando il profilo è determinabile. I profili depositabili devono risolvere una politica concreta di invio PEC guidato o upload portale.
+
+La busta preparata include `IndiceDocumentiDepositati.PDF`, lo richiama in `DatiAtto.xml` con hash SHA-256 e blocca la generazione se i documenti selezionati a video non coincidono con atto principale e allegati effettivi della busta. È stata inoltre inserita in `AGENTS.md` e nella procedura deposito la regola permanente di documentare sempre interventi su deposito, fascicoli, portali, PEC, notifiche, firma digitale, Local Signer, PKCS#11, buste e ricevute.
+
+Per la prova richiesta dall'utente è stato aggiunto `scripts/audit_deposito_server_dry_run.py`: lo script confronta una busta generata senza invio PEC con i campioni reali allegati. Il primo audit locale preparatorio ha confermato che il pacchetto di controllo è coerente con la copia non crittografata, ma non è ancora equivalente all'invio ministeriale reale perché mancano `Atto.enc` AES256 e `DatiAtto.xml.p7m`.
+
+Gate locali verdi: 38/38 test mirati deposito/regia/portale/firma batch/asset React, 29/29 test canali telematici e policy, 11/11 busta/audit dry-run, 8/8 profili pratica, 6/6 catalogo PST completo, test/build frontend, route gate, contratti React, OpenAPI, provider verification, governance repo, packaging e whitespace check. Restano da eseguire prima della chiusura: rebuild Docker reale `2.253.19`, verifica visiva su `127.0.0.1:8080` della pagina `Prepara deposito`, prova server dry-run con generazione busta reale senza invio PEC e firma multipla effettiva con PIN utente.

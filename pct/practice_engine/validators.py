@@ -8,7 +8,7 @@ from typing import Any, Callable
 import re
 
 from pct import validazione as pct_validazione
-from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, normalize_codice_oggetto_pst
 
 from .messages import MAIN_ACT_NOT_PDFA, MAIN_ACT_NOT_SIGNED, MISSING_MAIN_ACT, MISSING_PROCURA, problem_action
 from .models import DocumentSlot, SlotStatus, SlotType, ValidationResult, ValidatorStatus
@@ -176,7 +176,8 @@ def codice_oggetto_pst_valido(ctx: ValidationContext) -> ValidationResult:
     channel = _text(getattr(ctx.profile, "channel", "")).upper()
     if channel not in PST_CODICE_OGGETTO_CHANNELS:
         return _na("codice_oggetto_pst_valido")
-    codice = _text(getattr(ctx.fascicolo, "codice_oggetto_pst", ""))
+    raw_codice = _text(getattr(ctx.fascicolo, "codice_oggetto_pst", "")) or _text(getattr(ctx.fascicolo, "oggetto", ""))
+    codice = normalize_codice_oggetto_pst(raw_codice)
     if not codice:
         return _block(
             "codice_oggetto_pst_valido",
@@ -189,13 +190,14 @@ def codice_oggetto_pst_valido(ctx: ValidationContext) -> ValidationResult:
             "codice_oggetto_pst_valido",
             "Impossibile depositare: il codice oggetto del fascicolo non appartiene al catalogo ufficiale.",
             "Riapri i dati del fascicolo e scegli un codice dal catalogo PST.",
-            evidence={"codice_oggetto_pst": codice},
+            evidence={"codice_oggetto_pst": raw_codice},
         )
     return _ok(
         "codice_oggetto_pst_valido",
         "Codice oggetto PST presente e valido nel catalogo ufficiale.",
         evidence={
             "codice_oggetto_pst": entry["codice"],
+            "valore_fascicolo": raw_codice,
             "descrizione": entry["descrizione"],
             "area": entry["area_label"],
         },

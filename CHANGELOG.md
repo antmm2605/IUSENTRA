@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.253.19 - 2026-06-14
+
+- Deposito telematico: il codice oggetto ministeriale scelto in apertura fascicolo viene normalizzato e usato nei passaggi di deposito; il controllo copre tutti i 1018 codici ufficiali PST importati dagli XSD, non solo casi campione come `222050`.
+- Regia e canali deposito: blindata la matrice operativa per PCT SICID, PCT lavoro/SICID, PCT SIECIC, SIGP/Giudice di Pace, PDP penale, PAT/SIGA, PTT/SIGIT, UNEP, PEC stragiudiziale e notifiche PEC, impedendo ricadute generiche su “canale da verificare” quando il profilo è determinabile.
+- Busta: generazione del pacchetto con `IndiceDocumentiDepositati.PDF`, riferimento hash in `DatiAtto.xml` e controllo che la selezione vista dall'avvocato coincida con i documenti effettivamente preparati per la busta.
+- Audit dry-run server: aggiunti `scripts/server_deposito_dry_run_http.py` e `scripts/audit_deposito_server_dry_run.py` per generare la busta dalla route reale del server senza chiamare l'invio PEC, scaricare il `.enc` e confrontarlo con i campioni reali allegati, distinguendo copia non crittografata coerente da invio ministeriale reale con `Atto.enc`.
+- Governance deposito: aggiunta regola permanente in `AGENTS.md` e nella procedura deposito per documentare sempre interventi su deposito, fascicoli, portali, PEC, notifiche, firma digitale, Local Signer, PKCS#11, buste e ricevute.
+- Refactor sicuro: spostati helper deposito in `web/services/deposito_route_helpers.py` e riportato `deposito_routes.py` sotto il limite governance senza cambiare comportamento.
+
+## 2.253.18 - 2026-06-14
+
+- Deposito telematico: corretta la firma multipla React in `Prepara deposito` per evitare blocchi muti quando Local Signer rileva il token ma richiede riavvio; la pagina mostra ora riavvio, riverifica e diagnosi locale al posto del comando di firma non eseguibile.
+- Firma multipla deposito: se il token è pronto ma manca il PIN, il click sul comando mostra un errore visibile, porta il focus al campo PIN e non lascia l'avvocato senza risposta; resta obbligatoria la prova reale con PIN utente prima di dichiarare verificata la firma effettiva dei documenti.
+
 ## 2.253.17 - 2026-06-14
 
 - Deposito telematico: estratti gli helper di trasporto, allegati e sintesi validazione in un servizio dedicato, mantenendo invariato il comportamento e riportando `deposito_routes.py` sotto il limite governance.

@@ -8,6 +8,7 @@ Atto.enc cifrato con l'algoritmo vigente indicato dal PST.
 
 import zipfile
 import hashlib
+from io import BytesIO
 import tempfile
 import uuid
 from datetime import datetime
@@ -15,6 +16,8 @@ from pathlib import Path
 from typing import List, Optional
 from dataclasses import dataclass, field
 from lxml import etree
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 from .path_security import UnsafeRuntimePath, resolve_runtime_path
 from .pst_catalog import (
@@ -29,6 +32,8 @@ from .pst_catalog import (
     PST_MAX_BUSTA_BYTES,
     PST_MAX_BUSTA_MB,
 )
+
+INDICE_DOCUMENTI_FILENAME = "IndiceDocumentiDepositati.PDF"
 
 
 @dataclass
@@ -86,8 +91,115 @@ class BustaTelematica:
             raise ValueError("Documento busta non disponibile.")
         return path
 
-    def _crea_xml_dati_atto(self) -> bytes:
+    @staticmethod
+    def _hash_bytes(payload: bytes) -> str:
+        return hashlib.sha256(payload).hexdigest().upper()
+
+    @staticmethod
+    def _pdf_text(value: str, *, max_len: int = 110) -> str:
+        text = " ".join(str(value or "").split())
+        if len(text) > max_len:
+            text = f"{text[: max_len - 3]}..."
+        return text
+
+    def _indice_rows(self) -> list[dict[str, str]]:
+        rows: list[dict[str, str]] = [
+            {
+                "numero": "1",
+                "ruolo": "Metadati tecnici",
+                "nome": "DatiAtto.xml",
+                "descrizione": "Dati strutturati del deposito",
+            },
+            {
+                "numero": "2",
+                "ruolo": "Atto principale",
+                "nome": Path(self.dati.atto_principale).name,
+                "descrizione": self.dati.tipo_atto or "Atto principale",
+            },
+        ]
+        for index, allegato in enumerate(self.dati.allegati, start=3):
+            rows.append(
+                {
+                    "numero": str(index),
+                    "ruolo": allegato.tipo or "Allegato",
+                    "nome": Path(allegato.percorso).name,
+                    "descrizione": allegato.descrizione or "Documento allegato",
+                }
+            )
+        rows.append(
+            {
+                "numero": str(len(rows) + 1),
+                "ruolo": "Indice",
+                "nome": INDICE_DOCUMENTI_FILENAME,
+                "descrizione": "Indice generato dal software",
+            }
+        )
+        return rows
+
+    def _crea_indice_documenti_pdf(self) -> bytes:
+        """Genera l'indice dei documenti depositati mostrati nel pacchetto."""
+        buffer = BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        margin_x = 42
+        y = height - 52
+
+        pdf.setTitle("Indice documenti depositati")
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawString(margin_x, y, "Indice documenti depositati")
+        y -= 18
+        pdf.setFont("Helvetica", 8.5)
+        pdf.drawString(margin_x, y, f"Id busta: {self.id_busta}")
+        y -= 13
+        pdf.drawString(margin_x, y, f"Generato il: {self.timestamp.strftime('%d/%m/%Y %H:%M:%S')}")
+        y -= 13
+        pdf.drawString(margin_x, y, f"Tipo atto: {self._pdf_text(self.dati.tipo_atto, max_len=80)}")
+        y -= 13
+        if self.dati.numero_rg or self.dati.anno_rg:
+            rg = "/".join(part for part in (str(self.dati.numero_rg or ""), str(self.dati.anno_rg or "")) if part)
+            pdf.drawString(margin_x, y, f"Procedimento: RG {rg}")
+            y -= 13
+        pdf.drawString(margin_x, y, f"Codice oggetto: {self._pdf_text(self.dati.oggetto, max_len=80)}")
+        y -= 22
+
+        pdf.setFont("Helvetica-Bold", 8.2)
+        pdf.drawString(margin_x, y, "N.")
+        pdf.drawString(margin_x + 28, y, "Ruolo")
+        pdf.drawString(margin_x + 122, y, "Nome file")
+        pdf.drawString(margin_x + 372, y, "Descrizione")
+        y -= 5
+        pdf.line(margin_x, y, width - margin_x, y)
+        y -= 13
+
+        pdf.setFont("Helvetica", 7.7)
+        for row in self._indice_rows():
+            if y < 52:
+                pdf.showPage()
+                y = height - 52
+                pdf.setFont("Helvetica", 7.7)
+            pdf.drawString(margin_x, y, self._pdf_text(row["numero"], max_len=4))
+            pdf.drawString(margin_x + 28, y, self._pdf_text(row["ruolo"], max_len=24))
+            pdf.drawString(margin_x + 122, y, self._pdf_text(row["nome"], max_len=54))
+            pdf.drawString(margin_x + 372, y, self._pdf_text(row["descrizione"], max_len=34))
+            y -= 13
+
+        y -= 8
+        if y < 64:
+            pdf.showPage()
+            y = height - 52
+        pdf.setFont("Helvetica-Oblique", 7.5)
+        pdf.drawString(
+            margin_x,
+            y,
+            "Indice generato automaticamente da IUSENTRA sulla selezione documenti confermata prima della busta.",
+        )
+        pdf.save()
+        return buffer.getvalue()
+
+    def _crea_xml_dati_atto(self, indice_pdf_bytes: bytes | None = None) -> bytes:
         """Crea il file XML DatiAtto.xml con i metadati dell'atto."""
+        if indice_pdf_bytes is None:
+            indice_pdf_bytes = self._crea_indice_documenti_pdf()
         root = etree.Element(
             "DatiAtto",
             xmlns=self.NAMESPACE,
@@ -135,6 +247,12 @@ class BustaTelematica:
             etree.SubElement(all_el, "Tipo").text = allegato.tipo
             etree.SubElement(all_el, "Hash").text = self._hash_file(allegato.percorso)
 
+        indice_el = etree.SubElement(docs, "Allegato")
+        etree.SubElement(indice_el, "NomeFile").text = INDICE_DOCUMENTI_FILENAME
+        etree.SubElement(indice_el, "Descrizione").text = "Indice documenti depositati"
+        etree.SubElement(indice_el, "Tipo").text = "INDICE_DOCUMENTI"
+        etree.SubElement(indice_el, "Hash").text = self._hash_bytes(indice_pdf_bytes)
+
         return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
     def _hash_file(self, percorso: str) -> str:
@@ -147,7 +265,8 @@ class BustaTelematica:
 
     def stima_dimensione_busta(self) -> int:
         """Stima la dimensione della busta simulata, includendo un overhead minimo."""
-        totale = len(self._crea_xml_dati_atto()) + 4096
+        indice_pdf = self._crea_indice_documenti_pdf()
+        totale = len(self._crea_xml_dati_atto(indice_pdf)) + len(indice_pdf) + 4096
         file_paths = [self.dati.atto_principale] + [a.percorso for a in self.dati.allegati]
         for percorso in file_paths:
             path = Path(percorso)
@@ -164,13 +283,22 @@ class BustaTelematica:
         """
         issues: list[dict[str, str]] = []
         xml_ok = True
+        indice_pdf = self._crea_indice_documenti_pdf()
+        indice_generated = bool(indice_pdf)
         try:
-            root = etree.fromstring(self._crea_xml_dati_atto())
+            root = etree.fromstring(self._crea_xml_dati_atto(indice_pdf))
             ns = {"p": self.NAMESPACE}
             if root.find(".//p:Documenti/p:Attoprincipale", ns) is None:
                 xml_ok = False
+            indice_node = root.find(
+                f".//p:Documenti/p:Allegato[p:NomeFile='{INDICE_DOCUMENTI_FILENAME}']",
+                ns,
+            )
+            if indice_node is None:
+                indice_generated = False
         except Exception as exc:
             xml_ok = False
+            indice_generated = False
             issues.append(
                 {
                     "code": "T002",
@@ -236,12 +364,13 @@ class BustaTelematica:
             "blocks_direct_send": True,
             "guided_completion_required": True,
             "guided_next_actions": [
-                "Controlla atto principale, allegati, firme e DatiAtto.xml nel pacchetto preparato.",
+                f"Controlla atto principale, allegati, firme, DatiAtto.xml e {INDICE_DOCUMENTI_FILENAME} nel pacchetto preparato.",
                 f"Genera o collega Atto.enc ministeriale cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM}.",
                 "Riprendi dal fascicolo per invio conforme o deposito sul canale ufficiale e importa RAC, RdAC ed esiti.",
             ],
             "atto_msg_generated": False,
-            "indice_busta_generated": False,
+            "indice_busta_generated": indice_generated,
+            "indice_busta_filename": INDICE_DOCUMENTI_FILENAME,
             "size_bytes": size_bytes,
             "max_size_bytes": PST_MAX_BUSTA_BYTES,
             "max_size_mb": PST_MAX_BUSTA_MB,
@@ -294,8 +423,9 @@ class BustaTelematica:
         zip_path = output_dir / nome_busta
 
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            indice_pdf = self._crea_indice_documenti_pdf()
             # Aggiungi DatiAtto.xml
-            xml_content = self._crea_xml_dati_atto()
+            xml_content = self._crea_xml_dati_atto(indice_pdf)
             zf.writestr("DatiAtto.xml", xml_content)
 
             # Aggiungi atto principale
@@ -308,6 +438,9 @@ class BustaTelematica:
                 all_path = self._runtime_path(allegato.percorso, must_be_file=True)
                 # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e deve esistere.
                 zf.write(all_path, all_path.name)
+
+            # Aggiungi indice documenti generato dal software.
+            zf.writestr(INDICE_DOCUMENTI_FILENAME, indice_pdf)
 
         # Pacchetto locale per predeposito: non e l'Atto.enc ministeriale cifrato AES256.
         enc_path = zip_path.with_suffix(".enc")
@@ -339,6 +472,9 @@ class BustaTelematica:
                 nomi = zf.namelist()
                 if "DatiAtto.xml" not in nomi:
                     risultato["errori"].append("DatiAtto.xml mancante nella busta")
+                    return risultato
+                if INDICE_DOCUMENTI_FILENAME not in nomi:
+                    risultato["errori"].append(f"{INDICE_DOCUMENTI_FILENAME} mancante nella busta")
                     return risultato
 
                 xml_data = zf.read("DatiAtto.xml")

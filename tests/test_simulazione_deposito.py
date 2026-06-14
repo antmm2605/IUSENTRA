@@ -107,6 +107,7 @@ class TestPCTBusta:
         path  = busta.crea_busta(str(tmp_path / "output"))
         with zipfile.ZipFile(path, "r") as zf:
             assert "DatiAtto.xml" in zf.namelist(), "DatiAtto.xml obbligatorio per PST"
+            assert "IndiceDocumentiDepositati.PDF" in zf.namelist(), "Indice documenti obbligatorio nel pacchetto preparato"
 
     def test_busta_contiene_atto_principale(self, dati_busta_pct, tmp_path):
         busta = BustaTelematica(dati_busta_pct)

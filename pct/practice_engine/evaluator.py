@@ -144,6 +144,9 @@ def _deposit_delivery_policy(profile: Any | None) -> dict[str, Any]:
     manual_upload = bool(channel_profile.requires_manual_final_upload or channel_profile.allows_portal_upload)
     requires_ministerial_transport = bool(direct_pec and channel_profile.package_kind == "pct_busta_enc")
     direct_pec_ready = bool(direct_pec and not requires_ministerial_transport)
+    official_channel = channel_profile.name
+    if _text(getattr(profile, "channel", "")).upper() == "PCT_LAVORO" and channel_profile.id == "pct_sicid":
+        official_channel = "PCT lavoro / SICID"
     if direct_pec:
         mode = "direct_pec"
         if direct_pec_ready:
@@ -177,7 +180,7 @@ def _deposit_delivery_policy(profile: Any | None) -> dict[str, Any]:
         "mode": mode,
         "label": label,
         "detail": detail,
-        "officialChannel": channel_profile.name,
+        "officialChannel": official_channel,
         "packageKind": channel_profile.package_kind,
         "xmlSchemaName": channel_profile.xml_schema_name,
         "allowsDirectPec": direct_pec,
@@ -213,6 +216,29 @@ def _deposit_delivery_policy(profile: Any | None) -> dict[str, Any]:
         "documentIndexGeneratedBySoftware": True,
         "note": channel_profile.defender_channel_note,
     }
+
+
+def _channel_display_label(profile: Any, delivery_policy: dict[str, Any]) -> str:
+    channel = _text(getattr(profile, "channel", "")).upper()
+    registry = _text(getattr(profile, "registry", "")).upper()
+    if channel == "PCT_LAVORO":
+        return "PCT lavoro / SICID" if "SIECIC" not in registry else "PCT lavoro / SIECIC"
+    if channel == "PCT_CIVILE":
+        return "PCT civile / SIECIC" if "SIECIC" in registry else "PCT civile / SICID"
+    if channel in {"PST_GDP", "SIGP_GDP"}:
+        return "SIGP / Giudice di Pace"
+    if channel == "PDP_PENALE":
+        return "PDP penale"
+    if channel == "PAT_AMMINISTRATIVO":
+        return "PAT / SIGA"
+    if channel == "PTT_TRIBUTARIO":
+        return "PTT / SIGIT"
+    if channel == "UNEP":
+        return "UNEP"
+    if channel in {"PEC_ONLY", "PEC", "STRAGIUDIZIALE_PEC"}:
+        return "PEC"
+    official = _text(delivery_policy.get("officialChannel"))
+    return official or channel.replace("_", " ")
 
 
 def ensure_profile_for_fascicolo(
@@ -477,6 +503,7 @@ def build_regia_payload(
     elif not profile.depositable:
         deposit_label = "Procedura non depositabile"
     delivery_policy = _deposit_delivery_policy(profile)
+    channel_label = _channel_display_label(profile, delivery_policy)
     return {
         "source": "repository reale",
         "mock_fallback": False,
@@ -486,7 +513,8 @@ def build_regia_payload(
             "title": _text(getattr(fascicolo, "titolo", "")),
             "practiceType": profile.name,
             "area": profile.area,
-            "channel": profile.channel,
+            "channel": channel_label,
+            "channelCode": profile.channel,
             "registry": profile.registry,
             "workflow": profile.workflow_code,
             "operationalState": operational_state,

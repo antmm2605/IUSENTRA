@@ -5,6 +5,57 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from pct.pratiche_collegate_catalog import normalize_codice_oggetto_pst
+
+
+def _unique_clean_ids(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    cleaned: list[str] = []
+    for value in values:
+        item = str(value or "").strip()
+        if item and item not in seen:
+            seen.add(item)
+            cleaned.append(item)
+    return cleaned
+
+
+def deposito_oggetto(form: Any, fascicolo: Any) -> str:
+    raw_codice = str(
+        form.get("codice_oggetto_pst", "") or getattr(fascicolo, "codice_oggetto_pst", "") or ""
+    ).strip()
+    normalized = normalize_codice_oggetto_pst(
+        raw_codice
+        or form.get("oggetto", "")
+        or getattr(fascicolo, "oggetto", "")
+    )
+    return (
+        normalized
+        or raw_codice
+        or str(form.get("oggetto", "") or "").strip()
+        or str(getattr(fascicolo, "titolo", "") or "").strip()
+    )
+
+
+def wants_json_response(headers: Any) -> bool:
+    accept = headers.get("Accept", "") if hasattr(headers, "get") else ""
+    return (headers.get("X-Requested-With") == "XMLHttpRequest" if hasattr(headers, "get") else False) or "application/json" in accept
+
+
+def manual_deposito_payload(form: Any, actor: str, *, actor_key: str) -> dict[str, str]:
+    return {
+        "tipo_atto": form.get("tipo_atto", "ATTO"),
+        "pec_destinatario": form.get("pec_destinatario", ""),
+        "stato": form.get("stato", "INVIATO"),
+        "messaggio": form.get("messaggio", ""),
+        "ricevuta_accettazione": form.get("ricevuta_accettazione", ""),
+        "ricevuta_consegna": form.get("ricevuta_consegna", ""),
+        "ricevuta_controlli_automatici": form.get("ricevuta_controlli_automatici", ""),
+        "esito_controlli": form.get("esito_controlli", ""),
+        "ricevuta_cancelleria": form.get("ricevuta_cancelleria", ""),
+        "note": form.get("note", ""),
+        actor_key: actor,
+    }
+
 
 def ufficio_da_nome(nome_ufficio: str) -> dict[str, Any] | None:
     if not nome_ufficio:
@@ -42,6 +93,53 @@ def allegati_busta(fascicolo, gestore_fascicoli, id_fascicolo: str, allegati_ids
         except Exception:
             continue
     return allegati
+
+
+def validate_busta_document_selection(
+    fascicolo,
+    gestore_fascicoli,
+    id_fascicolo: str,
+    form: Any,
+    atto_id: str,
+    allegati_ids: list[str],
+) -> str:
+    """Verifica che la busta rispetti la selezione mostrata all'avvocato."""
+    planned_ids = _unique_clean_ids([atto_id, *allegati_ids])
+    if hasattr(form, "getlist"):
+        selected_ids = _unique_clean_ids(list(form.getlist("documenti_selezionati_ids")))
+    else:
+        raw_selected = form.get("documenti_selezionati_ids", []) if hasattr(form, "get") else []
+        selected_ids = _unique_clean_ids(list(raw_selected or []))
+
+    if selected_ids and set(selected_ids) != set(planned_ids):
+        missing_in_package = [doc_id for doc_id in selected_ids if doc_id not in planned_ids]
+        extra_in_package = [doc_id for doc_id in planned_ids if doc_id not in selected_ids]
+        details = []
+        if missing_in_package:
+            details.append(f"non inclusi nella busta: {', '.join(missing_in_package)}")
+        if extra_in_package:
+            details.append(f"in busta ma non selezionati: {', '.join(extra_in_package)}")
+        suffix = f" ({'; '.join(details)})" if details else ""
+        return (
+            "La selezione a video non coincide con i documenti che stanno per entrare nella busta"
+            f"{suffix}. Ricarica la proposta e conferma di nuovo i documenti da inviare."
+        )
+
+    known_docs = {str(getattr(doc, "id", "") or ""): doc for doc in getattr(fascicolo, "documenti", [])}
+    for doc_id in planned_ids:
+        documento = known_docs.get(doc_id)
+        if not documento:
+            return f"Documento selezionato non presente nel fascicolo: {doc_id}. Ricarica la proposta busta."
+        try:
+            gestore_fascicoli.percorso_documento(id_fascicolo, doc_id)
+        except Exception:
+            nome = str(getattr(documento, "nome", "") or doc_id)
+            return (
+                f"Documento selezionato non reperibile su disco: {nome}. "
+                "Carica nuovamente il file o correggi la selezione prima di generare la busta."
+            )
+
+    return ""
 
 
 def validation_summary(validation: object) -> dict[str, Any]:

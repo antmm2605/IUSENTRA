@@ -57,6 +57,26 @@ def test_busta_contiene_xml(dati_busta, tmp_path):
 
     with zipfile.ZipFile(busta_path, "r") as zf:
         assert "DatiAtto.xml" in zf.namelist()
+        assert "IndiceDocumentiDepositati.PDF" in zf.namelist()
+
+
+def test_datiatto_contiene_indice_documenti_generato(dati_busta, tmp_path):
+    """Verifica che l'indice generato sia richiamato nei metadati della busta."""
+    from lxml import etree
+
+    busta = BustaTelematica(dati_busta)
+    busta_path = busta.crea_busta(str(tmp_path))
+
+    with zipfile.ZipFile(busta_path, "r") as zf:
+        xml_bytes = zf.read("DatiAtto.xml")
+        indice_bytes = zf.read("IndiceDocumentiDepositati.PDF")
+
+    root = etree.fromstring(xml_bytes)
+    ns = {"p": "http://www.giustizia.it/processo_telematico"}
+    indice_node = root.find(".//p:Documenti/p:Allegato[p:NomeFile='IndiceDocumentiDepositati.PDF']", ns)
+    assert indice_node is not None
+    assert indice_node.findtext("p:Tipo", namespaces=ns) == "INDICE_DOCUMENTI"
+    assert indice_node.findtext("p:Hash", namespaces=ns) == BustaTelematica._hash_bytes(indice_bytes)
 
 
 def test_busta_contiene_atto(dati_busta, tmp_path):
@@ -79,6 +99,8 @@ def test_verifica_busta_valida(dati_busta, tmp_path):
     assert risultato["id_busta"] is not None
     assert risultato["audit_tecnico"]["transport_mode"] == "simulazione_zip_rinominato"
     assert risultato["audit_tecnico"]["formal_checks"]["T001"]["status"] == "non_verificabile_offline"
+    assert risultato["audit_tecnico"]["indice_busta_generated"] is True
+    assert "IndiceDocumentiDepositati.PDF" in risultato["documenti"]
 
 
 def test_audit_busta_esplicita_simulazione_locale(dati_busta):
@@ -91,6 +113,8 @@ def test_audit_busta_esplicita_simulazione_locale(dati_busta):
     assert audit["expected_transport_mode"] == "atto_enc_da_atto_msg_cifrato_aes256"
     assert audit["blocks_direct_send"] is True
     assert audit["guided_completion_required"] is True
+    assert audit["indice_busta_generated"] is True
+    assert audit["indice_busta_filename"] == "IndiceDocumentiDepositati.PDF"
     assert any("Atto.enc" in action and "AES256" in action for action in audit["guided_next_actions"])
     assert audit["formal_checks"]["T002"]["status"] == "warning"
     issue = next(issue for issue in audit["issues"] if issue["code"] == "SIM-ENC")

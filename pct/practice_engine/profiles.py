@@ -255,6 +255,45 @@ def _profile_map() -> dict[str, PracticeProfile]:
 
 
 def _supplemental_profiles() -> list[PracticeProfile]:
+    lavoro_retribuzione_docs = [
+        PracticeRequirement("ATTO_PRINCIPALE", "Atto principale", True, True, "catalogo PST XSD SICI"),
+        PracticeRequirement("PROCURA_ALLE_LITI", "Procura alle liti", True, True, "catalogo PST XSD SICI"),
+        PracticeRequirement("DOCUMENTI_RETRIBUTIVI", "Documenti retributivi e prove del rapporto", True, True, "catalogo PST XSD SICI"),
+        PracticeRequirement("CONTRIBUTO_UNIFICATO", "Contributo unificato e diritti se dovuti", False, False, "catalogo PST XSD SICI"),
+    ]
+    lavoro_retribuzione = PracticeProfile(
+        id="PROC_LAV_RETRIB_001",
+        code="PROC_LAV_RETRIB_001",
+        name="Retribuzione e differenze retributive",
+        area="Lavoro e previdenza",
+        fascicolo_type="LAVORO",
+        channel="PCT_LAVORO",
+        registry="SICID",
+        workflow_code="WF_LAVORO_RETRIBUZIONE",
+        practice_id="retribuzione_lavoro",
+        procedure_code="PROC_LAV_RETRIB_001",
+        source="catalogo PST XSD SICI",
+        required_documents=lavoro_retribuzione_docs,
+        checklist_items=[
+            PracticeRequirement("CODICE_OGGETTO_PST", "Codice oggetto PST ufficiale", True, True, "catalogo PST XSD SICI"),
+            PracticeRequirement("CLASSIFICAZIONE_ATTI", "Classificazione atto principale e allegati", True, True, "practice_engine"),
+            PracticeRequirement("FIRMA_E_BUSTA", "Firma digitale e busta ministeriale", True, True, "practice_engine"),
+        ],
+        deadlines=[{"title": "Presidiare deposito e ricevute PCT", "due_in_days": 2}],
+        template_labels=["Ricorso ex art. 414 c.p.c.", "Memoria rito lavoro"],
+        required_slots=[
+            {"slot_key": "ATTO_PRINCIPALE", "label": "Atto principale", "type": SlotType.ATTO_PRINCIPALE.value, "required": True, "blocking": True, "validators": ["file_presente", "file_apribile", "hash_calcolato", "pdfa_valido", "pdf_non_cifrato", "dimensione_file_ok", "firma_digitale_presente"], "sort_order": 1},
+            {"slot_key": "PROCURA", "label": "Procura alle liti", "type": SlotType.PROCURA.value, "required": True, "blocking": True, "validators": ["file_presente", "file_apribile", "hash_calcolato"], "sort_order": 2},
+            {"slot_key": "DOCUMENTI_RETRIBUTIVI", "label": "Documenti retributivi e prove del rapporto", "type": SlotType.DOCUMENTO_PROVA.value, "required": True, "blocking": True, "validators": ["file_presente", "file_apribile", "hash_calcolato"], "sort_order": 3},
+            {"slot_key": "CONTRIBUTO_UNIFICATO", "label": "Contributo unificato e diritti se dovuti", "type": SlotType.CONTRIBUTO_UNIFICATO.value, "required": False, "blocking": False, "validators": ["file_presente", "hash_calcolato"], "sort_order": 4},
+            {"slot_key": "RICEVUTE_DEPOSITO", "label": "Ricevute ed esiti deposito", "type": SlotType.RICEVUTA.value, "required": False, "blocking": False, "validators": ["ricevuta_finale_presente"], "sort_order": 5},
+        ],
+        blocking_validators=DEFAULT_BLOCKING_VALIDATORS + DEFAULT_DEPOSIT_VALIDATORS,
+        warning_validators=DEFAULT_ECONOMIC_VALIDATORS,
+        depositable=True,
+        requires_human_review=True,
+        requires_registry_enrollment=True,
+    )
     sigp_docs = [
         PracticeRequirement("ATTO_PRINCIPALE", "Atto principale", True, True, "docs/SIGP_GIUDICE_DI_PACE.md"),
         PracticeRequirement("PROCURA_ALLE_LITI", "Procura alle liti", True, True, "docs/SIGP_GIUDICE_DI_PACE.md"),
@@ -290,7 +329,7 @@ def _supplemental_profiles() -> list[PracticeProfile]:
         requires_human_review=True,
         requires_registry_enrollment=True,
     )
-    return [sigp]
+    return [lavoro_retribuzione, sigp]
 
 
 def list_profiles() -> list[PracticeProfile]:

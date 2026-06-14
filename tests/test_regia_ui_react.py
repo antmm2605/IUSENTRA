@@ -46,12 +46,17 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Busta ministeriale Atto.enc" in source
     assert "Proposta busta" in source
     assert "Documenti da inviare" in source
+    assert "DatiAtto.xml" in source
+    assert "IndiceDocumentiDepositati.PDF" in source
+    assert "Indice generato dal software" in source
     assert 'type="checkbox"' in source
     assert "Ripristina proposta" in source
     assert "Seleziona tutti i documenti" in source
     assert "manualSelectableDocuments" in source
     assert "isDepositManualSelectableDocument" in source
     assert "documenti_selezionati_ids" in source
+    assert "const checked = event.currentTarget.checked" in source
+    assert "[doc.id]: event.currentTarget.checked" not in source
     assert "depositSelectionSatisfiesSlot" in source
     assert "Scegli documento" in source
     assert "Collega" in source
@@ -61,6 +66,10 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "function DepositBatchSignaturePanel" in source
     assert "localSignerEndpoint('/firma-batch')" in source
     assert "Firma ${documents.length} documenti" in source
+    assert "pinInputRef.current?.focus()" in source
+    assert "Riavvia Local Signer e premi Riverifica" in source
+    assert "Prima riavvia e riverifica Local Signer." in source
+    assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function relataStatusDisplayLabel")]
     assert "Versione firmata tramite firma multipla deposito" in source
     assert "Genera controllo e indice" in source
     assert "Il software non seleziona se la classificazione non è certa." in source

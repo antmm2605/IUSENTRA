@@ -40,7 +40,7 @@ from .pst_catalog import (
     get_catalog_snapshot,
     get_catalog_sources,
 )
-from .pratiche_collegate_catalog import codice_oggetto_pst_entry
+from .pratiche_collegate_catalog import codice_oggetto_pst_entry, normalize_codice_oggetto_pst
 from .pst_services import PSTOfficialCatalogAdapter
 from .validazione import MAX_BYTES_ALLEGATO, verifica_dimensione, verifica_pdfa
 
@@ -871,9 +871,12 @@ class ValidatorNormativoRedazionale:
         anno_rg = _safe_int(context.get("anno_rg"))
         registro = str(context.get("codice_registro") or "").strip().upper()
         oggetto = str(context.get("oggetto") or "").strip()
-        codice_oggetto_pst = str(
-            context.get("codice_oggetto_pst") or getattr(fascicolo, "codice_oggetto_pst", "")
-        ).strip()
+        codice_oggetto_pst = normalize_codice_oggetto_pst(
+            context.get("codice_oggetto_pst")
+            or getattr(fascicolo, "codice_oggetto_pst", "")
+            or context.get("oggetto")
+            or getattr(fascicolo, "oggetto", "")
+        )
         operatore = str(context.get("operatore") or "").strip()
         fascicolo_tipo = fascicolo.tipo.value
         selected_groups = _classify_documents(selected_documents)
@@ -1217,21 +1220,8 @@ class ValidatorNormativoRedazionale:
             )
 
         if profile.requires_index and _missing_required("indice"):
-            issues.append(
-                ValidationIssue(
-                    service=SERVICE_GIURIDICO,
-                    level=LEVEL_WARNING,
-                    code="indice_non_rilevato",
-                    title="Indice deposito non rilevato",
-                    detail=(
-                        "Non e stato rilevato un indice documenti esplicito. In alcune prassi puo essere opportuno "
-                        "predisporre un indice separato o una nota di deposito piu analitica."
-                    ),
-                    source="Prassi redazionale interna",
-                    suggested_action="Valuta se allegare un indice sintetico o arricchire l'atto principale.",
-                    field="allegati_ids",
-                )
-            )
+            # L'indice documenti viene generato automaticamente nel pacchetto busta.
+            pass
 
         if profile.channel == "PTT_TRIBUTARIO" and profile.deposit_mode == "portale_sigit":
             tipo_atto_norm = _slug(context.get("tipo_atto") or "")
@@ -1499,9 +1489,12 @@ class ValidatorSchemiPST:
         main_doc = next((d for d in selected_documents if d.get("id") == context.get("atto_principale_id")), None)
         if not main_doc:
             return issues
-        codice_oggetto_pst = str(
-            context.get("codice_oggetto_pst") or getattr(fascicolo, "codice_oggetto_pst", "")
-        ).strip()
+        codice_oggetto_pst = normalize_codice_oggetto_pst(
+            context.get("codice_oggetto_pst")
+            or getattr(fascicolo, "codice_oggetto_pst", "")
+            or context.get("oggetto")
+            or getattr(fascicolo, "oggetto", "")
+        )
         codice_oggetto_entry = codice_oggetto_pst_entry(codice_oggetto_pst)
         if not codice_oggetto_pst:
             issues.append(
@@ -1819,9 +1812,12 @@ class OrchestratoreDepositoGuidato:
             "tipo_atto": str(context.get("tipo_atto") or "ATTO_GENERICO").strip(),
             "codice_registro": str(context.get("codice_registro") or "RG").strip().upper(),
             "oggetto": str(context.get("oggetto") or fascicolo.titolo or "").strip(),
-            "codice_oggetto_pst": str(
-                context.get("codice_oggetto_pst") or getattr(fascicolo, "codice_oggetto_pst", "")
-            ).strip(),
+            "codice_oggetto_pst": normalize_codice_oggetto_pst(
+                context.get("codice_oggetto_pst")
+                or getattr(fascicolo, "codice_oggetto_pst", "")
+                or context.get("oggetto")
+                or getattr(fascicolo, "oggetto", "")
+            ),
             "numero_rg": str(context.get("numero_rg") or fascicolo.numero_rg or "").strip(),
             "anno_rg": _safe_int(context.get("anno_rg") or fascicolo.anno_rg),
             "atto_principale_id": str(context.get("atto_principale_id") or "").strip(),

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pct.legal_platform_catalog import infer_legal_operational_procedure
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, normalize_codice_oggetto_pst
 
 from .models import PracticeProfile, ResolverResult
 from .profiles import get_profile, list_profiles
@@ -32,6 +33,45 @@ def _alternative(profile: PracticeProfile, score: float, reason: str) -> dict[st
         "confidence": round(score, 2),
         "reason": reason,
     }
+
+
+def _first_codice_oggetto_pst(*sources: Any) -> tuple[str, dict[str, str] | None]:
+    names = (
+        "codice_oggetto_pst",
+        "codiceOggettoPst",
+        "oggetto",
+        "title",
+        "titolo",
+        "tipo_procedimento",
+    )
+    for source in sources:
+        for name in names:
+            raw = _value(source, name)
+            code = normalize_codice_oggetto_pst(raw)
+            if code:
+                return code, codice_oggetto_pst_entry(code)
+    return "", None
+
+
+def _source_type(*sources: Any) -> str:
+    for source in sources:
+        value = _value(source, "tipo", "type", "fascicolo_type", "tipo_fascicolo")
+        if value:
+            return value.upper()
+    return ""
+
+
+def _profile_from_codice_oggetto_pst(code: str, entry: dict[str, str] | None, *sources: Any) -> PracticeProfile | None:
+    if not code or not entry:
+        return None
+    area = f"{entry.get('area_label', '')} {entry.get('area', '')}".lower()
+    registri = str(entry.get("registri") or "").upper()
+    fascicolo_type = _source_type(*sources)
+
+    if ("lavoro" in area or "previdenza" in area or fascicolo_type == "LAVORO") and "SICID" in registri:
+        return get_profile("PROC_LAV_RETRIB_001")
+
+    return None
 
 
 @dataclass
@@ -99,7 +139,19 @@ class PracticeResolver:
             if matches:
                 return ResolverResult(matches[0], 0.72, "template atto principale selezionato", [_alternative(m, 0.72, "template") for m in matches[:5]], True)
 
-        # 6/7. tipo procedimento e oggetto tramite inferenza catalogo esistente
+        # 6. codice oggetto PST ufficiale gia' acquisito in apertura fascicolo
+        pst_code, pst_entry = _first_codice_oggetto_pst(*sources)
+        pst_profile = _profile_from_codice_oggetto_pst(pst_code, pst_entry, *sources)
+        if pst_profile:
+            return ResolverResult(
+                pst_profile,
+                0.91,
+                f"codice oggetto PST ufficiale {pst_code}",
+                [_alternative(pst_profile, 0.91, "codice oggetto PST")],
+                False,
+            )
+
+        # 7. tipo procedimento e oggetto tramite inferenza catalogo esistente
         tipo = ""
         oggetto = ""
         area = ""

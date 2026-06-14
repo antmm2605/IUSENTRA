@@ -129,6 +129,19 @@ def codice_oggetto_pst_entry(codice: Any) -> dict[str, str] | None:
     return _codici_index().get(_text(codice))
 
 
+def normalize_codice_oggetto_pst(codice: Any) -> str:
+    testo = _text(codice)
+    if not testo:
+        return ""
+    if codice_oggetto_pst_entry(testo):
+        return testo
+    for match in re.finditer(r"\b([A-Z]?\d{3,8})\b", testo.upper()):
+        candidate = match.group(1)
+        if codice_oggetto_pst_entry(candidate):
+            return candidate
+    return ""
+
+
 def looks_like_codice_oggetto_pst(value: Any) -> bool:
     testo = _text(value)
     if testo.isdigit() and 3 <= len(testo) <= 8:
@@ -141,13 +154,15 @@ def looks_like_codice_oggetto_pst(value: Any) -> bool:
 
 def resolve_codice_oggetto_pst_payload(*candidates: Any) -> dict[str, str]:
     for candidate in candidates:
-        if codice_oggetto_pst_entry(candidate):
-            return codice_oggetto_pst_payload(candidate)
+        code = normalize_codice_oggetto_pst(candidate)
+        if code:
+            return codice_oggetto_pst_payload(code)
     return codice_oggetto_pst_payload("")
 
 
 def codice_oggetto_pst_payload(codice: Any) -> dict[str, str]:
-    entry = codice_oggetto_pst_entry(codice)
+    code = normalize_codice_oggetto_pst(codice)
+    entry = codice_oggetto_pst_entry(code)
     if not entry:
         return {
             "codice_oggetto_pst": "",

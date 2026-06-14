@@ -32,6 +32,7 @@ def _is_telematic(channel_code: str) -> bool:
     channel = _clean(channel_code).upper()
     return channel in {
         "PCT_CIVILE",
+        "PCT_LAVORO",
         "PDP_PENALE",
         "PAT_AMMINISTRATIVO",
         "PTT_TRIBUTARIO",
@@ -44,7 +45,7 @@ def _is_telematic(channel_code: str) -> bool:
 def _default_compensation_mode(area_label: str, channel_code: str) -> str:
     area = _clean(area_label).lower()
     channel = _clean(channel_code).upper()
-    if channel in {"PCT_CIVILE", "PAT_AMMINISTRATIVO", "PTT_TRIBUTARIO", "PDP_PENALE"}:
+    if channel in {"PCT_CIVILE", "PCT_LAVORO", "PAT_AMMINISTRATIVO", "PTT_TRIBUTARIO", "PDP_PENALE"}:
         return "Per fasi processuali (D.M. 55/2014)"
     if area in {"amministrativo", "tributario", "lavoro", "sanitario"}:
         return "Per fasi processuali (D.M. 55/2014)"

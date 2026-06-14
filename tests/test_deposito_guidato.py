@@ -222,10 +222,12 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
     assert data["validation"]["semaforo"]["tecnico_pst"] == "ok"
     assert data["validation"]["semaforo"]["documentale"] == "ok"
     assert data["validation"]["semaforo"]["giuridico"] == "warning"
-    assert any(issue["code"] == "indice_non_rilevato" for issue in data["validation"]["issues"])
+    assert not any(issue["code"] == "indice_non_rilevato" for issue in data["validation"]["issues"])
     assert data["validation"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
     assert data["validation"]["context"]["codice_oggetto_pst"] == "014001"
     assert data["validation"]["snapshot"]["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
+    assert data["validation"]["snapshot"]["pst_busta_audit"]["indice_busta_generated"] is True
+    assert data["validation"]["snapshot"]["pst_busta_audit"]["indice_busta_filename"] == "IndiceDocumentiDepositati.PDF"
 
 
 def test_generazione_busta_usa_codice_oggetto_pst_validato(tmp_path, monkeypatch):
@@ -273,6 +275,7 @@ def test_generazione_busta_usa_codice_oggetto_pst_validato(tmp_path, monkeypatch
 
     def _fake_crea_busta(self, output_dir):
         captured["oggetto"] = self.dati.oggetto
+        captured["allegati"] = ",".join(allegato.descrizione for allegato in self.dati.allegati)
         target = Path(output_dir) / "Atto.enc"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(b"ENC")
@@ -292,16 +295,101 @@ def test_generazione_busta_usa_codice_oggetto_pst_validato(tmp_path, monkeypatch
                 "tipo_atto": "RICORSO",
                 "codice_registro": "RGL",
                 "oggetto": "Ricorso lavoro carta docente",
-                "codice_oggetto_pst": "222050",
+                "codice_oggetto_pst": "222050 - Retribuzione",
                 "numero_rg": "1754",
                 "anno_rg": "2026",
                 "atto_principale_id": atto.id,
                 "allegati_ids": [procura.id],
+                "documenti_selezionati_ids": [atto.id, procura.id],
             },
         )
 
     assert response.status_code == 200
     assert captured["oggetto"] == "222050"
+    assert captured["allegati"] == "Procura.PDF"
+
+
+def test_generazione_busta_blocca_se_selezione_video_non_coincide_con_busta(tmp_path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.invalid",
+    )
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = gf.nuovo(
+        titolo="Ricorso lavoro carta docente",
+        tipo=TipoFascicolo.LAVORO,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="Ministero",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "Ricorso.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fasc.id,
+        "Procura.PDF",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+        firmato=True,
+    )
+    ricevuta = gf.aggiungi_documento(
+        fasc.id,
+        "Ricevuta accettazione.eml",
+        TipoDocumento.COMUNICAZIONE,
+        b"Subject: ricevuta",
+        firmato=False,
+    )
+
+    def _fake_crea_busta(self, output_dir):
+        raise AssertionError("La busta non deve essere generata se la selezione visuale diverge")
+
+    monkeypatch.setattr("pct.busta.BustaTelematica.crea_busta", _fake_crea_busta)
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fasc.id}/deposito/genera-busta",
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+            data={
+                "tipo_atto": "RICORSO",
+                "codice_registro": "RGL",
+                "oggetto": "Ricorso lavoro carta docente",
+                "codice_oggetto_pst": "222050 - Retribuzione",
+                "numero_rg": "1754",
+                "anno_rg": "2026",
+                "atto_principale_id": atto.id,
+                "allegati_ids": [procura.id],
+                "documenti_selezionati_ids": [atto.id, procura.id, ricevuta.id],
+            },
+        )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert "selezione a video" in payload["errore"]
+    assert ricevuta.id in payload["errore"]
 
 
 def test_orchestratore_blocca_deposito_pct_senza_codice_oggetto_pst(tmp_path):

@@ -237,6 +237,41 @@ Non riportare le password in file di progetto o report pubblici. Le modifiche a 
    - `node frontend\scripts\check-react-contracts.mjs`;
    - `node scripts\react-migration\check-route-gate.mjs`.
 
+   Gate eseguiti il 14/06/2026 per hotfix firma multipla deposito `2.253.18`:
+   - `pnpm --filter @iusentra/studio typecheck`;
+   - `python -m pytest tests\test_regia_ui_react.py::test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale tests\test_deposito.py::test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione -q --tb=short`;
+   - `pnpm --filter @iusentra/studio build`;
+   - `python scripts\react-migration\generate_api_contracts.py`;
+   - `python scripts\react-migration\generate_api_contracts.py --check`;
+   - `python scripts\validate_openapi.py docs\openapi.yaml`;
+   - `python scripts\verify_openapi_provider.py`;
+   - `python tools\sync_packaging_files.py --check`;
+   - `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short`;
+   - `pnpm --filter @iusentra/studio test`;
+   - `python tools\check_repo_governance.py`;
+   - `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short`.
+
+   Gate eseguiti il 14/06/2026 per catalogo ministeriale deposito `2.253.19`:
+   - `python -m pytest tests\test_codici_oggetto_pst_catalog.py -q --tb=short`: 6/6, incluso controllo su tutti i 1018 codici oggetto PST ufficiali;
+   - `python -m pytest tests\test_practice_engine_profiles.py -q --tb=short`: 8/8, inclusi canali depositabili e alias;
+   - `python -m pytest ...` blocco deposito/regia/portale/firma batch/dry-run server: 39/39;
+   - `python -m pytest tests\test_regia_channels.py tests\test_telematic_registry_fail_closed.py tests\legal_deposit\test_penal_deposit_rules.py tests\legal_deposit\test_payment_policies.py -q --tb=short`: 29/29;
+   - `pnpm --filter @iusentra/studio typecheck`;
+   - `pnpm --filter @iusentra/studio test`;
+   - `pnpm --filter @iusentra/studio build`;
+   - `node scripts\react-migration\check-route-gate.mjs`;
+   - `node frontend\scripts\check-react-contracts.mjs`;
+   - `python scripts\react-migration\generate_api_contracts.py --check`;
+   - `python scripts\validate_openapi.py docs\openapi.yaml`;
+   - `python scripts\verify_openapi_provider.py`;
+   - `python tools\check_repo_governance.py`.
+  - `python -m pytest tests\test_deposito_server_dry_run_audit.py tests\test_regia_ui_react.py::test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale -q --tb=short`;
+  - `python -m py_compile scripts\server_deposito_dry_run_http.py scripts\audit_deposito_server_dry_run.py`;
+  - runner `scripts/server_deposito_dry_run_http.py` pronto per la prova su `https://app.iusentra.it`: usa payload React reale, route `/fascicoli/<id>/deposito/genera-busta`, non invoca PEC reale e salva report JSON fuori dai file committati.
+
+   Regola permanente aggiunta:
+   - ogni intervento su deposito, fascicoli, classificazione documenti, portali ministeriali, PEC, notifiche legali, firma digitale, Local Signer, PKCS#11, buste o ricevute deve essere trascritto in file con modifiche, fonti/norme, test, prova reale fatta o mancante e limiti aperti.
+
 5. Verifica reale obbligatoria:
    - ricostruire/aggiornare Docker locale reale su `127.0.0.1:8080`;
    - verificare `/api/pronto`;
@@ -248,6 +283,9 @@ Non riportare le password in file di progetto o report pubblici. Le modifiche a 
    - hover sugli eventi Agenda per verificare che appaia un solo dettaglio leggibile;
    - verificare desktop, tablet e mobile;
    - scorrere tutta la pagina o pannello, non solo la prima schermata.
+   - per firma multipla deposito, verificare che il bottone non resti più muto: se Local Signer richiede riavvio devono vedersi solo `Riavvia Local Signer`, `Riverifica` e `Diagnosi locale`; se il token è pronto ma manca il PIN deve apparire errore visibile e focus sul PIN.
+   - la firma effettiva resta non chiudibile finché l'utente non inserisce il PIN reale e il software salva più `.p7m` nello stesso lotto.
+   - per la busta deposito, la prova finale richiesta dall'utente non va dichiarata con server locale: dopo deploy va eseguita su `https://app.iusentra.it`, generando il `.enc` dal server e fermandosi prima dell'invio PEC.
 
 6. Report e release:
    - aggiornare `artifacts/react-migration/pytest-confirmed-ok.md`;

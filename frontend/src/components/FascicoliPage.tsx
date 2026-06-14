@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
   AlertTriangle,
@@ -2632,7 +2632,10 @@ function DepositPreparePage({ id }:{id:string}) {
                       <input
                         type="checkbox"
                         checked={selected}
-                        onChange={(event) => setDepositSelectionById((current) => ({ ...current, [doc.id]: event.currentTarget.checked }))}
+                        onChange={(event) => {
+                          const checked = event.currentTarget.checked
+                          setDepositSelectionById((current) => ({ ...current, [doc.id]: checked }))
+                        }}
                         aria-label={`Includi nel deposito ${doc.name}`}
                       />
                       <div>
@@ -2683,6 +2686,22 @@ function DepositPreparePage({ id }:{id:string}) {
               onError={failDetail}
             />
             <div className="iu-fas-package-docs">
+              <article key="package-datiatto">
+                <FileText size={16}/>
+                <div>
+                  <strong>DatiAtto.xml</strong>
+                  <span>Metadati ministeriali generati dal software sul codice oggetto e sulla selezione documenti.</span>
+                </div>
+                <small>Generato</small>
+              </article>
+              <article key="package-indice-documenti">
+                <FileText size={16}/>
+                <div>
+                  <strong>IndiceDocumentiDepositati.PDF</strong>
+                  <span>Indice generato dal software con atto principale, allegati e prove selezionate.</span>
+                </div>
+                <small>Generato</small>
+              </article>
               {packageDocuments.map((doc) => {
                 const proofLabel = notificationProofKind(doc) ? notificationProofLabel(doc) : ''
                 return (
@@ -2873,6 +2892,7 @@ function DepositBatchSignaturePanel({
   const [visibleSignatureMode, setVisibleSignatureMode] = useState<VisibleSignatureMode>('laterale')
   const [visibleSignaturePlace, setVisibleSignaturePlace] = useState('')
   const [visibleSignatureDatetimeMode, setVisibleSignatureDatetimeMode] = useState<VisibleSignatureDatetimeMode>('data_ora')
+  const pinInputRef = useRef<HTMLInputElement | null>(null)
 
   const primaryToken = localSigner?.token?.[0]
   const freshToken = localSigner?.token_probe_fresh?.[0]
@@ -2880,6 +2900,8 @@ function DepositBatchSignaturePanel({
   const signerRestartRequired = Boolean(freshToken && !primaryToken)
   const localSignerCanSign = Boolean(primaryToken && !signerRestartRequired)
   const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh))
+  const restartSuggested = Boolean(signerRestartRequired || (localSigner?.riavvio_signer_consigliato && !primaryToken))
+  const localSignerVersion = localSigner?.versione || localSigner?.version || ''
 
   useEffect(() => {
     setVisibleSignatureMode(loadVisibleSignatureMode(signature?.visibleSignatureMode || 'laterale'))
@@ -2890,7 +2912,10 @@ function DepositBatchSignaturePanel({
   const checkLocalSigner = async (tryStart = false) => {
     setCheckingSigner(true)
     setError('')
-    if (tryStart) requestLocalSignerStart()
+    if (tryStart) {
+      setMessage("Sto chiedendo a Windows di riavviare Local Signer. Se il browser chiede conferma, consenti l'apertura dell'app locale.")
+      requestLocalSignerStart()
+    }
     const attempts = tryStart ? 10 : 1
     try {
       for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -2901,6 +2926,7 @@ function DepositBatchSignaturePanel({
           const response = await fetch(localSignerEndpoint('/ping'), { cache: 'no-store', signal: controller.signal })
           const payload = await response.json().catch(() => ({}))
           setLocalSigner(payload as LocalSignerStatus)
+          if ((payload as LocalSignerStatus).token?.length) setMessage('')
           return
         } catch {
           if (attempt === attempts - 1) setLocalSigner({ ok: false, messaggio: 'Local Signer non rilevato su questo PC.' })
@@ -2918,6 +2944,14 @@ function DepositBatchSignaturePanel({
   }, [documents.length])
 
   if (!documents.length) return null
+
+  const scheduleLocalSignerRestartCheck = () => {
+    setError('')
+    setMessage("Sto chiedendo a Windows di riavviare Local Signer. Se il browser chiede conferma, consenti l'apertura dell'app locale.")
+    for (const delay of [2500, 5000, 8500, 12000]) {
+      window.setTimeout(() => { void checkLocalSigner(false) }, delay)
+    }
+  }
 
   const uploadSignedDocument = async (doc: FascicoloDocument, signedB64: string): Promise<void> => {
     const signedBytes = base64ToUint8Array(signedB64)
@@ -2944,8 +2978,12 @@ function DepositBatchSignaturePanel({
   }
 
   const signAll = async () => {
-    if (signerRestartRequired) {
-      setError('Riavvia e riverifica Local Signer: il PIN verrà richiesto solo quando il token sarà pronto.')
+    if (restartSuggested) {
+      setError('Riavvia Local Signer e premi Riverifica: il PIN va usato solo quando il token risulta pronto per la firma.')
+      return
+    }
+    if (!localSignerCanSign) {
+      setError(localSignerReachable ? 'Token non pronto per la firma: inserisci il dispositivo, avvia Local Signer e premi Riverifica.' : 'Local Signer non è raggiungibile su questo PC: avvialo e premi Riverifica.')
       return
     }
     if (!primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
@@ -2954,6 +2992,7 @@ function DepositBatchSignaturePanel({
     }
     if (!pin.trim()) {
       setError('Inserisci il PIN nel pannello Local Signer. Il PIN resta sul PC e non viene salvato.')
+      pinInputRef.current?.focus()
       return
     }
     setBusy(true)
@@ -2974,7 +3013,7 @@ function DepositBatchSignaturePanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documenti,
-          pin,
+          pin: pin.trim(),
           slot_id: primaryToken.slot_id,
           visible_signature_mode: visibleSignatureMode,
           visible_signature_place: visibleSignaturePlace,
@@ -3020,14 +3059,16 @@ function DepositBatchSignaturePanel({
   }
 
   const signerTitle = displayToken
-    ? (signerRestartRequired ? 'Token rilevato, riavvio consigliato' : 'Local Signer pronto')
+    ? (restartSuggested ? 'Token rilevato, riavvio consigliato' : 'Local Signer pronto')
     : localSignerReachable
       ? 'Local Signer attivo senza token'
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
   const signerDetail = displayToken
-    ? `${localSignerTokenLabel(displayToken)} - slot ${displayToken.slot_id}`
+    ? (restartSuggested
+        ? localSigner?.nota_riavvio_signer || 'Il token è stato rilevato, ma Local Signer va riavviato prima della firma.'
+        : `${localSignerTokenLabel(displayToken)} - slot ${displayToken.slot_id}`)
     : localSignerReachable
       ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token disponibile.'
       : localSigner?.messaggio || localSigner?.error || 'Avvia Local Signer sul PC e riprova.'
@@ -3037,39 +3078,70 @@ function DepositBatchSignaturePanel({
       <div className={`iu-fas-signer-status ${localSignerCanSign ? 'is-ok' : 'is-warn'}`}>
         <strong>{signerTitle}</strong>
         <span>{signerDetail}</span>
+        {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
+        {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
       </div>
-      <div className="iu-fas-batch-signature__controls">
-        <label>
-          <span>PIN firma</span>
-          <input type="password" value={pin} onChange={(event) => setPin(event.target.value)} autoComplete="off" placeholder="PIN token"/>
-        </label>
-        <label>
-          <span>Luogo firma</span>
-          <input value={visibleSignaturePlace} onChange={(event) => setVisibleSignaturePlace(event.target.value)} placeholder="Comune"/>
-        </label>
-        <label>
-          <span>Posizione firma</span>
-          <select value={visibleSignatureMode} onChange={(event) => setVisibleSignatureMode(normalizeVisibleSignatureMode(event.target.value))}>
-            {visibleSignatureOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>Data firma</span>
-          <select value={visibleSignatureDatetimeMode} onChange={(event) => setVisibleSignatureDatetimeMode(normalizeVisibleSignatureDatetimeMode(event.target.value))}>
-            {visibleSignatureDatetimeOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-          </select>
-        </label>
-      </div>
-      <div className="iu-fas-batch-signature__actions">
-        <button className="iu-fas-submit" type="button" onClick={signAll} disabled={busy || !localSignerCanSign}>
-          <ShieldCheck size={16}/> {busy ? 'Firma multipla...' : `Firma ${documents.length} documenti`}
-        </button>
-        <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>
-        {!localSignerCanSign ? <button className="iu-fas-mini-action iu-fas-mini-action--restart" type="button" onClick={() => checkLocalSigner(true)} disabled={checkingSigner}><RefreshCw size={14}/> Avvia Local Signer</button> : null}
-      </div>
-      <p className="iu-fas-signature-help">Il PIN viene inviato solo al Local Signer su questo PC. Il software firma il lotto, salva ogni documento firmato nel fascicolo e poi aggiorna la proposta busta.</p>
-      {message ? <div className="iu-fas-signature-alert iu-fas-signature-alert--ok"><CheckCircle2 size={16}/><span>{message}</span></div> : null}
-      {error ? <div className="iu-fas-signature-alert iu-fas-signature-alert--error"><AlertTriangle size={16}/><span>{error}</span></div> : null}
+      {restartSuggested || !localSignerReachable ? (
+        <div className="iu-fas-signer-actions">
+          <a className="iu-fas-mini-action iu-fas-mini-action--restart" href={LOCAL_SIGNER_RESTART_URI} onClick={scheduleLocalSignerRestartCheck}>
+            <RefreshCw size={14}/> Riavvia Local Signer
+          </a>
+          <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}>
+            <RefreshCw size={14}/> Riverifica
+          </button>
+          {localSignerReachable ? <a className="iu-fas-mini-action" href={localSignerEndpoint('/diagnosi')} target="_blank" rel="noreferrer">Diagnosi locale</a> : null}
+        </div>
+      ) : null}
+      {localSignerCanSign ? (
+        <>
+          <div className="iu-fas-batch-signature__controls">
+            <label>
+              <span>PIN firma</span>
+              <input
+                ref={pinInputRef}
+                type="password"
+                value={pin}
+                onChange={(event) => {
+                  setPin(event.target.value)
+                  if (error) setError('')
+                }}
+                autoComplete="off"
+                placeholder="PIN token"
+              />
+            </label>
+            <label>
+              <span>Luogo firma</span>
+              <input value={visibleSignaturePlace} onChange={(event) => setVisibleSignaturePlace(event.target.value)} placeholder="Comune"/>
+            </label>
+            <label>
+              <span>Posizione firma</span>
+              <select value={visibleSignatureMode} onChange={(event) => setVisibleSignatureMode(normalizeVisibleSignatureMode(event.target.value))}>
+                {visibleSignatureOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Data firma</span>
+              <select value={visibleSignatureDatetimeMode} onChange={(event) => setVisibleSignatureDatetimeMode(normalizeVisibleSignatureDatetimeMode(event.target.value))}>
+                {visibleSignatureDatetimeOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="iu-fas-batch-signature__actions">
+            <button className="iu-fas-submit" type="button" onClick={signAll} disabled={busy}>
+              <ShieldCheck size={16}/> {busy ? 'Firma multipla...' : `Firma ${documents.length} documenti`}
+            </button>
+            <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>
+          </div>
+          <p className="iu-fas-signature-help">Il PIN viene inviato solo al Local Signer su questo PC. Il software firma il lotto, salva ogni documento firmato nel fascicolo e poi aggiorna la proposta busta.</p>
+        </>
+      ) : (
+        <div className="iu-fas-signer-next-step">
+          <strong>{restartSuggested ? 'Prima riavvia e riverifica Local Signer.' : 'Token non pronto per la firma.'}</strong>
+          <span>{restartSuggested ? 'Il token è stato rilevato, ma il servizio locale va riallineato prima di firmare il lotto.' : 'Inserisci il token, avvia Local Signer e premi Riverifica.'}</span>
+        </div>
+      )}
+      {message ? <div className="iu-fas-signature-alert iu-fas-signature-alert--ok" role="status"><CheckCircle2 size={16}/><span>{message}</span></div> : null}
+      {error ? <div className="iu-fas-signature-alert iu-fas-signature-alert--error" role="alert"><AlertTriangle size={16}/><span>{error}</span></div> : null}
     </section>
   )
 }

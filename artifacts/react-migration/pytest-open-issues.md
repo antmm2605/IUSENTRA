@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Topbar Recenti e ricerche 2.253.25 - 2026-06-14
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Verifica reale topbar Recenti e ricerche | Docker reale `127.0.0.1:8080` + Chrome visibile | Risolto localmente | Verifica materiale eseguita il 2026-06-14 su versione `2.253.25`: Chrome visibile ha aperto `/studio`, cercato `RG`, aperto `/fascicoli/8804C177` senza `?_legacy=1`, poi ha mostrato `Recenti e ricerche (2)` con un elemento aperto e una ricerca recente; `/api/recent` ha restituito `items=1`, `searches=1`, `totalCount=2`, senza errori console. | Dopo commit/push ripetere solo smoke post-deploy se il bundle o il container vengono rigenerati da GitHub/Hetzner. |
+
 ## PEC, Agenda, Scadenziario e calendario diretto 2.253.12 - 2026-06-14
 
 | Area | Gate | Stato | Nota | Azione |
@@ -1539,6 +1545,15 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Firma multipla deposito dopo reclamo su bottone muto | Browser reale e Local Signer su `127.0.0.1:8080` | Aperto fino a prova reale | Il 14/06/2026 l'utente ha segnalato che `Firma 39 documenti` non firmava nulla. In `2.253.18` il pannello React non mostra più il comando di firma quando Local Signer rileva solo `token_probe_fresh` e richiede riavvio; mostra invece `Riavvia Local Signer`, `Riverifica` e `Diagnosi locale`. Se il token è pronto ma manca il PIN, il click mostra errore visibile e porta il focus al campo PIN. | Ricostruire Docker reale `2.253.18`, aprire `/fascicoli/2DE106E6/deposito/prepara`, verificare visivamente che non ci siano blocchi muti. Per dichiarare funzionante la firma effettiva serve ancora PIN reale dell'utente e salvataggio di più `.p7m` nel fascicolo. |
 | Normativa PST XSD SICI 11/06/2026 | Monitoraggio fonte ministeriale | Governato | Il PST ha pubblicato l'11/06/2026 un'anticipazione degli XSD SICI, con successiva comunicazione prevista per la messa in esercizio. Il nuovo codice `110046` resta non produttivo in IUSENTRA. | Ricontrollare la fonte PST prima del deploy finale e aggiornare lo stato solo se il Ministero pubblica la comunicazione di messa in esercizio. |
 | Dati runtime locali | Igiene repo | Aperto | Le prove e il runtime hanno file modificati sotto `data/**`; non fanno parte della consegna codice e non vanno committati. | Prima dello stage classificare o ripristinare i runtime generati, mantenendo solo codice, test, documentazione, report e asset React referenziati dalla build corrente. |
+
+## Contratto dati, tenant, sottomenu e topbar 2.253.23 - 2026-06-14
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Mirror JSON e indice ricerca tenant locale | `audit_data_flow_contract.py --repair-json-mirror --repair-search-index` | Risolto tecnicamente sul runtime locale | Il tenant `tenant-8bf98719c459` aveva indice FTS `search_documenti` non leggibile e mirror JSON da riallineare. Sono state riparate solo cache rigenerabili; le tabelle core non sono state toccate. Il controllo successivo senza repair è verde con `quick_check=ok` e `moduli_json_records=3734`. | Non committare `data/tenants/**/studio.db`: è runtime utente. Mantenere in commit solo codice, test e report. |
+| Sottomenu e alias sidebar React | `tests/test_data_flow_contract.py` | Governato tecnicamente | Il contratto ora controlla anche alias e sottovoci come `PEC`, `L.53`, `SMTP`, `Timesheet`, `Legal Skills`, `Regia Agentica`, `Registro GDPR`, non solo le voci principali. | Ogni nuova voce di menu deve essere aggiunta al contratto con route, API e struttura dati; se manca, il test deve fallire. |
+| Gestione Studio full React | Manifest, contratto dati e browser reale | Verificato sul perimetro Studio | Dopo rebuild Docker `2.253.24` sono state aperte e scrollate nel browser reale le route Studio: `/studio`, `/fatturazione`, `/preventivi`, `/compensi-forensi`, `/documenti`, `/redazione-atti`, `/statistiche`, `/ricerca-legale`, `/legal-skills`, `/workflow-agents`, `/giurisprudenza`, `/strumenti-legali`, `/strumenti-operativi`. Tutte hanno `#root`, menu Studio completo e nessun fallback `?_legacy=1`. | Mantenere i guardrail; non estendere questa verifica a "tutto applicativo" finché non sono state controllate materialmente anche le altre macro-aree e relativi sottomenu. |
+| Topbar operativa | Test API e browser reale | Verificato sul perimetro Studio | Nel browser reale su `127.0.0.1:8080` sono stati aperti `Voce Studio`, `Timer attività`, data italiana, `Scadenze rapide`, `Ultimi elementi aperti`, `Notifiche operative`, `Nuovo`; `Assistenza remota` ha creato una sessione reale poi chiusa come `Chiusa`. | Resta obbligatorio ripetere la verifica se si toccano componenti topbar, API collegate o permessi browser. |
 
 ## Catalogo ministeriale deposito e prova reale 2.253.19 - 2026-06-14
 

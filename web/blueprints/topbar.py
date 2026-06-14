@@ -185,6 +185,19 @@ def api_recent_track():
     )
 
 
+@topbar.post("/api/recent/search")
+@_require_auth
+def api_recent_search_track():
+    payload = _json_payload()
+    return _handle(
+        lambda: recent_service.track_recent_search_payload(
+            g.get("utente_corrente"),
+            str(payload.get("query") or ""),
+            payload.get("total"),
+        )
+    )
+
+
 @topbar.get("/api/time-tracking/active")
 @_require_auth
 def api_time_tracking_active():

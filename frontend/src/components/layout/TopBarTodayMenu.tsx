@@ -8,7 +8,7 @@ function formatType(type: string) {
   return {
     hearing: 'Udienza',
     deadline: 'Scadenza',
-    task: 'Attivita',
+    task: 'Attività',
     appointment: 'Appuntamento',
     communication: 'Comunicazione',
   }[type] ?? 'Elemento'
@@ -55,7 +55,7 @@ export function TopBarTodayMenu({
               <div className="iu-today-summary">
                 <span><strong>{data.summary.hearingsToday}</strong> udienze</span>
                 <span><strong>{data.summary.deadlinesToday}</strong> scadenze</span>
-                <span><strong>{data.summary.tasksToday}</strong> attivita</span>
+                <span><strong>{data.summary.tasksToday}</strong> attività</span>
                 <span><strong>{data.summary.urgentItems}</strong> urgenti</span>
               </div>
               <div className="iu-panel-list">
@@ -67,7 +67,7 @@ export function TopBarTodayMenu({
                       <small>{formatType(item.type)}{item.clientName ? ` - ${item.clientName}` : ''}</small>
                     </span>
                   </a>
-                )) : <p className="iu-panel-state">Nessuna urgenza o attivita per oggi.</p>}
+                )) : <p className="iu-panel-state">Nessuna urgenza o attività per oggi.</p>}
               </div>
             </>
           ) : null}

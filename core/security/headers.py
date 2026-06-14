@@ -16,8 +16,8 @@ def _permissions_policy_for_current_request() -> str:
             "geolocation=(), payment=()"
         )
     return (
-        "camera=(self), microphone=(self), local-network-access=(), local-network=(), "
-        "loopback-network=(), geolocation=(), payment=()"
+        "camera=(self), microphone=(self), local-network-access=(self), local-network=(self), "
+        "loopback-network=(self), geolocation=(), payment=()"
     )
 
 

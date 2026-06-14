@@ -240,6 +240,159 @@ python scripts/server_deposito_dry_run_http.py \
 
 Subito dopo va eseguito l'audit sul file `.enc` prodotto dal server. La password non va scritta in report o file committati.
 
+## Verifica visiva server E5AE4668 del 2026-06-14
+
+Ambiente verificato davanti all'utente: `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`, browser visibile, login eseguito dall'utente, scroll completo della pagina dall'alto al fondo. Non è stato effettuato alcun invio PEC reale.
+
+Esito onesto della prova:
+
+- La pagina si apre sul server e legge il fascicolo reale.
+- Il canale viene risolto come `PCT lavoro / SICID` quando è presente il codice ministeriale `222050`.
+- Il fascicolo mostra cliente e ufficio, ma il campo RG risulta ancora `n.d.` in una vista in cui il deposito dovrebbe avere dati completi e verificabili.
+- Il software genera/mostra `DatiAtto.xml` e `IndiceDocumentiDepositati.PDF`, ma il flusso non può essere dichiarato deposito pronto.
+- Il pulsante `Prepara controllo busta` porta lo stato in preparazione e non invia PEC, ma non dimostra ancora la generazione ministeriale completa e conforme.
+
+Problemi da correggere prima di dichiarare il deposito pronto:
+
+- La firma digitale funziona nel prodotto, ma il deposito non deve limitarsi a dire che ci sono documenti da firmare: deve usare il flusso di firma multipla già previsto, firmare in blocco i documenti obbligatori prima del deposito, salvare ogni esito nel fascicolo e riabilitare il passo successivo.
+- Il pannello `Verifica deposito` non va bene nella forma attuale: mostra blocchi lunghi e tecnici invece di una verifica professionale per avvocato con `pronto`, `da completare`, `bloccante`, `avviso` e azione immediata per risolvere.
+- L'avvocato deve poter selezionare, escludere, allegare o correggere i documenti della proposta. Non basta mostrare solo ciò che il software ha scelto.
+- Se il software non è sicuro della classificazione, deve evidenziare solo quel documento e chiedere conferma, non bloccare o nascondere la possibilità di correzione.
+- Il pulsante di generazione controllo/indice risulta visivamente primario ma non azionabile; deve spiegare chiaramente perché è disabilitato e quale azione risolve il blocco.
+- Non devono comparire stati tecnici visibili come `NON_INVIATO`, `IN_PREPARAZIONE` o `BLOCCATO_DA_ERRORI`: servono testi giuridici professionali.
+- Le card compatte devono restare compatte ma leggibili; non devono tagliare parole come `Tutto fascicolo`, `Da firmare` o `Catalogo portale`.
+- I documenti che la normativa richiede firmati devono entrare automaticamente nella firma multipla, non essere lasciati come promemoria finale.
+- I blocchi obbligatori devono fermare l'invio solo quando il software non può risolverli da solo; i mancanti non obbligatori devono restare avvisi.
+
+Stato della tranche dopo questa verifica: aperta. Il deposito non va dichiarato completo né conforme finché la prova reale non mostra selezione documenti correggibile, firma multipla effettiva su più documenti, indice generato dalla stessa selezione, busta coerente con i campioni reali e messaggi professionali senza testo tecnico.
+
+## Aggiornamento server E5AE4668 del 2026-06-14 ore 19:58
+
+Intervento eseguito direttamente sul server richiesto dall'utente, senza passaggio GitHub/deploy formale:
+
+- aggiornato `frontend/src/components/FascicoliPage.tsx`;
+- aggiornato `frontend/src/components/FascicoliPage.css`;
+- ricompilato bundle React con `pnpm --filter @iusentra/studio build:vite`;
+- copiato il bundle compilato in `/opt/iusentra/repo/web/static/react`;
+- copiato il bundle nel container `iusentra-app-1:/app/web/static/react`;
+- verificato container `iusentra-app-1` ancora `healthy`.
+
+Regola applicata nella pagina `Prepara deposito`:
+
+- la fase di preparazione non blocca più il lavoro solo perché i documenti devono essere firmati;
+- i documenti non firmati entrano nella firma del comando finale `Firma e genera busta`;
+- il comando finale richiama la firma multipla registrata dal pannello Local Signer prima della generazione busta;
+- se il PIN/token o Local Signer non sono pronti, il software deve spiegare cosa manca e non deve generare una busta come valida;
+- i soli blocchi visivi del comando finale restano atto principale mancante e scelte obbligatorie documentali non confermate.
+
+Correzioni UI completate e viste sul server:
+
+- badge e card non mostrano più `NON_INVIATO`, `IN_PREPARAZIONE` o `BLOCCATO_DA_ERRORI`;
+- chip `n.d.` sostituito dal riferimento utile `2026/330` quando il campo RG normalizzato è mancante;
+- canale visualizzato come `PCT lavoro / SICID`;
+- nota errata `PCT civile SICID` sostituita con `Profilo lavoro applicato: usare il canale PCT lavoro/SICID`;
+- messaggi grezzi `Impossibile validare...` trasformati in azioni operative:
+  - `Collega il documento richiesto alla busta`;
+  - `Ricarica il documento oppure correggi il collegamento`;
+  - `Ricalcola l'impronta del documento prima della generazione`;
+- aggiunta sezione `Documenti da inviare` con selezione correggibile;
+- aggiunti comandi `Ripristina proposta`, `Seleziona tutti i documenti`, `Apri documenti fascicolo`;
+- aggiunto pannello `Allega documentazione al fascicolo` dentro la proposta busta;
+- verificato click reale sul pannello allegati: il form mostra file, classificazione, data documento, etichette, note, `Già firmato` e `Carica documenti`;
+- card compatte riviste: `Tutto fascicolo`, `Firma software`, `Catalogo portale` e `Firme` non tagliano il testo;
+- artefatti `DatiAtto.xml` e `IndiceDocumentiDepositati.PDF` separati dalla descrizione, senza testo attaccato;
+- testo `firma multipla immediata` sostituito con `comando finale`;
+- messaggio finale corretto da `1 slot obbligatori` a `1 scelta obbligatoria richiede la conferma dell'avvocato`;
+- scroll visivo eseguito dall'alto al fondo della pagina server.
+
+Screenshot locali della verifica visiva reale:
+
+- `%TEMP%/iusentra-e5ae4668-deposito-visual-20260614/server_top_final.png`;
+- `%TEMP%/iusentra-e5ae4668-deposito-visual-20260614/server_scroll_1_final2.png`;
+- `%TEMP%/iusentra-e5ae4668-deposito-visual-20260614/server_upload_form.png`;
+- `%TEMP%/iusentra-e5ae4668-deposito-visual-20260614/server_final_block_after_grammar.png`;
+- `%TEMP%/iusentra-e5ae4668-deposito-visual-20260614/server_bottom_final.png`.
+
+Stato completato in questa fase:
+
+- preparazione deposito resa lavorabile senza falso blocco sulle firme;
+- selezione documenti visibile e correggibile;
+- allegato documento visibile e apribile;
+- firma multipla agganciata al comando finale sul lato React;
+- messaggi principali resi professionali e leggibili;
+- scroll completo pagina server eseguito.
+
+Stato ancora aperto e non dichiarabile verde:
+
+- Local Signer nella sessione server/Chrome verificata risulta `non rilevato`;
+- non è stato inserito PIN reale;
+- non è stata eseguita firma multipla reale di più documenti;
+- non sono stati salvati `.p7m` reali nel fascicolo in questa prova;
+- non è stato generato un `Atto.enc` ministeriale valido AES256;
+- non è stato eseguito invio PEC reale, per scelta corretta della prova.
+
+Prossima prova obbligatoria:
+
+- con Local Signer rilevato e token pronto, l'utente inserisce il PIN;
+- premere `Firma e genera busta`;
+- verificare che il software firmi in lotto i documenti selezionati, salvi ogni firmato nel fascicolo, aggiorni esiti/impronte, generi indice e pacchetto coerente con la selezione;
+- se manca ancora l'adapter ministeriale `Atto.msg` -> `Atto.enc` AES256, il software deve continuare a spiegare che il pacchetto è di controllo/preparazione e non deposito ministeriale valido.
+
+## Aggiornamento navigazione a fasi del 2026-06-14 ore 20:10
+
+Richiesta utente: rendere `Prepara deposito` intuitivo, veloce e professionale, migliorandolo in fasi navigabili.
+
+Intervento eseguito direttamente sul server, senza commit/push GitHub su richiesta operativa dell'utente:
+
+- aggiornata la pagina React `frontend/src/components/FascicoliPage.tsx`;
+- aggiornato lo stile `frontend/src/components/FascicoliPage.css`;
+- ricompilato il bundle React con `pnpm --filter @iusentra/studio build:vite`;
+- copiati sorgenti e bundle su `iusentra-hetzner`;
+- copiati gli asset nel container `iusentra-app-1`;
+- verificato container `iusentra-app-1` ancora `healthy`.
+
+Nuova struttura visibile:
+
+1. `Verifica pratica`: canale, profilo pratica, regola operativa e controlli obbligatori.
+2. `Documenti da inviare`: selezione correggibile dei documenti, allegati e proposta busta.
+3. `Firma documenti`: fase separata per firma multipla, PIN, Local Signer e documenti da firmare.
+4. `Busta e indice`: riepilogo atto principale, allegati, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti inclusi e comando finale.
+5. `Inventario fascicolo`: lettura dell'intero fascicolo usata per classificazione e controllo.
+
+Correzioni di navigazione:
+
+- aggiunta barra `Percorso deposito` sopra i pannelli;
+- ogni fase ha numero, titolo, stato e descrizione breve;
+- le descrizioni sono state accorciate dopo prova visiva perché due testi venivano troncati;
+- i link a `#firma-busta` e `#generazione-busta` ora aprono automaticamente il pannello e scorrono alla sezione anche quando la pagina React carica i dati dopo l'apertura;
+- aggiunto margine di scorrimento per evitare che la sezione aperta finisca nascosta sotto la topbar;
+- firma e busta/indice sono pannelli separati, non più nascosti dentro la stessa area documenti.
+
+Verifica visiva reale su server:
+
+- URL: `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`;
+- browser: Google Chrome visibile sulla macchina dell'utente;
+- screenshot iniziale: `%TEMP%/iusentra-e5ae4668-deposito-fasi-20260614/fase_top_final.png`;
+- test link diretto firma: `%TEMP%/iusentra-e5ae4668-deposito-fasi-20260614/fase_firma_final.png`;
+- test link diretto busta: `%TEMP%/iusentra-e5ae4668-deposito-fasi-20260614/fase_busta_final.png`.
+
+Esito visivo:
+
+- barra fasi visibile e compatta;
+- testi delle fasi leggibili senza tagli evidenti;
+- fase `Firma documenti` apre direttamente Local Signer e spiega che il PIN serve al comando finale;
+- fase `Busta e indice` mostra atto principale, allegati, firme previste, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti inclusi e motivo del blocco finale;
+- il blocco finale resta professionale: `1 scelta obbligatoria richiede la conferma dell'avvocato`;
+- il comportamento resta coerente con la regola: i documenti da firmare non bloccano la preparazione, vengono firmati nel comando finale.
+
+Stato ancora aperto:
+
+- Local Signer nella prova risulta ancora non rilevato;
+- non è stato inserito PIN reale;
+- non è stata eseguita firma multipla reale;
+- non è stato prodotto `Atto.enc` AES256 reale;
+- non è stato effettuato invio PEC reale.
+
 ## Verifica reale obbligatoria
 
 Prima di dichiarare chiuso:
@@ -258,3 +411,56 @@ Prima di dichiarare chiuso:
   - nessuna card enorme o testo tagliato;
   - scroll fino in fondo;
   - mobile/tablet/desktop quando UI cambia.
+
+## Fix Local Signer del 2026-06-14 ore 20:27
+
+Richiesta utente: ripristinare il Local Signer, che prima funzionava e nella pagina `Prepara deposito` risultava `Local Signer non rilevato`.
+
+Diagnosi reale:
+
+- il servizio locale rispondeva su `http://127.0.0.1:27272`, ma il processo attivo era disallineato e mostrava `riavvio_signer_consigliato`;
+- dopo riavvio controllato dei soli processi `IUSENTRA\LocalSigner\local_signer.py`, il ping locale ha rilevato il token:
+  - versione Local Signer `1.6.72`;
+  - token `CNS - Bit4id - JS2048 (LB) - slot 0`;
+  - seriale token `7430010029148677`;
+- nonostante il token pronto, Chrome sulla pagina server continuava a mostrare `Local Signer non rilevato`;
+- causa effettiva trovata negli header HTTPS: `Permissions-Policy` negava `local-network-access`, `local-network` e `loopback-network`, impedendo alla pagina di usare correttamente `127.0.0.1:27272`.
+
+Intervento eseguito:
+
+- aggiornato `core/security/headers.py`: le pagine operative consentono ora `local-network-access=(self)`, `local-network=(self)` e `loopback-network=(self)`;
+- aggiornato `deploy/hetzner/Caddyfile` con la stessa policy per il reverse proxy pubblico;
+- aggiornato `tests/test_security_headers.py` per impedire regressioni verso `local-network-access=()`;
+- test mirato eseguito: `python -m pytest tests/test_security_headers.py -q` -> `5 passed`;
+- copiati i file corretti su `iusentra-hetzner`;
+- ricostruita l'immagine `app` con `docker compose ... build --no-cache app`;
+- ricreati i container `app` e `caddy` sul server reale;
+- verificato `https://app.iusentra.it/api/pronto` con risposta `200 OK`, versione `2.253.22`;
+- verificati header pubblici: entrambe le `Permissions-Policy` ora consentono loopback/local network a `self`.
+
+Verifica visiva reale su macchina dell'utente:
+
+- URL: `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara?codex_local_signer=2#firma-busta`;
+- browser: Google Chrome reale visibile;
+- prima del fix: pannello `Firma documenti` mostrava `Local Signer non rilevato`;
+- dopo il fix: pannello verde `Local Signer pronto`, con `CNS - Bit4id - JS2048 (LB) - slot 0`, versione `1.6.72`;
+- click reale su `Riverifica`: il pannello resta `Local Signer pronto`;
+- screenshot di prova:
+  - `%TEMP%/iusentra-local-signer-fix-20260614/desktop-after-signer-restart.png`;
+  - `%TEMP%/iusentra-local-signer-fix-20260614/desktop-after-policy-fix.png`;
+  - `%TEMP%/iusentra-local-signer-fix-20260614/desktop-after-riverifica-click.png`.
+
+Stato chiuso per questa sotto-fase:
+
+- rilevazione Local Signer da browser reale su server ripristinata;
+- token PKCS#11 visibile nella UI del deposito;
+- bottone `Firma 2 documenti` visibile e abilitato quando il token è pronto;
+- guardrail header aggiornato con test dedicato.
+
+Stato ancora aperto e da non dichiarare verde:
+
+- non è stato inserito il PIN reale;
+- non è stata eseguita firma multipla reale;
+- non sono stati salvati `.p7m` nel fascicolo durante questa verifica;
+- non è stato verificato il passaggio successivo `firma -> salvataggio documenti firmati -> generazione busta`;
+- resta obbligatoria prova con PIN inserito dall'avvocato prima di dichiarare funzionante la firma multipla del deposito.

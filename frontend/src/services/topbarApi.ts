@@ -81,6 +81,13 @@ export function trackRecentItem(entityType: string, entityId: string): Promise<T
   })
 }
 
+export function trackRecentSearch(query: string, total = 0): Promise<TopbarRecentPayload> {
+  return requestJson<TopbarRecentPayload>('/api/recent/search', {
+    method: 'POST',
+    body: JSON.stringify({ query, total }),
+  })
+}
+
 export function fetchActiveTimer(): Promise<TimeTrackingPayload> {
   return requestJson<TimeTrackingPayload>('/api/time-tracking/active')
 }

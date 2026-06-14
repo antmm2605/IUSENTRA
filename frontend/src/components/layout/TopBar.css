@@ -1030,6 +1030,20 @@ textarea[data-iusentra-voice-preview="ascolto"]{
   gap:2px;
   padding:8px;
 }
+.iu-panel-section{
+  display:grid;
+  gap:2px;
+  padding-top:4px;
+}
+.iu-panel-section h3{
+  margin:4px 8px 0;
+  color:#475569;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.04em;
+  line-height:1.2;
+  text-transform:uppercase;
+}
 .iu-panel-item{
   display:grid;
   grid-template-columns:54px minmax(0,1fr);

@@ -256,9 +256,31 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
 
         recent_empty = client.get("/api/recent")
         assert recent_empty.status_code == 200
+        assert recent_empty.get_json()["searches"] == []
         tracked = client.post("/api/recent", json={"entityType": "case", "entityId": fascicolo_id})
         assert tracked.status_code == 200
         assert tracked.get_json()["items"][0]["href"] == f"/fascicoli/{fascicolo_id}"
+        tracked_search = client.post("/api/recent/search", json={"query": "Recupero credito", "total": 3})
+        assert tracked_search.status_code == 200
+        tracked_search_payload = tracked_search.get_json()
+        assert tracked_search_payload["searches"][0]["query"] == "Recupero credito"
+        assert tracked_search_payload["searches"][0]["href"] == "/global-search?q=Recupero+credito"
+        assert tracked_search_payload["totalCount"] == len(tracked_search_payload["items"]) + len(tracked_search_payload["searches"])
+        duplicated_search = client.post("/api/recent/search", json={"query": "Recupero credito", "total": 1})
+        assert duplicated_search.status_code == 200
+        assert [row["query"] for row in duplicated_search.get_json()["searches"]].count("Recupero credito") == 1
+        assert client.post("/api/recent/search", json={"query": "a"}).status_code == 400
+        with client.session_transaction() as sess:
+            sess.pop("recenti", None)
+            sess.pop("ricerche_recenti", None)
+        search_first = client.post("/api/recent/search", json={"query": "RG 1234", "total": 4})
+        assert search_first.status_code == 200
+        item_after_search = client.post("/api/recent", json={"entityType": "case", "entityId": fascicolo_id})
+        assert item_after_search.status_code == 200
+        item_after_search_payload = item_after_search.get_json()
+        assert item_after_search_payload["items"][0]["href"] == f"/fascicoli/{fascicolo_id}"
+        assert item_after_search_payload["searches"][0]["query"] == "RG 1234"
+        assert item_after_search_payload["totalCount"] == len(item_after_search_payload["items"]) + len(item_after_search_payload["searches"])
         missing = client.post("/api/recent", json={"entityType": "case", "entityId": "fascicolo-non-presente"})
         assert missing.status_code == 200
         assert missing.get_json()["tracked"] is False
@@ -312,11 +334,20 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
 
 def test_topbar_react_traccia_recenti_sulle_rotte_profonde():
     topbar = Path("frontend/src/components/layout/TopBar.tsx").read_text(encoding="utf-8")
+    search = Path("frontend/src/components/layout/TopBarSearch.tsx").read_text(encoding="utf-8")
+    recent_panel = Path("frontend/src/components/layout/TopBarRecentItems.tsx").read_text(encoding="utf-8")
     recent_hook = Path("frontend/src/hooks/useRecentItems.ts").read_text(encoding="utf-8")
     operational = Path("web/services/topbar_operational.py").read_text(encoding="utf-8")
     assert "function recentTargetFromPath" in topbar
     assert "trackRecentItem(target.entityType, target.entityId)" in topbar
     assert "iusentra:recent-items-updated" in topbar
+    assert "trackRecentItem(recentTarget.entityType, recentTarget.entityId)" in search
+    assert "function recentEntityFromResult" in search
+    assert "trackRecentSearch(cleanQuery, total)" in search
+    assert "Promise.race" not in search
+    assert "keepalive" not in Path("frontend/src/services/topbarApi.ts").read_text(encoding="utf-8")
+    assert "Ricerche recenti" in recent_panel
+    assert "Recenti e ricerche" in recent_panel
     assert "window.addEventListener('iusentra:recent-items-updated'" in recent_hook
     assert "/fascicoli/{fascicolo.id}/deposito/prepara#ricevute-deposito" in operational
     assert "Apri deposito" in operational

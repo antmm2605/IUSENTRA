@@ -78,6 +78,6 @@ def test_regular_pages_allow_studio_media_only_on_same_origin() -> None:
     policy = response.headers["Permissions-Policy"]
     assert "camera=(self)" in policy
     assert "microphone=(self)" in policy
-    assert "local-network-access=()" in policy
-    assert "local-network=()" in policy
-    assert "loopback-network=()" in policy
+    assert "local-network-access=(self)" in policy
+    assert "local-network=(self)" in policy
+    assert "loopback-network=(self)" in policy

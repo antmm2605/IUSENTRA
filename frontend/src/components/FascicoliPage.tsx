@@ -386,6 +386,7 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
 }
 
 type DepositActionPayload = Record<string, string | string[]>
+type BatchSignatureAction = () => Promise<void>
 
 function DepositActionButton({
   action,
@@ -395,6 +396,8 @@ function DepositActionButton({
   disabled,
   confirm,
   confirmTitle = 'Conferma deposito',
+  disabledReason,
+  beforeSubmit,
   onDone,
   onError,
 }: {
@@ -405,6 +408,8 @@ function DepositActionButton({
   disabled?: boolean
   confirm?: string
   confirmTitle?: string
+  disabledReason?: string
+  beforeSubmit?: () => Promise<void>
   onDone?: (message?: string) => void
   onError?: (message: string) => void
 }) {
@@ -416,6 +421,7 @@ function DepositActionButton({
     setBusy(true)
     setError('')
     try {
+      if (beforeSubmit) await beforeSubmit()
       const form = new FormData()
       Object.entries(payload).forEach(([key, value]) => {
         if (Array.isArray(value)) value.forEach((item: string) => form.append(key, item))
@@ -466,7 +472,16 @@ function DepositActionButton({
   }
   return (
     <>
-      <button className={`iu-fas-post iu-fas-post--${tone}`} type="button" onClick={() => confirm ? setConfirming(true) : void run()} disabled={busy || disabled}>{children}</button>
+      <button
+        className={`iu-fas-post iu-fas-post--${tone}`}
+        type="button"
+        onClick={() => confirm ? setConfirming(true) : void run()}
+        disabled={busy || disabled}
+        title={disabled && disabledReason ? disabledReason : undefined}
+        aria-disabled={disabled ? true : undefined}
+      >
+        {children}
+      </button>
       {confirming ? (
         <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label={confirmTitle}>
           <div className="iu-fas-confirm-modal__box">
@@ -2363,6 +2378,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
   const [depositSelectionById, setDepositSelectionById] = useState<Record<string, boolean>>({})
+  const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
 
   const refreshDetail = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
@@ -2371,6 +2387,9 @@ function DepositPreparePage({ id }:{id:string}) {
     })
   }
   const failDetail = (message: string) => setToast({ tone: 'danger', message })
+  const registerBatchSignatureAction = (action: BatchSignatureAction | null) => {
+    batchSignatureActionRef.current = action
+  }
 
   useEffect(() => {
     let active = true
@@ -2384,6 +2403,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const f = data.fascicolo
   const encodedId = encodeURIComponent(f.id || id)
   const detailHref = `/fascicoli/${encodedId}`
+  const visibleRg = depositVisibleReference(f.rg, f.ref || f.id)
   const portalCatalog = buildPortalCatalogRows(data)
   const depositCandidateDocuments = data.documents.filter(isDepositCandidateDocument)
   const signedCandidateDocuments = depositCandidateDocuments.filter((doc) => doc.signed).length
@@ -2420,7 +2440,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const immediateBatchSigning = recordBool(deliveryPolicy, 'immediateBatchSigning')
   const documentIndexGeneratedBySoftware = recordBool(deliveryPolicy, 'documentIndexGeneratedBySoftware')
   const packageKindLabel = depositPackageKindLabel(recordText(deliveryPolicy, 'packageKind'))
-  const portalHref = portalDepositHref(recordText(deliveryPolicy, 'officialChannel'), regia.header.channel)
+  const deliveryOfficialChannel = recordText(deliveryPolicy, 'officialChannel', regia.header.channel || 'Canale da verificare')
+  const portalHref = portalDepositHref(deliveryOfficialChannel, regia.header.channel)
   const prepareAction = recordText(deposit, 'prepareAction')
   const sendAction = recordText(deposit, 'sendAction')
   const predepositAction = recordText(regia.actions, 'predepositCheck')
@@ -2428,12 +2449,15 @@ function DepositPreparePage({ id }:{id:string}) {
   const practiceProfileName = recordText(regia.profile, 'name', regia.header.practiceType || 'Profilo pratica da confermare')
   const practiceProfileReason = recordText(regia.profile, 'reason')
   const practiceProfileCode = recordText(regia.profile, 'code')
+  const deliveryNote = depositDeliveryNote(recordText(deliveryPolicy, 'note'), deliveryOfficialChannel, practiceProfileName, regia.header.channel)
   const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
   const validationRows = [
     ...regia.validation.blockers.map((row) => ({ tone: 'danger' as const, label: recordText(row, 'title', recordText(row, 'code', 'Blocco')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
     ...regia.validation.warnings.map((row) => ({ tone: 'warning' as const, label: recordText(row, 'title', recordText(row, 'code', 'Avviso')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
     ...regia.validation.results.map((row) => ({ tone: recordText(row, 'status') === 'OK' ? 'success' as const : 'neutral' as const, label: recordText(row, 'title', recordText(row, 'code', 'Controllo')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
   ].filter((row) => row.label || row.message || row.note)
+  const decisiveValidationRows = validationRows.filter(isDecisiveDepositIssue)
+  const advisoryValidationRows = validationRows.filter((row) => !isDecisiveDepositIssue(row))
   const recentDeposits = data.deposits.slice(0, 8)
   const documentsById = new Map(data.documents.map((doc) => [doc.id, doc]))
   const sortedSlots = [...regia.documentSlots].sort((a, b) => Number(recordText(a, 'sortOrder') || 0) - Number(recordText(b, 'sortOrder') || 0))
@@ -2483,6 +2507,13 @@ function DepositPreparePage({ id }:{id:string}) {
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
   const missingRequiredSlots = sortedSlots.filter((slot) => recordBool(slot, 'required') && !depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument))
   const bustaAction = directPecReady ? `/fascicoli/${encodedId}/deposito/invia-pec` : `/fascicoli/${encodedId}/deposito/genera-busta`
+  const runBatchSignatureBeforeDeposit = async () => {
+    if (!signatureBatchRequired) return
+    if (!batchSignatureActionRef.current) {
+      throw new Error('Inserisci il PIN e rendi pronto Local Signer nel pannello firma prima di generare la busta.')
+    }
+    await batchSignatureActionRef.current()
+  }
   const resetDepositSelectionToProposal = () => {
     const proposed = new Set(defaultDepositSelectionIds)
     setDepositSelectionById(Object.fromEntries(depositSelectableDocuments.map((doc) => [doc.id, proposed.has(doc.id)])))
@@ -2503,9 +2534,93 @@ function DepositPreparePage({ id }:{id:string}) {
     firma_unica: signatureBatchRequired ? '1' : '0',
     documenti_da_firmare_ids: unsignedPackageDocuments.map((doc) => doc.id),
   }
-  const signaturesRequiredBeforeAction = signatureBatchRequired
-  const actionBlocked = !ready || !mainActDocument || Boolean(missingRequiredSlots.length) || signaturesRequiredBeforeAction
-  const depositMessage = recordText(deposit, 'message') || blockReasons[0] || (ready ? 'Il fascicolo è pronto per la sessione di deposito.' : 'Esegui la verifica operativa prima di preparare la sessione.')
+  const actionBlocked = !mainActDocument || Boolean(missingRequiredSlots.length)
+  const signaturesRequiredBeforeAction = false
+  const actionBlockedReason = depositGenerationBlockedReason(mainActDocument, missingRequiredSlots.length)
+  const depositStatusText = depositStatusLabel(recordText(deposit, 'status', regia.validation.status || 'Da verificare'))
+  const preparationTone: FascicoloRow['tone'] = decisiveValidationRows.length ? 'warning' : ready ? 'success' : 'primary'
+  const depositMessage = ready
+    ? 'Il fascicolo è pronto per la preparazione del deposito.'
+    : 'Lavora sulla proposta documentale: il controllo decisivo avviene quando generi la busta.'
+  const documentPhaseTone: FascicoloRow['tone'] = !mainActDocument ? 'danger' : missingRequiredSlots.length ? 'warning' : packageDocuments.length ? 'success' : 'warning'
+  const documentPhaseState = !mainActDocument
+    ? 'Atto da scegliere'
+    : missingRequiredSlots.length
+      ? missingRequiredSlots.length === 1 ? '1 scelta da confermare' : `${missingRequiredSlots.length} scelte da confermare`
+      : 'Proposta pronta'
+  const signaturePhaseTone: FascicoloRow['tone'] = signatureBatchRequired ? 'warning' : 'success'
+  const generationPhaseTone: FascicoloRow['tone'] = actionBlocked ? 'warning' : signatureBatchRequired ? 'warning' : guidedCompletion ? 'info' : 'success'
+  const generationPhaseDetail = actionBlocked
+    ? !mainActDocument
+      ? 'Seleziona atto principale'
+      : missingRequiredSlots.length === 1 ? 'Conferma la scelta obbligatoria' : 'Conferma le scelte obbligatorie'
+    : signatureBatchRequired ? 'Firma, hash e indice insieme' : 'Indice dalla selezione'
+  const depositPhases: Array<{ href: string; index: string; title: string; state: string; detail: string; tone: FascicoloRow['tone'] }> = [
+    {
+      href: '#verifica-deposito',
+      index: '1',
+      title: 'Verifica pratica',
+      state: decisiveValidationRows.length ? 'Da controllare' : ready ? 'Pronta' : 'In preparazione',
+      detail: deliveryOfficialChannel,
+      tone: preparationTone,
+    },
+    {
+      href: '#proposta-busta',
+      index: '2',
+      title: 'Documenti',
+      state: documentPhaseState,
+      detail: packageDocuments.length === 1 ? '1 documento in busta' : `${packageDocuments.length} documenti in busta`,
+      tone: documentPhaseTone,
+    },
+    {
+      href: '#firma-busta',
+      index: '3',
+      title: 'Firma',
+      state: signatureBatchRequired ? 'Firma nel comando' : 'Firme coerenti',
+      detail: unsignedPackageDocuments.length === 1 ? '1 documento da firmare' : `${unsignedPackageDocuments.length} documenti da firmare`,
+      tone: signaturePhaseTone,
+    },
+    {
+      href: '#generazione-busta',
+      index: '4',
+      title: 'Busta e indice',
+      state: actionBlocked ? 'Azione da risolvere' : guidedCompletion ? 'Controllo pronto' : 'Pronta',
+      detail: generationPhaseDetail,
+      tone: generationPhaseTone,
+    },
+    {
+      href: '#inventario-fascicolo',
+      index: '5',
+      title: 'Inventario',
+      state: documentsToClassify.length ? 'Da classificare' : 'Letto',
+      detail: `${data.documents.length} documenti nel fascicolo`,
+      tone: documentsToClassify.length ? 'warning' : 'success',
+    },
+  ]
+  const scrollToDepositPhase = (targetId: string, behavior: ScrollBehavior = 'smooth') => {
+    if (!targetId || typeof document === 'undefined') return
+    const target = document.getElementById(targetId)
+    if (!target) return
+    if (target instanceof HTMLDetailsElement) target.open = true
+    target.scrollIntoView({ behavior, block: 'start' })
+  }
+  const openDepositPhase = (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!href.startsWith('#')) return
+    event.preventDefault()
+    const targetId = href.slice(1)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${targetId}`)
+    }
+    scrollToDepositPhase(targetId)
+  }
+
+  useEffect(() => {
+    if (loading || typeof window === 'undefined') return undefined
+    const targetId = decodeURIComponent(window.location.hash.replace(/^#/, ''))
+    if (!targetId) return undefined
+    const timer = window.setTimeout(() => scrollToDepositPhase(targetId, 'auto'), 160)
+    return () => window.clearTimeout(timer)
+  }, [loading, f.id])
 
   if (data.notFound) {
     return (
@@ -2528,7 +2643,7 @@ function DepositPreparePage({ id }:{id:string}) {
         <div>
           <span className="iu-fas-eyebrow"><Send size={16}/> Deposito telematico</span>
           <h1>Prepara deposito</h1>
-          <p><Badge tone={statusTone}>{recordText(deposit, 'status', regia.validation.status || 'Da verificare')}</Badge><span>{f.ref} - {f.client}</span></p>
+          <p><Badge tone={preparationTone}>{depositStatusText}</Badge><span>{f.ref} - {f.client}</span></p>
         </div>
         <div className="iu-fas-hero__actions">
           <Button href={detailHref}><ArrowLeft size={15}/> Torna al fascicolo</Button>
@@ -2539,7 +2654,7 @@ function DepositPreparePage({ id }:{id:string}) {
       </section>
 
       <section className="iu-fas-case-strip">
-        <strong>{f.rg || f.ref}</strong>
+        <strong>{visibleRg}</strong>
         <span>{f.court || 'Ufficio da verificare'}</span>
         <span>{f.procedureType || f.type}</span>
         <span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span>
@@ -2548,28 +2663,52 @@ function DepositPreparePage({ id }:{id:string}) {
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
 
       <section className="iu-fas-cockpit iu-fas-deposit-cockpit" aria-label="Stato deposito">
-        <StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${regia.header.completion}%`} note={regia.header.operationalState || 'da verificare'} tone={statusTone}/>
+        <StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${regia.header.completion}%`} note={depositStatusLabel(regia.header.operationalState || 'da verificare')} tone={preparationTone}/>
         <StatCard icon={<FolderOpen size={19}/>} label="Tutto fascicolo" value={data.documents.length} note={documentsToClassify.length ? `${documentsToClassify.length} da classificare` : 'letto integralmente'} tone={documentsToClassify.length ? 'warning' : 'success'} href="#inventario-fascicolo"/>
         <StatCard icon={<FileText size={19}/>} label="Candidati busta" value={depositCandidateDocuments.length} note={`${signedCandidateDocuments} firmati`} tone="primary" href="#documenti-deposito"/>
-        <StatCard icon={<FileCheck2 size={19}/>} label="Da firmare" value={unsignedCandidateDocuments} note="firma multipla immediata" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#documenti-deposito"/>
+        <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#proposta-busta"/>
         <StatCard icon={<Gavel size={19}/>} label="Atti principali" value={mainActs.length || 0} note="da confermare" tone={mainActs.length ? 'success' : 'warning'} href="#documenti-deposito"/>
         <StatCard icon={<Landmark size={19}/>} label="Catalogo portale" value={portalCatalog.length} note="separato dalla busta" tone={portalCatalog.length ? 'info' : 'neutral'} href="#catalogo-portale"/>
         <StatCard icon={<Mail size={19}/>} label="Ricevute" value={recentDeposits.length} note={recentDeposits[0]?.status || 'nessuna PEC'} tone={recentDeposits.length ? 'purple' : 'neutral'} href="#ricevute-deposito"/>
       </section>
 
+      <section className="iu-fas-deposit-phases" aria-label="Percorso deposito">
+        <header>
+          <div>
+            <strong>Percorso deposito</strong>
+            <span>Apri una fase e correggi subito ciò che serve: la busta nasce dalla selezione, dalla firma e dall'indice generati in questo flusso.</span>
+          </div>
+          <Badge tone={actionBlocked ? 'warning' : signatureBatchRequired ? 'warning' : 'success'}>
+            {actionBlocked ? 'Da completare' : signatureBatchRequired ? 'Firma richiesta' : 'Navigabile'}
+          </Badge>
+        </header>
+        <nav aria-label="Fasi operative del deposito">
+          {depositPhases.map((phase) => (
+            <a className={`iu-fas-deposit-phase iu-fas-deposit-phase--${phase.tone}`} href={phase.href} onClick={openDepositPhase(phase.href)} key={phase.href}>
+              <span className="iu-fas-deposit-phase__index">{phase.index}</span>
+              <span className="iu-fas-deposit-phase__copy">
+                <strong>{phase.title}</strong>
+                <small>{phase.detail}</small>
+              </span>
+              <Badge tone={phase.tone}>{phase.state}</Badge>
+              <ChevronRight size={15} aria-hidden="true"/>
+            </a>
+          ))}
+        </nav>
+      </section>
+
       <section className="iu-fas-detail-grid">
         <div className="iu-fas-detail-main">
-          <DetailSection id="verifica-deposito" title="Verifica deposito" icon={<ShieldCheck size={17}/>} defaultOpen count={validationRows.length}>
+          <DetailSection id="verifica-deposito" title="1. Verifica pratica" icon={<ShieldCheck size={17}/>} defaultOpen count={decisiveValidationRows.length}>
             <div className="iu-fas-regia__deposit iu-fas-deposit-prepare-box">
               <div>
-                <Badge tone={statusTone}>{blocked ? 'Bloccato' : ready ? 'Pronto' : 'Da verificare'}</Badge>
+                <Badge tone={preparationTone}>{decisiveValidationRows.length ? 'Da completare alla generazione' : ready ? 'Pronto per generare' : 'In preparazione'}</Badge>
                 <strong>{recordText(deposit, 'label', 'Deposito telematico')}</strong>
                 <p>{depositMessage}</p>
-                {blockReasons.length ? <ul>{blockReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
                 <p className="iu-fas-sync-note"><ShieldCheck size={14}/><strong>{deliveryLabel}</strong><span>{deliveryDetail}</span></p>
                 <p className="iu-fas-sync-note"><Gavel size={14}/><strong>Profilo pratica</strong><span>{[practiceProfileName, practiceProfileCode ? `codice ${practiceProfileCode}` : '', practiceProfileReason].filter(Boolean).join(' - ') || 'Il profilo determina documenti obbligatori, controlli e canale di deposito.'}</span></p>
-                <p className="iu-fas-sync-note"><ListChecks size={14}/><strong>Regola operativa</strong><span>{blockingRule} {nonBlockingRule}</span></p>
-                <p className="iu-fas-sync-note"><FileCheck2 size={14}/><strong>Firma multipla immediata</strong><span>{immediateBatchSigning || oneStepSigning ? 'I documenti selezionati vengono firmati subito con un solo comando e un solo PIN quando Local Signer è disponibile; ogni esito viene verificato e salvato prima di proseguire.' : 'La firma viene verificata secondo il canale impostato.'}</span></p>
+                <p className="iu-fas-sync-note"><ListChecks size={14}/><strong>Regola operativa</strong><span>Qui lavori sulla proposta. I requisiti obbligatori vengono controllati quando generi la busta; gli avvisi non fermano il lavoro.</span></p>
+                <p className="iu-fas-sync-note"><FileCheck2 size={14}/><strong>Firma nella generazione</strong><span>{immediateBatchSigning || oneStepSigning || signatureBatchRequired ? 'Quando premi Firma e genera busta, il software usa il PIN per firmare in lotto i documenti necessari, salva i documenti firmati e aggiorna hash/esiti prima della busta.' : 'La firma viene verificata secondo il canale impostato.'}</span></p>
                 <p className="iu-fas-sync-note"><PackageCheck size={14}/><strong>Indice documenti</strong><span>{documentIndexGeneratedBySoftware ? 'L’indice viene generato dal software in tempo reale quando viene preparata la busta.' : 'L’indice viene verificato durante la preparazione.'}</span></p>
               </div>
               <div className="iu-fas-regia__actions">
@@ -2591,27 +2730,42 @@ function DepositPreparePage({ id }:{id:string}) {
               <article>
                 <Badge tone={directPecReady ? 'success' : directPecAllowed ? 'warning' : portalUploadRequired ? 'info' : 'warning'}>{deliveryLabel}</Badge>
                 <strong>{packageKindLabel}</strong>
-                <span>{recordText(deliveryPolicy, 'officialChannel', regia.header.channel || 'Canale da verificare')}</span>
-                <small>{recordText(deliveryPolicy, 'note') || (deliveryMode === 'direct_pec' ? 'La ricevuta di accettazione PEC avvia il momento rilevante del deposito solo dopo invio conforme.' : 'Dopo l’invio sul portale importa ricevuta, protocollo o esito nel fascicolo.')}</small>
+                <span>{deliveryOfficialChannel}</span>
+                <small>{deliveryNote || (deliveryMode === 'direct_pec' ? 'La ricevuta di accettazione PEC avvia il momento rilevante del deposito solo dopo invio conforme.' : 'Dopo l’invio sul portale importa ricevuta, protocollo o esito nel fascicolo.')}</small>
               </article>
             </div>
             <div className="iu-fas-regia-list iu-fas-deposit-check-list">
-              {validationRows.map((row, index) => (
-                <article key={`${row.label}-${row.message}-${index}`}>
-                  <Badge tone={row.tone}>{row.label || 'Controllo'}</Badge>
-                  <strong>{row.message || row.note || 'Controllo registrato'}</strong>
+              {decisiveValidationRows.map((row, index) => (
+                <article className="iu-fas-deposit-check-list__decisive" key={`${row.label}-${row.message}-${index}`}>
+                  <Badge tone="warning">{depositIssueLabel(row)}</Badge>
+                  <strong>{depositIssueMessage(row)}</strong>
                   {row.note ? <span>{row.note}</span> : null}
                 </article>
               ))}
-              {!validationRows.length ? <p className="iu-empty">La verifica operativa non ha ancora restituito controlli. Avviala prima di preparare la sessione.</p> : null}
+              {!decisiveValidationRows.length ? <p className="iu-empty">Nessun requisito bloccante da risolvere prima del comando di generazione. Gli avvisi restano informativi.</p> : null}
             </div>
+            {advisoryValidationRows.length ? (
+              <details className="iu-fas-deposit-advisory">
+                <summary><AlertTriangle size={14}/> Avvisi e informazioni ({advisoryValidationRows.length})</summary>
+                <div className="iu-fas-regia-list iu-fas-deposit-check-list iu-fas-deposit-check-list--advisory">
+                  {advisoryValidationRows.map((row, index) => (
+                    <article key={`advisory-${row.label}-${row.message}-${index}`}>
+                      <Badge tone={row.tone === 'danger' ? 'warning' : row.tone}>{depositIssueLabel(row)}</Badge>
+                      <strong>{depositIssueMessage(row)}</strong>
+                      {row.note ? <span>{row.note}</span> : null}
+                    </article>
+                  ))}
+                </div>
+              </details>
+            ) : null}
           </DetailSection>
 
-          <DetailSection id="proposta-busta" title="Proposta busta" icon={<PackageCheck size={17}/>} defaultOpen count={packageDocuments.length}>
+          <DetailSection id="proposta-busta" title="2. Documenti da inviare" icon={<PackageCheck size={17}/>} defaultOpen count={packageDocuments.length}>
             <div className="iu-fas-deposit-selection" aria-label="Documenti da inviare nel deposito">
               <header>
                 <div>
                   <strong>Documenti da inviare</strong>
+                  <span>Puoi aggiungere documenti, includerli nella busta e lasciare al comando finale firma, hash, indice e controlli obbligatori.</span>
                   <span>Il software propone la busta dalla classificazione del fascicolo; l'avvocato può correggere la scelta prima di firmare e generare.</span>
                 </div>
                 <Badge tone={packageDocuments.length ? 'primary' : 'warning'}>
@@ -2621,7 +2775,14 @@ function DepositPreparePage({ id }:{id:string}) {
               <div className="iu-fas-deposit-selection__tools">
                 <button type="button" onClick={resetDepositSelectionToProposal}><PackageCheck size={14}/> Ripristina proposta</button>
                 <button type="button" onClick={selectAllDepositDocuments}><ListChecks size={14}/> Seleziona tutti i documenti</button>
+                <a href={`${detailHref}#documenti`}><UploadCloud size={14}/> Apri documenti fascicolo</a>
               </div>
+              {data.actions.uploadDocument ? (
+                <details className="iu-fas-deposit-upload">
+                  <summary><UploadCloud size={14}/> Allega documentazione al fascicolo</summary>
+                  <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
+                </details>
+              ) : null}
               <div className="iu-fas-deposit-selection__list">
                 {depositSelectableDocuments.map((doc) => {
                   const selected = packageDocuments.some((item) => item.id === doc.id)
@@ -2641,7 +2802,7 @@ function DepositPreparePage({ id }:{id:string}) {
                       <div>
                         <strong>{doc.name}</strong>
                         <span>{[doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
-                        {selected && requiresPackageSignature(doc) ? <small>Da firmare con firma multipla prima dell'invio.</small> : null}
+                        {selected && requiresPackageSignature(doc) ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
                       <Badge tone={role.tone}>{role.label}</Badge>
                     </label>
@@ -2650,12 +2811,33 @@ function DepositPreparePage({ id }:{id:string}) {
                 {!depositSelectableDocuments.length ? <p className="iu-empty">Nessun documento selezionabile: carica o classifica l'atto principale e gli allegati prima del deposito.</p> : null}
               </div>
             </div>
+          </DetailSection>
+
+          <DetailSection id="firma-busta" title="3. Firma documenti" icon={<FileCheck2 size={17}/>} defaultOpen count={unsignedPackageDocuments.length}>
+            <div className="iu-fas-deposit-phase-note">
+              <Badge tone={signaturePhaseTone}>{signatureBatchRequired ? 'Firma nel comando' : 'Firme coerenti'}</Badge>
+              <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima della busta' : 'La proposta non richiede firme ulteriori prima della busta'}</strong>
+              <span>{signatureBatchRequired ? 'L’avvocato inserisce il PIN una sola volta nel comando finale; il software firma in lotto, salva gli esiti e aggiorna le impronte prima di generare il pacchetto.' : 'Puoi passare alla generazione: indice e pacchetto vengono costruiti dalla selezione corrente.'}</span>
+            </div>
+            {signatureBatchRequired ? (
+              <DepositBatchSignaturePanel
+                fascicoloId={f.id || id}
+                documents={unsignedPackageDocuments}
+                signature={data.signature}
+                registerAction={registerBatchSignatureAction}
+                onDone={refreshDetail}
+                onError={failDetail}
+              />
+            ) : null}
+          </DetailSection>
+
+          <DetailSection id="generazione-busta" title="4. Busta e indice" icon={<FileArchive size={17}/>} defaultOpen count={packageDocuments.length + 2}>
             <div className="iu-fas-package-board">
               <article className="iu-fas-package-main">
                 <Badge tone={mainActDocument ? (mainActDocument.signed ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
                 <strong>{mainActDocument?.name || 'Da selezionare'}</strong>
                 <span>{mainActDocument ? [mainActDocument.type, mainActDocument.statusLabel, mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
-                {mainActDocument && !mainActDocument.signed ? <small>Incluso nella firma multipla immediata.</small> : null}
+                {mainActDocument && !mainActDocument.signed ? <small>Firma prevista nel comando finale.</small> : null}
               </article>
               <article>
                 <Badge tone={selectedAttachmentIds.length ? 'primary' : 'neutral'}>Allegati</Badge>
@@ -2675,16 +2857,9 @@ function DepositPreparePage({ id }:{id:string}) {
               <article>
                 <Badge tone={unsignedPackageDocuments.length ? 'warning' : 'success'}>Firme</Badge>
                 <strong>{unsignedPackageDocuments.length}</strong>
-                <span>{unsignedPackageDocuments.length ? 'Documenti da firmare subito con un solo comando.' : 'Documenti selezionati già firmati o non bloccanti.'}</span>
+                <span>{unsignedPackageDocuments.length ? 'Documenti che il comando finale firmerà con un solo PIN.' : 'Documenti selezionati già firmati o non bloccanti.'}</span>
               </article>
             </div>
-            <DepositBatchSignaturePanel
-              fascicoloId={f.id || id}
-              documents={unsignedPackageDocuments}
-              signature={data.signature}
-              onDone={refreshDetail}
-              onError={failDetail}
-            />
             <div className="iu-fas-package-docs">
               <article key="package-datiatto">
                 <FileText size={16}/>
@@ -2711,7 +2886,7 @@ function DepositPreparePage({ id }:{id:string}) {
                       <strong>{doc.name}</strong>
                       <span>{[proofLabel, doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
                     </div>
-                    {requiresPackageSignature(doc) ? <small>Firma multipla immediata</small> : null}
+                    {requiresPackageSignature(doc) ? <small>Firma nel comando busta</small> : null}
                   </article>
                 )
               })}
@@ -2722,6 +2897,8 @@ function DepositPreparePage({ id }:{id:string}) {
                 action={bustaAction}
                 payload={depositActionPayload}
                 disabled={actionBlocked}
+                disabledReason={actionBlockedReason}
+                beforeSubmit={signatureBatchRequired ? runBatchSignatureBeforeDeposit : undefined}
                 tone="primary"
                 confirm={
                   directPecReady
@@ -2734,14 +2911,14 @@ function DepositPreparePage({ id }:{id:string}) {
                 onDone={refreshDetail}
                 onError={failDetail}
               >
-                {directPecReady ? <Send size={15}/> : <FileArchive size={15}/>} {directPecReady ? sendLabel : guidedCompletion ? 'Genera controllo e indice' : 'Genera busta pronta'}
+                {directPecReady ? <Send size={15}/> : <FileArchive size={15}/>} {signatureBatchRequired ? 'Firma e genera busta' : directPecReady ? sendLabel : guidedCompletion ? 'Genera controllo e indice' : 'Genera busta pronta'}
               </DepositActionButton>
               {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
-              {actionBlocked ? <small>{depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0)}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati subito con firma multipla. ` : ''}{directPecReady ? 'Il software prepara busta, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software prepara controlli, indice e pacchetto; l’avvocato completa solo il passaggio ministeriale che il software non può ancora produrre.' : 'Il software prepara la busta: il caricamento finale resta sul portale ufficiale.'}</small>}
+              {actionBlocked ? <small>{depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0)}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati nel comando finale con firma multipla. ` : ''}{directPecReady ? 'Il software prepara busta, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software prepara controlli, indice e pacchetto; l’avvocato completa solo il passaggio ministeriale che il software non può ancora produrre.' : 'Il software prepara la busta: il caricamento finale resta sul portale ufficiale.'}</small>}
             </div>
           </DetailSection>
 
-          <DetailSection id="inventario-fascicolo" title="Inventario intero fascicolo" icon={<FolderOpen size={17}/>} defaultOpen count={data.documents.length}>
+          <DetailSection id="inventario-fascicolo" title="5. Inventario fascicolo" icon={<FolderOpen size={17}/>} defaultOpen count={data.documents.length}>
             <p className="iu-fas-sync-note"><FolderOpen size={14}/> La preparazione legge tutti i documenti presenti nel fascicolo; la busta usa poi slot, classificazione e controlli del canale.</p>
             <div className="iu-fas-comm-list">
               {data.documents.map((doc) => {
@@ -2824,7 +3001,7 @@ function DepositPreparePage({ id }:{id:string}) {
               { label: 'Fascicolo', value: f.ref || f.id, href: detailHref },
               { label: 'Cliente', value: f.client },
               { label: 'Ufficio', value: f.court },
-              { label: 'RG', value: f.rg, mono: true },
+              { label: 'RG', value: visibleRg, mono: true },
               { label: 'Codice oggetto', value: f.codiceOggettoPst || 'n.d.' },
               { label: 'Canale', value: regia.header.channel || 'da verificare' },
             ]}/>
@@ -2874,12 +3051,14 @@ function DepositBatchSignaturePanel({
   fascicoloId,
   documents,
   signature,
+  registerAction,
   onDone,
   onError,
 }: {
   fascicoloId: string
   documents: FascicoloDocument[]
   signature: FascicoloDetailData['signature']
+  registerAction?: (action: BatchSignatureAction | null) => void
   onDone: (message?: string) => void
   onError: (message: string) => void
 }) {
@@ -2942,8 +3121,6 @@ function DepositBatchSignaturePanel({
   useEffect(() => {
     if (documents.length) void checkLocalSigner(false)
   }, [documents.length])
-
-  if (!documents.length) return null
 
   const scheduleLocalSignerRestartCheck = () => {
     setError('')
@@ -3053,10 +3230,18 @@ function DepositBatchSignaturePanel({
       setError(msg)
       setMessage('')
       onError(msg)
+      throw exc
     } finally {
       setBusy(false)
     }
   }
+
+  useEffect(() => {
+    registerAction?.(documents.length ? signAll : null)
+    return () => registerAction?.(null)
+  }, [documents.length, pin, localSignerCanSign, restartSuggested, localSignerReachable, primaryToken?.slot_id, visibleSignatureMode, visibleSignaturePlace, visibleSignatureDatetimeMode])
+
+  if (!documents.length) return null
 
   const signerTitle = displayToken
     ? (restartSuggested ? 'Token rilevato, riavvio consigliato' : 'Local Signer pronto')
@@ -3127,7 +3312,7 @@ function DepositBatchSignaturePanel({
             </label>
           </div>
           <div className="iu-fas-batch-signature__actions">
-            <button className="iu-fas-submit" type="button" onClick={signAll} disabled={busy}>
+            <button className="iu-fas-submit" type="button" onClick={() => { void signAll().catch(() => undefined) }} disabled={busy}>
               <ShieldCheck size={16}/> {busy ? 'Firma multipla...' : `Firma ${documents.length} documenti`}
             </button>
             <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>
@@ -3342,6 +3527,36 @@ function notificationCommunicationDetail(doc: FascicoloDocument): string {
   return 'Prova di notifica conservata nel fascicolo.'
 }
 
+function depositIssueLabel(row: { label?: string; message?: string; note?: string }): string {
+  const text = normaliseText(`${row.label || ''} ${row.message || ''}`)
+  if (/atto principale/.test(text)) return 'Atto principale'
+  if (/codice oggetto|catalogo/.test(text)) return 'Codice deposito'
+  if (/ufficio|registro|rg/.test(text)) return 'Dati fascicolo'
+  if (/pdf\/?a/.test(text)) return 'Formato atto'
+  if (/file|slot|documento non collegato|documento vuoto/.test(text)) return 'Documento busta'
+  if (/hash|datiatto|xml|schema|busta|indice/.test(text)) return 'Busta'
+  if (/firm|firma|pin|token/.test(text)) return 'Firma'
+  if (/preventivo|conferimento|pagamento|acconto|fattura/.test(text)) return 'Informazione studio'
+  return row.label || 'Controllo'
+}
+
+function depositIssueMessage(row: { message?: string; note?: string; label?: string }): string {
+  const text = normaliseText(`${row.message || ''} ${row.note || ''} ${row.label || ''}`)
+  if (/hash documento assente|calcolare l'?hash|calcol.*hash/.test(text)) return 'Ricalcola l’impronta del documento prima della generazione.'
+  if (/file non collegato|documento non collegato|collega il documento/.test(text)) return 'Collega il documento richiesto alla busta.'
+  if (/file non apribile|ricarica il documento|correggi il collegamento/.test(text)) return 'Ricarica il documento oppure correggi il collegamento.'
+  if (/documento vuoto|file valido/.test(text)) return 'Ricarica un file valido.'
+  return row.message || row.note || row.label || 'Controllo registrato'
+}
+
+function isDecisiveDepositIssue(row: { tone?: string; label?: string; message?: string; note?: string }): boolean {
+  if (row.tone !== 'danger') return false
+  const text = normaliseText(`${row.label || ''} ${row.message || ''} ${row.note || ''}`)
+  if (/firm|firma|pin|token|certificat/.test(text)) return false
+  if (/preventivo|conferimento|pagamento|acconto|fattura|onorari|cliente|avvocato referente|recapito|email|controparte/.test(text)) return false
+  return /(atto principale|codice oggetto|catalogo ufficiale|ufficio|registro|rg|documento selezionato|file|percorso|hash|datiatto|xml|schema|busta|indice|pdf\/?a|dimensione|slot|obbligator)/.test(text)
+}
+
 function requiresPackageSignature(doc: FascicoloDocument): boolean {
   const proofKind = notificationProofKind(doc)
   if (proofKind && proofKind !== 'relata') return false
@@ -3445,6 +3660,23 @@ function depositPackageKindLabel(value: string): string {
   return 'Pacchetto da verificare'
 }
 
+function depositDeliveryNote(note: string, officialChannel: string, practiceProfileName: string, fallbackChannel: string): string {
+  const clean = note.trim()
+  if (!clean) return ''
+  const context = normaliseText(`${officialChannel} ${practiceProfileName} ${fallbackChannel}`)
+  if (/(lavoro|rgl|retribuzion)/.test(context) && /pct civile|civile sicid/.test(normaliseText(clean))) {
+    return 'Profilo lavoro applicato: usare il canale PCT lavoro/SICID; per altri registri la Regia richiede il canale corrispondente.'
+  }
+  return clean
+}
+
+function depositVisibleReference(primary: string, fallback: string): string {
+  const value = String(primary || '').trim()
+  const normalized = normaliseText(value).replace(/\s+/g, '')
+  if (value && normalized !== 'nd' && normalized !== 'n.d.') return value
+  return String(fallback || '').trim() || 'Da verificare'
+}
+
 function depositActCodeFromDocument(doc: FascicoloDocument | undefined, profile: Record<string, unknown>): string {
   const text = normaliseText(`${doc?.type || ''} ${doc?.name || ''} ${recordText(profile, 'procedureCode')} ${recordText(profile, 'practiceId')}`)
   if (/comparsa/.test(text)) return 'COMPARSA_RISPOSTA'
@@ -3467,9 +3699,17 @@ function depositRegistryCode(fascicolo: FascicoloFull): string {
 
 function depositActionBlockedReason(ready: boolean, mainAct: FascicoloDocument | undefined, missingSlots: number, unsignedDocs = 0): string {
   if (!mainAct) return 'Seleziona l’atto principale prima di generare la busta.'
-  if (missingSlots) return `${missingSlots} slot obbligatori richiedono la selezione dell’avvocato.`
-  if (unsignedDocs) return `Firma ${unsignedDocs} documenti richiesti con la firma multipla immediata prima dell’invio.`
+  if (missingSlots === 1) return '1 scelta obbligatoria richiede la conferma dell’avvocato.'
+  if (missingSlots) return `${missingSlots} scelte obbligatorie richiedono la conferma dell’avvocato.`
+  if (unsignedDocs === 1) return '1 documento sarà firmato nel comando finale prima della busta.'
+  if (unsignedDocs) return `${unsignedDocs} documenti saranno firmati nel comando finale prima della busta.`
   if (!ready) return 'Esegui e supera la verifica deposito prima dell’azione finale.'
+  return ''
+}
+
+function depositGenerationBlockedReason(mainAct: FascicoloDocument | undefined, missingSlots: number): string {
+  if (!mainAct) return 'Seleziona l’atto principale prima di generare la busta.'
+  if (missingSlots) return `${missingSlots} scelte obbligatorie richiedono la selezione dell’avvocato.`
   return ''
 }
 

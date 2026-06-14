@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.253.25 - 2026-06-14
+
+- Topbar: l'icona `Recenti` ora copre anche le ricerche recenti, con badge unico calcolato da elementi aperti più ricerche e pannello diviso in `Elementi aperti` e `Ricerche recenti`.
+- Ricerca Studio: aggiunta API protetta `/api/recent/search` per registrare solo query realmente usate dalla topbar, con deduplica della stessa ricerca e link diretto a `/global-search?q=...`.
+- Ricerca Studio: il click su un risultato registra nello stesso evento utente sia la ricerca sia l'elemento aperto, senza dipendere dal caricamento successivo della pagina; rimossi percorsi fragili basati su `Promise.race` o `keepalive`.
+- Verifica reale: su Docker locale `127.0.0.1:8080` versione `2.253.25`, Chrome visibile ha aperto da topbar il fascicolo `/fascicoli/8804C177`, mostrando poi `Recenti e ricerche (2)` con `Elementi aperti` e `Ricerche recenti`.
+- Guardrail: estesi test topbar e contratto dati per impedire regressioni su notifiche, scadenze, recenti, ricerche recenti, API collegate e sequenza ricerca -> elemento aperto.
+
+## 2.253.24 - 2026-06-14
+
+- Studio React: verificato nel browser reale locale il perimetro Studio completo, incluse `Legal Skills` e `Regia Agentica`, con `#root` React, menu Studio completo, scroll pagina e assenza di fallback `?_legacy=1`.
+- Topbar: corretti e blindati i testi italiani di timer e riepilogo attività (`Timer attività`, `Avvia attività`, `Tipo attività`, `Nuova attività`) e verificati i pannelli operativi su `127.0.0.1:8080`.
+- Assistenza remota: confermato con click reale che il pulsante della topbar crea una sessione protetta; la sessione di prova viene chiusa come `Chiusa` dopo la verifica.
+
+## 2.253.23 - 2026-06-14
+
+- Governance dati/tenant/React: aggiunto il contratto applicativo che copre macro-aree, sottomenu e alias della sidebar React, con route full React, API, path tenant-aware, JSON, SQLite, PostgreSQL e repository dedicati.
+- Audit runtime: introdotto `scripts/audit_data_flow_contract.py` per diagnosticare `studio.db`, mirror JSON e indice FTS, con riparazione esplicita solo di cache rigenerabili tramite `--repair-json-mirror` e `--repair-search-index`.
+- Storage: estesa la parità SQLite/PostgreSQL e la migrazione core per time tracking, messaggi, privacy, notifiche, backup e configurazioni collegate.
+- Topbar: mantenuti i collegamenti reali a notifiche, scadenze, recenti, timer, assistenza remota e Voce Studio, con microcopy italiano corretto per `Nuova attività` e `già collegata`.
+
 ## 2.253.22 - 2026-06-14
 
 - Sicurezza CodeQL: eliminata l’annotazione medium residua sul wrapper JSON pubblico, sostituendo il `jsonify` diretto su payload sanificati con una `Response` JSON controllata dopo serializzazione sicura.

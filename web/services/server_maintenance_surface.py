@@ -8,6 +8,7 @@ from pathlib import Path
 import hashlib
 import json
 import os
+import re
 import shutil
 import time
 import uuid
@@ -31,6 +32,7 @@ DEFAULT_HOST_STORAGE_SCAN_MAX_FILES = 4_000
 DEFAULT_HOST_STORAGE_SCAN_SECONDS = 0.75
 BACKUP_ARCHIVE_SUFFIXES = (".tar.zst", ".tar.gz")
 DOCKER_SOCKET_PATH = "/var/run/docker.sock"
+TENANT_STORAGE_KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 
 
 def _public_runtime_error(message: str = "Operazione non completata.") -> str:
@@ -542,6 +544,27 @@ def _is_path_inside(child: Path, parent: Path) -> bool:
     return True
 
 
+def _safe_tenant_storage_key(value: Any) -> str:
+    storage_key = str(value or "").strip()
+    if not storage_key or storage_key in {".", ".."}:
+        return ""
+    if "/" in storage_key or "\\" in storage_key or ":" in storage_key or ".." in storage_key:
+        return ""
+    if not TENANT_STORAGE_KEY_RE.fullmatch(storage_key):
+        return ""
+    return storage_key
+
+
+def _tenant_root_by_storage_key(tenants_root: Path, storage_key: Any) -> Path | None:
+    safe_key = _safe_tenant_storage_key(storage_key)
+    if not safe_key or not tenants_root.is_dir():
+        return None
+    for candidate in tenants_root.iterdir():
+        if candidate.name == safe_key and candidate.is_dir() and _is_path_inside(candidate, tenants_root):
+            return candidate
+    return None
+
+
 def _tenant_identity_hash(record: dict[str, Any]) -> str:
     parts = [
         str(record.get("id") or "").strip(),
@@ -555,11 +578,9 @@ def _tenant_identity_hash(record: dict[str, Any]) -> str:
 
 def _tenant_context_from_record(data_root: Path, record: dict[str, Any]) -> dict[str, Any] | None:
     tenants_root = data_root / "tenants"
-    storage_key = str(record.get("storage_key") or record.get("slug") or "").strip()
-    if not storage_key:
-        return None
-    root = tenants_root / storage_key
-    if not root.is_dir() or not _is_path_inside(root, tenants_root):
+    storage_key = _safe_tenant_storage_key(record.get("storage_key") or record.get("slug"))
+    root = _tenant_root_by_storage_key(tenants_root, storage_key)
+    if root is None:
         return None
     tenant_hash = _tenant_identity_hash(record)
     if not tenant_hash:

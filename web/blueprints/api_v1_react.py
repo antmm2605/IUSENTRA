@@ -665,8 +665,82 @@ def _audit_event(action: str, resource_type: str = "", resource_id: str = "", de
         audit(action, resource_type, resource_id, details)
 
 
+_PUBLIC_JSON_RESERVED_DETAIL = "Dettaglio riservato registrato in sicurezza."
+_PUBLIC_JSON_RESERVED_KEYS = {
+    "debug",
+    "debug_info",
+    "errore_tecnico",
+    "exception",
+    "exception_class",
+    "exception_message",
+    "exc",
+    "exc_info",
+    "internal_error",
+    "last_error",
+    "raw_error",
+    "raw_exception",
+    "stack",
+    "stack_trace",
+    "stacktrace",
+    "stderr",
+    "stdout",
+    "traceback",
+}
+_PUBLIC_JSON_RESERVED_MARKERS = (
+    "Traceback (most recent call last):",
+    "\n  File ",
+    "\nFile ",
+    ".py\", line ",
+    "RuntimeError:",
+    "ValueError:",
+    "Exception:",
+    "site-packages",
+    "psycopg",
+    "sqlite3.",
+)
+_PUBLIC_JSON_SERVER_PATH_RE = re.compile(r"(?i)([A-Z]:\\|/opt/|/home/|/var/task|/app/|site-packages)")
+
+
+def _public_json_text(value: str) -> str:
+    if any(marker in value for marker in _PUBLIC_JSON_RESERVED_MARKERS):
+        return _PUBLIC_JSON_RESERVED_DETAIL
+    if _PUBLIC_JSON_SERVER_PATH_RE.search(value):
+        return _PUBLIC_JSON_RESERVED_DETAIL
+    return value[:2000]
+
+
+def _public_json_payload(value: Any, key: str = "") -> Any:
+    normalized_key = str(key or "").strip().lower()
+    if normalized_key in _PUBLIC_JSON_RESERVED_KEYS:
+        return _PUBLIC_JSON_RESERVED_DETAIL
+    if isinstance(value, Mapping):
+        return {str(item_key): _public_json_payload(item_value, str(item_key)) for item_key, item_value in value.items()}
+    if isinstance(value, list):
+        return [_public_json_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return [_public_json_payload(item) for item in value]
+    if isinstance(value, str):
+        return _public_json_text(value)
+    return value
+
+
+def _jsonify_public_payload(payload: Mapping[str, Any], status: int = 200):
+    return jsonify(_public_json_payload(dict(payload))), status
+
+
 def _jsonify_domain_payload(payload: dict[str, Any], *, missing_status: int = 404):
-    return jsonify(payload), missing_status if payload.get("notFound") else 200
+    return _jsonify_public_payload(payload, missing_status if payload.get("notFound") else 200)
+
+
+def _pdf_import_public_result(result: Mapping[str, Any]) -> dict[str, Any]:
+    sanitized = dict(_public_json_payload(dict(result)))
+    if result.get("ok"):
+        safe_message = sanitized.get("message")
+        sanitized["message"] = str(safe_message) if safe_message else "Scadenze PDF importate."
+    else:
+        sanitized["message"] = "Importazione PDF non completata."
+        sanitized["errore"] = "Importazione PDF non completata."
+    return sanitized
 
 
 @api_v1_react.before_request
@@ -2874,7 +2948,7 @@ def scadenziario_pdf_scadenze_importa():
         if result.get("ok"):
             _audit_event("scadenziario.importa_pdf", "scadenza", "", str(result.get("message") or ""))
             _sync_event("crea", "scadenze", "pdf-import")
-        return jsonify(result), 200 if result.get("ok") else 400
+        return _jsonify_public_payload(_pdf_import_public_result(result), 200 if result.get("ok") else 400)
     except Exception as exc:
         current_app.logger.exception("Import scadenze PDF non riuscito: %s", exc)
         return jsonify({"ok": False, "errore": "Importazione PDF non completata.", "message": "Importazione PDF non completata."}), 400
@@ -4249,7 +4323,7 @@ def fascicolo_react_lex(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/regia")
 @_richiedi_auth
 def fascicolo_regia_operativa(id_fasc: str):
-    return jsonify(build_react_practice_engine_payload(
+    return _jsonify_public_payload(build_react_practice_engine_payload(
         fascicolo_id=id_fasc,
         get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
@@ -4283,7 +4357,7 @@ def fascicolo_regia_applica_profilo(id_fasc: str):
         fascicoli_manager=ctx["gf"],
         actor=_actor_label(),
     )
-    return jsonify({"ok": True, "mock_fallback": False, "message": "Profilo pratica applicato e checklist rigenerata.", "regia": result})
+    return _jsonify_public_payload({"ok": True, "mock_fallback": False, "message": "Profilo pratica applicato e checklist rigenerata.", "regia": result})
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/regia/ricalcola")
@@ -4305,7 +4379,7 @@ def fascicolo_regia_ricalcola(id_fasc: str):
         fascicoli_manager=ctx["gf"],
         actor=_actor_label(),
     )
-    return jsonify({"ok": True, "mock_fallback": False, "regia": result})
+    return _jsonify_public_payload({"ok": True, "mock_fallback": False, "regia": result})
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/checklist")
@@ -4320,7 +4394,7 @@ def fascicolo_regia_checklist(id_fasc: str):
         get_practice_engine=get_practice_engine,
         actor=_actor_label(),
     )
-    return jsonify({"source": "repository reale", "mock_fallback": False, "checklist": payload.get("checklist", [])})
+    return _jsonify_public_payload({"source": "repository reale", "mock_fallback": False, "checklist": payload.get("checklist", [])})
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/document-slots")
@@ -4335,7 +4409,7 @@ def fascicolo_regia_document_slots(id_fasc: str):
         get_practice_engine=get_practice_engine,
         actor=_actor_label(),
     )
-    return jsonify({"source": "repository reale", "mock_fallback": False, "documentSlots": payload.get("documentSlots", [])})
+    return _jsonify_public_payload({"source": "repository reale", "mock_fallback": False, "documentSlots": payload.get("documentSlots", [])})
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/document-slots/<slot_key>/link")
@@ -4351,7 +4425,7 @@ def fascicolo_regia_link_slot(id_fasc: str, slot_key: str):
     if not any(getattr(doc, "id", "") == document_id for doc in getattr(ctx["fascicolo"], "documenti", []) or []):
         return jsonify({"errore": "Documento reale non trovato nel fascicolo.", "mock_fallback": False}), 404
     slot = ctx["repo"].link_slot(id_fasc, slot_key, document_id, actor=_actor_label())
-    return jsonify({"ok": True, "mock_fallback": False, "slot": slot.__dict__, "message": "Documento collegato allo slot."})
+    return _jsonify_public_payload({"ok": True, "mock_fallback": False, "slot": slot.__dict__, "message": "Documento collegato allo slot."})
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/document-slots/<slot_key>/validate")
@@ -4377,7 +4451,7 @@ def fascicolo_regia_validate_slot(id_fasc: str, slot_key: str):
     updated, results = validate_slot(slot, validation_ctx)
     ctx["repo"].upsert_slot(updated)
     ctx["repo"].save_validation_results(id_fasc, results, scope="slot", slot_key=slot_key)
-    return jsonify({"ok": True, "mock_fallback": False, "slot": updated.__dict__, "results": [item.__dict__ for item in results]})
+    return _jsonify_public_payload({"ok": True, "mock_fallback": False, "slot": updated.__dict__, "results": [item.__dict__ for item in results]})
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/predeposito/check")
@@ -4399,7 +4473,7 @@ def fascicolo_regia_predeposito(id_fasc: str):
         fascicoli_manager=ctx["gf"],
     )
     ctx["repo"].audit(id_fasc, "PREDEPOSIT_CHECK", actor=_actor_label(), message="Check predeposito eseguito.", payload={"status": readiness["status"]})
-    return jsonify({
+    return _jsonify_public_payload({
         "ok": True,
         "mock_fallback": False,
         "status": readiness["status"],

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.21 - 2026-06-14
+
+- Sicurezza CodeQL: chiuse le annotazioni su tenant storage, validando la chiave studio prima di risolvere cartelle sotto `data/tenants` e impedendo traversal o path assoluti nei controlli manutenzione server.
+- API React: aggiunto sanitizer pubblico sui payload delle route Fascicolo/Regia e import scadenze PDF, così traceback, eccezioni e percorsi server restano nei log riservati e non vengono rimandati al browser.
+- CI anti falso-verde: `CodeQL`/code scanning è ora richiesto anche sui push dei branch gemelli, quindi un deploy non può più risultare verde mentre il check sicurezza dello stesso SHA è rosso.
+- Test mirati: aggiunte regressioni su traversal tenant, payload pubblici senza stack trace e gate CodeQL bloccante su push.
+
 ## 2.253.20 - 2026-06-14
 
 - CI e deploy: il gate obbligatorio GitHub riconosce i check duplicati dei due branch gemelli e non scambia una cancellazione di concorrenza per un fallimento reale quando esiste lo stesso check riuscito sullo SHA corrente.

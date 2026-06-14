@@ -97,10 +97,7 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     contexts = module.branch_protection_contexts(config)
     assert "CI reale eseguita sul commit corrente" in contexts
     assert "Lint + syntax" in contexts
-    # I check PR-only NON vanno nella branch protection: i branch gemelli
-    # ricevono push di mirroring, mai merge di PR, e un contesto che esiste
-    # solo nelle PR resterebbe "expected" per sempre bloccando il sync (GH006).
-    assert "CodeQL" not in contexts
+    assert "CodeQL" in contexts
     assert "Analyze (python)" in contexts
     assert "Review dipendenze in ingresso" not in contexts
     assert "Frontend React contratti" in contexts
@@ -121,11 +118,7 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     codeql = [check for check in module.expand_required_checks(config) if check.name == "CodeQL"][0]
     assert codeql.accepted_conclusions == ("success", "neutral")
 
-    # CodeQL e' richiesto solo su pull_request: l'umbrella check Code Scanning
-    # non viene prodotto sui push (sul push c'e' solo il job "Analyze (python)").
-    # Valutiamo quindi su pull_request, dove CodeQL e' in scope e il conclusion
-    # "neutral" deve essere accettato come ok.
-    assert "CodeQL" not in push_checks
+    assert "CodeQL" in push_checks
     assert "CodeQL" in pull_request_checks
     rows = module.evaluate_required_checks(
         config,
@@ -142,15 +135,18 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     assert by_name["CodeQL"].state == "ok"
     assert by_name["Smoke test Flask"].state == "missing"
 
-    # Su push, CodeQL non e' richiesto: ogni gate richiesto su push deve avere un
-    # job che lo produce, altrimenti la CI resta bloccata su un check fantasma.
+    # Su push, CodeQL e' bloccante come richiesto dalla regola anti falso-verde:
+    # se il check Code Scanning fallisce, deploy e report restano bloccati.
     push_rows = module.evaluate_required_checks(
         config,
-        [{"name": "Analyze (python)", "status": "completed", "conclusion": "success"}],
+        [
+            {"name": "Analyze (python)", "status": "completed", "conclusion": "success"},
+            {"name": "CodeQL", "status": "completed", "conclusion": "failure"},
+        ],
         "push",
     )
     push_by_name = {row.name: row for row in push_rows}
-    assert "CodeQL" not in push_by_name
+    assert push_by_name["CodeQL"].state == "failed"
     assert push_by_name["Analyze (python)"].state == "ok"
 
     duplicated_rows = module.evaluate_required_checks(
@@ -218,6 +214,7 @@ def test_every_push_required_check_has_a_producing_job() -> None:
     push_required = {check.name for check in module.expand_required_checks(config, event="push")}
 
     external_providers = {"Vercel", "Vercel Preview Comments"}
+    github_generated_checks = {"CodeQL"}
     # Il job-orchestratore che ATTENDE i gate non puo' attendere se stesso.
     waiter_jobs = {"CI reale eseguita sul commit corrente"}
 
@@ -235,6 +232,7 @@ def test_every_push_required_check_has_a_producing_job() -> None:
         name
         for name in push_required
         if name not in external_providers
+        and name not in github_generated_checks
         and name not in waiter_jobs
         and not any(name == prefix or name.startswith(prefix) for prefix in produced_prefixes)
     )

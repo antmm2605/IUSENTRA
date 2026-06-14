@@ -12,7 +12,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 - Endpoint con `_richiedi_auth`: 247/247.
 - Endpoint con metodo di scrittura o cancellazione: 122.
 - Endpoint con superficie file/upload/download/export/evidence: 13.
-- Route manifest censite: 112; critical: 18; high/P1: 73.
+- Route manifest censite: 113; critical: 18; high/P1: 74.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
 - Denial log: `policy_denied.backend_security` e warning applicativo `policy_denied backend_security_control_param` senza valori sensibili.
 

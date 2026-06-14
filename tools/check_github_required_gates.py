@@ -230,13 +230,24 @@ def _run_sort_key(run: dict[str, Any]) -> str:
     return str(run.get("completed_at") or run.get("started_at") or run.get("created_at") or "")
 
 
+def _prefer_success_over_duplicate_cancelled(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
+    """Keep a successful twin-branch run when a later duplicate is only cancelled/skipped."""
+    candidate_conclusion = str(candidate.get("conclusion") or "")
+    current_conclusion = str(current.get("conclusion") or "")
+    if candidate_conclusion in {"cancelled", "skipped"} and current_conclusion == "success":
+        return False
+    if candidate_conclusion == "success" and current_conclusion in {"cancelled", "skipped"}:
+        return True
+    return _run_sort_key(candidate) > _run_sort_key(current)
+
+
 def latest_check_runs_by_name(check_runs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     latest: dict[str, dict[str, Any]] = {}
     for run in check_runs:
         name = str(run.get("name", ""))
         if not name:
             continue
-        if name not in latest or _run_sort_key(run) > _run_sort_key(latest[name]):
+        if name not in latest or _prefer_success_over_duplicate_cancelled(run, latest[name]):
             latest[name] = run
     return latest
 

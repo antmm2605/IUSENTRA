@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.20 - 2026-06-14
+
+- CI e deploy: il gate obbligatorio GitHub riconosce i check duplicati dei due branch gemelli e non scambia una cancellazione di concorrenza per un fallimento reale quando esiste lo stesso check riuscito sullo SHA corrente.
+- Anti falso-verde: aggiunta regressione sul selettore dei check richiesti, così i report di rilascio restano bloccanti sui fallimenti veri ma non impediscono il deploy per cancellazioni duplicate già coperte da una run verde.
+
 ## 2.253.19 - 2026-06-14
 
 - Deposito telematico: il codice oggetto ministeriale scelto in apertura fascicolo viene normalizzato e usato nei passaggi di deposito; il controllo copre tutti i 1018 codici ufficiali PST importati dagli XSD, non solo casi campione come `222050`.

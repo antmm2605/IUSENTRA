@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## Deposito telematico e gate CI 2.253.20 - 2026-06-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_ci_cd_gates_phase11.py --tb=short` | OK | 7/7: il gate GitHub distingue le cancellazioni duplicate dei branch gemelli dai fallimenti reali e mantiene bloccanti i check richiesti. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging allineato dopo bump `2.253.20`. |
+| `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI valida e versione `2.253.20` esposta. |
+| `python -m py_compile tools\check_github_required_gates.py` | OK | Sintassi confermata sul gate CI obbligatorio. |
+| `python tools\check_github_required_gates.py --sha 9e62438849f8e39dced179d7f7c553b4d6698375 --event push --check-branch-protection --report-md artifacts\ci\current-sha-required-gates.md --report-json artifacts\ci\current-sha-required-gates.json` | OK | Verifica retrospettiva sullo SHA precedente: tutti i check richiesti reali risultano OK, ignorando solo cancellazioni duplicate coperte da run riuscite. |
+
 ## PEC, Agenda, Scadenziario e calendario diretto 2.253.12 - 2026-06-14
 
 | Comando / verifica | Esito | Nota |

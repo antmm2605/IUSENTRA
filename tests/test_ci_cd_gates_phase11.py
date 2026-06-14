@@ -153,6 +153,26 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     assert "CodeQL" not in push_by_name
     assert push_by_name["Analyze (python)"].state == "ok"
 
+    duplicated_rows = module.evaluate_required_checks(
+        {"required_checks": [{"name": "Coverage moduli critici parte 1/12", "events": ["push"]}]},
+        [
+            {
+                "name": "Coverage moduli critici parte 1/12",
+                "status": "completed",
+                "conclusion": "success",
+                "completed_at": "2026-06-14T14:59:43Z",
+            },
+            {
+                "name": "Coverage moduli critici parte 1/12",
+                "status": "completed",
+                "conclusion": "cancelled",
+                "completed_at": "2026-06-14T15:00:48Z",
+            },
+        ],
+        "push",
+    )
+    assert duplicated_rows[0].state == "ok"
+
     statuses = module.evaluate_statuses(
         config,
         [

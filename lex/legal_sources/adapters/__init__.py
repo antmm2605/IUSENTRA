@@ -6,6 +6,7 @@ from .agcm import AgcmAdapter
 from .agenzia_entrate import AgenziaEntrateAdapter
 from .anac import AnacAdapter
 from .banca_dati_merito import BancaDatiMeritoAdapter
+from .brocardi import BrocardiAdapter
 from .camera import CameraAdapter
 from .cassazione import CassazioneAdapter
 from .corte_costituzionale import CorteCostituzionaleAdapter
@@ -25,6 +26,7 @@ ADAPTER_CLASSES = (
     CorteCostituzionaleAdapter,
     CassazioneAdapter,
     GiustiziaAmministrativaAdapter,
+    BrocardiAdapter,
     BancaDatiMeritoAdapter,
     EurLexAdapter,
     HudocAdapter,
@@ -44,6 +46,7 @@ __all__ = [
     "AgenziaEntrateAdapter",
     "AnacAdapter",
     "BancaDatiMeritoAdapter",
+    "BrocardiAdapter",
     "CameraAdapter",
     "CassazioneAdapter",
     "CorteCostituzionaleAdapter",

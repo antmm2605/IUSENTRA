@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.17 - 2026-06-14
+
+- Deposito telematico: estratti gli helper di trasporto, allegati e sintesi validazione in un servizio dedicato, mantenendo invariato il comportamento e riportando `deposito_routes.py` sotto il limite governance.
+
 ## 2.253.16 - 2026-06-14
 
 - Deposito telematico: aggiunta in `Prepara deposito` la sezione visibile `Documenti da inviare`, con spunte su atto principale, allegati e prove proposte dal software, correzione manuale immediata e conteggio dei documenti selezionati prima di firma e generazione busta.

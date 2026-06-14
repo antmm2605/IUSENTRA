@@ -725,7 +725,8 @@ def _public_json_payload(value: Any, key: str = "") -> Any:
 
 
 def _jsonify_public_payload(payload: Mapping[str, Any], status: int = 200):
-    return jsonify(_public_json_payload(dict(payload))), status
+    body = json.dumps(_public_json_payload(dict(payload)), ensure_ascii=False, default=str)
+    return current_app.response_class(body, status=status, mimetype="application/json"), status
 
 
 def _jsonify_domain_payload(payload: dict[str, Any], *, missing_status: int = 404):

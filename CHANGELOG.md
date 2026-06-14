@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.22 - 2026-06-14
+
+- Sicurezza CodeQL: eliminata l’annotazione medium residua sul wrapper JSON pubblico, sostituendo il `jsonify` diretto su payload sanificati con una `Response` JSON controllata dopo serializzazione sicura.
+- Guardrail: mantenute verdi le regressioni su tenant traversal, payload pubblici e CodeQL bloccante su push.
+
 ## 2.253.21 - 2026-06-14
 
 - Sicurezza CodeQL: chiuse le annotazioni su tenant storage, validando la chiave studio prima di risolvere cartelle sotto `data/tenants` e impedendo traversal o path assoluti nei controlli manutenzione server.

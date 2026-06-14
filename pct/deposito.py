@@ -16,6 +16,7 @@ from typing import Optional
 
 from .busta import BustaTelematica, DatiBusta, Allegato
 from .pec import ClientPEC, ConfigPEC
+from .pst_catalog import PST_BUSTA_ENCRYPTION_ALGORITHM
 from .reginde import ClientReGINde
 from .firma import FirmaDigitale
 from .fascicoli import EsitoDepositoPCT, normalizza_stato_deposito_pct
@@ -157,6 +158,25 @@ class DepositoCivile:
         busta = BustaTelematica(dati)
         busta_dir = self.output_dir / id_deposito
         busta_path = busta.crea_busta(str(busta_dir))
+        audit_tecnico = {}
+        audit_func = getattr(busta, "audit_conformita_pst", None)
+        if callable(audit_func):
+            audit_tecnico = audit_func()
+        if audit_tecnico and audit_tecnico.get("uses_real_encryption") is not True:
+            return EsitoDeposito(
+                id=id_deposito,
+                timestamp=timestamp,
+                stato="ERRORE",
+                tipo_atto=dati.tipo_atto,
+                busta_path=busta_path,
+                pec_destinatario=ufficio.pec,
+                messaggio=(
+                    "Invio diretto non eseguito: il pacchetto di controllo è pronto, "
+                    f"ma serve Atto.enc ministeriale cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM}. "
+                    "Completa la busta conforme e riprendi il presidio delle ricevute dal fascicolo."
+                ),
+                nome_atto_principale=Path(dati.atto_principale).name,
+            )
 
         # 4. Invia via PEC
         # Oggetto conforme D.M. 44/2011 art. 14 c.3: "DEPOSITO TELEMATICO - {TipoAtto}"

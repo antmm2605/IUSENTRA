@@ -1,6 +1,9 @@
 """
-Creazione della busta telematica (.enc) per il deposito PCT.
-La busta è un archivio cifrato conforme alle specifiche del Ministero della Giustizia.
+Preparazione locale della busta di deposito PCT.
+
+Il modulo genera un pacchetto strutturale utile ai controlli offline. La
+conformità ministeriale piena richiede un adapter che produca Atto.msg e
+Atto.enc cifrato con l'algoritmo vigente indicato dal PST.
 """
 
 import zipfile
@@ -15,6 +18,11 @@ from lxml import etree
 
 from .path_security import UnsafeRuntimePath, resolve_runtime_path
 from .pst_catalog import (
+    PST_BUSTA_ENCRYPTION_ALGORITHM,
+    PST_BUSTA_ENCRYPTION_FATAL_FROM,
+    PST_BUSTA_ENCRYPTION_REQUIRED_FROM,
+    PST_BUSTA_ENCRYPTION_UPDATE_URL,
+    PST_DM44_SPECIFICHE_2024_DETAIL_URL,
     PST_DM44_SPECIFICHE_REVISION,
     PST_DM44_SPECIFICHE_URL,
     PST_FORMAL_ERROR_CODES,
@@ -50,13 +58,15 @@ class DatiBusta:
 
 class BustaTelematica:
     """
-    Genera la busta telematica (.enc) per il deposito civile telematico.
+    Prepara un pacchetto locale con estensione .enc per il deposito civile.
 
-    La busta è strutturata come:
+    Il contenuto locale è strutturato come:
     - DatiAtto.xml       (metadati dell'atto)
     - atto_principale.pdf.p7m  (atto firmato digitalmente)
     - allegato_N.pdf.p7m       (allegati firmati)
-    - indice.enc               (indice cifrato)
+
+    Non sostituisce l'Atto.enc ministeriale finché non è attivo il trasporto
+    reale con Atto.msg cifrato secondo l'algoritmo PST vigente.
     """
 
     NAMESPACE = "http://www.giustizia.it/processo_telematico"
@@ -195,12 +205,17 @@ class BustaTelematica:
                 "title": "Trasporto ministeriale simulato",
                 "detail": (
                     "Il file .enc locale e ottenuto rinominando uno ZIP strutturale. "
-                    "Le specifiche PST prevedono invece Atto.enc ottenuto dalla cifratura di Atto.msg."
+                    "Le specifiche PST prevedono invece Atto.enc ottenuto dalla cifratura "
+                    f"di Atto.msg con algoritmo {PST_BUSTA_ENCRYPTION_ALGORITHM}."
                 ),
-                "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                "source": (
+                    f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}; "
+                    "comunicazione PST 23/12/2025"
+                ),
                 "suggested_action": (
-                    "Tratta questa busta come simulazione tecnica locale finche non viene "
-                    "implementato il trasporto ministeriale completo."
+                    "Usa questo pacchetto per controllare documenti, firme, DatiAtto.xml e allegati; "
+                    "per il deposito effettivo genera o collega Atto.enc ministeriale cifrato AES256, "
+                    "poi riprendi il presidio ricevute dal fascicolo."
                 ),
             }
         )
@@ -212,8 +227,19 @@ class BustaTelematica:
 
         return {
             "transport_mode": "simulazione_zip_rinominato",
-            "expected_transport_mode": "atto_enc_da_atto_msg_cifrato_3des",
+            "expected_transport_mode": "atto_enc_da_atto_msg_cifrato_aes256",
             "uses_real_encryption": False,
+            "required_encryption_algorithm": PST_BUSTA_ENCRYPTION_ALGORITHM,
+            "encryption_required_from": PST_BUSTA_ENCRYPTION_REQUIRED_FROM,
+            "encryption_fatal_from": PST_BUSTA_ENCRYPTION_FATAL_FROM,
+            "encryption_requirement_status": "non_conforme_invio_reale",
+            "blocks_direct_send": True,
+            "guided_completion_required": True,
+            "guided_next_actions": [
+                "Controlla atto principale, allegati, firme e DatiAtto.xml nel pacchetto preparato.",
+                f"Genera o collega Atto.enc ministeriale cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM}.",
+                "Riprendi dal fascicolo per invio conforme o deposito sul canale ufficiale e importa RAC, RdAC ed esiti.",
+            ],
             "atto_msg_generated": False,
             "indice_busta_generated": False,
             "size_bytes": size_bytes,
@@ -237,6 +263,14 @@ class BustaTelematica:
                 {
                     "label": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
                     "url": PST_DM44_SPECIFICHE_URL,
+                },
+                {
+                    "label": "Specifiche tecniche ex art. 34 D.M. 44/2011 - Provvedimento 7 agosto 2024",
+                    "url": PST_DM44_SPECIFICHE_2024_DETAIL_URL,
+                },
+                {
+                    "label": "Aggiornamento algoritmo cifratura busta telematica - AES256",
+                    "url": PST_BUSTA_ENCRYPTION_UPDATE_URL,
                 }
             ],
             "issues": issues,
@@ -250,7 +284,7 @@ class BustaTelematica:
             output_dir: Directory dove salvare la busta
 
         Returns:
-            Percorso al file busta (.zip che verrà poi cifrato in .enc)
+            Percorso al pacchetto locale con estensione .enc.
         """
         output_dir = self._runtime_path(output_dir)
         # lgtm[py/path-injection] Directory risolta con resolve_runtime_path prima della creazione.
@@ -275,7 +309,7 @@ class BustaTelematica:
                 # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e deve esistere.
                 zf.write(all_path, all_path.name)
 
-        # Il file .enc è la busta cifrata (qui simuliamo con il .zip)
+        # Pacchetto locale per predeposito: non e l'Atto.enc ministeriale cifrato AES256.
         enc_path = zip_path.with_suffix(".enc")
         # lgtm[py/path-injection] Entrambi i percorsi sono generati nella directory runtime validata.
         zip_path.replace(enc_path)

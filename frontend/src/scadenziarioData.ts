@@ -65,6 +65,7 @@ export type ScadenziarioRow = {
   operationalDueLabel: string
   fascicoloId: string
   fascicoloLabel: string
+  clientLabel: string
   ownerLabel: string
   sourceEventAt: string
   sourceEventLabel: string
@@ -478,6 +479,7 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     operationalDueLabel: asString(item.operationalDueLabel, asString(item.operationalDueAt, '-')),
     fascicoloId: asString(item.fascicoloId),
     fascicoloLabel: asString(item.fascicoloLabel, '-'),
+    clientLabel: asString(item.clientLabel ?? item.client_label, '-'),
     ownerLabel: asString(item.ownerLabel, '-'),
     sourceEventAt: asString(item.sourceEventAt),
     sourceEventLabel: asString(item.sourceEventLabel),

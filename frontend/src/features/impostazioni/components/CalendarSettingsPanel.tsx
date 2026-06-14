@@ -134,15 +134,16 @@ export function CalendarSettingsPanel({ data, onReload }: { data: SettingsPayloa
       {message ? <p className="iu-calendar-settings__message">{message}</p> : null}
 
       <section className="iu-calendar-settings__box">
-        <header><Cloud aria-hidden="true" /><strong>Collega account</strong><IusStatusBadge tone={canUpdate ? 'success' : 'warning'}>{canUpdate ? 'pronto' : 'permesso richiesto'}</IusStatusBadge></header>
+        <header><Cloud aria-hidden="true" /><strong>Sincronizzazione diretta</strong><IusStatusBadge tone={canUpdate ? 'success' : 'warning'}>{canUpdate ? 'lettura e scrittura' : 'permesso richiesto'}</IusStatusBadge></header>
+        <p className="iu-calendar-settings__hint">Google Calendar e Outlook collegati leggono e scrivono appuntamenti e scadenze direttamente. I link riservati restano una copia in sola lettura.</p>
         <div className="iu-calendar-settings__connectors">
-          <Button type="button" variant="outline" disabled={!canUpdate || busy === 'google'} onClick={() => void run(connectGoogleCalendar, 'google')}><Globe2 data-icon="inline-start" />Google Calendar</Button>
+          <Button type="button" disabled={!canUpdate || busy === 'google'} onClick={() => void run(connectGoogleCalendar, 'google')}><Globe2 data-icon="inline-start" />Collega Google Calendar</Button>
           <Button type="button" variant="outline" disabled={!canUpdate || busy === 'microsoft'} onClick={() => void run(connectMicrosoftCalendar, 'microsoft')}><Cloud data-icon="inline-start" />Outlook / Microsoft 365</Button>
           <Button type="button" variant="outline" disabled={!canUpdate || busy === 'proof'} onClick={() => void run(connectCalendarProof, 'proof')}><PlayCircle data-icon="inline-start" />Ambiente prova locale</Button>
         </div>
         <div className="iu-calendar-settings__split">
           <div className="iu-calendar-settings__mini-form">
-            <h4><CalendarPlus aria-hidden="true" />Aggiungi WebCal / ICS</h4>
+            <h4><CalendarPlus aria-hidden="true" />Aggiungi calendario in sola lettura</h4>
             <label><span>Nome</span><Input value={webcalForm.nome} disabled={!canUpdate} placeholder="Calendario udienze" onChange={(event) => updateWebcal('nome', event.currentTarget.value)} /></label>
             <label><span>Link calendario</span><Input value={webcalForm.source_url} disabled={!canUpdate} placeholder="https://... oppure webcal://..." onChange={(event) => updateWebcal('source_url', event.currentTarget.value)} /></label>
             <div className="iu-calendar-settings__compact-grid">
@@ -214,7 +215,7 @@ export function CalendarSettingsPanel({ data, onReload }: { data: SettingsPayloa
       </section>
 
       <section className="iu-calendar-settings__box">
-        <header><CalendarCheck2 aria-hidden="true" /><strong>Link riservati da sottoscrivere</strong><IusStatusBadge tone="info">lettura</IusStatusBadge></header>
+        <header><CalendarCheck2 aria-hidden="true" /><strong>Link riservati in sola lettura</strong><IusStatusBadge tone="info">copia calendario</IusStatusBadge></header>
         <div className="iu-calendar-settings__feeds">
           {feedItems(raw).map((item) => (
             <article key={item.id}>
@@ -224,7 +225,7 @@ export function CalendarSettingsPanel({ data, onReload }: { data: SettingsPayloa
           ))}
         </div>
         <div className="iu-calendar-settings__actions">
-          {text(raw.google_url) ? <a href={text(raw.google_url)} target="_blank" rel="noreferrer">Apri in Google Calendar</a> : null}
+          {text(raw.google_url) ? <a href={text(raw.google_url)} target="_blank" rel="noreferrer">Apri link di sola lettura in Google Calendar</a> : null}
           <Button type="button" variant="outline" disabled={!canUpdate || busy === 'links'} onClick={() => void run(regenerateCalendarLinks, 'links')}><RefreshCw data-icon="inline-start" />Rigenera link</Button>
         </div>
       </section>

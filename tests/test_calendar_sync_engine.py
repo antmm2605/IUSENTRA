@@ -1,5 +1,6 @@
 from pct.agenda import Appuntamento, TipoAppuntamento
 from pct.calendar_sync_engine import CalendarSyncEngine, PRIVACY_BUSY, PRIVACY_COMPLETE, PRIVACY_REDUCED, privacy_export_event
+from pct.calendar_providers.google import GoogleCalendarProvider
 from pct.scadenziario import TipoTermine
 
 
@@ -64,7 +65,7 @@ def test_push_iusentra_to_remote_demo_creates_binding(tmp_path):
 
     assert result["ok"] is True
     assert binding["local_id"] == appointment.id
-    assert remote["title"] == "[UDIENZA] Impegno di studio"
+    assert remote["title"] == "Udienza: impegno di studio"
     assert remote["description"] == "Dettagli riservati in IUSENTRA."
 
 
@@ -139,6 +140,76 @@ def test_peremptory_deadline_remote_delete_opens_conflict_without_deleting(tmp_p
     assert conflict["conflict_type"] == "scadenza_perentoria_cancellata"
 
 
+def test_sync_account_pushes_deadline_without_time_as_all_day_once(tmp_path):
+    engine = _engine(tmp_path)
+    account, calendar = _connect_demo(engine, role="completo")
+    deadline = engine.scadenziario.nuova(
+        titolo="Presidio PEC - Valuta termini da notifica PEC",
+        tipo=TipoTermine.TERMINE_PERENTORIO,
+        data_scadenza="2026-06-10",
+        descrizione="Termine per proporre opposizione",
+        note=(
+            "PEC_AUDIT:msg-tech\n"
+            "Cliente: Mario Rossi\n"
+            "Fonte: pipeline PEC audit-grade.\n"
+            "Adempimento: valutare opposizione entro il termine."
+        ),
+        id_fascicolo="RG 12/2026",
+        perentorio=True,
+    )
+
+    first = engine.sync_account(account["id"])
+    second = engine.sync_account(account["id"])
+    binding = engine.repository.find_binding(
+        tenant_id=engine.tenant_id,
+        account_id=account["id"],
+        calendar_id=calendar["id"],
+        local_type="scadenza",
+        local_id=deadline.id,
+    )
+    remote = engine.providers["demo"].get_event(binding["external_event_id"])
+
+    assert any(item.get("local_type") == "scadenza" and item.get("local_id") == deadline.id for item in first["reports"])
+    assert second["ok"] is True
+    assert first["pushed"] == 1
+    assert second["pushed"] == 1
+    assert remote["all_day"] is True
+    assert remote["start"] == "2026-06-10"
+    assert remote["end"] == "2026-06-11"
+    assert "09:00" not in f"{remote['start']} {remote['end']} {remote['title']} {remote['description']}"
+    visible = f"{remote['title']} {remote['description']}"
+    assert "Termine perentorio: Valuta termini da notifica PEC" in visible
+    assert "Dettagli riservati in IUSENTRA." in visible
+    assert "Adempimento: valutare opposizione entro il termine." not in visible
+    for token in ("Presidio PEC", "PEC_AUDIT", "pipeline", "audit-grade", "payload", "runtime", "backend"):
+        assert token not in visible
+    events = [
+        item
+        for item in engine.providers["demo"]._load()["events"].values()
+        if item.get("calendar_id") == calendar["provider_calendar_id"]
+    ]
+    assert len(events) == 1
+
+
+def test_google_payload_for_deadline_without_time_uses_date_not_datetime(tmp_path):
+    engine = _engine(tmp_path)
+    deadline = engine.scadenziario.nuova(
+        titolo="Deposito memoria conclusionale",
+        tipo=TipoTermine.TERMINE_PERENTORIO,
+        data_scadenza="2026-06-10",
+        perentorio=True,
+    )
+    event = privacy_export_event("scadenza", deadline, PRIVACY_COMPLETE)
+    payload = GoogleCalendarProvider()._to_google_event(event)
+
+    assert payload["summary"] == "Termine perentorio: Deposito memoria conclusionale"
+    assert payload["start"] == {"date": "2026-06-10"}
+    assert payload["end"] == {"date": "2026-06-11"}
+    assert "dateTime" not in payload["start"]
+    assert "dateTime" not in payload["end"]
+    assert "IUSENTRA-SCADENZA" in payload["extendedProperties"]["private"]["iusentra_categories"]
+
+
 def test_privacy_export_levels_hide_sensitive_content():
     appointment = Appuntamento(
         id="A1",
@@ -161,6 +232,6 @@ def test_privacy_export_levels_hide_sensitive_content():
     assert "Strategia riservata" in complete["description"]
     assert "Cliente Rossi" not in reduced["description"]
     assert "Strategia riservata" not in reduced["description"]
-    assert reduced["title"] == "[UDIENZA] Impegno di studio"
+    assert reduced["title"] == "Udienza: impegno di studio"
     assert busy["title"] == "Occupato"
     assert busy["description"] == ""

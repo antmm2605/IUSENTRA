@@ -1265,27 +1265,16 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
             headers={"X-Requested-With": "XMLHttpRequest"},
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 409
         payload = response.get_json()
-        assert payload["requires_local_pec"] is True
-        assert payload["local_pec"]["endpoint"].endswith("/pec/send")
-        assert payload["local_pec"]["payload"]["smtp_host"] == "smtp.example.pec.it"
-        assert payload["local_pec"]["payload"]["to"] == "ufficio@example.pec.it"
-        assert "password" not in payload["local_pec"]["payload"]
+        assert payload["ok"] is False
+        assert payload["requires_guided_completion"] is True
+        assert payload["package_ready"] is True
+        assert payload["pec_dest"] == "ufficio@example.pec.it"
+        assert payload["busta_audit"]["blocks_direct_send"] is True
+        assert payload["busta_audit"]["required_encryption_algorithm"] == "AES256"
+        assert any("Atto.enc" in action and "AES256" in action for action in payload["next_actions"])
 
-        confirm_data = {
-            **data,
-            "local_pec_confirmed": "1",
-            "local_pec_message_id": "<local-message@example.pec.it>",
-            "local_pec_id_deposito": payload["id_deposito"],
-        }
-        confirm = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia",
-            data=confirm_data,
-            headers={"X-Requested-With": "XMLHttpRequest"},
-        )
-
-    assert confirm.status_code in {302, 303}
     gf_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
         documents_dir=cfg["FASCICOLI_DOCS"],
@@ -1293,12 +1282,5 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
     )
     fascicolo_reload = gf_reload.get(fascicolo.id)
     assert fascicolo_reload is not None
-    assert len(fascicolo_reload.depositi_pct) == 1
-    deposito = fascicolo_reload.depositi_pct[0]
-    assert deposito.id == payload["id_deposito"]
-    assert "Local Signer" in deposito.messaggio
-    assert "local-message" in deposito.messaggio
-    assert deposito.stato == "INVIATO"
-    assert deposito.pec_destinatario == payload["pec_dest"]
-    assert set(deposito.documenti_ids) == {atto.id}
-    assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
+    assert fascicolo_reload.depositi_pct == []
+    assert not fascicolo_reload.documenti[0].id_deposito_pct

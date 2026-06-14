@@ -259,6 +259,10 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         tracked = client.post("/api/recent", json={"entityType": "case", "entityId": fascicolo_id})
         assert tracked.status_code == 200
         assert tracked.get_json()["items"][0]["href"] == f"/fascicoli/{fascicolo_id}"
+        missing = client.post("/api/recent", json={"entityType": "case", "entityId": "fascicolo-non-presente"})
+        assert missing.status_code == 200
+        assert missing.get_json()["tracked"] is False
+        assert missing.get_json()["items"][0]["href"] == f"/fascicoli/{fascicolo_id}"
         with client.session_transaction() as sess:
             current = list(sess.get("recenti", []))
             current.insert(
@@ -304,3 +308,15 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         assert stopped.status_code == 200
         assert stopped.get_json()["timer"]["status"] == "stopped"
         assert stopped.get_json()["timeEntry"]["href"] == "/timesheet"
+
+
+def test_topbar_react_traccia_recenti_sulle_rotte_profonde():
+    topbar = Path("frontend/src/components/layout/TopBar.tsx").read_text(encoding="utf-8")
+    recent_hook = Path("frontend/src/hooks/useRecentItems.ts").read_text(encoding="utf-8")
+    operational = Path("web/services/topbar_operational.py").read_text(encoding="utf-8")
+    assert "function recentTargetFromPath" in topbar
+    assert "trackRecentItem(target.entityType, target.entityId)" in topbar
+    assert "iusentra:recent-items-updated" in topbar
+    assert "window.addEventListener('iusentra:recent-items-updated'" in recent_hook
+    assert "/fascicoli/{fascicolo.id}/deposito/prepara#ricevute-deposito" in operational
+    assert "Apri deposito" in operational

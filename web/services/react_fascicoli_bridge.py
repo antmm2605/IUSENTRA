@@ -315,6 +315,263 @@ def _short(value: Any, limit: int = 120) -> str:
     return text[: max(0, limit - 1)].rstrip() + "..."
 
 
+def _technical_filename(value: Any) -> bool:
+    name = _text(value)
+    return bool(re.fullmatch(r"\d{10,}(?:\.[A-Za-z0-9]{2,8})?", name))
+
+
+def _clean_document_filename(value: Any) -> str:
+    name = _text(value)
+    if not name:
+        return ""
+    name = name.replace("\\", "/").rsplit("/", 1)[-1].strip()
+    name = re.sub(r"\s+", " ", name)
+    return name
+
+
+def _quickorganizer_name_from_note(note: Any) -> str:
+    text = _text(note)
+    if not text.lower().startswith("import quickorganizer."):
+        return ""
+    tail = text.split(".", 1)[1].strip() if "." in text else ""
+    candidate = tail.split(" - ", 1)[0].strip()
+    candidate = _clean_document_filename(candidate)
+    if not candidate or _technical_filename(candidate):
+        return ""
+    return candidate
+
+
+def _document_type_label(value: Any) -> str:
+    raw = _enum_value(value).upper().replace(" ", "_")
+    labels = {
+        "ATTO_GIUDIZIARIO": "Atto giudiziario",
+        "ATTO": "Atto",
+        "RICORSO": "Ricorso",
+        "CITAZIONE": "Atto di citazione",
+        "COMPARSA": "Comparsa",
+        "MEMORIA": "Memoria",
+        "ISTANZA": "Istanza",
+        "PROCURA": "Procura alle liti",
+        "ALLEGATO": "Allegato",
+        "SENTENZA": "Provvedimento - sentenza",
+        "ORDINANZA": "Provvedimento - ordinanza",
+        "DECRETO": "Provvedimento - decreto",
+        "VERBALE": "Verbale",
+        "COMUNICAZIONE": "Comunicazione",
+        "PEC": "Comunicazione PEC",
+    }
+    if raw in labels:
+        return labels[raw]
+    return raw.replace("_", " ").title() if raw else "Documento"
+
+
+def _source_label_for_document(doc: Any) -> str:
+    source = _enum_value(getattr(doc, "fonte_documento", ""))
+    portal_class = _text(getattr(doc, "classificazione_portale", ""))
+    if source == "IMPORT_ESTERNO" and portal_class.lower() == "quickorganizer":
+        return "Importazione fascicolo"
+    if source == "TEMPLATE_ATTI_COMPILATORE":
+        return "Redazione atti"
+    if source == "IMPORT_ESTERNO":
+        return "Documento importato"
+    if source in {"PORTALE_TELEMATICO", "PST", "POLISWEB"}:
+        return "Portale Servizi"
+    return _text(source, "Studio")
+
+
+def _portal_class_for_document(doc: Any) -> str:
+    portal_class = _text(getattr(doc, "classificazione_portale", ""))
+    if portal_class.lower() == "quickorganizer":
+        return _document_type_label(getattr(doc, "tipo", ""))
+    return portal_class
+
+
+def _visible_document_tags(doc: Any, *, display_name: str, technical_name: str) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw_tag in getattr(doc, "tags", []) or []:
+        tag = _italian_dates_in_text(raw_tag)
+        key = tag.casefold().strip()
+        if not key:
+            continue
+        if any(token in key for token in ("quickorganizer", "import_esterno", "backend", "frontend", "payload", "runtime", "legacy")):
+            continue
+        if key in {"email", "mail"}:
+            tag = "Email"
+        elif key == "pec":
+            tag = "PEC"
+        elif key in {"pst", "polisweb", "portale"}:
+            tag = "Portale Servizi"
+        dedupe = tag.casefold()
+        if dedupe in seen:
+            continue
+        seen.add(dedupe)
+        out.append(tag)
+    if technical_name and technical_name != display_name:
+        out.append(f"Nome file originale: {technical_name}")
+    return out[:6]
+
+
+def _notification_document_haystack(doc: Any) -> str:
+    return " ".join(
+        _text(value).lower()
+        for value in (
+            getattr(doc, "nome", ""),
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome_portale", ""),
+            getattr(doc, "tipo", ""),
+            getattr(doc, "tipo_atto_portale", ""),
+            getattr(doc, "classificazione_portale", ""),
+            getattr(doc, "note", ""),
+            " ".join(str(item) for item in (getattr(doc, "tags", []) or [])),
+        )
+    )
+
+
+def _notification_context_present(text: str) -> bool:
+    return any(
+        token in text
+        for token in (
+            "notifica",
+            "notificaz",
+            "originale notificato",
+            "legge n. 53",
+            "legge 53",
+            "l. 53",
+            "notifica_id",
+            "notificazione ai sensi",
+        )
+    )
+
+
+def _notification_proof_kind_for_document(doc: Any) -> str:
+    text = _notification_document_haystack(doc)
+    has_context = _notification_context_present(text)
+    if "relata" in text and has_context:
+        return "relata"
+    if "originale notificato" in text and any(
+        token in text for token in ("ricorso", "citazione", "comparsa", "memoria", "istanza", "atto", "decreto")
+    ):
+        return "atto_notificato"
+    if has_context and any(token in text for token in ("accettazione", "rac")):
+        return "rac"
+    if has_context and any(token in text for token in ("consegna", "rdac", "avvenuta consegna")):
+        return "rdac"
+    if has_context and any(token in text for token in ("pec inviata", "postacert", ".eml", "messaggio pec")):
+        return "pec"
+    if has_context and "attestazione di conform" in text:
+        return "attestazione"
+    if bool(getattr(doc, "prova_notifica", False)):
+        return "atto_notificato"
+    return ""
+
+
+def _notification_kind_label(kind: str) -> str:
+    return {
+        "documento_ufficio": "Documento d'ufficio",
+        "atto_notificato": "Atto notificato",
+        "relata": "Relata",
+        "pec": "PEC inviata",
+        "rac": "RAC",
+        "rdac": "RdAC",
+        "attestazione": "Attestazione di conformità",
+        "prova": "Prova notifica",
+    }.get(kind, "Documento")
+
+
+def _notification_status_label(status: str) -> str:
+    return {
+        "firmato": "firmato",
+        "acquisito": "acquisito",
+        "inviato": "inviato",
+        "ricevuta_presente": "ricevuta presente",
+        "documento_notificato": "notificato",
+    }.get(status, status.replace("_", " "))
+
+
+def _notification_proof_key(doc: Any, kind: str) -> str:
+    text = _notification_document_haystack(doc)
+    match = re.search(r"notifica[_\s-]*id[:_\s-]*([a-z0-9_-]+)", text, flags=re.IGNORECASE)
+    if match:
+        return f"{kind}|notifica:{match.group(1).casefold()}"
+    digest = _text(getattr(doc, "hash_sha256", "")).lower()
+    if digest:
+        return f"{kind}|sha:{digest}"
+    name = _normalise_office_document_name(
+        getattr(doc, "nome", "") or getattr(doc, "nome_originale", "") or getattr(doc, "nome_portale", "")
+    )
+    return f"{kind}|nome:{name}"
+
+
+def _notification_communication_documents(fascicolo: Any) -> list[Any]:
+    """Documenti di notifica che appartengono alle comunicazioni, non a una nuova relata."""
+
+    documents = list(getattr(fascicolo, "documenti", []) or [])
+    communication_kinds = {"atto_notificato", "pec", "rac", "rdac", "attestazione"}
+    out: list[Any] = []
+    seen: set[str] = set()
+    for doc in documents:
+        kind = _notification_proof_kind_for_document(doc)
+        if kind not in communication_kinds:
+            continue
+        key = _notification_proof_key(doc, kind)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(doc)
+    return out
+
+
+def _professional_document_name(doc: Any, counters: Counter[str]) -> str:
+    portal_name = _clean_document_filename(getattr(doc, "nome_portale", ""))
+    original_name = _clean_document_filename(getattr(doc, "nome_originale", ""))
+    stored_name = _clean_document_filename(getattr(doc, "nome", ""))
+    note_name = _quickorganizer_name_from_note(getattr(doc, "note", ""))
+    for candidate in (portal_name, note_name, original_name, stored_name):
+        if candidate and not _technical_filename(candidate):
+            return candidate
+    label = _document_type_label(getattr(doc, "tipo", ""))
+    counters[label] += 1
+    suffix = f" {counters[label]}" if counters[label] > 1 else ""
+    return f"{label}{suffix}"
+
+
+def _fascicolo_party_from_title(fascicolo: Any) -> str:
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    practice = ""
+    if isinstance(snapshot, dict):
+        practice = _text(snapshot.get("pratica") or snapshot.get("title") or snapshot.get("titolo"))
+    title = practice or _text(getattr(fascicolo, "titolo", ""))
+    match = re.split(r"\s+c(?:\.|ontro)?\s+", title, maxsplit=1, flags=re.IGNORECASE)
+    candidate = match[0].strip(" -:") if match else title.strip(" -:")
+    return candidate if candidate and candidate.casefold() != title.casefold() else candidate
+
+
+def _fascicolo_client_label(fascicolo: Any) -> str:
+    linked = _text(getattr(fascicolo, "nome_cliente", ""))
+    if linked:
+        return linked
+    inferred = _fascicolo_party_from_title(fascicolo)
+    if inferred:
+        return f"{inferred} (da collegare in anagrafica)"
+    return "Cliente da collegare"
+
+
+def _codice_oggetto_label(fascicolo: Any) -> str:
+    code = _text(getattr(fascicolo, "codice_oggetto_pst", ""))
+    if code:
+        return code
+    object_text = _text(getattr(fascicolo, "oggetto", ""))
+    if re.match(r"^\d{3,}\s*-", object_text):
+        return object_text
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    if isinstance(snapshot, dict):
+        snap_object = _text(snapshot.get("oggetto"))
+        if re.match(r"^\d{3,}\s*-", snap_object):
+            return snap_object
+    return ""
+
+
 def _parse_datetime(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         parsed = value
@@ -361,6 +618,12 @@ def _date_label(value: Any) -> str:
     if not parsed:
         return _text(value, "n.d.")
     return parsed.strftime("%d/%m/%Y")
+
+
+def _date_label_optional(value: Any) -> str:
+    if not _text(value):
+        return ""
+    return _date_label(value)
 
 
 _ISO_DATE_IN_TEXT_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})(?:[T\s]\d{2}:\d{2}(?::\d{2})?)?\b")
@@ -1033,7 +1296,7 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
         "title": _short(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "") or "Fascicolo", 120),
         "subtitle": _short(getattr(fascicolo, "oggetto", ""), 160),
         "type": _type_for_filters(fascicolo),
-        "client": _text(getattr(fascicolo, "nome_cliente", ""), "Cliente non collegato"),
+        "client": _fascicolo_client_label(fascicolo),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
         "rg": _rg(fascicolo),
         **rg_order,
@@ -1126,7 +1389,7 @@ def _item_light(
         "title": _short(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "") or "Fascicolo", 120),
         "subtitle": _short(getattr(fascicolo, "oggetto", ""), 160),
         "type": _type_for_filters(fascicolo),
-        "client": _text(getattr(fascicolo, "nome_cliente", ""), "Cliente non collegato"),
+        "client": _fascicolo_client_label(fascicolo),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
         "rg": _rg(fascicolo),
         **rg_order,
@@ -1622,7 +1885,7 @@ def _form_fascicolo_payload(
             "practiceId": _text(getattr(fascicolo, "id_pratica", "")),
             "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
             "proceduraOperativaCodice": _text(getattr(fascicolo, "procedura_operativa_codice", "")),
-            "codiceOggettoPst": _text(getattr(fascicolo, "codice_oggetto_pst", "")),
+            "codiceOggettoPst": _codice_oggetto_label(fascicolo),
             "codiceGuidaPratica": _text(getattr(fascicolo, "codice_guida_pratica", "")),
             "fonteCodiceOggetto": _text(getattr(fascicolo, "fonte_codice_oggetto", "")),
             "fileFonteCodiceOggetto": _text(getattr(fascicolo, "file_fonte_codice_oggetto", "")),
@@ -1824,7 +2087,7 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
             if int(source_counts.get(key) or 0)
         )
     rows = [
-        ("Cliente", getattr(fascicolo, "nome_cliente", ""), False, f"/clienti/{_text(getattr(fascicolo, 'id_cliente', ''))}" if _text(getattr(fascicolo, "id_cliente", "")) else ""),
+        ("Cliente", _fascicolo_client_label(fascicolo), False, f"/clienti/{_text(getattr(fascicolo, 'id_cliente', ''))}" if _text(getattr(fascicolo, "id_cliente", "")) else ""),
         ("Controparte", getattr(fascicolo, "controparte", ""), False, ""),
         ("Tribunale", getattr(fascicolo, "tribunale", ""), False, ""),
         ("N. registro", _rg(fascicolo), True, ""),
@@ -1832,7 +2095,7 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
         ("Sezione", getattr(fascicolo, "sezione", ""), False, ""),
         ("Giudice", getattr(fascicolo, "giudice", ""), False, ""),
         ("Oggetto pratica", getattr(fascicolo, "tipo_procedimento", ""), False, ""),
-        ("Codice oggetto", getattr(fascicolo, "codice_oggetto_pst", ""), True, ""),
+        ("Codice oggetto", _codice_oggetto_label(fascicolo), True, ""),
         ("Attore principale", getattr(fascicolo, "attore_principale", ""), False, ""),
         ("C.T.U.", getattr(fascicolo, "ctu", ""), False, ""),
         ("C.T.P.", getattr(fascicolo, "ctp", ""), False, ""),
@@ -1947,7 +2210,9 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         or "comunicazione_cancelleria" in _doc_haystack(doc)
         or ("notifica" in _doc_haystack(doc) and any(token in _doc_haystack(doc) for token in ("sentenza", "ordinanza", "decreto", "provvedimento")))
     ]
-    relata_documents = [doc for doc in local_documents if "relata" in _doc_haystack(doc) and "notifica" in _doc_haystack(doc)]
+    notification_kinds = {id(doc): _notification_proof_kind_for_document(doc) for doc in local_documents}
+    relata_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "relata"]
+    notified_act_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "atto_notificato"]
     signed_relata = [
         doc
         for doc in relata_documents
@@ -1957,8 +2222,15 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     proof_documents = [
         doc
         for doc in local_documents
-        if any(token in _doc_haystack(doc) for token in ("ricevuta accettazione", "ricevuta consegna", "rac", "rdac", "pec inviata"))
+        if notification_kinds.get(id(doc)) in {"atto_notificato", "pec", "rac", "rdac", "attestazione"}
     ]
+    has_rac = any(notification_kinds.get(id(doc)) == "rac" for doc in local_documents)
+    has_rdac = any(notification_kinds.get(id(doc)) == "rdac" for doc in local_documents)
+    notification_already_sent = any(
+        notification_kinds.get(id(doc)) in {"pec", "rac", "rdac", "atto_notificato"}
+        for doc in local_documents
+    )
+    proof_complete = bool(has_rac and has_rdac)
     first_release = pending_releases[0] if pending_releases else {}
     acquisition_href = _notifica_portal_acquisition_href(fascicolo, first_release)
     prepare_href = f"/notifiche-legali?id_fascicolo={quote(fid)}&fase=notifica#notifica" if fid else "/notifiche-legali#notifica"
@@ -1981,15 +2253,21 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         tone = "warning"
         primary_href = relata_documents[0].id and f"/fascicoli/{quote(fid)}/documenti/{quote(_text(relata_documents[0].id))}/firma"
         primary_label = "Firma relata"
+    elif notification_already_sent and not proof_complete:
+        status = "ricevute_da_completare"
+        status_label = "Ricevute notifica da completare"
+        tone = "warning"
+        primary_href = deposit_href
+        primary_label = "Controlla prova"
     elif signed_relata and not proof_documents:
         status = "pronta_invio"
         status_label = "Relata pronta per revisione e invio"
         tone = "success"
         primary_href = prepare_href
         primary_label = "Apri notifica"
-    elif signed_relata and proof_documents:
+    elif proof_complete:
         status = "prova_raccolta"
-        status_label = "Prova notifica da depositare"
+        status_label = "Prova notifica pronta per deposito"
         tone = "success"
         primary_href = deposit_href
         primary_label = "Controlla prova"
@@ -2028,25 +2306,60 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         {
             "id": "prova",
             "label": "RAC, RdAC e deposito prova",
-            "status": "superato" if proof_documents else "da_completare" if signed_relata else "in_attesa",
-            "detail": f"{len(proof_documents)} prova/e già collegate." if proof_documents else "Da completare dopo l'invio PEC.",
+            "status": "superato" if proof_complete else "da_completare" if signed_relata or notification_already_sent else "in_attesa",
+            "detail": (
+                f"{len(proof_documents)} documento/i prova collegati."
+                if proof_documents
+                else "Dopo l'invio PEC collega RAC e RdAC originali, senza creare una nuova notifica."
+            ),
         },
     ]
-    monitored_documents = [
-        {
-            "id": _text(getattr(doc, "id", "")),
-            "name": _text(getattr(doc, "nome", "") or getattr(doc, "nome_originale", ""), "Documento"),
-            "kind": "relata" if doc in relata_documents else "documento_ufficio" if doc in office_documents else "prova",
-            "status": "firmato" if doc in signed_relata else "acquisito",
-            "href": f"/fascicoli/{quote(fid)}/documenti/{quote(_text(getattr(doc, 'id', '')))}/visualizza" if fid and _text(getattr(doc, "id", "")) else "",
-        }
-        for doc in (office_documents + relata_documents + proof_documents)[:20]
-    ]
+    monitored_documents = []
+    seen_monitored_documents: set[str] = set()
+    for doc in (office_documents + notified_act_documents + relata_documents + proof_documents):
+        kind = notification_kinds.get(id(doc)) or ("documento_ufficio" if doc in office_documents else "prova")
+        key = _notification_proof_key(doc, kind)
+        if key in seen_monitored_documents:
+            continue
+        seen_monitored_documents.add(key)
+        if doc in signed_relata:
+            doc_status = "firmato"
+        elif kind == "atto_notificato":
+            doc_status = "documento_notificato"
+        elif kind in {"rac", "rdac"}:
+            doc_status = "ricevuta_presente"
+        elif kind == "pec":
+            doc_status = "inviato"
+        else:
+            doc_status = "acquisito"
+        doc_id = _text(getattr(doc, "id", ""))
+        monitored_documents.append(
+            {
+                "id": doc_id,
+                "name": _professional_document_name(doc, Counter()),
+                "kind": kind,
+                "kindLabel": _notification_kind_label(kind),
+                "status": doc_status,
+                "statusLabel": _notification_status_label(doc_status),
+                "href": f"/fascicoli/{quote(fid)}/documenti/{quote(doc_id)}/visualizza" if fid and doc_id else "",
+            }
+        )
+        if len(monitored_documents) >= 20:
+            break
+    system_notification = status_label
+    if pending_releases:
+        system_notification = "PEC dell'ufficio ricevuta: scarica dal portale solo il provvedimento indicato e collegalo ai Documenti e atti prima della relata."
+    elif notification_already_sent and not proof_complete:
+        system_notification = "Notifica già inviata: completa RAC e RdAC originali per depositare la prova, senza preparare un nuovo invio."
+    elif proof_complete:
+        system_notification = "Notifica già inviata e prova raccolta: controlla i file e deposita la prova quando previsto."
     return {
         "status": status,
         "statusLabel": status_label,
         "tone": tone,
         "releaseDetected": bool(pending_releases),
+        "notificationAlreadySent": notification_already_sent,
+        "proofComplete": proof_complete,
         "pendingPortalDocuments": len(pending_releases),
         "portalDocuments": len(office_documents),
         "officeDocuments": len(office_documents),
@@ -2058,11 +2371,7 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         "depositHref": deposit_href,
         "primaryHref": primary_href,
         "primaryLabel": primary_label,
-        "systemNotification": (
-            "PEC dell'ufficio ricevuta: scarica dal portale solo il provvedimento indicato e collegalo ai Documenti e atti prima della relata."
-            if pending_releases
-            else status_label
-        ),
+        "systemNotification": system_notification,
         "releasedDocuments": pending_releases[:20],
         "documents": monitored_documents,
         "steps": steps,
@@ -2114,10 +2423,12 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
         text = _text(value)
         return (field, text) if text else None
 
+    display_name_counters: Counter[str] = Counter()
     for doc in getattr(fascicolo, "documenti", []) or []:
         did = _text(getattr(doc, "id", ""))
-        name = _text(getattr(doc, "nome", ""), "Documento")
-        signed = bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False) or name.lower().endswith(".p7m"))
+        name = _professional_document_name(doc, display_name_counters)
+        technical_name = _clean_document_filename(getattr(doc, "nome", ""))
+        signed = bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False) or name.lower().endswith(".p7m") or technical_name.lower().endswith(".p7m"))
         if did:
             local_doc_ids.add(did)
         for ref in (
@@ -2135,18 +2446,18 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                 "name": name,
                 "type": _enum_value(getattr(doc, "tipo", "ALTRO")).replace("_", " "),
                 "size": _bytes_label(getattr(doc, "dimensione_bytes", 0)),
-                "uploadedAt": _date_label(getattr(doc, "data_caricamento", "")),
-                "documentDate": _date_label(getattr(doc, "data_documento", "")),
+                "uploadedAt": _date_label_optional(getattr(doc, "data_caricamento", "")),
+                "documentDate": _date_label_optional(getattr(doc, "data_documento", "")),
                 "notes": _short(_italian_dates_in_text(getattr(doc, "note", "")), 180),
-                "tags": list(getattr(doc, "tags", []) or []),
+                "tags": _visible_document_tags(doc, display_name=name, technical_name=technical_name),
                 "signed": signed,
                 "statusLabel": "Firmato" if signed else "Da firmare",
                 "statusTone": "success" if signed else "warning",
-                "source": _text(getattr(doc, "fonte_documento", ""), "CARICAMENTO_STUDIO"),
-                "portalName": _text(getattr(doc, "nome_portale", "")),
-                "portalClass": _text(getattr(doc, "classificazione_portale", "")),
+                "source": _source_label_for_document(doc),
+                "portalName": _clean_document_filename(getattr(doc, "nome_portale", "")) or (_clean_document_filename(getattr(doc, "nome_originale", "")) if not _technical_filename(getattr(doc, "nome_originale", "")) else ""),
+                "portalClass": _portal_class_for_document(doc),
                 "portalSender": _text(getattr(doc, "mittente_portale", "")),
-                "portalDate": _date_label(getattr(doc, "data_deposito_portale", "")),
+                "portalDate": _date_label_optional(getattr(doc, "data_deposito_portale", "")),
                 "hash": _text(getattr(doc, "hash_sha256", "")),
                 "actions": {
                     "preview": f"/fascicoli/{fid}/documenti/{did}/visualizza",
@@ -2202,7 +2513,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                     "type": _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
                     "size": _bytes_label(row.get("dimensione_bytes", 0)),
                     "uploadedAt": "",
-                    "documentDate": _date_label(row.get("data_deposito") or row.get("data_documento")),
+                    "documentDate": _date_label_optional(row.get("data_deposito") or row.get("data_documento")),
                     "notes": "Documento censito dal portale ufficiale. Per visualizzarlo va acquisito dal PST con sessione autenticata o Local Signer del PC.",
                     "tags": ["Catalogo portale", source],
                     "signed": False,
@@ -2212,7 +2523,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                     "portalName": name,
                     "portalClass": _text(row.get("tipo_atto") or row.get("tipo")),
                     "portalSender": _text(row.get("mittente")),
-                    "portalDate": _date_label(row.get("data_deposito") or row.get("data_documento")),
+                    "portalDate": _date_label_optional(row.get("data_deposito") or row.get("data_documento")),
                     "hash": "",
                     "actions": actions,
                 }
@@ -2663,7 +2974,7 @@ def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]
         documents_label = f"{governed_documents} elementi, {physical_documents} file acquisiti"
     return [
         {"label": "Dati principali", "value": "titolo, tipo, ufficio", "ok": bool(getattr(fascicolo, "titolo", "") and getattr(fascicolo, "tipo", "")), "tone": "success"},
-        {"label": "Cliente", "value": _text(getattr(fascicolo, "nome_cliente", ""), "non collegato"), "ok": bool(cliente), "tone": "success" if cliente else "warning"},
+        {"label": "Cliente", "value": _fascicolo_client_label(fascicolo), "ok": bool(cliente), "tone": "success" if cliente else "warning"},
         {"label": "Parti", "value": f"{len(parti)} soggetti", "ok": bool(parti or getattr(fascicolo, "controparte", "")), "tone": "success" if parti else "warning"},
         {"label": "Documenti", "value": documents_label, "ok": bool(governed_documents), "tone": "primary"},
         {"label": "Scadenze", "value": f"{len(scadenze)} termini", "ok": bool(scadenze), "tone": "warning" if scadenze else "neutral"},
@@ -2693,7 +3004,7 @@ def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio
             "practiceId": _text(getattr(fascicolo, "id_pratica", "")),
             "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
             "proceduraOperativaCodice": _text(getattr(fascicolo, "procedura_operativa_codice", "")),
-            "codiceOggettoPst": _text(getattr(fascicolo, "codice_oggetto_pst", "")),
+            "codiceOggettoPst": _codice_oggetto_label(fascicolo),
             "codiceGuidaPratica": _text(getattr(fascicolo, "codice_guida_pratica", "")),
             "fonteCodiceOggetto": _text(getattr(fascicolo, "fonte_codice_oggetto", "")),
             "fileFonteCodiceOggetto": _text(getattr(fascicolo, "file_fonte_codice_oggetto", "")),
@@ -2780,6 +3091,7 @@ def build_react_fascicolo_detail_payload(
     visible_requests = [item for item in visible_activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     requests = visible_requests if load_activities else []
     visible_deposits = _deposits(fascicolo) if load_deposits else []
+    notification_communication_count = len(_notification_communication_documents(fascicolo))
     notification_relata = _notification_relata(fascicolo) if load_relata else _notification_relata(fascicolo, [])
     relata_count = max(
         int(notification_relata.get("pendingPortalDocuments") or 0),
@@ -2793,7 +3105,7 @@ def build_react_fascicolo_detail_payload(
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
         "attivita": len(getattr(fascicolo, "attivita", []) or []),
         "udienze_scadenze": len(scadenze) + len(apps),
-        "comunicazioni": len(getattr(fascicolo, "depositi_pct", []) or []),
+        "comunicazioni": len(getattr(fascicolo, "depositi_pct", []) or []) + notification_communication_count,
         "istanze": len(visible_requests),
         "relata_notifica": relata_count,
     }

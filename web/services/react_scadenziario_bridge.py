@@ -38,6 +38,79 @@ from web.services.scadenziario_views import (
 )
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+TECHNICAL_VISIBLE_RE = re.compile(
+    r"\b(?:PEC_AUDIT|pdf-deadline|pdf-semantic|pipeline|audit|audit-grade|source_event|profile_id|payload|runtime|backend|frontend|legacy|json_api|external_uid|external_provider|worker|job|provider|webhook|endpoint)\b",
+    re.IGNORECASE,
+)
+INTERNAL_NOTE_PREFIXES = (
+    "tipo evento:",
+    "decorrenza letta:",
+    "fonte:",
+    "scadenza:",
+    "hash:",
+    "id:",
+)
+OPERATIONAL_PREFIX_RE = re.compile(
+    r"^\s*(?:Presidio\s+PEC|Presidio\s+anomalie\s+PEC|Verifica\s+comunicazione\s+di\s+cancelleria\s+PEC)\s*:?\s*-?\s*",
+    re.IGNORECASE,
+)
+PEC_SUBJECT_NOISE_RE = re.compile(
+    r"\b(?:POSTA\s+CERTIFICATA|COMUNICAZIONE\s+[A-Z0-9./_-]+|Notificazione\s+ai\s+sensi\s+del\s+D\.L\.\s*179/2012)\b:?",
+    re.IGNORECASE,
+)
+PEC_RG_RE = re.compile(r"\b(?:N\.?\s*R\.?\s*G\.?|NRG|RG)\s*:?\s*(\d{1,8}/\d{4}(?:/[A-Z]+)?)\b", re.IGNORECASE)
+PEC_NUMBER_RE = re.compile(r"\b(\d{1,8}/20\d{2})(?:/[A-Z]+)?\b", re.IGNORECASE)
+
+
+def _normalise_for_matching(value: Any) -> str:
+    text = str(value or "").lower()
+    return text.replace("à", "a").replace("è", "e").replace("é", "e").replace("ì", "i").replace("ò", "o").replace("ù", "u")
+
+
+def _pec_context(scadenza: Any) -> str:
+    return " ".join(
+        str(value or "")
+        for value in (
+            getattr(scadenza, "titolo", ""),
+            getattr(scadenza, "descrizione", ""),
+            getattr(scadenza, "note", ""),
+            getattr(scadenza, "id_fascicolo", ""),
+            getattr(scadenza, "source_event_type", ""),
+        )
+    )
+
+
+def _pec_rg_label(context: str) -> str:
+    match = PEC_RG_RE.search(context) or PEC_NUMBER_RE.search(context)
+    if not match:
+        return ""
+    number = match.group(1).upper()
+    if "/" in number:
+        pieces = number.split("/")
+        if len(pieces) >= 2:
+            number = "/".join(pieces[:2])
+    return f"RG {number}"
+
+
+def _pec_event_summary(context: str) -> str:
+    norm = _normalise_for_matching(context)
+    if "rinvio" in norm:
+        return "rinvio udienza"
+    if "differimento" in norm:
+        return "differimento udienza"
+    if "conferma" in norm:
+        return "conferma udienza"
+    if "fissazione" in norm or "avviso di udienza" in norm or "avviso udienza" in norm:
+        return "fissazione udienza"
+    if "discussione" in norm:
+        return "udienza di discussione"
+    if "udienza" in norm:
+        return "udienza"
+    if "notifica" in norm or "notificazione" in norm:
+        return "notifica giudiziaria"
+    if "cancelleria" in norm or "comunicazione" in norm:
+        return "comunicazione di cancelleria"
+    return ""
 
 
 def _iso_now() -> str:
@@ -53,6 +126,83 @@ def _short_text(value: Any, limit: int = 120) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "..."
+
+
+def _visible_legal_text(value: Any, limit: int = 160) -> str:
+    parts: list[str] = []
+    for raw_line in str(value or "").splitlines():
+        line = _short_text(raw_line, limit=max(limit, 220))
+        if not line:
+            continue
+        line = re.sub(r"\bPEC_AUDIT:[A-Za-z0-9_-]+", "", line).strip()
+        if not line:
+            continue
+        lowered = line.lower()
+        if lowered.startswith("fonte link udienza:"):
+            parts.append("Allegato udienza: " + _short_text(line.split(":", 1)[1], 120))
+            continue
+        if lowered.startswith("verifica link udienza:"):
+            value_part = _short_text(line.split(":", 1)[1], 160).lower()
+            if "identico" in value_part:
+                parts.append("Link udienza verificato sull'allegato.")
+            elif value_part:
+                parts.append("Link udienza da controllare sull'allegato.")
+            continue
+        if lowered.startswith(INTERNAL_NOTE_PREFIXES):
+            continue
+        if TECHNICAL_VISIBLE_RE.search(line):
+            continue
+        line = PEC_SUBJECT_NOISE_RE.sub("", line).strip(" -:")
+        line = OPERATIONAL_PREFIX_RE.sub("", line).strip(" -:")
+        if line:
+            parts.append(line)
+    return _short_text(" ".join(parts), limit)
+
+
+def _legal_scadenza_title(scadenza: Any) -> str:
+    if is_scadenza_pec(scadenza):
+        context = _pec_context(scadenza)
+        summary = _pec_event_summary(context)
+        rg = _pec_rg_label(context)
+        if "udienza" in summary:
+            details = [summary]
+            if rg:
+                details.append(rg)
+            return _short_text(f"Udienza da PEC: {' - '.join(details)}", 96)
+        if summary == "notifica giudiziaria":
+            return _short_text(" - ".join(part for part in ("Notifica giudiziaria da PEC", rg) if part), 96)
+        if summary == "comunicazione di cancelleria":
+            return _short_text(" - ".join(part for part in ("Comunicazione di cancelleria da PEC", rg) if part), 96)
+    title = _visible_legal_text(getattr(scadenza, "titolo", ""), 96)
+    if title:
+        return title
+    tipo = _type_label(getattr(scadenza, "tipo", TipoTermine.ALTRO.value))
+    fascicolo = str(getattr(scadenza, "id_fascicolo", "") or "").strip()
+    return _short_text(f"{tipo} {fascicolo}".strip() or "Scadenza", 96)
+
+
+def _legal_scadenza_description(scadenza: Any) -> str:
+    if is_scadenza_pec(scadenza):
+        context = _pec_context(scadenza)
+        summary = _pec_event_summary(context)
+        rg = _pec_rg_label(context)
+        if "udienza" in summary:
+            parts = ["Udienza rilevata da PEC."]
+            if rg:
+                parts.append(f"Fascicolo {rg}.")
+            if bool(getattr(scadenza, "remote_hearing_detected", False)):
+                parts.append("Collegamento audiovisivo da verificare sull'allegato prima dell'udienza.")
+            else:
+                parts.append("Verificare provvedimento, fascicolo e attività collegate.")
+            return _short_text(" ".join(parts), 150)
+        if summary == "notifica giudiziaria":
+            return _short_text("Notifica giudiziaria rilevata da PEC: controllare atto, fascicolo e termini applicabili.", 150)
+        if summary == "comunicazione di cancelleria":
+            return _short_text("Comunicazione di cancelleria da PEC: verificare provvedimento e attività conseguenti.", 150)
+    description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 150)
+    if description:
+        return description
+    return _visible_legal_text(getattr(scadenza, "note", ""), 150)
 
 
 def _parse_date(value: Any) -> date | None:
@@ -124,7 +274,28 @@ def _source_event_label(value: Any) -> str:
     raw = str(value or "").strip()
     if not raw:
         return ""
-    return SOURCE_EVENT_TYPE_LABELS.get(raw, raw.replace("_", " ").title())
+    labels = {
+        **SOURCE_EVENT_TYPE_LABELS,
+        "pct_deposito": "Deposito telematico",
+        "cancelleria_comunicazione": "Comunicazione di cancelleria",
+        "notifica_giudice_pace": "Notifica giudiziaria",
+        "notifica_pec": "Notifica PEC",
+        "udienza_remota": "Udienza da remoto",
+        "documento_fascicolo": "Documento notificato nel fascicolo",
+    }
+    return labels.get(raw, raw.replace("_", " ").title())
+
+
+def _source_event_label_for_scadenza(scadenza: Any) -> str:
+    if is_scadenza_pec(scadenza):
+        summary = _pec_event_summary(_pec_context(scadenza))
+        if "udienza" in summary:
+            return "Udienza"
+        if summary == "notifica giudiziaria":
+            return "Notifica giudiziaria"
+        if summary == "comunicazione di cancelleria":
+            return "Comunicazione di cancelleria"
+    return _source_event_label(getattr(scadenza, "source_event_type", ""))
 
 
 def _priority_label(value: Any) -> str:
@@ -203,6 +374,27 @@ def _fascicolo_label(fascicolo: Any, fallback_id: str = "") -> str:
     if rg and title:
         return f"{rg} - {title}"
     return rg or title or fallback_id or "-"
+
+
+def _client_label(scadenza: Any, fascicolo: Any = None) -> str:
+    direct = str(
+        getattr(scadenza, "nome_cliente", "")
+        or getattr(scadenza, "cliente", "")
+        or getattr(scadenza, "parte", "")
+        or ""
+    ).strip()
+    if direct:
+        return direct
+    if fascicolo:
+        fascicolo_client = str(
+            getattr(fascicolo, "nome_cliente", "")
+            or getattr(fascicolo, "cliente", "")
+            or getattr(fascicolo, "parte", "")
+            or ""
+        ).strip()
+        if fascicolo_client:
+            return fascicolo_client
+    return "-"
 
 
 def _owner_label(scadenza: Any, gestione_utenti: Any, fascicolo: Any = None) -> str:
@@ -320,8 +512,8 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
         "id": item_id,
         "date": due_date,
         "dateLabel": _format_date(due_date),
-        "title": _short_text(getattr(scadenza, "titolo", "") or "Scadenza senza titolo", 96),
-        "description": _short_text(getattr(scadenza, "descrizione", "") or getattr(scadenza, "note", ""), 150),
+        "title": _legal_scadenza_title(scadenza),
+        "description": _legal_scadenza_description(scadenza),
         "type": _enum_value(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)) or TipoTermine.ALTRO.value,
         "typeLabel": _type_label(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)),
         "priority": priority,
@@ -340,11 +532,12 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
         "operationalDueLabel": _format_date(getattr(scadenza, "operational_due_at", "")),
         "fascicoloId": fascicolo_id,
         "fascicoloLabel": _fascicolo_label(fascicolo, fascicolo_id),
+        "clientLabel": _client_label(scadenza, fascicolo),
         "ownerLabel": _owner_label(scadenza, gestione_utenti, fascicolo),
         "sourceEventAt": str(getattr(scadenza, "source_event_at", "") or getattr(scadenza, "data_decorrenza", "") or ""),
         "sourceEventLabel": _format_date(getattr(scadenza, "source_event_at", "") or getattr(scadenza, "data_decorrenza", "")),
         "sourceEventType": str(getattr(scadenza, "source_event_type", "") or ""),
-        "sourceEventTypeLabel": _source_event_label(getattr(scadenza, "source_event_type", "")),
+        "sourceEventTypeLabel": _source_event_label_for_scadenza(scadenza),
         "officeLabel": str(getattr(scadenza, "judicial_office_name", "") or getattr(fascicolo, "tribunale", "") or ""),
         "officeModeLabel": OFFICE_MODE_LABELS.get(office_mode, office_mode.replace("_", " ").title() if office_mode else ""),
         "officePatronLabel": patron_label,
@@ -583,7 +776,7 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
         _card(
             "pec",
             "Scadenze da PEC",
-            "Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico audit.",
+            "Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico dei controlli.",
             summary["pec"],
             "info",
             "archive",
@@ -594,33 +787,12 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
         _card(
             "bulk-complete",
             "Completa selezionate",
-            "Seleziona le righe e chiudi insieme i termini gia lavorati.",
+            "Seleziona le righe e chiudi insieme i termini già lavorati.",
             "bulk",
             "success",
             "check",
             kind="bulk_complete",
-            label="Completa bulk",
-        ),
-        _card(
-            "advanced",
-            "Calcolo avanzato",
-            "Crea una nuova scadenza con profilo termine, sospensione feriale, patrono e anticipo operativo.",
-            summary["advanced"],
-            "purple",
-            "calculator",
-            label="Nuovo calcolo",
-            href="/scadenziario/nuova",
-        ),
-        _card(
-            "lex",
-            "Brief Lex AI",
-            "Genera un briefing sui termini da presidiare, con fascicoli, agenda e priorità operative.",
-            "AI",
-            "primary",
-            "lex",
-            kind="lex",
-            label="Apri Lex",
-            href="#lex",
+            label="Completa selezione",
         ),
     ]
 

@@ -11,7 +11,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | blocked | 3 |
 | partial | 38 |
 | pending | 14 |
-| tested | 57 |
+| tested | 58 |
 
 ## Matrice
 
@@ -68,6 +68,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | economico | /fatturazione | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.billing.invoices | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | economico | /fatturazione/nuova | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.billing.invoices | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | economico | /incassi-pagamenti | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.billing.payments | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
+| fascicoli | /fascicoli/:id/deposito/prepara | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.cases.detail | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | mandato | /compensi-forensi | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.billing.compensi | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | mandato | /preventivi | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.billing.quotes | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | mandato | /preventivi/conferimento/:id | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.billing.quotes | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |

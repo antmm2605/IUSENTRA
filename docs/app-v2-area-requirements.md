@@ -7,9 +7,9 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 ## Sintesi
 
 - Aree rilevate o governate: 17.
-- Route nel manifest: 112.
-- Priorita route: P0=31; P1=43; P2=38.
-- Stato aree: blocked=1; complete_tested=7; complete_unverified=5; partial=4.
+- Route nel manifest: 113.
+- Priorita route: P0=31; P1=44; P2=38.
+- Stato aree: blocked=1; complete_tested=8; complete_unverified=4; partial=4.
 - `complete_tested` non viene assegnato a un'area con route legacy/parziali o senza gate fase 8.
 - Le aree non parificate restano `partial`, `pending` o `blocked` e non devono essere esposte come complete nella shell App V2.
 
@@ -23,7 +23,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 | Comunicazioni, PEC e notifiche legali | /notifiche-legali; /messaggi/nuovo; /email; /email-ordinaria; /messaggi | /app/notifiche-legali; /app/messaggi/nuovo; /app/email; /app/email-ordinaria; /app/messaggi | routes.appV2.comms.messages; routes.appV2.comms.newMessage; routes.appV2.comms.ordinaryMail; routes.appV2.comms.pec | comunicazioni.leggi / comunicazioni.scrivi; segreti casella mai esposti | messaggi, allegati, destinatari, ricevute e segreti casella redatti | PEC; email ordinaria; messaggi; notifiche legali | dettaglio messaggio tenant-safe; allegato cross-tenant negato; invio senza permesso 403; flag off senza API dati | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P0; P1; P2 | complete_tested |
 | Documenti, redazione e ricerca legale | /checklist; /giurisprudenza/*; /legal-intelligence/*; /redazione-atti/*; /ricerca-legale/*; /template-atti/*; /template-atti/nuovo; /giurisprudenza; +9 altre | /app; /app/lex; /app/lex; /app/documenti?tab=redazione; /app/lex; /app/documenti?tab=template; +11 altre | routes.appV2.documents.checklist; routes.appV2.documents.drafting; routes.appV2.documents.list; routes.appV2.documents.templateEditor; routes.appV2.documents.templates; routes.appV2.legalResearch.giurisprudenza; +1 altre | documenti.leggi / documenti.scrivi; download e generazione protetti | atti, template, contenuti documento e allegati | redazione atti; template; giurisprudenza; upload/classificazione; editor | preview/download cross-tenant negati; upload invalido 400/422; editor nascosto senza permesso; path traversal negato | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1; P2 | partial |
 | Fatturazione e pagamenti | /fatturazione/*; /fatturazione; /fatturazione/nuova; /incassi-pagamenti | /app/mandato?tab=fatturazione; /app/mandato?tab=fatturazione; /app/mandato?tab=fatturazione&drawer=nuova; /app/mandato?tab=incassi | routes.appV2.billing.invoices; routes.appV2.billing.payments | fatturazione.leggi / fatturazione.scrivi; pagamenti protetti | fatture, parcelle, incassi, provider pagamento e dati fiscali | fatture; parcelle; pagamenti; export/download | fattura tenant B negata; export senza permesso 403; download tenant B negato; importo invalido 400/422 | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1 | partial |
-| Fascicoli | /fascicoli; /fascicoli/archivio; /fascicoli/nuovo | /app/fascicoli; /app/fascicoli/archivio; /app/fascicoli/nuovo | routes.appV2.cases.create; routes.appV2.cases.list | fascicoli.leggi / fascicoli.scrivi quando modifica | parti, controparti, documenti, timeline e scadenze | lista fascicoli; dettaglio fascicolo; documenti/scadenze collegati | lista tenant A; dettaglio cross-tenant negato; timeline senza leakage; readonly non muta | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
+| Fascicoli | /fascicoli/:id/deposito/prepara; /fascicoli; /fascicoli/archivio; /fascicoli/nuovo | /app/fascicoli/:id/deposito/prepara; /app/fascicoli; /app/fascicoli/archivio; /app/fascicoli/nuovo | routes.appV2.cases.create; routes.appV2.cases.detail; routes.appV2.cases.list | fascicoli.leggi / fascicoli.scrivi quando modifica | parti, controparti, documenti, timeline e scadenze | lista fascicoli; dettaglio fascicolo; documenti/scadenze collegati | lista tenant A; dettaglio cross-tenant negato; timeline senza leakage; readonly non muta | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1; P2 | complete_tested |
 | Impostazioni e integrazioni | /impostazioni; /impostazioni-studio; /impostazioni/calendario; /impostazioni/pagamenti; /impostazioni/sdi; /notifiche; /notifiche-whatsapp; /sincronizzazione-calendari; +2 altre | /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; /app/impostazioni; +4 altre | routes.appV2.settings.backup; routes.appV2.settings.calendarSync; routes.appV2.settings.notifications; routes.appV2.settings.payments; routes.appV2.settings.sdi; routes.appV2.settings.studio; +1 altre | impostazioni.leggi / impostazioni.scrivi; segreti mascherati | configurazioni studio, PEC/SMTP, notifiche, backup, calendari e segreti redatti | dati studio; PEC/SMTP; pagamenti; notifiche; backup; calendari | non autorizzato 403; tenant A non vede settings B; secret mascherato; form invalido 400/422 | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1; P2 | complete_tested |
 | Lex | /procedure-completion | /app/procedure-completion | routes.appV2.dashboard.home | sessione studio valida | da censire | workflow presente nel manifest | test area da censire | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Mandato, preventivi e compensi | /compensi-forensi/*; /preventivi/*; /tariffario/*; /compensi-forensi; /preventivi; /preventivi/conferimento/:id; /preventivi/conferimento/nuovo; /preventivi/nuovo; +2 altre | /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=tariffario; /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=conferimenti; +4 altre | routes.appV2.billing.compensi; routes.appV2.billing.quotes; routes.appV2.billing.tariffario | mandato.leggi / mandato.scrivi; calcoli backend | offerte, conferimenti, tariffe e dati economici | preventivi; wizard; conferimenti; compensi; tariffario | lista preventivi tenant A; modifica senza permesso 403; importo invalido 400/422; apri fascicolo auditato se previsto | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1 | partial |
@@ -135,19 +135,19 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 
 ### Fascicoli
 
-- Stato: `complete_unverified` (area React full senza P0/P1; smoke workflow autenticato da estendere).
-- Route censite: 3; priorita: P2; migrazione: react_operational_full=3.
-- URL legacy principali: /fascicoli; /fascicoli/archivio; /fascicoli/nuovo.
-- URL App V2: /app/fascicoli; /app/fascicoli/archivio; /app/fascicoli/nuovo.
+- Stato: `complete_tested` (area senza route pendenti/parziali e con P0/P1 coperti dai gate comuni piu' registro fase 8).
+- Route censite: 4; priorita: P1; P2; migrazione: react_operational_full=4.
+- URL legacy principali: /fascicoli/:id/deposito/prepara; /fascicoli; /fascicoli/archivio; /fascicoli/nuovo.
+- URL App V2: /app/fascicoli/:id/deposito/prepara; /app/fascicoli; /app/fascicoli/archivio; /app/fascicoli/nuovo.
 - Endpoint API: /api/v1/ui/fascicoli*.
-- Feature flag: routes.appV2.cases.create; routes.appV2.cases.list.
+- Feature flag: routes.appV2.cases.create; routes.appV2.cases.detail; routes.appV2.cases.list.
 - RBAC: fascicoli.leggi / fascicoli.scrivi quando modifica.
 - PII: parti, controparti, documenti, timeline e scadenze.
 - Workflow principali: lista fascicoli; dettaglio fascicolo; documenti/scadenze collegati.
 - Requisiti specifici verificati o governati: deep link protetto; collegamenti solo stesso tenant/fascicolo; azioni create/update/archive protette.
 - Test richiesti: lista tenant A; dettaglio cross-tenant negato; timeline senza leakage; readonly non muta.
-- Test presenti fase 8: tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere.
-- Rischio residuo: nessuna promozione ulteriore senza smoke autenticato area-specifico.
+- Test presenti fase 8: tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite.
+- Rischio residuo: estendere smoke autenticato tenant A/B quando sono disponibili credenziali ambiente.
 
 ### Impostazioni e integrazioni
 

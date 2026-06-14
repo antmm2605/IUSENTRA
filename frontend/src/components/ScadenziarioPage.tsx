@@ -26,6 +26,7 @@ import {
   Sparkles,
   TimerReset,
   Trash2,
+  UsersRound,
   Wand2,
   X,
 } from 'lucide-react'
@@ -138,6 +139,7 @@ function isInsideQuery(item: ScadenziarioRow, query: string): boolean {
     item.priorityLabel,
     item.statusLabel,
     item.fascicoloLabel,
+    item.clientLabel,
     item.ownerLabel,
     item.officeLabel,
   ].join(' ')).includes(needle)
@@ -246,11 +248,11 @@ function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
         <span className="iu-scad-remote-pending"><FileSearch size={13}/> Link udienza nel PDF allegato da acquisire</span>
       ) : null}
       {item.remoteHearingSource ? (
-        <span className="iu-scad-remote-source"><FileSearch size={13}/> Allegato fonte: {item.remoteHearingSource}</span>
+        <span className="iu-scad-remote-source"><FileSearch size={13}/> Allegato udienza: {item.remoteHearingSource}</span>
       ) : null}
       {item.remoteHearingUrl ? (
         <span className={`iu-scad-remote-check ${item.remoteHearingVerified ? 'is-verified' : 'is-review'}`}>
-          <CheckCircle2 size={13}/> {item.remoteHearingVerified ? 'Link verificato identico alla fonte letta' : 'Link da verificare sulla fonte'}
+          <CheckCircle2 size={13}/> {item.remoteHearingVerified ? 'Link verificato sull’allegato' : 'Link da controllare sull’allegato'}
         </span>
       ) : null}
     </div>
@@ -310,7 +312,10 @@ function DeadlineTable({
               <td><Badge tone="neutral">{item.typeLabel}</Badge></td>
               <td>{item.operative ? <span className="iu-scad-operative"><TimerReset size={14}/>{item.operationalDueLabel}</span> : <span className="iu-scad-muted">—</span>}</td>
               <td><Badge tone={item.tone}>{item.priorityLabel}</Badge></td>
-              <td><span className="iu-scad-fascicolo">{item.fascicoloLabel}</span><small>{item.ownerLabel}</small></td>
+              <td>
+                <span className="iu-scad-fascicolo">{item.fascicoloLabel}</span>
+                <small>{item.clientLabel && item.clientLabel !== '-' ? item.clientLabel : 'Cliente da collegare'}</small>
+              </td>
               <td><b className={`iu-scad-days ${item.overdue ? 'is-negative' : item.dueToday ? 'is-zero' : ''}`}>{item.daysLabel}</b></td>
               <td><DeadlineActions item={item} onComplete={onComplete} onDelete={onDelete}/></td>
             </tr>
@@ -355,6 +360,7 @@ function DeadlineCardList({
           <div className="iu-scad-mobile-meta">
             <span><CalendarDays size={14}/>{item.daysLabel}</span>
             <span><Gavel size={14}/>{item.typeLabel}</span>
+            <span><UsersRound size={14}/>{item.clientLabel && item.clientLabel !== '-' ? item.clientLabel : 'Cliente da collegare'}</span>
             <span><ShieldCheck size={14}/>{item.statusLabel}</span>
           </div>
           <DeadlineFlags item={item}/>
@@ -456,7 +462,7 @@ function ProcessDeadlineCalculator({
       <header>
         <div>
           <span><Gavel size={16}/> Calcolatore termini processuali</span>
-          <h2>Calcolo spiegabile con audit</h2>
+          <h2>Calcolo motivato e tracciabile</h2>
           <p>Template versionati, sospensione feriale parametrica, sabato configurabile e conferma professionale quando il caso lo richiede.</p>
         </div>
         <Badge tone={result?.requiresLegalReview ? 'warning' : 'success'}>{result?.requiresLegalReview ? 'richiede verifica' : 'assistente verificabile'}</Badge>
@@ -519,7 +525,7 @@ function ProcessDeadlineCalculator({
           </div>
           <div className="iu-scad-calculator__actions">
             <button type="button" onClick={onCalculate} disabled={busy || !form.inputDate}><Wand2 size={15}/> Calcola e spiega</button>
-            <button type="button" onClick={onCreate} disabled={busy || !result}><CalendarPlus size={15}/> Crea scadenza auditata</button>
+            <button type="button" onClick={onCreate} disabled={busy || !result}><CalendarPlus size={15}/> Crea scadenza controllata</button>
           </div>
           {selected ? <small>{selected.reference_law || 'Template configurabile'} · versione {selected.version}</small> : null}
           {status ? <p className="iu-scad-calculator__status">{status}</p> : null}
@@ -543,7 +549,7 @@ function ProcessDeadlineCalculator({
                 <div><dt>Motore</dt><dd>{result.engineVersion}</dd></div>
                 <div><dt>Regole</dt><dd>{result.rulesetVersion}</dd></div>
                 <div><dt>Calendario</dt><dd>{result.calendarVersion}</dd></div>
-                <div><dt>Hash audit</dt><dd>{result.audit?.immutableHash.slice(0, 12) || result.resultHash.slice(0, 12)}</dd></div>
+                <div><dt>Prova di controllo</dt><dd>{result.audit?.immutableHash.slice(0, 12) || result.resultHash.slice(0, 12)}</dd></div>
               </dl>
               <div className="iu-scad-calculator__pec">
                 <strong>Promemoria PEC pianificabili</strong>
@@ -554,7 +560,7 @@ function ProcessDeadlineCalculator({
             <div className="iu-scad-calculator__empty">
               <Wand2 size={28}/>
               <strong>Pronto per il calcolo</strong>
-              <span>Il risultato mostrerà la data, le regole applicate, la spiegazione, le versioni e l'hash audit.</span>
+              <span>Il risultato mostrerà la data, le regole applicate, la spiegazione, le versioni e la prova di controllo.</span>
             </div>
           )}
         </div>
@@ -675,11 +681,12 @@ function OperativeCards({
     <section className="iu-scad-actions-grid" aria-label="Card operative scadenziario">
       {cards.map((card) => {
         const isBulk = card.action.kind === 'bulk_complete'
+        const value = isBulk ? selectedCount : card.value
         return (
           <article className={`iu-scad-action-card iu-scad-action-card--${card.tone}`} key={card.id}>
             <div>{actionIcon(card.icon)}</div>
             <span>{card.title}</span>
-            <strong>{card.value}</strong>
+            <strong>{value}</strong>
             <p>{card.description}</p>
             {card.action.kind === 'filter' && card.action.view ? (
               <button type="button" onClick={() => onFilter(card.action.view!)}>{card.action.label}</button>
@@ -877,7 +884,7 @@ export function ScadenziarioPage() {
     calculateProcessDeadline(data.calculator.endpoints.calculate, calculatorRequest(calculatorForm))
       .then((result) => {
         setCalculatorResult(result)
-        setCalculatorStatus('Calcolo completato e audit hashato registrato.')
+        setCalculatorStatus('Calcolo completato e controllo registrato.')
       })
       .catch((error) => setCalculatorStatus(error instanceof Error ? error.message : 'Calcolo non riuscito'))
       .finally(() => setCalculatorBusy(false))
@@ -886,7 +893,7 @@ export function ScadenziarioPage() {
   const runCreateCalculatedDeadline = () => {
     if (!calculatorResult) return
     setCalculatorBusy(true)
-    setCalculatorStatus('Creazione della scadenza auditata...')
+    setCalculatorStatus('Creazione della scadenza controllata...')
     createProcessDeadline(data.calculator.endpoints.createDeadline, calculatorRequest(calculatorForm))
       .then((result) => {
         setCalculatorStatus(result.messaggio)
@@ -1108,8 +1115,8 @@ export function ScadenziarioPage() {
               {focusedRow.officeLabel ? <div><dt>Ufficio</dt><dd>{focusedRow.officeLabel}</dd></div> : null}
               {focusedRow.remoteHearingDetected ? <div><dt>Udienza da remoto</dt><dd>{focusedRow.remoteHearingMode || 'Da remoto'}</dd></div> : null}
               {focusedRow.remoteHearingTime ? <div><dt>Orario collegamento</dt><dd>{focusedRow.remoteHearingTime}</dd></div> : null}
-              {focusedRow.remoteHearingSource ? <div><dt>Fonte link</dt><dd>{focusedRow.remoteHearingSource}</dd></div> : null}
-              {focusedRow.remoteHearingUrl ? <div><dt>Verifica link</dt><dd>{focusedRow.remoteHearingVerified ? 'Identico alla fonte letta' : 'Normalizzato da verificare'}</dd></div> : null}
+              {focusedRow.remoteHearingSource ? <div><dt>Allegato udienza</dt><dd>{focusedRow.remoteHearingSource}</dd></div> : null}
+              {focusedRow.remoteHearingUrl ? <div><dt>Controllo link</dt><dd>{focusedRow.remoteHearingVerified ? 'Verificato sull’allegato' : 'Da controllare sull’allegato'}</dd></div> : null}
               {focusedRow.remoteHearingPdfRequired ? <div><dt>Link udienza</dt><dd>Da acquisire dal PDF allegato</dd></div> : null}
               {focusedRow.officeModeLabel ? <div><dt>Operatività ufficio</dt><dd>{focusedRow.officeModeLabel}</dd></div> : null}
               {focusedRow.officePatronLabel ? <div><dt>Patrono ufficio</dt><dd>{focusedRow.officePatronLabel}</dd></div> : null}

@@ -10,6 +10,7 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
 from pct.deposito_simulazione import simulated_deposit_note
+from web.blueprints.react_shell import render_react_shell_response
 from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_routes
 from web.services.local_pec_runtime import (
     deposito_pec_subject,
@@ -93,6 +94,52 @@ def register_deposito_routes(
             if isinstance(issue, dict)
         ]
         return {"ok": not blockers, "blockers": len(blockers), "warnings": len(warnings), "issues": public_issues}
+
+    def _guided_transport_completion_response(
+        *,
+        busta: object,
+        id_deposito: str,
+        timestamp: str,
+        pec_dest: str,
+        tipo_atto: str,
+        oggetto_pec: str,
+        attachment_path: str,
+        validation: object,
+    ) -> dict[str, Any] | None:
+        audit_tecnico = {}
+        audit_func = getattr(busta, "audit_conformita_pst", None)
+        if callable(audit_func):
+            audit_tecnico = audit_func()
+        if audit_tecnico.get("uses_real_encryption") is True:
+            return None
+        next_actions = list(audit_tecnico.get("guided_next_actions") or [])
+        if not next_actions:
+            algoritmo = str(audit_tecnico.get("required_encryption_algorithm") or "AES256")
+            next_actions = [
+                "Controlla atto principale, allegati, firme e DatiAtto.xml nel pacchetto preparato.",
+                f"Genera o collega Atto.enc ministeriale cifrato {algoritmo}.",
+                "Riprendi dal fascicolo per presidiare ricevuta di accettazione, RdAC ed esiti.",
+            ]
+        return {
+            "ok": False,
+            "requires_guided_completion": True,
+            "package_ready": True,
+            "id_deposito": id_deposito,
+            "timestamp": timestamp,
+            "pec_dest": pec_dest,
+            "tipo_atto": tipo_atto,
+            "oggetto_pec": oggetto_pec,
+            "attachment_path": attachment_path,
+            "errore": "Invio diretto sospeso: manca la busta ministeriale conforme.",
+            "message": (
+                "Il software ha preparato il pacchetto di controllo, ma non registra un deposito come valido "
+                "finché Atto.msg non viene cifrato in Atto.enc con algoritmo ministeriale vigente. "
+                "Completa il passaggio indicato e poi riprendi il presidio ricevute dal fascicolo."
+            ),
+            "next_actions": next_actions,
+            "validation": _validation_summary(validation),
+            "busta_audit": audit_tecnico,
+        }
 
     @app.route("/deposito/checklist")
     def deposito_checklist():
@@ -200,7 +247,12 @@ def register_deposito_routes(
 
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
-        oggetto = form.get("oggetto", "").strip() or fascicolo.titolo
+        oggetto = (
+            form.get("codice_oggetto_pst", "").strip()
+            or str(getattr(fascicolo, "codice_oggetto_pst", "") or "").strip()
+            or form.get("oggetto", "").strip()
+            or fascicolo.titolo
+        )
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
         anno_rg = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fascicolo.anno_rg or None)
@@ -301,7 +353,12 @@ def register_deposito_routes(
 
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
-        oggetto = form.get("oggetto", "").strip() or fascicolo.titolo
+        oggetto = (
+            form.get("codice_oggetto_pst", "").strip()
+            or str(getattr(fascicolo, "codice_oggetto_pst", "") or "").strip()
+            or form.get("oggetto", "").strip()
+            or fascicolo.titolo
+        )
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
         anno_rg = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fascicolo.anno_rg or None)
@@ -541,6 +598,18 @@ def register_deposito_routes(
             anno_rg=anno_rg,
             tribunale=fascicolo.tribunale or "",
         )
+        guided_response = _guided_transport_completion_response(
+            busta=busta,
+            id_deposito=id_dep,
+            timestamp=timestamp,
+            pec_dest=pec_dest,
+            tipo_atto=tipo_atto,
+            oggetto_pec=oggetto_pec,
+            attachment_path=enc_path,
+            validation=validation,
+        )
+        if guided_response:
+            return jsonify(guided_response), 409
 
         if modalita_demo:
             fake_mid = _hl.sha256(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
@@ -672,6 +741,9 @@ def register_deposito_routes(
     @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
     def deposito_prepara(id_fasc):
         """Mostra il riepilogo documenti e la guida al deposito telematico."""
+        if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
+            return render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")
+
         gestore_fascicoli = get_fascicoli()
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
@@ -739,7 +811,12 @@ def register_deposito_routes(
         codice_registro = form.get("codice_registro", "RG").strip()
         numero_rg = form.get("numero_rg", "").strip()
         anno_rg_str = form.get("anno_rg", "").strip()
-        oggetto = form.get("oggetto", "").strip() or fascicolo.titolo
+        oggetto = (
+            form.get("codice_oggetto_pst", "").strip()
+            or str(getattr(fascicolo, "codice_oggetto_pst", "") or "").strip()
+            or form.get("oggetto", "").strip()
+            or fascicolo.titolo
+        )
         note = form.get("note", "").strip()
         tribunale_nome = form.get("tribunale_nome", "").strip()
         tribunale_pec = form.get("tribunale_pec", "").strip()
@@ -899,6 +976,18 @@ def register_deposito_routes(
                     busta_dir = _Path(output_dir) / id_dep
                     busta = BustaTelematica(dati)
                     busta_path = busta.crea_busta(str(busta_dir))
+                    guided_response = _guided_transport_completion_response(
+                        busta=busta,
+                        id_deposito=id_dep,
+                        timestamp=timestamp,
+                        pec_dest=pec_dest,
+                        tipo_atto=tipo_atto,
+                        oggetto_pec=oggetto_pec,
+                        attachment_path=busta_path,
+                        validation=validation,
+                    )
+                    if guided_response:
+                        return jsonify(guided_response), 409
                     if form.get("local_pec_confirmed") != "1":
                         return jsonify(
                             local_pec_required_response(

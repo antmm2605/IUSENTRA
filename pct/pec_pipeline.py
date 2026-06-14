@@ -1031,9 +1031,9 @@ def _normalise_extracted_url(raw_url: str) -> tuple[str, bool, str]:
     raw_value = str(raw_url or "").strip()
     url = _preserved_url_value(raw_url)
     whitespace_compacted = re.sub(r"[\r\n\t ]+", "", raw_value)
-    exact = url == raw_value or (bool(raw_value) and whitespace_compacted == url)
+    exact = url == raw_value
     note = ""
-    if exact and url != raw_value:
+    if bool(raw_value) and whitespace_compacted == url and url != raw_value:
         note = "rimossi spazi OCR interni al link"
     if url.startswith("www."):
         url = f"https://{url}"
@@ -1200,7 +1200,7 @@ def _extract_remote_hearing_links(text: str) -> list[dict[str, Any]]:
                     "url": value,
                     "raw_url": raw_url,
                     "exact": exact,
-                    "integrity": "exact" if exact else "normalizzato_da_verificare",
+                    "integrity": "exact" if exact else "ricostruito_da_controllare",
                     "normalization_note": note,
                     "classification_reason": classification_reason,
                 }
@@ -1473,7 +1473,7 @@ def _remote_hearing_note_lines(report: dict[str, Any], proposal: dict[str, Any] 
         lines.append(
             "Verifica link udienza: identico alla fonte letta."
             if extra.get("remote_hearing_verified")
-            else "Verifica link udienza: link normalizzato, controllo visivo richiesto."
+            else "Verifica link udienza: link ricostruito da controllare sull'allegato."
         )
     elif extra.get("remote_hearing_pdf_required"):
         lines.append("Link udienza audiovisiva: da acquisire dal PDF allegato.")
@@ -2703,6 +2703,44 @@ def _deadline_description_for_procedural_date(candidate: dict[str, Any], *, kind
     return clean_text(f"Data processuale futura letta da {source}: {context}", 280)
 
 
+def _time_label_from_text(value: str) -> str:
+    text = clean_text(value, 240)
+    if not text:
+        return ""
+    patterns = (
+        r"\b(?:alle\s+)?ore\s+(\d{1,2})[:.](\d{2})\b",
+        r"\bh\.?\s*(\d{1,2})[:.](\d{2})\b",
+        r"\b(\d{1,2})[:.](\d{2})\b",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.I)
+        if not match:
+            continue
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return f"{hour:02d}:{minute:02d}"
+    return ""
+
+
+def _hearing_time_for_procedural_date(parsed: dict[str, Any], candidate: dict[str, Any]) -> str:
+    context = clean_text(candidate.get("context") or "", 520)
+    direct = _time_label_from_text(context)
+    if direct:
+        return direct
+    profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    for value in (
+        profile.get("udienza_data_ora"),
+        profile.get("data_evento"),
+        profile.get("descrizione_evento"),
+        profile.get("oggetto_evento"),
+    ):
+        result = _time_label_from_text(str(value or ""))
+        if result:
+            return result
+    return ""
+
+
 def _deadline_responsible_actor(actor: str) -> str:
     value = clean_text(actor, 80)
     technical = value.lower()
@@ -2719,6 +2757,78 @@ def _deadline_responsible_actor(actor: str) -> str:
     if technical.startswith(("codex", "pec-")):
         return ""
     return value
+
+
+def _date_from_iso_or_it(value: str) -> date | None:
+    text = clean_text(value, 80)
+    if not text:
+        return None
+    try:
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        pass
+    match = re.search(r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b", text)
+    if not match:
+        return None
+    day, month, year = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
+def _agenda_datetime_from_text(value: str, *, fallback_date: date | None = None) -> str:
+    text = clean_text(value, 160)
+    if not text:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(ROME_TZ).replace(tzinfo=None)
+        if parsed.hour or parsed.minute or parsed.second:
+            return parsed.replace(second=0, microsecond=0).isoformat(timespec="seconds")
+    except Exception:
+        pass
+    day = _date_from_iso_or_it(text) or fallback_date
+    time_label = _time_label_from_text(text)
+    if day and time_label:
+        hour, minute = [int(part) for part in time_label.split(":", 1)]
+        return datetime.combine(day, datetime.min.time()).replace(hour=hour, minute=minute).isoformat(timespec="seconds")
+    return ""
+
+
+def _agenda_datetime_for_pec_proposal(
+    target_date: str,
+    proposal: dict[str, Any],
+    report: dict[str, Any],
+    remote_extra: dict[str, Any],
+) -> str:
+    deadline_kind = str(proposal.get("deadline_kind") or "")
+    remote_hearing = bool(remote_extra.get("remote_hearing_detected") or remote_extra.get("remote_hearing_url"))
+    if deadline_kind != "udienza" and not remote_hearing:
+        return ""
+    fallback_day = _date_from_iso_or_it(target_date) or _date_from_iso_or_it(str(proposal.get("due_date") or ""))
+    profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
+    detected = proposal.get("detected_procedural_date") if isinstance(proposal.get("detected_procedural_date"), dict) else {}
+    for value in (
+        proposal.get("source_event_at"),
+        f"{proposal.get('due_date') or target_date} {proposal.get('event_time') or ''}",
+        profile.get("udienza_data_ora"),
+        remote_extra.get("remote_hearing_time"),
+        detected.get("context"),
+        target_date,
+    ):
+        parsed = _agenda_datetime_from_text(str(value or ""), fallback_date=fallback_day)
+        if parsed:
+            return parsed
+    return ""
+
+
+def _agenda_title_for_pec_deadline(title: str) -> str:
+    clean = clean_text(title, 140).strip(" -:")
+    clean = re.sub(r"^\s*Presidio\s+PEC\s*-\s*", "", clean, flags=re.I).strip(" -:")
+    clean = re.sub(r"^\s*Presidio\s+anomalie\s+PEC\s*:?\s*", "", clean, flags=re.I).strip(" -:")
+    return clean_text(clean or title or "Udienza da PEC", 120)
 
 
 def _deadline_updates_for_existing(existing: Any, proposal: dict[str, Any], *, title: str, actor: str = "") -> dict[str, Any]:
@@ -2788,16 +2898,20 @@ def build_deadline_proposal(
         deadline_kind = str(candidate.get("deadline_kind") or "")
         title = _deadline_title_for_procedural_date(parsed, candidate, kind=deadline_kind, subject=subject)
         description = _deadline_description_for_procedural_date(candidate, kind=deadline_kind, source=source)
+        hearing_time = _hearing_time_for_procedural_date(parsed, candidate) if deadline_kind == "udienza" else ""
+        due_date = str(candidate.get("date") or "")
         return {
             "status": "ready",
             "auto_create": True,
             "title": title,
-            "due_date": str(candidate.get("date") or ""),
-            "source_event_at": str(candidate.get("date") or source_date_iso),
+            "due_date": due_date,
+            "source_event_at": f"{due_date}T{hearing_time}:00" if due_date and hearing_time else str(candidate.get("date") or source_date_iso),
             "source_event_type": event_type,
             "priority": "alta" if deadline_kind == "udienza" or "udienza" in label.lower() else "media",
             "legal_deadline": False,
             "deadline_kind": deadline_kind,
+            "calendar_scope": "agenda_and_scadenziario" if deadline_kind == "udienza" and hearing_time else "scadenziario",
+            "event_time": hearing_time,
             "reason": description,
             "detected_procedural_date": candidate,
         }
@@ -2811,6 +2925,19 @@ def build_deadline_proposal(
         "penale_snt",
         "penale_deposito_portale",
     }
+    if event_type == "pct_deposito":
+        return {
+            "status": "not_needed",
+            "auto_create": False,
+            "title": "",
+            "due_date": "",
+            "source_event_at": source_date_iso,
+            "source_event_type": event_type,
+            "priority": "normale",
+            "legal_deadline": False,
+            "calendar_scope": "fascicolo_deposito",
+            "reason": "Ricevute, accettazione, consegna ed esiti del deposito telematico restano nel fascicolo e nel pannello deposito: non alimentano agenda o scadenziario.",
+        }
     critical = any(str(item.get("severity") or "") == "danger" for item in issues)
     if critical:
         return {
@@ -2822,31 +2949,21 @@ def build_deadline_proposal(
             "source_event_type": event_type,
             "priority": "alta",
             "legal_deadline": False,
-            "reason": "Esito PEC critico: il software registra un presidio operativo immediato e segnala verifica dell'avvocato.",
-        }
-    if event_type == "pct_deposito" and "pct_deposit_followup_expected" in issue_codes:
-        return {
-            "status": "ready",
-            "auto_create": True,
-            "title": f"Verifica sequenza deposito PEC: {subject}",
-            "due_date": _operational_due_date(source_date, lead_days=1),
-            "source_event_at": source_date_iso,
-            "source_event_type": event_type,
-            "priority": "media",
-            "legal_deadline": False,
-            "reason": "Deposito telematico in fase intermedia: il software registra un presidio per attendere o cercare la PEC finale di accettazione/rifiuto.",
+            "calendar_scope": "scadenziario",
+            "reason": "Esito PEC critico: il software registra un presidio operativo immediato nello scadenziario e segnala verifica dell'avvocato.",
         }
     if event_type in {"comunicazione", "comunicazione_cancelleria"}:
         return {
-            "status": "ready",
-            "auto_create": True,
-            "title": f"Verifica comunicazione di cancelleria PEC: {subject}",
-            "due_date": _operational_due_date(source_date, lead_days=2),
+            "status": "review_required",
+            "auto_create": False,
+            "title": f"Valuta comunicazione di cancelleria PEC: {subject}",
+            "due_date": "",
             "source_event_at": source_date_iso,
             "source_event_type": event_type,
             "priority": "media",
             "legal_deadline": False,
-            "reason": "Comunicazione di cancelleria rilevata: il software registra un presidio operativo non bloccante per leggere allegati, termini e prossima azione.",
+            "calendar_scope": "revisione_professionale",
+            "reason": "Comunicazione di cancelleria rilevata senza udienza o termine certo: resta nel presidio PEC/fascicolo e non crea voci generiche in agenda o scadenziario.",
         }
     if event_type in notice_events:
         return {
@@ -2858,6 +2975,7 @@ def build_deadline_proposal(
             "source_event_type": event_type,
             "priority": "alta",
             "legal_deadline": False,
+            "calendar_scope": "revisione_professionale",
             "reason": "Notifica giudiziaria rilevata senza termine certo: il software registra l'evento PEC, ma non crea una scadenza finché non viene letto un termine o un'udienza concreta.",
         }
     if issues:
@@ -2870,6 +2988,7 @@ def build_deadline_proposal(
             "source_event_type": event_type,
             "priority": "media",
             "legal_deadline": False,
+            "calendar_scope": "scadenziario",
             "reason": "Sono presenti anomalie non bloccanti: il software registra un promemoria operativo per chiuderle.",
         }
     return {
@@ -2881,6 +3000,7 @@ def build_deadline_proposal(
         "source_event_type": event_type,
         "priority": "normale",
         "legal_deadline": False,
+        "calendar_scope": "nessuno",
         "reason": "Nessuna scadenza operativa automatica richiesta dalla matrice PEC.",
     }
 
@@ -3264,6 +3384,7 @@ class PecAuditRepository:
         fascicoli_docs_path: str | Path | None = None,
         scadenziario_db_path: str | Path | None = None,
         agenda_db_path: str | Path | None = None,
+        calendar_sync_db_path: str | Path | None = None,
     ):
         self.db_path = Path(db_path)
         self.tenant_id = str(tenant_id or DEFAULT_TENANT_ID)
@@ -3272,6 +3393,7 @@ class PecAuditRepository:
         self.fascicoli_docs_path = Path(fascicoli_docs_path) if fascicoli_docs_path else None
         self.scadenziario_db_path = Path(scadenziario_db_path) if scadenziario_db_path else None
         self.agenda_db_path = Path(agenda_db_path) if agenda_db_path else None
+        self.calendar_sync_db_path = Path(calendar_sync_db_path) if calendar_sync_db_path else None
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._quarantine_stale_journal()
         self.ensure_schema()
@@ -4427,6 +4549,20 @@ class PecAuditRepository:
                     resolved.add(email_id)
                     if str(row["status"] or "") in wanted:
                         presided.add(email_id)
+                legacy_uids = [f"legacy:{item}" for item in chunk]
+                uid_placeholders = ",".join("?" for _ in legacy_uids)
+                rows = conn.execute(
+                    f"""
+                    SELECT imap_uid
+                    FROM pec_messages
+                    WHERE tenant_id=? AND imap_uid IN ({uid_placeholders})
+                    """,
+                    (self.tenant_id, *legacy_uids),
+                ).fetchall()
+                for row in rows:
+                    imap_uid = str(row["imap_uid"] or "")
+                    if imap_uid.startswith("legacy:"):
+                        presided.add(imap_uid.removeprefix("legacy:"))
         return presided
 
     def original_mime(self, message_id: str) -> tuple[bytes, dict[str, Any]]:
@@ -4811,6 +4947,23 @@ class PecAuditRepository:
             studio_db=self._studio_db_for_data_path(self.agenda_db_path),
         )
 
+    def _push_local_calendar_item(self, local_type: str, local_id: str) -> dict[str, Any]:
+        if not self.calendar_sync_db_path or not self.agenda_db_path or not self.scadenziario_db_path:
+            return {"ok": True, "skipped": True, "reason": "motore_calendario_non_configurato"}
+        try:
+            from pct.calendar_sync_engine import CalendarSyncEngine
+
+            engine = CalendarSyncEngine.from_paths(
+                agenda_db=str(self.agenda_db_path),
+                scadenziario_db=str(self.scadenziario_db_path),
+                sync_db=str(self.calendar_sync_db_path),
+                tenant_id=self.tenant_id,
+                studio_db=self._studio_db_for_data_path(self.scadenziario_db_path),
+            )
+            return engine.push_local_to_linked_calendars(local_type, local_id)
+        except Exception as exc:
+            return {"ok": False, "message": f"Calendario collegato non aggiornato: {exc}"}
+
     def _sync_pec_deadline_to_agenda(
         self,
         *,
@@ -4834,6 +4987,19 @@ class PecAuditRepository:
             source_url = f"/api/pec/messages/{message_id}"
             remote_lines = _remote_hearing_note_lines(report, proposal)
             remote_extra = _remote_hearing_deadline_extra(report, proposal)
+            data_ora = _agenda_datetime_for_pec_proposal(target_date, proposal, report, remote_extra)
+            if not data_ora:
+                return {
+                    "ok": False,
+                    "agenda_skipped": True,
+                    "message": "Agenda non aggiornata: la PEC non contiene un'udienza o un impegno con orario certo.",
+                    "agenda_outcome": "skipped_no_certain_time",
+                }
+            agenda_title = _agenda_title_for_pec_deadline(title)
+            remote_hearing = bool(remote_extra.get("remote_hearing_detected") or remote_extra.get("remote_hearing_url"))
+            is_hearing = remote_hearing or str(proposal.get("deadline_kind") or "") == "udienza" or "udienza" in agenda_title.lower()
+            location = "Udienza da remoto" if remote_extra.get("remote_hearing_url") else ""
+            duration = 60 if is_hearing else 45
             description = "\n".join(
                 part
                 for part in (
@@ -4849,14 +5015,14 @@ class PecAuditRepository:
                 if part
             )
             last_report: dict[str, Any] = {}
-            for data_ora in self._agenda_datetime_candidates(target_date):
+            for agenda_data_ora in [data_ora]:
                 event = EventoImportato(
                     uid=event_uid,
-                    titolo=f"Presidio PEC - {title}"[:120],
-                    data_ora=data_ora,
-                    durata_minuti=30,
+                    titolo=agenda_title[:120],
+                    data_ora=agenda_data_ora,
+                    durata_minuti=duration,
                     tutto_giorno=False,
-                    luogo="Udienza da remoto" if remote_extra.get("remote_hearing_url") else "Agenda studio",
+                    luogo=location,
                     descrizione=description,
                     stato_ical="CONFIRMED",
                     organizzatore=_deadline_responsible_actor(actor),
@@ -4866,7 +5032,7 @@ class PecAuditRepository:
                     provider="pec_audit",
                     source_url=f"/api/pec/messages/{message_id}",
                     profile_id="pec_scadenziario",
-                    default_tipo=TipoAppuntamento.SCADENZA,
+                    default_tipo=TipoAppuntamento.UDIENZA if is_hearing else TipoAppuntamento.SCADENZA,
                     reminder_minuti=1440,
                     allow_overlap=True,
                 )
@@ -4885,16 +5051,16 @@ class PecAuditRepository:
                         event_uid=event_uid,
                         source_url=source_url,
                         deadline_id=deadline_id,
-                        title=f"Presidio PEC - {title}"[:120],
-                        data_ora=data_ora,
-                        durata_minuti=30,
-                        luogo="Udienza da remoto" if remote_extra.get("remote_hearing_url") else "Agenda studio",
+                        title=agenda_title[:120],
+                        data_ora=agenda_data_ora,
+                        durata_minuti=duration,
+                        luogo=location,
                         note=agenda._note_da_evento_importato(event, provider="pec_audit", source_url=source_url),
                         linked_fascicolo_id=linked_fascicolo_id,
                     )
                     return {
                         "ok": True,
-                        "message": "Scadenza PEC collegata anche all'agenda.",
+                        "message": "Udienza PEC collegata all'agenda.",
                         "agenda_id": agenda_id,
                         "agenda_outcome": str(last_report.get("outcome") or ""),
                         "agenda_href": f"/agenda/{agenda_id}" if agenda_id else "/agenda",
@@ -4943,23 +5109,9 @@ class PecAuditRepository:
             )
             if not same_pec:
                 continue
-            updates: dict[str, Any] = {
-                "titolo": title,
-                "data_ora": data_ora,
-                "durata_minuti": durata_minuti,
-                "luogo": luogo,
-                "note": note,
-                "external_uid": event_uid,
-                "external_provider": "pec_audit",
-                "external_source_url": source_url,
-                "external_profile_id": "pec_scadenziario",
-                "reminder_minuti": 1440,
-            }
-            if linked_fascicolo_id:
-                updates["procedimento"] = linked_fascicolo_id
-            if any(getattr(app, key, None) != value for key, value in updates.items()):
+            if primary_id and app_id:
                 try:
-                    agenda.modifica(app_id, **updates)
+                    agenda.elimina(app_id)
                     updated += 1
                 except Exception:
                     continue
@@ -5550,12 +5702,21 @@ class PecAuditRepository:
                             manager.aggiorna(str(getattr(existing, "id", "")), id_appuntamento=agenda_id)
                         except Exception:
                             pass
+                    calendar_sync = self._push_local_calendar_item("scadenza", str(getattr(existing, "id", "") or ""))
+                    if agenda_id:
+                        agenda_calendar_sync = self._push_local_calendar_item("agenda", agenda_id)
+                        calendar_sync = {
+                            "ok": bool(calendar_sync.get("ok", True)) and bool(agenda_calendar_sync.get("ok", True)),
+                            "deadline": calendar_sync,
+                            "agenda": agenda_calendar_sync,
+                        }
                     return {
                         "ok": True,
                         "message": "Scadenza automatica già presente nello scadenziario.",
                         "deadline_id": getattr(existing, "id", ""),
                         "due_date": getattr(existing, "data_scadenza", target_date),
                         "agenda": agenda,
+                        "calendar_sync": calendar_sync,
                         "already_exists": True,
                         "proposal": proposal,
                     }
@@ -5606,6 +5767,14 @@ class PecAuditRepository:
                 scadenza.id_appuntamento = agenda_id
             except Exception:
                 pass
+        calendar_sync = self._push_local_calendar_item("scadenza", str(getattr(scadenza, "id", "") or ""))
+        if agenda_id:
+            agenda_calendar_sync = self._push_local_calendar_item("agenda", agenda_id)
+            calendar_sync = {
+                "ok": bool(calendar_sync.get("ok", True)) and bool(agenda_calendar_sync.get("ok", True)),
+                "deadline": calendar_sync,
+                "agenda": agenda_calendar_sync,
+            }
         try:
             with self.connect() as conn:
                 self.append_audit(
@@ -5618,6 +5787,7 @@ class PecAuditRepository:
                         "due_date": target_date,
                         "proposal": proposal,
                         "agenda": agenda,
+                        "calendar_sync": calendar_sync,
                         "deadline_policy_version": DEADLINE_POLICY_VERSION,
                     },
                     actor=actor,
@@ -5630,6 +5800,7 @@ class PecAuditRepository:
             "deadline_id": getattr(scadenza, "id", ""),
             "due_date": target_date,
             "agenda": agenda,
+            "calendar_sync": calendar_sync,
             "proposal": proposal,
         }
 
@@ -5696,12 +5867,21 @@ class PecAuditRepository:
                             manager.aggiorna(str(getattr(existing, "id", "")), id_appuntamento=agenda_id)
                         except Exception:
                             pass
+                    calendar_sync = self._push_local_calendar_item("scadenza", str(getattr(existing, "id", "") or ""))
+                    if agenda_id:
+                        agenda_calendar_sync = self._push_local_calendar_item("agenda", agenda_id)
+                        calendar_sync = {
+                            "ok": bool(calendar_sync.get("ok", True)) and bool(agenda_calendar_sync.get("ok", True)),
+                            "deadline": calendar_sync,
+                            "agenda": agenda_calendar_sync,
+                        }
                     return {
                         "ok": True,
                         "message": "Scadenza automatica già presente nello scadenziario.",
                         "deadline_id": getattr(existing, "id", ""),
                         "due_date": getattr(existing, "data_scadenza", target_date),
                         "agenda": agenda,
+                        "calendar_sync": calendar_sync,
                         "already_exists": True,
                         "proposal": proposal,
                     }
@@ -5752,6 +5932,14 @@ class PecAuditRepository:
                 scadenza.id_appuntamento = agenda_id
             except Exception:
                 pass
+        calendar_sync = self._push_local_calendar_item("scadenza", str(getattr(scadenza, "id", "") or ""))
+        if agenda_id:
+            agenda_calendar_sync = self._push_local_calendar_item("agenda", agenda_id)
+            calendar_sync = {
+                "ok": bool(calendar_sync.get("ok", True)) and bool(agenda_calendar_sync.get("ok", True)),
+                "deadline": calendar_sync,
+                "agenda": agenda_calendar_sync,
+            }
         with self.connect() as conn:
             self.append_audit(
                 conn,
@@ -5763,11 +5951,12 @@ class PecAuditRepository:
                     "due_date": target_date,
                     "proposal": proposal,
                     "agenda": agenda,
+                    "calendar_sync": calendar_sync,
                     "deadline_policy_version": DEADLINE_POLICY_VERSION,
                 },
                 actor=actor,
             )
-        return {"ok": True, "message": "Scadenza automatica creata nello scadenziario.", "deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "agenda": agenda, "proposal": proposal}
+        return {"ok": True, "message": "Scadenza automatica creata nello scadenziario.", "deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "agenda": agenda, "calendar_sync": calendar_sync, "proposal": proposal}
 
 
 def synthetic_pec_messages() -> list[tuple[str, bytes]]:

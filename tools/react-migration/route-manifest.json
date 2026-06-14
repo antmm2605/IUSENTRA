@@ -522,6 +522,28 @@
       ]
     },
     {
+      "workspaceTarget": "/app/fascicoli/:id/deposito/prepara",
+      "route": "/fascicoli/:id/deposito/prepara",
+      "family": "fascicoli",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/FascicoliPage.tsx",
+      "targetData": "frontend/src/fascicoliData.ts",
+      "targetBridge": "web/services/react_fascicoli_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/fascicoli__id__deposito__prepara.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "preparazione deposito telematico React",
+        "Regia Operativa e controlli deposito reali",
+        "lettura integrale dei documenti del fascicolo",
+        "classificazione portale separata da PEC e ricevute",
+        "policy canale PEC diretta o deposito su portale",
+        "generazione busta/pacchetto governata dal backend",
+        "fallback classico solo con _legacy=1",
+        "nessun invio deposito senza conferma dell'avvocato"
+      ]
+    },
+    {
       "workspaceTarget": "/app/mandato?tab=fatturazione",
       "route": "/fatturazione",
       "family": "economico",

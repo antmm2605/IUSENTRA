@@ -79,6 +79,14 @@
   font-weight: 750;
 }
 
+.iu-calendar-settings__hint {
+  margin: 0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
 .iu-calendar-settings__connectors,
 .iu-calendar-settings__compact-grid,
 .iu-calendar-settings__split {

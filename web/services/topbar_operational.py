@@ -831,8 +831,8 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
                             stato.replace("_", " ").title(),
                             created,
                             priority,
-                            f"/fascicoli/{fascicolo.id}",
-                            "Apri fascicolo",
+                            f"/fascicoli/{fascicolo.id}/deposito/prepara#ricevute-deposito",
+                            "Apri deposito",
                         )
                     )
         except Exception:

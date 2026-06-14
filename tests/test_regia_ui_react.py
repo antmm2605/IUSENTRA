@@ -29,3 +29,39 @@ def test_ui_mostra_dati_regia_senza_placeholder_operativi():
     assert "ACQUISITO" in regia
     assert "Checklist non ancora generata" not in regia
     assert "Nessuno slot documentale generato" not in regia
+
+
+def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    assert "function DepositPreparePage" in source
+    assert "include: 'all'" in source
+    assert "Inventario intero fascicolo" in source
+    assert "La preparazione legge tutti i documenti presenti nel fascicolo" in source
+    assert "Documenti candidati alla busta" in source
+    assert "Catalogo portale acquisito" in source
+    assert "Ricevute e cancelleria" in source
+    assert "deliveryPolicy" in source
+    assert "Invio PEC da software" in source
+    assert "Deposito su portale" in source
+    assert "Busta ministeriale Atto.enc" in source
+    assert "Proposta busta" in source
+    assert "Documenti da inviare" in source
+    assert 'type="checkbox"' in source
+    assert "Ripristina proposta" in source
+    assert "Seleziona tutti i documenti" in source
+    assert "manualSelectableDocuments" in source
+    assert "isDepositManualSelectableDocument" in source
+    assert "documenti_selezionati_ids" in source
+    assert "depositSelectionSatisfiesSlot" in source
+    assert "Scegli documento" in source
+    assert "Collega" in source
+    assert "Atto principale" in source
+    assert "Genera busta pronta" in source
+    assert "Firma multipla immediata" in source
+    assert "function DepositBatchSignaturePanel" in source
+    assert "localSignerEndpoint('/firma-batch')" in source
+    assert "Firma ${documents.length} documenti" in source
+    assert "Versione firmata tramite firma multipla deposito" in source
+    assert "Genera controllo e indice" in source
+    assert "Il software non seleziona se la classificazione non è certa." in source
+    assert "portal_upload" not in source[source.index("function DepositPreparePage"):source.index("function NotificationRelataMonitor")]

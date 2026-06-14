@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.253.16 - 2026-06-14
+
+- Deposito telematico: aggiunta in `Prepara deposito` la sezione visibile `Documenti da inviare`, con spunte su atto principale, allegati e prove proposte dal software, correzione manuale immediata e conteggio dei documenti selezionati prima di firma e generazione busta.
+- Deposito telematico: quando la classificazione automatica non è certa, la stessa sezione mostra comunque i documenti del fascicolo non di comunicazione come scelta manuale da verificare, così l'avvocato non resta senza punto di selezione.
+- Deposito telematico: il pulsante finale usa la stessa selezione mostrata a video per atto principale, allegati, documenti da firmare e controllo della busta, evitando scelte implicite o nascoste negli slot laterali.
+
+## 2.253.15 - 2026-06-14
+
+- Deposito telematico: rese compatte e leggibili le card di stato della pagina React `Prepara deposito`, mantenendo la densità originale ma avvicinando etichetta, numero e nota per evitare testi spezzati o valori dispersi nella card.
+- Deposito telematico: rifinita la checklist di verifica in linguaggio operativo, con righe stabili e testo contenuto senza allargare inutilmente le card.
+
+## 2.253.14 - 2026-06-14
+
+- Deposito telematico: il profilo pratica mostra esplicitamente il tipo di pratica usato per derivare i documenti obbligatori, così il controllo non si limita ai file selezionati ma verifica cosa va depositato per quel procedimento.
+- Classificazione documenti: corretta la regola che poteva scambiare parole come `contratto` per `atto`; in impugnazione licenziamento `Atto principale` resta obbligatorio separato, mentre contratto, lettera di licenziamento e buste paga restano documenti di prova.
+- Normativa PST: tracciato l'aggiornamento XSD SICI dell'11 giugno 2026 come anticipazione non ancora in esercizio, senza sbloccare in produzione il nuovo codice oggetto `110046` finché il Ministero non comunica la messa in esercizio.
+- Firma multipla deposito: aggiunti guardrail tecnici su busta AES256, blocco invio diretto non conforme, firma batch e UI React del prepara deposito; resta obbligatoria la prova reale con PIN utente prima di dichiarare verificata la firma multipla sulla macchina reale.
+
+## 2.253.13 - 2026-06-14
+
+- Deposito telematico: la pagina React `Prepara deposito` mostra una proposta busta operativa con atto principale, allegati collegati dagli slot, documenti da firmare, azione finale coerente con il canale e selezione manuale quando la classificazione non è certa.
+- Regole busta: la generazione usa il codice oggetto PST validato quando presente, così `DatiAtto.xml` non ricade sul solo titolo libero del fascicolo.
+- Campioni reali: analizzati in modo sanificato gli invii RG 1754/2026 con `Atto.enc`, copia non crittografata, ricorso notificato, deposito di documento richiesto, RAC/RdAC, attestazione, decreto e procura; file con nome `.pdf` ma contenuto MIME riconosciuti come messaggi.
+- Agenda e Scadenziario: il documento notificato nel fascicolo può alimentare udienze e termini anche se la PEC è stata cancellata, conservando il link audiovisivo esatto e deduplicando le voci equivalenti.
+- Scadenziario React: nella colonna fascicolo viene mostrato il cliente/parte del fascicolo, non il responsabile dello studio; le card operative sono state rese più uniformi e meno ripetitive.
+- Test mirati: aggiunte regressioni su classificazione certa/incerta dei documenti, codice oggetto PST nella busta, cliente fascicolo nello Scadenziario, udienza audiovisiva da PDF notificato, deduplica Agenda/Scadenziario e testi PEC professionali.
+
+## 2.253.12 - 2026-06-14
+
+- Fascicoli: promossa la route `/fascicoli/<id>/deposito/prepara` alla shell React operativa, con pagina “Prepara deposito” alimentata dal dettaglio fascicolo reale, Regia Operativa, documenti, ricevute e audit.
+- Fallback governato: la pagina classica di preparazione deposito resta disponibile solo con `?_legacy=1`, mentre la GET ufficiale serve React e viene bloccata dai test se torna al comportamento precedente.
+- Governance React: aggiunti manifest, contratto legacy e guardrail `check-react-contracts` / `check-route-gate` per impedire regressioni sulla nuova route profonda.
+- Test mirati: aggiornati i test di deposito guidato e React shell per verificare sia la route React sia il recupero classico esplicito.
+
 ## 2.253.11 - 2026-06-14
 
 - Manutenzione tenant locale: rimossa dalla macchina reale la cartella storica non attiva `antonella-mammola`; resta registrato come studio operativo solo `tenant-8bf98719c459`.

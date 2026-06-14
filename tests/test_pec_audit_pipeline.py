@@ -15,6 +15,8 @@ from flask import Flask, g
 
 from lex.operational_knowledge.permission_guard import resolve_query_context
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
+from pct.agenda import Agenda
+from pct.calendar_sync_engine import CalendarSyncEngine, PRIVACY_REDUCED
 from pct.email_client import EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.pec_pipeline import (
     AttachmentPayload,
@@ -419,8 +421,8 @@ def test_remote_hearing_rebuilds_teams_url_split_by_pdf_ocr_spaces():
     links = _extract_remote_hearing_links(text)
 
     assert [item["url"] for item in links] == [expected_link]
-    assert links[0]["exact"] is True
-    assert links[0]["integrity"] == "exact"
+    assert links[0]["exact"] is False
+    assert links[0]["integrity"] == "ricostruito_da_controllare"
     assert "rimossi spazi OCR interni al link" in links[0]["normalization_note"]
     assert "rimossa punteggiatura finale" in links[0]["normalization_note"]
 
@@ -454,7 +456,7 @@ def test_remote_hearing_profile_reads_pdf_zip_even_if_misclassified_as_daticert(
     assert remote["pdf_required"] is False
     assert remote["links"][0]["source"] == "13744017s.pdf.zip"
     assert remote["links"][0]["url"].startswith("https://teams.microsoft.com/l/meetup-join/")
-    assert remote["links"][0]["exact_match"] is True
+    assert remote["links"][0]["exact_match"] is False
 
 
 def test_remote_hearing_report_excludes_technical_signature_and_invoice_urls():
@@ -801,7 +803,7 @@ def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agend
 
     assert enriched["agenda_updated"] >= 1
     synced_items = [item for item in Agenda(str(agenda_db)).tutti() if ingest["id"] in item.note or item.external_source_url.endswith(ingest["id"])]
-    assert len(synced_items) >= 2
+    assert len(synced_items) == 1
     assert all(exact_link in item.note for item in synced_items)
     assert all("da acquisire" not in item.note.lower() for item in synced_items)
     assert all(item.luogo == "Udienza da remoto" for item in synced_items)
@@ -1208,7 +1210,9 @@ def test_pct_deposit_lifecycle_explains_expected_pec_sequence(tmp_path):
     assert any(issue["code"] == "pct_deposit_followup_expected" for issue in report["issues"])
     assert any("quattro PEC" in question for question in report["agent_questions"])
     assert "stato intermedio" in lifecycle["communication"]
-    assert report["deadline_proposal"]["auto_create"] is True
+    assert report["deadline_proposal"]["auto_create"] is False
+    assert report["deadline_proposal"]["status"] == "not_needed"
+    assert report["deadline_proposal"]["calendar_scope"] == "fascicolo_deposito"
     assert report["deadline_proposal"]["source_event_type"] == "pct_deposito"
 
 
@@ -1500,16 +1504,16 @@ def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch
     assert massivo.status_code == 200
     massivo_payload = massivo.get_json()
     assert massivo_payload["ok"] is True
-    assert massivo_payload["acquired"] == 1
-    assert massivo_payload["duplicates"] == 1
-    assert massivo_payload["deadline_report"]["created"] + massivo_payload["deadline_report"]["already_exists"] == 1
-    assert massivo_payload["deadline_report"]["agenda_linked"] == 1
+    assert massivo_payload["acquired"] == 0
+    assert massivo_payload["duplicates"] == 0
+    assert massivo_payload["skipped_already_presided"] == 1
+    assert massivo_payload["deadline_report"]["created"] + massivo_payload["deadline_report"]["already_exists"] == 0
+    assert massivo_payload["deadline_report"]["agenda_linked"] == 0
     assert massivo_payload["has_more"] is False
     assert massivo_payload["status"] == "completed"
-    assert massivo_payload["local_acquire"]["items"][0]["email_id"] == "MAIL-LEGACY-PEC"
+    assert massivo_payload["local_acquire"]["items"] == []
     assert massivo_payload["workers"]["processed"] == 0
-    assert "Presidio PEC completato" in massivo_payload["messaggio"]
-    assert "scadenze" in massivo_payload["messaggio"]
+    assert "Nessuna nuova PEC da presidiare" in massivo_payload["messaggio"]
     from web.services.react_email_bridge import build_react_email_payload
 
     react_payload = build_react_email_payload(db_path=str(paths["EMAIL_CASELLA_DB"]), tenant_id="default")
@@ -1519,10 +1523,8 @@ def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch
     from pct.agenda import Agenda
 
     scadenze = GestioneScadenziario(str(paths["SCADENZIARIO_DB"])).tutte(solo_aperte=False)
-    assert len(scadenze) == 1
-    assert scadenze[0].deadline_profile_code == "PEC_AUTO_PRESIDIO"
-    assert scadenze[0].id_appuntamento
-    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
+    assert len(scadenze) == 0
+    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 0
 
 
 def test_pec_api_acquisisci_locali_prosegue_a_blocchi_e_azzera_presidio(tmp_path, monkeypatch):
@@ -1777,13 +1779,13 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
         }
 
     client = app.test_client()
-    massivo = client.post("/api/pec/email/acquisisci-locali?limit=20&worker_limit=0")
+    massivo = client.post("/api/pec/email/acquisisci-locali?limit=20&worker_limit=0&queue_repairs=1")
     assert massivo.status_code == 200
     payload = massivo.get_json()
     assert payload["ok"] is True
     assert payload["duplicates"] == 1
     assert payload["deadline_report"]["created"] == 1
-    assert payload["deadline_report"]["agenda_linked"] == 1
+    assert payload["deadline_report"]["agenda_linked"] == 0
 
     from pct.scadenziario import GestioneScadenziario
     from pct.agenda import Agenda
@@ -1794,13 +1796,93 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
     assert scadenze[0].data_scadenza == "2030-07-09"
     assert "09/07/2030" in scadenze[0].titolo
     assert "comunicazione 3001/2025" in scadenze[0].titolo.lower()
-    assert scadenze[0].id_appuntamento
-    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
+    assert not scadenze[0].id_appuntamento
+    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 0
     with sqlite3.connect(paths["NOTIFICATIONS_DB"]) as conn:
         assert conn.execute(
             "SELECT COUNT(*) FROM notifications WHERE source_type='pec_deadline' AND source_id=?",
             (ingest["id"],),
         ).fetchone()[0] == 1
+
+
+def test_pec_deadline_without_time_pushes_to_calendar_engine_as_all_day(tmp_path):
+    agenda_db = tmp_path / "agenda.json"
+    scadenziario_db = tmp_path / "scadenze.json"
+    calendar_sync_db = tmp_path / "calendar_sync.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+        calendar_sync_db_path=calendar_sync_db,
+    )
+    engine = CalendarSyncEngine.from_paths(
+        agenda_db=str(agenda_db),
+        scadenziario_db=str(scadenziario_db),
+        sync_db=str(calendar_sync_db),
+        tenant_id="default",
+    )
+    account = engine.repository.upsert_account(
+        {
+            "tenant_id": "default",
+            "provider": "demo",
+            "display_name": "Google Calendar",
+            "email": "studio@example.test",
+            "auth_type": "demo",
+            "encrypted_credentials": engine.credentials.encrypt({"mode": "test"}),
+            "status": "active",
+        }
+    )
+    calendar = engine.repository.upsert_calendar(
+        {
+            "tenant_id": "default",
+            "account_id": account["id"],
+            "provider": "demo",
+            "provider_calendar_id": "demo-primary",
+            "name": "Calendario Google",
+            "role": "completo",
+            "direction": "bidirectional",
+            "enabled": True,
+            "privacy_level": PRIVACY_REDUCED,
+        }
+    )
+    proposal = {
+        "auto_create": True,
+        "deadline_kind": "adempimento",
+        "due_date": "2026-07-10",
+        "title": "Valuta termini da notifica PEC",
+        "reason": "Adempimento: valutare opposizione entro il termine.",
+        "source_event_type": "notifica_pec",
+        "source_event_at": "2026-06-10",
+    }
+
+    result = repo.schedule_deadline_from_payload(
+        "pec_calendar_no_time",
+        parsed={"headers": {"subject": "POSTA CERTIFICATA: notifica"}},
+        report={"event_type": "notifica_pec", "deadline_proposal": proposal},
+        message={"linked_fascicolo_id": "RG 12/2026"},
+    )
+    remote_events = [
+        item
+        for item in engine.providers["demo"]._load()["events"].values()
+        if item.get("calendar_id") == calendar["provider_calendar_id"]
+    ]
+
+    assert result["ok"] is True
+    assert result["agenda"]["agenda_skipped"] is True
+    assert result["calendar_sync"]["pushed"] == 1
+    assert Agenda(str(agenda_db)).tutti() == []
+    assert len(remote_events) == 1
+    remote = remote_events[0]
+    assert remote["all_day"] is True
+    assert remote["start"] == "2026-07-10"
+    assert remote["end"] == "2026-07-11"
+    visible = f"{remote['title']} {remote['description']}"
+    assert "Scadenza: Valuta termini da notifica PEC" in visible
+    assert "Dettagli riservati in IUSENTRA." in visible
+    assert "09:00" not in visible
+    for token in ("Presidio PEC", "PEC_AUDIT", "pipeline", "audit-grade", "payload", "runtime", "backend"):
+        assert token not in visible
 
 
 def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_path):

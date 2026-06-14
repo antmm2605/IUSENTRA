@@ -8,9 +8,23 @@ from typing import Any, Callable, Iterable
 
 
 RG_RE = re.compile(r"\b(?:R\.?\s*G\.?|RG|Ruolo generale)\s*(?:n\.?|numero|:)?\s*([0-9]{1,7}\s*/\s*[0-9]{4}(?:/[A-Z]+)?)", re.IGNORECASE)
+COMMUNICATION_RG_RE = re.compile(r"\bCOMUNICAZIONE\s+([0-9]{1,7}\s*/\s*[0-9]{4})(?:\s*/\s*[A-Z]+)?\b", re.IGNORECASE)
+BARE_RG_RE = re.compile(r"\b([0-9]{1,7}\s*/\s*[0-9]{4})(?:\s*/\s*[A-Z]+)?\b", re.IGNORECASE)
 PARTY_RE = re.compile(r"\b(?:Ricorr\.?\s+principale|Resist\.?\s+principale|Attore|Convenuto|Ricorrente|Resistente)\s*:\s*([^\n\r;]+)", re.IGNORECASE)
 DEADLINE_REF_RE = re.compile(r"\b(?:Scadenza|Termine)\s*:\s*([A-Za-z0-9_-]{6,80})", re.IGNORECASE)
 OPERATIONAL_PREFIX_RE = re.compile(r"^\s*(?:Presidio\s+PEC|Presidio\s+anomalie\s+PEC|Verifica\s+comunicazione\s+di\s+cancelleria\s+PEC)\s*:?\s*-?\s*", re.IGNORECASE)
+PEC_BODY_PREFIX_RE = re.compile(r"^\s*Data\s+processuale\s+futura\s+letta\s+da\s+corpo\s+PEC\s*:\s*", re.IGNORECASE)
+PEC_HEARING_DATETIME_RE = re.compile(
+    r"\b(?:al|alle|per\s+il|fissata\s+al|fissato\s+al)?\s*"
+    r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s+"
+    r"(?:ore\s*)?(\d{1,2})[:.](\d{2})\b",
+    re.IGNORECASE,
+)
+TECHNICAL_VISIBLE_RE = re.compile(
+    r"\b(?:PEC_AUDIT|pdf-deadline|pdf-semantic|pipeline|audit-grade|source_event|profile_id|payload|runtime|backend|frontend|legacy|json_api|external_uid|external_provider|worker|job|provider)\b",
+    re.IGNORECASE,
+)
+NON_PARTY_RE = re.compile(r"\b(?:UDIENZA|COMUNICAZIONE|FISSATA|FISSATO|PRIMA|COMPAR|TRATT|ART\.?|DESCRIZIONE|OGGETTO)\b", re.IGNORECASE)
 
 
 def _enum_value(value: Any) -> str:
@@ -52,27 +66,129 @@ def _clean_text(value: Any, *, limit: int = 360) -> str:
     return text[:limit]
 
 
+def _extract_labeled_segment(text: str, label: str, *, limit: int = 220) -> str:
+    match = re.search(
+        rf"\b{re.escape(label)}\s*:\s*(.*?)(?=\s+(?:Oggetto|Descrizione|Note|Scadenza|Tipo evento|Decorrenza letta|Fonte|Organizzatore|Sincronizzato da|Sorgente|UID esterno)\s*:|$)",
+        text,
+        re.IGNORECASE,
+    )
+    if not match:
+        return ""
+    return _clean_text(match.group(1), limit=limit).strip(" -:;")
+
+
+def _pec_body_summary(text: Any, *, limit: int = 360) -> str:
+    body = PEC_BODY_PREFIX_RE.sub("", _clean_text(text, limit=1200)).strip()
+    if not body:
+        return ""
+    subject = _extract_labeled_segment(body, "Oggetto", limit=180)
+    description = _extract_labeled_segment(body, "Descrizione", limit=220)
+    note = _extract_labeled_segment(body, "Note", limit=160)
+    parts: list[str] = []
+    if subject:
+        parts.append(f"Oggetto: {subject}")
+    if description and description.casefold() != subject.casefold():
+        parts.append(f"Descrizione: {description}")
+    if note:
+        note = re.sub(r"\bin\s+cance\S*", "in cancelleria", note, flags=re.IGNORECASE)
+        parts.append(f"Nota: {note}")
+    return _clean_text(" ".join(parts), limit=limit)
+
+
+def _visible_legal_text(value: Any, *, limit: int = 360) -> str:
+    parts: list[str] = []
+    for raw_line in str(value or "").splitlines():
+        line = _clean_text(raw_line, limit=limit)
+        if not line or TECHNICAL_VISIBLE_RE.search(line):
+            continue
+        pec_summary = _pec_body_summary(line, limit=limit)
+        if pec_summary:
+            parts.append(pec_summary)
+            continue
+        lower = line.lower()
+        if lower.startswith("fonte link udienza:"):
+            parts.append("Allegato udienza: " + _clean_text(line.split(":", 1)[1], limit=120))
+            continue
+        if lower.startswith("verifica link udienza:"):
+            value_part = _clean_text(line.split(":", 1)[1], limit=160).lower()
+            if "identico" in value_part:
+                parts.append("Link udienza verificato sull'allegato.")
+            elif value_part:
+                parts.append("Link udienza da controllare sull'allegato.")
+            continue
+        if line.lower().startswith(("tipo evento:", "decorrenza letta:", "fonte:", "scadenza:")):
+            continue
+        parts.append(line)
+    return _clean_text(" ".join(parts), limit=limit)
+
+
 def _extract_rg(*values: Any) -> str:
     for value in values:
-        match = RG_RE.search(str(value or ""))
-        if match:
-            return "RG " + re.sub(r"\s+", "", match.group(1).upper())
+        text = str(value or "")
+        for pattern in (RG_RE, COMMUNICATION_RG_RE):
+            match = pattern.search(text)
+            if match:
+                return "RG " + re.sub(r"\s+", "", match.group(1).upper())
+        if re.search(r"\b(?:comunicazione|udienza|ruolo|fascicolo)\b", text, re.IGNORECASE):
+            match = BARE_RG_RE.search(text)
+            if match:
+                return "RG " + re.sub(r"\s+", "", match.group(1).upper())
     return ""
 
 
 def _extract_party(*values: Any) -> str:
     for value in values:
-        match = PARTY_RE.search(str(value or ""))
+        text = str(value or "")
+        match = PARTY_RE.search(text)
         if match:
             return _clean_text(match.group(1), limit=90)
+        body = PEC_BODY_PREFIX_RE.sub("", _clean_text(text, limit=500)).strip()
+        body_match = re.match(r"(.{2,100}?)(?=\s+(?:Oggetto|Descrizione|Note)\s*:)", body, re.IGNORECASE)
+        if body_match:
+            candidate = _clean_text(body_match.group(1), limit=90).strip(" -:;")
+            if candidate and not NON_PARTY_RE.search(candidate):
+                return candidate
     return ""
+
+
+def _is_pec_operational_text(*values: Any) -> bool:
+    text = " ".join(str(value or "") for value in values).lower()
+    return any(token in text for token in ("posta certificata", "pec_audit", "comunicazione_cancelleria", "presidio pec", "da pec"))
+
+
+def _agenda_origin_title(raw_title: str, legal_label: str, matter: str, notes: str) -> str:
+    stripped = _strip_operational_prefix(raw_title)
+    if not _is_pec_operational_text(raw_title, notes):
+        return _clean_text(stripped or legal_label, limit=180)
+    text = f"{raw_title} {notes}".lower()
+    if "udienza" in text:
+        base = "Udienza da comunicazione di cancelleria"
+    elif "notifica" in text or "notificazione" in text:
+        base = "Notifica giudiziaria da PEC"
+    elif "deposito" in text:
+        base = "Comunicazione sul deposito telematico"
+    else:
+        base = "Comunicazione di cancelleria"
+    return f"{base} - {matter}" if matter else base
+
+
+def _extract_hearing_datetime(*values: Any) -> datetime | None:
+    for value in values:
+        text = str(value or "")
+        for match in PEC_HEARING_DATETIME_RE.finditer(text):
+            day, month, year, hour, minute = (int(part) for part in match.groups())
+            try:
+                return datetime(year, month, day, hour, minute)
+            except ValueError:
+                continue
+    return None
 
 
 def _legal_label(title: str, kind: str, notes: str = "") -> str:
     text = f"{title} {kind} {notes}".lower()
     if "rinvio" in text or "rinviata" in text or "differimento" in text or "differita" in text:
         return "Rinvio udienza"
-    if "fissazione udienza" in text or "fissata udienza" in text or "fissata l'udienza" in text:
+    if "fissazione udienza" in text or "fissata udienza" in text or "fissata l'udienza" in text or ("fissazione" in text and "udienza" in text):
         return "Fissazione udienza"
     if "udienza" in text:
         return "Udienza"
@@ -89,6 +205,15 @@ def _legal_label(title: str, kind: str, notes: str = "") -> str:
     return "Adempimento"
 
 
+def _strip_operational_prefix(value: str) -> str:
+    cleaned = str(value or "").strip(" -:")
+    while True:
+        next_value = OPERATIONAL_PREFIX_RE.sub("", cleaned).strip(" -:")
+        if next_value == cleaned:
+            return cleaned
+        cleaned = next_value
+
+
 def _operational_title(title: str, legal_label: str, client: str, matter: str, notes: str) -> str:
     if client and matter:
         return f"{client} · {matter}"
@@ -96,7 +221,7 @@ def _operational_title(title: str, legal_label: str, client: str, matter: str, n
         return client
     if matter:
         return matter
-    stripped = OPERATIONAL_PREFIX_RE.sub("", title or "").strip(" -:")
+    stripped = _strip_operational_prefix(title)
     if stripped and not stripped.lower().startswith("presidio"):
         return _clean_text(stripped, limit=90)
     party = _extract_party(notes)
@@ -113,47 +238,52 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
         ("Ufficio", "court"),
         ("Luogo", "location"),
         ("Responsabile", "owner"),
-        ("Fonte", "source"),
     ):
-        value = _clean_text(row.get(key), limit=140)
+        value = _visible_legal_text(row.get(key), limit=140)
         if value:
             lines.append(f"{label}: {value}")
     status = _clean_text(row.get("status"), limit=80)
     if status:
         lines.append(f"Stato: {status}")
-    if original_title and original_title != row.get("displayTitle"):
-        lines.append(f"Oggetto originale: {_clean_text(original_title, limit=180)}")
-    notes = _clean_text(row.get("notes"), limit=220)
+    visible_original = _strip_operational_prefix(original_title)
+    if visible_original and visible_original != row.get("displayTitle"):
+        lines.append(f"Oggetto: {_clean_text(visible_original, limit=180)}")
+    notes = _visible_legal_text(row.get("notes"), limit=220)
     if notes:
         lines.append(f"Dettaglio: {notes}")
     if not lines:
-        lines.append(f"Tipo evento: {legal_label}")
+        lines.append(f"Attività: {legal_label}")
     return lines[:8]
 
 
 def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
-    original_title = _clean_text(row.get("title") or "Appuntamento", limit=180)
-    notes = _clean_text(row.get("notes"), limit=700)
+    raw_notes = str(row.get("notes") or "").strip()[:1200]
+    raw_title = str(row.get("title") or "Appuntamento").strip()
+    original_title = _visible_legal_text(raw_title, limit=180) or "Appuntamento"
+    notes = _visible_legal_text(raw_notes, limit=700)
     kind = _clean_text(row.get("kind"), limit=80)
-    matter = _clean_text(row.get("matter"), limit=120) or _extract_rg(original_title, notes)
-    client = _clean_text(row.get("client"), limit=120) or _extract_party(notes, original_title)
-    label = _legal_label(original_title, kind, notes)
-    row["originTitle"] = original_title
+    matter = _clean_text(row.get("matter"), limit=120) or _extract_rg(raw_title, raw_notes, original_title, notes)
+    client = _clean_text(row.get("client"), limit=120) or _extract_party(raw_notes, notes, raw_title, original_title)
+    label = _legal_label(raw_title, kind, raw_notes or notes)
+    origin_title = _agenda_origin_title(raw_title, label, matter, raw_notes or notes)
+    row["technicalNotes"] = raw_notes
+    row["originTitle"] = origin_title
     row["legalLabel"] = label
     row["client"] = client
     row["matter"] = matter
-    row["displayTitle"] = _operational_title(original_title, label, client, matter, notes)
-    subtitle = _clean_text(row.get("subtitle"), limit=160)
+    row["displayTitle"] = _operational_title(origin_title, label, client, matter, notes)
+    row["notes"] = notes
+    subtitle = _visible_legal_text(row.get("subtitle"), limit=160)
     if not subtitle:
         subtitle = " · ".join(part for part in (matter, _clean_text(row.get("court"), limit=80), _clean_text(row.get("location"), limit=80)) if part)
     row["subtitle"] = subtitle
     row["detailTitle"] = label
-    row["detailLines"] = _detail_lines(row, original_title=original_title, legal_label=label)
+    row["detailLines"] = _detail_lines(row, original_title=origin_title, legal_label=label)
     return row
 
 
 def _linked_deadline_refs(row: dict[str, Any]) -> set[str]:
-    text = "\n".join(str(row.get(key) or "") for key in ("notes", "title", "originTitle"))
+    text = "\n".join(str(row.get(key) or "") for key in ("technicalNotes", "notes", "title", "originTitle"))
     return {match.group(1) for match in DEADLINE_REF_RE.finditer(text)}
 
 
@@ -212,10 +342,6 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
             start = datetime.fromisoformat(str(getattr(item, "data_ora", "") or ""))
         except ValueError:
             return None
-    duration = max(15, int(getattr(item, "durata_minuti", 60) or 60))
-    end = start + timedelta(minutes=duration)
-    item_id = str(getattr(item, "id", "") or "")
-    tipo = _enum_value(getattr(item, "tipo", ""))
     notes = "\n".join(
         part
         for part in (
@@ -224,14 +350,24 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         )
         if part
     )
+    title = str(getattr(item, "titolo", "") or "Appuntamento")
+    hearing_dt = _extract_hearing_datetime(title, notes) if _is_pec_operational_text(title, notes) else None
+    if hearing_dt and start.hour == 9 and start.minute == 0 and hearing_dt.date() == start.date():
+        start = hearing_dt
+    duration = max(15, int(getattr(item, "durata_minuti", 60) or 60))
+    end = start + timedelta(minutes=duration)
+    item_id = str(getattr(item, "id", "") or "")
+    tipo = _enum_value(getattr(item, "tipo", ""))
     return _decorate_event({
         "id": item_id,
-        "title": str(getattr(item, "titolo", "") or "Appuntamento"),
+        "title": title,
         "kind": tipo,
         "priority": "MEDIA",
         "status": _enum_value(getattr(item, "stato", "PROGRAMMATO")),
         "start": start.isoformat(timespec="minutes"),
         "end": end.isoformat(timespec="minutes"),
+        "timeLabel": start.strftime("%H:%M"),
+        "durationLabel": f"{duration} min",
         "location": str(getattr(item, "luogo", "") or ""),
         "court": str(getattr(item, "tribunale", "") or ""),
         "matter": str(getattr(item, "procedimento", "") or ""),
@@ -274,6 +410,8 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         kind = "DEPOSITO"
     else:
         kind = "SCADENZA"
+    time_label = "09:00" if kind == "UDIENZA" else "Entro giornata"
+    duration_label = "45 min" if kind == "UDIENZA" else "Scadenza"
     notes = "\n".join(
         part
         for part in (
@@ -290,6 +428,8 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         "status": _enum_value(getattr(item, "stato", "APERTO")),
         "start": start.isoformat(timespec="minutes"),
         "end": end.isoformat(timespec="minutes"),
+        "timeLabel": time_label,
+        "durationLabel": duration_label,
         "location": "",
         "court": "",
         "matter": str(getattr(item, "id_fascicolo", "") or ""),

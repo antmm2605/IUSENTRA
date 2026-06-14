@@ -1,0 +1,19 @@
+{
+  "route": "/fascicoli/:id/deposito/prepara",
+  "legacyUrl": "/fascicoli/<id>/deposito/prepara?_legacy=1",
+  "capturedAt": "2026-06-14",
+  "status": "react_operational_full",
+  "source": "promozione React guidata dai gate per la preparazione deposito fascicolo",
+  "preserve": [
+    "riepilogo operativo del deposito",
+    "controlli di Regia Operativa",
+    "lettura integrale dei documenti presenti nel fascicolo",
+    "documenti candidati alla busta separati da provvedimenti, PEC e ricevute",
+    "classificazione dei documenti acquisiti dal portale senza mescolarli con le comunicazioni",
+    "policy canale: invio PEC diretto solo quando il profilo lo consente, altrimenti pacchetto per portale ufficiale",
+    "generazione busta o pacchetto governata da backend e controlli ministeriali",
+    "fallback classico accessibile solo con _legacy=1"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "la GET ufficiale deve servire la shell React; il template classico resta solo come percorso di recupero governato"
+}

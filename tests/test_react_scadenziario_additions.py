@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from io import BytesIO
 from pathlib import Path
 
-from pct.scadenziario import PrioritaTermine, TipoTermine
+from pct.agenda import Agenda
+from pct.clienti import GestioneClienti, TipoCliente
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 from web.helpers import get_scadenziario
+from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
 from web.services.react_scadenziario_bridge import dedupe_calculator_templates
 
 
@@ -16,6 +21,23 @@ def _app(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
     app.config["API_KEY"] = "react-test-key"
     return app
+
+
+def _remote_hearing_pdf_bytes(link: str) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    pdf.drawString(72, 790, "Tribunale di Milano")
+    pdf.drawString(72, 770, "Sezione Lavoro")
+    pdf.drawString(72, 740, "N. R.G. 1754/2026")
+    pdf.drawString(72, 720, "Fissa l'udienza in data 20/05/2026, alle ore 10:00, con collegamento audiovisivo.")
+    pdf.drawString(72, 700, "Data di firma del provvedimento: 24/02/2026.")
+    pdf.drawString(72, 680, "Partecipa alla riunione Microsoft Teams")
+    pdf.linkURL(link, (72, 670, 420, 695), relative=0)
+    pdf.save()
+    return buffer.getvalue()
 
 
 def test_react_scadenziario_page_collegata_nav_api_e_lex():
@@ -31,7 +53,7 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Calcolatore termini processuali" in page_source
     assert "calculateProcessDeadline" in page_source
     assert "createProcessDeadline" in page_source
-    assert "Hash audit" in page_source
+    assert "Prova di controllo" in page_source
     assert "formatItalianDate(result.deadline)" in page_source
     assert "formatItalianDate(step.date)" in page_source
     assert "Il risultato mostrerà la data" in page_source
@@ -42,8 +64,11 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Elimina tutto" in page_source
     assert "RemoteHearingNotice" in page_source
     assert "Apri link udienza audiovisiva" in page_source
-    assert "Allegato fonte:" in page_source
-    assert "Link verificato identico alla fonte letta" in page_source
+    assert "Allegato udienza:" in page_source
+    assert "Link verificato sull’allegato" in page_source
+    assert "Hash audit" not in page_source
+    assert "Fonte link" not in page_source
+    assert "Normalizzato da verificare" not in page_source
     assert "Evento:" in page_source
     assert "Ufficio:" in page_source
     assert "removePdfCandidates" in page_source
@@ -110,6 +135,124 @@ def test_react_scadenziario_bridge_usa_repository_reale(tmp_path: Path):
     assert payload["calculator"]["scheduler"]["channel"] == "PEC"
 
 
+def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Filippo",
+        cognome="Azzaro",
+        )
+        fascicoli = GestioneFascicoli(
+            db_path=app.config["FASCICOLI_DB"],
+            documents_dir=app.config["FASCICOLI_DOCS"],
+            archive_dir=app.config["FASCICOLI_ARCH"],
+        )
+        fascicolo = fascicoli.nuovo(
+            "Usucapione",
+            TipoFascicolo.CIVILE,
+            id_cliente=cliente.id,
+            nome_cliente=cliente.nome_completo,
+            numero_rg="274",
+            anno_rg=2026,
+            oggetto="Usucapione",
+            avvocato_referente="Antonella Mammola",
+        )
+        scadenza = get_scadenziario().nuova(
+            "Udienza da portale",
+            TipoTermine.UDIENZA,
+            "2026-07-09",
+            id_fascicolo=fascicolo.id,
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert response.status_code == 200
+    assert row["fascicoloLabel"] == "RG 274/2026 - Usucapione"
+    assert row["clientLabel"] == "Azzaro Filippo"
+    assert row["ownerLabel"] == "Antonella Mammola"
+
+
+def test_pdf_notificato_alimenta_scadenziario_agenda_senza_duplicare_link_audiovisivo(tmp_path: Path):
+    exact_link = "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19oPeQ"
+    cliente = GestioneClienti(db_path=str(tmp_path / "clienti.json")).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Rosa Maria",
+        cognome="Vinci",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = fascicoli.nuovo(
+        "Carta docente",
+        TipoFascicolo.LAVORO,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        numero_rg="1754",
+        anno_rg=2026,
+        oggetto="Carta docente",
+        tribunale="Tribunale di Milano",
+    )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza (originale notificato).pdf",
+        TipoDocumento.DECRETO,
+        _remote_hearing_pdf_bytes(exact_link),
+    )
+    scadenziario = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    agenda = Agenda(db_path=str(tmp_path / "agenda.json"))
+
+    preview = preview_pdf_deadlines(
+        gestione_fascicoli=fascicoli,
+        gestione_scadenziario=scadenziario,
+        id_fascicolo=fascicolo.id,
+    )
+    candidate = next(item for item in preview.candidates if item.type == TipoTermine.UDIENZA.value)
+
+    assert candidate.document_id == documento.id
+    assert candidate.due_date == "2026-05-20"
+    assert candidate.event_time == "10:00"
+    assert candidate.remote_hearing_url == exact_link
+    assert candidate.remote_hearing_verified is True
+    assert candidate.client_label == "Vinci Rosa Maria"
+    assert not any(item.due_date == "2026-02-24" for item in preview.candidates)
+
+    result = import_pdf_deadlines(
+        gestione_fascicoli=fascicoli,
+        gestione_scadenziario=scadenziario,
+        gestione_agenda=agenda,
+        selected_ids=[candidate.id],
+        id_fascicolo=fascicolo.id,
+        user_id="avvocato",
+    )
+    repeated = import_pdf_deadlines(
+        gestione_fascicoli=fascicoli,
+        gestione_scadenziario=scadenziario,
+        gestione_agenda=agenda,
+        selected_ids=[candidate.id],
+        id_fascicolo=fascicolo.id,
+        user_id="avvocato",
+    )
+    scadenze = scadenziario.tutte(solo_aperte=False)
+    appuntamenti = agenda.tutti()
+
+    assert result["created"] == 1
+    assert repeated["created"] == 0
+    assert len(scadenze) == 1
+    assert len(appuntamenti) == 1
+    assert scadenze[0].source_event_type == "documento_fascicolo"
+    assert scadenze[0].remote_hearing_url == exact_link
+    assert scadenze[0].id_appuntamento == appuntamenti[0].id
+    assert appuntamenti[0].data_ora.startswith("2026-05-20T10:00")
+    assert appuntamenti[0].cliente == "Vinci Rosa Maria"
+    assert exact_link in appuntamenti[0].note
+
+
 def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
@@ -147,6 +290,45 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     assert row["remoteHearingUrl"] == exact_link
     assert row["remoteHearingSource"] == "13744017s.pdf.zip"
     assert row["remoteHearingVerified"] is True
+    assert exact_link in row["remoteHearingUrl"]
+
+
+def test_react_scadenziario_bridge_nasconde_testi_tecnici_da_pec(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        gestione = get_scadenziario()
+        scadenza = gestione.nuova(
+            "Udienza da PEC: POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=12)).isoformat(),
+            id_fascicolo="RG 3950/2026",
+            descrizione="Data processuale futura letta da Comunicazione.xml: Oggetto: FISSAZIONE UDIENZA. backend payload runtime source_event profile_id",
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            source_event_type="pct_deposito",
+            note=(
+                "PEC_AUDIT:msg-tech\n"
+                "Scadenza: scad-123\n"
+                "Fonte: pipeline PEC audit-grade.\n"
+                "Fissazione udienza di discussione con strumenti audiovisivi."
+            ),
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=pec", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+    visible = " ".join(
+        str(row.get(key) or "")
+        for key in ("title", "description", "sourceEventTypeLabel", "officeLabel", "remoteHearingSource", "remoteHearingAccessInfo")
+    )
+
+    assert response.status_code == 200
+    assert row["title"] == "Udienza da PEC: fissazione udienza - RG 3950/2026"
+    assert row["description"].startswith("Udienza rilevata da PEC.")
+    assert row["sourceEventTypeLabel"] == "Udienza"
+    assert "Fissazione udienza" not in visible
+    for token in ("POSTA CERTIFICATA", "COMUNICAZIONE 3950/2026", "Data processuale futura", "PEC_AUDIT", "pipeline", "payload", "runtime", "backend", "source_event", "profile_id", "audit-grade", "Deposito telematico"):
+        assert token.lower() not in visible.lower()
 
 
 def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: Path):

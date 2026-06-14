@@ -88,6 +88,7 @@ SOURCE_EVENT_TYPE_LABELS: Dict[str, str] = {
     "deposito_sentenza": "Deposito della sentenza",
     "udienza": "Udienza",
     "comunicazione": "Comunicazione",
+    "documento_fascicolo": "Documento notificato nel fascicolo",
 }
 
 

@@ -1,5 +1,5 @@
 import { Bell, CalendarClock, Clock3, FolderClock, Headphones, PanelLeftOpen, Plus, Settings2, TriangleAlert } from 'lucide-react'
-import { Suspense, lazy, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { TopBarCreateMenu } from './TopBarCreateMenu'
 import { TopBarDeadlines } from './TopBarDeadlines'
 import { TopBarNotifications } from './TopBarNotifications'
@@ -8,6 +8,7 @@ import { TopBarSearch } from './TopBarSearch'
 import { TopBarTimeTracker } from './TopBarTimeTracker'
 import { TopBarTodayMenu } from './TopBarTodayMenu'
 import { IusTopBar } from '../iusentra'
+import { trackRecentItem } from '../../services/topbarApi'
 import type { TopbarCreateContext } from '../../types/topbar'
 
 const StudioVoiceAssistant = lazy(() => import('../StudioVoiceAssistant'))
@@ -35,6 +36,23 @@ function currentContext(path: string): TopbarCreateContext {
     return { contextType: 'client', contextId: decodeURIComponent(clientMatch[1]) }
   }
   return { contextType: 'global', contextId: null }
+}
+
+function recentTargetFromPath(path: string): { entityType: string; entityId: string } | null {
+  const normalized = path.split(/[?#]/, 1)[0] || '/'
+  const documentMatch = normalized.match(/^\/fascicoli\/([^/?#]+)\/documenti\/([^/?#]+)/)
+  if (documentMatch && documentMatch[2]) {
+    return { entityType: 'document', entityId: decodeURIComponent(documentMatch[2]) }
+  }
+  const caseMatch = normalized.match(/^\/fascicoli\/([^/?#]+)/)
+  if (caseMatch && !['nuovo', 'esporta', 'archivio'].includes(caseMatch[1])) {
+    return { entityType: 'case', entityId: decodeURIComponent(caseMatch[1]) }
+  }
+  const clientMatch = normalized.match(/^\/clienti\/([^/?#]+)/)
+  if (clientMatch && clientMatch[1] !== 'nuovo') {
+    return { entityType: 'client', entityId: decodeURIComponent(clientMatch[1]) }
+  }
+  return null
 }
 
 function todayLabel() {
@@ -66,7 +84,18 @@ export function TopBar({
   const [openPanel, setOpenPanel] = useState<PanelName>(null)
   const [supportOpening, setSupportOpening] = useState(false)
   const [supportError, setSupportError] = useState('')
+  const lastRecentKey = useRef('')
   const context = useMemo(() => currentContext(activePath), [activePath])
+  useEffect(() => {
+    const target = recentTargetFromPath(activePath)
+    if (!target) return
+    const key = `${target.entityType}:${target.entityId}`
+    if (lastRecentKey.current === key) return
+    lastRecentKey.current = key
+    void trackRecentItem(target.entityType, target.entityId)
+      .then(() => window.dispatchEvent(new CustomEvent('iusentra:recent-items-updated')))
+      .catch(() => {})
+  }, [activePath])
   const togglePanel = (panel: Exclude<PanelName, null>) => setOpenPanel((current) => (current === panel ? null : panel))
   const closePanel = () => setOpenPanel(null)
   const requestSupport = async () => {

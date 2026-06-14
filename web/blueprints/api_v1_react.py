@@ -665,8 +665,8 @@ def _audit_event(action: str, resource_type: str = "", resource_id: str = "", de
         audit(action, resource_type, resource_id, details)
 
 
-def _jsonify_domain_payload(payload: dict[str, Any]):
-    return jsonify(payload), 404 if payload.get("notFound") else 200
+def _jsonify_domain_payload(payload: dict[str, Any], *, missing_status: int = 404):
+    return jsonify(payload), missing_status if payload.get("notFound") else 200
 
 
 @api_v1_react.before_request
@@ -2865,6 +2865,7 @@ def scadenziario_pdf_scadenze_importa():
         result = import_pdf_deadlines(
             gestione_fascicoli=get_fascicoli(),
             gestione_scadenziario=get_scadenziario(),
+            gestione_agenda=get_agenda(),
             selected_ids=[str(item) for item in selected_ids],
             id_fascicolo=id_fascicolo,
             max_documents=max_documents,
@@ -4086,6 +4087,8 @@ def fascicolo_react_documento_editor(id_fasc: str, id_doc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>")
 @_richiedi_auth
 def fascicolo_react_dettaglio(id_fasc: str):
+    include_sections = _detail_include_sections(default=set())
+    missing_status = 200 if "all" in include_sections else 404
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
         get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
@@ -4099,8 +4102,8 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_config_studio=_core_runtime_func("get_config_studio"),
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
-        include_sections=_detail_include_sections(default=set()),
-    ))
+        include_sections=include_sections,
+    ), missing_status=missing_status)
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/documenti")

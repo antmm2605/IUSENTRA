@@ -1010,6 +1010,39 @@ export function NotificheLegaliPage() {
     return documento.riferimentoPortale || name
   }
 
+  const depositEvidenceKindFromDocument = (documento: LegalDocumentSuggestion): DepositEvidenceKind => {
+    const proofKind = documento.tipoProvaNotifica.toLowerCase()
+    if (proofKind === 'relata') return 'relata'
+    if (proofKind === 'rac') return 'rac'
+    if (proofKind === 'rdac') return 'rdac'
+    if (proofKind === 'pec') return 'pec'
+    return classifyDepositFile(documentEvidenceName(documento))
+  }
+
+  const depositEvidenceKindLabel = (documento: LegalDocumentSuggestion) => {
+    const kind = depositEvidenceKindFromDocument(documento)
+    if (kind === 'relata') return 'Relata'
+    if (kind === 'rac') return 'RAC'
+    if (kind === 'rdac') return 'RdAC'
+    if (kind === 'pec') return 'PEC inviata'
+    return documento.provaNotifica ? 'Atto notificato' : 'Documento'
+  }
+
+  const isDepositProofDocument = (documento: LegalDocumentSuggestion) => (
+    documento.provaNotifica
+    || Boolean(documento.tipoProvaNotifica)
+    || ['relata', 'rac', 'rdac', 'pec'].includes(depositEvidenceKindFromDocument(documento))
+  )
+
+  const syncDepositDraftFromRows = (rows: LegalDocumentSuggestion[], current: typeof deposito) => (
+    rows.reduce((draft, documento) => applyDepositFile(
+      draft,
+      depositEvidenceKindFromDocument(documento),
+      documentEvidenceName(documento),
+      documento.hashSha256,
+    ), current)
+  )
+
   const documentDetailLine = (documento: LegalDocumentSuggestion) => {
     const details = [
       documento.descrizione && documento.descrizione !== documentPrimaryName(documento) ? documento.descrizione : '',
@@ -1045,11 +1078,7 @@ export function NotificheLegaliPage() {
             hash_sha256: firstDocument.hashSha256 || current.hash_sha256,
           }))
           setDeposito((current) => ({
-            ...current,
-            atto_notificato: selectedDocuments.length
-              ? selectedDocuments.map(documentEvidenceName).join('; ')
-              : current.atto_notificato,
-            atto_sha256: selectedDocuments.length === 1 ? selectedDocuments[0].hashSha256 || current.atto_sha256 : current.atto_sha256,
+            ...syncDepositDraftFromRows(selectedDocuments, current),
           }))
         }
         const enriched = documents.filter((documento) => (
@@ -1074,11 +1103,7 @@ export function NotificheLegaliPage() {
     const rows = ids
       .map((id) => documentSuggestions.find((item) => item.id === id))
       .filter((item): item is LegalDocumentSuggestion => Boolean(item))
-    setDeposito((current) => ({
-      ...current,
-      atto_notificato: rows.length ? rows.map(documentEvidenceName).join('; ') : current.atto_notificato,
-      atto_sha256: rows.length === 1 ? rows[0].hashSha256 || current.atto_sha256 : current.atto_sha256,
-    }))
+    setDeposito((current) => syncDepositDraftFromRows(rows, current))
   }
 
   const applyDocument = (documento: LegalDocumentSuggestion) => {
@@ -1097,11 +1122,7 @@ export function NotificheLegaliPage() {
           : current.template_id,
       procedimento_pendente: documento.origine === 'copia_fascicolo_informatico' ? true : current.procedimento_pendente,
     }))
-    setDeposito((current) => ({
-      ...current,
-      atto_notificato: documentEvidenceName(documento) || current.atto_notificato,
-      atto_sha256: documento.hashSha256 || current.atto_sha256,
-    }))
+    setDeposito((current) => syncDepositDraftFromRows([documento], current))
     setCliente((current) => ({
       ...current,
       provvedimento_descrizione: documento.descrizione || current.provvedimento_descrizione,
@@ -1288,19 +1309,26 @@ export function NotificheLegaliPage() {
       .filter((documento) => documento.notificaRichiesta || documento.documentoUfficio)
       .map((documento) => documento.id)
       .filter(Boolean)
-    const documentIds = officeNotificationDocumentIds.length
+    const notificationDocumentIds = officeNotificationDocumentIds.length
       ? officeNotificationDocumentIds
       : practice.documenti.map((documento) => documento.id).filter(Boolean)
-    const primoDocumento = documentIds.length
-      ? practice.documenti.find((documento) => documento.id === documentIds[0]) || practice.documenti[0] || null
+    const proofDocumentIds = practice.documenti
+      .filter(isDepositProofDocument)
+      .map((documento) => documento.id)
+      .filter(Boolean)
+    const depositDocumentIds = proofDocumentIds.length
+      ? proofDocumentIds
+      : notificationDocumentIds
+    const primoDocumento = notificationDocumentIds.length
+      ? practice.documenti.find((documento) => documento.id === notificationDocumentIds[0]) || practice.documenti[0] || null
       : practice.documenti[0] || null
     const hasFascicoloDocument = practice.documenti.some((documento) => ['copia_fascicolo_informatico', 'comunicazione_cancelleria'].includes(documento.origine))
     const hasScansioneDocument = practice.documenti.some((documento) => documento.origine === 'scansione_analogico')
     setSelectedRecipientId(primoDestinatario?.id || '')
     setSelectedRecipientIds(primoDestinatario?.id ? [primoDestinatario.id] : [])
     setSelectedDocumentId(primoDocumento?.id || '')
-    setSelectedNotificationDocumentIds(documentIds)
-    setSelectedDepositDocumentIds(documentIds)
+    setSelectedNotificationDocumentIds(notificationDocumentIds)
+    setSelectedDepositDocumentIds(depositDocumentIds)
     setSelectedClientId(practice.clienteId || '')
     setNotifica((current) => ({
       ...current,
@@ -1342,10 +1370,11 @@ export function NotificheLegaliPage() {
       anno_rg: practice.procedimento.annoRg || current.anno_rg,
       provvedimento_descrizione: primoDocumento?.descrizione || current.provvedimento_descrizione,
     }))
+    const selectedDepositRows = depositDocumentIds
+      .map((documentId) => practice.documenti.find((documento) => documento.id === documentId))
+      .filter((documento): documento is LegalDocumentSuggestion => Boolean(documento))
     setDeposito((current) => ({
-      ...current,
-      atto_notificato: practice.documenti.length ? practice.documenti.map(documentEvidenceName).join('; ') : current.atto_notificato,
-      atto_sha256: practice.documenti.length === 1 ? practice.documenti[0].hashSha256 || current.atto_sha256 : current.atto_sha256,
+      ...syncDepositDraftFromRows(selectedDepositRows, current),
       destinatario_nome: primoDestinatario?.nome || current.destinatario_nome,
     }))
   }
@@ -1604,22 +1633,22 @@ export function NotificheLegaliPage() {
   }
   const applyDepositFile = (current: typeof deposito, kind: DepositEvidenceKind, fileName: string, sha256: string): typeof deposito => {
     const next = { ...current }
-    if (kind === 'atto') {
-      next.atto_notificato = current.atto_notificato || fileName
-      next.atto_sha256 = sha256
-    } else if (kind === 'relata') {
-      next.relata_firmata = fileName
-      next.relata_sha256 = sha256
-    } else if (kind === 'pec') {
-      next.pec_inviata = fileName
-      next.pec_inviata_sha256 = sha256
-    } else if (kind === 'rac') {
-      next.rac_file = fileName
-      next.rac_sha256 = sha256
-    } else if (kind === 'rdac') {
-      next.rdac_file = fileName
-      next.rdac_sha256 = sha256
+    const assignFile = (fileKey: keyof typeof deposito, shaKey: keyof typeof deposito, overwriteFile = true) => {
+      if (fileName && (overwriteFile || !next[fileKey])) next[fileKey] = fileName as never
+      if (sha256 && !next[shaKey]) next[shaKey] = sha256 as never
     }
+    if (kind === 'atto') {
+      assignFile('atto_notificato', 'atto_sha256', false)
+    } else if (kind === 'relata') {
+      assignFile('relata_firmata', 'relata_sha256')
+    } else if (kind === 'pec') {
+      assignFile('pec_inviata', 'pec_inviata_sha256')
+    } else if (kind === 'rac') {
+      assignFile('rac_file', 'rac_sha256')
+    } else if (kind === 'rdac') {
+      assignFile('rdac_file', 'rdac_sha256')
+    }
+    if (next.rac_file && next.rdac_file) next.ricevuta_completa = true
     return refreshDepositReference(current, next)
   }
   const handleDepositEvidenceFiles = async (files: FileList | null) => {
@@ -2231,7 +2260,7 @@ export function NotificheLegaliPage() {
                               checked={selectedDepositDocumentIds.includes(item.id)}
                               onChange={(event) => toggleDepositDocument(item, event.currentTarget.checked)}
                             />
-                            <span>{item.riferimentoPortale ? `${item.riferimentoPortale} - ${item.label}` : item.label}</span>
+                            <span>{depositEvidenceKindLabel(item)} - {item.riferimentoPortale ? `${item.riferimentoPortale} - ${item.label}` : item.label}</span>
                           </label>
                         ))}
                       </div>
@@ -2240,7 +2269,7 @@ export function NotificheLegaliPage() {
                           {selectedDepositDocuments.map((item) => (
                             <span key={`deposito-selected-${item.id}`}>
                               <FileCheck2 size={15} />
-                              {documentEvidenceName(item)}{item.hashSha256 ? ` - SHA-256 ${item.hashSha256.slice(0, 12)}...` : ''}
+                              {depositEvidenceKindLabel(item)} - {documentEvidenceName(item)}{item.hashSha256 ? ` - SHA-256 ${item.hashSha256.slice(0, 12)}...` : ''}
                             </span>
                           ))}
                         </div>

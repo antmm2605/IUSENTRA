@@ -180,15 +180,22 @@ function EventCard({ event, laneIndex = 0, laneCount = 1 }:{event:AgendaEvent; l
   const label = agendaLegalLabel(event)
   const title = agendaTitle(event)
   const detailLines = agendaDetailLines(event)
-  const tooltipText = [event.detailTitle || label, ...detailLines].join('\n')
+  const whenLabel = `${new Date(event.start).toLocaleDateString('it-IT')} ${event.timeLabel}${event.durationLabel ? ` · ${event.durationLabel}` : ''}`
+  const tooltipLines = [
+    event.client ? `Cliente/parte: ${event.client}` : '',
+    event.matter ? `Fascicolo/RG: ${event.matter}` : '',
+    `Quando: ${whenLabel}`,
+    event.location ? `Luogo: ${event.location}` : '',
+    ...detailLines.filter((line) => !/^Cliente\/parte:|^Fascicolo\/RG:|^Luogo:/i.test(line)),
+  ].filter(Boolean).slice(0, 6)
+  const accessibleLabel = `${label}: ${title}. ${tooltipLines.join('. ')}`
   const layout = laneStyle(laneIndex, laneCount)
   return (
     <a
       className={`iu-ag-event iu-ag-event--${event.tone}`}
       draggable
       href={event.href || '/agenda'}
-      title={tooltipText}
-      aria-label={tooltipText}
+      aria-label={accessibleLabel}
       onDragStart={(dragEvent) => {
         dragEvent.dataTransfer.effectAllowed = 'move'
         dragEvent.dataTransfer.setData('text/plain', event.id)
@@ -204,8 +211,8 @@ function EventCard({ event, laneIndex = 0, laneCount = 1 }:{event:AgendaEvent; l
       <strong>{eventIcon(event.kind)} <span>{title}</span></strong>
       <small>{event.subtitle || event.client || event.location || event.originTitle}</small>
       <span className="iu-ag-event__tooltip" role="tooltip" aria-hidden="true">
-        <b>{event.detailTitle || label}</b>
-        {detailLines.map((line) => <span key={line}>{line}</span>)}
+        <b>{label}: {title}</b>
+        {tooltipLines.map((line) => <span key={line}>{line}</span>)}
       </span>
     </a>
   )
@@ -354,6 +361,15 @@ function AgendaInspector({ events, nextEvent, unsynced }:{events:AgendaEvent[]; 
   )
 }
 
+function agendaSourceLabel(source: string): string {
+  const normalized = source.toLowerCase()
+  if (normalized.includes('scadenziario')) return 'Scadenziario'
+  if (normalized.includes('pec')) return 'PEC'
+  if (normalized.includes('agenda')) return 'Agenda interna'
+  if (normalized.includes('calend')) return 'Calendario sincronizzato'
+  return 'Registro operativo'
+}
+
 function AgendaFocus({ event }:{event:AgendaEvent}) {
   const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
   const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
@@ -362,15 +378,16 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
     <section className="iu-ag-focus">
       <div>
         <a href="/agenda"><ArrowLeftIcon/>Torna all'agenda</a>
-        <span>Elemento selezionato</span>
+        <span>Dettaglio operativo</span>
         <h2>{agendaLegalLabel(event)} · {agendaTitle(event)}</h2>
-        <p>{event.subtitle || event.notes || event.location || 'Impegno agenda senza note aggiuntive.'}</p>
+        <p>{event.subtitle || event.notes || event.location || 'Verifica il fascicolo collegato prima dell’attività.'}</p>
       </div>
       <dl>
         <div><dt>Data</dt><dd>{new Date(event.start).toLocaleDateString('it-IT')}</dd></div>
         <div><dt>Orario</dt><dd>{event.timeLabel} · {event.durationLabel}</dd></div>
-        <div><dt>Cliente</dt><dd>{event.client || 'Non collegato'}</dd></div>
-        <div><dt>Fonte</dt><dd>{event.source}</dd></div>
+        <div><dt>Cliente/parte</dt><dd>{event.client || 'Da collegare'}</dd></div>
+        <div><dt>Fascicolo/RG</dt><dd>{event.matter || 'Da indicare'}</dd></div>
+        <div><dt>Origine</dt><dd>{agendaSourceLabel(event.source)}</dd></div>
       </dl>
       <div className="iu-ag-focus__actions">
         <a href={editHref}><Settings2 size={15}/>Modifica</a>

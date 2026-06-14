@@ -645,7 +645,26 @@ def _classify_documents(documenti: List[Dict[str, Any]]) -> Dict[str, List[Dict[
         ],
         "notifica": [
             d for d in documenti
-            if _doc_matches(d, types=("NOTIFICA",), names=("notifica", "relata", "ricevuta pec", "ricevuta consegna"))
+            if _doc_matches(
+                d,
+                types=("NOTIFICA",),
+                names=(
+                    "notifica",
+                    "notificazione",
+                    "relata",
+                    "ricevuta pec",
+                    "ricevuta accettazione",
+                    "ricevuta consegna",
+                    "accettazione",
+                    "consegna",
+                    "rac",
+                    "rdac",
+                    "notifica_id",
+                    "originale notificato",
+                    "legge n 53",
+                    "l 53",
+                ),
+            )
         ],
         "sentenza": [
             d for d in documenti
@@ -1108,7 +1127,11 @@ class ValidatorNormativoRedazionale:
             )
 
         main_doc = next((d for d in selected_documents if d.get("id") == context.get("atto_principale_id")), None)
-        if main_doc and _doc_matches(main_doc, types=("PROCURA", "NOTIFICA"), names=("procura", "relata", "contributo")):
+        if main_doc and _doc_matches(
+            main_doc,
+            types=("PROCURA", "NOTIFICA"),
+            names=("procura", "relata", "contributo", "accettazione", "consegna", "rac", "rdac", "notifica_id", "originale notificato"),
+        ):
             issues.append(
                 ValidationIssue(
                     service=SERVICE_GIURIDICO,

@@ -53,6 +53,20 @@ def test_api_regia_payload_completo_e_mock_false(tmp_path):
     assert payload["checklist"]
     assert payload["documentSlots"]
     assert payload["validation"]["blockers"]
+    delivery = payload["deposit"]["deliveryPolicy"]
+    assert delivery["mode"] == "direct_pec"
+    assert delivery["allowsDirectPec"] is True
+    assert delivery["directPecReady"] is False
+    assert delivery["requiresManualFinalUpload"] is False
+    assert delivery["requiresGuidedCompletion"] is True
+    assert delivery["packageKind"] == "pct_busta_enc"
+    assert delivery["sendButtonLabel"] == "Completa trasporto"
+    assert delivery["prepareButtonLabel"] == "Prepara controllo busta"
+    assert delivery["immediateBatchSigning"] is True
+    assert delivery["documentIndexGeneratedBySoftware"] is True
+    assert "Atto.enc" in delivery["missingOperationalStep"]
+    assert "AES256" in delivery["missingOperationalStep"]
+    assert any("Atto.enc" in action and "AES256" in action for action in delivery["guidedNextActions"])
 
 
 def test_api_regia_economia_espone_link_operativi(tmp_path):

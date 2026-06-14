@@ -369,6 +369,8 @@ def _deve_mantenere_vista_classica() -> bool:
     lower = path.lower()
     if lower.startswith("/fascicoli/") and lower.endswith("/copertina"):
         return True
+    if lower.startswith("/fascicoli/") and lower.endswith("/deposito/prepara"):
+        return False
     if lower.startswith("/fascicoli/") and (
         "/wizard/" in lower
         or "/deposito/" in lower

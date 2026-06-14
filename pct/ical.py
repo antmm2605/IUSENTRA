@@ -11,11 +11,28 @@ Feed disponibili:
 """
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
 _ROME = ZoneInfo("Europe/Rome")
+TECHNICAL_VISIBLE_RE = re.compile(
+    r"\b(?:PEC_AUDIT|pipeline|audit|audit-grade|source_event|profile_id|payload|runtime|backend|frontend|legacy|json_api|external_uid|external_provider|worker|job|provider|webhook|endpoint)\b",
+    re.IGNORECASE,
+)
+INTERNAL_NOTE_PREFIXES = (
+    "tipo evento:",
+    "decorrenza letta:",
+    "fonte:",
+    "scadenza:",
+    "hash:",
+    "id:",
+)
+OPERATIONAL_PREFIX_RE = re.compile(
+    r"^\s*(?:Presidio\s+PEC|Presidio\s+anomalie\s+PEC|Verifica\s+comunicazione\s+di\s+cancelleria\s+PEC)\s*:?\s*-?\s*",
+    re.IGNORECASE,
+)
 
 
 # ──────────────────────────────────────────── helpers RFC 5545
@@ -28,6 +45,53 @@ def _escape(s: str) -> str:
          .replace(",", "\\,")
          .replace("\n", "\\n")
     )
+
+
+def _short_text(value: object, limit: int = 220) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "..."
+
+
+def _visible_calendar_text(value: object, limit: int = 500) -> str:
+    parts: list[str] = []
+    for raw_line in str(value or "").splitlines():
+        line = _short_text(raw_line, limit=max(limit, 220))
+        if not line:
+            continue
+        line = re.sub(r"\bPEC_AUDIT:[A-Za-z0-9_.:-]+", "", line).strip()
+        if not line:
+            continue
+        lowered = line.lower()
+        if lowered.startswith("fonte link udienza:"):
+            parts.append("Allegato udienza: " + _short_text(line.split(":", 1)[1], 120))
+            continue
+        if lowered.startswith("verifica link udienza:"):
+            value_part = _short_text(line.split(":", 1)[1], 160).lower()
+            if "identico" in value_part:
+                parts.append("Link udienza verificato sull'allegato.")
+            elif value_part:
+                parts.append("Link udienza da controllare sull'allegato.")
+            continue
+        if lowered.startswith(INTERNAL_NOTE_PREFIXES):
+            continue
+        if TECHNICAL_VISIBLE_RE.search(line):
+            continue
+        line = OPERATIONAL_PREFIX_RE.sub("", line).strip(" -:")
+        if line:
+            parts.append(line)
+    return _short_text(" ".join(parts), limit)
+
+
+def _prefixed_summary(prefix: str, title: str) -> str:
+    clean_prefix = str(prefix or "").strip().rstrip(":")
+    clean_title = str(title or "").strip()
+    if not clean_title:
+        return clean_prefix
+    if clean_title.lower().startswith(clean_prefix.lower()):
+        return clean_title
+    return f"{clean_prefix}: {clean_title}"
 
 
 def _sequence(last_modified: Optional[datetime]) -> int:
@@ -226,7 +290,7 @@ def agenda_to_ical(appuntamenti, studio_nome: str = "IUSENTRA",
     for a in appuntamenti:
         # Costruzione descrizione
         desc_parts = []
-        note = getattr(a, "note", "") or ""
+        note = _visible_calendar_text(getattr(a, "note", "") or "", 700)
         if note:
             desc_parts.append(note)
         if getattr(a, "tipo", None):
@@ -261,7 +325,7 @@ def agenda_to_ical(appuntamenti, studio_nome: str = "IUSENTRA",
 
         cal.aggiungi_evento(
             uid=f"{a.id}@pct-agenda",
-            summary=a.titolo,
+            summary=_visible_calendar_text(getattr(a, "titolo", ""), 140) or "Appuntamento",
             dtstart=dt_start,
             dtend=dt_end,
             location=getattr(a, "luogo", "") or "",
@@ -292,10 +356,10 @@ def scadenze_to_ical(scadenze, studio_nome: str = "IUSENTRA") -> str:
             except Exception:
                 continue
 
-        desc_parts = [getattr(s, "descrizione", "") or ""]
+        desc_parts = [_visible_calendar_text(getattr(s, "descrizione", "") or "", 700)]
         perentorio = getattr(s, "perentorio", False)
         if perentorio:
-            desc_parts.append("⚠️ SCADENZA PERENTORIA — termine non prorogabile")
+            desc_parts.append("Termine perentorio: controllare il deposito entro la data indicata.")
 
         # Allarmi: perentoria → 7gg + 3gg + 1gg + 60min; normale → 1gg + 60min
         if perentorio:
@@ -313,7 +377,8 @@ def scadenze_to_ical(scadenze, studio_nome: str = "IUSENTRA") -> str:
             except Exception:
                 pass
 
-        summary = ("⚠️ " if perentorio else "") + (getattr(s, "titolo", "") or "Scadenza")
+        title = _visible_calendar_text(getattr(s, "titolo", ""), 140) or "Scadenza"
+        summary = _prefixed_summary("Termine perentorio" if perentorio else "Scadenza", title)
 
         cal.aggiungi_evento_giornata(
             uid=f"{s.id}@pct-scadenze",
@@ -338,7 +403,7 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
     # ---- Appuntamenti ----
     for a in appuntamenti:
         desc_parts = []
-        note = getattr(a, "note", "") or ""
+        note = _visible_calendar_text(getattr(a, "note", "") or "", 700)
         if note:
             desc_parts.append(note)
         if getattr(a, "tipo", None):
@@ -367,7 +432,7 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
 
         cal.aggiungi_evento(
             uid=f"{a.id}@pct-agenda",
-            summary=a.titolo,
+            summary=_visible_calendar_text(getattr(a, "titolo", ""), 140) or "Appuntamento",
             dtstart=dt_start,
             dtend=dt_end,
             location=getattr(a, "luogo", "") or "",
@@ -389,10 +454,10 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
             except Exception:
                 continue
 
-        desc_parts = [getattr(s, "descrizione", "") or ""]
+        desc_parts = [_visible_calendar_text(getattr(s, "descrizione", "") or "", 700)]
         perentorio = getattr(s, "perentorio", False)
         if perentorio:
-            desc_parts.append("⚠️ SCADENZA PERENTORIA")
+            desc_parts.append("Termine perentorio: controllare il deposito entro la data indicata.")
 
         if perentorio:
             allarmi = [7 * 1440, 3 * 1440, 1440, 60]
@@ -408,7 +473,8 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
             except Exception:
                 pass
 
-        summary = ("⚠️ " if perentorio else "") + (getattr(s, "titolo", "") or "Scadenza")
+        title = _visible_calendar_text(getattr(s, "titolo", ""), 140) or "Scadenza"
+        summary = _prefixed_summary("Termine perentorio" if perentorio else "Scadenza", title)
 
         cal.aggiungi_evento_giornata(
             uid=f"{s.id}@pct-scadenze",
@@ -420,4 +486,3 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
         )
 
     return cal.build()
-

@@ -87,8 +87,15 @@ def test_audit_busta_esplicita_simulazione_locale(dati_busta):
 
     assert audit["uses_real_encryption"] is False
     assert audit["atto_msg_generated"] is False
+    assert audit["required_encryption_algorithm"] == "AES256"
+    assert audit["expected_transport_mode"] == "atto_enc_da_atto_msg_cifrato_aes256"
+    assert audit["blocks_direct_send"] is True
+    assert audit["guided_completion_required"] is True
+    assert any("Atto.enc" in action and "AES256" in action for action in audit["guided_next_actions"])
     assert audit["formal_checks"]["T002"]["status"] == "warning"
-    assert any(issue["code"] == "SIM-ENC" for issue in audit["issues"])
+    issue = next(issue for issue in audit["issues"] if issue["code"] == "SIM-ENC")
+    assert "Atto.msg" in issue["detail"]
+    assert "AES256" in issue["detail"]
 
 
 def test_busta_con_allegati(tmp_path, tmp_pdf):

@@ -87,11 +87,11 @@
 .iu-scad-alert button{border-color:rgba(239,68,68,.25);color:#b91c1c}
 .iu-scad-stats{
   display:grid;
-  grid-template-columns:repeat(8,minmax(0,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
   gap:10px;
 }
 .iu-scad-stat{
-  min-height:112px;
+  min-height:104px;
   display:grid;
   grid-template-columns:auto 1fr;
   align-items:center;
@@ -185,13 +185,14 @@
 .iu-scad-check input{width:16px;height:16px}
 .iu-scad-actions-grid{
   display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:12px;
 }
 .iu-scad-action-card{
   display:grid;
+  grid-template-rows:auto auto auto 1fr auto;
   gap:8px;
-  min-height:156px;
+  min-height:168px;
   padding:15px;
   border:1px solid var(--iu-border);
   border-radius:16px;
@@ -210,7 +211,7 @@
 .iu-scad-action-card span{color:var(--iu-slate-600);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
 .iu-scad-action-card strong{font-size:22px;letter-spacing:-.03em}
 .iu-scad-action-card p{margin:0;color:var(--iu-slate-500);font-size:12px;font-weight:700;line-height:1.38}
-.iu-scad-action-card button,.iu-scad-action-card a{width:max-content;min-height:34px;margin-top:auto;color:var(--iu-blue-700)}
+.iu-scad-action-card button,.iu-scad-action-card a{width:max-content;max-width:100%;min-height:34px;margin-top:auto;color:var(--iu-blue-700);white-space:normal;text-align:left}
 .iu-scad-action-card button:disabled{opacity:.45;cursor:not-allowed}
 .iu-scad-action-card--danger>div{background:rgba(239,68,68,.11);color:var(--iu-danger-500)}
 .iu-scad-action-card--warning>div,.iu-scad-action-card--orange>div{background:rgba(245,158,11,.13);color:var(--iu-warning-500)}
@@ -844,8 +845,8 @@
 .iu-scad-calculator__empty span{max-width:320px;font-size:12px;font-weight:750;line-height:1.4}
 
 @media(max-width:1480px){
-  .iu-scad-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .iu-scad-actions-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .iu-scad-stats{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
+  .iu-scad-actions-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
   .iu-scad-layout{grid-template-columns:1fr}
   .iu-scad-calculator__grid{grid-template-columns:1fr}
   .iu-scad-focus-card{grid-template-columns:1fr}

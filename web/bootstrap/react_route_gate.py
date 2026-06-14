@@ -361,6 +361,8 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/fascicoli/") and lower.endswith("/copertina"):
         return True
+    if lower.startswith("/fascicoli/") and lower.endswith("/deposito/prepara"):
+        return False
     if lower.startswith("/fascicoli/") and (
         "/deposito/" in lower
         or "/penale/pdp" in lower

@@ -1,7 +1,9 @@
 from datetime import date, timedelta
 
 from pct.agenda import Agenda
+from pct.ical import agenda_scadenze_to_ical
 from pct.calendar_sync import GestioneCalendarSync
+from pct.scadenziario import GestioneScadenziario, TipoTermine
 
 
 class _FakeResponse:
@@ -90,3 +92,26 @@ def test_sync_profile_creates_and_updates(tmp_path):
     assert report_v2["created"] == 0
     assert report_v2["updated"] == 1
     assert agenda.tutti()[0].titolo == "Riunione aggiornata"
+
+
+def test_complete_google_feed_exports_deadline_without_time_as_clean_all_day(tmp_path):
+    scadenziario = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    deadline = scadenziario.nuova(
+        titolo="Presidio PEC - Valuta termini da notifica PEC",
+        tipo=TipoTermine.TERMINE_PERENTORIO,
+        data_scadenza="2026-06-10",
+        descrizione="backend payload runtime source_event profile_id",
+        note="PEC_AUDIT:msg-tech\nFonte: pipeline PEC audit-grade.",
+        perentorio=True,
+    )
+
+    ical = agenda_scadenze_to_ical([], [deadline], studio_nome="Studio test", base_url="https://app.iusentra.it")
+    unfolded = ical.replace("\r\n ", "")
+
+    assert "DTSTART;VALUE=DATE:20260610" in ical
+    assert "DTEND;VALUE=DATE:20260611" in ical
+    assert "DTSTART:20260610T090000" not in ical
+    assert "SUMMARY:Termine perentorio: Valuta termini da notifica PEC" in unfolded
+    assert "Termine perentorio: controllare il deposito entro la data indicata." in unfolded
+    for token in ("Presidio PEC", "PEC_AUDIT", "pipeline", "payload", "runtime", "backend", "source_event", "profile_id"):
+        assert token not in ical

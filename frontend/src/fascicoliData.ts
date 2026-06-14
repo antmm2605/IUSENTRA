@@ -291,7 +291,9 @@ export type FascicoloNotificationRelataDocument = {
   id: string
   name: string
   kind: string
+  kindLabel: string
   status: string
+  statusLabel: string
   href: string
 }
 
@@ -327,6 +329,8 @@ export type FascicoloNotificationRelata = {
   statusLabel: string
   tone: Tone
   releaseDetected: boolean
+  notificationAlreadySent: boolean
+  proofComplete: boolean
   pendingPortalDocuments: number
   portalDocuments: number
   relataDocuments: number
@@ -783,6 +787,8 @@ export const emptyNotificationRelata: FascicoloNotificationRelata = {
   statusLabel: 'Monitoraggio attivo',
   tone: 'neutral',
   releaseDetected: false,
+  notificationAlreadySent: false,
+  proofComplete: false,
   pendingPortalDocuments: 0,
   portalDocuments: 0,
   relataDocuments: 0,
@@ -1286,7 +1292,9 @@ function normalizeNotificationRelata(value: unknown): FascicoloNotificationRelat
       id: text(row.id, `relata-doc-${index}`),
       name: text(row.name ?? row.nome, 'Documento'),
       kind: text(row.kind ?? row.tipo),
+      kindLabel: text(row.kindLabel ?? row.kind_label ?? row.tipo_label),
       status: text(row.status ?? row.stato),
+      statusLabel: text(row.statusLabel ?? row.status_label ?? row.stato_label),
       href: text(row.href),
     }
   })
@@ -1304,6 +1312,8 @@ function normalizeNotificationRelata(value: unknown): FascicoloNotificationRelat
     statusLabel: text(value.statusLabel ?? value.status_label, emptyNotificationRelata.statusLabel),
     tone: text(value.tone, emptyNotificationRelata.tone) as Tone,
     releaseDetected: bool(value.releaseDetected ?? value.release_detected),
+    notificationAlreadySent: bool(value.notificationAlreadySent ?? value.notification_already_sent),
+    proofComplete: bool(value.proofComplete ?? value.proof_complete),
     pendingPortalDocuments: number(value.pendingPortalDocuments ?? value.pending_portal_documents),
     portalDocuments: number(value.portalDocuments ?? value.portal_documents),
     relataDocuments: number(value.relataDocuments ?? value.relata_documents),

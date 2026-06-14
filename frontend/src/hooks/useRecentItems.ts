@@ -21,6 +21,12 @@ export function useRecentItems(open: boolean) {
     load()
   }, [load])
 
+  useEffect(() => {
+    const refresh = () => load()
+    window.addEventListener('iusentra:recent-items-updated', refresh)
+    return () => window.removeEventListener('iusentra:recent-items-updated', refresh)
+  }, [load])
+
   // Refresh ad ogni apertura del pannello (cattura nuove navigazioni avvenute nel frattempo).
   useEffect(() => {
     if (open) load()

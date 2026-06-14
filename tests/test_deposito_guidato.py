@@ -5,7 +5,14 @@ from pct.auth import GestioneUtenti, RuoloUtente
 from pct.deposito_guidato import OrchestratoreDepositoGuidato
 from pct.deposito_simulazione import SIMULATED_DEPOSIT_NOTE_MARKER
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
-from pct.pst_catalog import PST_WEB_SERVICES_DOC_VERSION
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry
+from pct.pst_catalog import (
+    PST_SICI_XSD_20260611_NEW_ACT,
+    PST_SICI_XSD_20260611_NEW_OBJECT_CODE,
+    PST_SICI_XSD_20260611_STATUS,
+    PST_WEB_SERVICES_DOC_VERSION,
+    get_xsd_channels,
+)
 from web.app import create_app
 
 
@@ -55,6 +62,19 @@ def _doc_payload(gf: GestioneFascicoli, fasc_id: str, doc) -> dict:
         "dimensione_bytes": doc.dimensione_bytes,
         "firmato_digitalmente": doc.firmato_digitalmente,
     }
+
+
+def test_pst_xsd_sici_20260611_tracciato_come_anticipazione_non_in_esercizio():
+    assert PST_SICI_XSD_20260611_STATUS == "anticipated_not_production"
+    assert PST_SICI_XSD_20260611_NEW_ACT == "RichiestaVerbaleSINDACA"
+    assert PST_SICI_XSD_20260611_NEW_OBJECT_CODE == "110046"
+    assert codice_oggetto_pst_entry("110046") is None
+
+    channels = {channel.key: channel for channel in get_xsd_channels()}
+    preview = channels["SICI_20260611_PREVIEW"]
+    assert preview.production_ready is False
+    assert preview.status == "preview"
+    assert "11/06/2026" in preview.changelog_name
 
 
 def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
@@ -206,6 +226,82 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
     assert data["validation"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
     assert data["validation"]["context"]["codice_oggetto_pst"] == "014001"
     assert data["validation"]["snapshot"]["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
+
+
+def test_generazione_busta_usa_codice_oggetto_pst_validato(tmp_path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.invalid",
+    )
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = gf.nuovo(
+        titolo="Ricorso lavoro carta docente",
+        tipo=TipoFascicolo.LAVORO,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="Ministero",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "Ricorso.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fasc.id,
+        "Procura.PDF",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+        firmato=True,
+    )
+    captured: dict[str, str] = {}
+
+    def _fake_crea_busta(self, output_dir):
+        captured["oggetto"] = self.dati.oggetto
+        target = Path(output_dir) / "Atto.enc"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"ENC")
+        return str(target)
+
+    monkeypatch.setattr("pct.busta.BustaTelematica.crea_busta", _fake_crea_busta)
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fasc.id}/deposito/genera-busta",
+            data={
+                "tipo_atto": "RICORSO",
+                "codice_registro": "RGL",
+                "oggetto": "Ricorso lavoro carta docente",
+                "codice_oggetto_pst": "222050",
+                "numero_rg": "1754",
+                "anno_rg": "2026",
+                "atto_principale_id": atto.id,
+                "allegati_ids": [procura.id],
+            },
+        )
+
+    assert response.status_code == 200
+    assert captured["oggetto"] == "222050"
 
 
 def test_orchestratore_blocca_deposito_pct_senza_codice_oggetto_pst(tmp_path):
@@ -380,16 +476,23 @@ def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_pat
             follow_redirects=True,
         )
         response = client.get(f"/fascicoli/{fasc.id}/deposito/prepara")
+        legacy_response = client.get(f"/fascicoli/{fasc.id}/deposito/prepara?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Deposito" in html
-    assert "RG 1025/2024" in html
-    assert f"Interno {fasc.numero}" in html
-    assert 'const correctionContext = {"active": false' in html
-    assert "_arrayBufferToBase64Safe" in html
-    assert "_base64ToUint8ArraySafe" in html
-    assert "String.fromCharCode(...new Uint8Array(buf))" not in html
+    assert '<html lang="it" class="react-shell-document">' in html
+    assert 'id="root"' in html
+    assert "Prepara deposito" not in html
+
+    assert legacy_response.status_code == 200
+    legacy_html = legacy_response.get_data(as_text=True)
+    assert "Deposito" in legacy_html
+    assert "RG 1025/2024" in legacy_html
+    assert f"Interno {fasc.numero}" in legacy_html
+    assert 'const correctionContext = {"active": false' in legacy_html
+    assert "_arrayBufferToBase64Safe" in legacy_html
+    assert "_base64ToUint8ArraySafe" in legacy_html
+    assert "String.fromCharCode(...new Uint8Array(buf))" not in legacy_html
 
 
 def test_deposito_prova_genera_ricevuta_accettazione_senza_invio_reale(tmp_path):

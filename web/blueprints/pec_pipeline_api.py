@@ -53,7 +53,12 @@ def _actor() -> str:
 
 
 def _runtime_path(key: str, default: str, *aliases: str, required: bool = True) -> str:
-    return tenant_data_path(key, default, *aliases, require_tenant=required)
+    try:
+        return tenant_data_path(key, default, *aliases, require_tenant=required)
+    except Exception:
+        if not required:
+            return ""
+        raise
 
 
 def _repo() -> PecAuditRepository:
@@ -69,6 +74,7 @@ def _repo() -> PecAuditRepository:
         fascicoli_docs_path=_runtime_path("FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_runtime_path("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
         agenda_db_path=_runtime_path("AGENDA_DB", "./agenda/appuntamenti.json"),
+        calendar_sync_db_path=_runtime_path("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json", required=False),
     )
 
 
@@ -84,6 +90,7 @@ def _control_tower_repo() -> PecControlTowerRepository:
         fascicoli_docs_path=_runtime_path("FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_runtime_path("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
         agenda_db_path=_runtime_path("AGENDA_DB", "./agenda/appuntamenti.json"),
+        calendar_sync_db_path=_runtime_path("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json", required=False),
     )
 
 
@@ -246,6 +253,36 @@ def pec_acquire_legacy_email(email_id: str):
             raw_mime=raw_mime,
             actor=_actor(),
         )
+        try:
+            run = repo.start_local_acquire_run(total_emails=1, batch_size=1, actor=_actor())
+            _local_acquire_record(
+                repo,
+                str(run.get("id") or ""),
+                email_id=email_id,
+                message_id=message_id,
+                subject=str(getattr(email_obj, "oggetto", "") or "")[:240],
+                status="duplicate" if result.get("duplicate") else "ingested",
+                deadline_status=_local_acquire_deadline_status(deadline),
+                due_date=str(deadline.get("due_date") or ""),
+                deadline_id=str(deadline.get("deadline_id") or ""),
+                agenda_id=str((deadline.get("agenda") or {}).get("agenda_id") or "") if isinstance(deadline.get("agenda"), dict) else "",
+                detail={
+                    "mime_sha256": result.get("mime_sha256") or "",
+                    "mime_source": mime_source,
+                    "single_acquire": True,
+                },
+            )
+            repo.update_local_acquire_run(
+                str(run.get("id") or ""),
+                cursor_index=1,
+                total_emails=1,
+                batch_size=1,
+                status="completed",
+                deltas={"acquired": 1, "duplicates": int(bool(result.get("duplicate")))},
+                actor=_actor(),
+            )
+        except Exception:
+            pass
         try:
             worker = repo.run_pending_jobs(limit=80, actor=_actor())
         except Exception as exc:
@@ -464,9 +501,46 @@ def _pec_acquire_local_emails_chunked():
             key=_local_email_sort_key,
             reverse=True,
         )
-        total_emails = min(len(emails), limit)
         requested_run_id = str(request.args.get("run_id") or "").strip()
         run = repo.get_local_acquire_run(requested_run_id) if audit_available and requested_run_id else {}
+        is_resuming_run = bool(run)
+        archive_candidates = emails[:limit]
+        relevant_candidates = [item for item in archive_candidates if _email_rilevante_per_presidio_pec(item)]
+        skipped_not_pec_initial = 0 if is_resuming_run else len(archive_candidates) - len(relevant_candidates)
+        errors: list[dict[str, str]] = []
+        if not audit_available:
+            errors.append({"email_id": "audit-pec", "errore": f"Audit PEC persistente non disponibile: {audit_error}"})
+        existing_by_header: dict[str, str] = {}
+        presided_email_ids: set[str] = set()
+        if audit_available:
+            try:
+                existing_by_header = repo.ids_by_header_message_ids(
+                    str(getattr(item, "message_id", "") or "").strip()
+                    for item in relevant_candidates
+                )
+            except Exception as exc:
+                errors.append({"email_id": "audit-pec", "errore": f"Lookup PEC già acquisite non disponibile: {exc}"[:180]})
+            try:
+                presided_email_ids = repo.presided_email_ids(
+                    str(getattr(item, "id", "") or "")
+                    for item in relevant_candidates
+                )
+            except Exception as exc:
+                errors.append({"email_id": "audit-pec", "errore": f"Lookup PEC già presidiate non disponibile: {exc}"[:180]})
+        skipped_already_presided = 0
+        candidates = relevant_candidates
+        if not is_resuming_run and not force_repairs:
+            candidates = []
+            for item in relevant_candidates:
+                email_id_candidate = str(getattr(item, "id", "") or "")
+                header_candidate = str(getattr(item, "message_id", "") or "").strip()
+                if (header_candidate and header_candidate in existing_by_header) or (
+                    email_id_candidate and email_id_candidate in presided_email_ids
+                ):
+                    skipped_already_presided += 1
+                    continue
+                candidates.append(item)
+        total_emails = len(candidates)
         if not run:
             run = repo.start_local_acquire_run(total_emails=total_emails, batch_size=batch_size, actor=actor)
         run_id = str(run.get("id") or requested_run_id or "")
@@ -474,34 +548,17 @@ def _pec_acquire_local_emails_chunked():
         acquired = 0
         duplicates = 0
         skipped_missing_mime = 0
-        skipped_not_pec = 0
+        skipped_not_pec = skipped_not_pec_initial
         queued_repairs = 0
         repair_stages: dict[str, int] = {}
         controlled_ids: list[str] = []
         local_mime_by_message_id: dict[str, bytes] = {}
         message_email_index: dict[str, dict[str, str]] = {}
-        errors: list[dict[str, str]] = []
-        if not audit_available:
-            errors.append({"email_id": "audit-pec", "errore": f"Audit PEC persistente non disponibile: {audit_error}"})
-        relevant_candidates = emails[:total_emails]
-        existing_by_header: dict[str, str] = {}
-        if audit_available:
-            try:
-                existing_by_header = repo.ids_by_header_message_ids(
-                    str(getattr(item, "message_id", "") or "").strip()
-                    for item in relevant_candidates
-                    if _email_rilevante_per_presidio_pec(item)
-                )
-            except Exception as exc:
-                errors.append({"email_id": "audit-pec", "errore": f"Lookup PEC già acquisite non disponibile: {exc}"[:180]})
         relevant_processed = 0
         next_cursor = cursor_index
         for index in range(cursor_index, total_emails):
-            email_obj = emails[index]
+            email_obj = candidates[index]
             next_cursor = index + 1
-            if not _email_rilevante_per_presidio_pec(email_obj):
-                skipped_not_pec += 1
-                continue
             if relevant_processed >= batch_size:
                 next_cursor = index
                 break
@@ -714,6 +771,7 @@ def _pec_acquire_local_emails_chunked():
                 "duplicates": duplicates,
                 "skipped_missing_mime": skipped_missing_mime,
                 "skipped_not_pec": skipped_not_pec,
+                "skipped_already_presided": skipped_already_presided,
                 "queued_repairs": queued_repairs,
                 "deadline_created": deadline_report["created"],
                 "deadline_already_exists": deadline_report["already_exists"],
@@ -723,7 +781,11 @@ def _pec_acquire_local_emails_chunked():
                 "agenda_linked": deadline_report["agenda_linked"],
                 "errors": len(errors) + int(deadline_report["errors"] or 0),
             },
-            payload={"repair_stages": repair_stages, "has_more": has_more},
+            payload={
+                "repair_stages": repair_stages,
+                "has_more": has_more,
+                "skipped_already_presided": skipped_already_presided,
+            },
             actor=actor,
         )
         if has_more:
@@ -735,7 +797,7 @@ def _pec_acquire_local_emails_chunked():
                 expired=int(deadline_report["expired"] or 0),
             )
             message = (
-                f"Blocco presidio PEC completato: esaminate {next_cursor}/{total_emails} comunicazioni; "
+                f"Blocco presidio PEC completato: esaminate {next_cursor}/{total_emails} nuove comunicazioni; "
                 f"{summary_text}. "
                 "Il controllo prosegue automaticamente."
             )
@@ -747,12 +809,18 @@ def _pec_acquire_local_emails_chunked():
                 not_ready=int(run_report.get("deadline_not_ready") or 0),
                 expired=int(run_report.get("deadline_expired") or 0),
             )
-            message = (
-                f"Presidio PEC completato su {int(run_report.get('acquired') or acquired)} comunicazioni PEC già note "
-                f"({int(run_report.get('duplicates') or duplicates)} già presenti): "
-                f"{summary_text}. "
-                "Le PEC già presidiate non alimentano più l'avviso automatico."
-            )
+            if int(run_report.get("acquired") or acquired) == 0 and skipped_already_presided:
+                message = (
+                    f"Nessuna nuova PEC da presidiare: {skipped_already_presided} comunicazioni erano già presidiate. "
+                    "Il controllo ripartirà dalle prossime PEC non ancora lavorate."
+                )
+            else:
+                message = (
+                    f"Presidio PEC completato su {int(run_report.get('acquired') or acquired)} nuove comunicazioni PEC "
+                    f"({int(run_report.get('duplicates') or duplicates)} già presenti, {skipped_already_presided} già presidiate saltate): "
+                    f"{summary_text}. "
+                    "Le PEC già presidiate non alimentano più l'avviso automatico."
+                )
         return _json_success(
             {
                 "ok": True,
@@ -768,6 +836,7 @@ def _pec_acquire_local_emails_chunked():
                 "duplicates": duplicates,
                 "skipped_missing_mime": skipped_missing_mime,
                 "skipped_not_pec": skipped_not_pec,
+                "skipped_already_presided": skipped_already_presided,
                 "queued_repairs": queued_repairs,
                 "repair_stages": repair_stages,
                 "deadline_report": _visible_deadline_report(deadline_report, 80),

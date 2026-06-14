@@ -5,11 +5,14 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlencode
 
+from legal_deposit.policies import AmbiguousChannelError, UnknownChannelError, channel_profile_for
+
 from .deposit_readiness import run_predeposit_check
 from .evidence_pack import generate_evidence_pack
 from .messages import DEPOSIT_ACQUIRED, DEPOSIT_SENT_NOT_ACQUIRED, NO_REAL_TRANSPORT
 from .models import DepositStatus, SlotStatus, ValidatorStatus
 from .profiles import get_profile
+from pct.pst_catalog import PST_BUSTA_ENCRYPTION_ALGORITHM
 from .repository import PracticeEngineRepository
 from .resolver import resolve_practice_profile
 from .state_machine import derive_state
@@ -71,6 +74,145 @@ def _primary(rows: list[Any]) -> Any | None:
 def _query_url(path: str, **params: Any) -> str:
     cleaned = {key: _text(value) for key, value in params.items() if _text(value)}
     return f"{path}?{urlencode(cleaned)}" if cleaned else path
+
+
+def _legal_deposit_profile_key(profile: Any) -> str:
+    channel = _text(getattr(profile, "channel", "")).upper()
+    registry = _text(getattr(profile, "registry", "")).upper()
+    code = _text(getattr(profile, "code", "")).upper()
+    procedure = _text(getattr(profile, "procedure_code", "")).upper()
+    if channel in {"PCT_CIVILE", "PCT_LAVORO"}:
+        if "SIECIC" in registry or "SIECIC" in code or "SIECIC" in procedure:
+            return "pct_siecic"
+        return "pct_sicid"
+    if channel in {"PST_GDP", "SIGP_GDP"}:
+        return "sigp_gdp"
+    if channel == "PDP_PENALE":
+        return "pdp_penale"
+    if channel == "PAT_AMMINISTRATIVO":
+        return "pat_siga"
+    if channel == "PTT_TRIBUTARIO":
+        return "ptt_sigit"
+    if channel == "UNEP":
+        return "unep"
+    if channel in {"PEC_ONLY", "PEC", "STRAGIUDIZIALE_PEC"}:
+        return "pec_stragiudiziale"
+    return channel.lower()
+
+
+def _deposit_delivery_policy(profile: Any | None) -> dict[str, Any]:
+    if not profile or not getattr(profile, "depositable", False):
+        return {
+            "mode": "not_depositable",
+            "label": "Procedura non depositabile",
+            "detail": "La Regia non ha rilevato un canale di deposito telematico per questa pratica.",
+            "officialChannel": "",
+            "packageKind": "",
+            "allowsDirectPec": False,
+            "allowsPortalUpload": False,
+            "requiresManualFinalUpload": False,
+            "sendButtonLabel": "Invia deposito",
+            "prepareButtonLabel": "Prepara sessione",
+            "blockingRule": "Bloccano l'invio solo i requisiti obbligatori previsti dal canale e dalla normativa.",
+            "nonBlockingRule": "Le mancanze non obbligatorie vengono segnalate come avvisi e non fermano l'invio.",
+            "oneStepSigning": True,
+            "immediateBatchSigning": True,
+            "documentIndexGeneratedBySoftware": True,
+        }
+    try:
+        channel_profile = channel_profile_for(_legal_deposit_profile_key(profile))
+    except (AmbiguousChannelError, UnknownChannelError, ValueError) as exc:
+        return {
+            "mode": "manual_review",
+            "label": "Canale da confermare",
+            "detail": "Il profilo non basta per scegliere il canale ministeriale: conferma registro e rito prima del deposito.",
+            "officialChannel": _text(getattr(profile, "channel", "")),
+            "packageKind": "",
+            "allowsDirectPec": False,
+            "allowsPortalUpload": False,
+            "requiresManualFinalUpload": True,
+            "sendButtonLabel": "Conferma canale",
+            "prepareButtonLabel": "Prepara controllo",
+            "warning": str(exc),
+            "blockingRule": "Bloccano l'invio solo i requisiti obbligatori previsti dal canale e dalla normativa.",
+            "nonBlockingRule": "Le mancanze non obbligatorie vengono segnalate come avvisi e non fermano l'invio.",
+            "oneStepSigning": True,
+            "immediateBatchSigning": True,
+            "documentIndexGeneratedBySoftware": True,
+        }
+    direct_pec = bool(channel_profile.allows_direct_pec)
+    manual_upload = bool(channel_profile.requires_manual_final_upload or channel_profile.allows_portal_upload)
+    requires_ministerial_transport = bool(direct_pec and channel_profile.package_kind == "pct_busta_enc")
+    direct_pec_ready = bool(direct_pec and not requires_ministerial_transport)
+    if direct_pec:
+        mode = "direct_pec"
+        if direct_pec_ready:
+            label = "Invio PEC da software"
+            detail = "La busta ministeriale viene preparata, cifrata e inviata alla PEC dell'ufficio."
+            send_label = "Invia via PEC"
+            prepare_label = "Prepara busta"
+        else:
+            label = "Invio PEC da completare"
+            detail = (
+                "Il canale PCT via PEC è corretto, ma manca il trasporto ministeriale reale: "
+                f"Atto.msg deve essere cifrato in Atto.enc con algoritmo {PST_BUSTA_ENCRYPTION_ALGORITHM}. "
+                "Il software prepara controlli e pacchetto; l'avvocato completa la busta conforme o collega "
+                "l'adapter ministeriale, poi si riprende il presidio delle ricevute."
+            )
+            send_label = "Completa trasporto"
+            prepare_label = "Prepara controllo busta"
+    elif manual_upload:
+        mode = "portal_upload"
+        label = "Deposito su portale"
+        detail = "Il software prepara pacchetto, controlli e ricevute attese; il deposito finale avviene nell'area riservata del portale ufficiale."
+        send_label = "Apri portale"
+        prepare_label = "Prepara pacchetto"
+    else:
+        mode = "manual_review"
+        label = "Canale da presidiare"
+        detail = "Il profilo richiede una verifica professionale prima della scelta del canale di deposito."
+        send_label = "Conferma canale"
+        prepare_label = "Prepara controllo"
+    return {
+        "mode": mode,
+        "label": label,
+        "detail": detail,
+        "officialChannel": channel_profile.name,
+        "packageKind": channel_profile.package_kind,
+        "xmlSchemaName": channel_profile.xml_schema_name,
+        "allowsDirectPec": direct_pec,
+        "directPecReady": direct_pec_ready,
+        "allowsPortalUpload": bool(channel_profile.allows_portal_upload),
+        "requiresManualFinalUpload": bool(channel_profile.requires_manual_final_upload),
+        "requiresGuidedCompletion": bool(requires_ministerial_transport),
+        "missingOperationalStep": (
+            f"Atto.enc ministeriale cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM}"
+            if requires_ministerial_transport
+            else ""
+        ),
+        "guidedNextActions": (
+            [
+                "Prepara e controlla atto principale, allegati, firme e DatiAtto.xml.",
+                f"Genera o collega Atto.enc cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM} con redattore o adapter ministeriale.",
+                "Importa o presidia ricevuta di accettazione, RdAC ed esiti nel fascicolo.",
+            ]
+            if requires_ministerial_transport
+            else []
+        ),
+        "requiresEncryption": bool(channel_profile.requires_encryption or channel_profile.package_kind == "pct_busta_enc"),
+        "maxTotalSizeMb": channel_profile.max_total_size_mb,
+        "maxSingleFileSizeMb": channel_profile.max_single_file_size_mb,
+        "acceptedSignatureFormats": list(channel_profile.accepted_signature_formats),
+        "receiptTypes": list(channel_profile.receipt_types),
+        "sendButtonLabel": send_label,
+        "prepareButtonLabel": prepare_label,
+        "blockingRule": "Bloccano l'invio solo i requisiti obbligatori previsti dal canale e dalla normativa.",
+        "nonBlockingRule": "Le mancanze non obbligatorie vengono segnalate come avvisi e non fermano l'invio.",
+        "oneStepSigning": True,
+        "immediateBatchSigning": True,
+        "documentIndexGeneratedBySoftware": True,
+        "note": channel_profile.defender_channel_note,
+    }
 
 
 def ensure_profile_for_fascicolo(
@@ -334,6 +476,7 @@ def build_regia_payload(
         deposit_label = "Invia PEC / monitora risposta"
     elif not profile.depositable:
         deposit_label = "Procedura non depositabile"
+    delivery_policy = _deposit_delivery_policy(profile)
     return {
         "source": "repository reale",
         "mock_fallback": False,
@@ -389,6 +532,7 @@ def build_regia_payload(
             "sendAction": f"/api/v1/ui/fascicoli/{fascicolo_id}/depositi/invia",
             "timelineAction": f"/api/v1/ui/fascicoli/{fascicolo_id}/depositi/{session.id}/timeline" if session else "",
             "importReceiptAction": f"/api/v1/ui/fascicoli/{fascicolo_id}/depositi/{session.id}/importa-ricevuta" if session else "",
+            "deliveryPolicy": delivery_policy,
         },
         "timeline": _timeline_payload(timeline, receipts),
         "evidencePack": {

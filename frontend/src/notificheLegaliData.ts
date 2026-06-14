@@ -72,6 +72,8 @@ export type LegalDocumentSuggestion = {
   documentoUfficio: boolean
   acquisitoDaPortale: boolean
   notificaRichiesta: boolean
+  provaNotifica: boolean
+  tipoProvaNotifica: string
   dataRilascioPortale: string
   necessitaAttestazione: boolean
 }
@@ -488,6 +490,8 @@ function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
       documentoUfficio: bool(row.documentoUfficio),
       acquisitoDaPortale: bool(row.acquisitoDaPortale),
       notificaRichiesta: bool(row.notificaRichiesta),
+      provaNotifica: bool(row.provaNotifica),
+      tipoProvaNotifica: text(row.tipoProvaNotifica),
       dataRilascioPortale: text(row.dataRilascioPortale),
       necessitaAttestazione: bool(row.necessitaAttestazione),
     }

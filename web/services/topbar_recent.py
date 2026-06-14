@@ -45,7 +45,9 @@ def track_recent_payload(user: Any, entity_type: str, entity_id: str) -> dict[st
         raise TopbarApiError("entityId obbligatorio.", 400)
     resolved = _resolve_recent_entity(etype, eid)
     if not resolved:
-        raise TopbarApiError("Risorsa non trovata o non disponibile.", 404)
+        payload = recent_payload(user)
+        payload.update({"tracked": False, "message": "Elemento non disponibile nei dati dello studio."})
+        return payload
     current = session.get("recenti", [])
     rows = [row for row in current if isinstance(row, dict)] if isinstance(current, list) else []
     rows = [row for row in rows if not (_recent_type_to_api(row.get("tipo")) == etype and str(row.get("id")) == eid)]

@@ -496,6 +496,52 @@ def _document_notification_required(documento: Any, *, origin: str) -> bool:
     )
 
 
+def _notification_proof_kind(documento: Any, *, origin: str) -> str:
+    haystack = " ".join(
+        _text(value).lower()
+        for value in (
+            getattr(documento, "tipo", ""),
+            getattr(documento, "tipo_atto_portale", ""),
+            getattr(documento, "classificazione_portale", ""),
+            getattr(documento, "note", ""),
+            getattr(documento, "nome_originale", ""),
+            getattr(documento, "nome_portale", ""),
+            getattr(documento, "nome", ""),
+            " ".join(str(item) for item in (getattr(documento, "tags", []) or [])),
+        )
+    )
+    notification_context = any(
+        token in haystack
+        for token in (
+            "notifica",
+            "notificaz",
+            "originale notificato",
+            "legge n. 53",
+            "legge 53",
+            "l. 53",
+            "notifica_id",
+            "notificazione ai sensi",
+        )
+    )
+    if "relata" in haystack and notification_context:
+        return "relata"
+    if "originale notificato" in haystack and any(
+        token in haystack for token in ("ricorso", "citazione", "comparsa", "memoria", "istanza", "atto", "decreto", "provvedimento")
+    ):
+        return "atto"
+    if notification_context and any(token in haystack for token in ("accettazione", "rac")):
+        return "rac"
+    if notification_context and any(token in haystack for token in ("consegna", "rdac", "avvenuta consegna")):
+        return "rdac"
+    if notification_context and any(token in haystack for token in ("pec inviata", "postacert", ".eml", "messaggio pec")):
+        return "pec"
+    if notification_context and "attestazione di conform" in haystack:
+        return "attestazione"
+    if bool(getattr(documento, "prova_notifica", False)) or origin == "notifica_l53":
+        return "atto"
+    return ""
+
+
 def _document_from_fascicolo(
     documento: Any,
     *,
@@ -528,6 +574,7 @@ def _document_from_fascicolo(
     name_key = _normalise_document_match(name)
     sha_key = _text(getattr(documento, "hash_sha256", "")).lower()
     pec_evidence = bool((name_key and name_key in (office_names or set())) or (sha_key and sha_key in (office_hashes or set())))
+    notification_proof_kind = _notification_proof_kind(documento, origin=origin)
     notification_required = pec_evidence or _document_notification_required(documento, origin=origin)
     office_document = (
         pec_evidence
@@ -550,6 +597,8 @@ def _document_from_fascicolo(
         "documentoUfficio": office_document,
         "acquisitoDaPortale": acquired_from_portal,
         "notificaRichiesta": notification_required,
+        "provaNotifica": bool(notification_proof_kind),
+        "tipoProvaNotifica": notification_proof_kind,
         "dataRilascioPortale": _text(getattr(documento, "data_deposito_portale", "")) or _text(getattr(documento, "data_documento", "")),
         "necessitaAttestazione": origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria", "scansione_analogico"},
     }

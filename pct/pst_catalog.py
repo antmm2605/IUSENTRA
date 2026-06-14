@@ -48,12 +48,43 @@ PST_DM44_SPECIFICHE_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/"
     "SPECIFICHE_TECNICHE_DM_44_2011REV_04.01.24.pdf"
 )
+PST_DM44_SPECIFICHE_2024_DETAIL_URL = (
+    "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3429"
+)
+PST_BUSTA_ENCRYPTION_ALGORITHM = "AES256"
+PST_BUSTA_ENCRYPTION_REQUIRED_FROM = "2026-01-13T18:00:00+01:00"
+PST_BUSTA_ENCRYPTION_FATAL_FROM = "2026-02-17"
+PST_BUSTA_ENCRYPTION_UPDATE_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "processo_telematico__comunicazione_per_le_software_house__"
+    "aggiornamento_algoritmo_di_cifratura_dei_contenuti_della_busta_telematica__"
+    "messa_in_produzione?contentId=NWS4539&modelId=4"
+)
+PST_SICI_XSD_2026_UPDATE_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "processo_civile_telematico__comunicazione_alle_software_house_"
+    "aggiornamento_specifiche_tecniche_deposito_atti_sicid?contentId=NWS4594"
+)
+PST_SICI_XSD_20260611_NEWS_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "processo_civile_telematico__comunicazione_alle_software_house_"
+    "aggiornamento_specifiche_tecniche_deposito_atti_sicid_it_2?contentId=NWS4931&modelId=4"
+)
+PST_SICI_XSD_20260611_DOWNLOAD_PAGE_URL = (
+    "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4933"
+)
+PST_SICI_XSD_20260611_CHANGELOG_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/modifiche_XSD_SICI_20260611.pdf"
+)
+PST_SICI_XSD_20260611_STATUS = "anticipated_not_production"
+PST_SICI_XSD_20260611_NEW_ACT = "RichiestaVerbaleSINDACA"
+PST_SICI_XSD_20260611_NEW_OBJECT_CODE = "110046"
 PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE = (
     "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
 )
 PST_XSD_DOWNLOAD_PAGE_URL = "https://pst.giustizia.it/PST/it/download.page"
-PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.04.12.1"
-PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.04.12.1"
+PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.06.11.1"
+PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.06.11.1"
 PST_MAX_BUSTA_MB = 60
 PST_MAX_BUSTA_BYTES = PST_MAX_BUSTA_MB * 1024 * 1024
 PST_FORMAL_ERROR_CODES = {
@@ -299,9 +330,33 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
             ),
             notes=(
                 "Pacchetto pubblicato il 26/01/2026; la news del 29/01/2026 conferma la messa in produzione "
-                "degli XSD aggiornati per i redattori atti dell'area civile."
+                "degli XSD aggiornati per i redattori atti dell'area civile. La comunicazione PST "
+                "dell'11/06/2026 anticipa ulteriori XSD SICI, ma rinvia a successiva comunicazione "
+                "la messa in esercizio: non vanno usati come schema attivo di deposito finche non "
+                "diventano produzione."
             ),
             applies_to="Redattore civile SICI / SICID-SIECIC",
+        ),
+        PSTXSDChannel(
+            key="SICI_20260611_PREVIEW",
+            label="XSD SICI - anticipazione 11 giugno 2026",
+            area="Civile ordinario / redattori area civile",
+            download_page_url=PST_SICI_XSD_20260611_DOWNLOAD_PAGE_URL,
+            package_name="Nuovi XSD SICI - 11/06/2026",
+            package_url=PST_SICI_XSD_20260611_DOWNLOAD_PAGE_URL,
+            package_date="2026-06-11",
+            changelog_name="Nota modifiche XSD SICI - 11/06/2026",
+            changelog_url=PST_SICI_XSD_20260611_CHANGELOG_URL,
+            status="preview",
+            status_source_news_date="2026-06-11",
+            status_source_news_url=PST_SICI_XSD_20260611_NEWS_URL,
+            notes=(
+                "Fonte PST anticipata, non ancora dichiarata in esercizio. La nota indica il nuovo atto "
+                f"{PST_SICI_XSD_20260611_NEW_ACT} e il codice oggetto "
+                f"{PST_SICI_XSD_20260611_NEW_OBJECT_CODE}; il validatore deve continuare a usare gli "
+                "XSD SICI di produzione finche il PST non comunica la messa in esercizio."
+            ),
+            applies_to="Monitoraggio normativo deposito SICI / SICID",
         ),
         PSTXSDChannel(
             key="SIGP",

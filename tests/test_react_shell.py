@@ -249,6 +249,15 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         assert "--sidebar-w: 0px" not in css_source
         assert "settings-modern-page) #app-body" not in css_source
 
+    react_shell_allowlist = {
+        "web/bootstrap/deposito_routes.py": [
+            'render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")',
+        ],
+        "web/bootstrap/auth_management_routes.py": [
+            'render_react_shell_response("profilo")',
+        ],
+    }
+
     for path in (
         "web/bootstrap/telematico_dashboard_routes.py",
         "web/bootstrap/polisweb_routes.py",
@@ -269,7 +278,13 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "web/bootstrap/admin_database_routes.py",
         "web/bootstrap/privacy_routes.py",
     ):
-        assert "render_react_shell_response" not in Path(path).read_text(encoding="utf-8"), path
+        source = Path(path).read_text(encoding="utf-8")
+        if path in react_shell_allowlist:
+            assert source.count("render_react_shell_response") == len(react_shell_allowlist[path]) + 1
+            for expected_call in react_shell_allowlist[path]:
+                assert expected_call in source
+        else:
+            assert "render_react_shell_response" not in source, path
 
 
 def test_react_blocco_finale_studio_admin_completo():
@@ -1241,7 +1256,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "build_react_tribunali_payload" in api_source
     assert "render_react_shell_response" not in polisweb_routes
     assert "render_react_shell_response" not in portali_routes
-    assert "render_react_shell_response" not in deposito_routes
+    assert deposito_routes.count("render_react_shell_response") == 2
+    assert 'render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")' in deposito_routes
     assert "render_react_shell_response" not in lookup_routes
     assert "render_react_shell_response" not in dashboard_routes
     assert '"telematico_dashboard.html"' in dashboard_routes
@@ -1744,6 +1760,7 @@ def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(t
             "/fascicoli/esporta",
             "/fascicoli/nuovo",
             f"/fascicoli/{fascicolo.id}",
+            f"/fascicoli/{fascicolo.id}/deposito/prepara",
             f"/fascicoli/{fascicolo.id}/modifica",
             f"/fascicoli/{fascicolo.id}/quadro",
         ):
@@ -1841,7 +1858,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
         legacy_cartella = client.get(f"/clienti/{cliente.id}/cartella?_legacy=1&tab=timeline", follow_redirects=True)
 
         for path in (
-            f"/fascicoli/{fascicolo.id}/deposito/prepara",
+            f"/fascicoli/{fascicolo.id}/deposito/prepara?_legacy=1",
             f"/fascicoli/{fascicolo.id}/copertina",
             f"/fascicoli/{fascicolo_penale.id}/penale/pdp",
             "/checklist/test-template",
@@ -3468,8 +3485,58 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     assert pec_event["legalLabel"] == "Fissazione udienza"
     assert pec_event["displayTitle"] == f"Mario Rossi · RG 3950/{today.year}"
     assert "Presidio PEC" not in pec_event["displayTitle"]
-    assert any("Oggetto originale" in line for line in pec_event["detailLines"])
+    assert any(line.startswith("Oggetto:") for line in pec_event["detailLines"])
+    visible = " ".join(
+        str(pec_event.get(key) or "")
+        for key in ("displayTitle", "subtitle", "notes", "originTitle", "detailTitle")
+    )
+    visible = " ".join([visible, *pec_event["detailLines"]])
+    for token in ("Presidio PEC", "PEC_AUDIT", "pipeline", "audit-grade", "payload", "runtime", "backend", "frontend", "legacy", "json_api"):
+        assert token.lower() not in visible.lower()
     assert not any(item["id"] == f"scadenza-{linked_deadline.id}" for item in payload["events"])
+
+
+def test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    hearing_day = date(2026, 7, 9)
+
+    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Presidio PEC - Udienza da PEC: POSTA CERTIFICATA: COMUNICAZIONE 274/2026/CC",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(hearing_day, datetime.min.time()).replace(hour=9).isoformat(timespec="minutes"),
+        durata_minuti=30,
+        tribunale="Tribunale di Palmi",
+        note=(
+            "Data processuale futura letta da corpo PEC: AZZARO FILIPPO "
+            "Oggetto: CONFERMA UDIENZA EX ART. 171 BIS 3 c. CPC "
+            "Descrizione: CONFERMATA UDIENZA EX ART. 171 BIS 3 c. CPC AL 09/07/2026 09:30 "
+            "Note: Notificato alla PEC / in cancelleria."
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": hearing_day.isoformat(), "to": hearing_day.isoformat(), "selected_id": appointment.id},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    event = next(item for item in payload["events"] if item["id"] == appointment.id)
+    visible = " ".join(
+        str(event.get(key) or "")
+        for key in ("displayTitle", "subtitle", "notes", "originTitle", "detailTitle", "timeLabel")
+    )
+    visible = " ".join([visible, *event["detailLines"]])
+
+    assert response.status_code == 200
+    assert event["matter"] == "RG 274/2026"
+    assert event["client"] == "AZZARO FILIPPO"
+    assert event["displayTitle"] == "AZZARO FILIPPO · RG 274/2026"
+    assert event["originTitle"] == "Udienza da comunicazione di cancelleria - RG 274/2026"
+    assert event["timeLabel"] == "09:30"
+    assert event["start"].startswith("2026-07-09T09:30")
+    for token in ("POSTA CERTIFICATA", "Data processuale futura", "Presidio PEC", "PEC_AUDIT", "pipeline", "payload", "runtime", "backend", "frontend", "legacy", "json_api"):
+        assert token.lower() not in visible.lower()
 
 
 def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
@@ -4125,6 +4192,11 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
 
     list_response = client.get("/api/v1/ui/fascicoli", headers={"X-API-Key": "react-test-key"})
     detail_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers={"X-API-Key": "react-test-key"})
+    missing_response = client.get("/api/v1/ui/fascicoli/fascicolo-non-presente", headers={"X-API-Key": "react-test-key"})
+    missing_include_all_response = client.get(
+        "/api/v1/ui/fascicoli/fascicolo-non-presente?include=all",
+        headers={"X-API-Key": "react-test-key"},
+    )
     alias_detail_response = client.get("/api/v1/ui/fascicoli/001", headers={"X-API-Key": "react-test-key"})
     form_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/modifica", headers={"X-API-Key": "react-test-key"})
     new_form_response = client.get(
@@ -4174,6 +4246,10 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     updated_payload = updated_list_response.get_json()
 
     assert list_response.status_code == 200
+    assert missing_response.status_code == 404
+    assert missing_response.get_json()["notFound"] is True
+    assert missing_include_all_response.status_code == 200
+    assert missing_include_all_response.get_json()["notFound"] is True
     assert detail_response.status_code == 200
     assert alias_detail_response.status_code == 200
     assert form_response.status_code == 200
@@ -4254,6 +4330,71 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert any(field["key"] == "contributo_unificato_stato" for field in export_payload["fields"])
     assert any(field["key"] == "totale_registrato" for field in export_payload["fields"])
     assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
+
+
+def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Spagnolo Sara c. MIM",
+        TipoFascicolo.LAVORO,
+        tribunale="TRIBUNALE DI TORINO",
+        numero_rg="3950",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+        source="QUICKORGANIZER",
+        source_external_id="quickorganizer:306",
+        source_snapshot={
+            "numero_pratica": 306,
+            "pratica": "Spagnolo Sara c. MIM",
+            "oggetto": "222050 - Retribuzione",
+        },
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "20260328104059747.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-atto",
+        fonte_documento="IMPORT_ESTERNO",
+        nome_originale="20260328104059747.PDF",
+        classificazione_portale="QuickOrganizer",
+        note="Import QuickOrganizer. ",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "20260328104100604.PDF",
+        TipoDocumento.SENTENZA,
+        b"%PDF-provvedimento",
+        fonte_documento="IMPORT_ESTERNO",
+        nome_originale="20260328104100604.PDF",
+        classificazione_portale="QuickOrganizer",
+        note="Import QuickOrganizer. ",
+    )
+
+    response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all",
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    profile = {item["label"]: item["value"] for item in payload["profile"]}
+    documents = payload["documents"]
+
+    assert response.status_code == 200
+    assert payload["fascicolo"]["client"] == "Spagnolo Sara (da collegare in anagrafica)"
+    assert profile["Cliente"] == "Spagnolo Sara (da collegare in anagrafica)"
+    assert payload["fascicolo"]["codiceOggettoPst"] == "222050 - Retribuzione"
+    assert profile["Codice oggetto"] == "222050 - Retribuzione"
+    assert [doc["name"] for doc in documents[:2]] == ["Atto giudiziario", "Provvedimento - sentenza"]
+    assert all(not doc["name"].startswith("202603") for doc in documents)
+    assert all(doc["source"] == "Importazione QuickOrganizer" for doc in documents)
+    assert documents[0]["portalClass"] == "Atto giudiziario"
+    assert documents[1]["portalClass"] == "Provvedimento - sentenza"
+    assert any("File originale: 20260328104059747.PDF" in tag for tag in documents[0]["tags"])
 
 
 def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_path: Path):

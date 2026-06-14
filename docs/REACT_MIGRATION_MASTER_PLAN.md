@@ -1,5 +1,48 @@
 # Migrazione progressiva Flask + React
 
+## Deposito profilo pratica e normativa PST - 2026-06-14 - 2.253.14
+
+La tranche rafforza `Prepara deposito` React perché il controllo sia legato al tipo di pratica e non alla sola selezione documenti dell'avvocato.
+
+Copertura implementata:
+
+- il profilo pratica viene esposto nella pagina deposito e alimenta la lista dei documenti obbligatori;
+- la classificazione usa parole intere e non sottostringhe: `contratto` non viene più scambiato per `atto`;
+- per `PROC_LIC_IMP_001` `Atto principale` resta obbligatorio e separato, mentre contratto, lettera e buste paga sono documenti di prova;
+- l'aggiornamento PST XSD SICI dell'11/06/2026 è tracciato come anticipazione non in esercizio, quindi il codice `110046` non viene usato per validare depositi produttivi;
+- la firma multipla deposito è pronta a livello codice/UI, ma resta non accettata finché non viene provata con browser reale, Local Signer, PIN utente e più `.p7m` salvati nel fascicolo.
+
+Verifiche locali mirate eseguite: `py_compile`, pytest mirati deposito/busta/firma batch/profilo pratica/PST, typecheck React, build Vite, `check-react-contracts` e `check-route-gate`. Restano prima della chiusura: Docker reale `127.0.0.1:8080`, prova visiva e firma multipla con PIN, igiene runtime, commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner.
+
+## PEC, Agenda, Scadenziario e deposito React - 2026-06-14 - 2.253.13
+
+La tranche consolida i flussi segnalati dall'utente dopo la promozione React della pagina `Prepara deposito`.
+
+Copertura implementata:
+
+- proposta busta in React con atto principale, allegati collegati dagli slot, documenti da firmare, selezione manuale e azione finale coerente con invio PEC o generazione busta;
+- classificazione documenti prudente: il software collega automaticamente solo documenti con confidenza alta, altrimenti lascia la scelta all'avvocato;
+- generazione busta allineata al codice oggetto PST validato quando presente;
+- import da documento notificato nel fascicolo per alimentare Agenda e Scadenziario anche se la PEC è stata cancellata;
+- conservazione esatta del link audiovisivo letto dall'annotazione PDF e deduplica tra fonti equivalenti;
+- Scadenziario React con cliente/parte del fascicolo nella colonna fascicolo e card operative più uniformi;
+- testi Agenda/Scadenziario ripuliti da lessico tecnico e da placeholder generici.
+
+Verifiche locali mirate eseguite: `py_compile`, pytest mirati deposito/Regia/Agenda/Scadenziario, typecheck React, build Vite, `check-react-contracts` e `check-route-gate`. Restano prima della chiusura: Docker reale `127.0.0.1:8080`, browser visibile con scroll completo di Agenda/Scadenziario/Prepara deposito, commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner.
+
+## Fascicoli - preparazione deposito React - 2026-06-14 - 2.253.12
+
+La route profonda `/fascicoli/<id>/deposito/prepara` apre ora la shell React operativa invece del template classico, mantenendo il percorso storico solo con `?_legacy=1`.
+
+Copertura implementata:
+
+- pagina “Prepara deposito” dentro `FascicoliPage.tsx`, alimentata dal dettaglio fascicolo reale;
+- riepilogo Regia Operativa, controlli deposito, documenti, ricevute/cancelleria e audit;
+- routing Flask che consegna React sulla GET ufficiale e conserva il template classico come recupero governato;
+- manifest, contratto legacy e gate `check-react-contracts` / `check-route-gate` aggiornati per bloccare regressioni.
+
+Verifiche locali mirate eseguite: `py_compile`, typecheck React standard e pytest su deposito guidato + route gate. Restano nel flusso di rilascio finale: build Vite, Docker reale `127.0.0.1:8080`, commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner.
+
 ## Assistente vocale Studio - 2026-06-12 - 2.253.1
 
 La topbar React integra l'assistente vocale Studio come componente caricato in modo pigro, con pannello responsive e testi italiani per l'uso operativo dello studio legale.

@@ -62,6 +62,22 @@ def _slug(value: str) -> str:
     return text or "documento"
 
 
+def _tokens(value: str) -> set[str]:
+    return set(re.findall(r"[a-z0-9]+", str(value or "").lower()))
+
+
+def _has_token(value: str, *tokens: str) -> bool:
+    words = _tokens(value)
+    return any(token in words for token in tokens)
+
+
+def _is_main_act_label(value: str) -> bool:
+    raw = str(value or "").lower()
+    if "atto principale" in raw:
+        return True
+    return _has_token(raw, "atto", "ricorso", "istanza", "comparsa", "memoria", "appello", "reclamo", "opposizione")
+
+
 def _slot_type_for(label_or_code: str) -> str:
     raw = str(label_or_code or "").lower()
     if "procura" in raw or "mandato" in raw:
@@ -76,7 +92,9 @@ def _slot_type_for(label_or_code: str) -> str:
         return SlotType.RICEVUTA.value
     if "provved" in raw:
         return SlotType.PROVVEDIMENTO.value
-    if "atto" in raw or "ricorso" in raw or "istanza" in raw:
+    if _has_token(raw, "contratto", "buste", "paga", "lettera", "prova", "quietanza"):
+        return SlotType.DOCUMENTO_PROVA.value
+    if _is_main_act_label(raw):
         return SlotType.ATTO_PRINCIPALE.value
     return SlotType.ALLEGATO.value
 
@@ -114,7 +132,7 @@ def _required_documents(procedure: LegalOperationalProcedure) -> list[PracticeRe
     ]
     labels = {row.label.lower() for row in rows}
     if getattr(procedure, "channel_code", "") in DEPOSITABLE_CHANNELS:
-        if not any("atto" in label or "ricorso" in label or "istanza" in label for label in labels):
+        if not any(_is_main_act_label(label) for label in labels):
             rows.insert(0, PracticeRequirement("ATTO_PRINCIPALE", "Atto principale", True, True, "practice_engine"))
         if not any("procura" in label or "mandato" in label for label in labels):
             rows.insert(1, PracticeRequirement("PROCURA_ALLE_LITI", "Procura alle liti", True, True, "practice_engine"))

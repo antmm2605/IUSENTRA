@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,22 @@ PRIVACY_COMPLETE = "complete"
 PRIVACY_REDUCED = "professional_reduced"
 PRIVACY_BUSY = "busy_only"
 ALLOWED_PRIVACY = {PRIVACY_COMPLETE, PRIVACY_REDUCED, PRIVACY_BUSY}
+TECHNICAL_VISIBLE_RE = re.compile(
+    r"\b(?:PEC_AUDIT|pipeline|audit|audit-grade|source_event|profile_id|payload|runtime|backend|frontend|legacy|json_api|external_uid|external_provider|worker|job|provider|webhook|endpoint)\b",
+    re.IGNORECASE,
+)
+INTERNAL_NOTE_PREFIXES = (
+    "tipo evento:",
+    "decorrenza letta:",
+    "fonte:",
+    "scadenza:",
+    "hash:",
+    "id:",
+)
+OPERATIONAL_PREFIX_RE = re.compile(
+    r"^\s*(?:Presidio\s+PEC|Presidio\s+anomalie\s+PEC|Verifica\s+comunicazione\s+di\s+cancelleria\s+PEC)\s*:?\s*-?\s*",
+    re.IGNORECASE,
+)
 
 
 def _clean_prefix(title: str) -> str:
@@ -27,6 +44,53 @@ def _clean_prefix(title: str) -> str:
         if value.upper().startswith(prefix):
             return value[len(prefix) :].strip() or value
     return value
+
+
+def _short_text(value: Any, limit: int = 220) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "..."
+
+
+def _calendar_visible_text(value: Any, limit: int = 500) -> str:
+    parts: list[str] = []
+    for raw_line in str(value or "").splitlines():
+        line = _short_text(raw_line, limit=max(limit, 220))
+        if not line:
+            continue
+        line = re.sub(r"\bPEC_AUDIT:[A-Za-z0-9_.:-]+", "", line).strip()
+        if not line:
+            continue
+        lowered = line.lower()
+        if lowered.startswith("fonte link udienza:"):
+            parts.append("Allegato udienza: " + _short_text(line.split(":", 1)[1], 120))
+            continue
+        if lowered.startswith("verifica link udienza:"):
+            value_part = _short_text(line.split(":", 1)[1], 160).lower()
+            if "identico" in value_part:
+                parts.append("Link udienza verificato sull'allegato.")
+            elif value_part:
+                parts.append("Link udienza da controllare sull'allegato.")
+            continue
+        if lowered.startswith(INTERNAL_NOTE_PREFIXES):
+            continue
+        if TECHNICAL_VISIBLE_RE.search(line):
+            continue
+        line = OPERATIONAL_PREFIX_RE.sub("", line).strip(" -:")
+        if line:
+            parts.append(line)
+    return _short_text(" ".join(parts), limit)
+
+
+def _professional_prefixed_title(prefix: str, title: str) -> str:
+    clean_prefix = str(prefix or "").strip().rstrip(":")
+    clean_title = str(title or "").strip()
+    if not clean_title:
+        return clean_prefix
+    if clean_title.lower().startswith(clean_prefix.lower()):
+        return clean_title
+    return f"{clean_prefix}: {clean_title}"
 
 
 def _minutes_between(start: Any, end: Any) -> int:
@@ -85,9 +149,15 @@ def privacy_export_event(local_type: str, item: Appuntamento | Scadenza, privacy
         end = app.fine_dt.isoformat(timespec="seconds")
         all_day = False
         categories = ["IUSENTRA-AGENDA", f"IUSENTRA-{app.tipo.value}"]
+        clean_title = _calendar_visible_text(app.titolo, 140) or "Impegno di studio"
         if privacy == PRIVACY_COMPLETE:
-            title = app.titolo
-            description_parts = [app.note, app.cliente, app.procedimento, app.tribunale]
+            title = clean_title
+            description_parts = [
+                _calendar_visible_text(app.note, 700),
+                app.cliente,
+                app.procedimento,
+                app.tribunale,
+            ]
             description = "\n".join(part for part in description_parts if str(part or "").strip())
             location = app.luogo
         elif privacy == PRIVACY_BUSY:
@@ -95,7 +165,7 @@ def privacy_export_event(local_type: str, item: Appuntamento | Scadenza, privacy
             description = ""
             location = ""
         else:
-            title = "[UDIENZA] Impegno di studio" if app.tipo == TipoAppuntamento.UDIENZA else "Impegno di studio"
+            title = "Udienza: impegno di studio" if app.tipo == TipoAppuntamento.UDIENZA else "Impegno di studio"
             description = "Dettagli riservati in IUSENTRA."
             location = app.luogo if app.tipo == TipoAppuntamento.UDIENZA else ""
         status = "cancelled" if app.stato == StatoAppuntamento.ANNULLATO else "confirmed"
@@ -107,16 +177,26 @@ def privacy_export_event(local_type: str, item: Appuntamento | Scadenza, privacy
         categories = ["IUSENTRA-SCADENZA"]
         if scadenza.perentorio:
             categories.append("IUSENTRA-PERENTORIA")
+        clean_title = _calendar_visible_text(scadenza.titolo, 140) or "Scadenza"
         if privacy == PRIVACY_COMPLETE:
-            title = f"[SCADENZA] {scadenza.titolo}"
-            description = "\n".join(part for part in [scadenza.descrizione, scadenza.note, scadenza.id_fascicolo] if str(part or "").strip())
+            title = f"Termine perentorio: {clean_title}" if scadenza.perentorio else f"Scadenza: {clean_title}"
+            description_parts = [
+                _calendar_visible_text(scadenza.descrizione, 700),
+                _calendar_visible_text(scadenza.note, 700),
+                f"Fascicolo: {scadenza.id_fascicolo}" if str(scadenza.id_fascicolo or "").strip() else "",
+            ]
+            description = "\n".join(part for part in description_parts if str(part or "").strip())
             location = scadenza.judicial_office_name
         elif privacy == PRIVACY_BUSY:
             title = "Occupato"
             description = ""
             location = ""
         else:
-            title = "[SCADENZA] Termine di studio"
+            title = (
+                _professional_prefixed_title("Termine perentorio", clean_title)
+                if scadenza.perentorio
+                else _professional_prefixed_title("Scadenza", clean_title)
+            )
             description = "Dettagli riservati in IUSENTRA."
             location = ""
         status = "cancelled" if scadenza.stato == StatoTermine.ANNULLATO else "confirmed"
@@ -294,13 +374,14 @@ class CalendarSyncEngine:
         title = str(event.get("title") or "")
         categories = {str(item).upper() for item in event.get("categories") or []}
         role = str(calendar.get("role") or "completo")
-        if role == "scadenze" or "IUSENTRA-SCADENZA" in categories or title.upper().startswith("[SCADENZA]"):
+        title_upper = title.upper()
+        if role == "scadenze" or "IUSENTRA-SCADENZA" in categories or title_upper.startswith(("[SCADENZA]", "SCADENZA:", "TERMINE PERENTORIO:")):
             return "scadenza", TipoTermine.TERMINE_PERENTORIO if "IUSENTRA-PERENTORIA" in categories else TipoTermine.ALTRO
-        if title.upper().startswith("[UDIENZA]"):
+        if title_upper.startswith(("[UDIENZA]", "UDIENZA:")):
             return "agenda", TipoAppuntamento.UDIENZA
         if role == "agenda":
             return "agenda", TipoAppuntamento.ALTRO
-        if event.get("all_day") and role in {"completo", "import_only"} and ("SCADENZA" in title.upper()):
+        if event.get("all_day") and role in {"completo", "import_only"} and ("SCADENZA" in title_upper):
             return "scadenza", TipoTermine.ALTRO
         return "agenda", TipoAppuntamento.ALTRO
 
@@ -516,18 +597,122 @@ class CalendarSyncEngine:
         if not account:
             raise KeyError("Account calendario non trovato.")
         reports = []
+        pulled = 0
+        pushed = 0
+        conflicts = 0
         for calendar in self.repository.list_calendars(self.tenant_id, account_id=account_id):
             if not calendar.get("enabled", True):
                 continue
             direction = str(calendar.get("direction") or "bidirectional")
+            role = str(calendar.get("role") or "completo")
             if direction in {"inbound", "bidirectional"}:
-                reports.append({"calendar_id": calendar["id"], "phase": "pull", **self.pull_remote_changes(account_id, calendar["id"])})
+                report = self.pull_remote_changes(account_id, calendar["id"])
+                pulled += int(report.get("created") or 0) + int(report.get("updated") or 0)
+                conflicts += int(report.get("conflicts") or 0)
+                reports.append(
+                    {
+                        "calendar_id": calendar["id"],
+                        "phase": "pull",
+                        **report,
+                    }
+                )
             if direction in {"outbound", "bidirectional"}:
-                for app in self.agenda.tutti():
-                    reports.append({"calendar_id": calendar["id"], "phase": "push", "local_id": app.id, **self.push_local_event("agenda", app.id, account_id, calendar["id"])})
-                for scadenza in self.scadenziario.tutte(solo_aperte=False):
-                    reports.append({"calendar_id": calendar["id"], "phase": "push", "local_id": scadenza.id, **self.push_local_event("scadenza", scadenza.id, account_id, calendar["id"])})
-        return {"ok": True, "account_id": account_id, "reports": reports}
+                known_roles = {"agenda", "scadenze", "completo", "import_only", "export_only"}
+                include_agenda = role in {"agenda", "completo", "export_only"} or role not in known_roles
+                include_scadenze = role in {"scadenze", "completo", "export_only"} or role not in known_roles
+                if include_agenda:
+                    for app in self.agenda.tutti():
+                        reports.append(
+                            {
+                                "calendar_id": calendar["id"],
+                                "phase": "push",
+                                "local_type": "agenda",
+                                "local_id": app.id,
+                                **self.push_local_event("agenda", app.id, account_id, calendar["id"]),
+                            }
+                        )
+                        pushed += 1
+                if include_scadenze:
+                    for scadenza in self.scadenziario.tutte(solo_aperte=False):
+                        reports.append(
+                            {
+                                "calendar_id": calendar["id"],
+                                "phase": "push",
+                                "local_type": "scadenza",
+                                "local_id": scadenza.id,
+                                **self.push_local_event("scadenza", scadenza.id, account_id, calendar["id"]),
+                            }
+                        )
+                        pushed += 1
+        return {
+            "ok": True,
+            "account_id": account_id,
+            "pulled": pulled,
+            "pushed": pushed,
+            "conflicts": conflicts,
+            "reports": reports,
+        }
+
+    def push_local_to_linked_calendars(self, local_type: str, local_id: str) -> dict[str, Any]:
+        """Pubblica subito un elemento locale sui calendari esterni abilitati."""
+
+        if local_type not in {"agenda", "scadenza"}:
+            raise ValueError("Tipo locale calendario non supportato.")
+        reports: list[dict[str, Any]] = []
+        pushed = 0
+        skipped = 0
+        for account in self.repository.list_accounts(self.tenant_id):
+            if str(account.get("provider") or "") in {"webcal", "ics"}:
+                skipped += 1
+                continue
+            account_id = str(account.get("id") or "")
+            for calendar in self.repository.list_calendars(self.tenant_id, account_id=account_id):
+                if not calendar.get("enabled", True):
+                    skipped += 1
+                    continue
+                direction = str(calendar.get("direction") or "bidirectional")
+                if direction not in {"outbound", "bidirectional"}:
+                    skipped += 1
+                    continue
+                role = str(calendar.get("role") or "completo")
+                known_roles = {"agenda", "scadenze", "completo", "import_only", "export_only"}
+                allows_agenda = role in {"agenda", "completo", "export_only"} or role not in known_roles
+                allows_deadline = role in {"scadenze", "completo", "export_only"} or role not in known_roles
+                if (local_type == "agenda" and not allows_agenda) or (local_type == "scadenza" and not allows_deadline):
+                    skipped += 1
+                    continue
+                try:
+                    reports.append(
+                        {
+                            "calendar_id": calendar["id"],
+                            "account_id": account_id,
+                            "local_type": local_type,
+                            "local_id": local_id,
+                            **self.push_local_event(local_type, local_id, account_id, calendar["id"]),
+                        }
+                    )
+                    pushed += 1
+                except Exception as exc:
+                    reports.append(
+                        {
+                            "ok": False,
+                            "calendar_id": calendar.get("id", ""),
+                            "account_id": account_id,
+                            "local_type": local_type,
+                            "local_id": local_id,
+                            "error": str(exc),
+                        }
+                    )
+        failed = sum(1 for item in reports if item.get("ok") is False)
+        return {
+            "ok": failed == 0,
+            "local_type": local_type,
+            "local_id": local_id,
+            "pushed": pushed,
+            "skipped": skipped,
+            "failed": failed,
+            "reports": reports,
+        }
 
     def resolve_conflict(self, conflict_id: str, strategy: str) -> dict[str, Any]:
         conflict = self.conflicts.get(conflict_id, self.tenant_id)

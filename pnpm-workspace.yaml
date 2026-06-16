@@ -2,6 +2,16 @@ packages:
   - "frontend"
   - "apps/*"
   - "packages/*"
+overrides:
+  react: 19.2.5
+  react-dom: 19.2.5
+  qs: 6.15.2
+  hono: 4.12.25
+  esbuild: 0.28.1
+  vite: 6.4.3
+  ws: 8.21.0
+  js-yaml: 4.2.0
+  "@babel/core": 7.29.7
 allowBuilds:
   esbuild: true
   msw: true

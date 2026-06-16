@@ -7,6 +7,7 @@ const entry = fileURLToPath(new URL('./src/index.ts', import.meta.url))
 export default defineConfig({
   plugins: [react()],
   build: {
+    target: 'es2022',
     lib: {
       entry,
       formats: ['es'],

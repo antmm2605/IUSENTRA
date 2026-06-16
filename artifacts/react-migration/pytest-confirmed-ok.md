@@ -1,5 +1,17 @@
 # Pytest shard confermati OK
 
+## Aggiornamento dipendenze sicurezza 2.253.35 - 2026-06-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm install --frozen-lockfile`; `pnpm list vite ws js-yaml @babel/core qs hono esbuild --depth 20` | OK | Workspace riallineato con `vite 6.4.3`, `ws 8.21.0`, `js-yaml 4.2.0`, `@babel/core 7.29.7`, `qs 6.15.2`, `hono 4.12.25`, `esbuild 0.28.1`. |
+| `pnpm audit --audit-level moderate`; `npm audit --audit-level=moderate --omit=optional` in `frontend` | OK | Zero vulnerabilità note dopo lockfile e override aggiornati; override pnpm spostati in `pnpm-workspace.yaml` per compatibilità pnpm 11. |
+| `python -m pip_audit`; `python -m pip_audit -r requirements-dev.txt`; `python -m pip check` | OK | Zero vulnerabilità note e nessun requisito rotto dopo aggiornamento di `cryptography`, `lxml`, `pytest` e transitive Python vincolate. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/ui typecheck`; `pnpm --filter @iusentra/studio test` | OK | TypeScript e governance frontend confermati dopo aggiornamento Vite/esbuild. |
+| `pnpm --filter @iusentra/studio build:vite`; `pnpm --filter @iusentra/ui build` | OK | Build React e package UI riusciti con target Vite `es2022` e senza warning chunk principale sopra 500 kB. |
+| `python -m pytest tests/test_release_readiness.py tests/test_packaging_consistency.py tests/test_utf8_integrity.py -q --tb=short`; `python -m pytest tests/test_react_asset_retention.py tests/test_react_shell.py::test_avviso_login_certificato_firma_a_venti_giorni -q --tb=short`; `python -m pytest tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests/test_regia_ui_react.py -q --tb=short` | OK | Packaging, release readiness, UTF-8, asset React, avviso certificato e guardrail deposito confermati sulle nuove dipendenze. |
+| `node frontend/scripts/check-react-contracts.mjs`; `node scripts/react-migration/check-route-gate.mjs`; `python scripts/react-migration/generate_api_contracts.py --check`; `python tools/sync_packaging_files.py --check` | OK | Contratti React, route gate, OpenAPI e packaging allineati alla versione `2.253.35`. |
+
 ## Deposito `Da firmare` e layout lista 2.253.34 - 2026-06-16
 
 | Comando / verifica | Esito | Nota |

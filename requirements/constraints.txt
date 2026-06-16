@@ -4,8 +4,12 @@
 Flask<4
 SQLAlchemy<3
 requests<3
-cryptography<45
-lxml<6
+cryptography>=46.0.5,<50
+lxml>=6.1.1,<7
+aiohttp>=3.14.1,<4
+idna>=3.18,<4
+PyJWT>=2.13.0,<3
+urllib3>=2.7.0,<3
 reportlab<5
 stripe<13
 twilio<10
@@ -26,7 +30,7 @@ rq<3
 Flask-Limiter<4
 prometheus-client<1
 pypdf<7
-pytest<9
+pytest>=9.1.0,<10
 pytest-cov<7
 ruff<1
 mypy<2

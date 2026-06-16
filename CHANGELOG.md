@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.35 - 2026-06-16
+
+- Sicurezza dipendenze: aggiornati i vincoli Python per `cryptography`, `lxml` e `pytest` alle versioni non vulnerabili richieste.
+- Sicurezza Python: aggiunti vincoli anche per `aiohttp`, `idna`, `PyJWT` e `urllib3`, così l'ambiente locale e i resolver non scelgono transitive vulnerabili.
+- Supply chain frontend: spostati gli override pnpm in `pnpm-workspace.yaml`, come richiesto da pnpm 11, e riallineati `qs`, `hono`, `esbuild`, `vite`, `ws`, `js-yaml` e `@babel/core` nei lockfile.
+- Build React: allineato il target Vite a ES2022 per usare `esbuild 0.28.1` senza regressioni di compilazione.
+- Guardrail: audit pnpm, audit npm, pip-audit, typecheck, build Vite e test packaging/UTF-8 confermati sulle versioni aggiornate.
+
 ## 2.253.34 - 2026-06-16
 
 - Deposito React: la spunta `Da firmare` nella lista `Documenti da inviare` è ora una scelta operativa cliccabile per i documenti non firmati, mentre `Firmato` resta solo informativo e deriva dal documento reale.

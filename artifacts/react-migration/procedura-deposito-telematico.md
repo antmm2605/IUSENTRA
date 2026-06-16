@@ -43,6 +43,41 @@ Conclusione operativa da questi file:
 - Il pacchetto di controllo può contenere struttura verificabile, `DatiAtto.xml`/indice/documenti, ma non va presentato come deposito valido se manca `Atto.enc` ministeriale cifrato AES256.
 - Un invio reale conforme PCT/SIGP richiede `Atto.enc`; le copie non crittografate servono come modello per controllare contenuto e indice.
 
+## Caso reale PEC/EML JQ306-L01 fornito il 2026-06-16
+
+L'utente ha fornito un esempio reale di deposito per chiarire la differenza tra copia non crittografata e PEC effettiva di deposito. I dati personali e gli indirizzi completi non vanno ricopiati nei report pubblici: la struttura tecnica invece diventa requisito operativo.
+
+Schema osservato:
+
+- la copia non crittografata ha oggetto `COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso [JQ306-L01] [RefID_...]`;
+- la PEC effettiva ha oggetto `DEPOSITO TELEMATICO: Ricorso [JQ306-L01] [RefID_...]`;
+- la PEC effettiva contiene come allegato operativo `Atto.enc` con MIME `application/octet-stream`;
+- la copia non crittografata espone gli allegati leggibili o firmati indicati nel deposito, tra cui `DatiAtto.xml.p7m`, `Ricorso.PDF`, `Nota d'iscrizione a ruolo.PDF`, `Procura.PDF`, allegati documentali, ricevute/prove `.eml` quando incluse e `IndiceDocumentiDepositati.PDF`;
+- il corpo del messaggio usa la formula al cancelliere e l'elenco puntuale dei file contenuti in `Atto.enc`;
+- il riferimento `[JQ306-L01] [RefID_...]` va riportato nel corpo come riferimento da citare nella risposta;
+- la data visibile della PEC è in ora italiana con offset `+0200`.
+
+Regole software derivate dal caso reale:
+
+- IUSENTRA deve produrre o mostrare chiaramente due oggetti distinti: `PEC effettiva di deposito` e `copia non crittografata di controllo`.
+- La `PEC effettiva di deposito` non deve allegare singolarmente tutti i documenti: deve allegare `Atto.enc` quando l'adapter ministeriale è disponibile e conforme.
+- La `copia non crittografata di controllo` deve servire a verificare contenuto, ordine, indice e allegati senza confonderla con l'invio valido.
+- Il corpo del messaggio non deve essere duplicato: nell'esempio reale la visualizzazione mostra due volte la stessa formula/elenco; il software deve normalizzare la preview e generare un corpo unico, pulito e leggibile.
+- La lista nel corpo deve coincidere con il contenuto della busta: atto principale, NIR quando presente, `DatiAtto.xml`/`DatiAtto.xml.p7m`, procura, allegati, prove PEC/EML e indice.
+- I caratteri italiani devono restare UTF-8 validi: testi come `annualità` e virgolette italiane non devono diventare mojibake o caratteri sostitutivi.
+- Gli allegati `.eml`, `.xml`, `.xml.p7m`, `.pdf.p7m` e `.txt` devono essere apribili in anteprima dal lettore globale, mantenendo il download dell'originale.
+- Il validatore deve confrontare oggetto, destinatario ufficio, `Message-ID`, data, elenco allegati nel corpo, allegato `Atto.enc`, dimensione pacchetto e presenza dell'indice.
+- Se viene generata solo la copia non crittografata o un pacchetto di controllo, la UI deve dire che non è ancora un deposito telematico valido e non deve registrare l'invio come completato.
+
+Prova obbligatoria da eseguire sul server reale quando il flusso è pronto:
+
+- generare il pacchetto del fascicolo reale senza invio PEC;
+- verificare che la preview della PEC effettiva mostri `Atto.enc` come allegato unico;
+- verificare che la copia non crittografata mostri gli allegati leggibili/firmati, `DatiAtto.xml.p7m` e `IndiceDocumentiDepositati.PDF`;
+- verificare che il corpo non sia duplicato e che l'elenco dei file corrisponda esattamente alla busta;
+- aprire visivamente almeno un `.eml`, un `.xml`/`.xml.p7m` e un `.pdf.p7m` dal lettore globale;
+- fermarsi prima dell'invio PEC reale.
+
 ## Matrice canali e comportamento software
 
 ### PCT SICID civile e PCT lavoro/SICID

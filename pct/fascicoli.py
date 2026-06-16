@@ -1573,6 +1573,31 @@ class GestioneFascicoli:
         self._salva()
         return doc
 
+    def aggiorna_documento_deposito(
+        self,
+        id_fasc: str,
+        id_doc: str,
+        *,
+        tipo: TipoDocumento | str | None = None,
+        firmato: bool | None = None,
+        classificazione_portale: str | None = None,
+    ) -> Documento:
+        """Aggiorna i metadati operativi usati dalla preparazione deposito."""
+
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
+        if tipo is not None:
+            doc.tipo = tipo if isinstance(tipo, TipoDocumento) else TipoDocumento(str(tipo))
+        if firmato is not None:
+            doc.firmato_digitalmente = bool(firmato)
+        if classificazione_portale is not None:
+            doc.classificazione_portale = str(classificazione_portale or "").strip()
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return doc
+
     def rinomina_documento(self, id_fasc: str, id_doc: str, nome_file: str) -> Documento:
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)

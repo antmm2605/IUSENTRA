@@ -464,3 +464,43 @@ Stato ancora aperto e da non dichiarare verde:
 - non sono stati salvati `.p7m` nel fascicolo durante questa verifica;
 - non è stato verificato il passaggio successivo `firma -> salvataggio documenti firmati -> generazione busta`;
 - resta obbligatoria prova con PIN inserito dall'avvocato prima di dichiarare funzionante la firma multipla del deposito.
+
+## Aggiornamento 2026-06-16 - Deposito guidato semplice e slot documentale unico
+
+Regola di esperienza utente:
+
+- il deposito deve essere semplice, veloce, intuitivo e funzionale;
+- la pagina `Prepara deposito` deve mostrare un pannello operativo alla volta, evitando schermate dense dove l'avvocato deve interpretare troppe sezioni insieme;
+- la navigazione deve seguire le fasi `Verifica pratica`, `Documenti da inviare`, `Firma documenti`, `Busta e indice`, `Inventario fascicolo`;
+- i pulsanti devono indicare azioni reali e comprensibili, senza linguaggio tecnico superfluo.
+
+Slot documentale:
+
+- tutti i documenti del fascicolo utili al deposito devono essere visibili nella sezione `Documenti da inviare`;
+- l'avvocato può selezionare un documento, selezionare tutto con `Invia tutto`, oppure escludere un documento come `Fuori busta`;
+- ogni documento selezionato deve avere una classificazione chiara: `Atto principale`, `Procura alle liti`, `Allegato`, `Prova`, `Prova notifica`;
+- deve esistere un solo atto principale selezionato; se la proposta automatica ne trova più di uno, il sistema mantiene il primo coerente e riclassifica gli altri come allegati/prove;
+- la classificazione visibile deve essere salvata prima di firma e busta tramite endpoint reale, non solo tenuta nello stato React.
+
+Firma:
+
+- lo stato `Firmato` è informativo e deriva dal documento reale;
+- la UI non deve permettere di segnare manualmente come firmato un documento che non ha esito di firma reale;
+- la firma multipla può essere dichiarata funzionante solo dopo prova reale con PIN/token, firma di più documenti nella stessa operazione, salvataggio dei `.p7m` nel fascicolo e riabilitazione del passo successivo senza errori.
+
+Busta e invio:
+
+- il comando finale deve salvare la classificazione, avviare la firma dei documenti realmente da firmare e poi generare il pacchetto;
+- la prova richiesta per il fascicolo `E5AE4668` deve arrivare alla generazione o ispezione del pacchetto/busta senza invio PEC reale;
+- se manca l'adapter ministeriale reale che produce `Atto.enc` AES256 conforme, il pacchetto deve essere chiamato pacchetto di controllo e non deposito valido;
+- il sistema non deve registrare un invio come deposito valido se manca `Atto.enc` ministeriale o un requisito obbligatorio non producibile.
+
+Verifiche obbligatorie per questa tranche:
+
+- browser reale visibile su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`, con scroll completo dei pannelli;
+- responsive desktop, tablet e mobile sul server reale;
+- salvataggio classificazione documenti da UI sul server reale;
+- aggiornamento macchina locale Docker e verifica `http://127.0.0.1:8080/api/pronto`;
+- generazione pacchetto dry-run o ispezione reale equivalente;
+- controllo contenuti: documenti selezionati, atto principale, procura, allegati, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, oggetto e testo email se prodotti;
+- prova Local Signer e firma multipla reale quando PIN/token sono disponibili.

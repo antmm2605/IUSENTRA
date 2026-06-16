@@ -1,5 +1,23 @@
 # Pytest shard confermati OK
 
+## Deposito telematico E5AE4668 2.253.26 - 2026-06-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript confermato dopo fasi deposito, classificazione documenti e comando finale con salvataggio preventivo. |
+| `python -m pytest tests/test_regia_api_payloads.py tests/test_regia_ui_react.py tests/test_security_headers.py -q` | OK | 12/12: endpoint classificazione reale, slot documento, guardrail UI React e sicurezza header confermati. |
+| `pnpm --filter @iusentra/studio test` | OK | Contratti React, preset UI, design system, App V2, assistente vocale, legal skills e coverage UI verdi dopo la modifica deposito. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite riuscita; resta il warning prestazionale del chunk principale sopra 500 kB, registrato nelle issue aperte. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging allineato alla versione `2.253.26`. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check` | OK | OpenAPI e mappe endpoint rigenerate dopo il nuovo endpoint deposito. |
+| `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Specifica OpenAPI valida. |
+| `python scripts\verify_openapi_provider.py` | OK | Provider verification confermata: endpoint pubblici/protetti coerenti e nessun errore di contratto. |
+| `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | 5/5: contratti OpenAPI fase 6 confermati. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4: integrità UTF-8 confermata dopo testi e report deposito. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | 2/2: asset React referenziati dal manifest presenti; rimossi solo gli asset hashati non referenziati generati dal rebuild. |
+| `python scripts\react-migration\generate_backend_security_map.py` | OK | Mappa sicurezza backend rigenerata dopo il nuovo endpoint deposito protetto. |
+| `python -m pytest -q tests/test_auth.py tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py tests/test_openapi_contracts_phase6.py --tb=short` | OK | 79/79: gruppo RBAC, tenant, App V2 e OpenAPI confermato dopo rigenerazione della mappa sicurezza backend. |
+
 ## Topbar Recenti e ricerche 2.253.25 - 2026-06-14
 
 | Comando / verifica | Esito | Nota |

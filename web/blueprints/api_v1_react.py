@@ -29,6 +29,7 @@ from pct.auth import RuoloUtente, totp_uri
 from pct.clienti import TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
+from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
     build_client_communication,
@@ -4398,6 +4399,57 @@ def fascicolo_regia_checklist(id_fasc: str):
     return _jsonify_public_payload({"source": "repository reale", "mock_fallback": False, "checklist": payload.get("checklist", [])})
 
 
+_DEPOSIT_DOCUMENT_ROLE_TO_TYPE = {
+    "atto_principale": TipoDocumento.ATTO_GIUDIZIARIO,
+    "procura": TipoDocumento.PROCURA,
+    "allegato": TipoDocumento.ALLEGATO,
+    "allegato_prova": TipoDocumento.ALLEGATO,
+    "prova_notifica": TipoDocumento.NOTIFICA,
+}
+
+
+def _deposit_document_role(value: Any) -> str:
+    role = re.sub(r"[^a-z0-9_]+", "_", str(value or "").strip().lower()).strip("_")
+    aliases = {
+        "atto": "atto_principale",
+        "atto_principale": "atto_principale",
+        "ricorso": "atto_principale",
+        "procura": "procura",
+        "procura_alle_liti": "procura",
+        "prova": "allegato_prova",
+        "documento_prova": "allegato_prova",
+        "allegato_prova": "allegato_prova",
+        "prova_notifica": "prova_notifica",
+        "notifica": "prova_notifica",
+        "allegato": "allegato",
+        "fuori_busta": "fuori_busta",
+        "escludi": "fuori_busta",
+    }
+    return aliases.get(role, "allegato")
+
+
+def _deposit_slot_key_for_role(role: str, slots: Iterable[Any], used: set[str]) -> str:
+    role = _deposit_document_role(role)
+    if role == "atto_principale":
+        return "ATTO_PRINCIPALE"
+    if role == "procura":
+        return "PROCURA"
+    if role in {"allegato_prova", "prova_notifica"}:
+        candidates = [
+            slot
+            for slot in slots
+            if str(getattr(slot, "slot_key", "") or "").strip().upper() not in used
+            and (
+                str(getattr(slot, "type", "") or "").strip().upper() == "DOCUMENTO_PROVA"
+                or "PROVA" in str(getattr(slot, "slot_key", "") or "").upper()
+                or "DOCUMENT" in str(getattr(slot, "slot_key", "") or "").upper()
+            )
+        ]
+        if candidates:
+            return str(getattr(candidates[0], "slot_key", "") or "").strip().upper()
+    return ""
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/document-slots")
 @_richiedi_auth
 def fascicolo_regia_document_slots(id_fasc: str):
@@ -4427,6 +4479,80 @@ def fascicolo_regia_link_slot(id_fasc: str, slot_key: str):
         return jsonify({"errore": "Documento reale non trovato nel fascicolo.", "mock_fallback": False}), 404
     slot = ctx["repo"].link_slot(id_fasc, slot_key, document_id, actor=_actor_label())
     return _jsonify_public_payload({"ok": True, "mock_fallback": False, "slot": slot.__dict__, "message": "Documento collegato allo slot."})
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/deposito/classifica-documenti")
+@_richiedi_auth
+def fascicolo_deposito_classifica_documenti(id_fasc: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    payload = _request_payload()
+    rows = payload.get("documents") if isinstance(payload.get("documents"), list) else []
+    if not rows:
+        return jsonify({"errore": "Nessun documento indicato.", "mock_fallback": False}), 400
+
+    documents_by_id = {str(getattr(doc, "id", "") or ""): doc for doc in getattr(ctx["fascicolo"], "documenti", []) or []}
+    slots = ctx["repo"].ensure_slots(id_fasc, ctx["profile"])
+    linked_slots: list[str] = []
+    updated_documents: list[dict[str, Any]] = []
+    selected_count = 0
+    used_slots: set[str] = set()
+
+    for raw_row in rows:
+        if not isinstance(raw_row, Mapping):
+            continue
+        document_id = str(raw_row.get("document_id") or raw_row.get("documentId") or "").strip()
+        if not document_id:
+            continue
+        doc = documents_by_id.get(document_id)
+        if not doc:
+            return jsonify({"errore": "Documento reale non trovato nel fascicolo.", "mock_fallback": False}), 404
+        selected = bool(raw_row.get("selected"))
+        role = _deposit_document_role(raw_row.get("role"))
+        already_signed = bool(raw_row.get("already_signed") or raw_row.get("alreadySigned"))
+        if selected and role != "fuori_busta":
+            selected_count += 1
+            doc_type = _DEPOSIT_DOCUMENT_ROLE_TO_TYPE.get(role)
+            current_doc_type = str(getattr(getattr(doc, "tipo", ""), "value", getattr(doc, "tipo", "")) or "").upper()
+            if doc_type and (role in {"atto_principale", "procura", "prova_notifica"} or current_doc_type == TipoDocumento.ALTRO.value):
+                ctx["gf"].aggiorna_documento_deposito(id_fasc, document_id, tipo=doc_type)
+            slot_key = _deposit_slot_key_for_role(role, slots, used_slots)
+            if slot_key and ctx["repo"].get_slot(id_fasc, slot_key):
+                ctx["repo"].link_slot(id_fasc, slot_key, document_id, actor=_actor_label())
+                linked_slots.append(slot_key)
+                used_slots.add(slot_key)
+        updated_documents.append({"documentId": document_id, "selected": selected, "role": role, "alreadySigned": already_signed})
+
+    run_predeposit_check(
+        ctx["repo"],
+        fascicolo=ctx["fascicolo"],
+        cliente=ctx["cliente"],
+        preventivo=ctx["preventivi"][0] if ctx["preventivi"] else None,
+        conferimento=ctx["conferimenti"][0] if ctx["conferimenti"] else None,
+        parcelle=ctx["parcelle"],
+        fascicoli_manager=ctx["gf"],
+        profile=ctx["profile"],
+    )
+    regia = build_regia_payload(
+        ctx["repo"],
+        fascicolo=ctx["fascicolo"],
+        cliente=ctx["cliente"],
+        preventivi=ctx["preventivi"],
+        conferimenti=ctx["conferimenti"],
+        parcelle=ctx["parcelle"],
+        fascicoli_manager=ctx["gf"],
+        actor=_actor_label(),
+    )
+    return _jsonify_public_payload({
+        "ok": True,
+        "mock_fallback": False,
+        "message": f"Classificazione deposito salvata: {selected_count} documenti pronti per la busta.",
+        "selectedCount": selected_count,
+        "linkedSlots": linked_slots,
+        "documents": updated_documents,
+        "regia": regia,
+    })
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/document-slots/<slot_key>/validate")

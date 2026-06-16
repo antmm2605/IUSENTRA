@@ -35,7 +35,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     assert "function DepositPreparePage" in source
     assert "include: 'all'" in source
-    assert "Inventario intero fascicolo" in source
+    assert "Inventario fascicolo" in source
     assert "La preparazione legge tutti i documenti presenti nel fascicolo" in source
     assert "Documenti candidati alla busta" in source
     assert "Catalogo portale acquisito" in source
@@ -44,25 +44,30 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Invio PEC da software" in source
     assert "Deposito su portale" in source
     assert "Busta ministeriale Atto.enc" in source
-    assert "Proposta busta" in source
+    assert "Documenti da inviare" in source
     assert "Documenti da inviare" in source
     assert "DatiAtto.xml" in source
     assert "IndiceDocumentiDepositati.PDF" in source
     assert "Indice generato dal software" in source
     assert 'type="checkbox"' in source
     assert "Ripristina proposta" in source
-    assert "Seleziona tutti i documenti" in source
+    assert "Invia tutto" in source
+    assert "Salva classificazione" in source
+    assert "DEPOSIT_DOCUMENT_ROLE_OPTIONS" in source
+    assert "defaultDepositRoleForDocument" in source
+    assert "normaliseDepositClassificationMainAct" in source
+    assert "deposito/classifica-documenti" in source
     assert "manualSelectableDocuments" in source
     assert "isDepositManualSelectableDocument" in source
     assert "documenti_selezionati_ids" in source
-    assert "const checked = event.currentTarget.checked" in source
+    assert "updateDepositClassification(doc.id" in source
     assert "[doc.id]: event.currentTarget.checked" not in source
     assert "depositSelectionSatisfiesSlot" in source
     assert "Scegli documento" in source
     assert "Collega" in source
     assert "Atto principale" in source
     assert "Genera busta pronta" in source
-    assert "Firma multipla immediata" in source
+    assert "comando finale" in source
     assert "function DepositBatchSignaturePanel" in source
     assert "localSignerEndpoint('/firma-batch')" in source
     assert "Firma ${documents.length} documenti" in source

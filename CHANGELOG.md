@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.253.26 - 2026-06-16
+
+- Deposito telematico: il percorso `Prepara deposito` è stato semplificato in fasi operative con un solo pannello aperto alla volta, così l'avvocato vede prima la verifica pratica, poi i documenti, poi la firma, poi busta e indice.
+- Slot documentali: la sezione `Documenti da inviare` legge l'intero fascicolo, permette `Invia tutto`, selezione singola e classificazione immediata come atto principale, procura, allegato, prova, prova notifica o fuori busta.
+- Sicurezza firma: lo stato `Firmato` è ora solo informativo e deriva dal documento reale; la UI non può più trasformare un documento non firmato in firmato con una spunta manuale. La firma resta valida solo dopo esito Local Signer/backend e salvataggio `.p7m`.
+- API deposito: aggiunto l'endpoint protetto `/api/v1/ui/fascicoli/<id>/deposito/classifica-documenti`, collegato ai repository reali del fascicolo, senza fallback mock, per salvare classificazione documenti e slot prima del comando finale.
+- Comando finale: prima di firma e busta il flusso salva la classificazione visibile all'avvocato, poi avvia la firma multipla dei documenti realmente da firmare e solo dopo procede alla preparazione del pacchetto.
+- Guardrail: aggiunti test su classificazione, slot, atto principale unico, endpoint React deposito e blocco anti-firma fittizia; rigenerati OpenAPI e contratti API.
+- Stato operativo: restano obbligatorie prima della chiusura la prova visiva reale sul server, l'aggiornamento della macchina locale con verifica `/api/pronto`, la generazione busta dry-run senza PEC reale, il confronto contenuti e la firma multipla con PIN/token reale.
+
 ## 2.253.25 - 2026-06-14
 
 - Topbar: l'icona `Recenti` ora copre anche le ricerche recenti, con badge unico calcolato da elementi aperti più ricerche e pannello diviso in `Elementi aperti` e `Ricerche recenti`.

@@ -122,3 +122,46 @@ def test_api_slot_predeposito_deposito_ricevuta_evidence_pack(tmp_path):
     evidence = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/depositi/{deposito_id}/evidence-pack", headers=headers)
     assert evidence.status_code == 200
     assert evidence.mimetype == "application/zip"
+
+
+def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    atto = gf.aggiungi_documento(fascicolo.id, "ricorso lavoro.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+    procura = gf.aggiungi_documento(fascicolo.id, "procura.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+    prova = gf.aggiungi_documento(fascicolo.id, "contratto 24-25.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+    fuori = gf.aggiungi_documento(fascicolo.id, "comunicazione cancelleria.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+    client = app.test_client()
+    headers = {"X-API-Key": "regia-test-key"}
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={
+            "documents": [
+                {"document_id": atto.id, "selected": True, "role": "atto_principale", "already_signed": False},
+                {"document_id": procura.id, "selected": True, "role": "procura", "already_signed": True},
+                {"document_id": prova.id, "selected": True, "role": "allegato_prova", "already_signed": False},
+                {"document_id": fuori.id, "selected": False, "role": "fuori_busta", "already_signed": False},
+            ]
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["mock_fallback"] is False
+    assert payload["selectedCount"] == 3
+    assert "ATTO_PRINCIPALE" in payload["linkedSlots"]
+    assert "PROCURA" in payload["linkedSlots"]
+    assert any(slot for slot in payload["linkedSlots"] if slot not in {"ATTO_PRINCIPALE", "PROCURA"})
+    assert payload["regia"]["documentSlots"]
+
+    aggiornato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )._get_o_errore(fascicolo.id)
+    docs = {doc.id: doc for doc in aggiornato.documenti}
+    assert docs[atto.id].tipo == TipoDocumento.ATTO_GIUDIZIARIO
+    assert docs[procura.id].tipo == TipoDocumento.PROCURA
+    assert docs[procura.id].firmato_digitalmente is False
+    assert docs[fuori.id].tipo == TipoDocumento.ALTRO

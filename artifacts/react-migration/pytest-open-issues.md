@@ -1,5 +1,16 @@
 # Pytest issue aperte e risoluzioni
 
+## Deposito telematico E5AE4668 2.253.26 - 2026-06-16
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Verifica reale server | `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara` + browser visibile | Aperto | I guardrail tecnici sono passati, ma la versione `2.253.26` deve ancora essere distribuita sul server e verificata materialmente con click, scroll completo e pannelli desktop/tablet/mobile. | Dopo push/deploy aprire il fascicolo reale, usare i pannelli deposito, salvare la classificazione e documentare cosa si vede. |
+| Macchina locale reale | Docker locale `127.0.0.1:8080` | Aperto | L'utente ha chiesto di aggiornare anche la macchina locale, ma ha precisato che la prova visiva deve essere eseguita solo sul server reale. | Ricostruire Docker no-cache, verificare `/api/pronto` sulla versione `2.253.26` e non dichiarare prova visiva locale. |
+| Generazione busta dry-run | Pacchetto senza invio PEC reale | Aperto | La busta/pacchetto deve essere generata o scaricata realmente e confrontata con indice, contenuto email, documenti selezionati, `DatiAtto.xml` e assenza/presenza reale di `Atto.enc`. | Usare il comando UI o lo script server dry-run senza invio PEC; non registrare un deposito valido se manca l'adapter ministeriale AES256. |
+| Firma multipla Local Signer | PIN/token reale e più `.p7m` salvati | Aperto | La UI ora non può segnare manualmente un documento come firmato, ma la firma multipla resta da provare con PIN reale e più documenti firmati nella stessa operazione. | Non dichiarare funzionante la multifirma finché non firma più documenti, salva `.p7m`, aggiorna fascicolo e riabilita il passo successivo. |
+| Quality gate `ui-support` | `python tools\codex_harness\run_codex_quality_gate.py --mode ui-support` | Non applicabile al perimetro completo | Il profilo è pensato per supporto UI/UX leggero e fallisce perché questa tranche tocca backend, API, versione, test e asset React: è un blocco di scope, non una failure funzionale del deposito. | Usare i gate di prodotto completi e tenere questa nota per evitare un falso verde. |
+| Chunk principale React | `pnpm --filter @iusentra/studio build` | Aperto | Build riuscita ma il chunk principale resta sopra 500 kB. Il messaggio non va liquidato come "noto": è debito prestazionale da trattare con code splitting e baseline. | Pianificare tranche dedicata di split del bootstrap React e misurare caricamento prima/dopo su pagine rappresentative. |
+
 ## Topbar Recenti e ricerche 2.253.25 - 2026-06-14
 
 | Area | Gate | Stato | Nota | Azione |

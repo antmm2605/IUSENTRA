@@ -30,8 +30,10 @@ from flask import (
 )
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
+from web.bootstrap.fascicoli_document_helpers import preview_unavailable_html
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
+from web.services.signed_attachment_preview import build_attachment_preview_payload
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
 
@@ -295,20 +297,43 @@ def allegato(id_email: str, indice_allegato: int):
         mimetype = mime_da_nome
     else:
         mimetype = mime_salvato or mime_da_nome or "application/octet-stream"
-    if request.args.get("download") != "1" and mimetype == "message/rfc822":
+    download_requested = request.args.get("download") == "1"
+    if not download_requested and mimetype == "message/rfc822":
         mimetype = "text/plain; charset=utf-8"
+    if not download_requested and nome_download.lower().endswith((".p7m", ".pm7")):
+        raw_data = contenuto_archivio if contenuto_archivio is not None else Path(percorso).read_bytes()
+        preview = build_attachment_preview_payload(
+            nome_file=nome_download,
+            data=raw_data,
+            mime_salvato=mime_salvato,
+        )
+        if preview.unavailable_reason:
+            scarica_url = url_for(
+                "email_client.allegato",
+                id_email=id_email,
+                indice_allegato=indice_allegato,
+                download=1,
+            )
+            return preview_unavailable_html(nome_download, scarica_url)
+        return send_file(
+            BytesIO(preview.data),
+            mimetype=preview.mimetype,
+            as_attachment=False,
+            download_name=preview.download_name,
+            conditional=False,
+        )
     if contenuto_archivio is not None:
         return send_file(
             BytesIO(contenuto_archivio),
             mimetype=mimetype,
-            as_attachment=request.args.get("download") == "1",
+            as_attachment=download_requested,
             download_name=nome_download,
             conditional=False,
         )
     return send_file(
         percorso,
         mimetype=mimetype,
-        as_attachment=request.args.get("download") == "1",
+        as_attachment=download_requested,
         download_name=nome_download,
         conditional=True,
     )

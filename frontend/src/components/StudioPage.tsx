@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Building2, ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react'
+import {
+  BookOpenCheck,
+  Building2,
+  ExternalLink,
+  FileSearch,
+  FileText,
+  PenLine,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react'
 import {
   buttonTone,
   emptyStudioPage,
@@ -67,6 +77,29 @@ function ContractPanel({ data }: { data: StudioPageData }) {
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
         <span>Consultazione: {data.contracts.operational ? 'attiva' : 'non disponibile'}</span>
         <span>Impostazioni sensibili: protette</span>
+      </div>
+    </Panel>
+  )
+}
+
+function ProfessionalEditorPanel() {
+  return (
+    <Panel title="Editor professionale" subtitle="Redazione, lettura firmati e ricerca documentale sempre raggiungibili dallo Studio.">
+      <div className="iu-studio-editor">
+        <article className="iu-studio-editor__lead">
+          <div className="iu-studio-editor__icon"><PenLine size={20} /></div>
+          <div>
+            <strong>Scrivi, correggi e controlla gli atti dello studio</strong>
+            <span>Apri il workspace di redazione, richiama Lex e visualizza PDF firmati CAdES senza uscire dal lavoro operativo.</span>
+          </div>
+        </article>
+        <div className="iu-studio-editor__actions" aria-label="Azioni editor professionale">
+          <ButtonLink href="/redazione-atti" tone="primary"><PenLine size={15} /> Apri editor</ButtonLink>
+          <ButtonLink href="/template-atti/catalogo" tone="neutral"><BookOpenCheck size={15} /> Modelli atti</ButtonLink>
+          <ButtonLink href="/global-search?tipo=documenti" tone="neutral"><FileSearch size={15} /> Cerca documenti</ButtonLink>
+          <ButtonLink href="/fascicoli" tone="neutral"><FileText size={15} /> Documenti fascicolo</ButtonLink>
+          <ButtonLink href="#lex" tone="neutral" data-lex-open data-lex-context="editor-professionale"><Sparkles size={15} /> Lex editor</ButtonLink>
+        </div>
       </div>
     </Panel>
   )
@@ -156,6 +189,7 @@ export function StudioPage() {
               ))}
             </div>
           </Panel>
+          <ProfessionalEditorPanel />
           <Panel title="Moduli operativi" subtitle={`${data.operational_routes.length} percorsi pronti`}>
             <ModuleList modules={data.operational_routes} />
           </Panel>

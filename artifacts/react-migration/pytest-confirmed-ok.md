@@ -1,5 +1,18 @@
 # Pytest shard confermati OK
 
+## Deposito a step, lettore p7m globale e Studio editor 2.253.28 - 2026-06-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo step deposito reale, pannello Studio editor e UI slot documentali. |
+| `python -m pytest tests\test_email_client.py::test_email_pec_visualizza_pdf_interno_da_allegato_pdf_p7m tests\test_email_client.py::test_email_ordinaria_visualizza_pdf_interno_da_allegato_pdf_p7m tests\test_polisweb.py::test_visualizza_documento_estrae_pdf_da_p7m tests\test_polisweb.py::test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico tests\test_regia_ui_react.py tests\test_react_asset_retention.py -q --tb=short` | OK | 9/9 passati: `.pdf.p7m` su fascicoli/PEC/email ordinaria, deposito React e retention asset. |
+| `pnpm --filter @iusentra/studio test`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | Governance frontend completa verde; UTF-8 `4/4`. |
+| `python -m pytest tests\test_email_client.py tests\test_regia_api_payloads.py tests\test_regia_ui_react.py tests\test_react_asset_retention.py -q --tb=short` | OK | 70/70 passati su email, deposito/regia e asset. |
+| `pnpm --filter @iusentra/studio build` | OK | Build React riuscita; resta warning noto sul chunk principale sopra 500 kB, da trattare in tranche performance/code splitting. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | OpenAPI rigenerato su `2.253.28`, valido; provider verification `auth-error=262`, `public-safe=15`, `success=29`, `backend-security=1`; OpenAPI fase 6 `5/5`. |
+| `python tools\sync_packaging_files.py --check`; `git diff --check` | OK | Packaging sincronizzato; whitespace senza errori, con solo warning Git CRLF non bloccante su `FascicoliPage.tsx`. |
+| `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python tools\check_repo_governance.py`; `node scripts\react-migration\check-route-gate.mjs`; `node frontend\scripts\check-react-contracts.mjs` | OK | Release readiness e packaging `10/10`; governance repo, route gate e contratti React verdi. |
+
 ## Deposito telematico E5AE4668 2.253.26 - 2026-06-16
 
 | Comando / verifica | Esito | Nota |

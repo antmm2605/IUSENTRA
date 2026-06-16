@@ -367,7 +367,10 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
   }
   return (
     <>
-      <button className={`iu-fas-post iu-fas-post--${tone}`} type="button" onClick={() => confirm ? setConfirming(true) : void run()} disabled={busy} title={title} aria-label={ariaLabel}>{children}</button>
+      <button className={`iu-fas-post iu-fas-post--${tone}`} type="button" onClick={() => confirm ? setConfirming(true) : void run()} disabled={busy} title={title} aria-label={ariaLabel}>
+        {busy ? <span className="iu-fas-post__busy"><RefreshCw size={15}/> Operazione...</span> : children}
+      </button>
+      {!confirming && error ? <span className="iu-fas-inline-error" role="alert">{error}</span> : null}
       {confirming ? (
         <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label={confirmTitle}>
           <div className="iu-fas-confirm-modal__box">
@@ -2041,10 +2044,24 @@ function DetailSection({
   children:ReactNode
 }) {
   const isControlled = typeof open === 'boolean'
-  const openProps = isControlled ? { open } : defaultOpen ? { open: true } : {}
+  const detailsRef = useRef<HTMLDetailsElement | null>(null)
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const actualOpen = isControlled ? Boolean(open) : internalOpen
+  useEffect(() => {
+    if (detailsRef.current && detailsRef.current.open !== actualOpen) {
+      detailsRef.current.open = actualOpen
+    }
+  }, [actualOpen])
   return (
-    <details id={id} className="iu-fas-detail-section" {...openProps} onToggle={(event) => {
+    <details ref={detailsRef} id={id} open={actualOpen} className="iu-fas-detail-section" onToggle={(event) => {
       const nextOpen = event.currentTarget.open
+      if (!isControlled) {
+        setInternalOpen(nextOpen)
+      } else if (nextOpen !== actualOpen && detailsRef.current) {
+        window.setTimeout(() => {
+          if (detailsRef.current) detailsRef.current.open = actualOpen
+        }, 0)
+      }
       if (nextOpen) onOpen?.()
       onToggle?.(nextOpen)
     }}>
@@ -2472,15 +2489,23 @@ function DepositPreparePage({ id }:{id:string}) {
   const [depositClassificationById, setDepositClassificationById] = useState<Record<string, DepositDocumentClassification>>({})
   const [classificationSaving, setClassificationSaving] = useState(false)
   const [activeDepositPanel, setActiveDepositPanel] = useState<DepositPhaseId>(initialDepositPhaseFromHash)
+  const [depositActionNotice, setDepositActionNotice] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
 
   const refreshDetail = (message?: string) => {
-    if (message) setToast({ tone: 'success', message })
+    if (message) {
+      setToast({ tone: 'success', message })
+      setDepositActionNotice({ tone: 'success', message })
+    }
     getFascicoloDetail(id, { include: 'all' }).then(setData).catch(() => {
       setToast({ tone: 'danger', message: 'Non ho potuto aggiornare i dati del deposito.' })
+      setDepositActionNotice({ tone: 'danger', message: 'Non ho potuto aggiornare i dati del deposito.' })
     })
   }
-  const failDetail = (message: string) => setToast({ tone: 'danger', message })
+  const failDetail = (message: string) => {
+    setToast({ tone: 'danger', message })
+    setDepositActionNotice({ tone: 'danger', message })
+  }
   const registerBatchSignatureAction = (action: BatchSignatureAction | null) => {
     batchSignatureActionRef.current = action
   }
@@ -2788,6 +2813,14 @@ function DepositPreparePage({ id }:{id:string}) {
     const targetId = href.slice(1)
     if (isDepositPhaseId(targetId)) goToDepositPhase(targetId)
   }
+  const afterVerification = (message?: string) => {
+    refreshDetail(message || 'Verifica operativa completata. Passa ai documenti da inviare.')
+    goToDepositPhase('proposta-busta')
+  }
+  const afterPreparation = (message?: string) => {
+    refreshDetail(message || 'Controllo busta preparato. Apri busta e indice per vedere il risultato.')
+    goToDepositPhase('generazione-busta')
+  }
   const renderDepositStepControls = (currentId: DepositPhaseId) => {
     const index = depositPhases.findIndex((phase) => phase.id === currentId)
     const previous = index > 0 ? depositPhases[index - 1] : null
@@ -2880,12 +2913,12 @@ function DepositPreparePage({ id }:{id:string}) {
 
       <section className="iu-fas-cockpit iu-fas-deposit-cockpit" aria-label="Stato deposito">
         <StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${regia.header.completion}%`} note={depositStatusLabel(regia.header.operationalState || 'da verificare')} tone={preparationTone}/>
-        <StatCard icon={<FolderOpen size={19}/>} label="Tutto fascicolo" value={data.documents.length} note={documentsToClassify.length ? `${documentsToClassify.length} da classificare` : 'letto integralmente'} tone={documentsToClassify.length ? 'warning' : 'success'} href="#inventario-fascicolo"/>
-        <StatCard icon={<FileText size={19}/>} label="Candidati busta" value={depositCandidateDocuments.length} note={`${signedCandidateDocuments} firmati`} tone="primary" href="#documenti-deposito"/>
-        <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#proposta-busta"/>
-        <StatCard icon={<Gavel size={19}/>} label="Atti principali" value={mainActs.length || 0} note="da confermare" tone={mainActs.length ? 'success' : 'warning'} href="#documenti-deposito"/>
-        <StatCard icon={<Landmark size={19}/>} label="Catalogo portale" value={portalCatalog.length} note="separato dalla busta" tone={portalCatalog.length ? 'info' : 'neutral'} href="#catalogo-portale"/>
-        <StatCard icon={<Mail size={19}/>} label="Ricevute" value={recentDeposits.length} note={recentDeposits[0]?.status || 'nessuna PEC'} tone={recentDeposits.length ? 'purple' : 'neutral'} href="#ricevute-deposito"/>
+        <StatCard icon={<FolderOpen size={19}/>} label="Tutto fascicolo" value={data.documents.length} note={documentsToClassify.length ? `${documentsToClassify.length} da classificare` : 'letto integralmente'} tone={documentsToClassify.length ? 'warning' : 'success'} href="#inventario-fascicolo" onClick={openDepositPhase('#inventario-fascicolo')}/>
+        <StatCard icon={<FileText size={19}/>} label="Candidati busta" value={depositCandidateDocuments.length} note={`${signedCandidateDocuments} firmati`} tone="primary" href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
+        <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#firma-busta" onClick={openDepositPhase('#firma-busta')}/>
+        <StatCard icon={<Gavel size={19}/>} label="Atti principali" value={mainActs.length || 0} note="da confermare" tone={mainActs.length ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
+        <StatCard icon={<Landmark size={19}/>} label="Catalogo portale" value={portalCatalog.length} note="separato dalla busta" tone={portalCatalog.length ? 'info' : 'neutral'} href="#inventario-fascicolo" onClick={openDepositPhase('#inventario-fascicolo')}/>
+        <StatCard icon={<Mail size={19}/>} label="Ricevute" value={recentDeposits.length} note={recentDeposits[0]?.status || 'nessuna PEC'} tone={recentDeposits.length ? 'purple' : 'neutral'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
       </section>
 
       <section className="iu-fas-deposit-phases" aria-label="Percorso deposito">
@@ -2919,8 +2952,8 @@ function DepositPreparePage({ id }:{id:string}) {
         </nav>
       </section>
 
-      <section className="iu-fas-detail-grid">
-        <div className="iu-fas-detail-main">
+      <section className="iu-fas-detail-grid iu-fas-deposit-step-layout">
+        <div className="iu-fas-detail-main iu-fas-deposit-step-main">
           <DetailSection id="verifica-deposito" title="1. Verifica pratica" icon={<ShieldCheck size={17}/>} open={activeDepositPanel === 'verifica-deposito'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('verifica-deposito') }} count={decisiveValidationRows.length}>
             <div className="iu-fas-regia__deposit iu-fas-deposit-prepare-box">
               <div>
@@ -2934,12 +2967,18 @@ function DepositPreparePage({ id }:{id:string}) {
                 <p className="iu-fas-sync-note"><PackageCheck size={14}/><strong>Indice documenti</strong><span>{documentIndexGeneratedBySoftware ? 'L’indice viene generato dal software in tempo reale quando viene preparata la busta.' : 'L’indice viene verificato durante la preparazione.'}</span></p>
               </div>
               <div className="iu-fas-regia__actions">
-                {predepositAction ? <PostAction action={predepositAction} tone="secondary" onDone={refreshDetail} onError={failDetail}><RefreshCw size={15}/> Verifica operativa</PostAction> : null}
-                {prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={refreshDetail} onError={failDetail}><ClipboardCheck size={15}/> {prepareLabel}</PostAction> : null}
+                {predepositAction ? <PostAction action={predepositAction} tone="secondary" onDone={afterVerification} onError={failDetail}><RefreshCw size={15}/> Verifica operativa</PostAction> : null}
+                {prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={afterPreparation} onError={failDetail}><ClipboardCheck size={15}/> {prepareLabel}</PostAction> : null}
                 {ready && directPecReady && sendAction ? <PostAction action={sendAction} tone="primary" onDone={refreshDetail} onError={failDetail} confirm="Inviare la busta con la PEC configurata? Verifica prima ufficio, firma, allegati e ricevute attese." confirmTitle="Invia deposito"><Send size={15}/> {sendLabel}</PostAction> : null}
                 {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
               </div>
             </div>
+            {depositActionNotice ? (
+              <div className={`iu-fas-action-notice iu-fas-action-notice--${depositActionNotice.tone}`} role="status">
+                <Badge tone={depositActionNotice.tone}>{depositActionNotice.tone === 'success' ? 'Azione eseguita' : 'Da controllare'}</Badge>
+                <span>{depositActionNotice.message}</span>
+              </div>
+            ) : null}
             {guidedCompletion ? (
               <div className="iu-fas-guided-block">
                 <Badge tone="warning">Completamento richiesto</Badge>
@@ -3066,6 +3105,40 @@ function DepositPreparePage({ id }:{id:string}) {
                 {!depositSelectableDocuments.length ? <p className="iu-empty">Nessun documento selezionabile: carica o classifica l'atto principale e gli allegati prima del deposito.</p> : null}
               </div>
             </div>
+            <section className="iu-fas-deposit-support-panel" id="slot-deposito" aria-label="Slot documentali">
+              <header>
+                <div>
+                  <strong>Slot documentali</strong>
+                  <span>Collega o sostituisci i documenti obbligatori in una vista larga, leggibile e coerente con la busta.</span>
+                </div>
+                <Badge tone={regia.documentSlots.length ? 'primary' : 'warning'}>{regia.documentSlots.length}</Badge>
+              </header>
+              <div className="iu-fas-regia-list iu-fas-slot-list">
+                {sortedSlots.map((slot) => {
+                  const slotKey = recordText(slot, 'slotKey')
+                  const linkedDocument = documentsById.get(recordText(slot, 'documentId'))
+                  const slotStatus = slotStatusDisplay(recordText(slot, 'status'), Boolean(linkedDocument))
+                  return (
+                    <article className="iu-fas-slot-row" key={slotKey || recordText(slot, 'label')}>
+                      <Badge tone={slotStatus.tone}>{slotStatus.label}</Badge>
+                      <strong>{recordText(slot, 'label')}</strong>
+                      <span>{linkedDocument ? `Documento: ${linkedDocument.name}` : recordText(slot, 'message', 'Documento da collegare')}</span>
+                      <small>{recordText(slot, 'suggestedAction') || (linkedDocument ? 'Puoi sostituire la scelta se non è corretta.' : 'Seleziona il documento corretto dal fascicolo.')}</small>
+                      {slotKey ? (
+                        <JsonPostForm className="iu-fas-slot-link-form" action={`/api/v1/ui/fascicoli/${encodedId}/document-slots/${encodeURIComponent(slotKey)}/link`} onDone={refreshDetail} onError={failDetail}>
+                          <select name="document_id" defaultValue={linkedDocument?.id || ''} required>
+                            <option value="">Scegli documento</option>
+                            {data.documents.map((doc) => <option key={`${slotKey}-${doc.id}`} value={doc.id}>{doc.name} - {doc.statusLabel}</option>)}
+                          </select>
+                          <button type="submit"><Save size={14}/> Collega</button>
+                        </JsonPostForm>
+                      ) : null}
+                    </article>
+                  )
+                })}
+                {!regia.documentSlots.length ? <p className="iu-empty">Slot documentali non ancora disponibili: aggiorna la Regia dopo aver classificato i documenti.</p> : null}
+              </div>
+            </section>
             {renderDepositStepControls('proposta-busta')}
           </DetailSection>
 
@@ -3195,7 +3268,7 @@ function DepositPreparePage({ id }:{id:string}) {
             {renderDepositStepControls('inventario-fascicolo')}
           </DetailSection>
 
-          <DetailSection id="documenti-deposito" title="Documenti candidati alla busta" icon={<FileText size={17}/>} defaultOpen count={depositCandidateDocuments.length}>
+          <DetailSection id="documenti-deposito" title="Documenti candidati alla busta" icon={<FileText size={17}/>} count={depositCandidateDocuments.length}>
             <div className="iu-fas-doc-section-list">
               {documentSections.map((section) => (
                 <section className="iu-fas-doc-auto-section" key={section.id}>
@@ -3215,7 +3288,7 @@ function DepositPreparePage({ id }:{id:string}) {
             </div>
           </DetailSection>
 
-          <DetailSection id="catalogo-portale" title="Catalogo portale acquisito" icon={<Landmark size={17}/>} defaultOpen={portalCatalog.length > 0} count={portalCatalog.length}>
+          <DetailSection id="catalogo-portale" title="Catalogo portale acquisito" icon={<Landmark size={17}/>} count={portalCatalog.length}>
             <div className="iu-fas-comm-list">
               {portalCatalog.map((row) => (
                 <article className="iu-fas-comm-row" key={row.id}>
@@ -3255,7 +3328,7 @@ function DepositPreparePage({ id }:{id:string}) {
           </DetailSection>
         </div>
         <aside className="iu-fas-detail-side">
-          <DetailSection id="dati-fascicolo-deposito" title="Dati fascicolo" icon={<BadgeCheck size={17}/>} defaultOpen>
+          <DetailSection id="dati-fascicolo-deposito" title="Dati fascicolo" icon={<BadgeCheck size={17}/>}>
             <KvGrid items={[
               { label: 'Fascicolo', value: f.ref || f.id, href: detailHref },
               { label: 'Cliente', value: f.client },

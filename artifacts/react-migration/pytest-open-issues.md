@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## Gate remoti correnti 2.253.28 - 2026-06-16
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| CodeQL nuovo SHA | `Code scanning results / CodeQL` su GitHub dopo push | Aperto fino a verifica remota | L'utente ha segnalato che non è accettabile lasciare CodeQL rosso anche se il deploy passa. | Dopo il push attendere i check-run dello SHA corrente, leggere le annotazioni CodeQL se fallisce, correggere e ripushare prima del report finale. |
+| Chunk principale React | `pnpm --filter @iusentra/studio build` | Aperto | Build riuscita ma il chunk principale resta sopra 500 kB. Non è una frase utile per l'avvocato se non è accompagnata da azione. | Tranche dedicata di code splitting e baseline performance reale dopo questa consegna deposito/p7m/editor. |
+
 ## Deposito telematico E5AE4668 2.253.26 - 2026-06-16
 
 | Area | Gate | Stato | Nota | Azione |

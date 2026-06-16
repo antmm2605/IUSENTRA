@@ -103,3 +103,52 @@ Stato non chiuso:
 - busta/pacchetto dry-run ancora da generare e ispezionare senza invio PEC;
 - firma multipla ancora da provare con PIN/token reale e salvataggio di più `.p7m`;
 - nessun invio PEC reale deve essere eseguito durante la prova.
+
+## Difetto rilevato nella prova server e hotfix 2.253.27
+
+Durante la prova visiva reale sul server, URL `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara#firma-busta`, il browser ha mostrato che i pannelli del deposito risultavano tutti aperti contemporaneamente. Questo non rispettava il requisito dell'utente: flusso semplice, veloce, intuitivo e con un solo pannello operativo alla volta.
+
+Correzione applicata:
+
+- `DetailSection` ora governa esplicitamente lo stato `open` del nodo `<details>` tramite React e riferimento DOM, così il browser non conserva stati aperti non voluti;
+- gli approfondimenti secondari del deposito, come documenti candidati, catalogo portale e dati fascicolo, partono chiusi;
+- il percorso principale resta concentrato sulle cinque fasi operative.
+
+Guardrail rilanciati prima del nuovo deploy:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `python -m pytest tests/test_regia_ui_react.py tests/test_regia_api_payloads.py tests/test_react_asset_retention.py -q --tb=short`;
+- `pnpm --filter @iusentra/studio build`.
+
+Stato da riverificare dopo deploy `2.253.27`:
+
+- desktop: un solo pannello deposito aperto alla volta;
+- tablet e mobile: assenza di overflow e testi leggibili;
+- click reale sulle fasi `Documenti da inviare`, `Firma documenti`, `Busta e indice`;
+- salvataggio classificazione e busta dry-run ancora da eseguire;
+- firma multipla reale ancora non dichiarabile senza PIN/token.
+
+## Correzione UI/lettore 2.253.28 - 16 giugno 2026
+
+Problemi segnalati durante la prova visiva server:
+
+- il rail `Slot documentali` restava troppo stretto: testo, select e pulsante `Collega` venivano compressi e la scheda non era leggibile;
+- `Verifica operativa` e `Prepara controllo busta` sembravano non fare nulla perché il feedback era poco visibile;
+- il deposito non appariva ancora come un percorso a step reale, perché la pagina lasciava visibili pannelli di supporto insieme alla fase attiva.
+
+Correzione applicata:
+
+- la pagina `Prepara deposito` ora mostra un solo pannello operativo alla volta sotto lo stepper;
+- gli slot documentali sono stati spostati dentro la fase `Documenti da inviare`, con card larghe e form non compressi;
+- le card di stato aprono le fasi reali (`Documenti`, `Firma`, `Inventario`) invece di puntare a sezioni tecniche di supporto;
+- i pulsanti `Verifica operativa` e `Prepara controllo busta` mostrano lo stato `Operazione...`, registrano un messaggio visibile nel pannello e portano alla fase successiva coerente;
+- aggiunto lettore globale per allegati `.pdf.p7m` di PEC ed email ordinaria: anteprima del PDF interno quando il contenitore CAdES lo espone, download sempre del `.p7m` originale;
+- aggiunto nello Studio il pannello `Editor professionale` con accessi rapidi a redazione, modelli, ricerca documenti, fascicoli e Lex editor.
+
+Stato da verificare dopo deploy `2.253.28`:
+
+- server reale `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`: desktop/tablet/mobile, scroll completo, click sulle cinque fasi, click reale su `Verifica operativa` e `Prepara controllo busta`;
+- il pannello `Slot documentali` deve essere leggibile, senza testo verticale o pulsanti tagliati;
+- Studio deve mostrare `Editor professionale` e i collegamenti devono aprire le route previste;
+- se sul server è disponibile un `.pdf.p7m`, l'anteprima deve mostrare il PDF interno; in ogni caso i test automatici devono confermare PEC ed email ordinaria;
+- la firma multipla resta non dichiarabile verde finché non viene eseguita con PIN/token reale, più documenti firmati, salvataggio `.p7m` e riabilitazione del passo successivo.

@@ -495,6 +495,19 @@ Busta e invio:
 - se manca l'adapter ministeriale reale che produce `Atto.enc` AES256 conforme, il pacchetto deve essere chiamato pacchetto di controllo e non deposito valido;
 - il sistema non deve registrare un invio come deposito valido se manca `Atto.enc` ministeriale o un requisito obbligatorio non producibile.
 
+Lettore documenti firmati:
+
+- i file `.pdf.p7m` devono essere visualizzabili in tutto il software, non solo nel deposito;
+- l'anteprima deve estrarre il PDF interno quando il contenitore CAdES lo espone;
+- il download deve continuare a servire il `.p7m` originale, senza sostituirlo con il PDF estratto;
+- la stessa logica deve valere per documenti fascicolo, PEC, email ordinaria e ogni pannello che apre allegati/documenti firmati.
+
+Regola UI corretta dopo prova server:
+
+- lo stepper deve mostrare un solo pannello operativo alla volta;
+- `Verifica operativa` e `Prepara controllo busta` devono dare un riscontro visibile immediato e portare alla fase coerente;
+- gli slot documentali non devono stare in un rail troppo stretto: vanno mostrati in una vista larga dentro la fase documentale, con testo, select e pulsanti leggibili.
+
 Verifiche obbligatorie per questa tranche:
 
 - browser reale visibile su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`, con scroll completo dei pannelli;

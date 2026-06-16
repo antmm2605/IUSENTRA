@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.253.28 - 2026-06-16
+
+- Deposito telematico: trasformata la preparazione in una vista a step reale, con un solo pannello operativo visibile, feedback immediato su `Verifica operativa` e `Prepara controllo busta`, link delle card riallineati alle fasi e slot documentali spostati dentro `Documenti da inviare` con layout largo e leggibile.
+- Allegati e documenti firmati: esteso il lettore `.pdf.p7m` alle anteprime di PEC ed email ordinaria; l'anteprima estrae il PDF interno quando presente, mentre il download conserva sempre il file `.p7m` originale.
+- Studio: aggiunto il pannello `Editor professionale` con accessi rapidi a redazione atti, modelli, ricerca documenti, documenti fascicolo e Lex editor.
+
+## 2.253.27 - 2026-06-16
+
+- Deposito telematico: dopo prova visiva reale sul server, corretto il comportamento dei pannelli `Prepara deposito` che potevano restare tutti aperti insieme.
+- UI deposito: lo stato `open` dei pannelli è ora governato da React, così la fase attiva resta una sola; gli approfondimenti documentali e tecnici partono chiusi e non appesantiscono la schermata principale.
+- Qualità: la prova server resta obbligatoria dopo deploy, con verifica desktop/tablet/mobile, click reale sulle fasi e scroll completo.
+
 ## 2.253.26 - 2026-06-16
 
 - Deposito telematico: il percorso `Prepara deposito` è stato semplificato in fasi operative con un solo pannello aperto alla volta, così l'avvocato vede prima la verifica pratica, poi i documenti, poi la firma, poi busta e indice.

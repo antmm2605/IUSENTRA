@@ -85,6 +85,21 @@ def _autentica_admin_session(app, client, cfg: dict) -> None:
         session_data["last_activity"] = datetime.now().isoformat()
 
 
+def _signed_pdf_p7m(pdf_bytes: bytes | None = None) -> bytes:
+    from asn1crypto import algos, cms
+
+    payload = pdf_bytes or b"%PDF-1.4\n% allegato firmato\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data", "content": payload},
+            "signer_infos": [],
+        }
+    )
+    return cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+
+
 def test_email_blueprint_usa_storage_tenant_per_sincronizzazione(tmp_path):
     from web.app import create_app
     import web.blueprints.email_client as email_routes
@@ -1154,6 +1169,94 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         download = client.get("/email/messaggio/MAIL-ATT-1/allegato/0?download=1")
         assert download.status_code == 200
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+
+
+def test_email_pec_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    p7m_bytes = _signed_pdf_p7m()
+    em = EmailRicevuta(
+        id="MAIL-P7M-PEC",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="cancelleria@giustiziapec.it",
+        oggetto="PEC con PDF firmato",
+        data="2026-06-16T10:00:00",
+        corpo_testo="Contiene un allegato firmato.",
+        allegati=[{
+            "nome": "ricorso.pdf.p7m",
+            "mime": "application/pkcs7-mime",
+            "size": len(p7m_bytes),
+            "percorso_rel": "MAIL-P7M-PEC/ricorso.pdf.p7m",
+            "nome_file": "ricorso.pdf.p7m",
+        }],
+    )
+    ge.aggiungi(em)
+    allegato_dir = Path(cfg["EMAIL_CASELLA_DB"]).parent / "allegati" / "MAIL-P7M-PEC"
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    (allegato_dir / "ricorso.pdf.p7m").write_bytes(p7m_bytes)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        inline = client.get("/email/messaggio/MAIL-P7M-PEC/allegato/0")
+        assert inline.status_code == 200
+        assert inline.mimetype == "application/pdf"
+        assert inline.data.startswith(b"%PDF-")
+        assert "ricorso.pdf" in inline.headers.get("Content-Disposition", "")
+
+        download = client.get("/email/messaggio/MAIL-P7M-PEC/allegato/0?download=1")
+        assert download.status_code == 200
+        assert download.data == p7m_bytes
+        assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+        assert "ricorso.pdf.p7m" in download.headers.get("Content-Disposition", "")
+
+
+def test_email_ordinaria_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    p7m_bytes = _signed_pdf_p7m()
+    em = EmailRicevuta(
+        id="MAIL-P7M-ORD",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="cliente@example.com",
+        oggetto="Email con PDF firmato",
+        data="2026-06-16T10:20:00",
+        corpo_testo="Contiene un documento firmato.",
+        allegati=[{
+            "nome": "contratto.pdf.p7m",
+            "mime": "application/pkcs7-mime",
+            "size": len(p7m_bytes),
+            "percorso_rel": "MAIL-P7M-ORD/contratto.pdf.p7m",
+            "nome_file": "contratto.pdf.p7m",
+        }],
+    )
+    ge.aggiungi(em)
+    allegato_dir = Path(cfg["EMAIL_ORDINARIA_DB"]).parent / "allegati" / "MAIL-P7M-ORD"
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    (allegato_dir / "contratto.pdf.p7m").write_bytes(p7m_bytes)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        inline = client.get("/email-ordinaria/messaggio/MAIL-P7M-ORD/allegato/0")
+        assert inline.status_code == 200
+        assert inline.mimetype == "application/pdf"
+        assert inline.data.startswith(b"%PDF-")
+        assert "contratto.pdf" in inline.headers.get("Content-Disposition", "")
+
+        download = client.get("/email-ordinaria/messaggio/MAIL-P7M-ORD/allegato/0?download=1")
+        assert download.status_code == 200
+        assert download.data == p7m_bytes
+        assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+        assert "contratto.pdf.p7m" in download.headers.get("Content-Disposition", "")
 
 
 def test_email_dettaglio_scarica_allegato_da_archivio_zip(tmp_path, monkeypatch):

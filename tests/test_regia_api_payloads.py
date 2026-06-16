@@ -153,6 +153,7 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     assert "ATTO_PRINCIPALE" in payload["linkedSlots"]
     assert "PROCURA" in payload["linkedSlots"]
     assert any(slot for slot in payload["linkedSlots"] if slot not in {"ATTO_PRINCIPALE", "PROCURA"})
+    assert any(row["role"] == "allegato" for row in payload["updatedDocuments"] if row["documentId"] == prova.id)
     assert payload["regia"]["documentSlots"]
 
     aggiornato = GestioneFascicoli(
@@ -163,5 +164,6 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     docs = {doc.id: doc for doc in aggiornato.documenti}
     assert docs[atto.id].tipo == TipoDocumento.ATTO_GIUDIZIARIO
     assert docs[procura.id].tipo == TipoDocumento.PROCURA
+    assert docs[prova.id].tipo == TipoDocumento.ALLEGATO
     assert docs[procura.id].firmato_digitalmente is False
     assert docs[fuori.id].tipo == TipoDocumento.ALTRO

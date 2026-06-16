@@ -1,0 +1,18 @@
+{
+  "route": "/editor-professionale",
+  "status": "react_operational_full",
+  "surface": "Editor professionale",
+  "purpose": "Hub unico per scrittura, controllo, ricerca, lettura documenti firmati e accesso a Lex editor.",
+  "distinction": {
+    "editor_professionale": "Centro operativo trasversale per lavorare su documenti, fascicoli, PEC, email, formati firmati e ricerca.",
+    "redazione_atti": "Modulo specifico per redazione e produzione degli atti."
+  },
+  "must_preserve": [
+    "voce nav separata da Redazione Atti",
+    "route React dedicata",
+    "accessi a redazione atti, modelli, fascicoli e ricerca documenti",
+    "formati lettore documenti legali PDF, PDF.P7M, XML, XML.P7M, EML e TXT",
+    "testi visibili in italiano professionale"
+  ],
+  "legacy_fallback": false
+}

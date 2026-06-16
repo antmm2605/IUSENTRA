@@ -1,0 +1,18 @@
+.iu-editor-pro-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,320px);gap:14px;align-items:stretch}
+.iu-editor-pro-hero article{display:grid;align-content:center;gap:10px;min-width:0;padding:18px;border:1px solid var(--iu-border);border-radius:14px;background:#fff;box-shadow:var(--iu-shadow-hairline)}
+.iu-editor-pro-hero h2{margin:0;color:#0f172a;font-size:22px;line-height:1.2;font-weight:900;letter-spacing:0}
+.iu-editor-pro-hero p{max-width:74ch;margin:0;color:#475569;font-size:14px;line-height:1.55;font-weight:620}
+.iu-editor-pro-quick{display:grid;gap:9px;padding:14px;border:1px solid rgba(37,99,235,.16);border-radius:14px;background:#f8fbff}
+.iu-editor-pro-quick span{min-height:42px;display:flex;align-items:center;gap:9px;padding:0 10px;border:1px solid rgba(37,99,235,.14);border-radius:10px;background:#fff;color:#0f172a;font-size:13px;font-weight:850}
+.iu-editor-pro-quick svg{color:var(--iu-blue-700)}
+.iu-editor-pro-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.iu-editor-pro-actions article{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:13px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
+.iu-editor-pro-actions article>div{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 9px;min-width:0;align-items:center}
+.iu-editor-pro-actions svg{color:var(--iu-blue-700)}
+.iu-editor-pro-actions strong{color:#0f172a;font-size:14px;font-weight:900;line-height:1.25}
+.iu-editor-pro-actions span{grid-column:2;color:#64748b;font-size:12.5px;font-weight:650;line-height:1.4}
+.iu-editor-pro-reader{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.iu-editor-pro-reader strong{display:block;color:#0f172a;font-size:14px;font-weight:900}
+.iu-editor-pro-reader p{max-width:72ch;margin:5px 0 0;color:#64748b;font-size:13px;line-height:1.45;font-weight:650}
+.iu-editor-pro-reader>div:last-child{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:900px){.iu-editor-pro-hero,.iu-editor-pro-actions{grid-template-columns:1fr}.iu-editor-pro-reader{display:grid}.iu-editor-pro-reader>div:last-child{justify-content:flex-start}}

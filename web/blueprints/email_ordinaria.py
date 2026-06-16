@@ -7,7 +7,6 @@ solo posta ordinaria su ``EMAIL_ORDINARIA_DB`` e usa i parametri del tab
 
 from __future__ import annotations
 
-import mimetypes
 import os
 from datetime import date
 from functools import wraps
@@ -34,7 +33,7 @@ from pct.notifiche_legali import is_legal_notification_subject as _is_legal_noti
 from web.bootstrap.fascicoli_document_helpers import preview_unavailable_html
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
-from web.services.signed_attachment_preview import build_attachment_preview_payload
+from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
 
@@ -335,14 +334,9 @@ def allegato(id_email: str, indice_allegato: int):
     info = (email_obj.allegati or [])[indice_allegato]
     nome_download = info.get("nome") or info.get("nome_file") or (Path(percorso).name if percorso else "allegato")
     mime_salvato = str(info.get("mime") or "").strip()
-    mime_da_nome = mimetypes.guess_type(nome_download)[0] or ""
-    mimetype = (
-        mime_da_nome
-        if mime_salvato in {"", "application/octet-stream", "binary/octet-stream"} and mime_da_nome
-        else mime_salvato or mime_da_nome or "application/octet-stream"
-    )
+    mimetype = attachment_mimetype(nome_download, mime_salvato)
     download_requested = request.args.get("download") == "1"
-    if not download_requested and nome_download.lower().endswith((".p7m", ".pm7")):
+    if not download_requested:
         raw_data = contenuto_archivio if contenuto_archivio is not None else Path(percorso).read_bytes()
         preview = build_attachment_preview_payload(
             nome_file=nome_download,

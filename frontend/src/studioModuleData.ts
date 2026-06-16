@@ -160,6 +160,28 @@ export const studioModules: StudioModuleConfig[] = [
     links: [{ label: 'Fascicoli', href: '/fascicoli' }, { label: 'Catalogo Atti', href: '/template-atti/catalogo' }, { label: 'Redazione Atti', href: '/redazione-atti' }, { label: 'Ricerca Studio', href: '/global-search?tipo=documenti' }],
   },
   {
+    id: 'editor-professionale',
+    routes: ['/editor-professionale'],
+    title: 'Editor professionale',
+    section: 'Documenti e atti',
+    subtitle: 'Centro operativo per scrivere, controllare, leggere documenti firmati e richiamare Lex senza sostituire Redazione Atti.',
+    lexContext: 'editor-professionale',
+    lexLabel: 'Lex legge documento, fascicolo, PEC, email, allegati firmati e contesto redazionale aperto.',
+    kpis: [
+      { label: 'Scrittura', value: 'Atti', note: 'redazione e controllo testi collegati allo studio', tone: 'primary' },
+      { label: 'Lettura', value: 'Firmati', note: 'PDF, PDF.P7M, XML, EML e TXT dove visualizzabili', tone: 'success' },
+      { label: 'Ricerca', value: 'Studio', note: 'documenti, fascicoli, PEC ed email indicizzati', tone: 'purple' },
+    ],
+    cards: [
+      { title: 'Redazione atti', body: 'Apre il modulo specifico per bozze, modelli e produzione degli atti.', href: '/redazione-atti', action: 'Apri redazione', icon: 'file', tone: 'primary', meta: 'Atti' },
+      { title: 'Documenti fascicolo', body: 'Consulta documenti, firmati e allegati collegati alle pratiche.', href: '/fascicoli', action: 'Apri fascicoli', icon: 'folder', tone: 'success', meta: 'Pratiche' },
+      { title: 'Ricerca documenti', body: 'Cerca rapidamente documenti, PEC, email e contenuti testuali.', href: '/global-search?tipo=documenti', action: 'Cerca', icon: 'book', tone: 'purple', meta: 'Ricerca' },
+      { title: 'Modelli atti', body: 'Usa catalogo e percorsi di compilazione senza confonderli con il centro editor.', href: '/template-atti/catalogo', action: 'Apri modelli', icon: 'book', tone: 'neutral', meta: 'Template' },
+    ],
+    workflow: ['Apri documento o fascicolo', 'Controlla contenuto e formato', 'Redigi o richiama Lex', 'Salva, firma o collega alla pratica'],
+    links: [{ label: 'Redazione Atti', href: '/redazione-atti' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'PEC', href: '/email/' }, { label: 'Email ordinaria', href: '/email-ordinaria/' }],
+  },
+  {
     id: 'redazione-atti',
     routes: ['/redazione-atti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/checklist'],
     title: 'Redazione Atti',

@@ -478,7 +478,9 @@ Slot documentale:
 
 - tutti i documenti del fascicolo utili al deposito devono essere visibili nella sezione `Documenti da inviare`;
 - l'avvocato può selezionare un documento, selezionare tutto con `Invia tutto`, oppure escludere un documento come `Fuori busta`;
-- ogni documento selezionato deve avere una classificazione chiara: `Atto principale`, `Procura alle liti`, `Allegato`, `Prova`, `Prova notifica`;
+- ogni documento selezionato deve avere una classificazione chiara e non ambigua: `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica`, `Fuori busta`;
+- la voce ibrida `Allegato / prova` non deve comparire nel menu: i documenti probatori ordinari del fascicolo sono `Allegato`, mentre `Prova notifica` è riservata a atto notificato, relata, PEC inviata, RAC/RdAC e ricevute/evidenze richieste dal deposito prova;
+- la direttiva normativa e tecnica sui ruoli documentali è salvata in `docs/specs/ministero/PCT_RUOLI_DOCUMENTALI_DEPOSITO_2026-06-16.md` e va riletta prima di modificare il menu o la classificazione deposito;
 - deve esistere un solo atto principale selezionato; se la proposta automatica ne trova più di uno, il sistema mantiene il primo coerente e riclassifica gli altri come allegati/prove;
 - la classificazione visibile deve essere salvata prima di firma e busta tramite endpoint reale, non solo tenuta nello stato React.
 
@@ -506,7 +508,9 @@ Regola UI corretta dopo prova server:
 
 - lo stepper deve mostrare un solo pannello operativo alla volta;
 - `Verifica operativa` e `Prepara controllo busta` devono dare un riscontro visibile immediato e portare alla fase coerente;
-- gli slot documentali non devono stare in un rail troppo stretto: vanno mostrati in una vista larga dentro la fase documentale, con testo, select e pulsanti leggibili.
+- gli slot documentali devono stare in un solo pannello largo, senza scroll interno, con testo, select e pulsanti leggibili;
+- lo stesso pannello resta laterale sui desktop/laptop larghi e si impila come unico pannello sugli schermi più stretti;
+- non deve esistere una seconda copia in fondo alla fase documentale.
 
 Verifiche obbligatorie per questa tranche:
 
@@ -517,3 +521,33 @@ Verifiche obbligatorie per questa tranche:
 - generazione pacchetto dry-run o ispezione reale equivalente;
 - controllo contenuti: documenti selezionati, atto principale, procura, allegati, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, oggetto e testo email se prodotti;
 - prova Local Signer e firma multipla reale quando PIN/token sono disponibili.
+
+## Aggiornamento 2.253.30 - menu ruolo, Editor professionale e lettore globale
+
+Intervento tecnico applicato prima della chiusura richiesta:
+
+- sostituita la select nativa dei ruoli deposito con un selettore React ancorato alla riga, per evitare popup fuori asse nella lista `Documenti da inviare`;
+- mantenuti come ruoli visibili solo `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica`, `Fuori busta`;
+- il valore storico `allegato_prova` resta accettato solo in compatibilità e viene normalizzato a `Allegato`;
+- aggiunta la route full React `/editor-professionale`, distinta da `/redazione-atti`, con voce autonoma sotto `Studio`;
+- esteso il lettore globale di allegati/documenti a `.xml`, `.xml.p7m`, `.eml`, `.eml.p7m`, `.txt`, `.txt.p7m`, oltre a `.pdf.p7m`;
+- il download resta sempre dell'originale, soprattutto per i contenitori `.p7m`;
+- rimossi rami di preview fascicolo duplicati per `.eml` e `.txt`, ora gestiti dal lettore unico, mantenendo `fascicoli_document_routes.py` sotto il limite di governance;
+- introdotto code splitting Vite per separare vendor e icone e rimuovere il warning del chunk principale sopra 500 kB.
+
+Guardrail tecnici eseguiti e registrati in `pytest-confirmed-ok.md`:
+
+- TypeScript, contratti React, route gate, OpenAPI, frontend test e build Vite;
+- test mirati deposito/regia, Editor professionale, fascicoli, PEC, email ordinaria, UTF-8 e asset retention;
+- audit dati/tenant/topbar senza repair;
+- quality gate `code` non usato come verde finale perché sullo stage completo blocca il bump versione obbligatorio di `Dockerfile`, `pct/__init__.py` e `railway.toml`;
+- governance repo e sintassi Python.
+
+Stato ancora aperto prima di dichiarare chiuso il deposito:
+
+- commit, push branch gemelli e check GitHub/CodeQL dello SHA corrente;
+- deploy Hetzner e verifica `/api/pronto`;
+- riallineamento Docker locale su `127.0.0.1:8080`;
+- prova visiva reale server desktop/tablet/mobile con click e scroll completo;
+- dry-run server del fascicolo `E5AE4668` senza invio PEC reale;
+- firma multipla reale solo quando PIN/token saranno disponibili.

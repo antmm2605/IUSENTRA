@@ -85,10 +85,9 @@ def _autentica_admin_session(app, client, cfg: dict) -> None:
         session_data["last_activity"] = datetime.now().isoformat()
 
 
-def _signed_pdf_p7m(pdf_bytes: bytes | None = None) -> bytes:
+def _signed_payload_p7m(payload: bytes) -> bytes:
     from asn1crypto import algos, cms
 
-    payload = pdf_bytes or b"%PDF-1.4\n% allegato firmato\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
     signed = cms.SignedData(
         {
             "version": "v1",
@@ -98,6 +97,34 @@ def _signed_pdf_p7m(pdf_bytes: bytes | None = None) -> bytes:
         }
     )
     return cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+
+
+def _signed_pdf_p7m(pdf_bytes: bytes | None = None) -> bytes:
+    payload = pdf_bytes or b"%PDF-1.4\n% allegato firmato\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    return _signed_payload_p7m(payload)
+
+
+def _textual_attachment_samples() -> list[tuple[str, str, bytes, list[str]]]:
+    xml = b'<?xml version="1.0" encoding="UTF-8"?><DatiAtto><Oggetto>Deposito prova</Oggetto></DatiAtto>'
+    eml = (
+        b"Subject: Prova PEC\r\n"
+        b"From: cancelleria@example.test\r\n"
+        b"To: studio@example.test\r\n"
+        b"\r\n"
+        b"Corpo messaggio EML"
+    )
+    txt = "Promemoria operativo leggibile".encode("utf-8")
+    return [
+        ("DatiAtto.xml", "application/xml", xml, ["Documento XML", "DatiAtto", "Deposito prova"]),
+        (
+            "DatiAtto.xml.p7m",
+            "application/pkcs7-mime",
+            _signed_payload_p7m(xml),
+            ["Documento XML firmato", "DatiAtto", "Deposito prova"],
+        ),
+        ("messaggio.eml", "message/rfc822", eml, ["Email PEC / EML", "Prova PEC", "Corpo messaggio EML"]),
+        ("nota.txt", "text/plain", txt, ["Documento di testo", "Promemoria operativo leggibile"]),
+    ]
 
 
 def test_email_blueprint_usa_storage_tenant_per_sincronizzazione(tmp_path):
@@ -1257,6 +1284,112 @@ def test_email_ordinaria_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):
         assert download.data == p7m_bytes
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
         assert "contratto.pdf.p7m" in download.headers.get("Content-Disposition", "")
+
+
+def test_email_pec_visualizza_xml_eml_txt_e_xml_p7m_senza_perdere_originale(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    message_id = "MAIL-FORMATI-PEC"
+    samples = _textual_attachment_samples()
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge.aggiungi(
+        EmailRicevuta(
+            id=message_id,
+            cartella="INBOX",
+            stato=StatoEmail.LETTA,
+            mittente="cancelleria@giustiziapec.it",
+            oggetto="PEC con formati leggibili",
+            data="2026-06-16T11:00:00",
+            corpo_testo="Contiene formati tecnici da visualizzare.",
+            allegati=[
+                {
+                    "nome": name,
+                    "mime": mime,
+                    "size": len(data),
+                    "percorso_rel": f"{message_id}/{name}",
+                    "nome_file": name,
+                }
+                for name, mime, data, _markers in samples
+            ],
+        )
+    )
+    allegato_dir = Path(cfg["EMAIL_CASELLA_DB"]).parent / "allegati" / message_id
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    for name, _mime, data, _markers in samples:
+        (allegato_dir / name).write_bytes(data)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        for index, (name, _mime, original, markers) in enumerate(samples):
+            inline = client.get(f"/email/messaggio/{message_id}/allegato/{index}")
+            assert inline.status_code == 200
+            assert inline.mimetype == "text/html"
+            html = inline.get_data(as_text=True)
+            assert name.removesuffix(".p7m") in html
+            for marker in markers:
+                assert marker in html
+
+            download = client.get(f"/email/messaggio/{message_id}/allegato/{index}?download=1")
+            assert download.status_code == 200
+            assert download.data == original
+            assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+            assert name in download.headers.get("Content-Disposition", "")
+
+
+def test_email_ordinaria_visualizza_xml_eml_txt_e_xml_p7m_senza_perdere_originale(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    message_id = "MAIL-FORMATI-ORD"
+    samples = _textual_attachment_samples()
+    ge = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ge.aggiungi(
+        EmailRicevuta(
+            id=message_id,
+            cartella="INBOX",
+            stato=StatoEmail.LETTA,
+            mittente="cliente@example.com",
+            oggetto="Email con formati leggibili",
+            data="2026-06-16T11:20:00",
+            corpo_testo="Contiene allegati tecnici da leggere.",
+            allegati=[
+                {
+                    "nome": name,
+                    "mime": mime,
+                    "size": len(data),
+                    "percorso_rel": f"{message_id}/{name}",
+                    "nome_file": name,
+                }
+                for name, mime, data, _markers in samples
+            ],
+        )
+    )
+    allegato_dir = Path(cfg["EMAIL_ORDINARIA_DB"]).parent / "allegati" / message_id
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    for name, _mime, data, _markers in samples:
+        (allegato_dir / name).write_bytes(data)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        for index, (name, _mime, original, markers) in enumerate(samples):
+            inline = client.get(f"/email-ordinaria/messaggio/{message_id}/allegato/{index}")
+            assert inline.status_code == 200
+            assert inline.mimetype == "text/html"
+            html = inline.get_data(as_text=True)
+            assert name.removesuffix(".p7m") in html
+            for marker in markers:
+                assert marker in html
+
+            download = client.get(f"/email-ordinaria/messaggio/{message_id}/allegato/{index}?download=1")
+            assert download.status_code == 200
+            assert download.data == original
+            assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+            assert name in download.headers.get("Content-Disposition", "")
 
 
 def test_email_dettaglio_scarica_allegato_da_archivio_zip(tmp_path, monkeypatch):

@@ -152,3 +152,135 @@ Stato da verificare dopo deploy `2.253.28`:
 - Studio deve mostrare `Editor professionale` e i collegamenti devono aprire le route previste;
 - se sul server è disponibile un `.pdf.p7m`, l'anteprima deve mostrare il PDF interno; in ogni caso i test automatici devono confermare PEC ed email ordinaria;
 - la firma multipla resta non dichiarabile verde finché non viene eseguita con PIN/token reale, più documenti firmati, salvataggio `.p7m` e riabilitazione del passo successivo.
+
+## Controllo approfondito ruoli documentali 2.253.29 - 16 giugno 2026
+
+Problema segnalato durante la prova visiva server:
+
+- nel menu ruolo compariva `Allegato / prova`, voce troppo ambigua per il lavoro dell'avvocato;
+- gli slot documentali usavano spazio disponibile male, con testo e comandi ancora troppo compressi nella zona laterale;
+- su visualizzazione laptop il rail laterale poteva risultare troppo stretto o sparire, mentre in fondo alla fase compariva una seconda copia dello stesso pannello `Slot documentali`;
+- nei documenti selezionabili mancavano azioni immediate di visualizzazione/scarico vicino al documento, quindi l'avvocato non poteva controllare rapidamente cosa stava classificando.
+
+Controllo fonti eseguito:
+
+- pagina ufficiale PST `Specifiche Tecniche ex art. 34 DM 44/2011 - Provvedimento 7 agosto 2024`: alla data del controllo risultano il provvedimento 7 agosto 2024 e le rettifiche 16 settembre 2024 e 30 ottobre 2024;
+- specifiche DGSIA 2024 salvate in `docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_2024_08_07.pdf`;
+- DTD `IndiceBusta.dtd`: busta con `Atto` e `Allegato`, con tipi tecnici per allegato semplice, procura, dati atto, ricevute e PEC di notifica;
+- direttive notifiche legali e matrice probatoria già salvate sotto `docs/specs/ministero`.
+
+Regola corretta:
+
+- menu visibile: `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica`, `Fuori busta`;
+- `Allegato / prova` non deve più comparire;
+- `Prova notifica` resta solo per atto notificato, relata, PEC inviata, RAC/RdAC, ricevute ed evidenze richieste dal deposito prova;
+- il valore storico interno `allegato_prova` è accettato solo come compatibilità e normalizzato a `Allegato`.
+
+Correzione applicata nel codice:
+
+- React normalizza il ruolo storico prima di mostrarlo, salvarlo e usarlo per soddisfare gli slot;
+- backend `/api/v1/ui/fascicoli/<id>/deposito/classifica-documenti` normalizza alias vecchi come `prova`, `documento_prova` e `allegato_prova` in `allegato`;
+- aggiunti comandi `Visualizza` e `Scarica` direttamente sulle righe dei documenti da inviare;
+- lo slot documentale resta in un solo pannello largo: laterale quando lo schermo lo consente, impilato come unico pannello quando la larghezza non basta, senza scroll interno e senza una seconda copia in fondo alla fase `Documenti da inviare`;
+- la sidebar dell'app resta visibile nella fascia laptop, così durante il deposito non si perde la navigazione principale;
+- aggiunto guardrail in `tests/test_regia_ui_react.py` per impedire il ritorno della voce `Allegato / prova`.
+
+Stato da verificare dopo deploy `2.253.29`:
+
+- sul server reale il menu ruolo non deve mostrare `Allegato / prova`;
+- ogni documento ordinario deve proporre `Allegato`;
+- le prove di notifica devono restare distinte;
+- i pulsanti `Visualizza` e `Scarica` devono aprire/servire il documento corretto;
+- il pannello `Slot documentali` deve comparire una sola volta, nel rail laterale largo o impilato come unico pannello su schermi più stretti, con testo e pulsanti leggibili;
+- sul server non deve esistere una seconda sezione `Slot documentali` in fondo alla fase documenti;
+- la prova visiva deve coprire desktop, tablet, mobile, scroll completo e click reali sui passaggi della fase deposito.
+
+## Piano di chiusura totale 2.253.30 - 16 giugno 2026
+
+Richiesta utente: aggiornare tutto il lavoro da fare e portare la tranche alla chiusura totale, senza falso verde. Dopo ogni compattazione questo file va riletto insieme ad `AGENTS.md`, `artifacts/data-flow/incarico-operativo-permanente.md` e `artifacts/react-migration/procedura-deposito-telematico.md`.
+
+Perimetro da chiudere:
+
+1. Deposito fascicolo server `E5AE4668`.
+   - Correggere il menu ruolo che, quando aperto, risultava disallineato nella lista `Documenti da inviare`.
+   - Il menu non deve usare la select nativa se questa produce popup fuori asse: deve aprirsi come pannello React ancorato alla riga, leggibile e cliccabile.
+   - Il menu deve mostrare solo `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica`, `Fuori busta`.
+   - `Allegato / prova` non deve tornare.
+
+2. Editor professionale.
+   - Deve comparire come voce autonoma nella nav sotto `Studio`.
+   - Non deve sostituire né duplicare il significato di `Redazione Atti`.
+   - `Redazione Atti` resta il modulo specifico per redigere atti.
+   - `Editor professionale` è il centro operativo più ampio: scrittura, controllo, ricerca documenti, lettura firmati, fascicoli, PEC/email e Lex editor.
+   - La route dedicata è `/editor-professionale`, full React, con contratto di migrazione e test.
+
+3. Lettore documenti legali globale.
+   - Estendere l'anteprima senza download a `.xml`, `.xml.p7m`, `.eml`, `.eml.p7m`, `.txt`, `.txt.p7m`, oltre a `.pdf.p7m`.
+   - Valere in tutto il software dove passano documenti/allegati: fascicolo, PEC ed email ordinaria.
+   - Il download deve continuare a servire l'originale, soprattutto per i contenitori `.p7m`.
+   - L'anteprima deve essere HTML sicuro, leggibile e in italiano, senza salvare audio o dati non richiesti.
+
+4. Test automatici e audit tecnico.
+   - Test React UI: nav `Editor professionale`, route `/editor-professionale`, menu ruolo custom, assenza `Allegato / prova`.
+   - Test fascicolo: anteprima reale di XML, XML.P7M, EML e TXT.
+   - Test PEC/email ordinaria: anteprima reale di XML, XML.P7M, EML e TXT, con download originale invariato.
+   - Typecheck, test frontend, build Vite, gate contratti, UTF-8 integrity, test deposito/regia/email/fascicoli mirati.
+   - Registrare esiti in `pytest-confirmed-ok.md` e problemi residui in `pytest-open-issues.md`.
+
+5. Commit, push, GitHub e deploy.
+   - Bump versione.
+   - Worktree pulita prima del commit.
+   - Commit sul branch `Codex/legal-electronic-filing-kIxcV`.
+   - Push anche su `claude/legal-electronic-filing-kIxcV` allo stesso SHA.
+   - Verificare tutti i check GitHub dello SHA corrente, inclusi CodeQL/code scanning.
+   - Deploy Hetzner sul commit pushato, container healthy, `https://app.iusentra.it/api/pronto` OK.
+   - Pulire cache Docker build Hetzner e snapshot temporaneo.
+   - Ricostruire/allineare Docker locale su `127.0.0.1:8080` e verificare `/api/pronto`.
+
+6. Prova reale e visiva sul server.
+   - Browser reale visibile su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`.
+   - Scroll completo dei pannelli, senza fermarsi alla prima vista.
+   - Click reale su `Documenti da inviare`, apertura menu ruolo e verifica allineamento.
+   - Click reale su `Editor professionale` dalla nav e verifica che la pagina sia distinta da `Redazione Atti`.
+   - Test responsive server desktop, tablet e mobile.
+   - Test apertura visuale dei formati disponibili o controllati: PDF/P7M, XML/XML.P7M, EML e TXT.
+   - Test flusso deposito fino alla generazione/ispezione pacchetto senza invio PEC reale.
+   - Se manca ancora `Atto.enc` ministeriale AES256, il report deve dire pacchetto di controllo, non deposito valido.
+
+Stato attuale del piano: aperto. Non usare le parole completato, funzionante, verde o risolto finché i punti sopra non sono realmente verificati.
+
+## Stato tecnico pre-commit 2.253.30 - 16 giugno 2026
+
+Modifiche pronte per commit:
+
+- menu ruolo deposito convertito da select nativa a pannello React ancorato alla riga;
+- ruoli visibili limitati a `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica`, `Fuori busta`;
+- `Allegato / prova` escluso dalla UI e coperto da normalizzazione/test;
+- `/editor-professionale` aggiunto come route full React autonoma, senza sostituire `Redazione Atti`;
+- anteprima globale estesa a `.xml`, `.xml.p7m`, `.eml`, `.eml.p7m`, `.txt`, `.txt.p7m`, `.pdf.p7m`;
+- bundle React separato in chunk vendor e icone per evitare il warning sul chunk principale;
+- governance repo rientrata dopo rimozione dei rami morti `.eml`/`.txt` nel preview fascicoli.
+
+Verifiche tecniche locali già eseguite:
+
+- TypeScript, frontend test, build Vite;
+- OpenAPI generato, validato e provider verification;
+- contratti React e route gate;
+- test mirati deposito/regia, route Editor professionale, fascicoli, PEC, email ordinaria, UTF-8 e asset retention;
+- audit dati/tenant/topbar su tenant locale reale senza repair;
+- packaging, release readiness, governance repo, py_compile;
+- quality gate `code` non usato come verde finale perché sullo stage completo segnala come protetti i file di versione che `AGENTS.md` impone di aggiornare.
+
+Esito da non interpretare come accettazione utente:
+
+- `python tools\codex_harness\run_codex_quality_gate.py --mode ui-support` fallisce perché tratta gli asset Vite committati in `web/static/react/assets` come directory protetta/fuori perimetro del supporto UI. Non è un esito positivo né viene usato come prova di funzionamento; resta registrato in `pytest-open-issues.md`.
+
+Stato aperto obbligatorio:
+
+- commit e push sui branch `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`;
+- controlli GitHub dello SHA corrente, incluso `Code scanning results / CodeQL`;
+- deploy Hetzner sullo stesso commit e verifica `https://app.iusentra.it/api/pronto`;
+- ricostruzione Docker locale e verifica `http://127.0.0.1:8080/api/pronto`;
+- prova visiva server su `E5AE4668` con scroll completo, menu ruolo aperto, responsive desktop/tablet/mobile, Editor professionale dalla nav e anteprime documentali disponibili;
+- dry-run del pacchetto deposito senza invio PEC reale;
+- firma multipla reale non dichiarabile finché non avviene prova con PIN/token e salvataggio di più `.p7m`.

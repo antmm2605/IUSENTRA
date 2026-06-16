@@ -58,7 +58,7 @@ Il controllo non si ferma alla voce principale della sidebar. Ogni sezione deve 
 - Comunicazioni: `Email PEC`, alias `PEC`, `Notifiche legali`, alias `L.53`, `Email ordinaria`, alias `SMTP`, `Messaggi`, `Nuovo SMS/WA`;
 - Scadenze e Termini: `Scadenziario`, `Nuova Scadenza`, `Preparazione Udienza Guidata`, `Controlli Atti`;
 - Servizi Telematici: `Centro Servizi Telematici`, `PolisWeb / PST`, `PDP Penale`, `PAT Amministrativo`, `PTT Tributario`, `Tribunali / PEC`, `Checklist deposito`, `Guida firma digitale`;
-- Studio: `Studio`, `Parcelle e Fatture`, `Preventivi e Incarichi`, `Compensi Forensi`, `Documenti`, `Redazione Atti`, `Statistiche`, `Ricerca Legale`, `Legal Skills`, `Regia Agentica`, `Archivio Giurisprudenza`, `Strumenti Forensi`, `Strumenti Operativi`;
+- Studio: `Studio`, `Parcelle e Fatture`, `Preventivi e Incarichi`, `Compensi Forensi`, `Documenti`, `Editor professionale`, `Redazione Atti`, `Statistiche`, `Ricerca Legale`, `Legal Skills`, `Regia Agentica`, `Archivio Giurisprudenza`, `Strumenti Forensi`, `Strumenti Operativi`;
 - Sito Studio: `Sito Studio`, `Builder Sito`, `Redazione AI Sito`, `Contatti Sito`;
 - Impostazioni: `Impostazioni Studio`, `Notifiche`, `Pagamenti`, `Canali SdI`, `Backup`, `Sincronizzazione Calendari`;
 - Amministrazione: `Amministrazione`, `Utenti`, `Profili e Permessi`, `Registro Attività`, `Importa pratiche da Studio Telematico`, `Database`, `Registro GDPR`.
@@ -108,6 +108,7 @@ Route sensibili da non dimenticare:
 - `/preventivi`;
 - `/compensi-forensi`;
 - `/documenti`;
+- `/editor-professionale`;
 - `/redazione-atti`;
 - `/statistiche`;
 - `/ricerca-legale`;

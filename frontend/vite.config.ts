@@ -40,7 +40,18 @@ export default defineConfig({
     // bundle ancora referenziati da una shell caricata prima dell'aggiornamento.
     emptyOutDir: false,
     manifest: true,
-    rollupOptions: { input: './index.html' }
+    rollupOptions: {
+      input: './index.html',
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('/node_modules/lucide-react/')) {
+            return 'vendor-icons'
+          }
+          return 'vendor'
+        },
+      },
+    }
   },
   server: {
     proxy: {

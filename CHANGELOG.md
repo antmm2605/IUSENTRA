@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.253.30 - 2026-06-16
+
+- Deposito telematico: sostituita la select nativa dei ruoli documentali con un selettore React ancorato alla riga, così il menu resta allineato e leggibile anche nella lista `Documenti da inviare`.
+- Editor professionale: aggiunta la route full React `/editor-professionale` e la voce autonoma nella nav sotto `Studio`, senza sostituire `Redazione Atti`.
+- Lettore documenti legali: estesa l'anteprima globale a `.xml`, `.xml.p7m`, `.eml`, `.eml.p7m`, `.txt`, `.txt.p7m` oltre ai `.pdf.p7m`, preservando il download dell'originale.
+- Performance React: introdotto code splitting del vendor e delle icone per rimuovere il warning Vite sul chunk principale sopra 500 kB.
+- Guardrail: aggiunti test mirati su menu ruolo custom, route Editor professionale e anteprime documentali per fascicoli, PEC ed email ordinaria.
+
+## 2.253.29 - 2026-06-16
+
+- Deposito telematico: corretto il menu dei ruoli documentali secondo il controllo fonti PST/DGSIA e DTD busta; rimangono visibili solo `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica` e `Fuori busta`, senza la voce ambigua `Allegato / prova`.
+- Classificazione documenti: il valore storico interno `allegato_prova` e gli alias vecchi vengono accettati solo per compatibilità, normalizzati a `Allegato` e salvati senza riproporre il vecchio ruolo nella UI.
+- UI deposito: aggiunte azioni `Visualizza` e `Scarica` direttamente nelle righe dei documenti da inviare; lo slot documentale resta in un solo pannello laterale più largo, senza scroll interno e senza duplicati a fondo fase.
+- Responsive deposito: su laptop e tablet lo slot documentale non viene più nascosto né duplicato; resta nel rail laterale quando lo spazio è sufficiente e si impila come unico pannello quando lo schermo è più stretto.
+- Shell applicativa: la sidebar resta visibile nella fascia laptop, evitando la perdita della navigazione principale durante il lavoro sul deposito e sulle altre pagine operative.
+- Documentazione: aggiunta la direttiva `docs/specs/ministero/PCT_RUOLI_DOCUMENTALI_DEPOSITO_2026-06-16.md` e aggiornato il report della prova server E5AE4668.
+
 ## 2.253.28 - 2026-06-16
 
 - Deposito telematico: trasformata la preparazione in una vista a step reale, con un solo pannello operativo visibile, feedback immediato su `Verifica operativa` e `Prepara controllo busta`, link delle card riallineati alle fasi e slot documentali spostati dentro `Documenti da inviare` con layout largo e leggibile.

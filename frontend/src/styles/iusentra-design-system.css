@@ -36,7 +36,7 @@
   --iusentra-spacing-4: 16px;
   --iusentra-spacing-5: 20px;
   --iusentra-layout-gap: 16px;
-  --iusentra-support-rail-width: 360px;
+  --iusentra-support-rail-width: 420px;
   --iusentra-toolbar-height: 44px;
   --iusentra-surface-min-height: 520px;
   --iusentra-card-min-height: 88px;
@@ -65,7 +65,7 @@
 .iusentra-main-area {
   --iusentra-support-rail-min-height: 0px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width));
+  grid-template-columns: minmax(0, 1fr) minmax(380px, var(--iusentra-support-rail-width));
   gap: var(--iusentra-layout-gap);
   align-items: start;
   min-width: 0;
@@ -1338,7 +1338,7 @@
 @media (min-width: 1181px) {
   .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width));
+    grid-template-columns: minmax(0, 1fr) minmax(380px, var(--iusentra-support-rail-width));
   }
 
   .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] > .iusentra-route-main-surface {
@@ -1728,7 +1728,7 @@
   --iusentra-radius-md: 10px;
   --iusentra-radius-lg: 12px;
   --iusentra-layout-gap: 14px;
-  --iusentra-support-rail-width: 372px;
+  --iusentra-support-rail-width: 420px;
   --iusentra-shadow-card: 0 12px 34px rgba(15, 23, 42, 0.07);
   --iusentra-shadow-raised: 0 22px 54px rgba(15, 23, 42, 0.1);
 }
@@ -2010,15 +2010,15 @@
 
 @media (min-width: 1181px) {
   .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
-    grid-template-columns: minmax(0, 1fr) minmax(326px, var(--iusentra-support-rail-width));
+    grid-template-columns: minmax(0, 1fr) minmax(380px, var(--iusentra-support-rail-width));
   }
 
   .iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail {
-    position: sticky;
-    top: calc(var(--iu-topbar-h, 76px) + 14px);
-    max-height: calc(100dvh - var(--iu-topbar-h, 76px) - 34px);
-    overflow: auto;
-    scrollbar-width: thin;
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
+    scrollbar-width: auto;
   }
 }
 

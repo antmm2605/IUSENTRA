@@ -94,7 +94,8 @@ function ProfessionalEditorPanel() {
           </div>
         </article>
         <div className="iu-studio-editor__actions" aria-label="Azioni editor professionale">
-          <ButtonLink href="/redazione-atti" tone="primary"><PenLine size={15} /> Apri editor</ButtonLink>
+          <ButtonLink href="/editor-professionale" tone="primary"><PenLine size={15} /> Apri editor</ButtonLink>
+          <ButtonLink href="/redazione-atti" tone="neutral"><PenLine size={15} /> Redazione atti</ButtonLink>
           <ButtonLink href="/template-atti/catalogo" tone="neutral"><BookOpenCheck size={15} /> Modelli atti</ButtonLink>
           <ButtonLink href="/global-search?tipo=documenti" tone="neutral"><FileSearch size={15} /> Cerca documenti</ButtonLink>
           <ButtonLink href="/fascicoli" tone="neutral"><FileText size={15} /> Documenti fascicolo</ButtonLink>

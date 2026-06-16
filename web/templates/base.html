@@ -270,7 +270,7 @@
     </div>
 
     {# ---- Sezione: Studio ---- #}
-    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','legal_intelligence','giurisprudenza','notifiche','pagamenti','preventivi','strumenti_legali','applicazioni','studio_site','studio_site_builder','impostazioni') or request.endpoint in ('tariffario','lista_backup','ripristina_backup','impostazioni_calendario') %}
+    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','legal_intelligence','giurisprudenza','notifiche','pagamenti','preventivi','strumenti_legali','applicazioni','studio_site','studio_site_builder','impostazioni') or request.endpoint in ('tariffario','lista_backup','ripristina_backup','impostazioni_calendario') or request.path == '/editor-professionale' %}
     <button class="sb-toggle {% if _st %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-studio" aria-expanded="{{ 'true' if _st else 'false' }}">
       <span><i class="bi bi-buildings"></i>Attività Studio</span>
@@ -288,6 +288,10 @@
       <a href="{{ url_for('tariffario') }}"
          class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
         <i class="bi bi-calculator"></i><span class="sb-txt">Compensi Forensi</span>
+      </a>
+      <a href="/editor-professionale"
+         class="nav-link sb-link {% if request.path == '/editor-professionale' %}active{% endif %}">
+        <i class="bi bi-pencil-square"></i><span class="sb-txt">Editor professionale</span>
       </a>
       <a href="{{ url_for('template_atti.lista') }}"
          class="nav-link sb-link {% if request.blueprint == 'template_atti' %}active{% endif %}">

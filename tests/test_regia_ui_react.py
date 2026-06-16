@@ -33,6 +33,7 @@ def test_ui_mostra_dati_regia_senza_placeholder_operativi():
 
 def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
     assert "function DepositPreparePage" in source
     assert "include: 'all'" in source
     assert "Inventario fascicolo" in source
@@ -54,12 +55,36 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Invia tutto" in source
     assert "Salva classificazione" in source
     assert "DEPOSIT_DOCUMENT_ROLE_OPTIONS" in source
+    role_options = source[
+        source.index("const DEPOSIT_DOCUMENT_ROLE_OPTIONS"):
+        source.index("function normaliseDepositRoleForUi")
+    ]
+    assert "Allegato / prova" not in role_options
+    assert "allegato_prova" not in role_options
+    assert "{ value: 'allegato', label: 'Allegato' }" in role_options
+    assert "{ value: 'prova_notifica', label: 'Prova notifica' }" in role_options
+    assert "normaliseDepositRoleForUi" in source
+    assert "function DepositRolePicker" in source
+    assert "iu-fas-deposit-role-picker__menu" in css
+    assert "iu-fas-deposit-role-picker__button" in css
+    deposit_selection = source[
+        source.index("className=\"iu-fas-deposit-selection__controls\""):
+        source.index("className=\"iu-fas-deposit-selection__signed\"")
+    ]
+    assert "<select" not in deposit_selection
+    assert "DepositRolePicker" in deposit_selection
     assert "defaultDepositRoleForDocument" in source
     assert "normaliseDepositClassificationMainAct" in source
     assert "deposito/classifica-documenti" in source
     assert "manualSelectableDocuments" in source
     assert "isDepositManualSelectableDocument" in source
     assert "documenti_selezionati_ids" in source
+    assert 'id="slot-deposito"' not in source
+    assert source.count('id="slot-deposito-rail"') == 1
+    assert "iu-fas-deposit-support-panel" not in source
+    assert "#slot-deposito-rail{display:none" not in css
+    assert "#slot-deposito-rail {display:none" not in css
+    assert ".iu-fas-deposit-step-layout>.iu-fas-detail-side{display:grid!important}" in css
     assert "updateDepositClassification(doc.id" in source
     assert "[doc.id]: event.currentTarget.checked" not in source
     assert "depositSelectionSatisfiesSlot" in source

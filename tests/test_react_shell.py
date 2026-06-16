@@ -196,6 +196,9 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in source
     assert "{ label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' }" in source
     assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
+    assert "@media(min-width:821px) and (max-width:1180px)" in css
+    assert ".iu-sidebar:not(.iu-sidebar--mobile-open){display:flex}" in css
+    assert "@media(max-width:820px)" in css
     assert "AppErrorBoundary" in source
     assert ".iu-react-error" in css
 
@@ -220,6 +223,7 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "Parcelle e Fatture",
         "Preventivi e Incarichi",
         "Compensi Forensi",
+        "Editor professionale",
         "Redazione Atti",
         "Statistiche",
         "Ricerca Legale",
@@ -287,6 +291,28 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
             assert "render_react_shell_response" not in source, path
 
 
+def test_editor_professionale_resta_route_autonoma_distinta_da_redazione_atti():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/EditorProfessionalePage.tsx").read_text(encoding="utf-8")
+    route_gate = Path("web/bootstrap/react_route_gate.py").read_text(encoding="utf-8")
+    shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
+    manifest = json.loads(Path("tools/react-migration/route-manifest.json").read_text(encoding="utf-8"))
+
+    assert "{ label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale' }" in app_source
+    assert "{ label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' }" in app_source
+    assert "const isEditorProfessionalePage = routeKey === '/editor-professionale'" in app_source
+    assert "isEditorProfessionalePage?<EditorProfessionalePage/>" in app_source
+    assert "Redazione Atti quando serve il modulo specifico degli atti" in page_source
+    assert "Lettore documenti legali" in page_source
+    assert "XML.P7M" in page_source
+    assert '"/editor-professionale"' in route_gate
+    assert '("/editor-professionale", "src/components/EditorProfessionalePage.tsx")' in shell_source
+    editor_entry = next((entry for entry in manifest["routes"] if entry.get("route") == "/editor-professionale"), None)
+    assert editor_entry is not None
+    assert editor_entry["status"] == "react_operational_full"
+    assert editor_entry["targetComponent"] == "frontend/src/components/EditorProfessionalePage.tsx"
+
+
 def test_react_blocco_finale_studio_admin_completo():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     module_source = Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
@@ -305,6 +331,7 @@ def test_react_blocco_finale_studio_admin_completo():
         "/preventivi/conferimento/nuovo",
         "/compensi-forensi",
         "/documenti",
+        "/editor-professionale",
         "/redazione-atti",
         "/template-atti/catalogo",
         "/template-atti/nuovo",
@@ -348,6 +375,7 @@ def test_react_blocco_finale_studio_admin_completo():
         "Preventivi e Incarichi",
         "Compensi Forensi",
         "Documenti",
+        "Editor professionale",
         "Redazione Atti",
         "Importa pratica da PST",
         "Statistiche",
@@ -477,6 +505,7 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             ("/tariffario", "Tariffario Forense", False),
             ("/compensi-forensi", "Tariffario Forense", True),
             ("/documenti", "Documenti", True),
+            ("/editor-professionale", "Editor professionale", True),
             ("/redazione-atti", "Redazione Atti", True),
             ("/template-atti/catalogo", "Catalogo Atti", False),
             ("/portali/pst/acquisizione", "Importa pratica da PST", False),
@@ -3062,6 +3091,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Parcelle e Fatture",
         "Preventivi e Incarichi",
         "Compensi Forensi",
+        "Editor professionale",
         "Redazione Atti",
         "Statistiche",
         "Ricerca Legale",
@@ -3160,6 +3190,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Preventivi e Incarichi": "/preventivi",
         "Compensi Forensi": "/compensi-forensi",
         "Documenti": "/documenti",
+        "Editor professionale": "/editor-professionale",
         "Redazione Atti": "/redazione-atti",
         "Template Atti": "/template-atti",
         "Catalogo Template": "/template-atti/catalogo",
@@ -3713,11 +3744,15 @@ def test_react_fascicoli_usa_preset_grafico_globale():
         assert f"'{sequence_slot}'" in preset
         assert f'data-iusentra-sequence-slot="{sequence_slot}"' in design_css
         assert sequence_label in docs
-    assert 'data-iusentra-sequence-slot="page-header"' in section_header
-    assert 'data-iusentra-sequence-slot="operational-subtitle"' in section_header
-    assert 'data-iusentra-sequence-part="operational-subtitle"' in section_header
-    assert 'data-iusentra-sequence-slot="primary-actions"' in section_header
-    assert 'data-iusentra-sequence-part="primary-actions"' in section_header
+    assert "'data-iusentra-sequence-slot': 'page-header'" in section_header
+    assert "'data-iusentra-sequence-part': 'page-header'" in section_header
+    assert "'data-iusentra-sequence-slot': 'operational-subtitle'" in section_header
+    assert "'data-iusentra-sequence-part': 'operational-subtitle'" in section_header
+    assert "'data-iusentra-sequence-slot': 'primary-actions'" in section_header
+    assert "'data-iusentra-sequence-part': 'primary-actions'" in section_header
+    assert "{...headerSequenceProps}" in section_header
+    assert "{...descriptionSequenceProps}" in section_header
+    assert "{...actionsSequenceProps}" in section_header
     for route_layout in (
         ".iu-ag-layout",
         ".iu-cli-layout",
@@ -3735,7 +3770,10 @@ def test_react_fascicoli_usa_preset_grafico_globale():
         assert route_layout in preset
     assert "--iusentra-support-rail-min-height" in preset
     assert "--iusentra-route-rail-height" in preset
-    assert "grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))" in design_css
+    assert "--iusentra-support-rail-width: 420px" in design_css
+    assert "grid-template-columns: minmax(0, 1fr) minmax(380px, var(--iusentra-support-rail-width))" in design_css
+    assert "max-height: none;" in design_css
+    assert "overflow: visible;" in design_css
     assert ".iusentra-route-preset--active .iusentra-route-grid" in design_css
     assert ".iusentra-route-preset--active .iu-content.iusentra-route-sequence" in design_css
     assert ".iusentra-route-grid > .iusentra-route-rail" in design_css

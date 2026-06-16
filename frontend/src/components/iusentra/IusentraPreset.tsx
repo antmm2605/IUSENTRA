@@ -177,7 +177,7 @@ const IUSENTRA_ROUTE_PRESET_RUNTIME_CSS = `
 @media (min-width: 1181px) {
   .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width)) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(380px, var(--iusentra-support-rail-width)) !important;
   }
   .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] > .iusentra-route-main-surface {
     min-height: max(var(--iusentra-route-rail-height, 0px), var(--iusentra-surface-min-height)) !important;

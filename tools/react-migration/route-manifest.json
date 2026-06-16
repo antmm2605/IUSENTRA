@@ -429,6 +429,25 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti?tab=editor",
+      "route": "/editor-professionale",
+      "family": "documenti",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/EditorProfessionalePage.tsx",
+      "targetData": "frontend/src/components/EditorProfessionalePage.tsx",
+      "targetBridge": "web/blueprints/react_shell.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/editor-professionale.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "voce nav distinta da Redazione Atti",
+        "hub editor completo",
+        "accesso a redazione atti, modelli, fascicoli e ricerca",
+        "lettore documenti legali PDF P7M XML EML TXT",
+        "nessun duplicato funzionale nascosto"
+      ]
+    },
+    {
       "workspaceTarget": "/app/email",
       "route": "/email",
       "family": "comunicazioni",

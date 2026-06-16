@@ -137,6 +137,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/preventivi", "src/components/PreventiviPage.tsx"),
     ("/compensi-forensi", "src/components/CompensiForensiPage.tsx"),
     ("/documenti", "src/components/StudioModulePage.tsx"),
+    ("/editor-professionale", "src/components/EditorProfessionalePage.tsx"),
     ("/template-atti", "src/components/TemplateAttiPage.tsx"),
     ("/redazione-atti", "src/components/RedazioneAttiPage.tsx"),
     ("/statistiche", "src/components/StatistichePage.tsx"),

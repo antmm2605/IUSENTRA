@@ -16,7 +16,6 @@ Routes:
 """
 from __future__ import annotations
 
-import mimetypes
 import os
 from io import BytesIO
 from datetime import date
@@ -33,7 +32,7 @@ from pct.notifiche_legali import is_legal_notification_subject as _is_legal_noti
 from web.bootstrap.fascicoli_document_helpers import preview_unavailable_html
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
-from web.services.signed_attachment_preview import build_attachment_preview_payload
+from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
 
@@ -291,16 +290,10 @@ def allegato(id_email: str, indice_allegato: int):
             abort(404)
     info = (em.allegati or [])[indice_allegato]
     nome_download = info.get("nome") or info.get("nome_file") or (percorso.name if percorso else "allegato")
-    mime_salvato = str(info.get("mime") or "").strip()
-    mime_da_nome = mimetypes.guess_type(nome_download)[0] or ""
-    if mime_salvato in {"", "application/octet-stream", "binary/octet-stream"} and mime_da_nome:
-        mimetype = mime_da_nome
-    else:
-        mimetype = mime_salvato or mime_da_nome or "application/octet-stream"
     download_requested = request.args.get("download") == "1"
-    if not download_requested and mimetype == "message/rfc822":
-        mimetype = "text/plain; charset=utf-8"
-    if not download_requested and nome_download.lower().endswith((".p7m", ".pm7")):
+    mime_salvato = str(info.get("mime") or "").strip()
+    mimetype = attachment_mimetype(nome_download, mime_salvato)
+    if not download_requested:
         raw_data = contenuto_archivio if contenuto_archivio is not None else Path(percorso).read_bytes()
         preview = build_attachment_preview_payload(
             nome_file=nome_download,

@@ -4416,9 +4416,9 @@ def _deposit_document_role(value: Any) -> str:
         "ricorso": "atto_principale",
         "procura": "procura",
         "procura_alle_liti": "procura",
-        "prova": "allegato_prova",
-        "documento_prova": "allegato_prova",
-        "allegato_prova": "allegato_prova",
+        "prova": "allegato",
+        "documento_prova": "allegato",
+        "allegato_prova": "allegato",
         "prova_notifica": "prova_notifica",
         "notifica": "prova_notifica",
         "allegato": "allegato",
@@ -4434,13 +4434,14 @@ def _deposit_slot_key_for_role(role: str, slots: Iterable[Any], used: set[str]) 
         return "ATTO_PRINCIPALE"
     if role == "procura":
         return "PROCURA"
-    if role in {"allegato_prova", "prova_notifica"}:
+    if role in {"allegato", "prova_notifica"}:
         candidates = [
             slot
             for slot in slots
             if str(getattr(slot, "slot_key", "") or "").strip().upper() not in used
             and (
                 str(getattr(slot, "type", "") or "").strip().upper() == "DOCUMENTO_PROVA"
+                or str(getattr(slot, "type", "") or "").strip().upper() == "DOCUMENTO"
                 or "PROVA" in str(getattr(slot, "slot_key", "") or "").upper()
                 or "DOCUMENT" in str(getattr(slot, "slot_key", "") or "").upper()
             )
@@ -4551,6 +4552,7 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         "selectedCount": selected_count,
         "linkedSlots": linked_slots,
         "documents": updated_documents,
+        "updatedDocuments": updated_documents,
         "regia": regia,
     })
 

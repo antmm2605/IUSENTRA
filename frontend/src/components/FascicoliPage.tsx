@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
   AlertTriangle,
@@ -401,11 +401,74 @@ type DepositDocumentClassification = {
 const DEPOSIT_DOCUMENT_ROLE_OPTIONS: Array<{ value: DepositDocumentRole; label: string }> = [
   { value: 'atto_principale', label: 'Atto principale' },
   { value: 'procura', label: 'Procura alle liti' },
-  { value: 'allegato_prova', label: 'Allegato / prova' },
   { value: 'allegato', label: 'Allegato' },
   { value: 'prova_notifica', label: 'Prova notifica' },
   { value: 'fuori_busta', label: 'Fuori busta' },
 ]
+
+function DepositRolePicker({
+  documentName,
+  value,
+  onChange,
+}: {
+  documentName: string
+  value: DepositDocumentRole
+  onChange: (role: DepositDocumentRole) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const labelId = useId()
+  const currentValue = normaliseDepositRoleForUi(value)
+  const current = DEPOSIT_DOCUMENT_ROLE_OPTIONS.find((option) => option.value === currentValue) || DEPOSIT_DOCUMENT_ROLE_OPTIONS[2]
+
+  return (
+    <div className="iu-fas-deposit-role-picker" onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
+    }}>
+      <span id={labelId}>Ruolo</span>
+      <div className="iu-fas-deposit-role-picker__box">
+        <button
+          type="button"
+          className="iu-fas-deposit-role-picker__button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-labelledby={labelId}
+          aria-label={`Ruolo deposito per ${documentName}`}
+          onClick={() => setOpen((currentOpen) => !currentOpen)}
+        >
+          <strong>{current.label}</strong>
+          <ChevronDown size={14} aria-hidden="true" />
+        </button>
+        {open ? (
+          <div className="iu-fas-deposit-role-picker__menu" role="listbox" aria-label={`Seleziona ruolo deposito per ${documentName}`}>
+            {DEPOSIT_DOCUMENT_ROLE_OPTIONS.map((option) => {
+              const selected = option.value === currentValue
+              return (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={selected ? 'is-selected' : ''}
+                  key={`${documentName}-${option.value}`}
+                  onClick={() => {
+                    onChange(option.value)
+                    setOpen(false)
+                  }}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function normaliseDepositRoleForUi(role: DepositDocumentRole | undefined): DepositDocumentRole {
+  if (role === 'allegato_prova') return 'allegato'
+  return role || 'allegato'
+}
 
 const DEPOSIT_PHASE_IDS = [
   'verifica-deposito',
@@ -2679,7 +2742,7 @@ function DepositPreparePage({ id }:{id:string}) {
       if (normalizedPatch.role === 'atto_principale') {
         Object.keys(next).forEach((key) => {
           if (key !== documentId && next[key]?.role === 'atto_principale') {
-            next[key] = { ...next[key], role: 'allegato_prova' }
+            next[key] = { ...next[key], role: 'allegato' }
           }
         })
       }
@@ -2690,7 +2753,7 @@ function DepositPreparePage({ id }:{id:string}) {
     documents: depositSelectableDocuments.map((doc) => ({
       document_id: doc.id,
       selected: Boolean(effectiveDepositClassificationById[doc.id]?.selected),
-      role: effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id),
+      role: normaliseDepositRoleForUi(effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)),
       already_signed: Boolean(doc.signed),
     })),
   })
@@ -3075,19 +3138,29 @@ function DepositPreparePage({ id }:{id:string}) {
                       <div>
                         <strong>{doc.name}</strong>
                         <span>{[doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
+                        {doc.signed ? <em>{doc.name.toLowerCase().endsWith('.p7m') ? 'File firmato .p7m' : 'Firmato digitale'}</em> : null}
                         {selected && !classification.alreadySigned && requiresPackageSignature(doc) ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
+                      <div className="iu-fas-deposit-document-actions" aria-label={`Azioni documento ${doc.name}`}>
+                        {doc.actions.preview ? (
+                          <button type="button" title={`Visualizza ${doc.name}`} aria-label={`Visualizza ${doc.name}`} onClick={() => setPreviewDoc({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}>
+                            <Eye size={15}/>
+                            <span>Visualizza</span>
+                          </button>
+                        ) : null}
+                        {doc.actions.download ? (
+                          <a href={doc.actions.download} title={`Scarica originale ${doc.name}`} aria-label={`Scarica originale ${doc.name}`}>
+                            <Download size={15}/>
+                            <span>Scarica</span>
+                          </a>
+                        ) : null}
+                      </div>
                       <div className="iu-fas-deposit-selection__controls">
-                        <label>
-                          <span>Ruolo</span>
-                          <select
-                            value={classification.role}
-                            onChange={(event) => updateDepositClassification(doc.id, { role: event.currentTarget.value as DepositDocumentRole })}
-                            aria-label={`Ruolo deposito per ${doc.name}`}
-                          >
-                            {DEPOSIT_DOCUMENT_ROLE_OPTIONS.map((option) => <option value={option.value} key={`${doc.id}-${option.value}`}>{option.label}</option>)}
-                          </select>
-                        </label>
+                        <DepositRolePicker
+                          documentName={doc.name}
+                          value={classification.role}
+                          onChange={(nextRole) => updateDepositClassification(doc.id, { role: nextRole })}
+                        />
                         <label className="iu-fas-deposit-selection__signed">
                           <input
                             type="checkbox"
@@ -3105,40 +3178,6 @@ function DepositPreparePage({ id }:{id:string}) {
                 {!depositSelectableDocuments.length ? <p className="iu-empty">Nessun documento selezionabile: carica o classifica l'atto principale e gli allegati prima del deposito.</p> : null}
               </div>
             </div>
-            <section className="iu-fas-deposit-support-panel" id="slot-deposito" aria-label="Slot documentali">
-              <header>
-                <div>
-                  <strong>Slot documentali</strong>
-                  <span>Collega o sostituisci i documenti obbligatori in una vista larga, leggibile e coerente con la busta.</span>
-                </div>
-                <Badge tone={regia.documentSlots.length ? 'primary' : 'warning'}>{regia.documentSlots.length}</Badge>
-              </header>
-              <div className="iu-fas-regia-list iu-fas-slot-list">
-                {sortedSlots.map((slot) => {
-                  const slotKey = recordText(slot, 'slotKey')
-                  const linkedDocument = documentsById.get(recordText(slot, 'documentId'))
-                  const slotStatus = slotStatusDisplay(recordText(slot, 'status'), Boolean(linkedDocument))
-                  return (
-                    <article className="iu-fas-slot-row" key={slotKey || recordText(slot, 'label')}>
-                      <Badge tone={slotStatus.tone}>{slotStatus.label}</Badge>
-                      <strong>{recordText(slot, 'label')}</strong>
-                      <span>{linkedDocument ? `Documento: ${linkedDocument.name}` : recordText(slot, 'message', 'Documento da collegare')}</span>
-                      <small>{recordText(slot, 'suggestedAction') || (linkedDocument ? 'Puoi sostituire la scelta se non è corretta.' : 'Seleziona il documento corretto dal fascicolo.')}</small>
-                      {slotKey ? (
-                        <JsonPostForm className="iu-fas-slot-link-form" action={`/api/v1/ui/fascicoli/${encodedId}/document-slots/${encodeURIComponent(slotKey)}/link`} onDone={refreshDetail} onError={failDetail}>
-                          <select name="document_id" defaultValue={linkedDocument?.id || ''} required>
-                            <option value="">Scegli documento</option>
-                            {data.documents.map((doc) => <option key={`${slotKey}-${doc.id}`} value={doc.id}>{doc.name} - {doc.statusLabel}</option>)}
-                          </select>
-                          <button type="submit"><Save size={14}/> Collega</button>
-                        </JsonPostForm>
-                      ) : null}
-                    </article>
-                  )
-                })}
-                {!regia.documentSlots.length ? <p className="iu-empty">Slot documentali non ancora disponibili: aggiorna la Regia dopo aver classificato i documenti.</p> : null}
-              </div>
-            </section>
             {renderDepositStepControls('proposta-busta')}
           </DetailSection>
 
@@ -3338,7 +3377,7 @@ function DepositPreparePage({ id }:{id:string}) {
               { label: 'Canale', value: regia.header.channel || 'da verificare' },
             ]}/>
           </DetailSection>
-          <DetailSection id="slot-deposito" title="Slot documentali" icon={<PackageCheck size={17}/>} count={regia.documentSlots.length}>
+          <DetailSection id="slot-deposito-rail" title="Slot documentali" icon={<PackageCheck size={17}/>} count={regia.documentSlots.length}>
             <div className="iu-fas-regia-list">
               {sortedSlots.map((slot) => {
                 const slotKey = recordText(slot, 'slotKey')
@@ -3945,21 +3984,21 @@ function documentOperationalRole(doc: FascicoloDocument): { label: string; detai
 }
 
 function defaultDepositRoleForDocument(doc: FascicoloDocument | undefined, linkedSlotKey = '', isProposedMainAct = false): DepositDocumentRole {
-  if (!doc) return 'allegato_prova'
+  if (!doc) return 'allegato'
   const slot = normaliseText(linkedSlotKey)
   const text = documentSearchText(doc)
   if (isProposedMainAct || /atto principale|atto_principale/.test(slot) || isMainActCandidateDocument(doc)) return 'atto_principale'
   if (/procura/.test(slot) || /procura/.test(text)) return 'procura'
   if (/prova|notifica|ricevuta/.test(slot) || notificationProofKind(doc)) return 'prova_notifica'
   if (isCommunicationDocument(doc)) return 'fuori_busta'
-  if (/contratto|quietanza|busta paga|cedolin|documento|prova|allegat/.test(text)) return 'allegato_prova'
+  if (/contratto|quietanza|busta paga|cedolin|documento|allegat/.test(text)) return 'allegato'
   return 'allegato'
 }
 
 function depositRoleLabel(role: DepositDocumentRole): { label: string; tone: FascicoloRow['tone'] } {
   if (role === 'atto_principale') return { label: 'Atto principale', tone: 'primary' }
   if (role === 'procura') return { label: 'Procura alle liti', tone: 'purple' }
-  if (role === 'allegato_prova') return { label: 'Allegato / prova', tone: 'success' }
+  if (role === 'allegato_prova') return { label: 'Allegato', tone: 'success' }
   if (role === 'prova_notifica') return { label: 'Prova notifica', tone: 'info' }
   if (role === 'fuori_busta') return { label: 'Fuori busta', tone: 'neutral' }
   return { label: 'Allegato', tone: 'neutral' }
@@ -3978,7 +4017,7 @@ function normaliseDepositClassificationMainAct(
   const next = Object.fromEntries(entries.map(([id, row]) => {
     if (row.selected && row.role === 'atto_principale' && id !== selectedMainId) {
       changed = true
-      return [id, { ...row, role: 'allegato_prova' as DepositDocumentRole }]
+      return [id, { ...row, role: 'allegato' as DepositDocumentRole }]
     }
     return [id, row]
   }))
@@ -4019,11 +4058,12 @@ function depositDocumentMatchesSlot(slot: Record<string, unknown>, doc: Fascicol
 }
 
 function slotMatchesDepositRole(slot: Record<string, unknown>, role: DepositDocumentRole): boolean {
+  const uiRole = normaliseDepositRoleForUi(role)
   const slotText = normaliseText(`${recordText(slot, 'slotKey')} ${recordText(slot, 'label')} ${recordText(slot, 'type')}`)
-  if (/atto principale|atto_principale/.test(slotText)) return role === 'atto_principale'
-  if (/procura/.test(slotText)) return role === 'procura'
-  if (/prova|notifica|ricevuta/.test(slotText)) return role === 'prova_notifica' || role === 'allegato_prova'
-  if (/allegat|documento/.test(slotText)) return role === 'allegato' || role === 'allegato_prova' || role === 'prova_notifica'
+  if (/atto principale|atto_principale/.test(slotText)) return uiRole === 'atto_principale'
+  if (/procura/.test(slotText)) return uiRole === 'procura'
+  if (/prova|notifica|ricevuta|rac|rdac/.test(slotText)) return uiRole === 'prova_notifica'
+  if (/allegat|documento/.test(slotText)) return uiRole === 'allegato'
   return false
 }
 

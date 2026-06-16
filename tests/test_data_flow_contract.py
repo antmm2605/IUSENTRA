@@ -47,6 +47,7 @@ def test_data_flow_contract_copre_menu_operativo_storage_e_route_react():
 
     assert "/fascicoli/:id/deposito/prepara" in required_react_routes()
     assert "/admin/database" in required_react_routes()
+    assert "/editor-professionale" in required_react_routes()
     assert "/legal-skills" in required_react_routes()
     assert "/workflow-agents" in required_react_routes()
     assert "/guida/firma-digitale" in required_react_routes()
@@ -73,6 +74,7 @@ def test_data_flow_contract_copre_menu_operativo_storage_e_route_react():
     assert "/clienti" in menu["Anagrafica"]
     assert "/soggetti" in menu["Anagrafica"]
     assert menu["Legal Skills"] == {"/legal-skills"}
+    assert menu["Editor professionale"] == {"/editor-professionale"}
     assert menu["Regia Agentica"] == {"/workflow-agents"}
     assert menu["Guida firma digitale"] == {"/guida/firma-digitale"}
     assert menu["Importa pratiche da Studio Telematico"] == {

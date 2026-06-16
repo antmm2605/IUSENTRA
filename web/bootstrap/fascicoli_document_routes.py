@@ -442,40 +442,29 @@ def register_fascicoli_document_routes(
             firma_payload = firma_payload_corrente_o_sibling(percorso, documento.nome, data)
             preview_payload = data
             preview_name = documento.nome
+            lower_name = documento.nome.lower()
 
-            if documento.nome.lower().endswith(".eml"):
-                from pct.editor import eml_to_html
-                from web.bootstrap.fascicoli_document_helpers import preview_eml_html
+            if lower_name.endswith((".xml", ".xml.p7m", ".eml", ".eml.p7m", ".txt", ".txt.p7m")):
+                from web.services.signed_attachment_preview import build_attachment_preview_payload
 
-                _html, _avvisi, meta = eml_to_html(data)
+                signed_payload = firma_payload if lower_name.endswith(".p7m") else data
+                preview_document = build_attachment_preview_payload(
+                    nome_file=documento.nome,
+                    data=signed_payload,
+                    mime_salvato="",
+                )
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
+                if preview_document.unavailable_reason:
+                    return preview_unavailable_html(documento.nome, scarica_url)
                 audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} - {documento.nome}")
-                return preview_eml_html(
-                    nome_documento=documento.nome,
-                    html_body="<p>Anteprima del messaggio disponibile scaricando il file EML originale.</p>",
-                    meta=meta,
-                    scarica_url=scarica_url,
+                return send_file(
+                    io.BytesIO(preview_document.data),
+                    mimetype=preview_document.mimetype,
+                    as_attachment=False,
+                    download_name=preview_document.download_name,
                 )
 
-            if documento.nome.lower().endswith(".txt"):
-                from pct.document_intelligence.extraction import extract_text_from_document
-                from web.bootstrap.fascicoli_document_helpers import preview_text_html
-
-                extraction = extract_text_from_document(data, documento.nome, "txt")
-                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
-                audit(
-                    "fascicoli.documento.visualizza",
-                    "fascicolo",
-                    id_fasc,
-                    dettagli=f"doc {id_doc} - {documento.nome}",
-                )
-                return preview_text_html(
-                    nome_documento=documento.nome,
-                    text=extraction.text,
-                    scarica_url=scarica_url,
-                )
-
-            if documento.nome.lower().endswith(".p7m"):
+            if lower_name.endswith(".p7m"):
                 contenuto_estratto = estrai_contenuto_p7m_per_preview(firma_payload)
                 if contenuto_estratto:
                     preview_payload = contenuto_estratto

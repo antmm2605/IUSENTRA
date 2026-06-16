@@ -673,6 +673,22 @@ body.react-shell-page #root{
   .iu-menu-mobile{display:grid}
 }
 
+@media(min-width:821px) and (max-width:1180px){
+  .iu-shell,
+  .iu-shell.iu-shell--collapsed{grid-template-columns:var(--iu-sidebar-w) minmax(0,1fr)}
+  .iu-shell.iu-shell--collapsed{grid-template-columns:84px minmax(0,1fr)}
+  .iu-sidebar:not(.iu-sidebar--mobile-open){display:flex}
+  .iu-sidebar{transform:none;width:var(--iu-sidebar-w);box-shadow:18px 0 42px rgba(2,6,23,.22)}
+  .iu-sidebar--collapsed{width:84px}
+  .iu-main{grid-column:2}
+  .iu-menu-mobile,
+  .iu-mobile{display:none!important}
+}
+
+@media(max-width:820px){
+  .iu-sidebar:not(.iu-sidebar--mobile-open){display:none}
+}
+
 @media(max-width:1480px){
   .span6{grid-column:span 6}
 }

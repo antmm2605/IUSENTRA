@@ -72,6 +72,20 @@ def _login(client):
     )
 
 
+def _signed_payload_p7m(payload: bytes) -> bytes:
+    from asn1crypto import algos, cms
+
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data", "content": payload},
+            "signer_infos": [],
+        }
+    )
+    return cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+
+
 def test_dettaglio_fascicolo_espone_ux_documenti_e_cabina_collassabile(fascicolo_ux):
     from web.app import create_app
 
@@ -169,7 +183,7 @@ def test_rinomina_documento_da_react_action(fascicolo_ux):
     assert detail["documents"][0]["actions"]["rename"].endswith(f"/documenti/{doc.id}/rinomina")
 
 
-def test_documenti_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux):
+def test_documenti_xml_p7m_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux):
     from web.app import create_app
 
     cfg, fascicolo = fascicolo_ux
@@ -190,12 +204,27 @@ def test_documenti_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux):
         TipoDocumento.ALLEGATO,
         "Promemoria leggibile da Lex".encode("utf-8"),
     )
+    xml_bytes = b'<?xml version="1.0" encoding="UTF-8"?><DatiAtto><Oggetto>Deposito prova</Oggetto></DatiAtto>'
+    xml = gf.aggiungi_documento(
+        fascicolo.id,
+        "DatiAtto.xml",
+        TipoDocumento.ALLEGATO,
+        xml_bytes,
+    )
+    xml_p7m = gf.aggiungi_documento(
+        fascicolo.id,
+        "DatiAtto.xml.p7m",
+        TipoDocumento.ALLEGATO,
+        _signed_payload_p7m(xml_bytes),
+    )
 
     app = create_app(cfg)
     with app.test_client() as client:
         _login(client)
         eml_preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/visualizza")
         txt_preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{txt.id}/visualizza")
+        xml_preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{xml.id}/visualizza")
+        xml_p7m_preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{xml_p7m.id}/visualizza")
         eml_delete = client.post(
             f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/elimina",
             headers={"X-Requested-With": "XMLHttpRequest"},
@@ -206,17 +235,37 @@ def test_documenti_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux):
             headers={"X-Requested-With": "XMLHttpRequest"},
             follow_redirects=False,
         )
+        xml_delete = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{xml.id}/elimina",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+            follow_redirects=False,
+        )
+        xml_p7m_delete = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{xml_p7m.id}/elimina",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+            follow_redirects=False,
+        )
 
     assert eml_preview.status_code == 200
     assert txt_preview.status_code == 200
+    assert xml_preview.status_code == 200
+    assert xml_p7m_preview.status_code == 200
     assert "Email PEC / EML" in eml_preview.data.decode("utf-8")
     assert "PEC prova" in eml_preview.data.decode("utf-8")
     assert "Documento di testo" in txt_preview.data.decode("utf-8")
     assert "Promemoria leggibile da Lex" in txt_preview.data.decode("utf-8")
+    assert "Documento XML" in xml_preview.data.decode("utf-8")
+    assert "Deposito prova" in xml_preview.data.decode("utf-8")
+    assert "Documento XML firmato" in xml_p7m_preview.data.decode("utf-8")
+    assert "Deposito prova" in xml_p7m_preview.data.decode("utf-8")
     assert eml_delete.status_code == 200
     assert txt_delete.status_code == 200
+    assert xml_delete.status_code == 200
+    assert xml_p7m_delete.status_code == 200
     assert eml_delete.get_json()["ok"] is True
     assert txt_delete.get_json()["ok"] is True
+    assert xml_delete.get_json()["ok"] is True
+    assert xml_p7m_delete.get_json()["ok"] is True
     assert not GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
         documents_dir=cfg["FASCICOLI_DOCS"],

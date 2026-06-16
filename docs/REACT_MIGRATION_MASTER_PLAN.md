@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Deposito, Editor professionale e lettore documenti - 2026-06-16 - 2.253.30
+
+La tranche chiude il lavoro preparatorio richiesto su `Prepara deposito`, aggiunge `Editor professionale` come superficie autonoma e uniforma il lettore documenti legali per fascicolo, PEC ed email ordinaria.
+
+Copertura implementata:
+
+- il menu ruolo della fase `Documenti da inviare` non usa più la select nativa, ma un pannello React ancorato alla riga;
+- i ruoli visibili restano `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica`, `Fuori busta`;
+- il valore storico `allegato_prova` è compatibile in ingresso ma normalizzato a `Allegato`;
+- `/editor-professionale` è route full React governata, distinta da `/redazione-atti` e censita nella nav Studio, nei contratti e nella memoria dati;
+- le anteprime globali coprono `.xml`, `.xml.p7m`, `.eml`, `.eml.p7m`, `.txt`, `.txt.p7m` e `.pdf.p7m`, mantenendo il download dell'originale;
+- il bundle React è stato separato in chunk vendor e icone, eliminando il warning del chunk principale sopra 500 kB.
+
+Verifiche locali mirate eseguite: OpenAPI, typecheck, test frontend, route gate, contratti React, test deposito/regia, test fascicoli/PEC/email, UTF-8, asset retention, contratto dati, governance repo, packaging e readiness. Restano prima della chiusura reale: commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner, Docker locale `127.0.0.1:8080`, prova visiva server desktop/tablet/mobile su `E5AE4668`, dry-run busta senza invio PEC e firma multipla reale con PIN/token quando disponibile.
+
 ## Deposito profilo pratica e normativa PST - 2026-06-14 - 2.253.14
 
 La tranche rafforza `Prepara deposito` React perché il controllo sia legato al tipo di pratica e non alla sola selezione documenti dell'avvocato.

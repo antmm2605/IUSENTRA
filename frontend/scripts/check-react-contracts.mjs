@@ -131,6 +131,7 @@ const documentSearchPanel = read('src/components/DocumentSearchPanel.tsx')
 const documentStatusBadge = read('src/components/DocumentStatusBadge.tsx')
 const documentAiEmptyState = read('src/components/DocumentAIEmptyState.tsx')
 const documentEditor = read('src/components/DocumentEditorPage.tsx')
+const editorProfessionalePage = read('src/components/EditorProfessionalePage.tsx')
 const documentEditorData = read('src/documentEditorData.ts')
 const documentEditorBridge = read('../web/services/react_document_editor_bridge.py')
 const fascicoliData = read('src/fascicoliData.ts')
@@ -435,6 +436,7 @@ if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
 const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/app/portale-clienti', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fascicoli/:id/deposito/prepara', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/importa-pratiche-studio-telematico', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/impostazioni/sdi', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/legal-skills', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/portale-cliente', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/procedure-completion', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workflow-agents', '/workspace-intelligente'])
+allowedGovernedUnlocks.add('/editor-professionale')
 const governedTelematicoGraphicalRoutes = ['/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale']
 const governedTelematicoAcquisitionRoutes = ['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
 for (const route of governedTelematicoGraphicalRoutes) allowedGovernedUnlocks.add(route)
@@ -456,6 +458,7 @@ const governedExpectedStatuses = new Map([
   ['/compensi-forensi', 'react_operational_full'],
   ['/deposito/checklist', 'react_operational_full'],
   ['/documenti', 'react_operational_full'],
+  ['/editor-professionale', 'react_operational_full'],
   ['/email', 'react_operational_full'],
   ['/email-ordinaria', 'react_operational_full'],
   ['/notifiche-legali', 'react_operational_full'],
@@ -580,6 +583,7 @@ for (const [route, status] of [
   ['/notifiche-whatsapp', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
   ['/documenti', 'react_operational_full'],
+  ['/editor-professionale', 'react_operational_full'],
   ['/deposito/checklist', 'react_operational_full'],
   ['/telematico', 'react_operational_full'],
   ['/servizi-telematici', 'react_operational_full'],
@@ -616,7 +620,7 @@ for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', 
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profilo', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/impostazioni/sdi', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/tribunali', '/guida/firma-digitale', '/portali/pst/acquisizione', '/portali/*']) {
+for (const route of ['/utenti', '/profilo', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/impostazioni/sdi', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/editor-professionale', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/tribunali', '/guida/firma-digitale', '/portali/pst/acquisizione', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -702,7 +706,10 @@ assertContains(iusentraComponentsIndex, 'IusentraMainArea', 'componenti IUSENTRA
 assertContains(iusentraComponentsIndex, 'IusentraRoutePresetFrame', 'componenti IUSENTRA esportano RoutePresetFrame')
 assertContains(iusentraComponentsIndex, 'IUSENTRA_PAGE_SEQUENCE', 'componenti IUSENTRA esportano la sequenza globale')
 assertContains(iusentraDesignSystemCss, '--iusentra-support-rail-width', 'CSS preset centralizza larghezza rail')
-assertContains(iusentraDesignSystemCss, 'grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))', 'CSS preset definisce griglia desktop')
+assertContains(iusentraDesignSystemCss, '--iusentra-support-rail-width: 420px', 'CSS preset usa rail laterale leggibile')
+assertContains(iusentraDesignSystemCss, 'grid-template-columns: minmax(0, 1fr) minmax(380px, var(--iusentra-support-rail-width))', 'CSS preset definisce griglia desktop leggibile')
+assertContains(iusentraDesignSystemCss, 'max-height: none;', 'CSS preset evita scroll interno nel rail')
+assertContains(iusentraDesignSystemCss, 'overflow: visible;', 'CSS preset mantiene leggibile il rail laterale')
 assertContains(iusentraDesignSystemCss, '.iusentra-route-preset--active .iusentra-route-grid', 'CSS preset normalizza griglie di rotta')
 assertContains(iusentraDesignSystemCss, '.iusentra-route-preset--active .iu-content.iusentra-route-sequence', 'CSS preset impone la sequenza sul contenuto pagina')
 assertContains(iusentraDesignSystemCss, '.iusentra-route-grid > .iusentra-route-rail', 'CSS preset forza il rail laterale verticale')
@@ -1692,6 +1699,11 @@ assertContains(fascicoliBridge, '_source_practice_prefill', 'preventivi e confer
 assertContains(fascicoliBridge, 'codiceOggettoPst', 'codice oggetto PST propagato al form fascicolo')
 assertNotContains(fascicoliBridge, '/app-v2/fascicoli', 'bridge fascicoli senza URL tecnici app-v2')
 assertContains(documentEditor, 'Editor professionale', 'pagina editor documento react')
+assertContains(app, "EditorProfessionalePage", 'route Editor professionale React')
+assertContains(app, "href: '/editor-professionale'", 'nav Editor professionale separata')
+assertContains(editorProfessionalePage, 'Redazione atti', 'Editor professionale collega Redazione Atti')
+assertContains(editorProfessionalePage, 'Lettore documenti legali', 'Editor professionale espone lettore documenti')
+assertContains(editorProfessionalePage, 'XML.P7M', 'Editor professionale espone XML.P7M')
 assertContains(documentEditor, 'contentEditable', 'editor documento modificabile')
 assertContains(documentEditor, 'saveDocument', 'salvataggio editor documento')
 assertContains(documentEditor, 'exportFile(data.endpoints.exportPdf', 'export pdf editor documento')
@@ -1737,6 +1749,7 @@ for (const label of [
   'Preventivi e Incarichi',
   'Compensi Forensi',
   'Documenti',
+  'Editor professionale',
   'Redazione Atti',
   'Importa pratica da PST',
   'Statistiche',
@@ -1771,6 +1784,7 @@ for (const route of [
   '/preventivi/conferimento/nuovo',
   '/compensi-forensi',
   '/documenti',
+  '/editor-professionale',
   '/redazione-atti',
   '/template-atti/catalogo',
   '/template-atti/nuovo',

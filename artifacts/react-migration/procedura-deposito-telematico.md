@@ -282,7 +282,7 @@ Regola applicata nella pagina `Prepara deposito`:
 - la fase di preparazione non blocca più il lavoro solo perché i documenti devono essere firmati;
 - i documenti non firmati entrano nella firma del comando finale `Firma e genera busta`;
 - il comando finale richiama la firma multipla registrata dal pannello Local Signer prima della generazione busta;
-- se il PIN/token o Local Signer non sono pronti, il software deve spiegare cosa manca e non deve generare una busta come valida;
+- se il PIN non è inserito, il software deve chiederlo solo al momento della firma e non deve salvarlo; se invece Local Signer, versione, riavvio o token rilevabile non sono pronti, il software React deve tentare avvio, aggiornamento e riallineamento automatico prima di bloccare la firma;
 - i soli blocchi visivi del comando finale restano atto principale mancante e scelte obbligatorie documentali non confermate.
 
 Correzioni UI completate e viste sul server:
@@ -488,7 +488,7 @@ Firma:
 
 - lo stato `Firmato` è informativo e deriva dal documento reale;
 - la UI non deve permettere di segnare manualmente come firmato un documento che non ha esito di firma reale;
-- la firma multipla può essere dichiarata funzionante solo dopo prova reale con PIN/token, firma di più documenti nella stessa operazione, salvataggio dei `.p7m` nel fascicolo e riabilitazione del passo successivo senza errori.
+- la firma multipla può essere dichiarata funzionante solo dopo prova reale in React con PIN digitato al momento della firma, token rilevato dal Local Signer, firma di più documenti nella stessa operazione, salvataggio dei `.p7m` nel fascicolo e riabilitazione del passo successivo senza errori.
 
 Busta e invio:
 
@@ -520,7 +520,68 @@ Verifiche obbligatorie per questa tranche:
 - aggiornamento macchina locale Docker e verifica `http://127.0.0.1:8080/api/pronto`;
 - generazione pacchetto dry-run o ispezione reale equivalente;
 - controllo contenuti: documenti selezionati, atto principale, procura, allegati, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, oggetto e testo email se prodotti;
-- prova Local Signer e firma multipla reale quando PIN/token sono disponibili.
+- prova Local Signer React con controllo automatico di versione, avvio, aggiornamento e stop delle istanze vecchie; la firma multipla reale richiede poi il PIN digitato al momento della firma e il token fisico rilevato.
+
+## Aggiornamento 2.253.34 - scelta `Da firmare` e layout lista deposito
+
+Data intervento: 2026-06-16.
+
+Problema corretto:
+
+- nella lista `Documenti da inviare` la voce `Da firmare` risultava percepita come controllo, ma non era utilizzabile dall'avvocato;
+- la firma multipla doveva leggere una scelta reale per ogni documento, non soltanto dedurre tutto dal nome o dallo stato iniziale;
+- sui formati laptop la riga documento e il menu ruolo potevano uscire dal pannello o comprimere testo, icone e badge.
+
+Cambio operativo:
+
+- `Da firmare` è diventato una spunta cliccabile per i documenti non ancora firmati che richiedono firma;
+- se l'avvocato toglie la spunta, il documento resta selezionabile in busta ma non entra nel lotto firma;
+- se l'avvocato rimette la spunta, il documento viene incluso e marcato per la firma nel comando finale;
+- `Firmato` resta solo informativo e continua a derivare dal documento reale, da `.p7m` o da esito Local Signer salvato;
+- il payload React verso `/api/v1/ui/fascicoli/<id>/deposito/classifica-documenti` porta anche `requires_signature`, così il backend può restituire e presidiare la scelta;
+- se il comando finale trova documenti da firmare ma il pannello firma o il PIN non sono pronti, apre la fase `Firma documenti` e mostra il blocco nel punto corretto;
+- la riga deposito è stata ricompattata in quattro colonne governate: invio, documento, azioni icona, ruolo/firma;
+- le azioni `Visualizza` e `Scarica` restano icone con tooltip/label accessibile, senza testo visibile che rompa la griglia;
+- il menu ruolo è ancorato alla riga con altezza controllata e z-index dedicato, evitando il pannello fuori asse visto nella prova reale.
+
+Guardrail tecnici eseguiti prima del commit:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build:vite`;
+- `python -m pytest tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests/test_regia_ui_react.py -q`.
+
+Stato prova reale:
+
+- non ancora chiuso: serve deploy produzione sullo SHA corrente, poi prova visiva server su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara` con scroll completo, click reale sulla spunta `Da firmare`, apertura menu ruolo, verifica layout laptop/tablet/mobile, dry-run senza invio PEC e prova firma multipla con PIN/token reale.
+
+## Aggiornamento 2.253.33 - scadenza certificato firma in Impostazioni
+
+Data intervento: 2026-06-16.
+
+Cambio operativo:
+
+- la sezione React `Impostazioni > Firma Digitale` legge dal Local Signer il certificato Windows selezionato, inclusi codice fiscale, intestatario, emittente e scadenza;
+- la scadenza viene salvata nella configurazione firma dello studio con data ISO per i calcoli e data italiana `gg/mm/aaaa` per la visualizzazione;
+- il salvataggio usa l'endpoint dedicato `/api/v1/ui/impostazioni/firma/certificato`, senza modificare P12, PEM, driver PKCS#11 o altre impostazioni firma;
+- al login, se mancano 20 giorni o meno alla scadenza salvata, l'avvocato vede un avviso con i giorni mancanti; se il certificato risulta scaduto, il messaggio invita al rinnovo prima di firmare o depositare atti.
+
+Test automatici eseguiti:
+
+- `python -m pytest tests/test_react_shell.py::test_impostazioni_firma_salva_scadenza_certificato_local_signer tests/test_react_shell.py::test_avviso_login_certificato_firma_a_venti_giorni tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale tests/test_local_signer.py::test_diagnosi_windows_mostra_certificato_avvocato_selezionato tests/test_local_signer.py::test_local_signer_ha_guardia_istanza_unica_e_diagnosi_certificato -q`
+
+Stato prova reale:
+
+- da verificare su macchina reale dopo rebuild Docker `127.0.0.1:8080`: apertura `Impostazioni > Firma Digitale`, click reale su `Verifica dispositivo collegato`, salvataggio scadenza letta dal Local Signer, ricarica UI con data italiana e avviso login se la soglia e' applicabile.
+
+## Aggiornamento 2.253.32 - Local Signer 1.6.74, certificato e cataloghi
+
+Intervento richiesto dopo il dubbio dell'utente su certificato avvocato e catalogo PST:
+
+- `/ping` rilevava correttamente il certificato Windows selezionato dell'avvocato, ma `/diagnosi` mostrava solo i primi certificati dello store e poteva non visualizzare quello operativo;
+- `/diagnosi` ora espone anche `certificato_windows_selezionato` e una riga leggibile `Certificato avvocato selezionato` con codice fiscale e scadenza;
+- il processo Local Signer ora acquisisce una guardia di istanza unica per porta prima di aprire il server, cosi' una seconda istanza richiamata da avvio automatico o protocollo locale si chiude invece di restare viva in parallelo;
+- il catalogo copiato dal pacchetto Local Signer e' stato ricontrollato: `uffici_ministero.json` contiene 534 uffici mappati e 13 non mappati; `uffici_pst_pubblici.json` contiene 1.781 uffici civili e 1.416 penali, totale 3.197 voci PST pubbliche;
+- il messaggio `Catalogo pubblico uffici PST civile/penale copiato` riguarda il catalogo PST pubblico civile/penale usato dal Local Signer e non esaurisce l'intero perimetro dei servizi telematici, dove PAT, PTT, PDP e altri flussi restano registri o adapter separati.
 
 ## Aggiornamento 2.253.30 - menu ruolo, Editor professionale e lettore globale
 
@@ -550,4 +611,4 @@ Stato ancora aperto prima di dichiarare chiuso il deposito:
 - riallineamento Docker locale su `127.0.0.1:8080`;
 - prova visiva reale server desktop/tablet/mobile con click e scroll completo;
 - dry-run server del fascicolo `E5AE4668` senza invio PEC reale;
-- firma multipla reale solo quando PIN/token saranno disponibili.
+- firma multipla reale da chiudere con PIN digitato al momento della firma e token fisico rilevato; installazione, aggiornamento e riallineamento Local Signer non sono un prerequisito esterno, ma responsabilità del software React.

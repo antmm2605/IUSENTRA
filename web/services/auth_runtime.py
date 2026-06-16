@@ -64,6 +64,16 @@ def register_auth_runtime(
         "static",
     }
 
+    def _flash_avviso_scadenza_certificato_firma() -> None:
+        try:
+            from web.services.signature_certificate_alerts import current_signature_certificate_login_warning
+
+            alert = current_signature_certificate_login_warning()
+            if alert:
+                flash(alert.message, alert.category)
+        except Exception as exc:  # pragma: no cover - il login non deve fallire per un avviso accessorio
+            app.logger.warning("Avviso certificato firma non mostrato: %s", exc)
+
     def _tenant_user_manager(tenant_slug: str, *, include_studio_db: bool = True) -> GestioneUtenti:
         from pct.tenant import GestioneTenant
 
@@ -690,6 +700,7 @@ def register_auth_runtime(
                     username=utente.username,
                     ip=request.remote_addr or "",
                 )
+                _flash_avviso_scadenza_certificato_firma()
                 if session.get("must_change_password") and not app.testing:
                     flash(
                         "Password iniziale temporanea rilevata. Prima di usare il gestionale devi sostituirla.",
@@ -824,6 +835,7 @@ def register_auth_runtime(
                     username=utente.username,
                     ip=request.remote_addr or "",
                 )
+                _flash_avviso_scadenza_certificato_firma()
                 if force_password_change and not app.testing:
                     flash(
                         "Password iniziale temporanea rilevata. Prima di usare il gestionale devi sostituirla.",

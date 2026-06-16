@@ -2,6 +2,17 @@ export type LocalSignerCheck = {
   ok: boolean
   status: 'ready' | 'missing' | 'unsupported' | 'warning'
   message: string
+  certificate?: LocalSignerCertificate
+}
+
+export type LocalSignerCertificate = {
+  thumbprint: string
+  soggetto: string
+  codice_fiscale: string
+  emittente: string
+  scadenza: string
+  scadenza_it: string
+  giorni_scadenza?: number
 }
 
 function sleep(ms: number) {
@@ -74,6 +85,41 @@ function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
 
+function formatItalianDate(value: string): string {
+  const raw = text(value)
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) return `${match[3]}/${match[2]}/${match[1]}`
+  const italian = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})/)
+  return italian ? `${italian[1]}/${italian[2]}/${italian[3]}` : ''
+}
+
+function daysUntilDate(value: string): number | undefined {
+  const raw = text(value)
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return undefined
+  const target = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diff = target.getTime() - today.getTime()
+  if (!Number.isFinite(diff)) return undefined
+  return Math.round(diff / 86400000)
+}
+
+function parseCertificate(payload: Record<string, unknown> | null): LocalSignerCertificate | undefined {
+  const source = objectValue(payload?.certificato_windows_selezionato)
+  const scadenza = text(source.scadenza || source.expires_at || source.not_after)
+  if (!scadenza) return undefined
+  return {
+    thumbprint: text(source.thumbprint),
+    soggetto: text(source.soggetto || source.subject),
+    codice_fiscale: text(source.codice_fiscale).toUpperCase(),
+    emittente: text(source.emittente || source.issuer),
+    scadenza: scadenza.slice(0, 10),
+    scadenza_it: formatItalianDate(scadenza),
+    giorni_scadenza: daysUntilDate(scadenza),
+  }
+}
+
 function hasSavedSecret(value: unknown): boolean {
   const secret = objectValue(value)
   return Boolean(secret.present)
@@ -126,14 +172,17 @@ export async function checkLocalSigner(baseUrl: string, restartProtocol: string)
   const full = await fetchJsonWithTimeout(pingUrl, 4000)
   const tokens = Array.isArray(full?.token) ? full.token : []
   const fresh = Array.isArray(full?.token_probe_fresh) ? full.token_probe_fresh : []
+  const certificate = parseCertificate(full)
   if (tokens.length || fresh.length) {
-    return { ok: true, status: 'ready', message: 'Local Signer attivo: dispositivo di firma disponibile.' }
+    const certificateText = certificate?.scadenza_it ? ` Certificato valido fino al ${certificate.scadenza_it}.` : ''
+    return { ok: true, status: 'ready', message: `Local Signer attivo: dispositivo di firma disponibile.${certificateText}`, certificate }
   }
   const note = String(full?.errore_token || full?.errore_libreria || full?.nota_riavvio_signer || '')
   return {
     ok: true,
     status: 'warning',
     message: note || 'Local Signer attivo, ma nessun dispositivo di firma risulta ancora disponibile.',
+    certificate,
   }
 }
 

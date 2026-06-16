@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -96,6 +96,34 @@ def _hhmm(value: Any, default: str) -> str:
     hour = _int(parts[0], 0, minimum=0, maximum=23)
     minute = _int(parts[1], 0, minimum=0, maximum=59)
     return f"{hour:02d}:{minute:02d}"
+
+
+def _parse_iso_date(value: Any) -> date | None:
+    raw = _text(value)
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw[:10])
+    except ValueError:
+        pass
+    for fmt in ("%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(raw[:10], fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _format_date_it(value: Any) -> str:
+    parsed = _parse_iso_date(value)
+    return parsed.strftime("%d/%m/%Y") if parsed else ""
+
+
+def _days_until(value: Any, *, today: date | None = None) -> int | None:
+    parsed = _parse_iso_date(value)
+    if not parsed:
+        return None
+    return (parsed - (today or date.today())).days
 
 
 def _secret_state(value: str) -> dict[str, Any]:
@@ -271,6 +299,15 @@ def _sync_settings_config_snapshot(cfg: Any, extra_sections: dict[str, Any] | No
 
 def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
     firma = cfg.firma
+    certificato_scadenza = _text(getattr(firma, "certificato_scadenza", ""))
+    certificato_scadenza_it = _text(getattr(firma, "certificato_scadenza_it", "")) or _format_date_it(certificato_scadenza)
+    certificato_giorni = _days_until(certificato_scadenza)
+    certificato_preavviso = _int(
+        getattr(firma, "certificato_giorni_preavviso", 20),
+        20,
+        minimum=1,
+        maximum=365,
+    )
     pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
     return {
         "ok": True,
@@ -333,6 +370,18 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             "backend_operativo": firma.backend_firma_operativo_safe,
             "pkcs11_canale_locale": firma.pkcs11_canale_locale,
             "visible_signature_mode": firma.visible_signature_mode,
+            "certificato_thumbprint": _text(getattr(firma, "certificato_thumbprint", "")),
+            "certificato_soggetto": _text(getattr(firma, "certificato_soggetto", "")),
+            "certificato_codice_fiscale": _text(getattr(firma, "certificato_codice_fiscale", "")),
+            "certificato_emittente": _text(getattr(firma, "certificato_emittente", "")),
+            "certificato_scadenza": certificato_scadenza,
+            "certificato_scadenza_it": certificato_scadenza_it,
+            "certificato_ultimo_controllo": _text(getattr(firma, "certificato_ultimo_controllo", "")),
+            "certificato_giorni_preavviso": certificato_preavviso,
+            "certificato_giorni_scadenza": certificato_giorni if certificato_giorni is not None else "",
+            "certificato_avviso_login": bool(
+                certificato_giorni is not None and certificato_giorni <= certificato_preavviso
+            ),
             "password": _secret_state(firma.password),
             "key_pem_password": _secret_state(firma.key_pem_password),
         },
@@ -416,6 +465,68 @@ def build_react_impostazioni_error_payload(message: str) -> dict[str, Any]:
         "sections": [],
         "warnings": [{"code": "impostazioni_errore", "message": message}],
     }
+
+
+def update_react_impostazioni_firma_certificato(payload: dict[str, Any]) -> dict[str, Any]:
+    if not _can("admin.configura"):
+        return {"ok": False, "message": "Permesso admin.configura richiesto.", "errors": {"permission": "Permesso insufficiente."}}
+
+    data = payload or {}
+    parsed = _parse_iso_date(
+        data.get("scadenza")
+        or data.get("certificato_scadenza")
+        or data.get("expiry")
+        or data.get("expires_at")
+    )
+    if not parsed:
+        return {
+            "ok": False,
+            "message": "Scadenza certificato non leggibile. Ripeti la verifica dal Local Signer.",
+            "errors": {"certificato_scadenza": "Data scadenza mancante o non valida."},
+        }
+
+    from pct.config_studio import ConfigFirma
+    from web.blueprints.impostazioni import _applica_ad_app
+
+    manager = _gestore_config()
+    cfg = manager.config
+    old = cfg.firma
+    certificato_cf = _text(data.get("codice_fiscale") or data.get("certificato_codice_fiscale")).upper()
+    cfg.firma = ConfigFirma(
+        p12_path=old.p12_path,
+        password=old.password,
+        cert_pem_path=old.cert_pem_path,
+        key_pem_path=old.key_pem_path,
+        key_pem_password=old.key_pem_password,
+        pkcs11_library=old.pkcs11_library,
+        pkcs11_slot=old.pkcs11_slot,
+        pkcs11_label=old.pkcs11_label,
+        cf_avvocato=old.cf_avvocato or certificato_cf,
+        backend_preferito=old.backend_preferito,
+        visible_signature_mode=old.visible_signature_mode,
+        certificato_thumbprint=_text(data.get("thumbprint") or data.get("certificato_thumbprint")),
+        certificato_soggetto=_text(data.get("soggetto") or data.get("subject") or data.get("certificato_soggetto")),
+        certificato_codice_fiscale=certificato_cf,
+        certificato_emittente=_text(data.get("emittente") or data.get("issuer") or data.get("certificato_emittente")),
+        certificato_scadenza=parsed.isoformat(),
+        certificato_scadenza_it=_format_date_it(parsed.isoformat()),
+        certificato_ultimo_controllo=_iso_now(),
+        certificato_giorni_preavviso=_int(
+            data.get("giorni_preavviso") or data.get("certificato_giorni_preavviso") or getattr(old, "certificato_giorni_preavviso", 20),
+            20,
+            minimum=1,
+            maximum=365,
+        ),
+    )
+
+    manager.aggiorna(cfg)
+    _applica_ad_app(cfg)
+    pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+    _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
+    _audit("firma_certificato")
+    response = _payload_from_config(cfg, can_update=True)
+    response.update({"message": "Scadenza certificato firma salvata.", "updated_section": "firma"})
+    return response
 
 
 def _audit(section: str) -> None:
@@ -520,6 +631,14 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
             cf_avvocato=_text(data.get("cf_avvocato") or data.get("firma_cf_avvocato")).upper(),
             backend_preferito=backend,
             visible_signature_mode=normalize_visible_signature_mode(_text(data.get("visible_signature_mode"), cfg.firma.visible_signature_mode)),
+            certificato_thumbprint=_text(getattr(cfg.firma, "certificato_thumbprint", "")),
+            certificato_soggetto=_text(getattr(cfg.firma, "certificato_soggetto", "")),
+            certificato_codice_fiscale=_text(getattr(cfg.firma, "certificato_codice_fiscale", "")),
+            certificato_emittente=_text(getattr(cfg.firma, "certificato_emittente", "")),
+            certificato_scadenza=_text(getattr(cfg.firma, "certificato_scadenza", "")),
+            certificato_scadenza_it=_text(getattr(cfg.firma, "certificato_scadenza_it", "")),
+            certificato_ultimo_controllo=_text(getattr(cfg.firma, "certificato_ultimo_controllo", "")),
+            certificato_giorni_preavviso=_int(getattr(cfg.firma, "certificato_giorni_preavviso", 20), 20, minimum=1, maximum=365),
         )
     elif section == "smtp":
         password = _text(data.get("smtp_password") or data.get("password"))

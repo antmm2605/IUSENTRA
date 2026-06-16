@@ -139,6 +139,7 @@ export function ImpostazioniPage() {
                               onTest={settings.test}
                               onRefreshAi={settings.refreshAi}
                               onPrepareAi={settings.prepareAi}
+                              onReload={settings.load}
                             />
                           )}
                         </SettingsSectionForm>

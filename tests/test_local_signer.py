@@ -155,6 +155,17 @@ def test_local_signer_logs_recent_espone_coda_sanificata(tmp_path, monkeypatch):
     assert "123456" not in err_log["tail"]
 
 
+def test_local_signer_ha_guardia_istanza_unica_e_diagnosi_certificato():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+
+    assert "def _acquisisci_lock_istanza_unica" in source
+    assert "msvcrt.locking" in source
+    assert "fcntl.flock" in source
+    assert "_acquisisci_lock_istanza_unica(args.port)" in source
+    assert "Certificato avvocato selezionato:" in source
+
+
 def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     root = Path(__file__).resolve().parents[1]
     template = (root / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(
@@ -1632,6 +1643,7 @@ def test_local_ai_bridge_rag_query_stream_restituisce_token_e_fonti_finali(tmp_p
 def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     installer = (Path(__file__).resolve().parents[1] / "tools" / "installa_local_signer_locale.ps1").read_text(encoding="utf-8")
     launcher = (Path(__file__).resolve().parents[1] / "tools" / "avvia_local_signer.bat").read_text(encoding="utf-8")
+    monitor = (Path(__file__).resolve().parents[1] / "web" / "static" / "js" / "local-signer-monitor.js").read_text(encoding="utf-8")
 
     assert 'set "SILENT_MODE=0"' in installer
     assert 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -FilePath $env:PYW -ArgumentList @($env:PY)"' in installer
@@ -1648,6 +1660,11 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "PIP_NO_CACHE_DIR" in installer
     assert 'set "SILENT_MODE=0"' in launcher
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in launcher
+    assert "const started = await verifyAfterStart(cfg, 8, 900)" in monitor
+    assert "renderInstallRequired(cfg, installer)" in monitor
+    assert "openInstallerDownload(cfg);" not in monitor
+    assert "autoOpenInstallerOnce(cfg, 'missing')" in monitor
+    assert "autoOpenInstallerOnce(cfg, 'outdated-auto')" in monitor
 
 
 def test_local_signer_update_endpoint_preferisce_hot_update_sorgenti(monkeypatch):
@@ -1666,6 +1683,19 @@ def test_local_signer_update_endpoint_preferisce_hot_update_sorgenti(monkeypatch
     assert result["ok"] is True
     assert result["metodo"] == "sorgenti"
     assert calls["hot_update"] == 1
+
+
+def test_local_signer_hot_update_blocca_versione_server_piu_vecchia(monkeypatch, tmp_path):
+    module = _load_local_signer()
+    install_dir = tmp_path / "LocalSigner"
+    install_dir.mkdir()
+
+    monkeypatch.setattr(module, "_local_signer_base_url", lambda: "https://app.iusentra.it")
+    monkeypatch.setattr(module, "_local_signer_install_dir", lambda: install_dir)
+    monkeypatch.setattr(module, "_scarica_sorgente", lambda _url: b'VERSION = "1.6.73"\n')
+
+    with pytest.raises(RuntimeError, match="piu' vecchio"):
+        module._aggiorna_sorgenti_local_signer()
 
 
 def test_local_signer_update_endpoint_usa_installer_ufficiale_se_hot_update_fallisce(monkeypatch, tmp_path):
@@ -1693,6 +1723,47 @@ def test_local_signer_update_endpoint_usa_installer_ufficiale_se_hot_update_fall
     assert "Invoke-WebRequest" in joined
     assert "Start-Process" in joined
     assert "/Q" in joined
+
+
+def test_local_signer_hot_update_chiude_istanze_duplicate_prima_del_riavvio(monkeypatch, tmp_path):
+    module = _load_local_signer()
+    calls = {}
+    install_dir = tmp_path / "LocalSigner"
+    install_dir.mkdir()
+    (install_dir / "start_local_signer.cmd").write_text("@echo off\n", encoding="ascii")
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module, "_local_signer_install_dir", lambda: install_dir)
+    monkeypatch.setattr(module.os, "getpid", lambda: 4242)
+    monkeypatch.setattr(module.time, "sleep", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(module.os, "_exit", lambda _code: None)
+
+    class _FakePopen:
+        def __init__(self, args, **kwargs):
+            calls["args"] = args
+            calls["kwargs"] = kwargs
+
+    class _FakeThread:
+        def __init__(self, target, daemon=False):
+            calls["thread_target"] = target
+            calls["thread_daemon"] = daemon
+
+        def start(self):
+            calls["thread_started"] = True
+
+    monkeypatch.setattr(module.subprocess, "Popen", _FakePopen)
+    monkeypatch.setattr(module.threading, "Thread", _FakeThread)
+
+    module._programma_riavvio_local_signer()
+
+    joined = " ".join(calls["args"])
+    assert "Wait-Process -Id 4242" in joined
+    assert "Get-CimInstance Win32_Process" in joined
+    assert "local_signer.py" in joined
+    assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in joined
+    assert "Stop-Process -Id" in joined
+    assert "Start-Process -WindowStyle Hidden" in joined
+    assert calls["thread_started"] is True
 
 
 def test_local_signer_update_endpoint_rifiuta_url_non_ufficiale(monkeypatch):
@@ -1829,6 +1900,64 @@ def test_ping_windows_usa_il_filtro_cf_per_esporre_il_certificato_preferito():
     assert payload["certificato_windows_selezionato"]["emittente"] == "ArubaPEC EU Authentica Certificates CA G1"
 
 
+def test_diagnosi_windows_mostra_certificato_avvocato_selezionato(monkeypatch):
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_trova = module._trova_libreria
+    orig_curl = module._curl_disponibile
+    orig_lista = module._windows_lista_certificati
+    orig_cached = module._ultimo_certificato_windows
+    captured = {}
+
+    avvocato = {
+        "thumbprint": "AUTH-CF",
+        "soggetto": "MNTRRT64L01L063H/7430010029148677",
+        "soggetto_completo": "CN=MNTRRT64L01L063H/7430010029148677,2.5.4.42=ROBERTO,2.5.4.4=MONTAGNESE",
+        "codice_fiscale": "MNTRRT64L01L063H",
+        "emittente": "ArubaPEC EU Authentication Certificates CA G1",
+        "emittente_completo": "CN=ArubaPEC EU Authentication Certificates CA G1",
+        "scadenza": "2029-02-23",
+    }
+
+    class _FakeHandler:
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        monkeypatch.delenv("PCT_CF_AVVOCATO", raising=False)
+        module.sys.platform = "win32"
+        module._trova_libreria = lambda: None
+        module._curl_disponibile = lambda: True
+        module._windows_lista_certificati = lambda: [
+            {
+                "thumbprint": "ADOBE",
+                "soggetto": "Adobe Content Certificate 10-5",
+                "emittente": "Adobe Intermediate CA 10-3",
+                "scadenza": "2025-08-18",
+            },
+            avvocato,
+        ]
+        module._ultimo_certificato_windows = avvocato
+
+        module._Handler._diagnosi(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._trova_libreria = orig_trova
+        module._curl_disponibile = orig_curl
+        module._windows_lista_certificati = orig_lista
+        module._ultimo_certificato_windows = orig_cached
+
+    payload = captured["payload"]
+    assert captured["status"] == 200
+    assert payload["certificati_windows"] == 2
+    assert payload["certificato_windows_selezionato"]["thumbprint"] == "AUTH-CF"
+    assert payload["certificato_windows_selezionato"]["codice_fiscale"] == "MNTRRT64L01L063H"
+    assert payload["certificato_windows_selezionato"]["scadenza"] == "2029-02-23"
+    assert any("Certificato avvocato selezionato:" in item for item in payload["info"])
+
+
 def test_ping_windows_suggerisce_riavvio_quando_il_probe_fresco_vede_il_token():
     module = _load_local_signer()
 
@@ -1890,7 +2019,7 @@ def test_ping_windows_suggerisce_riavvio_quando_il_probe_fresco_vede_il_token():
     assert payload["ok"] is True
     assert payload["riavvio_signer_consigliato"] is True
     assert payload["token_probe_fresh"][0]["slot_id"] == 0
-    assert "Riavvia il Local Signer" in payload["nota_riavvio_signer"]
+    assert "riallineare automaticamente il Local Signer" in payload["nota_riavvio_signer"]
 
 
 def test_seleziona_certificato_windows_usa_dialog_nativo_quando_non_c_e_auto_pick():
@@ -3859,6 +3988,27 @@ def test_catalogo_pst_pubblico_mantiene_link_dettaglio_ministeriali():
     assert not any("¤" in href for href in hrefs)
     assert any("currentFrame=8" in href for href in hrefs)
     assert any("codiceUfficio=08006300604" in href for href in hrefs)
+
+
+def test_cataloghi_uffici_local_signer_non_sono_minimi_o_vuoti():
+    root = Path(__file__).resolve().parents[1]
+    ministero = json.loads((root / "pct" / "data" / "uffici_ministero.json").read_text(encoding="utf-8"))
+    pst = json.loads((root / "pct" / "data" / "uffici_pst_pubblici.json").read_text(encoding="utf-8"))
+
+    uffici_ministero = ministero.get("uffici", {})
+    assert ministero.get("n_uffici_mappati") >= 500
+    assert len(uffici_ministero) == ministero.get("n_uffici_mappati")
+    assert ministero.get("n_uffici_non_mappati") >= 0
+
+    conteggi = pst.get("conteggi", {})
+    civili = pst.get("uffici", {}).get("civili", [])
+    penali = pst.get("uffici", {}).get("penali", [])
+    assert conteggi.get("civili") >= 1700
+    assert conteggi.get("penali") >= 1400
+    assert len(civili) == conteggi.get("civili")
+    assert len(penali) == conteggi.get("penali")
+    assert conteggi.get("civili_deposito_prudenziale") >= 1000
+    assert conteggi.get("penali_deposito_prudenziale") >= 1400
 
 
 def test_download_visible_signature_local_signer_e_pubblico(tmp_path):

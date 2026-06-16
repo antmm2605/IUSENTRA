@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.68
+IUSENTRA Local Signer - v1.6.74
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -113,7 +113,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.72"
+VERSION = "1.6.74"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -143,6 +143,43 @@ LOCAL_SIGNER_UPDATE_URL = os.getenv(
     "https://app.iusentra.it/polisWeb/local-signer/setup/windows",
 )
 _ZEEP_WSDL_CACHE: dict[str, Any] = {}
+_INSTANCE_LOCK_HANDLE: Any = None
+
+
+def _acquisisci_lock_istanza_unica(port: int) -> None:
+    """Evita due Local Signer vivi sulla stessa porta."""
+    global _INSTANCE_LOCK_HANDLE
+    if _INSTANCE_LOCK_HANDLE is not None:
+        return
+
+    lock_path = Path(tempfile.gettempdir()) / f"iusentra-local-signer-{int(port)}.lock"
+    handle = lock_path.open("a+b")
+    try:
+        handle.seek(0)
+        handle.write(b"0")
+        handle.flush()
+        handle.seek(0)
+        if sys.platform == "win32":
+            import msvcrt
+
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (OSError, BlockingIOError):
+        handle.close()
+        print(
+            f"Local Signer gia' in avvio o gia' attivo su 127.0.0.1:{int(port)}. "
+            "La seconda istanza viene chiusa."
+        )
+        raise SystemExit(0)
+
+    handle.seek(0)
+    handle.truncate()
+    handle.write(str(os.getpid()).encode("ascii", errors="ignore"))
+    handle.flush()
+    _INSTANCE_LOCK_HANDLE = handle
 _TRUE_VALUES = {"1", "true", "yes", "on"}
 _FALSE_VALUES = {"0", "false", "no", "off"}
 
@@ -209,6 +246,20 @@ def _scarica_sorgente(url: str, timeout: int = 30) -> bytes:
         return resp.read()
 
 
+def _versione_tuple(versione: str) -> tuple[int, ...]:
+    numeri: list[int] = []
+    for parte in re.findall(r"\d+", str(versione or "")):
+        numeri.append(int(parte))
+    return tuple(numeri or [0])
+
+
+def _estrai_versione_local_signer_sorgente(data: bytes) -> str:
+    match = re.search(rb'(?m)^VERSION\s*=\s*["\']([^"\']+)["\']', data or b"")
+    if not match:
+        raise RuntimeError("Versione Local Signer non trovata nel sorgente scaricato.")
+    return match.group(1).decode("ascii", errors="strict")
+
+
 def _aggiorna_sorgenti_local_signer() -> dict:
     """Aggiorna i sorgenti .py in-place dal server e riavvia, senza EXE.
 
@@ -232,6 +283,14 @@ def _aggiorna_sorgenti_local_signer() -> dict:
         # 1) Scarica + valida i file di primo livello
         for nome, path in _LOCAL_SIGNER_SOURCE_FILES:
             data = _scarica_sorgente(f"{base}{path}")
+            if nome == "local_signer.py":
+                versione_remota = _estrai_versione_local_signer_sorgente(data)
+                if _versione_tuple(versione_remota) < _versione_tuple(VERSION):
+                    raise RuntimeError(
+                        "Il server distribuisce Local Signer "
+                        f"{versione_remota}, piu' vecchio della versione locale {VERSION}: "
+                        "aggiornamento annullato per evitare regressioni."
+                    )
             dest_stage = staging / nome
             dest_stage.write_bytes(data)
             py_compile.compile(str(dest_stage), doraise=True)
@@ -282,9 +341,20 @@ def _programma_riavvio_local_signer() -> None:
                 f"-ArgumentList {_powershell_single_quote(str(install_dir / 'local_signer.py'))}"
             )
         pid = os.getpid()
+        local_signer_script = _powershell_single_quote(str(install_dir / "local_signer.py"))
+        cleanup_old_processes = (
+            f"$target=[regex]::Escape({local_signer_script}); "
+            "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
+            "Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match $target } | "
+            "ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }; "
+            "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | "
+            "Select-Object -ExpandProperty OwningProcess -Unique | "
+            "ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop } catch {} }; "
+        )
         ps_command = (
             f"$ErrorActionPreference='SilentlyContinue'; "
             f"try {{ Wait-Process -Id {pid} -Timeout 15 }} catch {{}}; "
+            f"{cleanup_old_processes}"
             f"Start-Sleep -Milliseconds 500; {relaunch}"
         )
         subprocess.Popen(
@@ -9040,7 +9110,7 @@ class _Handler(BaseHTTPRequestHandler):
                         resp["nota_riavvio_signer"] = (
                             "Il token Aruba e' stato rilevato da un controllo fresco, "
                             "ma il processo Local Signer attivo non e' piu' allineato. "
-                            "Riavvia il Local Signer da IUSENTRA e riprova."
+                            "IUSENTRA deve riallineare automaticamente il Local Signer e ricontrollare il token."
                         )
             except Exception as e:
                 resp["errore_token"] = f"Errore inatteso: {e}"
@@ -9154,6 +9224,43 @@ class _Handler(BaseHTTPRequestHandler):
                 certs = _windows_lista_certificati()
                 risultati["certificati_windows"] = len(certs)
                 if certs:
+                    prefs = _ping_query_preferences("/ping")
+                    preferred = _pick_preferred_windows_cert(
+                        certs,
+                        prefer_issuer=prefs["prefer_issuer"],
+                        prefer_subject=prefs["prefer_subject"],
+                        prefer_cf=prefs["prefer_cf"],
+                        auto=prefs["auto"],
+                    )
+                    cached = dict(_ultimo_certificato_windows or {})
+                    selected = preferred
+                    if not selected and _certificato_windows_compatibile_pst(
+                        cached,
+                        prefer_issuer=prefs["prefer_issuer"],
+                        prefer_subject=prefs["prefer_subject"],
+                        prefer_cf=prefs["prefer_cf"],
+                    ):
+                        selected = cached
+                    if selected and selected.get("thumbprint"):
+                        if preferred:
+                            _ricorda_certificato_windows(selected)
+                        cf_selezionato = selected.get("codice_fiscale") or "n/d"
+                        risultati["certificato_windows_selezionato"] = {
+                            "thumbprint": selected.get("thumbprint"),
+                            "soggetto": selected.get("soggetto", ""),
+                            "soggetto_completo": selected.get("soggetto_completo", ""),
+                            "emittente": selected.get("emittente", ""),
+                            "emittente_completo": selected.get("emittente_completo", ""),
+                            "scadenza": selected.get("scadenza", ""),
+                            "codice_fiscale": selected.get("codice_fiscale", ""),
+                            "auto_selezionato": bool(preferred),
+                        }
+                        risultati["info"].append(
+                            "Certificato avvocato selezionato: "
+                            f"{selected.get('soggetto') or 'certificato Windows'} "
+                            f"- codice fiscale {cf_selezionato} "
+                            f"- scadenza {selected.get('scadenza') or 'n/d'}"
+                        )
                     risultati["info"].append(
                         f"Windows Certificate Store: {len(certs)} certificati trovati"
                     )
@@ -11602,6 +11709,7 @@ Esempi:
         os.environ["PCT_PKCS11_LIBRARY"] = args.lib
         _trova_libreria(args.lib)
 
+    _acquisisci_lock_istanza_unica(args.port)
     server = _ThreadingLocalSignerServer(("127.0.0.1", args.port), _Handler)
 
     lib = _trova_libreria()

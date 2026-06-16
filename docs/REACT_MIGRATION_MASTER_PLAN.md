@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## Impostazioni Firma Digitale e scadenza certificato - 2026-06-16 - 2.253.33
+
+La tranche collega `Impostazioni > Firma Digitale` al certificato selezionato dal Local Signer, così la scadenza del certificato dell'avvocato resta visibile e governata dalla configurazione dello studio.
+
+Copertura implementata:
+
+- la verifica Local Signer in React legge `certificato_windows_selezionato` e mostra scadenza, intestatario, codice fiscale ed emittente;
+- la scadenza viene salvata con endpoint dedicato `/api/v1/ui/impostazioni/firma/certificato`, senza modificare P12, PEM o driver;
+- il payload Impostazioni espone data italiana, giorni alla scadenza e soglia avviso;
+- il login dello studio mostra un avviso quando mancano 20 giorni o meno alla scadenza salvata, oppure quando il certificato risulta scaduto;
+- i dati restano nel profilo firma dello studio e nello snapshot impostazioni, senza nuova sorgente parallela.
+
+Verifiche locali mirate eseguite: pytest su salvataggio scadenza certificato, avviso login 20 giorni, UI React Impostazioni e diagnostica Local Signer. Resta prima della chiusura reale: rebuild Docker `127.0.0.1:8080`, click reale in Chrome su `Verifica dispositivo collegato`, controllo salvataggio scadenza italiana e avviso login se la soglia è applicabile.
+
 ## Deposito, Editor professionale e lettore documenti - 2026-06-16 - 2.253.30
 
 La tranche chiude il lavoro preparatorio richiesto su `Prepara deposito`, aggiunge `Editor professionale` come superficie autonoma e uniforma il lettore documenti legali per fascicolo, PEC ed email ordinaria.

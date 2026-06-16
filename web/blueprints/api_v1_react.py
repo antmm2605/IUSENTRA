@@ -183,6 +183,7 @@ from web.services.react_impostazioni_bridge import (
     build_react_impostazioni_error_payload,
     build_react_impostazioni_payload,
     run_react_impostazioni_test,
+    update_react_impostazioni_firma_certificato,
     update_react_impostazioni_section,
 )
 from web.services.lex_dataset_training_status import build_lex_dataset_training_status
@@ -4512,6 +4513,11 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         selected = bool(raw_row.get("selected"))
         role = _deposit_document_role(raw_row.get("role"))
         already_signed = bool(raw_row.get("already_signed") or raw_row.get("alreadySigned"))
+        requires_signature = bool(
+            raw_row.get("requires_signature")
+            if "requires_signature" in raw_row
+            else raw_row.get("requiresSignature")
+        )
         if selected and role != "fuori_busta":
             selected_count += 1
             doc_type = _DEPOSIT_DOCUMENT_ROLE_TO_TYPE.get(role)
@@ -4523,7 +4529,13 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
                 ctx["repo"].link_slot(id_fasc, slot_key, document_id, actor=_actor_label())
                 linked_slots.append(slot_key)
                 used_slots.add(slot_key)
-        updated_documents.append({"documentId": document_id, "selected": selected, "role": role, "alreadySigned": already_signed})
+        updated_documents.append({
+            "documentId": document_id,
+            "selected": selected,
+            "role": role,
+            "alreadySigned": already_signed,
+            "requiresSignature": requires_signature,
+        })
 
     run_predeposit_check(
         ctx["repo"],
@@ -5858,6 +5870,16 @@ def impostazioni_page_update(section: str):
         result = update_react_impostazioni_section(section, payload or {})
     else:
         result = update_react_impostazioni_section(section, dict(request.form), files=request.files)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/firma/certificato")
+@_richiedi_auth
+def impostazioni_firma_certificato_update():
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = update_react_impostazioni_firma_certificato(payload or {})
     return jsonify(result), 200 if result.get("ok") else 400
 
 

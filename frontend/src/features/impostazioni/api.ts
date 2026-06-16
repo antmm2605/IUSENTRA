@@ -101,6 +101,10 @@ export function runSettingsTest(testId: string, values: Record<string, unknown>)
   })
 }
 
+export function saveSignatureCertificateStatus(values: Record<string, unknown>): Promise<SettingsPayload> {
+  return apiPostJson<SettingsPayload>('/api/v1/ui/impostazioni/firma/certificato', values, emptySettingsPayload)
+}
+
 export function getAiStatus(): Promise<AiRuntimePayload> {
   return apiJson<AiRuntimePayload>('/api/v1/ui/impostazioni/ai/status', {
     ok: false,

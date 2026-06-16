@@ -42,7 +42,8 @@ Questo file è la traccia operativa dell'incarico corrente e va riletto dopo ogn
    - rilevazione da pagina server;
    - versione e token;
    - comportamento di aggiornamento automatico;
-   - firma multipla reale solo se è disponibile il PIN/token necessario, senza simulare esiti.
+   - chiusura delle istanze Local Signer duplicate o vecchie prima del riavvio;
+   - firma multipla reale con PIN digitato al momento della firma e token fisico rilevato, senza simulare esiti.
 7. Documentare con esito onesto cosa è stato visto, cosa è stato generato, cosa coincide con i depositi reali allegati dall'utente e cosa resta bloccante.
 
 ## Regole operative durante la prova
@@ -101,7 +102,7 @@ Stato non chiuso:
 - server `app.iusentra.it` ancora da verificare dopo deploy;
 - macchina locale reale `127.0.0.1:8080` ancora da ricostruire e verificare tramite `/api/pronto`;
 - busta/pacchetto dry-run ancora da generare e ispezionare senza invio PEC;
-- firma multipla ancora da provare con PIN/token reale e salvataggio di più `.p7m`;
+- firma multipla ancora da provare con PIN digitato al momento della firma, token fisico rilevato e salvataggio di più `.p7m`;
 - nessun invio PEC reale deve essere eseguito durante la prova.
 
 ## Difetto rilevato nella prova server e hotfix 2.253.27
@@ -126,7 +127,7 @@ Stato da riverificare dopo deploy `2.253.27`:
 - tablet e mobile: assenza di overflow e testi leggibili;
 - click reale sulle fasi `Documenti da inviare`, `Firma documenti`, `Busta e indice`;
 - salvataggio classificazione e busta dry-run ancora da eseguire;
-- firma multipla reale ancora non dichiarabile senza PIN/token.
+- firma multipla reale ancora non dichiarabile senza PIN digitato al momento della firma, token fisico rilevato e salvataggio dei `.p7m`.
 
 ## Correzione UI/lettore 2.253.28 - 16 giugno 2026
 
@@ -151,7 +152,7 @@ Stato da verificare dopo deploy `2.253.28`:
 - il pannello `Slot documentali` deve essere leggibile, senza testo verticale o pulsanti tagliati;
 - Studio deve mostrare `Editor professionale` e i collegamenti devono aprire le route previste;
 - se sul server è disponibile un `.pdf.p7m`, l'anteprima deve mostrare il PDF interno; in ogni caso i test automatici devono confermare PEC ed email ordinaria;
-- la firma multipla resta non dichiarabile verde finché non viene eseguita con PIN/token reale, più documenti firmati, salvataggio `.p7m` e riabilitazione del passo successivo.
+- la firma multipla resta non dichiarabile verde finché non viene eseguita con PIN digitato al momento della firma, token fisico rilevato dal Local Signer, più documenti firmati, salvataggio `.p7m` e riabilitazione del passo successivo.
 
 ## Controllo approfondito ruoli documentali 2.253.29 - 16 giugno 2026
 
@@ -249,6 +250,23 @@ Perimetro da chiudere:
 
 Stato attuale del piano: aperto. Non usare le parole completato, funzionante, verde o risolto finché i punti sopra non sono realmente verificati.
 
+## Stato tecnico Local Signer e certificato 2.253.33 - 16 giugno 2026
+
+- Aggiunto salvataggio della scadenza certificato nella configurazione `Firma Digitale` dello studio dopo verifica Local Signer.
+- La UI React `Impostazioni > Firma Digitale` mostra `Certificato memorizzato`, data italiana, codice fiscale, intestatario, emittente e stato `mancano X giorni` quando il dato e' disponibile.
+- Al login viene generato un avviso operativo se il certificato firma salvato scade entro 20 giorni, o se risulta gia' scaduto.
+- Test automatici eseguiti: `test_impostazioni_firma_salva_scadenza_certificato_local_signer`, `test_avviso_login_certificato_firma_a_venti_giorni`, `test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale`, `test_diagnosi_windows_mostra_certificato_avvocato_selezionato`, `test_local_signer_ha_guardia_istanza_unica_e_diagnosi_certificato`.
+- Prova reale ancora da eseguire dopo deploy/rebuild: click su `Verifica dispositivo collegato` in `Impostazioni > Firma Digitale` con Local Signer reale, salvataggio scadenza e controllo visivo della card.
+
+## Stato tecnico Local Signer 2.253.32 - 16 giugno 2026
+
+- Local Signer aggiornato a `1.6.74` per correggere la regressione percepita sulla diagnostica del certificato dell'avvocato.
+- `/ping` continuava a restituire `certificato_windows_selezionato` con codice fiscale e scadenza; `/diagnosi` invece mostrava solo i primi certificati e poteva nascondere quello realmente scelto.
+- Aggiunta visualizzazione diagnostica del certificato avvocato selezionato con codice fiscale e scadenza.
+- Aggiunta guardia di istanza unica sul processo Local Signer per evitare piu' processi `pythonw.exe local_signer.py` sulla stessa porta.
+- Verificati i conteggi reali dei cataloghi copiati nel pacchetto signer: 534 uffici ministeriali mappati, 13 non mappati, 1.781 voci PST civili e 1.416 penali.
+- Nota interpretativa: `Catalogo pubblico uffici PST civile/penale copiato` significa catalogo PST pubblico del Local Signer, non copertura esclusiva di tutti i servizi telematici; PAT, PTT, PDP e altri flussi restano separati.
+
 ## Stato tecnico pre-commit 2.253.30 - 16 giugno 2026
 
 Modifiche pronte per commit:
@@ -283,4 +301,34 @@ Stato aperto obbligatorio:
 - ricostruzione Docker locale e verifica `http://127.0.0.1:8080/api/pronto`;
 - prova visiva server su `E5AE4668` con scroll completo, menu ruolo aperto, responsive desktop/tablet/mobile, Editor professionale dalla nav e anteprime documentali disponibili;
 - dry-run del pacchetto deposito senza invio PEC reale;
-- firma multipla reale non dichiarabile finché non avviene prova con PIN/token e salvataggio di più `.p7m`.
+- firma multipla reale non dichiarabile finché non avviene prova con PIN digitato al momento della firma, token fisico rilevato e salvataggio di più `.p7m`.
+
+## Hotfix deposito 2.253.34 - `Da firmare`, menu ruolo e layout laptop
+
+Problemi confermati dalle schermate reali dell'utente:
+
+- nella fase `Documenti da inviare`, la spunta `Da firmare` non era cliccabile;
+- la firma multipla sembrava non reagire perché il comando finale non portava sempre l'avvocato nel pannello `Firma documenti` quando PIN o Local Signer non erano pronti;
+- sui formati laptop la lista non distribuiva correttamente spazio, icone, ruolo e badge; alcuni elementi uscivano dal pannello;
+- il menu ruolo doveva restare compatto e allineato alla riga, non aprirsi come pannello disassato.
+
+Correzioni applicate a codice React:
+
+- `frontend/src/components/FascicoliPage.tsx`: aggiunto `requiresSignature` alla classificazione deposito, payload `requires_signature`, filtro firma multipla sui soli documenti marcati da firmare e apertura automatica della fase `Firma documenti` in caso di blocco firma;
+- `frontend/src/components/FascicoliPage.tsx`: spunta `Da firmare` resa cliccabile per i documenti non firmati; `Firmato` resta disabilitato e informativo;
+- `frontend/src/components/FascicoliPage.css`: griglia riga deposito ridotta, azioni documento solo icone, controlli ruolo contenuti nella colonna, menu ruolo con altezza e z-index governati, regole dedicate per laptop sotto 1600 px.
+
+Verifiche tecniche già eseguite:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build:vite`;
+- `python -m pytest tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests/test_regia_ui_react.py -q`.
+
+Verifiche ancora obbligatorie prima della chiusura:
+
+- commit e push branch gemelli;
+- check GitHub dello SHA corrente, incluso CodeQL/code scanning;
+- deploy Hetzner dello stesso SHA e `https://app.iusentra.it/api/pronto`;
+- prova visiva reale server sul fascicolo `E5AE4668`: desktop/laptop, tablet, mobile, scroll completo, click su `Da firmare`, apertura menu ruolo, verifica che badge/testi/icone non escano dalla card;
+- dry-run server senza invio PEC reale e audit del pacchetto;
+- firma multipla reale solo con PIN/token reale e salvataggio di più `.p7m` nel fascicolo.

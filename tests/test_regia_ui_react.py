@@ -97,8 +97,11 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "localSignerEndpoint('/firma-batch')" in source
     assert "Firma ${documents.length} documenti" in source
     assert "pinInputRef.current?.focus()" in source
-    assert "Riavvia Local Signer e premi Riverifica" in source
-    assert "Prima riavvia e riverifica Local Signer." in source
+    assert "recoverLocalSignerAutomatically" in source
+    assert "localSignerOutdated" in source
+    assert "Riallinea automaticamente" in source
+    assert "Riavvia Local Signer e premi Riverifica" not in source
+    assert "Prima riavvia e riverifica Local Signer." not in source
     assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function relataStatusDisplayLabel")]
     assert "Versione firmata tramite firma multipla deposito" in source
     assert "Genera controllo e indice" in source

@@ -453,13 +453,15 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "localSignerEndpoint('/firma')" in source
     assert "token_probe_fresh" in source
     assert "riavvio_signer_consigliato" in source
-    assert "Token rilevato, riavvio consigliato" in source
+    assert "Token rilevato, riallineamento automatico" in source
     assert "localSignerCanSign" in source
-    assert "Il PIN comparira solo quando il token sara allineato e pronto." in source
+    assert "localSignerOutdated" in source
+    assert "Il PIN comparirà solo quando versione e token saranno allineati e pronti." in source
     assert "LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'" in source
+    assert "LOCAL_SIGNER_UPDATE_URI = 'iusentra-local-signer://update'" in source
     assert "href={LOCAL_SIGNER_RESTART_URI}" in source
-    assert "Riavvia Local Signer" in source
-    assert "Se il browser chiede conferma" in source
+    assert "Riallinea automaticamente" in source
+    assert "Se il browser chiede conferma" not in source
     assert "localSignerEndpoint('/diagnosi')" in source
     assert "visible_signature_mode: visibleSignatureMode" in source
     assert "visible_signature_place: visibleSignaturePlace" in source
@@ -2191,6 +2193,55 @@ def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: 
     assert timbro["qualifiche_professionali"] == "Patrocinante in Cassazione"
 
 
+def test_impostazioni_firma_salva_scadenza_certificato_local_signer(tmp_path: Path):
+    from pct.config_studio import GestioneConfigStudio
+
+    config_path = tmp_path / "config" / "studio.json"
+    app = _app(tmp_path)
+    expiry = date.today() + timedelta(days=15)
+
+    with app.test_client() as client:
+        response = client.post(
+            "/api/v1/ui/impostazioni/firma/certificato",
+            json={
+                "thumbprint": "AUTH-CF",
+                "soggetto": "MNTRRT64L01L063H / Roberto Montagnese",
+                "codice_fiscale": "MNTRRT64L01L063H",
+                "emittente": "ArubaPEC EU Authentication Certificates CA G1",
+                "scadenza": expiry.isoformat(),
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+    saved = GestioneConfigStudio(str(config_path)).config
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["firma"]["certificato_scadenza"] == expiry.isoformat()
+    assert payload["firma"]["certificato_scadenza_it"] == expiry.strftime("%d/%m/%Y")
+    assert payload["firma"]["certificato_giorni_scadenza"] == 15
+    assert payload["firma"]["certificato_avviso_login"] is True
+    assert saved.firma.certificato_codice_fiscale == "MNTRRT64L01L063H"
+    assert saved.firma.certificato_scadenza_it == expiry.strftime("%d/%m/%Y")
+
+
+def test_avviso_login_certificato_firma_a_venti_giorni():
+    from pct.config_studio import ConfigStudio
+    from web.services.signature_certificate_alerts import build_signature_certificate_login_warning
+
+    cfg = ConfigStudio()
+    cfg.firma.certificato_scadenza = "2026-07-01"
+    cfg.firma.certificato_scadenza_it = "01/07/2026"
+    alert = build_signature_certificate_login_warning(cfg, today=date(2026, 6, 16))
+
+    assert alert is not None
+    assert alert.category == "warning"
+    assert alert.days == 15
+    assert "mancano 15 giorni" in alert.message
+    assert "01/07/2026" in alert.message
+
+
 def test_impostazioni_notifiche_mostra_avvisi_operativi_persistenti(tmp_path: Path):
     from pct.notifications import NotificationRepository, NotificationRecord
 
@@ -2255,7 +2306,13 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     assert "Mostra valore inserito" in form
     assert "SettingsSummary" in page
     assert "checkLocalSigner" in actions
+    assert "Certificato memorizzato" in actions
+    assert "saveSignatureCertificateStatus" in actions
+    assert "/api/v1/ui/impostazioni/firma/certificato" in api
+    assert "certificato_scadenza_it" in bridge
+    assert ".iu-settings-certificate" in styles
     assert "token_probe_fresh" in signer
+    assert "certificato_windows_selezionato" in signer
     assert "iusentra-local-signer://restart" in api
     assert "/api/v1/ui/impostazioni/ai/bootstrap" in api
     assert "/api/v1/ui/impostazioni/notifiche/invia" in api

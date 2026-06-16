@@ -216,7 +216,6 @@
         { type: 'button', name: 'retry', label: 'Verifica dopo installazione', className: 'btn-outline-secondary' },
       ]
     );
-    openInstallerDownload(cfg);
     autoOpenInstallerOnce(cfg, 'missing');
   }
 
@@ -368,15 +367,18 @@
     if (!payload) {
       renderBanner(
         'warning',
-        'Local Signer non rilevato',
-        'Il servizio locale non sta rispondendo. Se è già installato, avvialo da qui; altrimenti scarica il pacchetto ufficiale e poi verifica.',
+        'Avvio Local Signer in corso',
+        'Il servizio locale non sta rispondendo. IUSENTRA prova ad avviarlo automaticamente e poi ricontrolla questo PC.',
         [
-          { type: 'button', name: 'start', label: 'Avvia Local Signer', className: 'btn-primary' },
-          { type: 'link', name: 'installer', label: installer.label, url: installer.url, className: 'btn-outline-primary' },
           { type: 'button', name: 'retry', label: 'Verifica di nuovo', className: 'btn-outline-secondary' },
         ]
       );
-      return { ok: false, reason: 'missing' };
+      const started = await verifyAfterStart(cfg, 8, 900);
+      if (!started) {
+        renderInstallRequired(cfg, installer);
+        return { ok: false, reason: 'missing' };
+      }
+      payload = started;
     }
 
     const installedVersion = payload.versione || payload.version || '';
@@ -401,7 +403,7 @@
         return { ok: true, version: updated.versione || updated.version || '', payload: updated };
       }
       if (cfg.autoInstallerPrompt && !installerPromptAlreadyShown(cfg, 'outdated-auto')) {
-        rememberInstallerPrompt(cfg, 'outdated-auto');
+        autoOpenInstallerOnce(cfg, 'outdated-auto');
         const promptedUpdate = await verifyAfterUpdate(cfg);
         if (promptedUpdate) {
           hideBanner();

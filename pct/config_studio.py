@@ -167,6 +167,14 @@ class ConfigFirma:
     cf_avvocato: str = ""
     backend_preferito: str = "auto"  # auto | pkcs11 | p12 | pem
     visible_signature_mode: str = "laterale"
+    certificato_thumbprint: str = ""
+    certificato_soggetto: str = ""
+    certificato_codice_fiscale: str = ""
+    certificato_emittente: str = ""
+    certificato_scadenza: str = ""
+    certificato_scadenza_it: str = ""
+    certificato_ultimo_controllo: str = ""
+    certificato_giorni_preavviso: int = 20
 
     def __post_init__(self) -> None:
         from visible_signature import normalize_visible_signature_mode

@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.253.34 - 2026-06-16
+
+- Deposito React: la spunta `Da firmare` nella lista `Documenti da inviare` è ora una scelta operativa cliccabile per i documenti non firmati, mentre `Firmato` resta solo informativo e deriva dal documento reale.
+- Firma multipla: il comando finale legge solo i documenti selezionati come da firmare; se Local Signer o PIN non sono pronti apre la fase `Firma documenti`, senza restare muto nella fase busta.
+- UI deposito: riga documenti, icone visualizza/scarica e menu ruolo sono stati compattati per evitare testo tagliato, uscita dal pannello e disallineamento sui formati laptop.
+- Guardrail: confermati typecheck, build Vite e test mirati su classificazione deposito e UI React. La prova visiva server, il dry-run produzione senza PEC e la firma multipla reale restano vincolanti prima della chiusura.
+
+## 2.253.33 - 2026-06-16
+
+- Impostazioni React/Firma Digitale: il controllo Local Signer legge il certificato selezionato, mostra scadenza, intestatario, codice fiscale ed emittente, e salva la scadenza nel profilo firma dello studio con data italiana.
+- Login studio: quando il certificato firma salvato scade entro 20 giorni, l'avvocato riceve a ogni accesso un avviso con i giorni mancanti; se risulta scaduto, il messaggio diventa bloccante dal punto di vista operativo.
+- Guardrail: aggiunti test mirati su salvataggio scadenza certificato, regola avviso 20 giorni, UI React Impostazioni e diagnostica Local Signer.
+
+## 2.253.32 - 2026-06-16
+
+- Local Signer 1.6.74: aggiunta guardia di istanza unica per evitare processi doppi sulla porta `127.0.0.1:27272`.
+- Diagnostica Local Signer: `/diagnosi` mostra ora il certificato avvocato selezionato con codice fiscale e scadenza, non solo l'elenco parziale dei primi certificati dello store Windows.
+- Cataloghi PST: aggiunto guardrail sui conteggi reali del catalogo pubblico PST civile/penale e del catalogo ministeriale copiati nel pacchetto Local Signer.
+- Deposito React: resta il comportamento di riallineamento automatico del Local Signer prima della richiesta PIN, senza istruzioni manuali come percorso principale.
+
+## 2.253.31 - 2026-06-16
+
+- Produzione React: fissata in `AGENTS.md` la regola operativa che tutto il perimetro studio/prodotto già promosso gira su React; l'unica eccezione resta Superadmin finché non viene pianificato.
+- Local Signer React: firma deposito e firma documento non chiedono più all'avvocato di risolvere manualmente avvio/aggiornamento; la UI tenta avvio, aggiornamento, riallineamento e riverifica prima di chiedere il PIN.
+- Local Signer 1.6.73: l'hot update ora chiude le istanze duplicate o vecchie di `local_signer.py` e libera la porta `127.0.0.1:27272` prima di rilanciare il servizio aggiornato.
+- Monitor globale Local Signer: se il servizio non risponde tenta l'avvio automatico; solo dopo il mancato avvio apre una sola volta il pacchetto ufficiale, evitando download doppi e messaggi manuali come prima risposta.
+- Guardrail: aggiornati i test React e Local Signer per impedire il ritorno dei messaggi “riavvia manualmente” e per presidiare aggiornamento automatico, protocollo `iusentra-local-signer://update` e stop dei processi duplicati.
+
 ## 2.253.30 - 2026-06-16
 
 - Deposito telematico: sostituita la select nativa dei ruoli documentali con un selettore React ancorato alla riga, così il menu resta allineato e leggibile anche nella lista `Documenti da inviare`.
@@ -7,6 +35,7 @@
 - Lettore documenti legali: estesa l'anteprima globale a `.xml`, `.xml.p7m`, `.eml`, `.eml.p7m`, `.txt`, `.txt.p7m` oltre ai `.pdf.p7m`, preservando il download dell'originale.
 - Performance React: introdotto code splitting del vendor e delle icone per rimuovere il warning Vite sul chunk principale sopra 500 kB.
 - Guardrail: aggiunti test mirati su menu ruolo custom, route Editor professionale e anteprime documentali per fascicoli, PEC ed email ordinaria.
+- CI release: riallineata la mappa sicurezza backend generata dopo la nuova route `/editor-professionale`, così `Lint + syntax` non resta rosso sullo SHA di rilascio.
 
 ## 2.253.29 - 2026-06-16
 

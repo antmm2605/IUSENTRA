@@ -1,5 +1,21 @@
 # Pytest shard confermati OK
 
+## Deposito `Da firmare` e layout lista 2.253.34 - 2026-06-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo `requiresSignature`, spunta `Da firmare` cliccabile e filtro firma multipla. |
+| `pnpm --filter @iusentra/studio build:vite` | OK | Bundle Vite rigenerato con layout deposito aggiornato e asset React coerenti. |
+| `python -m pytest tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests/test_regia_ui_react.py -q` | OK | 4/4: payload classificazione deposito, slot documentali e guardrail UI React confermati. |
+| `python -m pytest tests/test_react_asset_retention.py tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_utf8_integrity.py -q --tb=short` | OK | 16/16: asset Vite referenziati, packaging, readiness release e UTF-8 confermati. |
+| `node frontend/scripts/check-react-contracts.mjs`; `node scripts/react-migration/check-route-gate.mjs`; `git diff --check` | OK | Contratti React, route gate e whitespace senza errori; restano solo warning CRLF/LF su file già governati da Git. |
+
+## Scadenza certificato firma in Impostazioni 2.253.33 - 2026-06-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_react_shell.py::test_impostazioni_firma_salva_scadenza_certificato_local_signer tests/test_react_shell.py::test_avviso_login_certificato_firma_a_venti_giorni tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale tests/test_local_signer.py::test_diagnosi_windows_mostra_certificato_avvocato_selezionato tests/test_local_signer.py::test_local_signer_ha_guardia_istanza_unica_e_diagnosi_certificato -q` | OK | 5/5: scadenza certificato salvata in configurazione firma, data italiana, avviso login a 20 giorni, UI React e diagnostica Local Signer presidiati. |
+
 ## Deposito a step, lettore p7m globale e Studio editor 2.253.28 - 2026-06-16
 
 | Comando / verifica | Esito | Nota |
@@ -4867,3 +4883,5 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests\test_fascicolo_detail_ux.py::test_documenti_xml_p7m_eml_e_txt_si_visualizzano_e_si_eliminano tests\test_email_client.py::test_email_pec_visualizza_xml_eml_txt_e_xml_p7m_senza_perdere_originale tests\test_email_client.py::test_email_ordinaria_visualizza_xml_eml_txt_e_xml_p7m_senza_perdere_originale -q --tb=short` | OK | 3/3 passati dopo la riduzione di `fascicoli_document_routes.py`; il lettore unico continua a coprire fascicolo, PEC ed email ordinaria. |
 | `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | 14/14 passati su packaging, readiness e integrità UTF-8. |
 | `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py -q --tb=short` | OK | Registro e documenti App V2 riallineati dopo la nuova route; smoke inventory PASS=3, test governance App V2 15/15. |
+| `python scripts\react-migration\generate_backend_security_map.py`; `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata -q --tb=short` | OK | Risolto localmente il rosso GitHub `Lint + syntax` dello SHA `2932d2e461623fd7521b7f49b48bafed734c012c`: la mappa sicurezza backend ora conta 116 route manifest censite dopo l'introduzione di `/editor-professionale`. |
+| `python -m pytest tests\test_backend_security_phase5.py tests\test_openapi_contracts_phase6.py tests\test_data_flow_contract.py -q --tb=short` | OK | 20/20 passati: sicurezza endpoint React, OpenAPI e contratto dati/tenant/topbar restano coerenti dopo il riallineamento della mappa generata. |

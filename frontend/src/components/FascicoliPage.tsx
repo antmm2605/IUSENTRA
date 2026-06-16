@@ -396,6 +396,7 @@ type DepositDocumentClassification = {
   selected: boolean
   role: DepositDocumentRole
   alreadySigned: boolean
+  requiresSignature?: boolean
 }
 
 const DEPOSIT_DOCUMENT_ROLE_OPTIONS: Array<{ value: DepositDocumentRole; label: string }> = [
@@ -2673,6 +2674,7 @@ function DepositPreparePage({ id }:{id:string}) {
           selected: knownSelection ? false : defaultSelected,
           role: defaultDepositRoleForDocument(doc, linkedSlotByDocumentId.get(doc.id), defaultMainActDocumentId === doc.id),
           alreadySigned: doc.signed,
+          requiresSignature: !doc.signed && requiresPackageSignature(doc),
         }
       })
       const currentKeys = Object.keys(current).sort()
@@ -2682,7 +2684,8 @@ function DepositPreparePage({ id }:{id:string}) {
         && nextKeys.every((key, index) => key === currentKeys[index]
           && current[key]?.selected === next[key]?.selected
           && current[key]?.role === next[key]?.role
-          && current[key]?.alreadySigned === next[key]?.alreadySigned)
+          && current[key]?.alreadySigned === next[key]?.alreadySigned
+          && current[key]?.requiresSignature === next[key]?.requiresSignature)
       ) {
         return current
       }
@@ -2700,16 +2703,27 @@ function DepositPreparePage({ id }:{id:string}) {
     || selectedDepositDocuments.find(isMainActCandidateDocument)
   const packageDocuments = uniqueFascicoloDocuments(selectedDepositDocuments)
   const selectedAttachmentIds = packageDocuments.filter((doc) => doc.id !== mainActDocument?.id).map((doc) => doc.id)
-  const unsignedPackageDocuments = packageDocuments.filter((doc) => !doc.signed && requiresPackageSignature(doc))
+  const unsignedPackageDocuments = packageDocuments.filter((doc) => {
+    const requested = effectiveDepositClassificationById[doc.id]?.requiresSignature ?? (!doc.signed && requiresPackageSignature(doc))
+    return !doc.signed && requested && requiresPackageSignature(doc)
+  })
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
   const missingRequiredSlots = sortedSlots.filter((slot) => recordBool(slot, 'required') && !depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument, effectiveDepositClassificationById))
   const bustaAction = directPecReady ? `/fascicoli/${encodedId}/deposito/invia-pec` : `/fascicoli/${encodedId}/deposito/genera-busta`
   const runBatchSignatureBeforeDeposit = async () => {
     if (!signatureBatchRequired) return
     if (!batchSignatureActionRef.current) {
+      setActiveDepositPanel('firma-busta')
+      window.location.hash = 'firma-busta'
       throw new Error('Inserisci il PIN e rendi pronto Local Signer nel pannello firma prima di generare la busta.')
     }
-    await batchSignatureActionRef.current()
+    try {
+      await batchSignatureActionRef.current()
+    } catch (err) {
+      setActiveDepositPanel('firma-busta')
+      window.location.hash = 'firma-busta'
+      throw err
+    }
   }
   const resetDepositSelectionToProposal = () => {
     const proposed = new Set(defaultDepositSelectionIds)
@@ -2718,6 +2732,7 @@ function DepositPreparePage({ id }:{id:string}) {
       selected: proposed.has(doc.id),
       role: defaultDepositRoleForDocument(doc, linkedSlotByDocumentId.get(doc.id), defaultMainActDocumentId === doc.id),
       alreadySigned: doc.signed,
+      requiresSignature: !doc.signed && requiresPackageSignature(doc),
     }])))
   }
   const selectAllDepositDocuments = () => {
@@ -2725,6 +2740,7 @@ function DepositPreparePage({ id }:{id:string}) {
       selected: true,
       role: current[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id),
       alreadySigned: current[doc.id]?.alreadySigned ?? doc.signed,
+      requiresSignature: current[doc.id]?.requiresSignature ?? (!doc.signed && requiresPackageSignature(doc)),
     }])))
   }
   const updateDepositClassification = (documentId: string, patch: Partial<DepositDocumentClassification>) => {
@@ -2734,10 +2750,14 @@ function DepositPreparePage({ id }:{id:string}) {
         selected: defaultDepositSelectionIds.includes(documentId),
         role: defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === documentId),
         alreadySigned: Boolean(doc?.signed),
+        requiresSignature: Boolean(doc && !doc.signed && requiresPackageSignature(doc)),
       }
       const normalizedPatch = { ...patch }
       if (normalizedPatch.role && normalizedPatch.role !== 'fuori_busta') normalizedPatch.selected = true
-      if (normalizedPatch.role === 'fuori_busta') normalizedPatch.selected = false
+      if (normalizedPatch.role === 'fuori_busta') {
+        normalizedPatch.selected = false
+        normalizedPatch.requiresSignature = false
+      }
       const next = { ...current, [documentId]: { ...existing, ...normalizedPatch } }
       if (normalizedPatch.role === 'atto_principale') {
         Object.keys(next).forEach((key) => {
@@ -2755,6 +2775,7 @@ function DepositPreparePage({ id }:{id:string}) {
       selected: Boolean(effectiveDepositClassificationById[doc.id]?.selected),
       role: normaliseDepositRoleForUi(effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)),
       already_signed: Boolean(doc.signed),
+      requires_signature: Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature ?? (!doc.signed && requiresPackageSignature(doc))),
     })),
   })
   const submitDepositClassification = () => submitJsonPayload(`/api/v1/ui/fascicoli/${encodedId}/deposito/classifica-documenti`, depositClassificationPayload())
@@ -3121,9 +3142,11 @@ function DepositPreparePage({ id }:{id:string}) {
                   const selected = Boolean(classification.selected)
                   const isMainAct = mainActDocument?.id === doc.id
                   const role = depositSelectionRole(doc, isMainAct, classification.role)
+                  const canRequestSignature = !doc.signed && requiresPackageSignature(doc)
+                  const signatureRequested = canRequestSignature && (classification.requiresSignature ?? true)
                   const signatureLabel = doc.signed
                     ? 'Firmato'
-                    : requiresPackageSignature(doc) ? 'Da firmare' : 'Firma non necessaria'
+                    : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Non firmare') : 'Firma non necessaria'
                   return (
                     <article className={`iu-fas-deposit-selection__row${selected ? ' is-selected' : ''}${isMainAct ? ' is-main' : ''}`} key={`select-${doc.id}`}>
                       <label className="iu-fas-deposit-selection__include">
@@ -3135,23 +3158,21 @@ function DepositPreparePage({ id }:{id:string}) {
                         />
                         <span>Invia</span>
                       </label>
-                      <div>
+                      <div className="iu-fas-deposit-selection__document">
                         <strong>{doc.name}</strong>
                         <span>{[doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
                         {doc.signed ? <em>{doc.name.toLowerCase().endsWith('.p7m') ? 'File firmato .p7m' : 'Firmato digitale'}</em> : null}
-                        {selected && !classification.alreadySigned && requiresPackageSignature(doc) ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
+                        {selected && signatureRequested ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
                       <div className="iu-fas-deposit-document-actions" aria-label={`Azioni documento ${doc.name}`}>
                         {doc.actions.preview ? (
                           <button type="button" title={`Visualizza ${doc.name}`} aria-label={`Visualizza ${doc.name}`} onClick={() => setPreviewDoc({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}>
-                            <Eye size={15}/>
-                            <span>Visualizza</span>
+                            <Eye size={17} strokeWidth={2.4} aria-hidden="true"/>
                           </button>
                         ) : null}
                         {doc.actions.download ? (
                           <a href={doc.actions.download} title={`Scarica originale ${doc.name}`} aria-label={`Scarica originale ${doc.name}`}>
-                            <Download size={15}/>
-                            <span>Scarica</span>
+                            <Download size={17} strokeWidth={2.4} aria-hidden="true"/>
                           </a>
                         ) : null}
                       </div>
@@ -3161,17 +3182,20 @@ function DepositPreparePage({ id }:{id:string}) {
                           value={classification.role}
                           onChange={(nextRole) => updateDepositClassification(doc.id, { role: nextRole })}
                         />
-                        <label className="iu-fas-deposit-selection__signed">
+                        <label className="iu-fas-deposit-selection__signed" aria-disabled={!canRequestSignature}>
                           <input
                             type="checkbox"
-                            checked={doc.signed}
-                            disabled
-                            aria-label={`Stato firma per ${doc.name}`}
+                            checked={doc.signed || signatureRequested}
+                            disabled={doc.signed || !canRequestSignature}
+                            onChange={(event) => updateDepositClassification(doc.id, {
+                              requiresSignature: event.currentTarget.checked,
+                              selected: event.currentTarget.checked ? true : selected,
+                            })}
+                            aria-label={`${signatureRequested ? 'Firma richiesta' : 'Firma non richiesta'} per ${doc.name}`}
                           />
                           <span>{signatureLabel}</span>
                         </label>
                       </div>
-                      <Badge tone={role.tone}>{role.label}</Badge>
                     </article>
                   )
                 })}
@@ -3449,9 +3473,10 @@ function DepositBatchSignaturePanel({
   const freshToken = localSigner?.token_probe_fresh?.[0]
   const displayToken = primaryToken || freshToken
   const signerRestartRequired = Boolean(freshToken && !primaryToken)
-  const localSignerCanSign = Boolean(primaryToken && !signerRestartRequired)
   const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh))
-  const restartSuggested = Boolean(signerRestartRequired || (localSigner?.riavvio_signer_consigliato && !primaryToken))
+  const restartSuggested = localSignerNeedsRestart(localSigner)
+  const localSignerOutdated = localSignerStatusOutdated(localSigner)
+  const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
 
   useEffect(() => {
@@ -3460,43 +3485,41 @@ function DepositBatchSignaturePanel({
     setVisibleSignatureDatetimeMode(loadVisibleSignatureDatetimeMode(signature?.visibleSignatureDatetimeMode || 'data_ora'))
   }, [signature?.visibleSignatureMode, signature?.visibleSignaturePlace, signature?.visibleSignatureDatetimeMode])
 
-  const checkLocalSigner = async (tryStart = false) => {
+  const checkLocalSigner = async (tryStart = false): Promise<LocalSignerStatus | null> => {
     setCheckingSigner(true)
     setError('')
     if (tryStart) {
-      setMessage("Sto chiedendo a Windows di riavviare Local Signer. Se il browser chiede conferma, consenti l'apertura dell'app locale.")
+      setMessage('IUSENTRA sta avviando e verificando automaticamente Local Signer su questo PC.')
       requestLocalSignerStart()
     }
     const attempts = tryStart ? 10 : 1
     try {
       for (let attempt = 0; attempt < attempts; attempt += 1) {
         if (attempt > 0) await sleep(900)
-        const controller = new AbortController()
-        const timeout = window.setTimeout(() => controller.abort(), 3500)
-        try {
-          const response = await fetch(localSignerEndpoint('/ping'), { cache: 'no-store', signal: controller.signal })
-          const payload = await response.json().catch(() => ({}))
-          setLocalSigner(payload as LocalSignerStatus)
-          if ((payload as LocalSignerStatus).token?.length) setMessage('')
-          return
-        } catch {
+        const payload = await fetchLocalSignerStatus()
+        if (payload) {
+          const next = await recoverLocalSignerAutomatically(payload, { onMessage: setMessage })
+          setLocalSigner(next)
+          if (localSignerStatusCanSign(next)) setMessage('')
+          return next
+        } else {
           if (attempt === attempts - 1) setLocalSigner({ ok: false, messaggio: 'Local Signer non rilevato su questo PC.' })
-        } finally {
-          window.clearTimeout(timeout)
         }
       }
+      return null
     } finally {
       setCheckingSigner(false)
     }
   }
 
   useEffect(() => {
-    if (documents.length) void checkLocalSigner(false)
+    if (documents.length) void checkLocalSigner(true)
   }, [documents.length])
 
   const scheduleLocalSignerRestartCheck = () => {
     setError('')
-    setMessage("Sto chiedendo a Windows di riavviare Local Signer. Se il browser chiede conferma, consenti l'apertura dell'app locale.")
+    setMessage('IUSENTRA sta riallineando automaticamente Local Signer e ricontrolla il token.')
+    requestLocalSignerStart()
     for (const delay of [2500, 5000, 8500, 12000]) {
       window.setTimeout(() => { void checkLocalSigner(false) }, delay)
     }
@@ -3527,12 +3550,18 @@ function DepositBatchSignaturePanel({
   }
 
   const signAll = async () => {
-    if (restartSuggested) {
-      setError('Riavvia Local Signer e premi Riverifica: il PIN va usato solo quando il token risulta pronto per la firma.')
+    if (restartSuggested || localSignerOutdated) {
+      const next = await checkLocalSigner(true)
+      if (!localSignerStatusCanSign(next)) {
+        setError('IUSENTRA ha tentato il riallineamento automatico del Local Signer. Se il token è inserito, attendi pochi secondi: il PIN verrà chiesto solo quando versione e token saranno pronti.')
+      }
       return
     }
     if (!localSignerCanSign) {
-      setError(localSignerReachable ? 'Token non pronto per la firma: inserisci il dispositivo, avvia Local Signer e premi Riverifica.' : 'Local Signer non è raggiungibile su questo PC: avvialo e premi Riverifica.')
+      const next = await checkLocalSigner(true)
+      if (!localSignerStatusCanSign(next)) {
+        setError(localSignerReachable ? 'Token non pronto per la firma: verifica che il dispositivo fisico sia inserito. IUSENTRA ha già tentato avvio e aggiornamento del Local Signer.' : 'Local Signer non raggiungibile su questo PC: IUSENTRA ha tentato l’avvio automatico e riproverà la verifica.')
+      }
       return
     }
     if (!primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
@@ -3616,19 +3645,21 @@ function DepositBatchSignaturePanel({
   if (!documents.length) return null
 
   const signerTitle = displayToken
-    ? (restartSuggested ? 'Token rilevato, riavvio consigliato' : 'Local Signer pronto')
+    ? (restartSuggested ? 'Token rilevato, riallineamento automatico' : localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer pronto')
     : localSignerReachable
-      ? 'Local Signer attivo senza token'
+      ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
   const signerDetail = displayToken
-    ? (restartSuggested
-        ? localSigner?.nota_riavvio_signer || 'Il token è stato rilevato, ma Local Signer va riavviato prima della firma.'
+    ? (localSignerOutdated
+        ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
+        : restartSuggested
+        ? localSigner?.nota_riavvio_signer || 'Il token è stato rilevato, IUSENTRA sta riallineando Local Signer prima della firma.'
         : `${localSignerTokenLabel(displayToken)} - slot ${displayToken.slot_id}`)
     : localSignerReachable
       ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token disponibile.'
-      : localSigner?.messaggio || localSigner?.error || 'Avvia Local Signer sul PC e riprova.'
+      : localSigner?.messaggio || localSigner?.error || 'IUSENTRA tenta l’avvio automatico del Local Signer su questo PC.'
 
   return (
     <section className="iu-fas-batch-signature">
@@ -3638,10 +3669,10 @@ function DepositBatchSignaturePanel({
         {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
         {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
       </div>
-      {restartSuggested || !localSignerReachable ? (
+      {restartSuggested || localSignerOutdated || !localSignerReachable ? (
         <div className="iu-fas-signer-actions">
           <a className="iu-fas-mini-action iu-fas-mini-action--restart" href={LOCAL_SIGNER_RESTART_URI} onClick={scheduleLocalSignerRestartCheck}>
-            <RefreshCw size={14}/> Riavvia Local Signer
+            <RefreshCw size={14}/> Riallinea automaticamente
           </a>
           <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}>
             <RefreshCw size={14}/> Riverifica
@@ -3693,8 +3724,8 @@ function DepositBatchSignaturePanel({
         </>
       ) : (
         <div className="iu-fas-signer-next-step">
-          <strong>{restartSuggested ? 'Prima riavvia e riverifica Local Signer.' : 'Token non pronto per la firma.'}</strong>
-          <span>{restartSuggested ? 'Il token è stato rilevato, ma il servizio locale va riallineato prima di firmare il lotto.' : 'Inserisci il token, avvia Local Signer e premi Riverifica.'}</span>
+          <strong>{restartSuggested || localSignerOutdated ? 'Riallineamento automatico in corso.' : 'Token non pronto per la firma.'}</strong>
+          <span>{restartSuggested || localSignerOutdated ? 'IUSENTRA aggiorna o riapre il servizio locale e ricontrolla il token prima di firmare il lotto.' : 'Inserisci il token fisico: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
         </div>
       )}
       {message ? <div className="iu-fas-signature-alert iu-fas-signature-alert--ok" role="status"><CheckCircle2 size={16}/><span>{message}</span></div> : null}
@@ -4514,6 +4545,9 @@ type LocalSignerStatus = {
   riavvio_signer_consigliato?: boolean
   nota_riavvio_signer?: string
 }
+type LocalSignerRecoveryOptions = {
+  onMessage?: (message: string) => void
+}
 type FirmaInfo = {
   firme?: unknown[]
   nome?: string
@@ -4544,6 +4578,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 const LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
+const LOCAL_SIGNER_UPDATE_URI = 'iusentra-local-signer://update'
 
 function isDesktopLocalSignerHost(): boolean {
   if (typeof navigator === 'undefined') return true
@@ -4558,6 +4593,18 @@ function requestLocalSignerStart(): boolean {
   if (!isDesktopLocalSignerHost()) return false
   const link = document.createElement('a')
   link.href = LOCAL_SIGNER_RESTART_URI
+  link.rel = 'noreferrer'
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  window.setTimeout(() => link.remove(), 1500)
+  return true
+}
+
+function requestLocalSignerUpdate(): boolean {
+  if (!isDesktopLocalSignerHost()) return false
+  const link = document.createElement('a')
+  link.href = LOCAL_SIGNER_UPDATE_URI
   link.rel = 'noreferrer'
   link.style.display = 'none'
   document.body.appendChild(link)
@@ -4589,6 +4636,7 @@ const visibleSignatureDatetimeStorageKey = 'hacs.firma_visibile.data_ora'
 declare global {
   interface Window {
     __IUSENTRA_LOCAL_SIGNER_URL__?: string
+    __IUSENTRA_LOCAL_SIGNER_LATEST_VERSION__?: string
   }
 }
 
@@ -4600,6 +4648,95 @@ function localSignerBaseUrl(): string {
 function localSignerEndpoint(path: string): string {
   const suffix = path.startsWith('/') ? path : `/${path}`
   return `${localSignerBaseUrl()}${suffix}`
+}
+
+function localSignerLatestVersion(): string {
+  if (typeof window === 'undefined') return ''
+  const configured = window.__IUSENTRA_LOCAL_SIGNER_LATEST_VERSION__
+  const monitor = document.getElementById('iusentra-local-signer-monitor') as HTMLElement | null
+  return String(configured || monitor?.dataset.latestVersion || '').trim()
+}
+
+function compareLocalSignerVersions(left: string, right: string): number {
+  const parse = (value: string) => String(value || '').split('.').map((part) => Number.parseInt(part, 10) || 0)
+  const a = parse(left)
+  const b = parse(right)
+  const max = Math.max(a.length, b.length)
+  for (let index = 0; index < max; index += 1) {
+    const delta = (a[index] || 0) - (b[index] || 0)
+    if (delta !== 0) return delta
+  }
+  return 0
+}
+
+function localSignerInstalledVersion(status?: LocalSignerStatus | null): string {
+  return String(status?.versione || status?.version || '').trim()
+}
+
+function localSignerStatusOutdated(status?: LocalSignerStatus | null): boolean {
+  const latest = localSignerLatestVersion()
+  const installed = localSignerInstalledVersion(status)
+  return Boolean(latest && installed && compareLocalSignerVersions(installed, latest) < 0)
+}
+
+function localSignerNeedsRestart(status?: LocalSignerStatus | null): boolean {
+  return Boolean((status?.token_probe_fresh?.length && !status?.token?.length) || (status?.riavvio_signer_consigliato && !status?.token?.length))
+}
+
+function localSignerStatusCanSign(status?: LocalSignerStatus | null): boolean {
+  return Boolean(status?.token?.[0] && !localSignerNeedsRestart(status) && !localSignerStatusOutdated(status))
+}
+
+async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStatus | null> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(localSignerEndpoint('/ping'), {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+    return await response.json().catch(() => ({} as LocalSignerStatus))
+  } catch {
+    return null
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
+async function pollLocalSignerStatus(attempts = 10, delayMs = 900): Promise<LocalSignerStatus | null> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) await sleep(delayMs)
+    const payload = await fetchLocalSignerStatus()
+    if (payload && payload.ok !== false) return payload
+  }
+  return null
+}
+
+async function recoverLocalSignerAutomatically(
+  status: LocalSignerStatus,
+  options: LocalSignerRecoveryOptions = {},
+): Promise<LocalSignerStatus> {
+  if (localSignerStatusOutdated(status)) {
+    const latest = localSignerLatestVersion()
+    const installed = localSignerInstalledVersion(status)
+    options.onMessage?.(`Local Signer ${installed || 'installato'} da aggiornare alla versione ${latest}. IUSENTRA avvia l'aggiornamento automatico e ricontrolla il servizio.`)
+    try {
+      const updateResponse = await fetch(localSignerEndpoint('/update'), { method: 'POST', cache: 'no-store' })
+      const updatePayload = await updateResponse.json().catch(() => ({} as Record<string, unknown>))
+      if (!updateResponse.ok || updatePayload.ok === false) throw new Error('Aggiornamento locale non avviato')
+    } catch {
+      requestLocalSignerUpdate()
+    }
+    const updated = await pollLocalSignerStatus(14, 1000)
+    return updated || status
+  }
+  if (localSignerNeedsRestart(status)) {
+    options.onMessage?.('IUSENTRA sta riallineando automaticamente Local Signer perché il token è stato rilevato da un controllo fresco.')
+    requestLocalSignerStart()
+    const restarted = await pollLocalSignerStatus(12, 900)
+    return restarted || status
+  }
+  return status
 }
 
 function normalizeVisibleSignatureMode(value?: string): VisibleSignatureMode {
@@ -4660,24 +4797,27 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const freshToken = localSigner?.token_probe_fresh?.[0]
   const displayToken = primaryToken || freshToken
   const signerRestartRequired = Boolean(freshToken && !primaryToken)
-  const localSignerCanSign = Boolean(primaryToken && !signerRestartRequired)
   const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh))
-  const restartSuggested = Boolean(signerRestartRequired || (localSigner?.riavvio_signer_consigliato && !primaryToken))
+  const restartSuggested = localSignerNeedsRestart(localSigner)
+  const localSignerOutdated = localSignerStatusOutdated(localSigner)
+  const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
   const localSignerStatusTitle = displayToken
-    ? (freshToken && !primaryToken ? 'Token rilevato, riavvio consigliato' : 'Local Signer rilevato')
+    ? (freshToken && !primaryToken ? 'Token rilevato, riallineamento automatico' : localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer rilevato')
     : localSignerReachable
-      ? 'Local Signer attivo senza token PKCS#11'
+      ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token PKCS#11')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
   const localSignerStatusMessage = displayToken
-    ? (restartSuggested
-        ? localSigner?.nota_riavvio_signer || 'Il token e stato rilevato da un controllo fresco. Riavvia il Local Signer se la firma non parte.'
+    ? (localSignerOutdated
+        ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
+        : restartSuggested
+        ? localSigner?.nota_riavvio_signer || 'Il token è stato rilevato da un controllo fresco. IUSENTRA sta riallineando Local Signer prima della firma.'
         : `${localSignerTokenLabel(displayToken)} - slot ${displayToken.slot_id}`)
     : localSignerReachable
       ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token PKCS#11 disponibile.'
-      : localSigner?.messaggio || localSigner?.error || 'Avvia Local Signer sul PC e riprova.'
+      : localSigner?.messaggio || localSigner?.error || 'IUSENTRA tenta l’avvio automatico del Local Signer su questo PC.'
   const signatureCount = info?.firme?.length || 0
   const alreadySigned = Boolean(doc?.signed || signatureCount > 0 || doc?.name.toLowerCase().match(/\.(p7m|sig|pkcs7)$/))
   const setVisibleSignatureChoice = (mode: VisibleSignatureMode) => {
@@ -4702,7 +4842,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
 
   const scheduleLocalSignerRestartCheck = () => {
     setError('')
-    setMessage("Sto chiedendo a Windows di riavviare Local Signer. Se il browser chiede conferma, consenti l'apertura dell'app locale.")
+    setMessage('IUSENTRA sta riallineando automaticamente Local Signer e ricontrolla il token.')
+    requestLocalSignerStart()
     for (const delay of [2500, 5000, 8500, 12000]) {
       window.setTimeout(() => { void checkLocalSigner(false) }, delay)
     }
@@ -4715,32 +4856,30 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       .catch(() => setInfo({ errore: 'Stato firma non disponibile.' }))
   }
 
-  const checkLocalSigner = async (tryStart = false) => {
+  const checkLocalSigner = async (tryStart = false): Promise<LocalSignerStatus | null> => {
     setCheckingSigner(true)
     setError('')
-    if (tryStart) requestLocalSignerStart()
+    if (tryStart) {
+      setMessage('IUSENTRA sta avviando e verificando automaticamente Local Signer su questo PC.')
+      requestLocalSignerStart()
+    }
     const attempts = tryStart ? 10 : 1
     try {
       for (let attempt = 0; attempt < attempts; attempt += 1) {
         if (attempt > 0) await sleep(900)
-        const controller = new AbortController()
-        const timeout = window.setTimeout(() => controller.abort(), 3500)
-        try {
-          const response = await fetch(localSignerEndpoint('/ping'), {
-            cache: 'no-store',
-            signal: controller.signal,
-          })
-          const payload = await response.json().catch(() => ({}))
-          setLocalSigner(payload as LocalSignerStatus)
-          return
-        } catch {
+        const payload = await fetchLocalSignerStatus()
+        if (payload) {
+          const next = await recoverLocalSignerAutomatically(payload, { onMessage: setMessage })
+          setLocalSigner(next)
+          if (localSignerStatusCanSign(next)) setMessage('')
+          return next
+        } else {
           if (attempt === attempts - 1) {
             setLocalSigner({ ok: false, messaggio: 'Local Signer non rilevato su questo PC.' })
           }
-        } finally {
-          window.clearTimeout(timeout)
         }
       }
+      return null
     } finally {
       setCheckingSigner(false)
     }
@@ -4762,17 +4901,23 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
 
   useEffect(() => {
     refreshInfo()
-    checkLocalSigner()
+    checkLocalSigner(true)
   }, [infoUrl])
 
   const firmaConLocalSigner = async () => {
     if (!doc) return
-    if (signerRestartRequired) {
-      setError('Prima riavvia e riverifica Local Signer: il PIN verra richiesto solo quando il token sara pronto per la firma.')
+    if (restartSuggested || localSignerOutdated) {
+      const next = await checkLocalSigner(true)
+      if (!localSignerStatusCanSign(next)) {
+        setError('IUSENTRA ha tentato il riallineamento automatico del Local Signer. Il PIN verrà richiesto solo quando versione e token saranno pronti per la firma.')
+      }
       return
     }
     if (!primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
-      setError('Local Signer non ha restituito un token utilizzabile.')
+      const next = await checkLocalSigner(true)
+      if (!localSignerStatusCanSign(next)) {
+        setError('Local Signer non ha restituito un token utilizzabile. Se il dispositivo fisico è inserito, IUSENTRA ha già tentato avvio, aggiornamento e riverifica.')
+      }
       return
     }
     if (!pin.trim()) {
@@ -4903,10 +5048,10 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
               {displayToken && signerRestartRequired ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
               {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
             </div>
-            {restartSuggested || !localSignerReachable ? (
+            {restartSuggested || localSignerOutdated || !localSignerReachable ? (
               <div className="iu-fas-signer-actions">
                 <a className="iu-fas-mini-action iu-fas-mini-action--restart" href={LOCAL_SIGNER_RESTART_URI} onClick={scheduleLocalSignerRestartCheck}>
-                  <RefreshCw size={14}/> Riavvia Local Signer
+                  <RefreshCw size={14}/> Riallinea automaticamente
                 </a>
                 <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}>
                   <RefreshCw size={14}/> Riverifica
@@ -4957,8 +5102,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
               </>
             ) : (
               <div className="iu-fas-signer-next-step">
-                <strong>{signerRestartRequired ? 'Prima riavvia e riverifica Local Signer.' : 'Token non pronto per la firma.'}</strong>
-                <span>{signerRestartRequired ? 'Il PIN comparira solo quando il token sara allineato e pronto.' : 'Inserisci il token, avvia Local Signer e premi Riverifica.'}</span>
+                <strong>{signerRestartRequired || localSignerOutdated ? 'Riallineamento automatico in corso.' : 'Token non pronto per la firma.'}</strong>
+                <span>{signerRestartRequired || localSignerOutdated ? 'Il PIN comparirà solo quando versione e token saranno allineati e pronti.' : 'Inserisci il token fisico: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
               </div>
             )}
           </div>

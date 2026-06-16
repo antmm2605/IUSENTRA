@@ -11,6 +11,7 @@ import {
   type LocalAiLocalResult,
   type MobileAiInstallPlan,
 } from '../localAi'
+import { saveSignatureCertificateStatus } from '../api'
 import { checkLocalSigner, testPecSmtpViaLocalSigner, type LocalSignerCheck } from '../localSigner'
 import type { AiRuntimePayload, SettingTone, SettingsPayload, SettingsSection, TestResult } from '../types'
 
@@ -236,6 +237,15 @@ function toneValue(value: unknown): SettingTone {
 function numberValue(value: unknown): number {
   const parsed = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function daysLabel(value: unknown): string {
+  if (value === undefined || value === null || value === '') return ''
+  const days = numberValue(value)
+  if (!Number.isFinite(days)) return ''
+  if (days < 0) return `scaduto da ${Math.abs(days)} ${Math.abs(days) === 1 ? 'giorno' : 'giorni'}`
+  if (days === 0) return 'scade oggi'
+  return `mancano ${days} ${days === 1 ? 'giorno' : 'giorni'}`
 }
 
 function normalizeReviewQueue(payload: unknown): LexReviewQueue {
@@ -484,6 +494,7 @@ export function SettingsActions({
   onTest,
   onRefreshAi,
   onPrepareAi,
+  onReload,
 }: {
   section: SettingsSection
   values: Record<string, unknown>
@@ -493,8 +504,11 @@ export function SettingsActions({
   onTest: (testId: string, values: Record<string, unknown>) => Promise<TestResult>
   onRefreshAi: () => Promise<AiRuntimePayload>
   onPrepareAi: (force?: boolean) => Promise<AiRuntimePayload>
+  onReload: () => unknown
 }) {
   const [localSigner, setLocalSigner] = useState<LocalSignerCheck | null>(null)
+  const [certificateSaving, setCertificateSaving] = useState(false)
+  const [certificateMessage, setCertificateMessage] = useState('')
   const [pecLocalResult, setPecLocalResult] = useState<LocalSignerCheck | null>(null)
   const [pecChecking, setPecChecking] = useState(false)
   const [localAiResult, setLocalAiResult] = useState<LocalAiLocalResult | null>(null)
@@ -546,18 +560,67 @@ export function SettingsActions({
   }
 
   if (section === 'firma') {
+    const firmaSettings = record(data.firma)
+    const savedExpiry = asText(firmaSettings.certificato_scadenza_it) || asText(firmaSettings.certificato_scadenza)
+    const savedDays = firmaSettings.certificato_giorni_scadenza
+    const savedSubject = asText(firmaSettings.certificato_soggetto)
+    const savedFiscalCode = asText(firmaSettings.certificato_codice_fiscale)
+    const savedIssuer = asText(firmaSettings.certificato_emittente)
+    const latestCertificate = localSigner?.certificate
+    const visibleExpiry = latestCertificate?.scadenza_it || savedExpiry
+    const visibleDays = latestCertificate?.giorni_scadenza ?? savedDays
+    const visibleSubject = latestCertificate?.soggetto || savedSubject
+    const visibleFiscalCode = latestCertificate?.codice_fiscale || savedFiscalCode
+    const visibleIssuer = latestCertificate?.emittente || savedIssuer
+    const visibleDaysNumber = visibleDays === undefined || visibleDays === null || visibleDays === '' ? null : numberValue(visibleDays)
+    const warningActive = Boolean(firmaSettings.certificato_avviso_login) || (visibleDaysNumber !== null && visibleDaysNumber <= 20)
+
+    const runLocalSignerCheck = async () => {
+      setCertificateMessage('')
+      const result = await checkLocalSigner(data.local_signer.base_url, data.local_signer.restart_protocol)
+      setLocalSigner(result)
+      if (!result.certificate?.scadenza) {
+        setCertificateMessage('Local Signer verificato: nessuna scadenza certificato leggibile in questa risposta.')
+        return
+      }
+      setCertificateSaving(true)
+      try {
+        const saved = await saveSignatureCertificateStatus({ ...result.certificate })
+        setCertificateMessage(saved.message || 'Scadenza certificato firma salvata.')
+        void onReload()
+      } catch {
+        setCertificateMessage('Scadenza letta, ma il salvataggio nelle impostazioni non è riuscito. Ripeti la verifica.')
+      } finally {
+        setCertificateSaving(false)
+      }
+    }
+
     return (
       <div className="iu-settings-actions-panel">
         <div>
           <strong>IUSENTRA Local Signer</strong>
           <span>Il dispositivo di firma viene verificato sul PC in uso, senza inviare il PIN allo studio online.</span>
         </div>
+        <article className={`iu-settings-certificate ${warningActive && visibleExpiry ? 'is-warning' : ''}`}>
+          <div className="iu-settings-certificate__head">
+            <ShieldCheck aria-hidden="true" />
+            <div>
+              <span>Certificato memorizzato</span>
+              <strong>{visibleExpiry || 'Nessuna scadenza salvata'}</strong>
+            </div>
+            {visibleExpiry ? <IusStatusBadge tone={warningActive ? 'warning' : 'success'}>{daysLabel(visibleDays) || 'data salvata'}</IusStatusBadge> : null}
+          </div>
+          <dl>
+            {visibleFiscalCode ? <div><dt>Codice fiscale</dt><dd>{visibleFiscalCode}</dd></div> : null}
+            {visibleSubject ? <div><dt>Intestatario</dt><dd>{visibleSubject}</dd></div> : null}
+            {visibleIssuer ? <div><dt>Emesso da</dt><dd>{visibleIssuer}</dd></div> : null}
+          </dl>
+          {!visibleExpiry ? <p>Premi verifica dispositivo per leggere e salvare automaticamente la scadenza dal certificato presente sul PC.</p> : null}
+        </article>
         <div className="iu-settings-actions-panel__buttons">
-          <Button type="button" variant="outline" onClick={() => {
-            void checkLocalSigner(data.local_signer.base_url, data.local_signer.restart_protocol).then(setLocalSigner)
-          }}>
+          <Button type="button" variant="outline" disabled={certificateSaving} onClick={() => void runLocalSignerCheck()}>
             <ShieldCheck data-icon="inline-start" />
-            Verifica dispositivo collegato
+            {certificateSaving ? 'Salvataggio scadenza' : 'Verifica dispositivo collegato'}
           </Button>
           <Button type="button" variant="outline" asChild>
             <a href={data.local_signer.downloads.windows} target="_blank" rel="noreferrer">
@@ -566,6 +629,13 @@ export function SettingsActions({
             </a>
           </Button>
         </div>
+        {certificateMessage ? (
+          <Alert className={certificateMessage.includes('non è riuscito') ? 'iu-settings-alert is-warning' : 'iu-settings-alert is-info'}>
+            <ClipboardCheck />
+            <AlertTitle>Aggiornamento certificato</AlertTitle>
+            <AlertDescription>{certificateMessage}</AlertDescription>
+          </Alert>
+        ) : null}
         <ResultAlert result={localSigner} />
       </div>
     )

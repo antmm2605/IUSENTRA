@@ -848,7 +848,7 @@ def test_request_storage_runtime_blocca_json_fallback_quando_sqlite_non_disponib
     assert profile_before.uses_sqlite is True
 
 
-def test_login_route_falls_back_to_json_when_sqlite_runtime_is_unavailable(
+def test_login_route_blocks_json_fallback_when_sqlite_runtime_is_unavailable(
     tmp_path: Path, monkeypatch
 ):
     _write_studio_config(tmp_path / "config" / "studio.json")
@@ -873,14 +873,12 @@ def test_login_route_falls_back_to_json_when_sqlite_runtime_is_unavailable(
     monkeypatch.setattr("web.services.storage_runtime.StudioDB.get", _raise_sqlite_error)
 
     client = app.test_client()
-    response = client.post(
-        "/login",
-        data={"username": "locale-json", "password": "PasswordSicura!123"},
-        follow_redirects=False,
-    )
-
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/")
+    with pytest.raises(RuntimeError, match="non può usare i JSON come verità operativa"):
+        client.post(
+            "/login",
+            data={"username": "locale-json", "password": "PasswordSicura!123"},
+            follow_redirects=False,
+        )
 
 
 def test_login_route_resolves_unique_tenant_user_without_studio_slug(tmp_path: Path):

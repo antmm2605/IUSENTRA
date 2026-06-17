@@ -29,6 +29,8 @@ Nota successiva sullo SHA `116b3cf`: i gate SQL, governance, provider e CodeQL s
 
 Nota successiva sullo SHA `9e0a776`: il fix precedente ha sbloccato il caso batch, ma la matrice remota ha segnalato anche `macos-latest` parte 3/4 sulla firma singola. Sono stati aggiornati i guardrail di firma singola e batch; localmente sono passati tutti gli shard Local Signer/PKCS#11 1/4, 2/4, 3/4 e 4/4. Il rilascio resta comunque aperto fino al verde remoto, deploy e riallineamento locale.
 
+Nota successiva sullo SHA `49f9d8c`: `Coverage moduli critici parte 4/12` ha segnalato un test obsoleto che pretendeva ancora il fallback a JSON quando SQLite non è disponibile. La regola definitiva resta: SQL va creato/riallineato; se non riesce, il flusso si blocca con messaggio chiaro e non usa JSON storici come verità operativa.
+
 ## Aggiornamento 2026-06-17 - prova server reale e fix rapidi UI deposito
 
 Ambiente verificato: produzione `https://app.iusentra.it`, fascicolo reale `E5AE4668` (`2026/330 - Marchetti Lucia`), studio `studio-legale-giuseppe-montagnese`.

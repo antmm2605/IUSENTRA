@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.41 - 2026-06-17
+
+- Storage SQL: aggiornato il guardrail login per bloccare il fallback ai JSON quando `studio.db` non è disponibile, coerente con SQL come fonte di verità.
+- CI coverage: corretto lo shard `Coverage moduli critici parte 4/12`, che presidiava ancora la vecchia regola di fallback JSON.
+- Release: versione applicativa riallineata a `2.253.41` prima del nuovo push, senza cambiare il comportamento dati già stabilito.
+
 ## 2.253.40 - 2026-06-17
 
 - Local Signer: completato l'aggiornamento dei guardrail di firma singola e firma batch al parametro `cert_thumbprint`.

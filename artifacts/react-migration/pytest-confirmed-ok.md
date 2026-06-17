@@ -1,5 +1,11 @@
 # Pytest shard confermati OK
 
+## Storage SQL anti-fallback JSON 2.253.41 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `COVERAGE_FILE=.coverage.critical.4.local python scripts/run_pytest_phases.py --suite coverage-critical --suite-shard 4 --suite-total-shards 12 --suite-subdivide-items --timeout-minutes 5 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=` | OK | 32/32 dopo il fix: lo shard 4/12 ora presidia il blocco operativo coerente con SQL fonte di verità quando SQLite non è disponibile, senza pretendere fallback ai JSON. |
+
 ## Local Signer matrice completa 2.253.40 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |

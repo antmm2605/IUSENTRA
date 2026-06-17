@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Storage SQL anti-fallback JSON 2.253.41 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Coverage moduli critici parte 4/12` sullo SHA `49f9d8c` | `test_login_route_falls_back_to_json_when_sqlite_runtime_is_unavailable` | Risolto localmente, da verificare sul nuovo SHA remoto | Il test chiedeva ancora il login via JSON se SQLite non era disponibile. La regola corretta è bloccare con messaggio chiaro: SQL deve essere creato o riallineato, altrimenti niente fallback operativo. | Rilanciare shard locale, commit/push nuovo SHA e attendere tutti i check GitHub/CodeQL. |
+
 ## Local Signer matrice completa 2.253.40 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |

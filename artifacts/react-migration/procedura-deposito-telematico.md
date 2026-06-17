@@ -1,8 +1,29 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-14.
+Aggiornato: 2026-06-17.
 
 Questo file va riletto prima di ogni intervento su `Prepara deposito`, busta, firma multipla, notifiche legali, portali telematici, agenda/scadenziario collegati a PEC e ricevute. Non sostituisce `AGENTS.md`: lo integra come memoria operativa specifica del deposito.
+
+## Aggiornamento 2026-06-17 - hotfix CI dopo prova server deposito
+
+Il primo push del lavoro deposito ha lasciato GitHub rosso sullo SHA `499e156` anche se la prova server hotfix era stata eseguita. Il lavoro non è considerato chiuso finché il nuovo SHA non passa CI/CodeQL, deploy Hetzner e riallineamento locale.
+
+Correzioni applicate:
+
+- la pre-verifica SQLite non confronta più `Impostazioni` come JSON grezzo: per gli studi SQL usa le sezioni normalizzate `settings_config`, così i JSON storici restano bootstrap/mirror e non diventano fonte di verità;
+- il blocco anti-perdita resta operativo per dati core come clienti, fascicoli, agenda, scadenze, soggetti e comunicazioni;
+- la route amministrativa database è stata alleggerita spostando l'ottimizzazione SQLite in helper dedicato, senza cambiare il flusso visibile;
+- OpenAPI e versione sono riallineati a `2.253.38`.
+
+Test locali mirati eseguiti prima del nuovo rilascio:
+
+- database/pre-verifica SQLite Impostazioni e anti-perdita dati core;
+- governance repository;
+- provider OpenAPI;
+- smoke contratti App V2;
+- test mirati deposito React, classificazione, UI e nomi `.p7m`.
+
+Stato: da chiudere con nuovo commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner, `/api/pronto` produzione, prune Docker e riallineamento Docker locale reale.
 
 ## Aggiornamento 2026-06-17 - prova server reale e fix rapidi UI deposito
 

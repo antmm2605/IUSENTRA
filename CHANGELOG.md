@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.38 - 2026-06-17
+
+- CI GitHub: sbloccato il gate `Lint + syntax` riallineando la pre-verifica SQL di `Impostazioni` alla struttura normalizzata `settings_config`, senza trattare i JSON storici come fonte operativa.
+- Amministrazione database: estratta l'ottimizzazione SQLite in helper dedicato, riportando `admin_database_routes.py` sotto il limite governance senza cambiare il comportamento UI/API.
+- Guardrail dati: aggiunto un test mirato che impedisce al blocco anti-perdita di fermare uno studio SQL quando le impostazioni sono già più complete nel database rispetto ai JSON di bootstrap.
+- Contratti: OpenAPI e file di versione riallineati a `2.253.38` per il nuovo SHA di rilascio.
+
 ## 2.253.37 - 2026-06-17
 
 - Deposito React: chiusa la regressione del menu ruolo che poteva restare aperto sopra la spunta `Da firmare`; ora `Esc` chiude il menu e restituisce il focus al pulsante.

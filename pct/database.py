@@ -897,6 +897,8 @@ class GestioneDatabase:
 
     @classmethod
     def _source_payloads_for_module(cls, chiave: str, raw: Any) -> Dict[str, str]:
+        if chiave == "impostazioni":
+            return cls._settings_config_source_payloads(raw)
         if chiave == "pagamenti_config":
             return {"default": cls._canonical_payload(raw)} if raw else {}
         if chiave == "soggetti_parti":
@@ -915,6 +917,13 @@ class GestioneDatabase:
 
     @classmethod
     def _source_summary_for_module(cls, chiave: str, raw: Any) -> Dict[str, Any]:
+        if chiave == "impostazioni":
+            payloads = cls._settings_config_source_payloads(raw)
+            return {
+                "count": len(payloads),
+                "ids": set(payloads),
+                "payloads": payloads,
+            }
         if chiave == "pagamenti_config":
             count = 1 if raw else 0
         elif chiave == "soggetti_parti":
@@ -927,6 +936,28 @@ class GestioneDatabase:
             "ids": set(payloads),
             "payloads": payloads,
         }
+
+    @classmethod
+    def _settings_config_source_payloads(cls, raw: Any) -> Dict[str, str]:
+        if not isinstance(raw, dict) or not raw:
+            return {}
+        try:
+            from pct.config_studio import ConfigStudio
+            from pct.impostazioni_config_repository import settings_config_rows_from_config
+
+            cfg = ConfigStudio.from_dict(raw)
+            rows = settings_config_rows_from_config(cfg)
+            return {
+                str(row.get("section") or ""): cls._canonical_payload(row.get("dati") or {})
+                for row in rows
+                if row.get("section")
+            }
+        except Exception:
+            return {
+                str(section): cls._canonical_payload(payload)
+                for section, payload in raw.items()
+                if str(section or "").strip()
+            }
 
     def _source_migration_snapshot(self) -> Dict[str, Dict[str, Any]]:
         snapshot: Dict[str, Dict[str, Any]] = {}

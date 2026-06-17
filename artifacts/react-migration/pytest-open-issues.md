@@ -1,5 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
+## Hotfix CI SQL Impostazioni 2.253.38 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Lint + syntax` sullo SHA `499e156` | `scripts/verify_openapi_provider.py` | Risolto localmente, da verificare sul nuovo SHA remoto | Il provider verifier falliva perché la pre-verifica SQLite confrontava `Impostazioni` come JSON grezzo: SQL aveva 10 sezioni normalizzate, il bootstrap JSON 5 chiavi. Ora il confronto usa `settings_config` normalizzato e mantiene il blocco anti-perdita per i dati core. | Commit, push branch gemelli e attesa check-run/CodeQL dello SHA nuovo. |
+| Governance repo sullo SHA `499e156` | `tools/check_repo_governance.py` | Risolto localmente, da verificare sul nuovo SHA remoto | `web/bootstrap/admin_database_routes.py` superava il limite di 650 righe; l'ottimizzazione SQLite è stata estratta in `web/bootstrap/admin_database_sqlite_helpers.py` senza cambiare comportamento. | Ripetere governance nello SHA nuovo e non dichiarare chiuso finché GitHub resta rosso. |
+| Targeted tests a cascata | Aggregatori GitHub | In attesa nuovo SHA | Gli shard venivano marcati skipped/failing perché `Lint + syntax` era già rosso. I test locali mirati su database, OpenAPI, deposito e nomi firmati sono verdi. | Attendere i check remoti completi del nuovo SHA e leggere le annotazioni reali se resta un rosso. |
+
 ## Deposito server reale 2.253.37 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |

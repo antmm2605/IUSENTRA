@@ -11,6 +11,8 @@ from pathlib import Path
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
+from web.bootstrap.admin_database_sqlite_helpers import ottimizza_sqlite_file
+
 
 def register_admin_database_routes(
     app: Flask,
@@ -94,72 +96,6 @@ def register_admin_database_routes(
             "quando il database contiene più dati della sorgente."
         )
         return payload
-
-    def _fmt_bytes(n: int) -> str:
-        if n < 1024:
-            return f"{n} B"
-        if n < 1024 ** 2:
-            return f"{n / 1024:.1f} KB"
-        if n < 1024 ** 3:
-            return f"{n / 1024 ** 2:.1f} MB"
-        return f"{n / 1024 ** 3:.1f} GB"
-
-    def _ottimizza_sqlite_file(percorso_db: str, modulo: str) -> dict:
-        target = Path(percorso_db)
-        before = target.stat().st_size if target.exists() and target.is_file() else 0
-        if not target.exists() or not target.is_file():
-            return {
-                "modulo": modulo,
-                "operazione": "Ottimizzazione SQL",
-                "ok": False,
-                "riuscita": False,
-                "messaggio": "Archivio SQL non trovato.",
-                "dettagli": "Archivio SQL non trovato.",
-                "ms": 0,
-                "bytes_prima": before,
-                "bytes_dopo": before,
-                "risparmio_bytes": 0,
-                "risparmio_pct": 0,
-            }
-        started = datetime.now()
-        try:
-            conn = sqlite3.connect(str(target), isolation_level=None)
-            try:
-                conn.execute("PRAGMA optimize")
-                conn.execute("ANALYZE")
-                conn.execute("VACUUM")
-            finally:
-                conn.close()
-            after = target.stat().st_size
-            saved = max(before - after, 0)
-            return {
-                "modulo": modulo,
-                "operazione": "VACUUM + ANALYZE + PRAGMA optimize",
-                "ok": True,
-                "riuscita": True,
-                "messaggio": "Archivio SQL ottimizzato.",
-                "dettagli": f"{_fmt_bytes(before)} -> {_fmt_bytes(after)}",
-                "ms": int((datetime.now() - started).total_seconds() * 1000),
-                "bytes_prima": before,
-                "bytes_dopo": after,
-                "risparmio_bytes": saved,
-                "risparmio_pct": round((saved / before) * 100, 1) if before else 0,
-            }
-        except Exception as exc:
-            after = target.stat().st_size if target.exists() else before
-            return {
-                "modulo": modulo,
-                "operazione": "Ottimizzazione SQL",
-                "ok": False,
-                "riuscita": False,
-                "messaggio": "Ottimizzazione SQL non completata.",
-                "dettagli": str(exc),
-                "ms": int((datetime.now() - started).total_seconds() * 1000),
-                "bytes_prima": before,
-                "bytes_dopo": after,
-                "risparmio_bytes": 0,
-                "risparmio_pct": 0,
-            }
 
     def _sqlite_status_payload(risultato, *, fallback_db: str = "") -> dict:
         totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
@@ -495,10 +431,10 @@ def register_admin_database_routes(
             return jsonify({"errore": "Non autorizzato"}), 403
         if _sql_operativo():
             percorso_db = _studio_db_path()
-            risultati_sql = [_ottimizza_sqlite_file(percorso_db, "studio.db")]
+            risultati_sql = [ottimizza_sqlite_file(percorso_db, "studio.db")]
             search_index = cfg_data_path("SEARCH_INDEX")
             if search_index and Path(search_index).exists():
-                risultati_sql.append(_ottimizza_sqlite_file(search_index, "search_index"))
+                risultati_sql.append(ottimizza_sqlite_file(search_index, "search_index"))
             audit("database.ottimizza_sql", risorsa_tipo="db", risorsa_id=percorso_db)
             return jsonify(
                 {

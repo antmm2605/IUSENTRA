@@ -544,6 +544,32 @@ def test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi(db, tmp_path):
     assert counts[6:] == (1, 1, 1)
 
 
+def test_migra_verso_sqlite_non_blocca_impostazioni_normalizzate(tmp_path):
+    config_path = tmp_path / "config" / "studio.json"
+    studio_db = tmp_path / "studio.db"
+    _scrivi_json(
+        config_path,
+        {
+            "studio": {"nome": "Studio Verdi"},
+            "pec": {"indirizzo": "studio@example.test"},
+            "firma": {"backend_preferito": "pkcs11"},
+            "smtp": {"host": "smtp.example.test"},
+            "whatsapp": {"provider": "twilio"},
+        },
+    )
+
+    database = GestioneDatabase({"impostazioni": str(config_path)})
+    iniziale = database.migra_verso_sqlite(str(studio_db))
+    assert iniziale.riuscita is True
+
+    report = database.preverifica_attivazione_sqlite(str(studio_db))
+
+    impostazioni = report["audit_migrazione"]["precheck"]["modules"]["impostazioni"]
+    assert report["ok"] is True
+    assert impostazioni["json_count"] >= 10
+    assert impostazioni["status"] == "ok"
+
+
 def test_migra_verso_sqlite_migra_moduli_json_estesi(tmp_path):
     payloads = {
         "calendar_sync": {"profiles": [{"id": "cal-1", "provider": "google"}]},

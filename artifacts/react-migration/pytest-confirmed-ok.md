@@ -1,5 +1,16 @@
 # Pytest shard confermati OK
 
+## Hotfix CI SQL Impostazioni 2.253.38 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_database.py::test_migra_verso_sqlite_non_blocca_impostazioni_normalizzate tests\test_database.py::test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi tests\test_database.py::test_preverifica_attivazione_sqlite_reporta_blocco_anti_perdita -q --tb=short` | OK | 3/3: il controllo anti-perdita resta attivo sui dati core e non blocca più `Impostazioni` quando SQL contiene la configurazione normalizzata più completa dei JSON di bootstrap. |
+| `python tools\check_repo_governance.py` | OK | `admin_database_routes.py` rientra nel limite governance dopo estrazione helper SQLite; `web/app.py` resta senza route inline. |
+| `python scripts\verify_openapi_provider.py` | OK | Provider verification completata: `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`. |
+| `python scripts\smoke_app_v2_all.py --subset contracts` | OK | PASS=2, FAIL=0, SKIP=1; lo skip riguarda il controllo live offline, non i contratti statici. |
+| `python -m pytest -q tests\test_openapi_contracts_phase6.py tests\test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests\test_regia_ui_react.py tests\test_signed_document_name_audit.py --tb=short` | OK | 12/12: OpenAPI, classificazione deposito, UI React deposito e audit nomi firmati confermati dopo il fix CI. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Packaging, contratti generati, registry App V2 e OpenAPI validi su versione `2.253.38`. |
+
 ## Deposito server reale e guardrail SQL 2.253.37 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |

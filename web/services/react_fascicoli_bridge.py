@@ -1816,6 +1816,70 @@ def _judicial_office_options() -> list[dict[str, Any]]:
     return sorted(out, key=lambda row: (str(row.get("kind", "")).casefold(), str(row.get("label", "")).casefold()))
 
 
+def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
+    office_name = _text(getattr(fascicolo, "tribunale", ""))
+    base = {
+        "name": office_name,
+        "code": "",
+        "ministerialCode": "",
+        "district": "",
+        "pec": "",
+        "kind": "",
+        "verified": False,
+        "message": "Ufficio destinatario da verificare prima del deposito.",
+    }
+    if not office_name:
+        return base
+    try:
+        from pct.uffici_giudiziari import TIPI_UFFICIO, get_gestore
+
+        offices = get_gestore(_uffici_cache_path()).carica()
+    except Exception:
+        return {
+            **base,
+            "message": "Catalogo uffici non disponibile: verifica manuale obbligatoria prima dell'invio reale.",
+        }
+
+    wanted = office_name.casefold()
+    office = next(
+        (
+            row
+            for row in offices
+            if _text(row.get("nome")).casefold() == wanted
+            or _text(row.get("codice")).casefold() == wanted
+            or _text(row.get("codice_ministero")).casefold() == wanted
+        ),
+        None,
+    )
+    if office is None:
+        office = next((row for row in offices if wanted and wanted in _text(row.get("nome")).casefold()), None)
+    if office is None:
+        return {
+            **base,
+            "message": f"Ufficio '{office_name}' non trovato nel catalogo: verifica PEC destinataria prima dell'invio reale.",
+        }
+    office_type = _text(office.get("tipo"))
+    kind = _text((TIPI_UFFICIO.get(office_type) or ("", office_type))[1], office_type)
+    pec = _text(office.get("pec") or office.get("pec_ministero"))
+    name = _text(office.get("nome"), office_name)
+    code = _text(office.get("codice"))
+    ministerial_code = _text(office.get("codice_ministero"))
+    return {
+        "name": name,
+        "code": code,
+        "ministerialCode": ministerial_code,
+        "district": _text(office.get("distretto")),
+        "pec": pec,
+        "kind": kind,
+        "verified": bool(name and code and pec),
+        "message": (
+            f"PEC verificata dal catalogo uffici per {name}."
+            if pec
+            else f"PEC non disponibile nel catalogo per {name}: non procedere all'invio reale senza verifica."
+        ),
+    }
+
+
 def _codice_oggetto_from_source(source: Any) -> dict[str, str]:
     codice = _text(getattr(source, "codice_oggetto_pst", ""))
     if not codice or not codice_oggetto_pst_entry(codice):
@@ -3236,6 +3300,7 @@ def build_react_fascicolo_detail_payload(
         "telematic": _telematic(fascicolo),
         "notificationRelata": notification_relata,
         "quality": _quality(fascicolo, cliente, scadenze, parties),
+        "depositOffice": _deposit_office_payload(fascicolo),
         "signature": _signature_settings(get_config_studio),
         "auditTrail": audit_trail,
         "actions": {

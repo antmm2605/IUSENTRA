@@ -2,6 +2,58 @@
 
 Aggiornato: 2026-06-17.
 
+## Aggiornamento 2026-06-17 - profilo deposito SQL da preventivo a fascicolo
+
+Data intervento: 2026-06-17.
+
+Regola dati applicata:
+
+- la fonte operativa è sempre SQL: `studio.db` in locale e PostgreSQL in produzione;
+- i JSON tenant-aware restano solo mirror, bootstrap, import/export storico o cache rigenerabile;
+- il profilo deposito non deve restare nascosto solo in `dati_json`: deve essere salvato anche nella colonna dedicata `profilo_deposito_json`;
+- la colonna dedicata esiste e viene riallineata su `fascicoli`, `preventivi_records` e `conferimenti_records`, sia per SQLite sia per PostgreSQL;
+- `StudioDB.ensure_schema()` applica l'upgrade idempotente anche su database già esistenti, così i tenant attivi non restano con una struttura vecchia dopo il deploy.
+
+Flusso operativo deciso:
+
+- quando nasce un preventivo o un fascicolo veloce, IUSENTRA prova a risolvere subito canale, regola canale, codice deposito, ufficio giudiziario, PEC ufficiale e certificato di cifratura `.cer` quando il canale lo richiede;
+- quando il preventivo viene accettato, il profilo passa al conferimento incarico;
+- quando dal conferimento incarico nasce il fascicolo, il profilo passa al fascicolo e viene rafforzato con i dati effettivi del fascicolo, in particolare ufficio giudiziario e codice deposito;
+- la stessa logica vale anche per `Nuovo Fascicolo` e `Fascicolo veloce` autonomi: anche se non nascono da preventivo o conferimento, devono risolvere canale, regole, codice deposito, PEC ufficio, ufficio giudiziario e certificato `.cer` quando richiesto;
+- il fascicolo non deve perdere il profilo se viene creato da preventivo, da conferimento, da form nuovo fascicolo o da fascicolo veloce;
+- PAT, PTT e PDP sono canali distinti: non devono usare in modo improprio il certificato PST civile, ma devono avere regole dedicate e stato di validazione separato.
+
+Fonti ufficiali rilette per la matrice canali:
+
+- Portale Servizi Telematici del Ministero della Giustizia, documentazione e servizi PCT/PDP;
+- Giustizia Amministrativa, sezione Processo Amministrativo Telematico;
+- Dipartimento della Giustizia Tributaria, sezione Processo Tributario Telematico PTT/SIGIT.
+
+Guardrail tecnici eseguiti:
+
+- `python -m pytest tests/test_profilo_deposito.py -q`;
+- `python -m pytest tests/test_profilo_deposito.py tests/test_canali_telematici_deposito.py tests/test_busta.py tests/test_simulazione_deposito.py tests/test_deposito_server_dry_run_audit.py tests/test_scheduler_registry.py -q`.
+
+Guardrail aggiunto dopo chiarimento utente:
+
+- `test_fascicolo_autonomo_risolve_profilo_deposito_senza_preventivo` crea un fascicolo diretto senza preventivo/conferimento e verifica canale PCT, codice `222050`, PEC del Tribunale di Vicenza, certificato `.cer` verificato e colonna SQL `profilo_deposito_json` popolata.
+
+Stato prova reale:
+
+- non verificato su macchina reale in questa tranche: le prove sopra sono guardrail tecnici e non sostituiscono la verifica visiva/server richiesta dall'utente;
+- prima della chiusura restano obbligatori build, prova reale su server/locale secondo incarico, commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner e igiene repository.
+
+Aggiornamento operativo 2.253.45:
+
+- rilanciato il blocco mirato deposito/canali/busta/scheduler e il guardrail React deposito dopo il chiarimento sul fascicolo autonomo;
+- aggiunto il presidio documento per documento sulla firma digitale: `Firmato` in UI deriva solo da contenitore CAdES (`.p7m`/PKCS#7) o da prova tecnica PAdES salvata nel fascicolo;
+- un file `.PDF` resta `Da firmare` se contiene solo testo o nome con "Firmato", oppure solo il vecchio flag `firmato`/`signed`, senza firma PAdES interna verificabile;
+- la route di upload firma ora rifiuta PDF non PAdES e `.p7m` non CAdES, e salva nel fascicolo un metadato tecnico `signature_metadata` quando la firma è provata;
+- se `studio.db` è vuoto, il JSON configurato viene usato solo per bootstrap controllato e poi rigenerato come mirror dopo il salvataggio SQL;
+- confermati `pnpm --filter @iusentra/studio build`, retention asset React, packaging e `git diff --check`;
+- il PIN fornito dall'utente per la firma reale non è stato scritto in file né log applicativi e va usato solo durante la prova materiale in UI;
+- la chiusura resta subordinata a prova reale su `127.0.0.1:8080`, commit/push branch gemelli, CI/CodeQL, deploy Hetzner, health e prune Docker.
+
 ## Aggiornamento 2.253.44 - presidio CI SQL prima della prova server
 
 Data intervento: 2026-06-17.

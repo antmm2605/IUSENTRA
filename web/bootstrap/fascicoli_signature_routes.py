@@ -10,6 +10,7 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
+from pct.document_signature_state import document_has_real_digital_signature
 from web.services.fascicoli_signature_options import (
     normalizza_data_ora_firma_visibile,
     nota_con_firma_visibile,
@@ -76,6 +77,26 @@ def register_fascicoli_signature_routes(
     audit: Callable[..., None],
 ) -> None:
     """Register PKCS#11, uploaded-signature, and attestazione routes."""
+
+    def _metadata_firma_cades(nome_file: str, *, source: str) -> dict[str, Any]:
+        return {
+            "signature_format": "cades",
+            "is_signed_container": True,
+            "signature_verified": True,
+            "source": source,
+            "file_name": Path(str(nome_file or "")).name,
+        }
+
+    def _metadata_firma_pades(nome_file: str, firme: list[dict[str, Any]], *, source: str) -> dict[str, Any]:
+        return {
+            "signature_format": "pades",
+            "pades_verified": True,
+            "signature_verified": True,
+            "source": source,
+            "file_name": Path(str(nome_file or "")).name,
+            "signatures_count": len(firme),
+            "signatures": firme[:5],
+        }
 
     def _salva_documento_firmato_compat(
         firma,
@@ -263,7 +284,11 @@ def register_fascicoli_signature_routes(
                     visible_signature_datetime_mode,
                 ),
             )
-            gestore_fascicoli.segna_firmato(id_fasc, id_doc)
+            gestore_fascicoli.segna_firmato(
+                id_fasc,
+                id_doc,
+                signature_metadata=_metadata_firma_cades(nome_firmato, source="pkcs11"),
+            )
             try:
                 Path(firmato_path).unlink(missing_ok=True)
             except Exception:
@@ -441,7 +466,11 @@ def register_fascicoli_signature_routes(
                             visible_signature_datetime_mode,
                         ),
                     )
-                    gestore_fascicoli.segna_firmato(id_fasc, id_doc)
+                    gestore_fascicoli.segna_firmato(
+                        id_fasc,
+                        id_doc,
+                        signature_metadata=_metadata_firma_cades(nome_firmato, source="pkcs11.batch"),
+                    )
                     try:
                         Path(firmato_path).unlink(missing_ok=True)
                     except Exception:
@@ -519,11 +548,7 @@ def register_fascicoli_signature_routes(
             if documento_corrente is None:
                 raise KeyError("Documento non trovato.")
             nome_corrente = str(getattr(documento_corrente, "nome", "") or "")
-            gia_firmato = bool(
-                getattr(documento_corrente, "firmato_digitalmente", False)
-                or getattr(documento_corrente, "firmato", False)
-                or nome_corrente.lower().endswith((".p7m", ".sig", ".pkcs7"))
-            )
+            gia_firmato = document_has_real_digital_signature(documento_corrente, nome_corrente)
             conferma_rifirma = str(request.form.get("confirm_resign") or "").strip().lower() in {
                 "1",
                 "true",
@@ -545,8 +570,9 @@ def register_fascicoli_signature_routes(
                     requires_confirm_resign=True,
                 )
 
+            signature_metadata: dict[str, Any] | None = None
             if "file" in request.files and request.files["file"].filename:
-                from pct.firma import busta_cades_valida
+                from pct.firma import analizza_firma_documento, busta_cades_valida
 
                 file = request.files["file"]
                 cfg_firma = get_config_studio().config.firma
@@ -558,21 +584,30 @@ def register_fascicoli_signature_routes(
                     request.form.get("visible_signature_datetime_mode")
                 )
                 payload_firmato = file.read()
+                est = Path(file.filename or "").suffix.lower()
+                if est == ".pdf":
+                    formato_file = "pades"
+                elif est in {".p7m", ".sig", ".pkcs7"}:
+                    formato_file = "cades"
+                else:
+                    raise ValueError(
+                        "Formato file firmato non supportato. Usa un file .p7m (CAdES) oppure .pdf firmato (PAdES)."
+                    )
                 if getattr(cfg_firma, "configurato", False):
-                    est = Path(file.filename or "").suffix.lower()
-                    if est == ".pdf":
-                        formato_file = "pades"
-                    elif est in {".p7m", ".sig", ".pkcs7"}:
-                        formato_file = "cades"
-                    else:
-                        raise ValueError(
-                            "Formato file firmato non supportato. Usa un file .p7m (CAdES) oppure .pdf firmato (PAdES)."
-                        )
                     cfg_firma.valida_formato_firma(formato_file)
-                    if formato_file == "cades" and not busta_cades_valida(payload_firmato):
+                if formato_file == "cades":
+                    if not busta_cades_valida(payload_firmato):
                         raise ValueError(
                             "Il file .p7m caricato non contiene una firma CAdES valida. Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
                         )
+                    signature_metadata = _metadata_firma_cades(file.filename, source="upload")
+                else:
+                    firme = analizza_firma_documento(payload_firmato, file.filename)
+                    if not firme:
+                        raise ValueError(
+                            "Il PDF caricato resta .PDF ma non contiene una firma PAdES interna verificabile. Carica un .pdf.p7m CAdES oppure un PDF PAdES valido."
+                        )
+                    signature_metadata = _metadata_firma_pades(file.filename, firme, source="upload")
                 note = nota_con_firma_visibile(
                     request.form.get("note", "Versione firmata per deposito").strip(),
                     visible_signature_mode,
@@ -589,9 +624,23 @@ def register_fascicoli_signature_routes(
                     note=note,
                 )
             else:
-                avvisi_storage = []
+                if gia_firmato and conferma_rifirma:
+                    return _chiudi_risposta(
+                        True,
+                        f"Documento '{documento_corrente.nome}' già firmato: nessuna nuova versione è stata salvata senza file firmato.",
+                        "success",
+                        nome_firmato=documento_corrente.nome,
+                        already_signed=True,
+                    )
+                raise ValueError(
+                    "Per segnare un documento come firmato devi caricare un .pdf.p7m CAdES valido oppure un PDF con firma PAdES interna verificabile."
+                )
 
-            documento = gestore_fascicoli.segna_firmato(id_fasc, id_doc)
+            documento = gestore_fascicoli.segna_firmato(
+                id_fasc,
+                id_doc,
+                signature_metadata=signature_metadata,
+            )
             avvisi_operativi = audit_and_sync_best_effort(
                 audit_azione="fascicoli.documento.firma",
                 audit_risorsa_tipo="fascicolo",
@@ -604,7 +653,7 @@ def register_fascicoli_signature_routes(
             warning_codes = avvisi_storage + avvisi_operativi
             return _chiudi_risposta(
                 True,
-                f"Documento '{documento.nome}' contrassegnato come firmato per deposito.",
+                f"Documento '{documento.nome}' salvato come firmato per deposito con prova tecnica.",
                 "success",
                 nome_firmato=documento.nome,
                 warning=bool(warning_codes),

@@ -250,6 +250,54 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error(f"[scheduler] Sync uffici fallito: {e}")
 
+    # ---- Certificati pubblici PST di cifratura Atto.enc (settimanale) ----
+    cert_sync_ora = app.config.get(
+        "PST_CERTIFICATI_CIFRATURA_SYNC_ORA",
+        os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_SYNC_ORA", "03:45"),
+    )
+    cert_h, cert_m = _parse_hhmm(cert_sync_ora, "03:45")
+    cert_day = str(
+        app.config.get(
+            "PST_CERTIFICATI_CIFRATURA_SYNC_GIORNO",
+            os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_SYNC_GIORNO", "sun"),
+        )
+        or "sun"
+    ).strip() or "sun"
+
+    @scheduler.scheduled_job(
+        CronTrigger(day_of_week=cert_day, hour=cert_h, minute=cert_m),
+        id="pst_certificati_cifratura_weekly",
+    )
+    def _sync_certificati_cifratura_pst():
+        with app.app_context():
+            try:
+                from pct.pst_cifratura import (
+                    esegui_controllo_settimanale_certificati_cifratura,
+                )
+
+                force_refresh = not _flag_enabled(
+                    os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_NO_FORCE_REFRESH")
+                )
+                report = esegui_controllo_settimanale_certificati_cifratura(
+                    force_refresh=force_refresh
+                )
+                if report.get("ok"):
+                    logger.info(
+                        "[scheduler] Certificati PST cifratura aggiornati: %d/%d, report=%s",
+                        report.get("scaricati_o_validi", 0),
+                        report.get("totale", 0),
+                        report.get("report_path", "n.d."),
+                    )
+                else:
+                    logger.warning(
+                        "[scheduler] Certificati PST cifratura: %d ok, %d errori, report=%s",
+                        report.get("scaricati_o_validi", 0),
+                        report.get("errori", 0),
+                        report.get("report_path", "n.d."),
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Certificati PST cifratura falliti: %s", e)
+
     def _run_legal_monitor(source_ids, label):
         with app.app_context():
             try:

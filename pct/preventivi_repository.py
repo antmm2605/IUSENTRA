@@ -39,6 +39,7 @@ _PREVENTIVO_SECTION_MAP: dict[str, str] = {
     "copertura_operativa": "Piattaforma operativa",
     "canale_operativo": "Piattaforma operativa",
     "registro_operativo": "Piattaforma operativa",
+    "profilo_deposito": "Piattaforma operativa",
     "valore_controversia": "Voci economiche",
     "tariffa_oraria": "Voci economiche",
     "ore_stimate": "Voci economiche",
@@ -88,6 +89,7 @@ _CONFERIMENTO_SECTION_MAP: dict[str, str] = {
     "copertura_operativa": "Piattaforma operativa",
     "canale_operativo": "Piattaforma operativa",
     "registro_operativo": "Piattaforma operativa",
+    "profilo_deposito": "Piattaforma operativa",
     "tariffa_oraria": "Voci economiche",
     "compenso_pattuito": "Voci economiche",
     "patto_palmario": "Voci economiche",
@@ -229,6 +231,12 @@ _FIELD_OVERRIDES: dict[str, dict[str, Any]] = {
     "registro_operativo": {
         "label": "Registro operativo",
         "help_text": "Registro o superficie procedurale da presidiare nella gestione del caso.",
+        "required_runtime": False,
+        "step_key": "pratica_tassonomia",
+    },
+    "profilo_deposito": {
+        "label": "Profilo deposito telematico",
+        "help_text": "Canale, regole, codice oggetto, ufficio, PEC e certificato necessari per preparare il deposito senza dati scoperti.",
         "required_runtime": False,
         "step_key": "pratica_tassonomia",
     },
@@ -1197,6 +1205,7 @@ def _build_preventivo_record(
         "wizard_step_label": wizard_step_label,
         "classificazioni_tassonomiche": classificazioni_tassonomiche,
         "classificazioni_tassonomiche_count": len(classificazioni_tassonomiche),
+        "profilo_deposito": dict(getattr(preventivo, "profilo_deposito", {}) or {}),
         "campi_mancanti": missing_fields,
         "warning": warnings,
         "next_action": _preventivo_next_action(preventivo, conferimento),
@@ -1276,6 +1285,7 @@ def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
         "clausola_controversie_modello": _clean_spaces(getattr(conferimento, "clausola_controversie_modello", "")),
         "classificazioni_tassonomiche": classificazioni_tassonomiche,
         "classificazioni_tassonomiche_count": len(classificazioni_tassonomiche),
+        "profilo_deposito": dict(getattr(conferimento, "profilo_deposito", {}) or {}),
         "warning": _conferimento_warnings(conferimento),
         "next_action": _conferimento_next_action(conferimento),
         "search_text": _record_search_text(parts),
@@ -1342,6 +1352,7 @@ class GestionePreventiviRepository:
                     "registro_operativo": "TEXT NOT NULL DEFAULT ''",
                     "classificazioni_tassonomiche_json": "TEXT NOT NULL DEFAULT '[]'",
                     "classificazioni_tassonomiche_count": "INTEGER NOT NULL DEFAULT 0",
+                    "profilo_deposito_json": "TEXT NOT NULL DEFAULT '{}'",
                     "criterio_arrotondamento_orario": "TEXT NOT NULL DEFAULT ''",
                     "minuti_stimati": "INTEGER NOT NULL DEFAULT 0",
                     "ore_fatturabili_calcolate": "REAL NOT NULL DEFAULT 0",
@@ -1364,6 +1375,7 @@ class GestionePreventiviRepository:
                     "registro_operativo": "TEXT NOT NULL DEFAULT ''",
                     "classificazioni_tassonomiche_json": "TEXT NOT NULL DEFAULT '[]'",
                     "classificazioni_tassonomiche_count": "INTEGER NOT NULL DEFAULT 0",
+                    "profilo_deposito_json": "TEXT NOT NULL DEFAULT '{}'",
                     "criterio_arrotondamento_orario": "TEXT NOT NULL DEFAULT ''",
                     "massimale_ore": "REAL NOT NULL DEFAULT 0",
                     "soglia_preapprovazione_ore": "REAL NOT NULL DEFAULT 0",
@@ -1624,6 +1636,7 @@ class GestionePreventiviRepository:
                     "clausola_controversie_modello", "token_portale_present", "inviato_cliente_il", "accettato_il",
                     "versione", "id_preventivo_precedente", "wizard_step", "wizard_step_label",
                     "classificazioni_tassonomiche_json", "classificazioni_tassonomiche_count",
+                    "profilo_deposito_json",
                     "campi_mancanti_json", "warning_json", "next_action", "search_text",
                 ]
                 conn.execute(
@@ -1656,6 +1669,7 @@ class GestionePreventiviRepository:
                         row.get("id_preventivo_precedente") or "", row.get("wizard_step") or "", row.get("wizard_step_label") or "",
                         _to_json(row.get("classificazioni_tassonomiche") or []),
                         int(row.get("classificazioni_tassonomiche_count") or 0),
+                        _to_json(row.get("profilo_deposito") or {}),
                         _to_json(row.get("campi_mancanti") or []), _to_json(row.get("warning") or []),
                         row.get("next_action") or "", row.get("search_text") or "",
                     ),
@@ -1674,6 +1688,7 @@ class GestionePreventiviRepository:
                     "firma_cliente_richiesta", "firma_cliente_eseguita", "firma_cliente_il", "fascicolo_aperto_il",
                     "clausola_controversie_attiva", "clausola_controversie_modello",
                     "classificazioni_tassonomiche_json", "classificazioni_tassonomiche_count",
+                    "profilo_deposito_json",
                     "warning_json", "next_action", "search_text",
                 ]
                 conn.execute(
@@ -1697,6 +1712,7 @@ class GestionePreventiviRepository:
                         1 if row.get("clausola_controversie_attiva") else 0, row.get("clausola_controversie_modello") or "",
                         _to_json(row.get("classificazioni_tassonomiche") or []),
                         int(row.get("classificazioni_tassonomiche_count") or 0),
+                        _to_json(row.get("profilo_deposito") or {}),
                         _to_json(row.get("warning") or []), row.get("next_action") or "", row.get("search_text") or "",
                     ),
                 )
@@ -1767,10 +1783,12 @@ class GestionePreventiviRepository:
                         "warning_json",
                         "warning_compenso_orario_json",
                         "classificazioni_tassonomiche_json",
+                        "profilo_deposito_json",
                     ),
                     "classificazioni_tassonomiche": json.loads(
                         row["classificazioni_tassonomiche_json"] or "[]"
                     ),
+                    "profilo_deposito": json.loads(row["profilo_deposito_json"] or "{}"),
                     "campi_mancanti": json.loads(row["campi_mancanti_json"] or "[]"),
                     "warning": json.loads(row["warning_json"] or "[]"),
                     "warning_compenso_orario": json.loads(row["warning_compenso_orario_json"] or "[]"),
@@ -1786,10 +1804,12 @@ class GestionePreventiviRepository:
                         "warning_json",
                         "warning_compenso_orario_json",
                         "classificazioni_tassonomiche_json",
+                        "profilo_deposito_json",
                     ),
                     "classificazioni_tassonomiche": json.loads(
                         row["classificazioni_tassonomiche_json"] or "[]"
                     ),
+                    "profilo_deposito": json.loads(row["profilo_deposito_json"] or "{}"),
                     "warning": json.loads(row["warning_json"] or "[]"),
                     "warning_compenso_orario": json.loads(row["warning_compenso_orario_json"] or "[]"),
                 }

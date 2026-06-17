@@ -157,6 +157,16 @@ Il controllo permanente vive in:
 - `scripts/audit_data_flow_contract.py`;
 - `tests/test_data_flow_contract.py`.
 
+Aggiornamento 2026-06-17 per deposito/preventivo/conferimento/fascicolo:
+
+- i dati di profilo deposito devono essere persistiti in SQL con colonna dedicata `profilo_deposito_json`, non solo nel blob `dati_json`;
+- le tabelle presidiate sono `preventivi_records`, `conferimenti_records` e `fascicoli`, con parità SQLite/PostgreSQL;
+- `StudioDB.ensure_schema()` deve riallineare anche database esistenti, non solo creare schemi nuovi;
+- se `studio.db` esiste ma la tabella fascicoli è vuota, il JSON configurato può essere usato solo come bootstrap controllato; dopo ogni salvataggio SQL il JSON fascicoli viene rigenerato come mirror, non come fonte decisionale;
+- lo stato firma dei documenti non deve derivare dal flag storico `firmato` o da testo/nome file: per mostrare `Firmato` servono CAdES `.p7m`/PKCS#7 o metadati tecnici PAdES verificati nel documento;
+- quando un preventivo viene accettato, il profilo passa al conferimento incarico; quando dal conferimento nasce il fascicolo, il profilo passa al fascicolo e viene rafforzato con ufficio, PEC, codice deposito e certificato quando il canale lo richiede;
+- PAT, PTT e PDP restano canali separati con regole dedicate: non sono varianti del PCT civile e non devono ereditare certificati o blocchi non pertinenti.
+
 Il comando operativo è:
 
 ```powershell

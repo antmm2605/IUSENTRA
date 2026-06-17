@@ -15,9 +15,10 @@ Ogni test verifica le 4 fasi richieste dal Portale Servizi Telematici:
 import os
 import sys
 import uuid
-import zipfile
 import tempfile
 import pytest
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime
@@ -25,7 +26,7 @@ from datetime import datetime
 # Assicura che il progetto sia nel sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pct.busta import BustaTelematica, DatiBusta, Allegato
+from pct.busta import BustaTelematica, DatiBusta, Allegato, ATTO_MSG_FILENAME
 from pct.fascicoli import EsitoDepositoPCT
 from pct.pdp import ClientPDPDemo, crea_client_pdp
 from pct.pat import ClientPATDemo, crea_client_pat
@@ -93,6 +94,16 @@ def dati_busta_pct(tmp_atto, tmp_allegato):
 
 # ================================================================== PCT — Busta telematica
 
+def _atto_msg_attachments(busta_path: str | Path) -> dict[str, bytes]:
+    atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
+    message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
+    return {
+        Path(part.get_filename() or "").name: part.get_payload(decode=True) or b""
+        for part in message.iter_attachments()
+        if part.get_filename()
+    }
+
+
 class TestPCTBusta:
     """Fase 1 PCT: creazione e verifica struttura busta .enc."""
 
@@ -105,23 +116,21 @@ class TestPCTBusta:
     def test_busta_contiene_datiatto_xml(self, dati_busta_pct, tmp_path):
         busta = BustaTelematica(dati_busta_pct)
         path  = busta.crea_busta(str(tmp_path / "output"))
-        with zipfile.ZipFile(path, "r") as zf:
-            assert "DatiAtto.xml" in zf.namelist(), "DatiAtto.xml obbligatorio per PST"
-            assert "IndiceDocumentiDepositati.PDF" in zf.namelist(), "Indice documenti obbligatorio nel pacchetto preparato"
+        allegati = _atto_msg_attachments(path)
+        assert "DatiAtto.xml" in allegati, "DatiAtto.xml obbligatorio per PST"
+        assert "IndiceDocumentiDepositati.PDF" in allegati, "Indice documenti obbligatorio nel pacchetto preparato"
 
     def test_busta_contiene_atto_principale(self, dati_busta_pct, tmp_path):
         busta = BustaTelematica(dati_busta_pct)
         path  = busta.crea_busta(str(tmp_path / "output"))
-        with zipfile.ZipFile(path, "r") as zf:
-            nomi = zf.namelist()
-            assert "memoria_difensiva.pdf" in nomi, "L'atto principale deve essere incluso"
+        nomi = set(_atto_msg_attachments(path))
+        assert "memoria_difensiva.pdf" in nomi, "L'atto principale deve essere incluso"
 
     def test_busta_contiene_allegato(self, dati_busta_pct, tmp_path):
         busta = BustaTelematica(dati_busta_pct)
         path  = busta.crea_busta(str(tmp_path / "output"))
-        with zipfile.ZipFile(path, "r") as zf:
-            nomi = zf.namelist()
-            assert "procura_alle_liti.pdf" in nomi, "L'allegato deve essere incluso"
+        nomi = set(_atto_msg_attachments(path))
+        assert "procura_alle_liti.pdf" in nomi, "L'allegato deve essere incluso"
 
     def test_datiatto_xml_struttura(self, dati_busta_pct, tmp_path):
         """Verifica che DatiAtto.xml rispetti la struttura PST (D.M. 44/2011)."""
@@ -130,8 +139,7 @@ class TestPCTBusta:
         busta = BustaTelematica(dati_busta_pct)
         path  = busta.crea_busta(str(tmp_path / "output"))
 
-        with zipfile.ZipFile(path, "r") as zf:
-            xml_bytes = zf.read("DatiAtto.xml")
+        xml_bytes = _atto_msg_attachments(path)["DatiAtto.xml"]
 
         root = etree.fromstring(xml_bytes)
         ns   = {"p": "http://www.giustizia.it/processo_telematico"}

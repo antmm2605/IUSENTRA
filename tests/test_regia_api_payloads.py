@@ -193,6 +193,34 @@ def test_api_fascicolo_mostra_p7m_solo_con_firma_reale(tmp_path):
         pdfa_bytes(),
         firmato=True,
     )
+    nome_ingannevole = gf.aggiungi_documento(
+        fascicolo.id,
+        "Ricorso Firmato digitale.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdfa_bytes(),
+        firmato=True,
+    )
+    metadato_generico = gf.aggiungi_documento(
+        fascicolo.id,
+        "Comparsa con signed true.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdfa_bytes(),
+        firmato=True,
+    )
+    metadato_generico.signature_metadata = {"signed": True}
+    pades = gf.aggiungi_documento(
+        fascicolo.id,
+        "Memoria autorizzata.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdfa_bytes(),
+        firmato=True,
+    )
+    gf.segna_firmato(
+        fascicolo.id,
+        pades.id,
+        signature_metadata={"signature_format": "PAdES", "signature_verified": True, "pades_verified": True},
+    )
+    gf._salva()
     client = app.test_client()
 
     response = client.get(
@@ -208,3 +236,11 @@ def test_api_fascicolo_mostra_p7m_solo_con_firma_reale(tmp_path):
     assert documents[flag_storico.id]["name"] == "Autocertificazione ricorso.PDF"
     assert documents[flag_storico.id]["signed"] is False
     assert documents[flag_storico.id]["statusLabel"] == "Da firmare"
+    assert documents[nome_ingannevole.id]["name"] == "Ricorso Firmato digitale.PDF"
+    assert documents[nome_ingannevole.id]["signed"] is False
+    assert documents[nome_ingannevole.id]["statusLabel"] == "Da firmare"
+    assert documents[metadato_generico.id]["signed"] is False
+    assert documents[metadato_generico.id]["statusLabel"] == "Da firmare"
+    assert documents[pades.id]["name"] == "Memoria autorizzata.PDF"
+    assert documents[pades.id]["signed"] is True
+    assert documents[pades.id]["statusLabel"] == "Firmato"

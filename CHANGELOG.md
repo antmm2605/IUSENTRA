@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.253.45 - 2026-06-17
+
+- Deposito telematico: introdotto il profilo deposito SQL end-to-end da preventivo accettato, conferimento incarico, nuovo fascicolo diretto e fascicolo veloce/autonomo.
+- Dati tenant: il profilo deposito viene salvato nella colonna dedicata `profilo_deposito_json` su `fascicoli`, `preventivi_records` e `conferimenti_records`, con upgrade idempotente SQLite e parità PostgreSQL.
+- Canali telematici: canale, regole canale, codice deposito, ufficio giudiziario, PEC ministeriale e certificato `.cer` PST vengono risolti subito quando richiesti dal PCT; PDP, PAT e PTT restano separati e non usano certificati PST civili.
+- UI deposito React: la fase busta mostra ufficio/PEC verificati, anteprima `IndiceDocumentiDepositati.PDF`, firma multipla immediata prima della prova e conferma separata per evitare invii reali non conformi.
+- Firma digitale documenti: la UI mostra `Firmato` solo con prova tecnica CAdES/PAdES; un `.PDF` con testo o nome contenente "Firmato" e il vecchio flag `firmato` resta `Da firmare` se non contiene una firma PAdES verificabile.
+- Storage fascicoli: quando `studio.db` è vuoto il JSON configurato viene usato solo come bootstrap controllato, poi SQL torna fonte di verità e il JSON viene rigenerato come mirror dopo il salvataggio.
+- Guardrail locali: confermati verdi il blocco deposito/canali/busta/scheduler, `test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale`, `pnpm --filter @iusentra/studio build`, retention asset React, packaging e whitespace check.
+
 ## 2.253.44 - 2026-06-17
 
 - CI Pytest core: corretto lo shard `fase 6/10 parte 9/16`, presidiando il caso reale in cui `studio.db` e' gia' operativo e i JSON sono solo mirror.

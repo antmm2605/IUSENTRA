@@ -169,6 +169,8 @@ def guided_transport_completion_response(
     oggetto_pec: str,
     attachment_path: str,
     validation: object,
+    corpo_pec: str = "",
+    documenti_busta: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any] | None:
     audit_tecnico = {}
     audit_func = getattr(busta, "audit_conformita_pst", None)
@@ -193,6 +195,8 @@ def guided_transport_completion_response(
         "pec_dest": pec_dest,
         "tipo_atto": tipo_atto,
         "oggetto_pec": oggetto_pec,
+        "corpo_pec": corpo_pec,
+        "documenti_busta": list(documenti_busta or []),
         "attachment_path": attachment_path,
         "errore": "Invio diretto sospeso: manca la busta ministeriale conforme.",
         "message": (

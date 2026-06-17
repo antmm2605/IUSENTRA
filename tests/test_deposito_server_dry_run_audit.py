@@ -2,6 +2,8 @@ from email.message import EmailMessage
 from pathlib import Path
 
 from pct.busta import Allegato, BustaTelematica, DatiBusta, INDICE_DOCUMENTI_FILENAME
+from web.services.deposito_route_helpers import guided_transport_completion_response
+from web.services.local_pec_runtime import deposito_pec_body
 from scripts.audit_deposito_server_dry_run import audit_deposito_package, main
 from scripts.server_deposito_dry_run_http import build_deposito_form
 
@@ -55,13 +57,14 @@ def test_audit_dry_run_confronta_busta_con_copia_non_crittografata_e_blocca_invi
     report = audit_deposito_package(package, [evidence_copy, evidence_send])
 
     assert report["ok_control_package"] is True
-    assert report["ok_real_transport"] is False
+    assert report["ok_real_transport"] is True
     assert report["must_not_send_real_pec"] is True
     assert report["generated"]["has_dati_atto_xml"] is True
     assert report["generated"]["has_indice_documenti"] is True
     assert report["evidence"]["has_real_atto_enc"] is True
     codes = {item["code"] for item in report["comparison"]["differences"]}
-    assert {"DATI_ATTO_UNSIGNED", "ATTO_ENC_AES256_MISSING"} <= codes
+    assert "DATI_ATTO_UNSIGNED" in codes
+    assert "ATTO_ENC_AES256_MISSING" not in codes
 
 
 def test_cli_audit_dry_run_strict_real_transport_esce_con_blocco(tmp_path, capsys):
@@ -133,3 +136,49 @@ def test_runner_server_dry_run_usa_proposta_react_e_prove_notifica():
     assert form["documenti_selezionati_ids"] == ["doc-atto", "doc-procura", "doc-rac", "doc-rdac", "doc-decreto"]
     assert "doc-pec-ufficio" not in form["documenti_selezionati_ids"]
     assert summary["totalSelected"] == 5
+
+
+def test_prova_guidata_espone_destinatario_pec_testo_e_documenti(tmp_path):
+    atto = _pdf(tmp_path / "Ricorso.PDF", b"atto principale")
+    allegato = _pdf(tmp_path / "Procura.PDF", b"procura")
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="RG",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(atto),
+        allegati=[Allegato(percorso=str(allegato), descrizione="Procura", tipo="PROCURA")],
+        numero_rg="330",
+        anno_rg=2026,
+        operatore="Avv. Test",
+    )
+    busta = BustaTelematica(dati)
+    package = str(tmp_path / "Atto.enc")
+    Path(package).write_bytes(b"non-generato")
+    documenti = ["DatiAtto.xml", "Ricorso.PDF", "Procura.PDF", INDICE_DOCUMENTI_FILENAME]
+    corpo = deposito_pec_body(documenti)
+
+    response = guided_transport_completion_response(
+        busta=busta,
+        id_deposito="TEST330",
+        timestamp="2026-06-16T20:30:00",
+        pec_dest="tribunale.vicenza@civile.ptel.giustiziacert.it",
+        tipo_atto="RICORSO",
+        oggetto_pec="DEPOSITO TELEMATICO: Ricorso RG 330/2026",
+        corpo_pec=corpo,
+        documenti_busta=documenti,
+        attachment_path=package,
+        validation={"ok": True},
+    )
+
+    assert response is not None
+    assert response["ok"] is False
+    assert response["package_ready"] is True
+    assert response["requires_guided_completion"] is True
+    assert response["pec_dest"] == "tribunale.vicenza@civile.ptel.giustiziacert.it"
+    assert "DEPOSITO TELEMATICO: Ricorso" in response["oggetto_pec"]
+    assert "Egregio sig. Cancelliere" in response["corpo_pec"]
+    assert "Atto.enc" in response["corpo_pec"]
+    assert response["documenti_busta"] == documenti
+    assert INDICE_DOCUMENTI_FILENAME in response["documenti_busta"]
+    assert response["busta_audit"]["blocks_direct_send"] is True

@@ -91,7 +91,8 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Scegli documento" in source
     assert "Collega" in source
     assert "Atto principale" in source
-    assert "Genera busta pronta" in source
+    assert "Prova senza invio reale" in source
+    assert "Invia deposito reale" in source
     assert "comando finale" in source
     assert "function DepositBatchSignaturePanel" in source
     assert "localSignerEndpoint('/firma-batch')" in source
@@ -104,6 +105,31 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Prima riavvia e riverifica Local Signer." not in source
     assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function relataStatusDisplayLabel")]
     assert "Versione firmata tramite firma multipla deposito" in source
-    assert "Genera controllo e indice" in source
+    assert "Firma e prepara prova" in source
     assert "Il software non seleziona se la classificazione non è certa." in source
     assert "portal_upload" not in source[source.index("function DepositPreparePage"):source.index("function NotificationRelataMonitor")]
+
+
+def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    deposit_page = source[source.index("function DepositPreparePage"):source.index("function NotificationRelataMonitor")]
+    action_button = source[source.index("function DepositActionButton"):source.index("function DepositPdfPreviewButton")]
+
+    assert "const officeRecipientReady" in deposit_page
+    assert "PEC dell’ufficio non verificata" in deposit_page
+    assert "directPecReady || guidedCompletion" in deposit_page
+    assert "tribunale_pec: data.depositOffice.pec" in deposit_page
+    assert "prova_senza_invio: '1'" in deposit_page
+    assert "deposito/indice-documenti" in deposit_page
+    assert "DepositPdfPreviewButton" in deposit_page
+    assert "onPackageReady={handlePackageReady}" in deposit_page
+    assert "Prova senza invio PEC" in deposit_page
+    assert "Testo PEC predisposto" in deposit_page
+    assert "Documenti indicati nel pacchetto" in deposit_page
+    assert "result.package_ready || result.requires_guided_completion || result.requires_local_pec" in action_button
+    assert action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec") < action_button.index("!response.ok || result.ok === false")
+    assert "signatureInputRequired(" in source
+    assert ".iu-fas-package-office" in css
+    assert ".iu-fas-package-preview" in css

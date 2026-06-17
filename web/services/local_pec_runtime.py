@@ -99,13 +99,18 @@ def deposito_pec_subject(
     return f"DEPOSITO TELEMATICO - {tipo_atto} - {tribunale}"
 
 
-def deposito_pec_body() -> str:
+def deposito_pec_body(documenti: list[str] | tuple[str, ...] | None = None) -> str:
     """Return the standard body used for local PEC delivery of a deposit envelope."""
 
+    elenco = [str(item or "").strip() for item in (documenti or []) if str(item or "").strip()]
+    files = ""
+    if elenco:
+        files = "\n\nIl file Atto.enc contiene i seguenti documenti:\n" + "\n".join(f"- {nome}" for nome in elenco)
     return (
-        "Deposito telematico tramite IUSENTRA.\n"
-        "Si allega la busta telematica per il deposito.\n\n"
-        "Invio eseguito dal PC locale tramite Local Signer."
+        "Egregio sig. Cancelliere,\n\n"
+        "Allego alla presente il file crittografato Atto.enc per il deposito telematico."
+        f"{files}\n\n"
+        "Invio predisposto dal PC locale tramite IUSENTRA Local Signer."
     )
 
 
@@ -119,25 +124,34 @@ def local_pec_required_response(
     oggetto_pec: str,
     attachment_path: str,
     validation: Any,
+    documenti: list[str] | tuple[str, ...] | None = None,
+    busta_audit: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the JSON contract used by browsers to complete PEC locally."""
 
+    corpo_pec = deposito_pec_body(documenti)
+    documenti_busta = [str(item or "").strip() for item in (documenti or []) if str(item or "").strip()]
     return {
         "ok": False,
         "requires_local_pec": True,
+        "package_ready": True,
         "id_deposito": id_deposito,
         "pec_dest": pec_dest,
         "tipo_atto": tipo_atto,
         "timestamp": timestamp,
+        "oggetto_pec": oggetto_pec,
+        "corpo_pec": corpo_pec,
+        "documenti_busta": documenti_busta,
         "local_pec": build_local_pec_payload(
             pec_cfg=pec_cfg,
             destinatario=pec_dest,
             oggetto=oggetto_pec,
-            corpo=deposito_pec_body(),
+            corpo=corpo_pec,
             attachment_path=attachment_path,
-            attachment_name=f"Busta_{id_deposito}.enc",
+            attachment_name="Atto.enc",
         ),
         "validation": validation.to_dict() if hasattr(validation, "to_dict") else validation,
+        "busta_audit": busta_audit or {},
         "messaggio": (
             "Invio PEC reale da completare dal PC locale tramite Local Signer. "
             "Il server cloud non tenta l'SMTP."

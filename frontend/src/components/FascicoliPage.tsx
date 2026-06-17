@@ -329,7 +329,17 @@ type ActionPayload = {
   errore?: string
   error?: string
   redirect_url?: string
+  requires_guided_completion?: boolean
+  requires_local_pec?: boolean
+  package_ready?: boolean
+  id_deposito?: string
+  pec_dest?: string
+  oggetto_pec?: string
+  corpo_pec?: string
+  documenti_busta?: string[]
   next_actions?: string[]
+  busta_audit?: Record<string, unknown>
+  local_pec?: Record<string, unknown>
 }
 
 function PostAction({ action, children, tone = 'secondary', confirm, confirmTitle = 'Conferma operazione', onDone, onError, redirectTo, title, ariaLabel }:{action:string; children:ReactNode; tone?:'primary'|'secondary'|'danger'|'ghost'; confirm?:string; confirmTitle?:string; onDone?:(message?:string)=>void; onError?:(message:string)=>void; redirectTo?:string; title?:string; ariaLabel?:string}) {
@@ -391,6 +401,29 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
 type DepositActionPayload = Record<string, string | string[]>
 type BatchSignatureAction = () => Promise<void>
 type DepositDocumentRole = 'atto_principale' | 'procura' | 'allegato_prova' | 'allegato' | 'prova_notifica' | 'fuori_busta'
+
+type DepositPackagePreview = {
+  idDeposito: string
+  pecDest: string
+  oggettoPec: string
+  corpoPec: string
+  documenti: string[]
+  nextActions: string[]
+  packageReady: boolean
+  message: string
+}
+
+const SIGNATURE_INPUT_REQUIRED_PREFIX = 'SIGNATURE_INPUT_REQUIRED:'
+
+function signatureInputRequired(message: string): Error {
+  return new Error(`${SIGNATURE_INPUT_REQUIRED_PREFIX}${message}`)
+}
+
+function signatureInputRequiredMessage(message: string): string {
+  return message.startsWith(SIGNATURE_INPUT_REQUIRED_PREFIX)
+    ? message.slice(SIGNATURE_INPUT_REQUIRED_PREFIX.length).trim()
+    : ''
+}
 
 type DepositDocumentClassification = {
   selected: boolean
@@ -531,6 +564,7 @@ function DepositActionButton({
   beforeSubmit,
   onDone,
   onError,
+  onPackageReady,
 }: {
   action: string
   payload: DepositActionPayload
@@ -543,6 +577,7 @@ function DepositActionButton({
   beforeSubmit?: () => Promise<void>
   onDone?: (message?: string) => void
   onError?: (message: string) => void
+  onPackageReady?: (payload: ActionPayload) => void
 }) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -567,6 +602,12 @@ function DepositActionButton({
       const contentType = response.headers.get('content-type') || ''
       if (contentType.includes('application/json')) {
         const result = (await response.json().catch(() => ({}))) as ActionPayload
+        if (result.package_ready || result.requires_guided_completion || result.requires_local_pec) {
+          setConfirming(false)
+          onPackageReady?.(result)
+          if (!onPackageReady) onDone?.(String(result.messaggio || result.message || 'Pacchetto deposito preparato.'))
+          return
+        }
         if (!response.ok || result.ok === false) {
           const nextActions = Array.isArray(result.next_actions)
             ? result.next_actions.map((item) => String(item || '').trim()).filter(Boolean)
@@ -595,8 +636,14 @@ function DepositActionButton({
       onDone?.('Busta generata e scaricata.')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Deposito non completato.'
-      setError(message)
-      onError?.(message)
+      const signatureMessage = signatureInputRequiredMessage(message)
+      if (signatureMessage) {
+        setConfirming(false)
+        setError(signatureMessage)
+      } else {
+        setError(message)
+        onError?.(message)
+      }
     } finally {
       setBusy(false)
     }
@@ -627,6 +674,66 @@ function DepositActionButton({
         </div>
       ) : null}
     </>
+  )
+}
+
+function DepositPdfPreviewButton({
+  action,
+  payload,
+  onPreview,
+  onError,
+}: {
+  action: string
+  payload: DepositActionPayload
+  onPreview: (preview: PreviewDocument) => void
+  onError?: (message: string) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const openPreview = async () => {
+    if (!action || busy) return
+    setBusy(true)
+    setError('')
+    try {
+      const form = new FormData()
+      Object.entries(payload).forEach(([key, value]) => {
+        if (Array.isArray(value)) value.forEach((item) => form.append(key, item))
+        else form.append(key, value)
+      })
+      const response = await fetch(action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/pdf', 'X-Requested-With': 'XMLHttpRequest' },
+        body: form,
+      })
+      if (!response.ok) {
+        const message = await response.text().catch(() => '')
+        throw new Error(message || `Indice non disponibile: HTTP ${response.status}`)
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      onPreview({ name: 'IndiceDocumentiDepositati.PDF', url, downloadUrl: url })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Indice documenti non disponibile.'
+      setError(message)
+      onError?.(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <span className="iu-fas-package-preview-button">
+      <button
+        type="button"
+        onClick={openPreview}
+        disabled={busy}
+        title="Visualizza indice documenti"
+        aria-label="Visualizza IndiceDocumentiDepositati.PDF"
+      >
+        {busy ? <RefreshCw size={16} aria-hidden="true"/> : <Eye size={16} aria-hidden="true"/>}
+      </button>
+      {error ? <small role="alert">{error}</small> : null}
+    </span>
   )
 }
 
@@ -2562,6 +2669,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const [classificationSaving, setClassificationSaving] = useState(false)
   const [activeDepositPanel, setActiveDepositPanel] = useState<DepositPhaseId>(initialDepositPhaseFromHash)
   const [depositActionNotice, setDepositActionNotice] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
+  const [packagePreview, setPackagePreview] = useState<DepositPackagePreview | null>(null)
+  const [packageConfirmedForReal, setPackageConfirmedForReal] = useState(false)
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
 
   const refreshDetail = (message?: string) => {
@@ -2577,6 +2686,23 @@ function DepositPreparePage({ id }:{id:string}) {
   const failDetail = (message: string) => {
     setToast({ tone: 'danger', message })
     setDepositActionNotice({ tone: 'danger', message })
+  }
+  const handlePackageReady = (payload: ActionPayload) => {
+    const message = String(payload.message || payload.messaggio || 'Pacchetto di controllo preparato. Nessun invio PEC reale eseguito.')
+    setPackagePreview({
+      idDeposito: String(payload.id_deposito || ''),
+      pecDest: String(payload.pec_dest || ''),
+      oggettoPec: String(payload.oggetto_pec || ''),
+      corpoPec: String(payload.corpo_pec || ''),
+      documenti: Array.isArray(payload.documenti_busta) ? payload.documenti_busta.map((item) => String(item || '').trim()).filter(Boolean) : [],
+      nextActions: Array.isArray(payload.next_actions) ? payload.next_actions.map((item) => String(item || '').trim()).filter(Boolean) : [],
+      packageReady: Boolean(payload.package_ready),
+      message,
+    })
+    setToast({ tone: 'success', message })
+    setDepositActionNotice({ tone: 'success', message })
+    setPackageConfirmedForReal(false)
+    goToDepositPhase('generazione-busta')
   }
   const registerBatchSignatureAction = (action: BatchSignatureAction | null) => {
     batchSignatureActionRef.current = action
@@ -2717,19 +2843,21 @@ function DepositPreparePage({ id }:{id:string}) {
   })
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
   const missingRequiredSlots = sortedSlots.filter((slot) => recordBool(slot, 'required') && !depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument, effectiveDepositClassificationById))
-  const bustaAction = directPecReady ? `/fascicoli/${encodedId}/deposito/invia-pec` : `/fascicoli/${encodedId}/deposito/genera-busta`
+  const officeRecipientRequired = directPecAllowed || guidedCompletion
+  const officeRecipientReady = !officeRecipientRequired || Boolean(data.depositOffice.verified && data.depositOffice.pec)
+  const bustaAction = directPecReady || guidedCompletion ? `/fascicoli/${encodedId}/deposito/invia-pec` : `/fascicoli/${encodedId}/deposito/genera-busta`
   const runBatchSignatureBeforeDeposit = async () => {
     if (!signatureBatchRequired) return
     if (!batchSignatureActionRef.current) {
-      setActiveDepositPanel('firma-busta')
-      window.location.hash = 'firma-busta'
-      throw new Error('Inserisci il PIN e rendi pronto Local Signer nel pannello firma prima di generare la busta.')
+      setActiveDepositPanel('generazione-busta')
+      window.location.hash = 'generazione-busta'
+      throw signatureInputRequired('Inserisci il PIN nel riquadro firma di questa fase. Il software firmerà i documenti e poi genererà la busta.')
     }
     try {
       await batchSignatureActionRef.current()
     } catch (err) {
-      setActiveDepositPanel('firma-busta')
-      window.location.hash = 'firma-busta'
+      setActiveDepositPanel('generazione-busta')
+      window.location.hash = 'generazione-busta'
       throw err
     }
   }
@@ -2810,15 +2938,29 @@ function DepositPreparePage({ id }:{id:string}) {
     codice_oggetto_pst: f.codiceOggettoPst,
     numero_rg: f.rgNumber ? String(f.rgNumber) : '',
     anno_rg: f.rgYear ? String(f.rgYear) : '',
+    tribunale_nome: data.depositOffice.name || f.court || '',
+    tribunale_pec: data.depositOffice.pec || '',
+    codice_ufficio: data.depositOffice.code || data.depositOffice.ministerialCode || '',
     atto_principale_id: mainActDocument?.id || '',
     allegati_ids: selectedAttachmentIds,
     documenti_selezionati_ids: packageDocuments.map((doc) => doc.id),
     firma_unica: signatureBatchRequired ? '1' : '0',
     documenti_da_firmare_ids: unsignedPackageDocuments.map((doc) => doc.id),
   }
-  const actionBlocked = !mainActDocument || Boolean(missingRequiredSlots.length)
+  const depositDryRunActionPayload: DepositActionPayload = { ...depositActionPayload, prova_senza_invio: '1' }
+  const actionBlocked = !mainActDocument || Boolean(missingRequiredSlots.length) || !officeRecipientReady
+  const actionBlockedReason = !officeRecipientReady
+    ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e catalogo PST prima della prova deposito.'
+    : depositGenerationBlockedReason(mainActDocument, missingRequiredSlots.length)
+  const realSendAvailable = directPecReady && !guidedCompletion
+  const realSendDisabledReason = !packagePreview?.packageReady
+    ? 'Esegui prima la prova senza invio reale.'
+    : !packageConfirmedForReal
+      ? 'Conferma il controllo positivo della prova prima dell’invio reale.'
+      : !realSendAvailable
+        ? 'Invio reale non attivo: manca ancora il trasporto ministeriale conforme.'
+        : actionBlockedReason
   const signaturesRequiredBeforeAction = false
-  const actionBlockedReason = depositGenerationBlockedReason(mainActDocument, missingRequiredSlots.length)
   const depositStatusText = depositStatusLabel(recordText(deposit, 'status', regia.validation.status || 'Da verificare'))
   const preparationTone: FascicoloRow['tone'] = decisiveValidationRows.length ? 'warning' : ready ? 'success' : 'primary'
   const depositMessage = ready
@@ -2833,7 +2975,9 @@ function DepositPreparePage({ id }:{id:string}) {
   const signaturePhaseTone: FascicoloRow['tone'] = signatureBatchRequired ? 'warning' : 'success'
   const generationPhaseTone: FascicoloRow['tone'] = actionBlocked ? 'warning' : signatureBatchRequired ? 'warning' : guidedCompletion ? 'info' : 'success'
   const generationPhaseDetail = actionBlocked
-    ? !mainActDocument
+    ? !officeRecipientReady
+      ? 'PEC ufficio da verificare'
+      : !mainActDocument
       ? 'Seleziona atto principale'
       : missingRequiredSlots.length === 1 ? 'Conferma la scelta obbligatoria' : 'Conferma le scelte obbligatorie'
     : signatureBatchRequired ? 'Firma, hash e indice insieme' : 'Indice dalla selezione'
@@ -3224,7 +3368,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 fascicoloId={f.id || id}
                 documents={unsignedPackageDocuments}
                 signature={data.signature}
-                registerAction={registerBatchSignatureAction}
+                registerAction={activeDepositPanel === 'firma-busta' ? registerBatchSignatureAction : undefined}
                 onDone={refreshDetail}
                 onError={failDetail}
               />
@@ -3233,6 +3377,17 @@ function DepositPreparePage({ id }:{id:string}) {
           </DetailSection>
 
           <DetailSection id="generazione-busta" title="4. Busta e indice" icon={<FileArchive size={17}/>} open={activeDepositPanel === 'generazione-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('generazione-busta') }} count={packageDocuments.length + 2}>
+            <div className="iu-fas-package-office">
+              <div>
+                <Badge tone={officeRecipientReady ? 'success' : 'warning'}>{officeRecipientReady ? 'PEC verificata' : 'PEC da verificare'}</Badge>
+                <strong>{data.depositOffice.name || f.court || 'Ufficio giudiziario da verificare'}</strong>
+                <span>{data.depositOffice.pec || 'Indirizzo PEC non disponibile dal catalogo uffici.'}</span>
+              </div>
+              <small>{data.depositOffice.message || (officeRecipientReady ? 'Destinatario letto dal catalogo uffici per la prova deposito.' : 'Controlla ufficio, codice e catalogo prima della generazione.')}</small>
+              {data.depositOffice.code || data.depositOffice.ministerialCode ? (
+                <code>{[data.depositOffice.code, data.depositOffice.ministerialCode].filter(Boolean).join(' / ')}</code>
+              ) : null}
+            </div>
             <div className="iu-fas-package-board">
               <article className="iu-fas-package-main">
                 <Badge tone={mainActDocument ? (mainActDocument.signed ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
@@ -3276,6 +3431,12 @@ function DepositPreparePage({ id }:{id:string}) {
                   <strong>IndiceDocumentiDepositati.PDF</strong>
                   <span>Indice generato dal software con atto principale, allegati e prove selezionate.</span>
                 </div>
+                <DepositPdfPreviewButton
+                  action={`/fascicoli/${encodedId}/deposito/indice-documenti`}
+                  payload={depositActionPayload}
+                  onPreview={setPreviewDoc}
+                  onError={failDetail}
+                />
                 <small>Generato</small>
               </article>
               {packageDocuments.map((doc) => {
@@ -3293,30 +3454,119 @@ function DepositPreparePage({ id }:{id:string}) {
               })}
               {!packageDocuments.length ? <p className="iu-empty">Nessun documento ancora collegato agli slot deposito: usa la selezione manuale negli slot documentali.</p> : null}
             </div>
+            {signatureBatchRequired ? (
+              <div className="iu-fas-package-signing">
+                <div className="iu-fas-deposit-phase-note">
+                  <Badge tone="warning">Firma immediata</Badge>
+                  <strong>{unsignedPackageDocuments.length === 1 ? '1 documento sarà firmato prima della busta' : `${unsignedPackageDocuments.length} documenti saranno firmati prima della busta`}</strong>
+                  <span>Inserisci il PIN una sola volta: IUSENTRA firma il lotto, salva ogni file `.p7m` nel fascicolo e solo dopo prosegue con indice, busta di controllo e testo PEC.</span>
+                </div>
+                <DepositBatchSignaturePanel
+                  fascicoloId={f.id || id}
+                  documents={unsignedPackageDocuments}
+                  signature={data.signature}
+                  registerAction={activeDepositPanel === 'generazione-busta' ? registerBatchSignatureAction : undefined}
+                  onDone={refreshDetail}
+                  onError={failDetail}
+                />
+              </div>
+            ) : (
+              <div className="iu-fas-package-signing iu-fas-package-signing--ready">
+                <CheckCircle2 size={16}/>
+                <span>Firme già coerenti: puoi generare indice, busta e controllo PEC della prova.</span>
+              </div>
+            )}
             <div className="iu-fas-package-actions">
               <DepositActionButton
                 action={bustaAction}
-                payload={depositActionPayload}
+                payload={depositDryRunActionPayload}
                 disabled={actionBlocked}
                 disabledReason={actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 tone="primary"
                 confirm={
-                  directPecReady
-                    ? 'Firmare subito i documenti necessari, generare la busta ministeriale e inviarla con la PEC configurata?'
-                    : guidedCompletion
-                      ? 'Generare il pacchetto di controllo e l’indice documenti per completare la busta conforme?'
-                      : 'Generare la busta ministeriale con indice documenti da caricare sul portale ufficiale?'
+                  signatureBatchRequired
+                      ? 'Firmare ora i documenti selezionati, salvare i file firmati nel fascicolo e poi generare indice, busta di controllo e testo PEC senza invio reale?'
+                      : 'Preparare busta, indice documenti, destinatario e testo PEC senza inviare nulla?'
                 }
-                confirmTitle={directPecReady ? 'Invia deposito' : guidedCompletion ? 'Prepara controllo' : 'Genera busta'}
+                confirmTitle={signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio'}
                 onDone={refreshDetail}
                 onError={failDetail}
+                onPackageReady={handlePackageReady}
               >
-                {directPecReady ? <Send size={15}/> : <FileArchive size={15}/>} {signatureBatchRequired ? 'Firma e genera busta' : directPecReady ? sendLabel : guidedCompletion ? 'Genera controllo e indice' : 'Genera busta pronta'}
+                <FileArchive size={15}/> {signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio reale'}
+              </DepositActionButton>
+              <DepositActionButton
+                action={bustaAction}
+                payload={depositActionPayload}
+                disabled={actionBlocked || !packagePreview?.packageReady || !packageConfirmedForReal || !realSendAvailable}
+                disabledReason={realSendDisabledReason}
+                beforeSubmit={prepareDepositBeforeSubmit}
+                tone="secondary"
+                confirm="Inviare realmente il deposito con la PEC configurata? Usa questo comando solo dopo avere controllato indice, destinatario, oggetto, testo PEC e documenti della prova."
+                confirmTitle="Invia deposito reale"
+                onDone={refreshDetail}
+                onError={failDetail}
+                onPackageReady={handlePackageReady}
+              >
+                <Send size={15}/> Invia deposito reale
               </DepositActionButton>
               {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
-              {actionBlocked ? <small>{depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0)}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati nel comando finale con firma multipla. ` : ''}{directPecReady ? 'Il software prepara busta, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software prepara controlli, indice e pacchetto; l’avvocato completa solo il passaggio ministeriale che il software non può ancora produrre.' : 'Il software prepara la busta: il caricamento finale resta sul portale ufficiale.'}</small>}
+              {actionBlocked ? <small>{actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0)}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati nel comando finale con firma multipla. ` : ''}{directPecReady ? 'Il software prepara busta, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software prepara controlli, indice e pacchetto; l’avvocato completa solo il passaggio ministeriale che il software non può ancora produrre.' : 'Il software prepara la busta: il caricamento finale resta sul portale ufficiale.'}</small>}
             </div>
+            {packagePreview ? (
+              <div className="iu-fas-package-preview" role="status">
+                <header>
+                  <Badge tone={packagePreview.packageReady ? 'success' : 'warning'}>Prova senza invio PEC</Badge>
+                  <div>
+                    <strong>{packagePreview.message}</strong>
+                    <span>Controlla destinatario, oggetto, corpo PEC e documenti prima del deposito reale.</span>
+                  </div>
+                </header>
+                <div className="iu-fas-package-preview__grid">
+                  <article>
+                    <span>Destinatario PEC</span>
+                    <strong>{packagePreview.pecDest || data.depositOffice.pec || 'Da verificare'}</strong>
+                  </article>
+                  <article>
+                    <span>Oggetto PEC</span>
+                    <strong>{packagePreview.oggettoPec || 'Da generare'}</strong>
+                  </article>
+                  <article>
+                    <span>Riferimento prova</span>
+                    <strong>{packagePreview.idDeposito || 'Non registrato'}</strong>
+                  </article>
+                </div>
+                <label className="iu-fas-package-preview__confirm">
+                  <input
+                    type="checkbox"
+                    checked={packageConfirmedForReal}
+                    onChange={(event) => setPackageConfirmedForReal(event.currentTarget.checked)}
+                  />
+                  <span>Ho controllato indice, destinatario, oggetto, testo PEC e documenti: abilita l’invio reale.</span>
+                </label>
+                {packagePreview.documenti.length ? (
+                  <div className="iu-fas-package-preview__documents">
+                    <strong>Documenti indicati nel pacchetto</strong>
+                    <ul>
+                      {packagePreview.documenti.map((name) => <li key={name}>{name}</li>)}
+                    </ul>
+                  </div>
+                ) : null}
+                {packagePreview.corpoPec ? (
+                  <div className="iu-fas-package-preview__body">
+                    <strong>Testo PEC predisposto</strong>
+                    <pre>{packagePreview.corpoPec}</pre>
+                  </div>
+                ) : null}
+                {packagePreview.nextActions.length ? (
+                  <div className="iu-fas-package-preview__next">
+                    <strong>Controlli ancora richiesti prima dell’invio reale</strong>
+                    <ul>{packagePreview.nextActions.map((item) => <li key={item}>{item}</li>)}</ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {renderDepositStepControls('generazione-busta')}
           </DetailSection>
 
@@ -3562,25 +3812,37 @@ function DepositBatchSignaturePanel({
     if (restartSuggested || localSignerOutdated) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
-        setError('IUSENTRA ha tentato il riallineamento automatico del Local Signer. Se il token è inserito, attendi pochi secondi: il PIN verrà chiesto solo quando versione e token saranno pronti.')
+        const message = 'IUSENTRA ha tentato il riallineamento automatico del Local Signer. Se il token è inserito, attendi pochi secondi: il PIN verrà chiesto solo quando versione e token saranno pronti.'
+        setError(message)
+        throw signatureInputRequired(message)
       }
-      return
+      const message = 'Local Signer è pronto: inserisci il PIN e ripeti il comando di firma prima di generare la busta.'
+      setError(message)
+      pinInputRef.current?.focus()
+      throw signatureInputRequired(message)
     }
     if (!localSignerCanSign) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
-        setError(localSignerReachable ? 'Token non pronto per la firma: verifica che il dispositivo fisico sia inserito. IUSENTRA ha già tentato avvio e aggiornamento del Local Signer.' : 'Local Signer non raggiungibile su questo PC: IUSENTRA ha tentato l’avvio automatico e riproverà la verifica.')
+        const message = localSignerReachable ? 'Token non pronto per la firma: verifica che il dispositivo fisico sia inserito. IUSENTRA ha già tentato avvio e aggiornamento del Local Signer.' : 'Local Signer non raggiungibile su questo PC: IUSENTRA ha tentato l’avvio automatico e riproverà la verifica.'
+        setError(message)
+        throw signatureInputRequired(message)
       }
-      return
+      const message = 'Local Signer è pronto: inserisci il PIN e ripeti il comando di firma prima di generare la busta.'
+      setError(message)
+      pinInputRef.current?.focus()
+      throw signatureInputRequired(message)
     }
     if (!selectedWindowsCertificate && !primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
-      setError('Local Signer non ha restituito un token utilizzabile.')
-      return
+      const message = 'Local Signer non ha restituito un token utilizzabile.'
+      setError(message)
+      throw signatureInputRequired(message)
     }
     if (!pin.trim()) {
-      setError('Inserisci il PIN nel pannello Local Signer. Il PIN resta sul PC e non viene salvato.')
+      const message = 'Inserisci il PIN nel pannello Local Signer. Il PIN resta sul PC e non viene salvato.'
+      setError(message)
       pinInputRef.current?.focus()
-      return
+      throw signatureInputRequired(message)
     }
     setBusy(true)
     setError('')

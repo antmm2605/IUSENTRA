@@ -28,6 +28,19 @@ from pct.preventivi_repository import (
 from pct.legal_platform_catalog import build_operational_fields
 from pct.compensi_a_tempo import normalizza_tipo_compenso
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_payload
+from pct.profilo_deposito import costruisci_profilo_deposito
+
+_PROFILO_DEPOSITO_FIELDS = {
+    "id_pratica",
+    "area_pratica",
+    "tipo_procedimento",
+    "procedura_operativa_codice",
+    "canale_operativo",
+    "registro_operativo",
+    "codice_oggetto_pst",
+    "fonte_codice_oggetto",
+    "file_fonte_codice_oggetto",
+}
 
 
 # ================================================================ Enumerazioni
@@ -382,6 +395,7 @@ class Preventivo:
     codice_oggetto_pst: str = ""
     fonte_codice_oggetto: str = ""
     file_fonte_codice_oggetto: str = ""
+    profilo_deposito: Dict[str, Any] = field(default_factory=dict)
     tipo_compenso:        str   = ""    # es. "Compenso fisso", "Per fasi processuali (D.M. 55/2014)"
     tipo_procedimento:    str   = ""    # es. "Civile — fase di cognizione"
     valore_controversia:  float = 0.0  # €, 0 = indeterminabile
@@ -509,6 +523,8 @@ class Preventivo:
         d["classificazioni_tassonomiche"] = _normalizza_classificazioni_tassonomiche(
             d.get("classificazioni_tassonomiche")
         )
+        if not isinstance(d.get("profilo_deposito"), dict):
+            d["profilo_deposito"] = {}
         if d.get("log_calcolo"):
             try:
                 from pct.economico_context import dump_log_calcolo, sincronizza_contesto_economico
@@ -568,6 +584,7 @@ class ConferimentoIncarico:
     codice_oggetto_pst: str = ""
     fonte_codice_oggetto: str = ""
     file_fonte_codice_oggetto: str = ""
+    profilo_deposito: Dict[str, Any] = field(default_factory=dict)
     numero_iscrizione_albo: str   = ""
     ordine_avvocati:        str   = ""
     tipo_compenso:          str   = ""
@@ -634,6 +651,8 @@ class ConferimentoIncarico:
         d["classificazioni_tassonomiche"] = _normalizza_classificazioni_tassonomiche(
             d.get("classificazioni_tassonomiche")
         )
+        if not isinstance(d.get("profilo_deposito"), dict):
+            d["profilo_deposito"] = {}
         campi = set(ConferimentoIncarico.__dataclass_fields__)
         return ConferimentoIncarico(**{k: v for k, v in d.items() if k in campi})
 
@@ -741,8 +760,9 @@ class GestionePreventivi:
                      criterio_arrotondamento_orario, minuti_stimati, ore_fatturabili_calcolate,
                      compenso_orario_base, massimale_ore, soglia_preapprovazione_ore,
                      warning_compenso_orario_json,
-                     totale, accettato_il, id_preventivo_precedente, token_portale, creato_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     totale, accettato_il, id_preventivo_precedente, token_portale, creato_il,
+                     profilo_deposito_json, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         preventivo.id,
@@ -778,6 +798,7 @@ class GestionePreventivi:
                         preventivo.id_preventivo_precedente or "",
                         preventivo.token_portale or "",
                         preventivo.creato_il,
+                        json.dumps(preventivo.profilo_deposito or {}, ensure_ascii=False),
                         json.dumps(payload, ensure_ascii=False),
                     ),
                 )
@@ -811,8 +832,9 @@ class GestionePreventivi:
                      classificazioni_tassonomiche_json,
                      criterio_arrotondamento_orario, massimale_ore, soglia_preapprovazione_ore,
                      warning_compenso_orario_json, compenso_pattuito,
-                     firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     firma_cliente_eseguita, fascicolo_aperto_il,
+                     profilo_deposito_json, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         conferimento.id,
@@ -843,6 +865,7 @@ class GestionePreventivi:
                         float(conferimento.compenso_pattuito or 0.0),
                         1 if conferimento.firma_cliente_eseguita else 0,
                         conferimento.fascicolo_aperto_il or "",
+                        json.dumps(conferimento.profilo_deposito or {}, ensure_ascii=False),
                         json.dumps(payload, ensure_ascii=False),
                     ),
                 )
@@ -989,6 +1012,19 @@ class GestionePreventivi:
         codice_oggetto = codice_oggetto_pst_payload(codice_oggetto_pst)
         fonte_codice_oggetto = fonte_codice_oggetto or codice_oggetto["fonte_codice_oggetto"]
         file_fonte_codice_oggetto = file_fonte_codice_oggetto or codice_oggetto["file_fonte_codice_oggetto"]
+        profilo_deposito = costruisci_profilo_deposito(
+            id_pratica=id_pratica,
+            area_pratica=area_pratica,
+            tipo_procedimento=tipo_procedimento,
+            canale_operativo=operational_fields.get("canale_operativo", ""),
+            registro_operativo=operational_fields.get("registro_operativo", ""),
+            procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
+            codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+            fonte_codice_oggetto=fonte_codice_oggetto,
+            file_fonte_codice_oggetto=file_fonte_codice_oggetto,
+            verifica_certificato=False,
+            richiedi_ufficio=False,
+        )
         clausola_payload = prepara_clausola_controversie(
             attiva=clausola_controversie_attiva,
             modello=clausola_controversie_modello,
@@ -1030,6 +1066,7 @@ class GestionePreventivi:
             codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
             fonte_codice_oggetto=fonte_codice_oggetto,
             file_fonte_codice_oggetto=file_fonte_codice_oggetto,
+            profilo_deposito=profilo_deposito,
             tipo_compenso=normalizza_tipo_compenso(tipo_compenso),
             tipo_procedimento=tipo_procedimento,
             valore_controversia=valore_controversia,
@@ -1077,8 +1114,44 @@ class GestionePreventivi:
     def conferimenti_per_preventivo(self, id_preventivo: str) -> List["ConferimentoIncarico"]:
         return [c for c in self.tutti_conferimenti() if c.id_preventivo == id_preventivo]
 
+    def _aggiorna_profilo_deposito_preventivo(self, p: Preventivo) -> None:
+        p.profilo_deposito = costruisci_profilo_deposito(
+            id_pratica=p.id_pratica,
+            area_pratica=p.area_pratica,
+            tipo_procedimento=p.tipo_procedimento,
+            canale_operativo=p.canale_operativo,
+            registro_operativo=p.registro_operativo,
+            procedura_operativa_codice=p.procedura_operativa_codice,
+            codice_oggetto_pst=p.codice_oggetto_pst,
+            fonte_codice_oggetto=p.fonte_codice_oggetto,
+            file_fonte_codice_oggetto=p.file_fonte_codice_oggetto,
+            verifica_certificato=False,
+            richiedi_ufficio=False,
+            profilo_origine=p.profilo_deposito,
+        )
+
+    def _aggiorna_profilo_deposito_conferimento(self, c: ConferimentoIncarico) -> None:
+        origine = {}
+        if c.id_preventivo and c.id_preventivo in self._preventivi:
+            origine = self._preventivi[c.id_preventivo].profilo_deposito
+        c.profilo_deposito = costruisci_profilo_deposito(
+            id_pratica=c.id_pratica,
+            area_pratica=c.area_pratica,
+            tipo_procedimento=c.tipo_procedimento,
+            canale_operativo=c.canale_operativo,
+            registro_operativo=c.registro_operativo,
+            procedura_operativa_codice=c.procedura_operativa_codice,
+            codice_oggetto_pst=c.codice_oggetto_pst,
+            fonte_codice_oggetto=c.fonte_codice_oggetto,
+            file_fonte_codice_oggetto=c.file_fonte_codice_oggetto,
+            verifica_certificato=False,
+            richiedi_ufficio=False,
+            profilo_origine=origine or c.profilo_deposito,
+        )
+
     def aggiorna_preventivo(self, id_preventivo: str, **kwargs) -> Preventivo:
         p = self._preventivi[id_preventivo]
+        tocchi_profilo = False
         for k, v in kwargs.items():
             if hasattr(p, k):
                 if k == "workflow_channel":
@@ -1086,6 +1159,9 @@ class GestionePreventivi:
                 elif k == "tipo_compenso":
                     v = normalizza_tipo_compenso(v)
                 setattr(p, k, v)
+                tocchi_profilo = tocchi_profilo or (k in _PROFILO_DEPOSITO_FIELDS)
+        if tocchi_profilo and "profilo_deposito" not in kwargs:
+            self._aggiorna_profilo_deposito_preventivo(p)
         self._salva_preventivi()
         return p
 
@@ -1201,9 +1277,11 @@ class GestionePreventivi:
                           studio_piva:        str = "",
                           studio_cf:          str = "",
                           studio_indirizzo:   str = "") -> ConferimentoIncarico:
+        preventivo_origine = None
         if id_preventivo:
             preventivo = self._preventivi.get(id_preventivo)
             if preventivo:
+                preventivo_origine = preventivo
                 if not id_pratica:
                     id_pratica = preventivo.id_pratica
                 if not area_pratica:
@@ -1274,6 +1352,22 @@ class GestionePreventivi:
         codice_oggetto = codice_oggetto_pst_payload(codice_oggetto_pst)
         fonte_codice_oggetto = fonte_codice_oggetto or codice_oggetto["fonte_codice_oggetto"]
         file_fonte_codice_oggetto = file_fonte_codice_oggetto or codice_oggetto["file_fonte_codice_oggetto"]
+        profilo_deposito = costruisci_profilo_deposito(
+            id_pratica=id_pratica,
+            area_pratica=area_pratica,
+            tipo_procedimento=tipo_procedimento,
+            canale_operativo=operational_fields.get("canale_operativo", ""),
+            registro_operativo=operational_fields.get("registro_operativo", ""),
+            procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
+            codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+            fonte_codice_oggetto=fonte_codice_oggetto,
+            file_fonte_codice_oggetto=file_fonte_codice_oggetto,
+            verifica_certificato=False,
+            richiedi_ufficio=False,
+            profilo_origine=(
+                getattr(preventivo_origine, "profilo_deposito", {}) if preventivo_origine else {}
+            ),
+        )
         clausola_payload = prepara_clausola_controversie(
             attiva=clausola_controversie_attiva,
             modello=clausola_controversie_modello,
@@ -1314,6 +1408,7 @@ class GestionePreventivi:
             codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
             fonte_codice_oggetto=fonte_codice_oggetto,
             file_fonte_codice_oggetto=file_fonte_codice_oggetto,
+            profilo_deposito=profilo_deposito,
             numero_iscrizione_albo=numero_iscrizione_albo,
             ordine_avvocati=ordine_avvocati,
             tipo_compenso=normalizza_tipo_compenso(tipo_compenso),
@@ -1359,6 +1454,7 @@ class GestionePreventivi:
 
     def aggiorna_conferimento(self, id_conferimento: str, **kwargs) -> ConferimentoIncarico:
         c = self._conferimenti[id_conferimento]
+        tocchi_profilo = False
         for k, v in kwargs.items():
             if hasattr(c, k):
                 if k == "workflow_channel":
@@ -1366,6 +1462,9 @@ class GestionePreventivi:
                 elif k == "tipo_compenso":
                     v = normalizza_tipo_compenso(v)
                 setattr(c, k, v)
+                tocchi_profilo = tocchi_profilo or (k in _PROFILO_DEPOSITO_FIELDS)
+        if tocchi_profilo and "profilo_deposito" not in kwargs:
+            self._aggiorna_profilo_deposito_conferimento(c)
         self._salva_conferimenti()
         return c
 

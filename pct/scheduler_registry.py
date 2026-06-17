@@ -435,12 +435,18 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
     backup_h, backup_m = _hhmm(cfg.get("BACKUP_ORA") or os.getenv("PCT_BACKUP_ORA"), "02:00")
     wa_h, wa_m = _hhmm(cfg.get("WA_REMINDER_ORA") or os.getenv("PCT_WA_REMINDER_ORA"), "18:00")
     uffici_h, uffici_m = _hhmm(cfg.get("UFFICI_SYNC_ORA") or os.getenv("PCT_UFFICI_SYNC_ORA"), "03:30")
+    pst_cert_h, pst_cert_m = _hhmm(
+        cfg.get("PST_CERTIFICATI_CIFRATURA_SYNC_ORA")
+        or os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_SYNC_ORA"),
+        "03:45",
+    )
     builtins = (
         SchedulerTemplate("backup_giornaliero", "Backup giornaliero", "Manutenzione", "Copia operativa giornaliera.", "cron", backup_h, backup_m, built_in=True),
         SchedulerTemplate("aggiorna_scadute", "Scadenze scadute", "Agenda e scadenze", "Aggiorna stati delle scadenze scadute.", "cron", "0", "5", built_in=True),
         SchedulerTemplate("wa_reminder", "Promemoria WhatsApp", "Comunicazioni", "Invia promemoria appuntamenti del giorno successivo.", "cron", wa_h, wa_m, built_in=True),
         SchedulerTemplate("aggiorna_parcelle_scadute", "Parcelle scadute", "Economia", "Aggiorna stati delle parcelle scadute.", "cron", "1", "0", built_in=True),
         SchedulerTemplate("sync_uffici", "Uffici giudiziari", "Fonti e tabelle", "Sincronizza uffici giudiziari da fonti ufficiali.", "cron", uffici_h, uffici_m, built_in=True),
+        SchedulerTemplate("pst_certificati_cifratura_weekly", "Certificati PST cifratura", "Depositi telematici", "Controlla e aggiorna ogni settimana i certificati .cer degli uffici giudiziari per Atto.enc.", "cron", pst_cert_h, pst_cert_m, built_in=True),
         SchedulerTemplate("legal_official_archives_daily", "Archivi Normattiva e Gazzetta", "Aggiornamenti legali", "Aggiorna archivi ufficiali locali senza duplicare pacchetti invariati.", "cron", "23", "0", built_in=True),
         SchedulerTemplate("legal_monitor_daily", "Monitor legale giornaliero", "Aggiornamenti legali", "Presidia le fonti legali principali.", "cron", "5", "45", built_in=True),
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),

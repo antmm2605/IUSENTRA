@@ -69,6 +69,8 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
         "size": len(package_bytes),
         "sha256": _sha256(package_bytes),
         "is_zip_package": False,
+        "is_atto_enc": package_path.name.lower() == "atto.enc",
+        "atto_msg_path": "",
         "entries": [],
         "document_names_from_xml": [],
         "has_dati_atto_xml": False,
@@ -89,6 +91,25 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
                 result["document_names_from_xml"] = _parse_xml_document_names(zf.read("DatiAtto.xml"))
     except zipfile.BadZipFile:
         result["is_zip_package"] = False
+        atto_msg_path = package_path.with_name("Atto.msg")
+        if atto_msg_path.exists():
+            result["atto_msg_path"] = str(atto_msg_path)
+            message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
+            entries: list[str] = []
+            attachments: dict[str, bytes] = {}
+            for part in message.iter_attachments():
+                name = _clean_name(part.get_filename() or "")
+                if not name:
+                    continue
+                entries.append(name)
+                attachments[Path(name).name] = part.get_payload(decode=True) or b""
+            result["entries"] = entries
+            result["has_dati_atto_xml"] = "DatiAtto.xml" in attachments
+            result["has_dati_atto_signed"] = any(name.lower() == "datiatto.xml.p7m" for name in entries)
+            result["has_indice_documenti"] = INDICE_DOCUMENTI_FILENAME in attachments
+            result["has_atto_enc_inside"] = result["is_atto_enc"]
+            if "DatiAtto.xml" in attachments:
+                result["document_names_from_xml"] = _parse_xml_document_names(attachments["DatiAtto.xml"])
     return result
 
 
@@ -155,14 +176,14 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
     generated_names = {Path(str(name)).name.lower() for name in entries}
 
     control_matches = bool(
-        generated.get("is_zip_package")
-        and generated.get("has_dati_atto_xml")
+        generated.get("has_dati_atto_xml")
         and generated.get("has_indice_documenti")
         and evidence.get("has_copy_dati_atto")
         and evidence.get("has_copy_indice")
     )
     real_transport_matches = bool(
-        generated.get("has_atto_enc_inside")
+        generated.get("is_atto_enc")
+        and generated.get("has_atto_enc_inside")
         and evidence.get("has_real_atto_enc")
         and not generated.get("is_zip_package")
     )

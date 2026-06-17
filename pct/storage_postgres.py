@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS fascicoli (
     attivita_json TEXT DEFAULT '[]',
     documenti_json TEXT DEFAULT '[]',
     scadenze_json TEXT DEFAULT '[]',
+    profilo_deposito_json TEXT DEFAULT '{}',
     dati_json TEXT DEFAULT '{}'
 );
 
@@ -247,6 +248,7 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     id_preventivo_precedente TEXT NOT NULL DEFAULT '',
     token_portale TEXT NOT NULL DEFAULT '',
     creato_il TEXT,
+    profilo_deposito_json TEXT NOT NULL DEFAULT '{}',
     dati_json TEXT DEFAULT '{}'
 );
 
@@ -276,6 +278,7 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     compenso_pattuito DOUBLE PRECISION NOT NULL DEFAULT 0,
     firma_cliente_eseguita INTEGER NOT NULL DEFAULT 0,
     fascicolo_aperto_il TEXT,
+    profilo_deposito_json TEXT NOT NULL DEFAULT '{}',
     dati_json TEXT DEFAULT '{}'
 );
 
@@ -514,6 +517,7 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "attivita_json",
         "documenti_json",
         "scadenze_json",
+        "profilo_deposito_json",
         "dati_json",
     ),
     "soggetti": (
@@ -671,6 +675,7 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "id_preventivo_precedente",
         "token_portale",
         "creato_il",
+        "profilo_deposito_json",
         "dati_json",
     ),
     "conferimenti_records": (
@@ -699,6 +704,7 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "compenso_pattuito",
         "firma_cliente_eseguita",
         "fascicolo_aperto_il",
+        "profilo_deposito_json",
         "dati_json",
     ),
     "parcelle": (
@@ -974,6 +980,9 @@ class PostgresStudioDB:
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'"
                 )
                 for ddl in (
+                    "ALTER TABLE fascicoli ADD COLUMN IF NOT EXISTS profilo_deposito_json TEXT DEFAULT '{}'",
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS profilo_deposito_json TEXT NOT NULL DEFAULT '{}'",
+                    "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS profilo_deposito_json TEXT NOT NULL DEFAULT '{}'",
                     "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS criterio_arrotondamento_orario TEXT NOT NULL DEFAULT ''",
                     "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS minuti_stimati INTEGER NOT NULL DEFAULT 0",
                     "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS ore_fatturabili_calcolate DOUBLE PRECISION NOT NULL DEFAULT 0",

@@ -20,7 +20,23 @@ from typing import Any, Iterable, Optional, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
+from pct.profilo_deposito import costruisci_profilo_deposito
 from pct.pst_servizi_catalogo import SERVIZIO_PST_DOCUMENTI_FASCICOLO
+
+_PROFILO_DEPOSITO_FASCICOLO_FIELDS = {
+    "tipo",
+    "tribunale",
+    "tipo_procedimento",
+    "id_pratica",
+    "area_pratica",
+    "source",
+    "canale_operativo",
+    "registro_operativo",
+    "procedura_operativa_codice",
+    "codice_oggetto_pst",
+    "fonte_codice_oggetto",
+    "file_fonte_codice_oggetto",
+}
 
 
 # ------------------------------------------------------------------ Enums
@@ -221,6 +237,7 @@ class Documento:
     dimensione_bytes: int = 0
     hash_sha256: str = ""
     firmato_digitalmente: bool = False
+    signature_metadata: dict[str, Any] = field(default_factory=dict)
     data_caricamento: str = field(default_factory=lambda: datetime.now().isoformat())
     data_documento: str = ""       # data del documento (es. data atto)
     note: str = ""
@@ -264,6 +281,7 @@ class Documento:
         d["versioni"] = [DocumentoVersione.from_dict(v) for v in d.get("versioni", [])]
         d.setdefault("ocr_estratto", False)
         d.setdefault("tags", [])
+        d.setdefault("signature_metadata", {})
         d.setdefault("fonte_documento", "")
         d.setdefault("nome_originale", "")
         d.setdefault("nome_portale", "")
@@ -674,6 +692,7 @@ class Fascicolo:
     codice_oggetto_pst: str = ""
     fonte_codice_oggetto: str = ""
     file_fonte_codice_oggetto: str = ""
+    profilo_deposito: dict[str, Any] = field(default_factory=dict)
     codice_guida_pratica: str = ""  # codice scheda guida, anche alias interno non depositabile
     riferimento_cartaceo: str = ""
     attore_principale: str = ""
@@ -797,6 +816,8 @@ class Fascicolo:
         ]
         arch = d.get("archivio")
         d["archivio"] = DatiArchivio(**arch) if arch else None
+        if not isinstance(d.get("profilo_deposito"), dict):
+            d["profilo_deposito"] = {}
         campi = set(cls.__dataclass_fields__)
         return cls(**{k: v for k, v in d.items() if k in campi})
 
@@ -860,13 +881,34 @@ class GestioneFascicoli:
         except Exception:
             return None
 
+    def _payloads_da_json_bootstrap(self) -> list[dict[str, Any]]:
+        """Legge il mirror JSON solo come bootstrap controllato quando SQL e' vuoto."""
+        from pct import cache as _cache
+
+        raw = _cache.load(self.db_path)
+        if isinstance(raw, dict):
+            return [item for item in raw.values() if isinstance(item, dict)]
+        if isinstance(raw, list):
+            return [item for item in raw if isinstance(item, dict)]
+        return []
+
     def _carica(self) -> None:
         if self._studio_db is not None:
-            import sqlite3 as _sqlite3
             rows = self._studio_db.conn.execute(
                 "SELECT * FROM fascicoli"
             ).fetchall()
             self._fascicoli = {}
+            if not rows:
+                for payload in self._payloads_da_json_bootstrap():
+                    try:
+                        _migra_payload_depositi_pct(payload)
+                        fascicolo = Fascicolo.from_dict(payload)
+                    except Exception:
+                        continue
+                    self._fascicoli[fascicolo.id] = fascicolo
+                if self._fascicoli:
+                    self._salva()
+                return
             migrato = False
             for row in rows:
                 f = self._row_to_fascicolo(row)
@@ -878,15 +920,8 @@ class GestioneFascicoli:
             if migrato:
                 self._salva()
             return
-        from pct import cache as _cache
-        raw = _cache.load(self.db_path)
+        payloads = self._payloads_da_json_bootstrap()
         migrato = False
-        if isinstance(raw, dict):
-            payloads = list(raw.values())
-        elif isinstance(raw, list):
-            payloads = list(raw)
-        else:
-            payloads = []
         for payload in payloads:
             migrato = _migra_payload_depositi_pct(payload) or migrato
         self._fascicoli = {}
@@ -912,8 +947,9 @@ class GestioneFascicoli:
                      tribunale, sezione, giudice, numero_rg, anno_rg,
                      controparte, avvocato_referente, avvocato_dominus,
                      data_apertura, data_chiusura, oggetto, note, creato_il,
-                     attivita_json, documenti_json, scadenze_json, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     attivita_json, documenti_json, scadenze_json,
+                     profilo_deposito_json, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         f.id, f.numero, f.titolo,
@@ -927,11 +963,17 @@ class GestioneFascicoli:
                         _json.dumps(d.get("attivita", []), ensure_ascii=False),
                         _json.dumps(d.get("documenti", []), ensure_ascii=False),
                         _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
+                        _json.dumps(d.get("profilo_deposito", {}), ensure_ascii=False),
                         _json.dumps(d, ensure_ascii=False),
                     ),
                 )
 
             self._studio_db.salva_tabella("fascicoli", list(self._fascicoli.values()), _insert)
+            try:
+                from pct import cache as _cache
+                _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
+            except Exception:
+                pass
             return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
@@ -970,6 +1012,31 @@ class GestioneFascicoli:
 
     # ---------------------------------------------------------------- CRUD fascicolo
 
+    def _aggiorna_profilo_deposito_fascicolo(
+        self,
+        f: Fascicolo,
+        *,
+        verifica_certificato: bool,
+        richiedi_ufficio: bool,
+    ) -> None:
+        f.profilo_deposito = costruisci_profilo_deposito(
+            id_pratica=f.id_pratica,
+            area_pratica=f.area_pratica,
+            tipo_procedimento=f.tipo_procedimento,
+            tipo=f.tipo.value if isinstance(f.tipo, TipoFascicolo) else str(f.tipo or ""),
+            source=f.source,
+            canale_operativo=f.canale_operativo,
+            registro_operativo=f.registro_operativo,
+            procedura_operativa_codice=f.procedura_operativa_codice,
+            codice_oggetto_pst=f.codice_oggetto_pst,
+            fonte_codice_oggetto=f.fonte_codice_oggetto,
+            file_fonte_codice_oggetto=f.file_fonte_codice_oggetto,
+            ufficio=f.tribunale,
+            verifica_certificato=verifica_certificato,
+            richiedi_ufficio=richiedi_ufficio,
+            profilo_origine=f.profilo_deposito,
+        )
+
     def nuovo(
         self,
         titolo: str,
@@ -988,7 +1055,12 @@ class GestioneFascicoli:
             tipo=tipo,
             id_cliente=id_cliente,
             nome_cliente=nome_cliente,
-            **{k: v for k, v in kwargs.items() if hasattr(Fascicolo, k)},
+            **{k: v for k, v in kwargs.items() if k in Fascicolo.__dataclass_fields__},
+        )
+        self._aggiorna_profilo_deposito_fascicolo(
+            f,
+            verifica_certificato=bool(f.tribunale),
+            richiedi_ufficio=bool(f.tribunale or f.fascicolo_veloce),
         )
         self._fascicoli[f.id] = f
         self._salva()
@@ -996,9 +1068,17 @@ class GestioneFascicoli:
 
     def aggiorna(self, id_fasc: str, **campi) -> Fascicolo:
         f = self._get_o_errore(id_fasc)
+        tocchi_profilo = False
         for k, v in campi.items():
             if hasattr(f, k):
                 setattr(f, k, v)
+                tocchi_profilo = tocchi_profilo or (k in _PROFILO_DEPOSITO_FASCICOLO_FIELDS)
+        if tocchi_profilo and "profilo_deposito" not in campi:
+            self._aggiorna_profilo_deposito_fascicolo(
+                f,
+                verifica_certificato=bool(f.tribunale),
+                richiedi_ufficio=bool(f.tribunale or f.fascicolo_veloce),
+            )
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return f
@@ -2075,13 +2155,21 @@ class GestioneFascicoli:
         self._salva()
         return dep
 
-    def segna_firmato(self, id_fasc: str, id_doc: str) -> "Documento":
+    def segna_firmato(
+        self,
+        id_fasc: str,
+        id_doc: str,
+        *,
+        signature_metadata: dict[str, Any] | None = None,
+    ) -> "Documento":
         """Marca un documento come firmato digitalmente."""
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
         doc.firmato_digitalmente = True
+        if signature_metadata is not None:
+            doc.signature_metadata = dict(signature_metadata)
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return doc

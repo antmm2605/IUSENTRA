@@ -1,12 +1,13 @@
 """Test per la creazione della busta telematica."""
 
 import os
-import zipfile
 import tempfile
 import pytest
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 
-from pct.busta import BustaTelematica, DatiBusta, Allegato
+from pct.busta import BustaTelematica, DatiBusta, Allegato, ATTO_MSG_FILENAME
 
 
 @pytest.fixture
@@ -50,14 +51,24 @@ def test_crea_busta(dati_busta, tmp_path):
     assert busta_path.endswith(".enc")
 
 
+def _atto_msg_attachments(busta_path: str | Path) -> dict[str, bytes]:
+    atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
+    message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
+    return {
+        Path(part.get_filename() or "").name: part.get_payload(decode=True) or b""
+        for part in message.iter_attachments()
+        if part.get_filename()
+    }
+
+
 def test_busta_contiene_xml(dati_busta, tmp_path):
     """Verifica che la busta contenga il file DatiAtto.xml."""
     busta = BustaTelematica(dati_busta)
     busta_path = busta.crea_busta(str(tmp_path))
 
-    with zipfile.ZipFile(busta_path, "r") as zf:
-        assert "DatiAtto.xml" in zf.namelist()
-        assert "IndiceDocumentiDepositati.PDF" in zf.namelist()
+    attachments = _atto_msg_attachments(busta_path)
+    assert "DatiAtto.xml" in attachments
+    assert "IndiceDocumentiDepositati.PDF" in attachments
 
 
 def test_datiatto_contiene_indice_documenti_generato(dati_busta, tmp_path):
@@ -67,9 +78,9 @@ def test_datiatto_contiene_indice_documenti_generato(dati_busta, tmp_path):
     busta = BustaTelematica(dati_busta)
     busta_path = busta.crea_busta(str(tmp_path))
 
-    with zipfile.ZipFile(busta_path, "r") as zf:
-        xml_bytes = zf.read("DatiAtto.xml")
-        indice_bytes = zf.read("IndiceDocumentiDepositati.PDF")
+    attachments = _atto_msg_attachments(busta_path)
+    xml_bytes = attachments["DatiAtto.xml"]
+    indice_bytes = attachments["IndiceDocumentiDepositati.PDF"]
 
     root = etree.fromstring(xml_bytes)
     ns = {"p": "http://www.giustizia.it/processo_telematico"}
@@ -79,14 +90,23 @@ def test_datiatto_contiene_indice_documenti_generato(dati_busta, tmp_path):
     assert indice_node.findtext("p:Hash", namespaces=ns) == BustaTelematica._hash_bytes(indice_bytes)
 
 
+def test_indice_documenti_pdf_disponibile_per_anteprima(dati_busta):
+    """Verifica che l'indice documenti possa essere mostrato prima dell'invio."""
+    busta = BustaTelematica(dati_busta)
+    indice_pdf = busta.crea_indice_documenti_pdf()
+
+    assert indice_pdf.startswith(b"%PDF")
+    assert b"%%EOF" in indice_pdf
+    assert len(indice_pdf) > 250
+
+
 def test_busta_contiene_atto(dati_busta, tmp_path):
     """Verifica che la busta contenga l'atto principale."""
     busta = BustaTelematica(dati_busta)
     busta_path = busta.crea_busta(str(tmp_path))
 
-    with zipfile.ZipFile(busta_path, "r") as zf:
-        nomi = zf.namelist()
-        assert "atto.pdf" in nomi
+    attachments = _atto_msg_attachments(busta_path)
+    assert "atto.pdf" in attachments
 
 
 def test_verifica_busta_valida(dati_busta, tmp_path):
@@ -97,13 +117,14 @@ def test_verifica_busta_valida(dati_busta, tmp_path):
 
     assert risultato["valida"] is True
     assert risultato["id_busta"] is not None
-    assert risultato["audit_tecnico"]["transport_mode"] == "simulazione_zip_rinominato"
-    assert risultato["audit_tecnico"]["formal_checks"]["T001"]["status"] == "non_verificabile_offline"
+    assert risultato["audit_tecnico"]["transport_mode"] == "atto_enc_da_atto_msg_cifrato_aes256"
+    assert risultato["audit_tecnico"]["uses_real_encryption"] is True
+    assert risultato["audit_tecnico"]["formal_checks"]["T001"]["status"] == "ok"
     assert risultato["audit_tecnico"]["indice_busta_generated"] is True
     assert "IndiceDocumentiDepositati.PDF" in risultato["documenti"]
 
 
-def test_audit_busta_esplicita_simulazione_locale(dati_busta):
+def test_audit_busta_blocca_prima_della_generazione_reale(dati_busta):
     busta = BustaTelematica(dati_busta)
     audit = busta.audit_conformita_pst()
 
@@ -117,7 +138,7 @@ def test_audit_busta_esplicita_simulazione_locale(dati_busta):
     assert audit["indice_busta_filename"] == "IndiceDocumentiDepositati.PDF"
     assert any("Atto.enc" in action and "AES256" in action for action in audit["guided_next_actions"])
     assert audit["formal_checks"]["T002"]["status"] == "warning"
-    issue = next(issue for issue in audit["issues"] if issue["code"] == "SIM-ENC")
+    issue = next(issue for issue in audit["issues"] if issue["code"] == "ATTO-ENC-MISSING")
     assert "Atto.msg" in issue["detail"]
     assert "AES256" in issue["detail"]
 
@@ -145,9 +166,8 @@ def test_busta_con_allegati(tmp_path, tmp_pdf):
     busta = BustaTelematica(dati)
     busta_path = busta.crea_busta(str(tmp_path / "output"))
 
-    with zipfile.ZipFile(busta_path, "r") as zf:
-        nomi = zf.namelist()
-        assert "allegato.pdf" in nomi
+    attachments = _atto_msg_attachments(busta_path)
+    assert "allegato.pdf" in attachments
 
 
 def test_id_busta_univoco(dati_busta, tmp_path):

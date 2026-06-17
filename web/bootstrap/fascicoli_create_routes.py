@@ -18,6 +18,7 @@ from pct.pratiche_collegate_catalog import (
     looks_like_codice_oggetto_pst,
     resolve_codice_oggetto_pst_payload,
 )
+from pct.profilo_deposito import costruisci_profilo_deposito
 from pct.soggetti import RuoloSoggetto, TipoSoggetto
 from pct.uffici_giudiziari import risolvi_ufficio
 from web.blueprints.react_shell import render_react_shell_response
@@ -206,6 +207,79 @@ def register_fascicoli_create_routes(
             "file_fonte_codice_oggetto": str(form.get("file_fonte_codice_oggetto", "") or resolved["file_fonte_codice_oggetto"]).strip(),
             "descrizione": str(entry.get("descrizione", "") or "").strip(),
         }
+
+    def _profilo_deposito_da_form(
+        form: Any,
+        *,
+        tipo_fascicolo: TipoFascicolo,
+        tribunale: str,
+        codice_oggetto: dict[str, str],
+        gestore_preventivi: Any,
+    ) -> dict[str, Any]:
+        conferimento = None
+        preventivo = None
+        source_conferimento = str(form.get("source_conferimento", "") or "").strip()
+        source_preventivo = str(form.get("source_preventivo", "") or "").strip()
+        if source_conferimento:
+            try:
+                conferimento = gestore_preventivi.get_conferimento(source_conferimento)
+            except Exception:
+                conferimento = None
+        if conferimento and getattr(conferimento, "id_preventivo", ""):
+            try:
+                preventivo = gestore_preventivi.get_preventivo(conferimento.id_preventivo)
+            except Exception:
+                preventivo = None
+        if not preventivo and source_preventivo:
+            try:
+                preventivo = gestore_preventivi.get_preventivo(source_preventivo)
+            except Exception:
+                preventivo = None
+        origine = (
+            getattr(conferimento, "profilo_deposito", {})
+            or getattr(preventivo, "profilo_deposito", {})
+            or {}
+        )
+        return costruisci_profilo_deposito(
+            id_pratica=(
+                str(form.get("id_pratica", "") or "").strip()
+                or str(getattr(conferimento, "id_pratica", "") or "").strip()
+                or str(getattr(preventivo, "id_pratica", "") or "").strip()
+            ),
+            area_pratica=(
+                str(form.get("area_pratica", "") or "").strip()
+                or str(getattr(conferimento, "area_pratica", "") or "").strip()
+                or str(getattr(preventivo, "area_pratica", "") or "").strip()
+            ),
+            tipo_procedimento=(
+                str(form.get("tipo_procedimento", "") or "").strip()
+                or str(getattr(conferimento, "tipo_procedimento", "") or "").strip()
+                or str(getattr(preventivo, "tipo_procedimento", "") or "").strip()
+            ),
+            tipo=tipo_fascicolo.value,
+            canale_operativo=(
+                str(form.get("canale_operativo", "") or "").strip()
+                or str(getattr(conferimento, "canale_operativo", "") or "").strip()
+                or str(getattr(preventivo, "canale_operativo", "") or "").strip()
+            ),
+            registro_operativo=(
+                str(form.get("registro_operativo", "") or "").strip()
+                or str(getattr(conferimento, "registro_operativo", "") or "").strip()
+                or str(getattr(preventivo, "registro_operativo", "") or "").strip()
+            ),
+            procedura_operativa_codice=(
+                str(form.get("procedura_operativa_codice", "") or "").strip()
+                or str(getattr(conferimento, "procedura_operativa_codice", "") or "").strip()
+                or str(getattr(preventivo, "procedura_operativa_codice", "") or "").strip()
+            ),
+            codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+            fonte_codice_oggetto=codice_oggetto["fonte_codice_oggetto"],
+            file_fonte_codice_oggetto=codice_oggetto["file_fonte_codice_oggetto"],
+            ufficio=tribunale,
+            verifica_certificato=bool(tribunale),
+            richiedi_ufficio=bool(tribunale or _form_bool(form, "fascicolo_veloce")),
+            profilo_origine=origine,
+        )
 
     def _codice_guida_pratica_da_form(form: Any, *, codice_oggetto_pst: str, context: dict[str, Any]) -> str:
         explicit = normalize_codice_materia(form.get("codice_guida_pratica", ""))
@@ -452,6 +526,13 @@ def register_fascicoli_create_routes(
                         "procedura_operativa_nome": form.get("procedura_operativa_nome", ""),
                     },
                 )
+                profilo_deposito = _profilo_deposito_da_form(
+                    form,
+                    tipo_fascicolo=tipo_fascicolo,
+                    tribunale=tribunale,
+                    codice_oggetto=codice_oggetto,
+                    gestore_preventivi=gestore_preventivi,
+                )
                 fascicolo = gestore_fascicoli.nuovo(
                     titolo=titolo,
                     tipo=tipo_fascicolo,
@@ -479,6 +560,7 @@ def register_fascicoli_create_routes(
                     codice_guida_pratica=codice_guida_pratica,
                     fonte_codice_oggetto=codice_oggetto["fonte_codice_oggetto"],
                     file_fonte_codice_oggetto=codice_oggetto["file_fonte_codice_oggetto"],
+                    profilo_deposito=profilo_deposito,
                     riferimento_cartaceo=form.get("riferimento_cartaceo", "").strip(),
                     attore_principale=form.get("attore_principale", "").strip(),
                     istruttore_pm_gip=form.get("istruttore_pm_gip", "").strip(),

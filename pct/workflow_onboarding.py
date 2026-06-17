@@ -14,6 +14,7 @@ from pct.motore_preventivo import get_tipo_pratica
 from pct.preventivi import label_modello_clausola_controversie
 from pct.practice_profiles import get_practice_profile
 from pct.legal_platform_catalog import build_operational_fields
+from pct.profilo_deposito import costruisci_profilo_deposito
 
 
 _MAP_AREE_TO_TIPO = {
@@ -374,6 +375,36 @@ def build_fascicolo_onboarding(
     if not canale_operativo and profile:
         from pct.checklist_atti import CANALE_LABEL as _CL
         canale_operativo = _CL.get(profile.channel, "")
+    codice_oggetto_pst = (
+        getattr(conferimento, "codice_oggetto_pst", "")
+        or getattr(preventivo, "codice_oggetto_pst", "")
+    )
+    fonte_codice_oggetto = (
+        getattr(conferimento, "fonte_codice_oggetto", "")
+        or getattr(preventivo, "fonte_codice_oggetto", "")
+    )
+    file_fonte_codice_oggetto = (
+        getattr(conferimento, "file_fonte_codice_oggetto", "")
+        or getattr(preventivo, "file_fonte_codice_oggetto", "")
+    )
+    profilo_deposito = costruisci_profilo_deposito(
+        id_pratica=id_pratica,
+        area_pratica=area_pratica,
+        tipo_procedimento=tipo_procedimento,
+        tipo=tipo_fascicolo.value,
+        canale_operativo=operational_fields.get("canale_operativo", "") or canale_operativo,
+        registro_operativo=operational_fields.get("registro_operativo", ""),
+        procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
+        codice_oggetto_pst=codice_oggetto_pst,
+        fonte_codice_oggetto=fonte_codice_oggetto,
+        file_fonte_codice_oggetto=file_fonte_codice_oggetto,
+        verifica_certificato=False,
+        richiedi_ufficio=False,
+        profilo_origine=(
+            getattr(conferimento, "profilo_deposito", {})
+            or getattr(preventivo, "profilo_deposito", {})
+        ),
+    )
 
     return {
         "source_label": source_label,
@@ -399,6 +430,10 @@ def build_fascicolo_onboarding(
         "copertura_operativa": operational_fields.get("copertura_operativa", ""),
         "canale_operativo": operational_fields.get("canale_operativo", "") or canale_operativo,
         "registro_operativo": operational_fields.get("registro_operativo", ""),
+        "codice_oggetto_pst": codice_oggetto_pst,
+        "fonte_codice_oggetto": fonte_codice_oggetto,
+        "file_fonte_codice_oggetto": file_fonte_codice_oggetto,
+        "profilo_deposito": profilo_deposito,
         "procedura_operativa": operational_profile,
         "documenti_operativi": documenti_operativi,
         "attivita_iniziali": attivita_iniziali,

@@ -166,6 +166,11 @@ class StudioDB:
         "messaggi",
         "utenti",
     )
+    _UPGRADE_ADD_COLUMNS: tuple[tuple[str, str, str], ...] = (
+        ("fascicoli", "profilo_deposito_json", "TEXT DEFAULT '{}'"),
+        ("preventivi_records", "profilo_deposito_json", "TEXT NOT NULL DEFAULT '{}'"),
+        ("conferimenti_records", "profilo_deposito_json", "TEXT NOT NULL DEFAULT '{}'"),
+    )
 
     def _ensure_schema(self) -> None:
         """
@@ -183,6 +188,16 @@ class StudioDB:
                 )
             except Exception:
                 pass  # colonna già presente — ok
+        for table, column, ddl in self._UPGRADE_ADD_COLUMNS:
+            try:
+                existing = {
+                    row["name"]
+                    for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+                }
+                if column not in existing:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+            except Exception:
+                pass
         # Registra data creazione
         conn.execute(
             "INSERT OR IGNORE INTO _meta VALUES (?,?)",

@@ -16,6 +16,41 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
+
+@pytest.fixture(scope="session")
+def _iusentra_test_pst_cert(tmp_path_factory):
+    from pct.pst_cifratura import crea_certificato_cifratura_test
+
+    return crea_certificato_cifratura_test(
+        tmp_path_factory.mktemp("pst_cifratura") / "ufficio-test.cer"
+    )
+
+
+@pytest.fixture(autouse=True)
+def _iusentra_no_network_pst_cert(monkeypatch, _iusentra_test_pst_cert):
+    """I test unitari generano Atto.enc senza dipendere dal PST esterno."""
+
+    def fake_resolver(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        return _iusentra_test_pst_cert
+
+    monkeypatch.setattr(
+        "pct.pst_cifratura.risolvi_certificato_cifratura_ufficio",
+        fake_resolver,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "pct.busta.risolvi_certificato_cifratura_ufficio",
+        fake_resolver,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "pct.profilo_deposito.risolvi_certificato_cifratura_ufficio",
+        fake_resolver,
+        raising=False,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Stub moduli pesanti non necessari per i test unitari di Lex.

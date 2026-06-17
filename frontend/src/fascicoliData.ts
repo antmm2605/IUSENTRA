@@ -505,6 +505,17 @@ export type LexIndexingSummary = {
   warnings: string[]
 }
 
+export type FascicoloDepositOffice = {
+  name: string
+  code: string
+  ministerialCode: string
+  district: string
+  pec: string
+  kind: string
+  verified: boolean
+  message: string
+}
+
 export type FascicoloDetailData = {
   source: string
   generatedAt: string
@@ -529,6 +540,7 @@ export type FascicoloDetailData = {
   notificationRelata: FascicoloNotificationRelata
   telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
+  depositOffice: FascicoloDepositOffice
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
   auditTrail: FascicoloAuditTrail
   actions: {
@@ -805,6 +817,17 @@ export const emptyNotificationRelata: FascicoloNotificationRelata = {
   steps: [],
 }
 
+export const emptyDepositOffice: FascicoloDepositOffice = {
+  name: '',
+  code: '',
+  ministerialCode: '',
+  district: '',
+  pec: '',
+  kind: '',
+  verified: false,
+  message: 'Ufficio destinatario da verificare prima del deposito.',
+}
+
 export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
@@ -827,6 +850,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   },
   quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
   economics: [], workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
+  depositOffice: emptyDepositOffice,
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   auditTrail: {
@@ -1447,12 +1471,13 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     documents: asArray(payload.documents).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
       const actions = isRecord(row.actions) ? row.actions : {}
+      const signed = bool(row.signed)
       return {
         id: text(row.id, `doc-${index}`), name: text(row.name ?? row.nome, 'Documento'), type: text(row.type ?? row.tipo, 'ALTRO'), size: text(row.size ?? row.dimensione, ''),
         uploadedAt: text(row.uploadedAt ?? row.data_caricamento), documentDate: text(row.documentDate ?? row.data_documento), notes: text(row.notes ?? row.note),
-        tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed: bool(row.signed ?? row.firmato),
-        statusLabel: text(row.statusLabel ?? row.status_label, bool(row.signed ?? row.firmato) ? 'Firmato' : 'Da firmare'),
-        statusTone: text(row.statusTone ?? row.status_tone, bool(row.signed ?? row.firmato) ? 'success' : 'warning') as Tone,
+        tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed,
+        statusLabel: signed ? text(row.statusLabel ?? row.status_label, 'Firmato') : 'Da firmare',
+        statusTone: signed ? text(row.statusTone ?? row.status_tone, 'success') as Tone : 'warning',
         source: text(row.source ?? row.fonte_documento),
         portalName: text(row.portalName ?? row.nome_portale), portalClass: text(row.portalClass ?? row.classificazione_portale), portalSender: text(row.portalSender ?? row.mittente_portale),
         portalDate: text(row.portalDate ?? row.data_deposito_portale), hash: text(row.hash ?? row.hash_sha256),
@@ -1508,6 +1533,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     notificationRelata: normalizeNotificationRelata(payload.notificationRelata ?? payload.notification_relata),
     telematic: asArray(payload.telematic).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     quality: asArray(payload.quality).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), ok: bool(row.ok), tone: text(row.tone, 'neutral') as Tone } }),
+    depositOffice: normalizeDepositOffice(payload.depositOffice ?? payload.deposit_office),
     signature: isRecord(payload.signature) ? {
       visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
       visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),
@@ -1518,6 +1544,28 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip), auditBundle: text(payload.actions.auditBundle), refreshLexIndex: text(payload.actions.refreshLexIndex), retryLexIndexErrors: text(payload.actions.retryLexIndexErrors),
     } : emptyFascicoloDetail.actions,
     options: { states: normalizeOptions(options.states), documentTypes: normalizeOptions(options.documentTypes), activityTypes: normalizeOptions(options.activityTypes), activityResults: normalizeOptions(options.activityResults) },
+  }
+}
+
+function normalizeDepositOffice(value: unknown): FascicoloDepositOffice {
+  const row = isRecord(value) ? value : {}
+  const name = text(row.name ?? row.nome)
+  const pec = text(row.pec)
+  const message = text(
+    row.message ?? row.messaggio,
+    pec
+      ? 'PEC dell\'ufficio verificata dal catalogo uffici.'
+      : 'PEC dell\'ufficio non disponibile: verificare prima dell\'invio reale.',
+  )
+  return {
+    name,
+    code: text(row.code ?? row.codice),
+    ministerialCode: text(row.ministerialCode ?? row.codice_ministero ?? row.codiceMinistero),
+    district: text(row.district ?? row.distretto),
+    pec,
+    kind: text(row.kind ?? row.tipo),
+    verified: row.verified === undefined ? Boolean(name && pec) : bool(row.verified),
+    message,
   }
 }
 

@@ -253,6 +253,9 @@ def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
 
     assert "lex_operational_agents_nightly" in templates
     assert "lex_dataset_nightly" in templates
+    assert "pst_certificati_cifratura_weekly" in templates
+    assert templates["pst_certificati_cifratura_weekly"].family == "Depositi telematici"
+    assert ".cer" in templates["pst_certificati_cifratura_weekly"].description
     assert templates["lex_dataset_nightly"].family == "Lex AI"
     assert templates["lex_dataset_nightly"].hour == "1"
     assert templates["lex_dataset_nightly"].minute == "45"

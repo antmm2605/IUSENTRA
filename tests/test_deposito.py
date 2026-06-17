@@ -830,6 +830,66 @@ def test_firma_documento_ajax_rifiuta_p7m_non_valido(tmp_path):
     assert fascicolo_reload.documenti[0].firmato_digitalmente is False
 
 
+def test_firma_documento_ajax_rifiuta_pdf_con_testo_firmato_ma_senza_pades(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(ConfigStudio(firma=ConfigFirma()))
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="upload-pades-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(titolo="Fascicolo PDF non PAdES", tipo=TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "atto.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\nDocumento non firmato\n%%EOF",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "upload-pades-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma",
+            data={"file": (io.BytesIO(b"%PDF-1.4\nFirmato digitalmente\n%%EOF"), "Atto Firmato digitale.PDF")},
+            content_type="multipart/form-data",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert "PAdES" in payload["messaggio"]
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.documenti[0].nome == "atto.pdf"
+    assert fascicolo_reload.documenti[0].firmato_digitalmente is False
+
+
 def test_firma_documento_ajax_valido_non_fallisce_se_sync_realtime_ha_errori(tmp_path, monkeypatch):
     from datetime import UTC, datetime, timedelta
 

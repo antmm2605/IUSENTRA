@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     wizard_step_label TEXT NOT NULL DEFAULT '',
     classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
     classificazioni_tassonomiche_count INTEGER NOT NULL DEFAULT 0,
+    profilo_deposito_json TEXT NOT NULL DEFAULT '{}',
     campi_mancanti_json TEXT NOT NULL DEFAULT '[]',
     warning_json TEXT NOT NULL DEFAULT '[]',
     next_action TEXT NOT NULL DEFAULT '',
@@ -173,6 +174,7 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     clausola_controversie_modello TEXT NOT NULL DEFAULT '',
     classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
     classificazioni_tassonomiche_count INTEGER NOT NULL DEFAULT 0,
+    profilo_deposito_json TEXT NOT NULL DEFAULT '{}',
     warning_json TEXT NOT NULL DEFAULT '[]',
     next_action TEXT NOT NULL DEFAULT '',
     search_text TEXT NOT NULL DEFAULT ''

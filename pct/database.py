@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS fascicoli (
     attivita_json      TEXT DEFAULT '[]',
     documenti_json     TEXT DEFAULT '[]',
     scadenze_json      TEXT DEFAULT '[]',
+    profilo_deposito_json TEXT DEFAULT '{}',
     dati_json          TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_fascicoli_tipo     ON fascicoli(tipo);
@@ -357,6 +358,7 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     id_preventivo_precedente      TEXT NOT NULL DEFAULT '',
     token_portale                 TEXT NOT NULL DEFAULT '',
     creato_il                     TEXT,
+    profilo_deposito_json         TEXT NOT NULL DEFAULT '{}',
     dati_json                     TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_preventivi_records_cliente ON preventivi_records(id_cliente);
@@ -389,6 +391,7 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     compenso_pattuito             REAL NOT NULL DEFAULT 0,
     firma_cliente_eseguita        INTEGER NOT NULL DEFAULT 0,
     fascicolo_aperto_il           TEXT,
+    profilo_deposito_json         TEXT NOT NULL DEFAULT '{}',
     dati_json                     TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_conferimenti_records_cliente ON conferimenti_records(id_cliente);
@@ -2516,6 +2519,9 @@ class GestioneDatabase:
             self._reset_sqlite_target(conn)
             conn.executescript(SCHEMA_SQL)
             for ddl in (
+                "ALTER TABLE fascicoli ADD COLUMN profilo_deposito_json TEXT DEFAULT '{}'",
+                "ALTER TABLE preventivi_records ADD COLUMN profilo_deposito_json TEXT NOT NULL DEFAULT '{}'",
+                "ALTER TABLE conferimenti_records ADD COLUMN profilo_deposito_json TEXT NOT NULL DEFAULT '{}'",
                 "ALTER TABLE preventivi_records ADD COLUMN classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'",
                 "ALTER TABLE conferimenti_records ADD COLUMN classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'",
                 "ALTER TABLE preventivi_records ADD COLUMN criterio_arrotondamento_orario TEXT NOT NULL DEFAULT ''",
@@ -2608,8 +2614,9 @@ class GestioneDatabase:
                              tribunale, sezione, giudice, numero_rg, anno_rg,
                              controparte, avvocato_referente, avvocato_dominus,
                              data_apertura, data_chiusura, oggetto, note, creato_il,
-                             attivita_json, documenti_json, scadenze_json, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             attivita_json, documenti_json, scadenze_json,
+                             profilo_deposito_json, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             f.get("id"), f.get("numero"), f.get("titolo"),
                             f.get("tipo", "CIVILE"), f.get("stato", "APERTO"),
@@ -2624,6 +2631,7 @@ class GestioneDatabase:
                             json.dumps(f.get("attivita", []), ensure_ascii=False),
                             json.dumps(f.get("documenti", []), ensure_ascii=False),
                             json.dumps(f.get("scadenze", []), ensure_ascii=False),
+                            json.dumps(f.get("profilo_deposito", {}), ensure_ascii=False),
                             json.dumps(f, ensure_ascii=False),
                         ))
                         f_count += 1
@@ -2928,8 +2936,9 @@ class GestioneDatabase:
                              criterio_arrotondamento_orario, minuti_stimati, ore_fatturabili_calcolate,
                              compenso_orario_base, massimale_ore, soglia_preapprovazione_ore,
                              warning_compenso_orario_json, totale, accettato_il,
-                             id_preventivo_precedente, token_portale, creato_il, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             id_preventivo_precedente, token_portale, creato_il,
+                             profilo_deposito_json, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                             """,
                             (
                                 preventivo.get("id"),
@@ -2965,6 +2974,7 @@ class GestioneDatabase:
                                 preventivo.get("id_preventivo_precedente", ""),
                                 preventivo.get("token_portale", ""),
                                 preventivo.get("creato_il", ""),
+                                json.dumps(preventivo.get("profilo_deposito", {}), ensure_ascii=False),
                                 json.dumps(preventivo, ensure_ascii=False),
                             ),
                         )
@@ -3002,8 +3012,9 @@ class GestioneDatabase:
                              classificazioni_tassonomiche_json,
                              criterio_arrotondamento_orario, massimale_ore, soglia_preapprovazione_ore,
                              warning_compenso_orario_json,
-                             compenso_pattuito, firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             compenso_pattuito, firma_cliente_eseguita, fascicolo_aperto_il,
+                             profilo_deposito_json, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                             """,
                             (
                                 conferimento.get("id"),
@@ -3034,6 +3045,7 @@ class GestioneDatabase:
                                 float(conferimento.get("compenso_pattuito", 0.0) or 0.0),
                                 1 if conferimento.get("firma_cliente_eseguita") else 0,
                                 conferimento.get("fascicolo_aperto_il", ""),
+                                json.dumps(conferimento.get("profilo_deposito", {}), ensure_ascii=False),
                                 json.dumps(conferimento, ensure_ascii=False),
                             ),
                         )

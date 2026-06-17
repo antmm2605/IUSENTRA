@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.40 - 2026-06-17
+
+- Local Signer: completato l'aggiornamento dei guardrail di firma singola e firma batch al parametro `cert_thumbprint`.
+- CI GitHub: riprodotti e confermati localmente tutti gli shard `Local Signer e PKCS#11` 1/4, 2/4, 3/4 e 4/4 prima del nuovo push.
+- Release: versione applicativa riallineata a `2.253.40` per non mischiare il fix successivo al primo commit `2.253.39`.
+
 ## 2.253.39 - 2026-06-17
 
 - Local Signer: riallineato `tools/dist/local_signer.py` al sorgente `tools/local_signer.py`, così l'aggiornamento automatico non distribuisce più codice vecchio.

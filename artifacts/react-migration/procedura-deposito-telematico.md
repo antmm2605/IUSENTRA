@@ -27,6 +27,8 @@ Stato: da chiudere con nuovo commit, push branch gemelli, check GitHub/CodeQL, d
 
 Nota successiva sullo SHA `116b3cf`: i gate SQL, governance, provider e CodeQL sono passati, ma il job `Local Signer e PKCS#11 (ubuntu-latest) parte 2/4` ha evidenziato un dist Local Signer non allineato al sorgente e un guardrail batch non aggiornato a `cert_thumbprint`. Il rilascio resta aperto finché il nuovo SHA non conferma anche la matrice Local Signer.
 
+Nota successiva sullo SHA `9e0a776`: il fix precedente ha sbloccato il caso batch, ma la matrice remota ha segnalato anche `macos-latest` parte 3/4 sulla firma singola. Sono stati aggiornati i guardrail di firma singola e batch; localmente sono passati tutti gli shard Local Signer/PKCS#11 1/4, 2/4, 3/4 e 4/4. Il rilascio resta comunque aperto fino al verde remoto, deploy e riallineamento locale.
+
 ## Aggiornamento 2026-06-17 - prova server reale e fix rapidi UI deposito
 
 Ambiente verificato: produzione `https://app.iusentra.it`, fascicolo reale `E5AE4668` (`2026/330 - Marchetti Lucia`), studio `studio-legale-giuseppe-montagnese`.

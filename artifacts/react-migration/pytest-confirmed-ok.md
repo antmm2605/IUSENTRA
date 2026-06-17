@@ -1,5 +1,14 @@
 # Pytest shard confermati OK
 
+## Local Signer matrice completa 2.253.40 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\run_pytest_phases.py --suite signer --suite-shard 1 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | 59/59: shard Local Signer/PKCS#11 1/4 confermato dopo riallineamento dist e guardrail `cert_thumbprint`. |
+| `python scripts\run_pytest_phases.py --suite signer --suite-shard 2 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | 59/59: shard Local Signer/PKCS#11 2/4 confermato; include dist allineato e firma batch con riuso PIN. |
+| `python scripts\run_pytest_phases.py --suite signer --suite-shard 3 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | 59/59: shard Local Signer/PKCS#11 3/4 confermato; include firma singola con modalità visibile e `cert_thumbprint`. |
+| `python scripts\run_pytest_phases.py --suite signer --suite-shard 4 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | 58/58: shard Local Signer/PKCS#11 4/4 confermato. |
+
 ## Hotfix Local Signer shard CI 2.253.39 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |

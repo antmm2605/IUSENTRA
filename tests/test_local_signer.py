@@ -4646,6 +4646,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
             visible_signature_mode="laterale",
             visible_signature_place="",
             visible_signature_datetime_mode="data_ora",
+            cert_thumbprint=None,
         ):
             captured["call"] = {
                 "lib_path": lib_path,
@@ -4656,6 +4657,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
                 "visible_signature_mode": visible_signature_mode,
                 "visible_signature_place": visible_signature_place,
                 "visible_signature_datetime_mode": visible_signature_datetime_mode,
+                "cert_thumbprint": cert_thumbprint,
             }
             return documento + b".p7m", {
                 "pin_session_id": "sess-1",
@@ -4687,6 +4689,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
     assert captured["call"]["visible_signature_mode"] == "basso_destra"
     assert captured["call"]["visible_signature_place"] == "Taurianova"
     assert captured["call"]["visible_signature_datetime_mode"] == "nessuna"
+    assert captured["call"]["cert_thumbprint"] is None
 
 
 def test_download_documenti_batch_esegue_preflight_una_sola_volta():

@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## Local Signer matrice completa 2.253.40 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Local Signer e PKCS#11 (macos-latest) parte 3/4` sullo SHA `9e0a776` | `scripts/run_pytest_phases.py --suite signer --suite-shard 3/4` | Risolto localmente, da verificare sul nuovo SHA remoto | Anche il fake della firma singola non accettava `cert_thumbprint`; aggiornato il guardrail e rilanciata localmente tutta la matrice signer. | Commit/push nuovo SHA e attendere tutti i check GitHub/CodeQL prima del deploy. |
+| Matrice Local Signer locale | Shard 1/4, 2/4, 3/4, 4/4 | Risolta localmente | Confermati 59/59, 59/59, 59/59 e 58/58. | La chiusura resta vincolata alla matrice remota e al deploy verificato. |
+
 ## Hotfix Local Signer shard CI 2.253.39 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |

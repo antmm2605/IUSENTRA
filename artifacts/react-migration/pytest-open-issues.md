@@ -1,5 +1,21 @@
 # Pytest issue aperte e risoluzioni
 
+## Deposito server reale 2.253.37 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Prova visiva produzione `E5AE4668` | Server hotfix `app.iusentra.it` | Risolta sul server, da riallineare al commit ufficiale | Verificati desktop/tablet/mobile con scroll top/centro/fondo, topbar non tagliata, Lex chiuso non sovrapposto, righe documento leggibili, `.pdf.p7m` visibili, viewer aperto e spunta `Da firmare` cliccabile dopo chiusura menu ruolo con `Esc`. | Commit, push, CI/CodeQL, deploy Hetzner ufficiale dello stesso SHA e nuova verifica rapida post-deploy. |
+| Dry-run pacchetto senza invio PEC | Server `app.iusentra.it`, fascicolo `E5AE4668` | Risolto come pacchetto di controllo | Generato `Busta_2026-330_RICORSO.enc` senza invio PEC; contiene `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF` e documenti `.p7m`. Non equivale ancora ad `Atto.enc` ministeriale AES256 valido per deposito PEC reale. | Conservare il blocco operativo sull'invio valido finché non esiste adapter ministeriale AES256 conforme. |
+| Classificazione deposito e dati | `studio.db` | Risolto tecnicamente | Il test mirato rilegge ora `studio.db`, coerente con SQL fonte operativa; il JSON storico non viene usato come verità della classificazione. | Mantenere questo guardrail in ogni modifica futura del deposito. |
+| Rilascio ufficiale | GitHub, CodeQL, Hetzner e Docker locale | Aperto | Le modifiche sono state provate sul server hotfix, ma non sono ancora tutte chiuse su commit ufficiale, check remoti e copia locale reale. | Eseguire commit, push branch gemelli, attendere check-run/CodeQL, deploy Hetzner, prune Docker e rebuild/verifica locale `127.0.0.1:8080`. |
+
+## SQL fonte di verità e JSON mirror censito 2.253.36 - 2026-06-16
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| JSON operativi nascosti | `scripts/audit_tenant_data_structure.py --json` | Risolto tecnicamente sul tenant locale | Dopo mapping e riparazione mirror, il tenant `tenant-8bf98719c459` ha `source_of_truth=sqlite`, `json_authoritative=false`, zero errori, zero warning e `hidden_json_summary.operational_untracked=0`. | Mantenere il gate: se compare un nuovo JSON operativo non censito, creare subito mapping SQL/mirror o repository verticale prima di chiudere il lavoro. |
+| Verifica visiva pagina database | Browser reale `/admin/database` | Aperto | Il plugin Browser integrato in questa sessione espone solo la lista schede e non consente click/scroll/screenshot (`playwright`, `vision`, `snapshot`, `mouse`, `keyboard` non disponibili; documentazione plugin mancante). Non va dichiarata prova visiva completata. | Dopo rebuild/deploy aprire materialmente `/admin/database` su browser reale, scorrere top/centro/fondo e verificare che SQL sia fonte di verità e JSON sia indicato solo come mirror/cache/archivio. |
+
 ## Deposito `Da firmare` e prova server 2.253.34 - 2026-06-16
 
 | Area | Gate | Stato | Nota | Azione |

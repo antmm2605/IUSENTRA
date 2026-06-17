@@ -76,6 +76,27 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             str(Path(app.config["AGENDA_DB"]).parent / "calendar_sync.json"),
         ),
     )
+    app.config["CALENDAR_SYNC_ENGINE_DB"] = cfg.get(
+        "CALENDAR_SYNC_ENGINE_DB",
+        os.getenv(
+            "PCT_CALENDAR_SYNC_ENGINE_DB",
+            str(Path(app.config["AGENDA_DB"]).parent / "calendar_sync_engine.json"),
+        ),
+    )
+    app.config["CALENDAR_CONFLICTS_DB"] = cfg.get(
+        "CALENDAR_CONFLICTS_DB",
+        os.getenv(
+            "PCT_CALENDAR_CONFLICTS_DB",
+            str(Path(app.config["AGENDA_DB"]).parent / "calendar_conflicts.json"),
+        ),
+    )
+    app.config["CALENDAR_TOKEN_DB"] = cfg.get(
+        "CALENDAR_TOKEN_DB",
+        os.getenv(
+            "PCT_CALENDAR_TOKEN_DB",
+            str(Path(app.config["AGENDA_DB"]).parent / "cal_token.json"),
+        ),
+    )
     app.config["CLIENTI_DB"] = cfg.get(
         "CLIENTI_DB", os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
     )
@@ -91,6 +112,21 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if data_root:
             return str(Path(data_root).joinpath(*parts))
         return fallback
+
+    app.config["STORAGE_CONFIG"] = cfg.get(
+        "STORAGE_CONFIG",
+        os.getenv(
+            "PCT_STORAGE_CONFIG",
+            _data_peer_path(app.config["CLIENTI_DB"], "config", "storage.json"),
+        ),
+    )
+    app.config["STUDIO_LOCAL_PACK_DB"] = cfg.get(
+        "STUDIO_LOCAL_PACK_DB",
+        os.getenv(
+            "PCT_STUDIO_LOCAL_PACK_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "config", "studio_local_pack.json"),
+        ),
+    )
 
     app.config["CONDIVISIONI_DB"] = cfg.get(
         "CONDIVISIONI_DB", os.getenv("PCT_CONDIVISIONI_DB", "./clienti/condivisioni.json")
@@ -113,6 +149,27 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["PRACTICE_ENGINE_DB"] = cfg.get(
         "PRACTICE_ENGINE_DB",
         default_practice_engine_db,
+    )
+    fascicoli_root = Path(app.config["FASCICOLI_DB"]).parent
+    app.config["DOCUMENTI_AI_DIR"] = cfg.get(
+        "DOCUMENTI_AI_DIR",
+        os.getenv("PCT_DOCUMENTI_AI_DIR", str(fascicoli_root / "documenti_ai")),
+    )
+    app.config["DOCUMENTI_AI_DB"] = cfg.get(
+        "DOCUMENTI_AI_DB",
+        os.getenv("PCT_DOCUMENTI_AI_DB", str(Path(app.config["DOCUMENTI_AI_DIR"]) / "documenti_ai.json")),
+    )
+    app.config["EDITOR_AI_DB"] = cfg.get(
+        "EDITOR_AI_DB",
+        os.getenv("PCT_EDITOR_AI_DB", str(fascicoli_root / "editor_ai" / "editor_ai.json")),
+    )
+    app.config["FASCICOLI_IMPORTAZIONI_DIR"] = cfg.get(
+        "FASCICOLI_IMPORTAZIONI_DIR",
+        os.getenv("PCT_FASCICOLI_IMPORTAZIONI_DIR", str(fascicoli_root / "importazioni")),
+    )
+    app.config["PEC_CANCELLERIA_STATE_DB"] = cfg.get(
+        "PEC_CANCELLERIA_STATE_DB",
+        os.getenv("PCT_PEC_CANCELLERIA_STATE_DB", str(fascicoli_root / "pec_cancelleria_state.json")),
     )
     app.config["PST_IMPORT_DIR"] = cfg.get(
         "PST_IMPORT_DIR",
@@ -180,6 +237,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["SCADENZIARIO_DB"] = cfg.get(
         "SCADENZIARIO_DB", os.getenv("PCT_SCADENZIARIO_DB", "./scadenziario/scadenze.json")
     )
+    app.config["TERMINI_PROCESSUALI_DB"] = cfg.get(
+        "TERMINI_PROCESSUALI_DB",
+        os.getenv(
+            "PCT_TERMINI_PROCESSUALI_DB",
+            str(Path(app.config["SCADENZIARIO_DB"]).with_name("termini_processuali.json")),
+        ),
+    )
     app.config["TIMESHEET_DB"] = cfg.get(
         "TIMESHEET_DB",
         os.getenv("PCT_TIMESHEET_DB", "./timesheet/entries.json"),
@@ -227,6 +291,23 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     app.config["PREVENTIVI_DB"] = cfg.get(
         "PREVENTIVI_DB", os.getenv("PCT_PREVENTIVI_DB", "./preventivi/preventivi.json")
+    )
+    preventivi_root = Path(app.config["PREVENTIVI_DB"]).parent
+    app.config["PREVENTIVI_REPOSITORY_DB"] = cfg.get(
+        "PREVENTIVI_REPOSITORY_DB",
+        os.getenv("PCT_PREVENTIVI_REPOSITORY_DB", str(preventivi_root / "preventivi_repository.json")),
+    )
+    app.config["PREVENTIVI_WORKFLOW_STATES_DB"] = cfg.get(
+        "PREVENTIVI_WORKFLOW_STATES_DB",
+        os.getenv("PCT_PREVENTIVI_WORKFLOW_STATES_DB", str(preventivi_root / "preventivi_workflow_states.json")),
+    )
+    app.config["PREVENTIVI_FIELD_MAP_DB"] = cfg.get(
+        "PREVENTIVI_FIELD_MAP_DB",
+        os.getenv("PCT_PREVENTIVI_FIELD_MAP_DB", str(preventivi_root / "preventivi_field_map.json")),
+    )
+    app.config["PREVENTIVI_RULES_DB"] = cfg.get(
+        "PREVENTIVI_RULES_DB",
+        os.getenv("PCT_PREVENTIVI_RULES_DB", str(preventivi_root / "preventivi_rules.json")),
     )
     app.config["NOTIFICHE_LOG"] = cfg.get(
         "NOTIFICHE_LOG",
@@ -354,6 +435,41 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "giurisprudenza.json"),
         ),
     )
+    intelligence_root = Path(app.config["LEGAL_INTELLIGENCE_DB"]).parent
+    for key, filename in {
+        "GIURISPRUDENZA_REPOSITORY_DB": "giurisprudenza_repository.json",
+        "GIURISPRUDENZA_SOURCES_REPOSITORY_DB": "giurisprudenza_sources_repository.json",
+        "GIURISPRUDENZA_SYNC_REGISTRY_DB": "giurisprudenza_sync_registry.json",
+        "GIURISPRUDENZA_TAXONOMY_REPOSITORY_DB": "giurisprudenza_taxonomy_repository.json",
+        "GIURISPRUDENZA_USAGE_POLICY_DB": "giurisprudenza_usage_policy.json",
+        "LEGAL_ENGINE_SOURCE_EDGES_DB": "legal_engine_source_edges.json",
+        "LEGAL_ENGINES_REPOSITORY_DB": "legal_engines_repository.json",
+        "LEGAL_INTELLIGENCE_REPOSITORY_DB": "legal_intelligence_repository.json",
+        "LEGAL_KEYWORD_TO_ENGINE_DB": "legal_keyword_to_engine.json",
+        "LEGAL_KEYWORD_TO_SOURCE_DB": "legal_keyword_to_source.json",
+        "LEGAL_OPERATIONAL_REPOSITORY_DB": "legal_operational_repository.json",
+        "LEGAL_SOURCES_REPOSITORY_DB": "legal_sources_repository.json",
+        "TELEMATICO_ACTIONS_REPOSITORY_DB": "telematico_actions_repository.json",
+        "TELEMATICO_CAPABILITIES_REPOSITORY_DB": "telematico_capabilities_repository.json",
+        "TELEMATICO_CATALOG_SNAPSHOT_DB": "telematico_catalog_snapshot.json",
+        "TELEMATICO_CATALOG_SOURCES_REPOSITORY_DB": "telematico_catalog_sources_repository.json",
+        "TELEMATICO_METHODS_REPOSITORY_DB": "telematico_methods_repository.json",
+        "TELEMATICO_MONITORING_REPOSITORY_DB": "telematico_monitoring_repository.json",
+        "TELEMATICO_REPOSITORY_JSON": "telematico_repository.json",
+        "TELEMATICO_RULES_REPOSITORY_DB": "telematico_rules_repository.json",
+        "TELEMATICO_SOURCES_REPOSITORY_DB": "telematico_sources_repository.json",
+        "TELEMATICO_WIZARD_SECTIONS_REPOSITORY_DB": "telematico_wizard_sections_repository.json",
+        "TELEMATICO_WSDL_MODULES_REPOSITORY_DB": "telematico_wsdl_modules_repository.json",
+        "TELEMATICO_XSD_CHANNELS_REPOSITORY_DB": "telematico_xsd_channels_repository.json",
+    }.items():
+        app.config[key] = cfg.get(
+            key,
+            os.getenv(f"PCT_{key}", str(intelligence_root / filename)),
+        )
+    app.config["LEX_DATASET_DIR"] = cfg.get(
+        "LEX_DATASET_DIR",
+        os.getenv("PCT_LEX_DATASET_DIR", str(intelligence_root / "lex_dataset")),
+    )
     app.config["LEX_OFFICIAL_DB"] = cfg.get(
         "LEX_OFFICIAL_DB",
         os.getenv(
@@ -446,6 +562,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["TEMPLATE_ATTI_DB"] = cfg.get(
         "TEMPLATE_ATTI_DB", os.getenv("PCT_TEMPLATE_ATTI_DB", "./template_atti/templates.json")
     )
+    app.config["TEMPLATE_REPOSITORY_DB"] = cfg.get(
+        "TEMPLATE_REPOSITORY_DB",
+        os.getenv(
+            "PCT_TEMPLATE_REPOSITORY_DB",
+            str(Path(app.config["TEMPLATE_ATTI_DB"]).with_name("template_repository.json")),
+        ),
+    )
     app.config["PROCEDURE_COMPLETION_DB"] = cfg.get(
         "PROCEDURE_COMPLETION_DB",
         os.getenv("PROCEDURE_COMPLETION_DB", "./intelligence/procedure_completion.sqlite"),
@@ -525,10 +648,18 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     def _database_paths() -> dict[str, str]:
         return {
             "calendar_sync": _cfg_data_path("CALENDAR_SYNC_DB"),
+            "calendar_sync_engine": _cfg_data_path("CALENDAR_SYNC_ENGINE_DB"),
+            "calendar_conflicts": _cfg_data_path("CALENDAR_CONFLICTS_DB"),
+            "calendar_token": _cfg_data_path("CALENDAR_TOKEN_DB"),
+            "storage_config": _cfg_data_path("STORAGE_CONFIG"),
+            "studio_local_pack": _cfg_data_path("STUDIO_LOCAL_PACK_DB"),
             "clienti": _cfg_data_path("CLIENTI_DB"),
             "condivisioni": _cfg_data_path("CONDIVISIONI_DB"),
             "note_faldone": _cfg_data_path("NOTE_FALDONE_DB"),
             "fascicoli": _cfg_data_path("FASCICOLI_DB"),
+            "documenti_ai": _cfg_data_path("DOCUMENTI_AI_DB"),
+            "editor_ai": _cfg_data_path("EDITOR_AI_DB"),
+            "pec_cancelleria_state": _cfg_data_path("PEC_CANCELLERIA_STATE_DB"),
             "practice_engine": _cfg_data_path("PRACTICE_ENGINE_DB"),
             "appuntamenti": _cfg_data_path("AGENDA_DB"),
             "scadenze": _cfg_data_path("SCADENZIARIO_DB"),
@@ -546,20 +677,53 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "portale": _cfg_data_path("PORTALE_DB"),
             "fatturazione": _cfg_data_path("FATTURAZIONE_DB"),
             "preventivi": _cfg_data_path("PREVENTIVI_DB"),
+            "preventivi_repository": _cfg_data_path("PREVENTIVI_REPOSITORY_DB"),
+            "preventivi_workflow_states": _cfg_data_path("PREVENTIVI_WORKFLOW_STATES_DB"),
+            "preventivi_field_map": _cfg_data_path("PREVENTIVI_FIELD_MAP_DB"),
+            "preventivi_rules": _cfg_data_path("PREVENTIVI_RULES_DB"),
             "soggetti": _cfg_data_path("SOGGETTI_DB"),
             "soggetti_parti": _cfg_data_path("SOGGETTI_PARTI_DB"),
             "wizard_pro": _cfg_data_path("WIZARD_PRO_DB"),
             "legal_intelligence": _cfg_data_path("LEGAL_INTELLIGENCE_DB"),
+            "giurisprudenza_repository": _cfg_data_path("GIURISPRUDENZA_REPOSITORY_DB"),
+            "giurisprudenza_sources_repository": _cfg_data_path("GIURISPRUDENZA_SOURCES_REPOSITORY_DB"),
+            "giurisprudenza_sync_registry": _cfg_data_path("GIURISPRUDENZA_SYNC_REGISTRY_DB"),
+            "giurisprudenza_taxonomy_repository": _cfg_data_path("GIURISPRUDENZA_TAXONOMY_REPOSITORY_DB"),
+            "giurisprudenza_usage_policy": _cfg_data_path("GIURISPRUDENZA_USAGE_POLICY_DB"),
+            "legal_engine_source_edges": _cfg_data_path("LEGAL_ENGINE_SOURCE_EDGES_DB"),
+            "legal_engines_repository": _cfg_data_path("LEGAL_ENGINES_REPOSITORY_DB"),
+            "legal_intelligence_repository": _cfg_data_path("LEGAL_INTELLIGENCE_REPOSITORY_DB"),
+            "legal_keyword_to_engine": _cfg_data_path("LEGAL_KEYWORD_TO_ENGINE_DB"),
+            "legal_keyword_to_source": _cfg_data_path("LEGAL_KEYWORD_TO_SOURCE_DB"),
+            "legal_operational_repository": _cfg_data_path("LEGAL_OPERATIONAL_REPOSITORY_DB"),
+            "legal_sources_repository": _cfg_data_path("LEGAL_SOURCES_REPOSITORY_DB"),
+            "telematico_actions_repository": _cfg_data_path("TELEMATICO_ACTIONS_REPOSITORY_DB"),
+            "telematico_capabilities_repository": _cfg_data_path("TELEMATICO_CAPABILITIES_REPOSITORY_DB"),
+            "telematico_catalog_snapshot": _cfg_data_path("TELEMATICO_CATALOG_SNAPSHOT_DB"),
+            "telematico_catalog_sources_repository": _cfg_data_path("TELEMATICO_CATALOG_SOURCES_REPOSITORY_DB"),
+            "telematico_methods_repository": _cfg_data_path("TELEMATICO_METHODS_REPOSITORY_DB"),
+            "telematico_monitoring_repository": _cfg_data_path("TELEMATICO_MONITORING_REPOSITORY_DB"),
+            "telematico_repository": _cfg_data_path("TELEMATICO_REPOSITORY_JSON"),
+            "telematico_rules_repository": _cfg_data_path("TELEMATICO_RULES_REPOSITORY_DB"),
+            "telematico_sources_repository": _cfg_data_path("TELEMATICO_SOURCES_REPOSITORY_DB"),
+            "telematico_wizard_sections_repository": _cfg_data_path("TELEMATICO_WIZARD_SECTIONS_REPOSITORY_DB"),
+            "telematico_wsdl_modules_repository": _cfg_data_path("TELEMATICO_WSDL_MODULES_REPOSITORY_DB"),
+            "telematico_xsd_channels_repository": _cfg_data_path("TELEMATICO_XSD_CHANNELS_REPOSITORY_DB"),
             "legal_coverage": _cfg_data_path("LEGAL_COVERAGE_SQLITE_DB"),
             "normative_tables": _cfg_data_path("NORMATIVE_TABLES_DB"),
             "giurisprudenza": _cfg_data_path("GIURISPRUDENZA_DB"),
             "workspace_intelligence": _cfg_data_path("WORKSPACE_INTELLIGENCE_DB"),
+            "workflow_agents_runs": _cfg_data_path("WORKFLOW_AGENTS_RUNS_DB"),
+            "workflow_agents_metrics": _cfg_data_path("WORKFLOW_AGENTS_METRICS_DB"),
+            "workflow_agents_actions": _cfg_data_path("WORKFLOW_AGENTS_ACTIONS_DB"),
             "local_ai": _cfg_data_path("LOCAL_AI_DB"),
             "validation_runs": _cfg_data_path("VALIDATION_RUNS_DB"),
             "template_atti": _cfg_data_path("TEMPLATE_ATTI_DB"),
+            "template_repository": _cfg_data_path("TEMPLATE_REPOSITORY_DB"),
             "template_atti_prefs": _cfg_data_path("TEMPLATE_ATTI_PREFS_DB"),
             "studio_timbro": _cfg_data_path("STUDIO_TIMBRO_DB"),
             "redaction_assistant": _cfg_data_path("REDACTION_ASSISTANT_DB"),
+            "termini_processuali": _cfg_data_path("TERMINI_PROCESSUALI_DB"),
             "search_index": _cfg_data_path("SEARCH_INDEX"),
             "telematico": _cfg_data_path("TELEMATICO_DB"),
         }

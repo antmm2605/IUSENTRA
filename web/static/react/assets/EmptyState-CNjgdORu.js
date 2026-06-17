@@ -1,1 +1,0 @@
-import{s as r}from"./vendor-D8SUn6Gr.js";import"./index-DBBIZXjH.js";import{I as o}from"./IusEmptyState-CM0kuHpg.js";/* empty css           */function u({title:t,message:m,action:s}){return r.jsx(o,{title:t,message:m,action:s,className:"iu-empty-state"})}export{u as E};

@@ -1563,7 +1563,7 @@ class GestioneDatabase:
         """Migra i moduli JSON senza tabella verticale dedicata in un mirror SQL governato."""
         totale = 0
         for chiave in self._moduli_monitorati():
-            if chiave in self.MODULI_SQLITE_STRUTTURATI or chiave not in self.MODULI_SQLITE:
+            if chiave in self.MODULI_SQLITE_STRUTTURATI:
                 continue
             raw, err = self._leggi_json_grezzo(chiave)
             if err:

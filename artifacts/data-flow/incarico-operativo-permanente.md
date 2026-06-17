@@ -1,6 +1,6 @@
 # Incarico operativo permanente: dati, tenant, React e topbar
 
-Ultimo aggiornamento: 2026-06-14.
+Ultimo aggiornamento: 2026-06-16.
 
 Questo file va riletto dopo ogni compattazione insieme ad `AGENTS.md` prima di riprendere lavori su IUSENTRA. L'incarico dell'utente non riguarda un singolo pulsante: riguarda la chiusura dell'applicativo come sistema unico, con dati coerenti, route full React, tenant corretto e controlli reali.
 
@@ -139,6 +139,16 @@ Nota: `/database` è solo alias storico e non deve essere usato come prova di Re
 
 ## JSON, SQLite, PostgreSQL e tenant
 
+Regola permanente da seguire per ogni lavoro successivo: negli studi in modalita SQL la fonte di verita e sempre `studio.db` o PostgreSQL. I JSON tenant-aware possono esistere solo come mirror rigenerabile, bootstrap controllato, import/export storico, cache o archivio. Se un JSON operativo esiste sotto il tenant, deve essere censito da `scripts/audit_tenant_data_structure.py`, avere un modulo SQL in `moduli_dati` e avere i record normalizzati in `moduli_json_records`, oppure deve appartenere a un repository verticale SQLite/PostgreSQL dedicato. Se lo script trova un JSON operativo non censito, il lavoro non si chiude: si crea subito il presidio SQL/mirror, si popola e si riesegue audit a freddo.
+
+Le famiglie JSON dinamiche sono presidiate con moduli stabili derivati dal path:
+
+- `fascicoli/documenti_ai/**/*.json` diventa mirror SQL `documenti_ai_file_*`;
+- `fascicoli/importazioni/**/*.json` diventa mirror SQL `fascicoli_importazione_*`;
+- `intelligence/lex_dataset/**/*.json` diventa mirror SQL `lex_dataset_*`.
+
+Le famiglie note come repository o configurazioni operative sono censite esplicitamente: `studio_local_pack`, `editor_ai`, `pec_cancelleria_state`, repository `intelligence`, `giurisprudenza`, `legal_*`, `telematico_*`, `template_repository`, repository `preventivi` e `termini_processuali`. Cache, backup, file corrotti preservati e archivi restano ammessi solo se classificati come non operativi.
+
 I JSON non devono restare l'unica fonte operativa quando il flusso è strutturato. Vanno indicizzati nel tenant `studio.db` tramite `moduli_dati` e `moduli_json_records`; i domini core devono avere anche tabella verticale SQLite e parità PostgreSQL.
 
 Il controllo permanente vive in:
@@ -154,6 +164,15 @@ python scripts/audit_data_flow_contract.py --registry data/tenants.json --repair
 python scripts/audit_data_flow_contract.py --registry data/tenants.json --json
 ```
 
+Per il presidio fisico della struttura tenant usare anche:
+
+```powershell
+python scripts/audit_tenant_data_structure.py --registry data/tenants.json --repair --json
+python scripts/audit_tenant_data_structure.py --registry data/tenants.json --json
+```
+
+Il primo comando puo' creare o riallineare solo strutture e mirror rigenerabili; il secondo comando e' il controllo a freddo. Lo stato accettabile richiede `source_of_truth=sqlite` o `source_of_truth=postgresql`, `json_authoritative=false`, zero errori, zero warning bloccanti e `hidden_json_summary.operational_untracked=0`.
+
 Il primo comando può riparare solo parti rigenerabili: mirror SQL `moduli_json_records` e indice di ricerca `search_documenti`. Non deve toccare dati principali come fascicoli, clienti, agenda, scadenze, documenti o comunicazioni. Il secondo comando è il controllo a freddo senza riparazioni e deve restare verde prima di parlare di struttura dati coerente.
 
 ## Stato attuale della tranche
@@ -162,6 +181,7 @@ Il primo comando può riparare solo parti rigenerabili: mirror SQL `moduli_json_
 - Fatto a livello codice: parità core PostgreSQL e migrazione per messaggi, privacy, notifiche, backup e time tracking.
 - Fatto a livello script: `scripts/audit_data_flow_contract.py` diagnostica `studio.db`, mirror JSON e indice FTS e ripara solo cache rigenerabili quando l'opzione è esplicita.
 - Fatto su tenant locale reale il 2026-06-14: audit `tenant-8bf98719c459` con `quick_check=ok`, `moduli_json_records` leggibile con 3734 record e `search_documenti` leggibile dopo riparazione FTS; la riparazione non ha modificato tabelle core.
+- Fatto su tenant locale reale il 2026-06-16: `scripts/audit_tenant_data_structure.py` e' stato esteso per censire anche JSON operativi nascosti e famiglie dinamiche. Sul tenant `tenant-8bf98719c459` l'audit a freddo risulta `source_of_truth=sqlite`, `json_authoritative=false`, 436 moduli in `moduli_dati`, 7772 record in `moduli_json_records`, 242 JSON classificati come cache/archivio e 0 JSON operativi non censiti. Il mirror corrotto `agenda/calendar_sync_engine.json` e' stato preservato come `.bak` e rigenerato in UTF-8 valido senza BOM.
 - Fatto su macchina reale locale il 2026-06-14, versione `2.253.24`: perimetro `Studio` verificato in Chrome visibile su `127.0.0.1:8080`, con apertura e scroll di `/studio`, `/fatturazione`, `/preventivi`, `/compensi-forensi`, `/documenti`, `/redazione-atti`, `/statistiche`, `/ricerca-legale`, `/legal-skills`, `/workflow-agents`, `/giurisprudenza`, `/strumenti-legali`, `/strumenti-operativi`; tutte le route hanno `#root`, menu Studio completo e nessun fallback `?_legacy=1`.
 - Fatto su macchina reale locale il 2026-06-14, versione `2.253.24`: topbar verificata su Studio per `Voce Studio`, `Timer attività`, data italiana, `Scadenze rapide`, `Ultimi elementi aperti`, `Notifiche operative`, `Nuovo` e `Assistenza remota`; la sessione assistenza creata dal test è stata chiusa come `Chiusa`.
 - Fatto a livello codice e verificato su macchina reale locale il 2026-06-14, versione `2.253.25`: l'icona `Recenti` della topbar è stata estesa a `Recenti e ricerche`; il badge ora somma elementi aperti e ricerche recenti, il pannello mostra sezioni distinte `Elementi aperti` e `Ricerche recenti`, e la nuova API protetta `/api/recent/search` registra query deduplicate collegate a `/global-search?q=...`. Prova reale eseguita in Google Chrome visibile su `127.0.0.1:8080`: ricerca `RG`, apertura `/fascicoli/8804C177`, ritorno a `/studio`, pannello `Recenti e ricerche (2)` con `items=1`, `searches=1`, `totalCount=2`, nessun errore console.

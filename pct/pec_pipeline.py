@@ -2424,6 +2424,22 @@ def _contains_any(text: str, needles: Iterable[str]) -> bool:
     return any(needle in text for needle in needles)
 
 
+def _pct_controls_non_blocking_acceptance(text: str) -> bool:
+    """Riconosce l'esito -1 che richiede presidio, ma non nuovo deposito."""
+    return _contains_any(
+        text,
+        (
+            "verra comunque accettato",
+            "verrà comunque accettato",
+            "comunque accettato",
+            "non e necessario effettuare nuovamente il deposito",
+            "non è necessario effettuare nuovamente il deposito",
+            "in attesa di conferma da parte della cancelleria",
+            "in attesa di conferma cancelleria",
+        ),
+    )
+
+
 def detect_pct_deposit_stage(parsed: dict[str, Any]) -> dict[str, Any]:
     subject = str((parsed.get("headers") or {}).get("subject") or "")
     body = str(((parsed.get("body") or {}).get("text") or ""))
@@ -2460,13 +2476,18 @@ def detect_pct_deposit_stage(parsed: dict[str, Any]) -> dict[str, Any]:
         status = "warning" if _contains_any(text, ("warning", "anomalia", "errore")) else "ok"
         if _contains_any(text, ("errore fatale", "fatal", "atto non conforme", "rifiuto tecnico")):
             status = "danger"
+        non_blocking_acceptance = _pct_controls_non_blocking_acceptance(text)
+        if status == "danger" and non_blocking_acceptance:
+            status = "warning"
         return {
             "id": "esito_controlli_deposito",
             "order": 3,
             "label": "Esito controlli deposito",
             "status": status,
             "confidence": 0.88,
-            "reason": "il testo richiama l'esito dei controlli automatici del deposito",
+            "reason": "il testo richiama l'esito dei controlli automatici del deposito"
+            if not non_blocking_acceptance
+            else "controlli automatici con anomalia da presidiare: il testo indica attesa conferma cancelleria e non richiede nuovo deposito",
         }
     if _contains_any(text, ("avvenuta consegna", "ricevuta di consegna", "consegna pec", "rdac")):
         return {
@@ -2513,7 +2534,8 @@ def build_pct_deposit_lifecycle(parsed: dict[str, Any], attachments: list[dict[s
     checks = [
         "Verificare che siano arrivate almeno accettazione PEC, consegna PEC, esito controlli deposito e accettazione/rifiuto deposito.",
         "Non comunicare il deposito come definitivamente accettato finché manca la PEC finale di accettazione deposito o esito cancelleria.",
-        "Se l'esito controlli contiene errore fatale, rifiuto o atto non conforme, aprire subito anomalia e preparare comunicazione all'avvocato.",
+        "Se l'esito controlli contiene errore fatale o rifiuto tecnico, aprire subito anomalia e preparare comunicazione all'avvocato.",
+        "Se l'esito controlli contiene atto non conforme ma indica conferma cancelleria e nessun nuovo deposito, trattarlo come presidio intermedio.",
         "Se manca la consegna PEC, presidiare termini e prova di deposito prima di assumere la data come certa.",
     ]
     if "daticert" not in attachment_classes and "ricevute" not in attachment_classes:

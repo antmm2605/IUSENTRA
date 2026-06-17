@@ -1402,14 +1402,14 @@ export default function App() {
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
           <div id="iu-mobile-links" className="iu-mobile__rail" hidden={mobileNavCollapsed}>
-            <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
-            <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
-            <button type="button" className="iu-mobile__lex" onClick={openMobileLex} aria-label="Apri Lex AI"><Bot size={18}/>Lex AI</button>
-            <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
-            <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isCartelleCondivisePage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
-            <a className={isEmailPage||isEmailOrdinariaPage||isNotificheLegaliPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>Posta</a>
-            <a className={isAgendaImportPage||isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isTimesheetPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
-            <a className={isRegiaPage||isPrivacyRegistroPage||isAdminDatabasePage||isQuickOrganizerImportPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
+            <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/><span>Panoramica</span></a>
+            <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/><span>Ricerca</span></a>
+            <button type="button" className="iu-mobile__lex" onClick={openMobileLex} aria-label="Apri Lex AI"><Bot size={18}/><span>Lex AI</span></button>
+            <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/><span>Fascicoli</span></a>
+            <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isCartelleCondivisePage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/><span>Clienti</span></a>
+            <a className={isEmailPage||isEmailOrdinariaPage||isNotificheLegaliPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/><span>Posta</span></a>
+            <a className={isAgendaImportPage||isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isTimesheetPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/><span>Agenda</span></a>
+            <a className={isRegiaPage||isPrivacyRegistroPage||isAdminDatabasePage||isQuickOrganizerImportPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/><span>Regia</span></a>
           </div>
           <button
             type="button"

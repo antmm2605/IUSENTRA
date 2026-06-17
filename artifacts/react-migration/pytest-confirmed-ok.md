@@ -1,5 +1,25 @@
 # Pytest shard confermati OK
 
+## Deposito server reale e guardrail SQL 2.253.37 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript confermato dopo il fix del menu ruolo deposito e della topbar responsive. |
+| `pnpm --filter @iusentra/studio build:vite` | OK | Bundle React rigenerato con asset statici correnti. |
+| `python -m pytest tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests/test_regia_ui_react.py tests/test_signed_document_name_audit.py -q` | OK | 7/7: classificazione deposito, slot documentali, UI React e audit nomi firmati; il test deposito rilegge `studio.db` come fonte operativa e non il JSON storico. |
+| Server reale `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara` | OK visivo su build hotfix | Verificati top/centro/fondo desktop, tablet e mobile: nessun overflow orizzontale, topbar non tagliata, Lex chiuso non sovrapposto, documenti `.pdf.p7m` visibili, icone visualizza/scarica compatte e viewer documento aperto. |
+| Server reale fase `Busta e indice` | OK senza invio PEC | Generato `Busta_2026-330_RICORSO.enc` senza chiamare invio PEC: pacchetto zip di controllo con `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF` e documenti `.p7m`; SHA256 registrato nella procedura deposito. |
+
+## SQL fonte di verità e JSON mirror censito 2.253.36 - 2026-06-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile .\pct\storage_migration.py .\pct\database.py .\pct\tenant.py .\scripts\audit_tenant_data_structure.py .\web\services\storage_runtime.py .\web\services\core_runtime.py .\web\services\tenant_isolation_runtime.py` | OK | Sintassi confermata dopo estensione path tenant-aware, mirror SQL e isolamento tenant per JSON operativi noti. |
+| `python -m pytest tests/test_storage_strategy.py::test_audit_tenant_data_structure_verifica_json_sqlite_postgres tests/test_storage_strategy.py::test_audit_tenant_data_structure_segnala_mirror_json_sql_non_autorevole tests/test_storage_strategy.py::test_audit_tenant_data_structure_repair_risincronizza_mirror_json_sql tests/test_storage_strategy.py::test_audit_tenant_data_structure_json_mancante_non_blocca_sql_autorevole tests/test_storage_strategy.py::test_audit_tenant_data_structure_blocca_json_operativo_nascosto tests/test_storage_strategy.py::test_audit_tenant_data_structure_popola_sql_per_json_operativi_noti tests/test_storage_strategy.py::test_admin_database_react_payload_uses_tenant_backup_dir tests/test_storage_governance.py::test_runtime_storage_crea_sqlite_da_json_senza_fallback_operativo -q --tb=short` | OK | 8/8: JSON operativi noti, famiglie dinamiche e blocco anti-fallback JSON coperti da test mirati. |
+| `python scripts\audit_tenant_data_structure.py --registry data\tenants.json --repair --json`; `python scripts\audit_tenant_data_structure.py --registry data\tenants.json --json` | OK | Tenant locale `tenant-8bf98719c459`: `source_of_truth=sqlite`, `json_authoritative=false`, errori 0, warning 0, JSON operativi non censiti 0, JSON cache/archivio 242. |
+| `python scripts\audit_data_flow_contract.py --registry data\tenants.json --json` | OK | Contratto dati/tenant/React/topbar coerente: `ok=true`, errori 0, warning 0. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | Packaging sincronizzato a `2.253.36`; packaging, readiness e integrità UTF-8 `14/14` passati dopo il bump. |
+
 ## Aggiornamento dipendenze sicurezza 2.253.35 - 2026-06-16
 
 | Comando / verifica | Esito | Nota |

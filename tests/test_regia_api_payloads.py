@@ -2,9 +2,11 @@ from pathlib import Path
 
 from pct.clienti import GestioneClienti, Indirizzo, Recapiti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.storage import StudioDB
 from tests.regia_test_utils import pdfa_bytes
 from tests.test_web_bootstrap import _cfg_web
 from web.app import create_app
+from web.services.storage_runtime import resolve_storage_runtime
 
 
 def _app_with_fascicolo(tmp_path: Path):
@@ -156,10 +158,14 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     assert any(row["role"] == "allegato" for row in payload["updatedDocuments"] if row["documentId"] == prova.id)
     assert payload["regia"]["documentSlots"]
 
+    with app.app_context():
+        storage = resolve_storage_runtime(anchor_path=app.config["FASCICOLI_DB"])
+        studio_db = StudioDB.get(storage.studio_db_path) if storage.uses_sqlite else None
     aggiornato = GestioneFascicoli(
         db_path=app.config["FASCICOLI_DB"],
         documents_dir=app.config["FASCICOLI_DOCS"],
         archive_dir=app.config["FASCICOLI_ARCH"],
+        studio_db=studio_db,
     )._get_o_errore(fascicolo.id)
     docs = {doc.id: doc for doc in aggiornato.documenti}
     assert docs[atto.id].tipo == TipoDocumento.ATTO_GIUDIZIARIO
@@ -167,3 +173,38 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     assert docs[prova.id].tipo == TipoDocumento.ALLEGATO
     assert docs[procura.id].firmato_digitalmente is False
     assert docs[fuori.id].tipo == TipoDocumento.ALTRO
+
+
+def test_api_fascicolo_mostra_p7m_solo_con_firma_reale(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    firmato = gf.aggiungi_documento(
+        fascicolo.id,
+        "Memoria.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdfa_bytes(),
+        firmato=False,
+        nome_originale="Memoria.pdf.p7m",
+        nome_archivio="Memoria.pdf.p7m",
+    )
+    flag_storico = gf.aggiungi_documento(
+        fascicolo.id,
+        "Autocertificazione ricorso.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdfa_bytes(),
+        firmato=True,
+    )
+    client = app.test_client()
+
+    response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all",
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    documents = {doc["id"]: doc for doc in response.get_json()["documents"]}
+    assert documents[firmato.id]["name"] == "Memoria.pdf.p7m"
+    assert documents[firmato.id]["signed"] is True
+    assert documents[firmato.id]["statusLabel"] == "Firmato"
+    assert documents[flag_storico.id]["name"] == "Autocertificazione ricorso.PDF"
+    assert documents[flag_storico.id]["signed"] is False
+    assert documents[flag_storico.id]["statusLabel"] == "Da firmare"

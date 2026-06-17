@@ -68,6 +68,9 @@ Legenda:
 - `timesheet/time_tracking.json` è un percorso tenant-aware ufficiale: il timer della top bar viene copiato dal bootstrap legacy, migrato in `time_tracking_timers`, contato nei report e portato nel cutover PostgreSQL.
 - I moduli JSON monitorati da `admin/database` che non hanno ancora una tabella verticale dedicata sono comunque migrabili con struttura esplicita SQLite/PostgreSQL: `moduli_dati` registra percorso, backend e metadati; `moduli_json_records` conserva i record normalizzati per modulo. Le tabelle dedicate restano il target preferito per i domini core, ma Calendar Sync, Email, Soggetti, Portale, Template, Wizard, Intelligence e moduli analoghi non devono risultare "non migrabili" solo perche' sono JSON runtime.
 - Lo snapshot SQLite mostrato da `admin/database` resta presente anche se una tabella tecnica derivata, come l'indice FTS `search_documenti`, non e' conteggiabile nel runtime corrente: la pagina mostra un avviso e conserva le statistiche delle altre tabelle invece di dichiarare assente l'intero database.
+- Negli studi in modalita SQL la fonte di verita e' `studio.db` o PostgreSQL; i JSON tenant-aware sono solo mirror, bootstrap controllato, cache, archivio o import/export storico. Nessun conteggio operativo, audit conclusivo o riparazione massiva deve usare un JSON al posto del database quando SQL esiste.
+- `scripts/audit_tenant_data_structure.py` censisce anche JSON operativi nascosti e famiglie dinamiche. I path `fascicoli/documenti_ai/**/*.json`, `fascicoli/importazioni/**/*.json` e `intelligence/lex_dataset/**/*.json` vengono trasformati in moduli SQL stabili dentro `moduli_dati` e `moduli_json_records`.
+- Stato locale del 2026-06-16 sul tenant `tenant-8bf98719c459`: `source_of_truth=sqlite`, `json_authoritative=false`, 436 moduli `moduli_dati`, 7772 record `moduli_json_records`, 242 JSON classificati come cache/archivio e 0 JSON operativi non censiti.
 
 ## Baseline tenant obbligatoria
 

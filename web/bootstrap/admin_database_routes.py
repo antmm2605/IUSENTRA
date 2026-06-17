@@ -40,6 +40,127 @@ def register_admin_database_routes(
             "PCT_SQLITE_MODE=1 resta supportato come compatibilità."
         )
 
+    def _storage_runtime_profile():
+        try:
+            from web.services.storage_runtime import get_request_storage_runtime
+
+            return get_request_storage_runtime(cfg_data_path("CLIENTI_DB"))
+        except Exception:
+            return None
+
+    def _studio_db_path() -> str:
+        try:
+            value = cfg_data_path("STUDIO_DB")
+            if value:
+                return value
+        except Exception:
+            pass
+        try:
+            from pct.storage import StudioDB
+
+            return str(StudioDB.from_data_path(cfg_data_path("CLIENTI_DB")).db_path)
+        except Exception:
+            return ""
+
+    def _sql_operativo() -> bool:
+        profile = _storage_runtime_profile()
+        effective = str(getattr(profile, "effective_mode", "") or "").upper()
+        return effective in {"SQLITE", "POSTGRESQL"}
+
+    def _json_mirror_payload(payload: dict, percorso_db: str) -> dict:
+        payload = dict(payload or {})
+        payload["ok"] = True
+        payload["stato"] = "SQL operativo"
+        payload["messaggio"] = (
+            "Archivio SQL operativo: il database è la fonte dati dello studio. "
+            "I JSON elencati sono mirror di compatibilità e non vanno usati per sovrascrivere i dati."
+        )
+        payload["percorso_db"] = percorso_db
+        payload["record_migrati"] = 0
+        payload.setdefault("per_modulo", {})
+        payload.setdefault("errori", [])
+        payload.setdefault("avvisi", [])
+        payload.setdefault("durata_secondi", 0)
+        payload.setdefault("audit_migrazione", {})
+        if isinstance(payload["audit_migrazione"], dict):
+            payload["audit_migrazione"]["sql_source_of_truth"] = True
+        payload["json_mirror_only"] = True
+        payload["istruzione"] = (
+            "Studio già SQL: i JSON sono solo mirror di compatibilità. "
+            "Ogni riparazione deve partire da studio.db o PostgreSQL."
+        )
+        payload["azione_consigliata"] = (
+            "Usa l'audit struttura e l'ottimizzazione SQL. Non eseguire migrazioni dai JSON mirror "
+            "quando il database contiene più dati della sorgente."
+        )
+        return payload
+
+    def _fmt_bytes(n: int) -> str:
+        if n < 1024:
+            return f"{n} B"
+        if n < 1024 ** 2:
+            return f"{n / 1024:.1f} KB"
+        if n < 1024 ** 3:
+            return f"{n / 1024 ** 2:.1f} MB"
+        return f"{n / 1024 ** 3:.1f} GB"
+
+    def _ottimizza_sqlite_file(percorso_db: str, modulo: str) -> dict:
+        target = Path(percorso_db)
+        before = target.stat().st_size if target.exists() and target.is_file() else 0
+        if not target.exists() or not target.is_file():
+            return {
+                "modulo": modulo,
+                "operazione": "Ottimizzazione SQL",
+                "ok": False,
+                "riuscita": False,
+                "messaggio": "Archivio SQL non trovato.",
+                "dettagli": "Archivio SQL non trovato.",
+                "ms": 0,
+                "bytes_prima": before,
+                "bytes_dopo": before,
+                "risparmio_bytes": 0,
+                "risparmio_pct": 0,
+            }
+        started = datetime.now()
+        try:
+            conn = sqlite3.connect(str(target), isolation_level=None)
+            try:
+                conn.execute("PRAGMA optimize")
+                conn.execute("ANALYZE")
+                conn.execute("VACUUM")
+            finally:
+                conn.close()
+            after = target.stat().st_size
+            saved = max(before - after, 0)
+            return {
+                "modulo": modulo,
+                "operazione": "VACUUM + ANALYZE + PRAGMA optimize",
+                "ok": True,
+                "riuscita": True,
+                "messaggio": "Archivio SQL ottimizzato.",
+                "dettagli": f"{_fmt_bytes(before)} -> {_fmt_bytes(after)}",
+                "ms": int((datetime.now() - started).total_seconds() * 1000),
+                "bytes_prima": before,
+                "bytes_dopo": after,
+                "risparmio_bytes": saved,
+                "risparmio_pct": round((saved / before) * 100, 1) if before else 0,
+            }
+        except Exception as exc:
+            after = target.stat().st_size if target.exists() else before
+            return {
+                "modulo": modulo,
+                "operazione": "Ottimizzazione SQL",
+                "ok": False,
+                "riuscita": False,
+                "messaggio": "Ottimizzazione SQL non completata.",
+                "dettagli": str(exc),
+                "ms": int((datetime.now() - started).total_seconds() * 1000),
+                "bytes_prima": before,
+                "bytes_dopo": after,
+                "risparmio_bytes": 0,
+                "risparmio_pct": 0,
+            }
+
     def _sqlite_status_payload(risultato, *, fallback_db: str = "") -> dict:
         totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
         audit_migrazione = risultato.audit or {}
@@ -305,9 +426,12 @@ def register_admin_database_routes(
         database = get_database()
         statistiche = database.statistiche()
         uso = database.analisi_uso()
-        sqlite_info = database.statistiche_sqlite(
-            latest_sqlite_snapshot_path(cfg_data_path("BACKUP_DIR"))
-        )
+        percorso_db = _studio_db_path()
+        sqlite_info = database.statistiche_sqlite(percorso_db) if percorso_db else None
+        if not sqlite_info:
+            sqlite_info = database.statistiche_sqlite(
+                latest_sqlite_snapshot_path(cfg_data_path("BACKUP_DIR"))
+            )
         return render_template(
             "admin/database.html",
             statistiche=statistiche,
@@ -369,6 +493,21 @@ def register_admin_database_routes(
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
+        if _sql_operativo():
+            percorso_db = _studio_db_path()
+            risultati_sql = [_ottimizza_sqlite_file(percorso_db, "studio.db")]
+            search_index = cfg_data_path("SEARCH_INDEX")
+            if search_index and Path(search_index).exists():
+                risultati_sql.append(_ottimizza_sqlite_file(search_index, "search_index"))
+            audit("database.ottimizza_sql", risorsa_tipo="db", risorsa_id=percorso_db)
+            return jsonify(
+                {
+                    "ok": all(item.get("ok") for item in risultati_sql),
+                    "json_mirror_only": True,
+                    "messaggio": "Ottimizzazione SQL completata: i JSON mirror non sono stati compattati.",
+                    "risultati": risultati_sql,
+                }
+            )
         database = get_database()
         risultati = database.ottimizza()
         audit("database.ottimizza")
@@ -405,6 +544,11 @@ def register_admin_database_routes(
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
+        if _sql_operativo():
+            percorso_db = _studio_db_path()
+            payload = _json_mirror_payload({}, percorso_db)
+            audit("database.migra_sqlite_noop_sql_operativo", risorsa_tipo="db", risorsa_id=percorso_db)
+            return jsonify(payload)
         recupero_legacy = _recover_legacy_root_before_sqlite("migra")
         if not recupero_legacy.get("ok", True):
             return jsonify(_legacy_recovery_block_payload(recupero_legacy)), 200
@@ -431,7 +575,10 @@ def register_admin_database_routes(
             studio_db = StudioDB.from_data_path(cfg_data_path("CLIENTI_DB"))
             percorso_db = str(studio_db.db_path)
             payload = get_database().preverifica_attivazione_sqlite(percorso_db)
-            payload["istruzione"] = _sqlite_instruction()
+            if _sql_operativo():
+                payload = _json_mirror_payload(payload, percorso_db)
+            else:
+                payload["istruzione"] = _sqlite_instruction()
             audit("database.preverifica_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
             return jsonify(payload)
         except Exception as exc:
@@ -462,6 +609,10 @@ def register_admin_database_routes(
 
             studio_db = StudioDB.from_data_path(cfg_data_path("CLIENTI_DB"))
             percorso_db = str(studio_db.db_path)
+            if _sql_operativo():
+                payload = _json_mirror_payload({}, percorso_db)
+                audit("database.riconcilia_sqlite_noop_sql_operativo", risorsa_tipo="db", risorsa_id=percorso_db)
+                return jsonify(payload)
             risultato = get_database().riconcilia_verso_sqlite(percorso_db)
             pct_cache.invalidate(percorso_db)
             audit("database.riconcilia_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
@@ -507,6 +658,11 @@ def register_admin_database_routes(
                 return jsonify(_legacy_recovery_block_payload(recupero_legacy)), 200
             studio_db = StudioDB.from_data_path(cfg_data_path("CLIENTI_DB"))
             percorso_db = str(studio_db.db_path)
+            if _sql_operativo():
+                payload = _json_mirror_payload({}, percorso_db)
+                payload["recupero_legacy"] = recupero_legacy
+                audit("database.attiva_sqlite_noop_sql_operativo", risorsa_tipo="db", risorsa_id=percorso_db)
+                return jsonify(payload)
             if recupero_legacy.get("executed"):
                 risultato = get_database().riconcilia_verso_sqlite(percorso_db)
             else:

@@ -6,6 +6,8 @@ import re
 import unicodedata
 from typing import Any
 
+from pct.document_signature_state import document_has_real_digital_signature
+
 from .models import SlotStatus, SlotType, ValidatorStatus
 from .repository import PracticeEngineRepository
 from .validators import ValidationContext, run_validators, validate_slot
@@ -83,12 +85,7 @@ def _document_text(doc: Any) -> str:
 
 
 def _is_signed(doc: Any) -> bool:
-    name = str(getattr(doc, "nome", "") or "").lower()
-    return bool(
-        getattr(doc, "firmato", False)
-        or getattr(doc, "firmato_digitalmente", False)
-        or name.endswith(".p7m")
-    )
+    return document_has_real_digital_signature(doc)
 
 
 def _score_for_slot(slot: Any, doc: Any) -> int:

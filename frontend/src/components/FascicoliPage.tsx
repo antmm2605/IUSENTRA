@@ -418,16 +418,24 @@ function DepositRolePicker({
 }) {
   const [open, setOpen] = useState(false)
   const labelId = useId()
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
   const currentValue = normaliseDepositRoleForUi(value)
   const current = DEPOSIT_DOCUMENT_ROLE_OPTIONS.find((option) => option.value === currentValue) || DEPOSIT_DOCUMENT_ROLE_OPTIONS[2]
 
   return (
     <div className="iu-fas-deposit-role-picker" onBlur={(event) => {
       if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
+    }} onKeyDown={(event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setOpen(false)
+        buttonRef.current?.focus()
+      }
     }}>
       <span id={labelId}>Ruolo</span>
       <div className="iu-fas-deposit-role-picker__box">
         <button
+          ref={buttonRef}
           type="button"
           className="iu-fas-deposit-role-picker__button"
           aria-haspopup="listbox"
@@ -3161,7 +3169,7 @@ function DepositPreparePage({ id }:{id:string}) {
                       <div className="iu-fas-deposit-selection__document">
                         <strong>{doc.name}</strong>
                         <span>{[doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
-                        {doc.signed ? <em>{doc.name.toLowerCase().endsWith('.p7m') ? 'File firmato .p7m' : 'Firmato digitale'}</em> : null}
+                        {doc.signed ? <em>{doc.name.toLowerCase().endsWith('.p7m') ? 'File firmato .p7m' : 'Firma digitale verificata'}</em> : null}
                         {selected && signatureRequested ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
                       <div className="iu-fas-deposit-document-actions" aria-label={`Azioni documento ${doc.name}`}>
@@ -3471,9 +3479,10 @@ function DepositBatchSignaturePanel({
 
   const primaryToken = localSigner?.token?.[0]
   const freshToken = localSigner?.token_probe_fresh?.[0]
-  const displayToken = primaryToken || freshToken
-  const signerRestartRequired = Boolean(freshToken && !primaryToken)
-  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh))
+  const selectedWindowsCertificate = localSignerWindowsCertificate(localSigner)
+  const displayToken = primaryToken || (selectedWindowsCertificate ? undefined : freshToken)
+  const signerRestartRequired = Boolean(!selectedWindowsCertificate && freshToken && !primaryToken)
+  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh || selectedWindowsCertificate))
   const restartSuggested = localSignerNeedsRestart(localSigner)
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
@@ -3564,7 +3573,7 @@ function DepositBatchSignaturePanel({
       }
       return
     }
-    if (!primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
+    if (!selectedWindowsCertificate && !primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
       setError('Local Signer non ha restituito un token utilizzabile.')
       return
     }
@@ -3592,7 +3601,8 @@ function DepositBatchSignaturePanel({
         body: JSON.stringify({
           documenti,
           pin: pin.trim(),
-          slot_id: primaryToken.slot_id,
+          slot_id: primaryToken?.slot_id,
+          cert_thumbprint: selectedWindowsCertificate?.thumbprint,
           visible_signature_mode: visibleSignatureMode,
           visible_signature_place: visibleSignaturePlace,
           visible_signature_datetime_mode: visibleSignatureDatetimeMode,
@@ -3644,14 +3654,18 @@ function DepositBatchSignaturePanel({
 
   if (!documents.length) return null
 
-  const signerTitle = displayToken
+  const signerTitle = selectedWindowsCertificate
+    ? 'Local Signer pronto con certificato Windows'
+    : displayToken
     ? (restartSuggested ? 'Token rilevato, riallineamento automatico' : localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer pronto')
     : localSignerReachable
       ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
-  const signerDetail = displayToken
+  const signerDetail = selectedWindowsCertificate
+    ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
+    : displayToken
     ? (localSignerOutdated
         ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
         : restartSuggested
@@ -3667,6 +3681,7 @@ function DepositBatchSignaturePanel({
         <strong>{signerTitle}</strong>
         <span>{signerDetail}</span>
         {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
+        {selectedWindowsCertificate?.codice_fiscale ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
         {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
       </div>
       {restartSuggested || localSignerOutdated || !localSignerReachable ? (
@@ -4531,10 +4546,21 @@ function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument;
 }
 
 type LocalSignerToken = { slot_id?: number | string; label?: string; manufacturer?: string; model?: string; serial?: string }
+type LocalSignerWindowsCertificate = {
+  thumbprint?: string
+  soggetto?: string
+  soggetto_completo?: string
+  emittente?: string
+  emittente_completo?: string
+  scadenza?: string
+  codice_fiscale?: string
+  auto_selezionato?: boolean
+}
 type LocalSignerStatus = {
   ok?: boolean
   token?: LocalSignerToken[]
   token_probe_fresh?: LocalSignerToken[]
+  certificato_windows_selezionato?: LocalSignerWindowsCertificate
   versione?: string
   version?: string
   piattaforma?: string
@@ -4618,6 +4644,16 @@ function localSignerTokenLabel(token?: LocalSignerToken): string {
   return [token.label, token.manufacturer, token.model].filter(Boolean).join(' - ') || 'Token USB'
 }
 
+function localSignerWindowsCertificate(status?: LocalSignerStatus | null): LocalSignerWindowsCertificate | null {
+  const cert = status?.certificato_windows_selezionato
+  return cert?.thumbprint ? cert : null
+}
+
+function localSignerWindowsCertificateLabel(cert?: LocalSignerWindowsCertificate | null): string {
+  if (!cert) return ''
+  return cert.soggetto || cert.soggetto_completo || 'Certificato Windows'
+}
+
 type VisibleSignatureMode = 'laterale' | 'basso_sinistra' | 'basso_destra'
 const visibleSignatureOptions: Array<{ value: VisibleSignatureMode; label: string }> = [
   { value: 'laterale', label: 'Laterale verticale' },
@@ -4680,11 +4716,12 @@ function localSignerStatusOutdated(status?: LocalSignerStatus | null): boolean {
 }
 
 function localSignerNeedsRestart(status?: LocalSignerStatus | null): boolean {
-  return Boolean((status?.token_probe_fresh?.length && !status?.token?.length) || (status?.riavvio_signer_consigliato && !status?.token?.length))
+  const windowsCertificate = localSignerWindowsCertificate(status)
+  return Boolean(!windowsCertificate && ((status?.token_probe_fresh?.length && !status?.token?.length) || (status?.riavvio_signer_consigliato && !status?.token?.length)))
 }
 
 function localSignerStatusCanSign(status?: LocalSignerStatus | null): boolean {
-  return Boolean(status?.token?.[0] && !localSignerNeedsRestart(status) && !localSignerStatusOutdated(status))
+  return Boolean((status?.token?.[0] || localSignerWindowsCertificate(status)) && !localSignerNeedsRestart(status) && !localSignerStatusOutdated(status))
 }
 
 async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStatus | null> {
@@ -4795,21 +4832,26 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const doc = data.documents.find((item) => item.id === documentId)
   const primaryToken = localSigner?.token?.[0]
   const freshToken = localSigner?.token_probe_fresh?.[0]
-  const displayToken = primaryToken || freshToken
-  const signerRestartRequired = Boolean(freshToken && !primaryToken)
-  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh))
+  const selectedWindowsCertificate = localSignerWindowsCertificate(localSigner)
+  const displayToken = primaryToken || (selectedWindowsCertificate ? undefined : freshToken)
+  const signerRestartRequired = Boolean(!selectedWindowsCertificate && freshToken && !primaryToken)
+  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh || selectedWindowsCertificate))
   const restartSuggested = localSignerNeedsRestart(localSigner)
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
-  const localSignerStatusTitle = displayToken
+  const localSignerStatusTitle = selectedWindowsCertificate
+    ? 'Local Signer pronto con certificato Windows'
+    : displayToken
     ? (freshToken && !primaryToken ? 'Token rilevato, riallineamento automatico' : localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer rilevato')
     : localSignerReachable
       ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token PKCS#11')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
-  const localSignerStatusMessage = displayToken
+  const localSignerStatusMessage = selectedWindowsCertificate
+    ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
+    : displayToken
     ? (localSignerOutdated
         ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
         : restartSuggested
@@ -4913,7 +4955,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       }
       return
     }
-    if (!primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
+    if (!selectedWindowsCertificate && !primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
         setError('Local Signer non ha restituito un token utilizzabile. Se il dispositivo fisico è inserito, IUSENTRA ha già tentato avvio, aggiornamento e riverifica.')
@@ -4937,7 +4979,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
         body: JSON.stringify({
           documento: arrayBufferToBase64(sourceBuffer),
           pin,
-          slot_id: primaryToken.slot_id,
+          slot_id: primaryToken?.slot_id,
+          cert_thumbprint: selectedWindowsCertificate?.thumbprint,
           visible_signature_mode: visibleSignatureMode,
           visible_signature_place: visibleSignaturePlace,
           visible_signature_datetime_mode: visibleSignatureDatetimeMode,
@@ -5040,12 +5083,39 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           ]}/>
         </Panel>
 
-        <Panel title="Firma con Local Signer" subtitle="Controllo e firma sul PC dell'avvocato" icon={<ShieldCheck size={17}/>} action={<button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>}>
+        <Panel title="Modalità firma visibile nel PDF" subtitle="Impostazioni e firma sul PC dell'avvocato" icon={<ShieldCheck size={17}/>} action={<button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>}>
           <div className="iu-fas-signature-box">
+            <div className="iu-fas-visible-signature">
+              <strong>Modalità firma visibile nel PDF</strong>
+              <small>Scegli come mostrare la dicitura grafica sul PDF. La validità legale resta nella firma digitale CAdES/PAdES.</small>
+              <span>Posizione firma visibile</span>
+              <div>
+                {visibleSignatureOptions.map((option) => (
+                  <label key={option.value}>
+                    <input type="radio" name="firma_visibile_mode" value={option.value} checked={visibleSignatureMode === option.value} onChange={() => setVisibleSignatureChoice(option.value)}/>
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+              <label className="iu-fas-field iu-fas-visible-signature-field">
+                <span>Luogo firma</span>
+                <input type="text" value={visibleSignaturePlace} onChange={(event) => setVisibleSignaturePlace(event.target.value)} placeholder="Luogo da mostrare nel timbro" maxLength={48}/>
+              </label>
+              <span>Data e orario nel timbro</span>
+              <div>
+                {visibleSignatureDatetimeOptions.map((option) => (
+                  <label key={option.value}>
+                    <input type="radio" name="firma_visibile_data_ora" value={option.value} checked={visibleSignatureDatetimeMode === option.value} onChange={() => setVisibleSignatureDatetimeChoice(option.value)}/>
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
             <div className={`iu-fas-signer-status ${localSignerCanSign ? 'is-ok' : 'is-warn'}`}>
               <strong>{localSignerStatusTitle}</strong>
               <span>{localSignerStatusMessage}</span>
               {displayToken && signerRestartRequired ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
+              {selectedWindowsCertificate?.codice_fiscale ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
               {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
             </div>
             {restartSuggested || localSignerOutdated || !localSignerReachable ? (
@@ -5059,35 +5129,9 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
                 {localSignerReachable ? <a className="iu-fas-mini-action" href={localSignerEndpoint('/diagnosi')} target="_blank" rel="noreferrer">Diagnosi locale</a> : null}
               </div>
             ) : null}
-            {localSignerCanSign ? (
-              <>
-                <div className="iu-fas-visible-signature">
-                  <span>Posizione firma visibile</span>
-                  <div>
-                    {visibleSignatureOptions.map((option) => (
-                      <label key={option.value}>
-                        <input type="radio" name="firma_visibile_mode" value={option.value} checked={visibleSignatureMode === option.value} onChange={() => setVisibleSignatureChoice(option.value)}/>
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <label className="iu-fas-field iu-fas-visible-signature-field">
-                    <span>Luogo firma</span>
-                    <input type="text" value={visibleSignaturePlace} onChange={(event) => setVisibleSignaturePlace(event.target.value)} placeholder="Luogo da mostrare nel timbro" maxLength={48}/>
-                  </label>
-                  <span>Data e orario nel timbro</span>
-                  <div>
-                    {visibleSignatureDatetimeOptions.map((option) => (
-                      <label key={option.value}>
-                        <input type="radio" name="firma_visibile_data_ora" value={option.value} checked={visibleSignatureDatetimeMode === option.value} onChange={() => setVisibleSignatureDatetimeChoice(option.value)}/>
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
             <label className="iu-fas-field">
               <span>PIN token <b>*</b></span>
-              <input type="password" value={pin} onChange={(event) => setPin(event.target.value)} autoComplete="off" placeholder="Il PIN non viene salvato"/>
+              <input type="password" value={pin} onChange={(event) => setPin(event.target.value)} autoComplete="off" placeholder="Il PIN non viene salvato" disabled={!localSignerCanSign}/>
             </label>
             {alreadySigned ? (
               <label className="iu-fas-resign-confirm">
@@ -5099,13 +5143,12 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
               <ShieldCheck size={16}/> {busy ? 'Firma in corso...' : 'Firma tramite Local Signer'}
             </button>
             <p className="iu-fas-signature-help">La firma integrata usa il servizio locale installato su questo PC. IUSENTRA non salva PIN, password o credenziali del token.</p>
-              </>
-            ) : (
+            {!localSignerCanSign ? (
               <div className="iu-fas-signer-next-step">
                 <strong>{signerRestartRequired || localSignerOutdated ? 'Riallineamento automatico in corso.' : 'Token non pronto per la firma.'}</strong>
                 <span>{signerRestartRequired || localSignerOutdated ? 'Il PIN comparirà solo quando versione e token saranno allineati e pronti.' : 'Inserisci il token fisico: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
               </div>
-            )}
+            ) : null}
           </div>
         </Panel>
 

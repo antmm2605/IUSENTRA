@@ -7,6 +7,7 @@ persistito sotto la directory backup del tenant.
 from __future__ import annotations
 
 import json
+import hashlib
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -615,6 +616,58 @@ class _TimespanEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+def _safe_module_suffix(relative: str) -> str:
+    cleaned = "".join(ch if ch.isalnum() else "_" for ch in relative.lower()).strip("_")
+    digest = hashlib.sha1(relative.encode("utf-8")).hexdigest()[:12]
+    head = cleaned[:72].strip("_") or "file"
+    return f"{head}_{digest}"
+
+
+def _add_source(
+    sources: dict[str, str],
+    module: str,
+    path: str | Path | None,
+    *,
+    seen_paths: set[str],
+) -> None:
+    raw = str(path or "").strip()
+    if not raw:
+        return
+    resolved = str(Path(raw).resolve())
+    if resolved in seen_paths:
+        return
+    sources[module] = raw
+    seen_paths.add(resolved)
+
+
+def _add_recursive_json_sources(
+    sources: dict[str, str],
+    root: str | Path | None,
+    prefix: str,
+    *,
+    seen_paths: set[str],
+) -> None:
+    raw = str(root or "").strip()
+    if not raw:
+        return
+    base = Path(raw)
+    if not base.exists() or not base.is_dir():
+        return
+    for path in sorted(base.rglob("*.json")):
+        if not path.is_file():
+            continue
+        try:
+            relative = path.relative_to(base).as_posix()
+        except ValueError:
+            relative = path.name
+        _add_source(
+            sources,
+            f"{prefix}_{_safe_module_suffix(relative)}",
+            path,
+            seen_paths=seen_paths,
+        )
+
+
 def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
     preventivi_path = str(paths.get("PREVENTIVI_DB", "") or "").strip()
     conferimenti_path = (
@@ -623,8 +676,14 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         else ""
     )
     pagamenti_dir = str(paths.get("PAGAMENTI_DIR", "") or "").strip()
-    return {
+    sources: dict[str, str] = {}
+    seen_paths: set[str] = set()
+
+    for module, path in {
         "calendar_sync": paths.get("CALENDAR_SYNC_DB", ""),
+        "calendar_sync_engine": paths.get("CALENDAR_SYNC_ENGINE_DB", ""),
+        "calendar_conflicts": paths.get("CALENDAR_CONFLICTS_DB", ""),
+        "calendar_token": paths.get("CALENDAR_TOKEN_DB", ""),
         "clienti": paths.get("CLIENTI_DB", ""),
         "condivisioni": paths.get("CONDIVISIONI_DB", ""),
         "note_faldone": paths.get("NOTE_FALDONE_DB", ""),
@@ -640,6 +699,8 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         "pagamenti_config": str(Path(pagamenti_dir) / "config.json") if pagamenti_dir else "",
         "pagamenti_links": str(Path(pagamenti_dir) / "transazioni.json") if pagamenti_dir else "",
         "impostazioni": paths.get("STUDIO_CONFIG", ""),
+        "storage_config": paths.get("STORAGE_CONFIG", ""),
+        "studio_local_pack": paths.get("STUDIO_LOCAL_PACK_DB", ""),
         "messaggi": paths.get("MESSAGGI_DB", ""),
         "utenti": paths.get("AUTH_DB", ""),
         "audit": paths.get("AUDIT_DB", ""),
@@ -653,22 +714,91 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         "soggetti": paths.get("SOGGETTI_DB", ""),
         "soggetti_parti": paths.get("SOGGETTI_PARTI_DB", ""),
         "wizard_pro": paths.get("WIZARD_PRO_DB", ""),
+        "documenti_ai": paths.get("DOCUMENTI_AI_DB", ""),
+        "editor_ai": paths.get("EDITOR_AI_DB", ""),
+        "pec_cancelleria_state": paths.get("PEC_CANCELLERIA_STATE_DB", ""),
         "legal_intelligence": paths.get("LEGAL_INTELLIGENCE_DB", ""),
         "legal_updates_repository": paths.get("LEGAL_UPDATES_JSON", ""),
+        "giurisprudenza_repository": paths.get("GIURISPRUDENZA_REPOSITORY_DB", ""),
+        "giurisprudenza_sources_repository": paths.get("GIURISPRUDENZA_SOURCES_REPOSITORY_DB", ""),
+        "giurisprudenza_sync_registry": paths.get("GIURISPRUDENZA_SYNC_REGISTRY_DB", ""),
+        "giurisprudenza_taxonomy_repository": paths.get("GIURISPRUDENZA_TAXONOMY_REPOSITORY_DB", ""),
+        "giurisprudenza_usage_policy": paths.get("GIURISPRUDENZA_USAGE_POLICY_DB", ""),
+        "legal_engine_source_edges": paths.get("LEGAL_ENGINE_SOURCE_EDGES_DB", ""),
+        "legal_engines_repository": paths.get("LEGAL_ENGINES_REPOSITORY_DB", ""),
+        "legal_intelligence_repository": paths.get("LEGAL_INTELLIGENCE_REPOSITORY_DB", ""),
+        "legal_keyword_to_engine": paths.get("LEGAL_KEYWORD_TO_ENGINE_DB", ""),
+        "legal_keyword_to_source": paths.get("LEGAL_KEYWORD_TO_SOURCE_DB", ""),
+        "legal_operational_repository": paths.get("LEGAL_OPERATIONAL_REPOSITORY_DB", ""),
+        "legal_sources_repository": paths.get("LEGAL_SOURCES_REPOSITORY_DB", ""),
+        "telematico_actions_repository": paths.get("TELEMATICO_ACTIONS_REPOSITORY_DB", ""),
+        "telematico_capabilities_repository": paths.get("TELEMATICO_CAPABILITIES_REPOSITORY_DB", ""),
+        "telematico_catalog_snapshot": paths.get("TELEMATICO_CATALOG_SNAPSHOT_DB", ""),
+        "telematico_catalog_sources_repository": paths.get("TELEMATICO_CATALOG_SOURCES_REPOSITORY_DB", ""),
+        "telematico_methods_repository": paths.get("TELEMATICO_METHODS_REPOSITORY_DB", ""),
+        "telematico_monitoring_repository": paths.get("TELEMATICO_MONITORING_REPOSITORY_DB", ""),
+        "telematico_repository": paths.get("TELEMATICO_REPOSITORY_JSON", ""),
+        "telematico_rules_repository": paths.get("TELEMATICO_RULES_REPOSITORY_DB", ""),
+        "telematico_sources_repository": paths.get("TELEMATICO_SOURCES_REPOSITORY_DB", ""),
+        "telematico_wizard_sections_repository": paths.get("TELEMATICO_WIZARD_SECTIONS_REPOSITORY_DB", ""),
+        "telematico_wsdl_modules_repository": paths.get("TELEMATICO_WSDL_MODULES_REPOSITORY_DB", ""),
+        "telematico_xsd_channels_repository": paths.get("TELEMATICO_XSD_CHANNELS_REPOSITORY_DB", ""),
         "legal_skills_profile": paths.get("LEGAL_SKILLS_PROFILE_DB", ""),
         "legal_skills_runs": paths.get("LEGAL_SKILLS_RUNS_DB", ""),
         "legal_skills_scheduled": paths.get("LEGAL_SKILLS_SCHEDULED_DB", ""),
         "normative_tables": paths.get("NORMATIVE_TABLES_DB", ""),
         "giurisprudenza": paths.get("GIURISPRUDENZA_DB", ""),
         "workspace_intelligence": paths.get("WORKSPACE_INTELLIGENCE_DB", ""),
+        "workflow_agents_runs": paths.get("WORKFLOW_AGENTS_RUNS_DB", ""),
+        "workflow_agents_metrics": paths.get("WORKFLOW_AGENTS_METRICS_DB", ""),
+        "workflow_agents_actions": paths.get("WORKFLOW_AGENTS_ACTIONS_DB", ""),
         "local_ai": paths.get("LOCAL_AI_DB", ""),
         "validation_runs": paths.get("VALIDATION_RUNS_DB", ""),
         "template_atti": paths.get("TEMPLATE_ATTI_DB", ""),
+        "template_repository": paths.get("TEMPLATE_REPOSITORY_DB", ""),
         "template_atti_prefs": paths.get("TEMPLATE_ATTI_PREFS_DB", ""),
         "redaction_assistant": paths.get("REDACTION_ASSISTANT_DB", ""),
+        "preventivi_repository": paths.get("PREVENTIVI_REPOSITORY_DB", ""),
+        "preventivi_workflow_states": paths.get("PREVENTIVI_WORKFLOW_STATES_DB", ""),
+        "preventivi_field_map": paths.get("PREVENTIVI_FIELD_MAP_DB", ""),
+        "preventivi_rules": paths.get("PREVENTIVI_RULES_DB", ""),
+        "termini_processuali": paths.get("TERMINI_PROCESSUALI_DB", ""),
         "telematico": paths.get("TELEMATICO_DB", ""),
         "search_index": paths.get("SEARCH_INDEX", ""),
-    }
+    }.items():
+        _add_source(sources, module, path, seen_paths=seen_paths)
+
+    _add_recursive_json_sources(
+        sources,
+        paths.get("DOCUMENTI_AI_DIR") or (
+            str(Path(paths.get("FASCICOLI_DB", "")).resolve().parent / "documenti_ai")
+            if paths.get("FASCICOLI_DB")
+            else ""
+        ),
+        "documenti_ai_file",
+        seen_paths=seen_paths,
+    )
+    _add_recursive_json_sources(
+        sources,
+        paths.get("FASCICOLI_IMPORTAZIONI_DIR") or (
+            str(Path(paths.get("FASCICOLI_DB", "")).resolve().parent / "importazioni")
+            if paths.get("FASCICOLI_DB")
+            else ""
+        ),
+        "fascicoli_importazione",
+        seen_paths=seen_paths,
+    )
+    _add_recursive_json_sources(
+        sources,
+        paths.get("LEX_DATASET_DIR") or (
+            str(Path(paths.get("LEGAL_INTELLIGENCE_DB", "")).resolve().parent / "lex_dataset")
+            if paths.get("LEGAL_INTELLIGENCE_DB")
+            else ""
+        ),
+        "lex_dataset",
+        seen_paths=seen_paths,
+    )
+    return sources
 
 
 def _ensure_sqlite_stage(paths: dict[str, str], *, stage_path: str = "") -> dict[str, Any]:

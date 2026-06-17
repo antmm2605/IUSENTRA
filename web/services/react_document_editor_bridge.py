@@ -9,6 +9,7 @@ from typing import Any, Callable
 from flask import has_app_context
 
 from pct.editor import estensione_editabile
+from pct.document_signature_state import document_has_real_digital_signature
 
 
 def _now() -> str:
@@ -126,7 +127,7 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
     did = _text(getattr(doc, "id", ""))
     name = _text(getattr(doc, "nome", ""), "Documento")
     suffix = Path(name).suffix.lower()
-    signed = bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False) or name.lower().endswith(".p7m"))
+    signed = document_has_real_digital_signature(doc, name)
     pdf_preview_native = suffix == ".pdf"
     eml_preview = suffix == ".eml"
     editable = bool(estensione_editabile(name) and not signed and not pdf_preview_native and not eml_preview)

@@ -41,10 +41,11 @@ const emptyIntegrity: OperationState<AdminDatabaseIntegrityResult> = { status: '
 const emptyOptimization: OperationState<AdminDatabaseOptimizeResult> = { status: 'idle', message: '', payload: null }
 const emptyMigration: OperationState<AdminDatabaseMigrationResult> = { status: 'idle', message: '', payload: null }
 
-function sourceLabel(source: string): string {
-  if (source === 'repository_reali') return 'Dati dello studio'
-  if (source === 'errore_controllato') return 'Dati parziali'
-  return source || 'Database'
+function sourceLabel(data: AdminDatabasePageData): string {
+  if (data.sourceTruth.sqlAuthoritative) return `Archivio ${data.sourceTruth.authoritative}`
+  if (data.source === 'repository_reali') return 'Dati dello studio'
+  if (data.source === 'errore_controllato') return 'Dati parziali'
+  return data.source || 'Database'
 }
 
 function formatNumber(value: number): string {
@@ -164,7 +165,9 @@ function ModuleTable({ modules }: { modules: AdminDatabaseModule[] }) {
               </td>
               <td>
                 <Badge tone={module.kind.tone}>{module.kind.label}</Badge>
-                {module.migratableSqlite ? <Badge tone="success">Migrabile</Badge> : null}
+                {module.mirror ? <Badge tone="info">Mirror</Badge> : null}
+                {module.authoritative ? <Badge tone="success">Fonte</Badge> : null}
+                {!module.mirror && module.migratableSqlite ? <Badge tone="success">Migrabile</Badge> : null}
               </td>
               <td>{formatNumber(module.records)}</td>
               <td>{module.sizeLabel}</td>
@@ -303,7 +306,10 @@ function MigrationResult({ result }: { result: AdminDatabaseMigrationResult | nu
         <span>{result.stato ? <Badge tone={result.ok ? 'success' : 'danger'}>{result.stato}</Badge> : null}{sqliteMessage(result)}</span>
       </div>
       {result.percorso_db ? <p><strong>Database:</strong> {result.percorso_db}</p> : null}
-      <p><strong>Record migrati:</strong> {formatNumber(result.record_migrati || 0)}</p>
+      <p>
+        <strong>{result.json_mirror_only ? 'Migrazione:' : 'Record migrati:'}</strong>{' '}
+        {result.json_mirror_only ? 'non eseguita, archivio SQL già operativo' : formatNumber(result.record_migrati || 0)}
+      </p>
       {result.azione_consigliata ? <p><strong>Azione consigliata:</strong> {result.azione_consigliata}</p> : null}
       {result.istruzione ? <p>{result.istruzione}</p> : null}
       <div className="iu-db-flow" aria-label="Flusso SQLite">
@@ -441,6 +447,14 @@ export function AdminDatabasePage() {
     const errors = data.summary.statusCounts.ERRORE || 0
     return { ok, warnings, errors }
   }, [data.summary.statusCounts])
+  const sqlAuthoritative = data.sourceTruth.sqlAuthoritative
+  const sqlitePanelTitle = sqlAuthoritative ? 'Archivio SQL' : 'SQLite'
+  const sqlitePanelSubtitle = data.sqlite.exists
+    ? `${data.sqlite.role === 'operativo' ? 'Operativo' : 'Rilevato'} · ${data.sqlite.sizeLabel}`
+    : 'Rilevazione non ancora disponibile'
+  const sqliteIdleText = sqlAuthoritative
+    ? 'Studio già SQL: analizza l’archivio operativo o usa Ottimizza per studio.db. I JSON restano mirror di compatibilità.'
+    : 'Analizza prima di attivare: il blocco anti-perdita resta attivo e la riconciliazione conserva i dati già nel database.'
 
   const runIntegrity = async () => {
     setIntegrity({ status: 'loading', message: 'Verifica e riparazione in corso...', payload: null })
@@ -469,7 +483,9 @@ export function AdminDatabasePage() {
       const payload = await jsonRequest<AdminDatabaseOptimizeResult>(data.actions.optimize, { method: 'POST' })
       setOptimization({
         status: payload.ok ? 'success' : 'error',
-        message: payload.ok ? 'Ottimizzazione completata sui moduli dati.' : (payload.errore || 'Ottimizzazione completata con errori.'),
+        message: payload.ok
+          ? (payload.messaggio || (payload.json_mirror_only ? 'Ottimizzazione SQL completata.' : 'Ottimizzazione completata sui moduli dati.'))
+          : (payload.errore || 'Ottimizzazione completata con errori.'),
         payload,
       })
       await loadData()
@@ -524,7 +540,7 @@ export function AdminDatabasePage() {
         <StatCard icon={<Table size={22}/>} label="Moduli monitorati" value={formatNumber(data.summary.modulesMonitored)} note={`${statusSummary.ok} in stato OK`} tone="primary"/>
         <StatCard icon={<HardDrive size={22}/>} label="Record totali" value={formatNumber(data.summary.totalRecords)} note={`Dimensione ${data.summary.totalSizeLabel}`} tone="success"/>
         <StatCard icon={<Gauge size={22}/>} label="Frammentazione SQLite" value={formatPercent(data.summary.sqliteFragmentationPct)} note={data.sqlite.exists ? `${data.sqlite.freePages} pagine libere` : 'Rilevazione non presente'} tone={data.sqlite.fragmentationPct > 20 ? 'warning' : 'info'}/>
-        <StatCard icon={<CloudUpload size={22}/>} label="Migrabili SQLite" value={formatNumber(data.summary.modulesMigratableSqlite)} note={`${data.sqlite.tables.length} tabelle nella rilevazione`} tone="purple"/>
+        <StatCard icon={<CloudUpload size={22}/>} label="Fonte dati" value={data.sourceTruth.authoritative || 'Da verificare'} note={data.sourceTruth.jsonRole || `${data.sqlite.tables.length} tabelle nella rilevazione`} tone={sqlAuthoritative ? 'success' : 'purple'}/>
         <StatCard icon={<ShieldCheck size={22}/>} label="Presidio" value={statusSummary.errors ? 'Critico' : 'Attivo'} note={`${statusSummary.warnings} avvisi configurazione`} tone={statusSummary.errors ? 'danger' : statusSummary.warnings ? 'warning' : 'success'}/>
       </section>
 
@@ -532,7 +548,7 @@ export function AdminDatabasePage() {
         <div className="iu-db-maincol">
           <Panel
             title="Moduli dati"
-            subtitle={`Fonte: ${sourceLabel(data.source)} · generato ${data.summary.generatedLabel}`}
+            subtitle={`Fonte: ${sourceLabel(data)} · ${data.sourceTruth.jsonRole || 'ruolo dati da verificare'} · generato ${data.summary.generatedLabel}`}
             icon={<Database size={17}/>}
             count={data.modules.length}
           >
@@ -569,34 +585,45 @@ export function AdminDatabasePage() {
         </div>
 
         <aside className="iu-db-sidecol">
-          <Panel title="SQLite" subtitle={data.sqlite.exists ? `Archivio ${data.sqlite.sizeLabel}` : 'Rilevazione non ancora disponibile'} icon={<HardDrive size={17}/>}>
+          <Panel title={sqlitePanelTitle} subtitle={sqlitePanelSubtitle} icon={<HardDrive size={17}/>}>
             <div className="iu-db-sqlite">
               <div className="iu-db-sqlite__status">
                 <Badge tone={data.sqlite.exists ? 'success' : 'warning'}>{data.sqlite.exists ? 'Presente' : 'Assente'}</Badge>
-                {data.sqlite.error ? <span>{data.sqlite.error}</span> : <span>{data.sqlite.totalPages ? `${formatNumber(data.sqlite.totalPages)} pagine totali` : 'Nessun dettaglio SQLite disponibile'}</span>}
+                {data.sqlite.error ? (
+                  <span>{data.sqlite.error}</span>
+                ) : (
+                  <span>
+                    {data.sqlite.totalPages ? `${formatNumber(data.sqlite.totalPages)} pagine totali` : 'Nessun dettaglio SQLite disponibile'}
+                    {data.sqlite.path ? <small>{data.sqlite.path}</small> : null}
+                  </span>
+                )}
               </div>
               <div className="iu-db-sqlite__actions">
                 <button type="button" className="iu-button" onClick={() => runMigration('precheck')} disabled={migration.status === 'loading'}>
                   <SearchCheck size={15}/>{migration.status === 'loading' ? 'Analisi...' : 'Analizza'}
                 </button>
-                <button type="button" className="iu-button iu-button--primary" onClick={() => runMigration('migrate')} disabled={migration.status === 'loading'}>
-                  <UploadCloud size={15}/>{migration.status === 'loading' ? 'Migrazione...' : 'Migra JSON'}
-                </button>
-                <button type="button" className="iu-button" onClick={() => runMigration('reconcile')} disabled={migration.status === 'loading'}>
-                  <ShieldCheck size={15}/>{migration.status === 'loading' ? 'Riconcilio...' : 'Riconcilia'}
-                </button>
-                <button
-                  type="button"
-                  className="iu-button"
-                  onClick={() => {
-                    if (window.confirm('Attivare SQLite operativo per questo ambiente?')) void runMigration('activate')
-                  }}
-                  disabled={migration.status === 'loading'}
-                >
-                  <HardDrive size={15}/>Attiva SQLite
-                </button>
+                {!sqlAuthoritative ? (
+                  <>
+                    <button type="button" className="iu-button iu-button--primary" onClick={() => runMigration('migrate')} disabled={migration.status === 'loading'}>
+                      <UploadCloud size={15}/>{migration.status === 'loading' ? 'Migrazione...' : 'Migra JSON'}
+                    </button>
+                    <button type="button" className="iu-button" onClick={() => runMigration('reconcile')} disabled={migration.status === 'loading'}>
+                      <ShieldCheck size={15}/>{migration.status === 'loading' ? 'Riconcilio...' : 'Riconcilia'}
+                    </button>
+                    <button
+                      type="button"
+                      className="iu-button"
+                      onClick={() => {
+                        if (window.confirm('Attivare SQLite operativo per questo ambiente?')) void runMigration('activate')
+                      }}
+                      disabled={migration.status === 'loading'}
+                    >
+                      <HardDrive size={15}/>Attiva SQLite
+                    </button>
+                  </>
+                ) : null}
               </div>
-              <OperationAlert state={migration as OperationState<unknown>} idleText="Analizza prima di attivare: il blocco anti-perdita resta attivo e la riconciliazione conserva i dati già nel database."/>
+              <OperationAlert state={migration as OperationState<unknown>} idleText={sqliteIdleText}/>
               <MigrationResult result={migration.payload}/>
               {data.sqlite.tables.length ? (
                 <div className="iu-db-sqlite__tables">

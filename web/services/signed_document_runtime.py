@@ -144,7 +144,9 @@ def build_document_signed_snapshot_from_bytes(
     return {
         "signed_status": prepared.status.to_dict(),
         "ui_status": build_signed_document_ui_status(prepared.status),
+        "original_name": Path(str(source_name or "")).name,
         "preview_name": _nome_preview_documento(source_name),
+        "preview_is_extracted_payload": True,
     }
 
 

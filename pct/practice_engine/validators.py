@@ -8,6 +8,7 @@ from typing import Any, Callable
 import re
 
 from pct import validazione as pct_validazione
+from pct.document_signature_state import document_has_real_digital_signature
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, normalize_codice_oggetto_pst
 
 from .messages import MAIN_ACT_NOT_PDFA, MAIN_ACT_NOT_SIGNED, MISSING_MAIN_ACT, MISSING_PROCURA, problem_action
@@ -387,7 +388,7 @@ def dimensione_busta_ok(ctx: ValidationContext) -> ValidationResult:
 def firma_digitale_presente(ctx: ValidationContext, *, slot_key: str = "") -> ValidationResult:
     slot = _slot(ctx, slot_key=slot_key) if slot_key else _slot(ctx, SlotType.ATTO_PRINCIPALE.value, "ATTO_PRINCIPALE")
     doc = _document_for_slot(ctx, slot)
-    if bool(getattr(doc, "firmato_digitalmente", False)) or _text(getattr(doc, "nome", "")).lower().endswith(".p7m"):
+    if document_has_real_digital_signature(doc):
         return _ok("firma_digitale_presente", "Firma digitale presente.")
     return _block("firma_digitale_presente", MAIN_ACT_NOT_SIGNED, "Firma il documento prima del deposito.")
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from pct.document_signature_state import document_has_real_digital_signature
 from pct.wizard_pro import ESITI, STEP_ICONS, STEP_LABELS
 from web.helpers import get_agenda, get_fascicoli, get_scadenziario, get_soggetti, get_wizard_pro
 from web.services.hearing_preparation_dashboard import build_hearing_preparation_dashboard
@@ -224,7 +225,7 @@ def _document_payload(documento: Any, index: int, case_id: str) -> dict[str, Any
         "statusTone": DOCUMENT_STATUS_TONES.get(status, "neutral"),
         "notes": _safe_text(getattr(documento, "note", "")),
         "fileName": _safe_text(getattr(documento, "nome_file", "")),
-        "signed": bool(getattr(documento, "firmato", False)),
+        "signed": document_has_real_digital_signature(documento),
         "href": f"/fascicoli/{case_id}/documenti/{doc_id}/scarica" if case_id and doc_id else "",
     }
 
@@ -280,7 +281,7 @@ def _case_related_payload(fascicolo: Any | None) -> dict[str, Any]:
             "id": _safe_text(getattr(doc, "id", "")),
             "name": _safe_text(getattr(doc, "nome", ""), "Documento"),
             "type": _safe_text(getattr(getattr(doc, "tipo", ""), "value", "") or getattr(doc, "tipo", "")),
-            "signed": bool(getattr(doc, "firmato_digitalmente", False)),
+            "signed": document_has_real_digital_signature(doc),
             "href": f"/fascicoli/{case_id}/documenti/{getattr(doc, 'id', '')}/scarica" if _safe_text(getattr(doc, "id", "")) else "",
         }
         for doc in getattr(fascicolo, "documenti", []) or []

@@ -1,1 +1,0 @@
-import{a_ as r}from"./index-BXavM7j0.js";import{L as t}from"./LegalSkillsProfilePage-D78V_ULL.js";import"./button-nKPG_ry0.js";import"./input-9wqQkb85.js";import"./IusPageShell-CTzVlvOG.js";import"./rotate-ccw-CffjR-o5.js";import"./api-x_LiADMP.js";import"./save-DZ_XpNLg.js";function n(){return r.jsx(t,{})}export{n as ColdStartInterviewPage};

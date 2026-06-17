@@ -4,6 +4,48 @@ Aggiornato: 2026-06-14.
 
 Questo file va riletto prima di ogni intervento su `Prepara deposito`, busta, firma multipla, notifiche legali, portali telematici, agenda/scadenziario collegati a PEC e ricevute. Non sostituisce `AGENTS.md`: lo integra come memoria operativa specifica del deposito.
 
+## Aggiornamento 2026-06-17 - prova server reale e fix rapidi UI deposito
+
+Ambiente verificato: produzione `https://app.iusentra.it`, fascicolo reale `E5AE4668` (`2026/330 - Marchetti Lucia`), studio `studio-legale-giuseppe-montagnese`.
+
+Interventi applicati prima sul server, come richiesto dal workflow server-first:
+
+- corretto l'adattamento topbar su laptop: il pulsante `+ Nuovo` non viene più tagliato e `Assistenza remota` passa a icona compatta sotto 1600 px;
+- corretto il widget Lex chiuso: su tablet/mobile non resta più sovrapposto al logo, alla topbar o alla lista deposito;
+- corretto il menu `Ruolo` della lista `Documenti da inviare`: il menu resta allineato sotto il campo, non esce dalla card e ora si chiude con `Esc`;
+- confermato che `Da firmare` funziona a menu chiuso e, dopo il fix `Esc`, anche subito dopo avere aperto/chiuso il menu ruolo;
+- verificato che i documenti firmati vengono mostrati con estensione reale `.pdf.p7m` e microcopy `File firmato .p7m`, senza dichiarare firmato un PDF non firmato;
+- verificato che il lettore apre un `.p7m` direttamente in anteprima, con titolo documento, pulsanti `Scarica` e `Chiudi`, senza obbligare l'avvocato a scaricare il file;
+- verificata la pagina firma singola reale `/fascicoli/E5AE4668/documenti/1CE0BB0F/firma`: mostra di nuovo `Modalità firma visibile nel PDF`, posizione firma, luogo, data/ora, PIN token e `Firma tramite Local Signer`; non mostra più il pannello inutile `Riallinea automaticamente`.
+
+Prove visive server eseguite con browser reale collegato alla sessione autenticata:
+
+- desktop 1524x857: scroll alto, centro e fondo della pagina `Prepara deposito`;
+- tablet 900x857: scroll alto, centro e fondo della pagina `Prepara deposito`;
+- mobile 430x857: scroll alto, centro e fondo della pagina `Prepara deposito`;
+- click reale del menu `Ruolo`: 1 menu aperto, rettangolo menu allineato al campo, voci `Atto principale`, `Procura alle liti`, `Allegato`, `Prova notifica`, `Fuori busta`;
+- pressione `Esc`: menu aperto `1 -> 0`;
+- click reale `Da firmare`: stato `true -> false -> true`;
+- click reale `Visualizza` su `Autocertificazione ricorso.PDF.p7m`: visualizzatore aperto e contenuto PDF visibile;
+- fase `Firma`: stato visibile `0 documenti da firmare` e `Firme coerenti`, senza `Local Signer non rilevato` e senza riallineamento inutile;
+- fase `Busta e indice`: aperta con click reale dal percorso deposito, non con hash manuale; mostrati `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF` e documenti `.p7m` selezionati;
+- click reale `Genera controllo e indice`, conferma modale `Prepara controllo`, download `Busta_2026-330_RICORSO.enc`.
+
+Esito pacchetto scaricato nella prova server:
+
+- file: `Busta_2026-330_RICORSO.enc`;
+- dimensione download browser: 12.834.405 byte;
+- SHA-256 locale della prova: `8d8c5f146970f480d179c7022ac885c90baf09c2a189bdf4deff3df62b7d2d94`;
+- il file è un pacchetto di controllo leggibile come archivio zip, non un invio PEC e non va registrato come deposito valido ministeriale;
+- voci presenti: `DatiAtto.xml`, `Autocertificazione ricorso.PDF.p7m`, `Autocertificazione situazione reddituale.PDF.p7m`, `Procura.PDF.p7m`, `IndiceDocumentiDepositati.PDF`;
+- non è stata chiamata la route di invio PEC e nella UI non compare testo di PEC inviata.
+
+Stato operativo:
+
+- la parte server visibile del deposito è migliorata e provata sul fascicolo reale;
+- resta obbligatorio riallineare la copia locale, eseguire build/gate mirati, aggiornare gli artefatti React, fare commit, push dei branch gemelli, controlli GitHub/CodeQL e deploy ordinato sullo stesso commit;
+- il pacchetto generato è correttamente un pacchetto di controllo: finché manca l'adapter ministeriale per `Atto.enc` AES256, il software deve continuare a spiegare il limite e non deve presentarlo come deposito valido inviato.
+
 ## Regola utente non negoziabile
 
 - Il deposito non va trattato come “fase finale guidata” da rinviare: il software deve risolvere subito tutto ciò che può risolvere.
@@ -77,6 +119,30 @@ Prova obbligatoria da eseguire sul server reale quando il flusso è pronto:
 - verificare che il corpo non sia duplicato e che l'elenco dei file corrisponda esattamente alla busta;
 - aprire visivamente almeno un `.eml`, un `.xml`/`.xml.p7m` e un `.pdf.p7m` dal lettore globale;
 - fermarsi prima dell'invio PEC reale.
+
+## Caso reale PEC/EML JQ332-L01 fornito il 2026-06-16
+
+L'utente ha fornito tre ricevute reali collegate alla stessa busta di deposito. La struttura è stata verificata tramite `PecAuditRepository` sui file allegati alla conversazione, senza invio PEC e senza modificare dati di fascicolo.
+
+Evidenza tecnica rilevata:
+
+- la ricevuta `ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO` contiene `Codice esito: -1`, `IDBUSTA: 35508878`, `NOME FILE: DatiAtto.xml.p7m`;
+- il testo ministeriale indica `Atto non conforme alle specifiche`, ma aggiunge che l'atto è in attesa di conferma della cancelleria, verrà comunque accettato e non è necessario effettuare nuovamente il deposito;
+- le due ricevute successive `ACCETTAZIONE DEPOSITO TELEMATICO` contengono `Codice esito: 2`, lo stesso `IDBUSTA` e l'accettazione manuale avvenuta con successo;
+- gli allegati di servizio osservati includono `EsitoAtto.xml`, `daticert.xml`, `postacert.eml` e `smime.p7s`.
+
+Regola software derivata:
+
+- `Codice esito -1` con `atto non conforme` non è sempre un rifiuto o un errore critico;
+- se nello stesso testo è presente l'indicazione che la cancelleria deve confermare, che l'atto verrà comunque accettato o che non va ripetuto il deposito, IUSENTRA deve classificare l'esito come `warning`/presidio intermedio, non come `danger`;
+- il software deve attendere o collegare la successiva ricevuta di accettazione/rifiuto deposito e non creare una nuova scadenza operativa duplicata;
+- solo `errore fatale`, `rifiuto tecnico`, `rifiuto deposito` o accettazione negata esplicita devono produrre esito critico.
+
+Verifica eseguita il 2026-06-16:
+
+- primo EML JQ332: `event_type=pct_deposito`, `stage=esito_controlli_deposito`, `status=warning`, issue `pct_deposit_followup_expected`;
+- secondo EML JQ332: `event_type=pct_deposito`, `stage=accettazione_deposito`, `status=ok`, nessuna issue critica di deposito;
+- terzo EML JQ332: stesso esito positivo della ricevuta di accettazione.
 
 ## Matrice canali e comportamento software
 
@@ -556,6 +622,38 @@ Verifiche obbligatorie per questa tranche:
 - generazione pacchetto dry-run o ispezione reale equivalente;
 - controllo contenuti: documenti selezionati, atto principale, procura, allegati, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, oggetto e testo email se prodotti;
 - prova Local Signer React con controllo automatico di versione, avvio, aggiornamento e stop delle istanze vecchie; la firma multipla reale richiede poi il PIN digitato al momento della firma e il token fisico rilevato.
+
+## Aggiornamento 2.253.36 - prova server firma multipla e pacchetto busta
+
+Data intervento: 2026-06-16.
+
+Prova reale eseguita sul server `https://app.iusentra.it`, fascicolo `E5AE4668` (`2026/330 - Marchetti Lucia`):
+
+- accesso autenticato allo studio `studio-legale-giuseppe-montagnese` e lettura payload React `/api/v1/ui/fascicoli/E5AE4668?include=all`;
+- verificato che l'atto principale `Autocertificazione ricorso.PDF.p7m` e la procura `Procura.PDF.p7m` risultano già firmati, con estensione `.p7m` visibile nel payload;
+- scaricati dal server due documenti reali non firmati: `Autocertificazione situazione reddituale.PDF` e `Contratto 24-25.pdf`;
+- firmati insieme con una sola chiamata Local Signer `/firma-batch`, token CNS Bit4id reale e PIN inserito nel processo di prova, senza salvare il PIN;
+- ricaricati nel fascicolo come `Autocertificazione situazione reddituale.PDF.p7m` e `Contratto 24-25.pdf.p7m`;
+- riletto il payload React dopo upload: entrambi i documenti risultano `signed=true` e mantengono il nome originale con sola aggiunta dell'estensione `.p7m`;
+- salvata classificazione deposito con 4 documenti in busta: atto principale, procura, autocertificazione reddituale e contratto;
+- chiamata la validazione deposito con form reale: 5 avvisi, 0 blocchi;
+- generato il pacchetto con `/fascicoli/E5AE4668/deposito/genera-busta` senza usare `/deposito/invia-pec`;
+- verificato il file `Busta_2026-330_RICORSO.enc` scaricato dal server: è un pacchetto zip di controllo con 6 voci, cioè `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF` e i quattro documenti `.p7m`.
+
+Avvisi rilevati nella validazione:
+
+- atto introduttivo con RG già presente;
+- oggetto dell'atto troppo sintetico;
+- ricevuta contributo unificato non rilevata;
+- prova di notifica non rilevata;
+- conformità PDF/A non verificabile sul wrapper `.p7m`.
+
+Stato operativo:
+
+- la firma multipla Local Signer ha funzionato su documenti reali e ha salvato i `.p7m` nel fascicolo;
+- il pacchetto busta di controllo è stato generato e contiene `DatiAtto.xml`, indice e documenti firmati;
+- non è stato eseguito invio PEC;
+- resta aperta la verifica visiva materiale nella scheda autenticata del browser dell'utente, con scroll completo di `#proposta-busta` e `#firma-busta`, controllo layout desktop/tablet/mobile e conferma che il pannello singolo documento mostra di nuovo le impostazioni di firma visibile al posto del blocco di riallineamento inutile.
 
 ## Aggiornamento 2.253.34 - scelta `Da firmare` e layout lista deposito
 

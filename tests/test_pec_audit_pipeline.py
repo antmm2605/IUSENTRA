@@ -26,8 +26,10 @@ from pct.pec_pipeline import (
     _remote_hearing_note_lines,
     _remote_hearing_updates_for_existing,
     build_pec_procedural_profile,
+    build_pct_deposit_lifecycle,
     build_validation_report,
     detect_pec_legal_context,
+    detect_pct_deposit_stage,
     extract_text_with_coverage,
     ingest_synthetic_dataset,
     synthetic_pec_messages,
@@ -1214,6 +1216,56 @@ def test_pct_deposit_lifecycle_explains_expected_pec_sequence(tmp_path):
     assert report["deadline_proposal"]["status"] == "not_needed"
     assert report["deadline_proposal"]["calendar_scope"] == "fascicolo_deposito"
     assert report["deadline_proposal"]["source_event_type"] == "pct_deposito"
+
+
+def test_pct_deposit_controls_non_compliant_but_waiting_acceptance_is_warning():
+    parsed = {
+        "headers": {
+            "subject": "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO: Ricorso RG: 1733/2026 [JQ332-L01] [RefID_001_test]"
+        },
+        "body": {
+            "text": (
+                "Codice esito: -1.\n"
+                "IDBUSTA: 35508878\n"
+                "NOME FILE: DatiAtto.xml.p7m\n"
+                "Atto non conforme alle specifiche. In attesa di conferma da parte della cancelleria: "
+                "l'atto verra comunque accettato non e necessario effettuare nuovamente il deposito."
+            )
+        },
+        "fields": {"tipo_ricevuta": {"value": "breve"}},
+    }
+
+    stage = detect_pct_deposit_stage(parsed)
+    lifecycle = build_pct_deposit_lifecycle(parsed, [{"classification": "daticert"}], "pct_deposito")
+
+    assert stage["id"] == "esito_controlli_deposito"
+    assert stage["status"] == "warning"
+    assert "non richiede nuovo deposito" in stage["reason"]
+    assert lifecycle["current_stage"]["status"] == "warning"
+    assert "stato intermedio" in lifecycle["communication"]
+
+
+def test_pct_deposit_manual_acceptance_is_final_ok():
+    parsed = {
+        "headers": {
+            "subject": "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO: Ricorso RG: 1733/2026 [JQ332-L01] [RefID_001_test]"
+        },
+        "body": {
+            "text": (
+                "Codice esito: 2.\n"
+                "IDBUSTA: 35508878\n"
+                "Accettazione manuale avvenuta con successo."
+            )
+        },
+    }
+
+    stage = detect_pct_deposit_stage(parsed)
+    lifecycle = build_pct_deposit_lifecycle(parsed, [{"classification": "daticert"}], "pct_deposito")
+
+    assert stage["id"] == "accettazione_deposito"
+    assert stage["status"] == "ok"
+    assert lifecycle["expected_next"] == []
+    assert "accettato" in lifecycle["communication"].lower()
 
 
 def test_lex_operational_tools_expose_pec_audit_control_context(tmp_path):

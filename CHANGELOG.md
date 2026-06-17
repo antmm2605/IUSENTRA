@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.253.37 - 2026-06-17
+
+- Deposito React: chiusa la regressione del menu ruolo che poteva restare aperto sopra la spunta `Da firmare`; ora `Esc` chiude il menu e restituisce il focus al pulsante.
+- UI produzione: verificato su `app.iusentra.it` il flusso `E5AE4668` desktop/tablet/mobile con topbar, lista documenti, `.pdf.p7m`, icone visualizza/scarica e viewer documento senza overflow.
+- Pacchetto deposito: generato dal server il controllo `Busta_2026-330_RICORSO.enc` senza invio PEC reale, contenente `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF` e i documenti firmati `.p7m` selezionati.
+- Guardrail dati: il test di classificazione deposito ora rilegge `studio.db` come fonte operativa, evitando che un JSON storico venga usato come verità dei metadati deposito.
+
+## 2.253.36 - 2026-06-16
+
+- Struttura dati: fissata la regola operativa SQL fonte di verità per gli studi in modalità SQLite/PostgreSQL; i JSON tenant-aware sono solo mirror, bootstrap controllato, cache, archivio o import/export storico.
+- Audit tenant: `scripts/audit_tenant_data_structure.py` censisce anche JSON operativi nascosti e famiglie dinamiche come Documenti AI, importazioni fascicolo e Lex dataset, popolandoli in `moduli_dati` e `moduli_json_records`.
+- Runtime tenant: aggiunti path tenant-aware e isolamento per repository `studio_local_pack`, `editor_ai`, `pec_cancelleria_state`, intelligence/giurisprudenza/legal/telematico, preventivi, termini processuali e template.
+- Guardrail: test mirati e audit a freddo sul tenant locale confermano `source_of_truth=sqlite`, `json_authoritative=false`, zero JSON operativi non censiti e contratto dati generale senza warning.
+
 ## 2.253.35 - 2026-06-16
 
 - Sicurezza dipendenze: aggiornati i vincoli Python per `cryptography`, `lxml` e `pytest` alle versioni non vulnerabili richieste.

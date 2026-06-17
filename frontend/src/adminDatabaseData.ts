@@ -19,6 +19,8 @@ export type AdminDatabaseModule = {
   lastModified: string
   lastModifiedLabel: string
   migratableSqlite: boolean
+  authoritative: boolean
+  mirror: boolean
   kind: { label: string; tone: Tone }
   status: AdminDatabaseStatus
 }
@@ -26,6 +28,8 @@ export type AdminDatabaseModule = {
 export type AdminDatabaseSqliteInfo = {
   exists: boolean
   error: string
+  path: string
+  role: string
   sizeLabel: string
   sizeBytes: number
   totalPages: number
@@ -46,6 +50,17 @@ export type AdminDatabaseUsage = {
   recentErrors: Array<Record<string, unknown>>
 }
 
+export type AdminDatabaseSourceTruth = {
+  selectedMode: string
+  effectiveMode: string
+  authoritative: string
+  sqlAuthoritative: boolean
+  jsonRole: string
+  status: string
+  studioDbPath: string
+  tenantSlug: string
+}
+
 export type AdminDatabaseActions = {
   refresh: string
   verify: string
@@ -63,6 +78,7 @@ export type AdminDatabaseActions = {
 export type AdminDatabasePageData = {
   source: string
   generatedAt: string
+  sourceTruth: AdminDatabaseSourceTruth
   page: {
     title: string
     subtitle: string
@@ -123,6 +139,8 @@ export type AdminDatabaseIntegrityResult = {
 
 export type AdminDatabaseOptimizeResult = {
   ok: boolean
+  json_mirror_only?: boolean
+  messaggio?: string
   risultati: Array<{
     modulo: string
     operazione: string
@@ -141,6 +159,7 @@ export type AdminDatabaseOptimizeResult = {
 
 export type AdminDatabaseMigrationResult = {
   ok: boolean
+  json_mirror_only?: boolean
   stato?: string
   messaggio: string
   percorso_db: string
@@ -219,6 +238,8 @@ const emptyActions: AdminDatabaseActions = {
 const emptySqlite: AdminDatabaseSqliteInfo = {
   exists: false,
   error: '',
+  path: '',
+  role: '',
   sizeLabel: 'n.d.',
   sizeBytes: 0,
   totalPages: 0,
@@ -226,6 +247,17 @@ const emptySqlite: AdminDatabaseSqliteInfo = {
   fragmentationPct: 0,
   pageSize: 0,
   tables: [],
+}
+
+const emptySourceTruth: AdminDatabaseSourceTruth = {
+  selectedMode: 'JSON',
+  effectiveMode: 'JSON',
+  authoritative: 'JSON',
+  sqlAuthoritative: false,
+  jsonRole: 'Fonte operativa',
+  status: 'Da verificare',
+  studioDbPath: '',
+  tenantSlug: '',
 }
 
 const emptyUsage: AdminDatabaseUsage = {
@@ -242,6 +274,7 @@ const emptyUsage: AdminDatabaseUsage = {
 export const emptyAdminDatabasePage: AdminDatabasePageData = {
   source: 'vuoto',
   generatedAt: '',
+  sourceTruth: emptySourceTruth,
   page: {
     title: 'Gestione Database',
     subtitle: 'Caricamento statistiche, integrità, migrazione SQLite ed export dei dati.',
@@ -321,6 +354,8 @@ function moduleFromPayload(value: unknown, index: number): AdminDatabaseModule {
     lastModified: text(item.lastModified),
     lastModifiedLabel: text(item.lastModifiedLabel, 'n.d.'),
     migratableSqlite: bool(item.migratableSqlite),
+    authoritative: bool(item.authoritative),
+    mirror: bool(item.mirror),
     kind: {
       label: text(kind.label, 'JSON'),
       tone: tone(kind.tone),
@@ -342,6 +377,7 @@ function normalisePayload(payload: unknown): AdminDatabasePageData {
   if (!isRecord(payload)) return emptyAdminDatabasePage
   const page = isRecord(payload.page) ? payload.page : {}
   const summary = isRecord(payload.summary) ? payload.summary : {}
+  const sourceTruthPayload = isRecord(payload.sourceTruth) ? payload.sourceTruth : {}
   const sqlite = isRecord(payload.sqlite) ? payload.sqlite : {}
   const usage = isRecord(payload.usage) ? payload.usage : {}
   const actions = isRecord(payload.actions) ? payload.actions : {}
@@ -356,6 +392,16 @@ function normalisePayload(payload: unknown): AdminDatabasePageData {
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt),
+    sourceTruth: {
+      selectedMode: text(sourceTruthPayload.selectedMode, emptySourceTruth.selectedMode),
+      effectiveMode: text(sourceTruthPayload.effectiveMode, emptySourceTruth.effectiveMode),
+      authoritative: text(sourceTruthPayload.authoritative, emptySourceTruth.authoritative),
+      sqlAuthoritative: bool(sourceTruthPayload.sqlAuthoritative),
+      jsonRole: text(sourceTruthPayload.jsonRole, emptySourceTruth.jsonRole),
+      status: text(sourceTruthPayload.status, emptySourceTruth.status),
+      studioDbPath: text(sourceTruthPayload.studioDbPath, emptySourceTruth.studioDbPath),
+      tenantSlug: text(sourceTruthPayload.tenantSlug, emptySourceTruth.tenantSlug),
+    },
     page: {
       title: text(page.title, emptyAdminDatabasePage.page.title),
       subtitle: text(page.subtitle, emptyAdminDatabasePage.page.subtitle),
@@ -375,6 +421,8 @@ function normalisePayload(payload: unknown): AdminDatabasePageData {
     sqlite: {
       exists: bool(sqlite.exists),
       error: text(sqlite.error),
+      path: text(sqlite.path),
+      role: text(sqlite.role),
       sizeLabel: text(sqlite.sizeLabel, 'n.d.'),
       sizeBytes: number(sqlite.sizeBytes),
       totalPages: number(sqlite.totalPages),

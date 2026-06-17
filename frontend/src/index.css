@@ -1207,6 +1207,9 @@ body.react-shell-page #root{
     outline:2px solid var(--iu-gold-500);
     outline-offset:2px;
   }
+  body:has(.iu-mobile) #pct-ai-widget:not(.pct-ai-widget--open){
+    display:none!important;
+  }
 }
 
 @media(max-width:620px){
@@ -1214,14 +1217,17 @@ body.react-shell-page #root{
     max-width:calc(100vw - 16px);
   }
   .iu-mobile__rail{
-    justify-content:space-between;
-    overflow:hidden;
+    justify-content:flex-start;
+    overflow-x:auto;
+    overflow-y:hidden;
   }
   .iu-mobile a,
   .iu-mobile__lex{
-    flex:1 1 0;
-    min-width:0;
-    max-width:none;
+    flex:0 0 66px;
+    min-width:66px;
+    max-width:66px;
+    word-break:keep-all;
+    overflow-wrap:normal;
   }
   .iu-mobile a span,
   .iu-mobile__lex span{
@@ -1261,6 +1267,29 @@ body.react-shell-page #root{
     right:12px!important;
     left:auto!important;
     bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
+  }
+}
+@media(max-width:920px){
+  .iu-lex-float{
+    right:14px!important;
+    bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
+    z-index:89;
+  }
+}
+@media(max-width:520px){
+  .iu-lex-float{
+    right:12px!important;
+    bottom:calc(118px + env(safe-area-inset-bottom,0px))!important;
+  }
+  .iu-lex-float__button{
+    width:48px;
+    min-width:48px;
+    height:48px;
+    min-height:48px;
+    border-radius:17px;
+  }
+  .iu-lex-float__panel{
+    bottom:58px;
   }
 }
 @media(prefers-reduced-motion:reduce){

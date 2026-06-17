@@ -210,7 +210,7 @@ def test_migrazione_json_verso_sqlite_produce_report_e_consistenza(tmp_path: Pat
     assert studio_db.conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] >= 1
 
 
-def test_runtime_storage_fallback_da_sqlite_a_json_finche_il_db_non_e_seedato(tmp_path: Path):
+def test_runtime_storage_crea_sqlite_da_json_senza_fallback_operativo(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg_web(tmp_path), "SQLITE_MODE": True})
 
@@ -229,37 +229,12 @@ def test_runtime_storage_fallback_da_sqlite_a_json_finche_il_db_non_e_seedato(tm
     with app.test_request_context("/clienti"):
         studio_db = get_request_studio_db(app.config["CLIENTI_DB"])
 
-        assert studio_db is None
-        assert g._storage_runtime_profile.effective_mode == "JSON"
-        assert g._storage_runtime_profile.uses_sqlite is False
-
-    sqlite_path = Path(app.config["CLIENTI_DB"]).resolve().parents[1] / "studio.db"
-    migratore = GestioneDatabase(
-        {
-            "clienti": app.config["CLIENTI_DB"],
-            "fascicoli": app.config["FASCICOLI_DB"],
-            "appuntamenti": app.config["AGENDA_DB"],
-            "scadenze": app.config["SCADENZIARIO_DB"],
-            "messaggi": app.config["MESSAGGI_DB"],
-            "utenti": app.config["AUTH_DB"],
-            "audit": app.config["AUDIT_DB"],
-            "privacy": str(tmp_path / "privacy" / "registro.json"),
-            "notifiche": str(tmp_path / "notifiche" / "log.json"),
-            "backup": str(tmp_path / "backup" / "registro.json"),
-        }
-    )
-    _write_json(Path(app.config["AUTH_DB"]), [])
-    _write_json(Path(app.config["AUDIT_DB"]), [])
-    _write_json(tmp_path / "privacy" / "registro.json", [])
-    _write_json(tmp_path / "notifiche" / "log.json", [])
-    _write_json(tmp_path / "backup" / "registro.json", [])
-    risultato = migratore.migra_verso_sqlite(str(sqlite_path))
-
-    assert risultato.riuscita is True
-
-    with app.test_request_context("/clienti"):
-        studio_db = get_request_studio_db(app.config["CLIENTI_DB"])
-
         assert studio_db is not None
         assert g._storage_runtime_profile.effective_mode == "SQLITE"
         assert g._storage_runtime_profile.uses_sqlite is True
+        row = studio_db.conn.execute(
+            "SELECT dati_json FROM clienti WHERE id = ?",
+            ("cli-legacy",),
+        ).fetchone()
+
+    assert row is not None

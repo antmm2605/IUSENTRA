@@ -12,6 +12,7 @@ import unicodedata
 from urllib.parse import urlencode
 from typing import Any, Callable
 
+from pct.document_signature_state import document_has_real_digital_signature
 from pct.guida_pratica import (
     GuidaPraticaError,
     GuidaPraticaService,
@@ -58,7 +59,7 @@ def _document_context(doc: Any) -> dict[str, Any]:
         "nome": _text(getattr(doc, "nome", ""), "Documento"),
         "tipo": _enum_value(getattr(doc, "tipo", "")),
         "data_documento": _text(getattr(doc, "data_documento", "")),
-        "firmato": bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False)),
+        "firmato": document_has_real_digital_signature(doc),
         "fonte": _text(getattr(doc, "fonte_documento", "")),
         "note": _short(getattr(doc, "note", "")),
     }

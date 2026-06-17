@@ -1470,6 +1470,43 @@ textarea[data-iusentra-voice-preview="ascolto"]{
   .iu-topbar-search-trigger{width:min(560px,56vw)}
   .iu-topbar-op__actions{gap:7px}
 }
+@media(max-width:1600px){
+  .iu-topbar-op{
+    gap:8px;
+    padding-left:16px;
+    padding-right:16px;
+  }
+  .iu-topbar-search-trigger{
+    width:min(440px,34vw);
+  }
+  .iu-support-request{
+    min-width:44px;
+    padding:0 12px;
+  }
+  .iu-support-request span{
+    position:absolute;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    white-space:nowrap;
+  }
+  .iu-topbar-op__actions{
+    gap:8px;
+  }
+  .iu-topbar-op .iu-date{
+    padding:0 12px;
+  }
+  .iu-topbar-op .iu-icon,
+  .iu-topbar-op .iu-date,
+  .iu-topbar-op .iu-new{
+    min-height:40px;
+  }
+  .iu-topbar-op .iu-icon{
+    width:40px;
+    height:40px;
+  }
+}
 @media(max-width:920px){
   .iu-topbar-op__actions .iu-topbar-popover:nth-of-type(n+4),
   .iu-topbar-op__actions>a.iu-icon{

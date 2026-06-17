@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -145,9 +145,9 @@ def _resolve_tenant_mode_profile(selected_mode: str, tenant: Any, studio_db_path
     if selected_mode == DbMode.POSTGRESQL and database is not None and is_postgres_core_active(database):
         return DbMode.POSTGRESQL, False, "tenant-postgresql"
     if selected_mode == DbMode.POSTGRESQL:
-        return DbMode.JSON, False, "tenant-postgresql-not-activated"
+        return DbMode.SQLITE, True, "tenant-postgresql-sqlite-staging"
     if selected_mode == DbMode.MYSQL:
-        return DbMode.JSON, False, "tenant-mysql-not-supported"
+        return DbMode.SQLITE, True, "tenant-mysql-sqlite-staging"
     return DbMode.JSON, False, "tenant-json"
 
 
@@ -242,6 +242,138 @@ def _postgres_runtime_backend(anchor_path: str, profile: StorageRuntimeProfile):
     return backend
 
 
+def _runtime_paths_for_studio_root(root: Path) -> dict[str, str]:
+    return {
+        "AGENDA_DB": str(root / "agenda" / "appuntamenti.json"),
+        "CALENDAR_SYNC_DB": str(root / "agenda" / "calendar_sync.json"),
+        "CALENDAR_SYNC_ENGINE_DB": str(root / "agenda" / "calendar_sync_engine.json"),
+        "CALENDAR_CONFLICTS_DB": str(root / "agenda" / "calendar_conflicts.json"),
+        "CALENDAR_TOKEN_DB": str(root / "agenda" / "cal_token.json"),
+        "CLIENTI_DB": str(root / "clienti" / "anagrafica.json"),
+        "CONDIVISIONI_DB": str(root / "clienti" / "condivisioni.json"),
+        "NOTE_FALDONE_DB": str(root / "clienti" / "note_faldone.json"),
+        "FASCICOLI_DB": str(root / "fascicoli" / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(root / "fascicoli" / "documenti"),
+        "FASCICOLI_ARCH": str(root / "fascicoli" / "archivio"),
+        "DOCUMENTI_AI_DIR": str(root / "fascicoli" / "documenti_ai"),
+        "DOCUMENTI_AI_DB": str(root / "fascicoli" / "documenti_ai" / "documenti_ai.json"),
+        "EDITOR_AI_DB": str(root / "fascicoli" / "editor_ai" / "editor_ai.json"),
+        "FASCICOLI_IMPORTAZIONI_DIR": str(root / "fascicoli" / "importazioni"),
+        "PEC_CANCELLERIA_STATE_DB": str(root / "fascicoli" / "pec_cancelleria_state.json"),
+        "PRACTICE_ENGINE_DB": str(root / "fascicoli" / "practice_engine" / "practice_engine.json"),
+        "MESSAGGI_DB": str(root / "messaggi" / "storico.json"),
+        "BACKUP_DIR": str(root / "backup"),
+        "AUTH_DB": str(root / "auth" / "utenti.json"),
+        "AUDIT_DB": str(root / "auth" / "audit.json"),
+        "SCADENZIARIO_DB": str(root / "scadenziario" / "scadenze.json"),
+        "TIMESHEET_DB": str(root / "timesheet" / "entries.json"),
+        "TIME_TRACKING_DB": str(root / "timesheet" / "time_tracking.json"),
+        "SEARCH_INDEX": str(root / "search" / "index.db"),
+        "PRIVACY_DB": str(root / "privacy" / "registro.json"),
+        "PORTALE_DB": str(root / "portale" / "portali.json"),
+        "FATTURAZIONE_DB": str(root / "fatturazione" / "parcelle.json"),
+        "NOTIFICHE_LOG": str(root / "notifiche" / "log.json"),
+        "PAGAMENTI_DIR": str(root / "pagamenti"),
+        "PREVENTIVI_DB": str(root / "preventivi" / "preventivi.json"),
+        "SOGGETTI_DB": str(root / "soggetti" / "anagrafica.json"),
+        "SOGGETTI_PARTI_DB": str(root / "soggetti" / "parti.json"),
+        "WIZARD_PRO_DB": str(root / "wizard_pro" / "sessioni.json"),
+        "LEGAL_INTELLIGENCE_DB": str(root / "intelligence" / "motori.json"),
+        "LEGAL_UPDATES_JSON": str(root / "intelligence" / "legal_updates_repository.json"),
+        "NORMATIVE_TABLES_DB": str(root / "intelligence" / "tabelle_normative.json"),
+        "GIURISPRUDENZA_DB": str(root / "intelligence" / "giurisprudenza.json"),
+        "GIURISPRUDENZA_REPOSITORY_DB": str(root / "intelligence" / "giurisprudenza_repository.json"),
+        "GIURISPRUDENZA_SOURCES_REPOSITORY_DB": str(root / "intelligence" / "giurisprudenza_sources_repository.json"),
+        "GIURISPRUDENZA_SYNC_REGISTRY_DB": str(root / "intelligence" / "giurisprudenza_sync_registry.json"),
+        "GIURISPRUDENZA_TAXONOMY_REPOSITORY_DB": str(root / "intelligence" / "giurisprudenza_taxonomy_repository.json"),
+        "GIURISPRUDENZA_USAGE_POLICY_DB": str(root / "intelligence" / "giurisprudenza_usage_policy.json"),
+        "LEGAL_ENGINE_SOURCE_EDGES_DB": str(root / "intelligence" / "legal_engine_source_edges.json"),
+        "LEGAL_ENGINES_REPOSITORY_DB": str(root / "intelligence" / "legal_engines_repository.json"),
+        "LEGAL_INTELLIGENCE_REPOSITORY_DB": str(root / "intelligence" / "legal_intelligence_repository.json"),
+        "LEGAL_KEYWORD_TO_ENGINE_DB": str(root / "intelligence" / "legal_keyword_to_engine.json"),
+        "LEGAL_KEYWORD_TO_SOURCE_DB": str(root / "intelligence" / "legal_keyword_to_source.json"),
+        "LEGAL_OPERATIONAL_REPOSITORY_DB": str(root / "intelligence" / "legal_operational_repository.json"),
+        "LEGAL_SOURCES_REPOSITORY_DB": str(root / "intelligence" / "legal_sources_repository.json"),
+        "LEX_DATASET_DIR": str(root / "intelligence" / "lex_dataset"),
+        "TELEMATICO_ACTIONS_REPOSITORY_DB": str(root / "intelligence" / "telematico_actions_repository.json"),
+        "TELEMATICO_CAPABILITIES_REPOSITORY_DB": str(root / "intelligence" / "telematico_capabilities_repository.json"),
+        "TELEMATICO_CATALOG_SNAPSHOT_DB": str(root / "intelligence" / "telematico_catalog_snapshot.json"),
+        "TELEMATICO_CATALOG_SOURCES_REPOSITORY_DB": str(root / "intelligence" / "telematico_catalog_sources_repository.json"),
+        "TELEMATICO_METHODS_REPOSITORY_DB": str(root / "intelligence" / "telematico_methods_repository.json"),
+        "TELEMATICO_MONITORING_REPOSITORY_DB": str(root / "intelligence" / "telematico_monitoring_repository.json"),
+        "TELEMATICO_REPOSITORY_JSON": str(root / "intelligence" / "telematico_repository.json"),
+        "TELEMATICO_RULES_REPOSITORY_DB": str(root / "intelligence" / "telematico_rules_repository.json"),
+        "TELEMATICO_SOURCES_REPOSITORY_DB": str(root / "intelligence" / "telematico_sources_repository.json"),
+        "TELEMATICO_WIZARD_SECTIONS_REPOSITORY_DB": str(root / "intelligence" / "telematico_wizard_sections_repository.json"),
+        "TELEMATICO_WSDL_MODULES_REPOSITORY_DB": str(root / "intelligence" / "telematico_wsdl_modules_repository.json"),
+        "TELEMATICO_XSD_CHANNELS_REPOSITORY_DB": str(root / "intelligence" / "telematico_xsd_channels_repository.json"),
+        "LEGAL_SKILLS_PROFILE_DB": str(root / "intelligence" / "legal_skills" / "profile.json"),
+        "LEGAL_SKILLS_RUNS_DB": str(root / "intelligence" / "legal_skills" / "runs.json"),
+        "LEGAL_SKILLS_SCHEDULED_DB": str(root / "intelligence" / "legal_skills" / "scheduled.json"),
+        "WORKFLOW_AGENTS_RUNS_DB": str(root / "intelligence" / "workflow_agents" / "runs.json"),
+        "WORKFLOW_AGENTS_METRICS_DB": str(root / "intelligence" / "workflow_agents" / "metrics.json"),
+        "WORKFLOW_AGENTS_ACTIONS_DB": str(root / "intelligence" / "workflow_agents" / "actions.json"),
+        "WORKSPACE_INTELLIGENCE_DB": str(root / "intelligence" / "workspace_intelligence.json"),
+        "LOCAL_AI_DB": str(root / "intelligence" / "local_ai.db"),
+        "VALIDATION_RUNS_DB": str(root / "intelligence" / "validation_runs.json"),
+        "TEMPLATE_ATTI_DB": str(root / "template_atti" / "templates.json"),
+        "TEMPLATE_REPOSITORY_DB": str(root / "template_atti" / "template_repository.json"),
+        "TEMPLATE_ATTI_PREFS_DB": str(root / "template_atti" / "editor_layout.json"),
+        "REDACTION_ASSISTANT_DB": str(root / "intelligence" / "assistente_redazionale.json"),
+        "PREVENTIVI_REPOSITORY_DB": str(root / "preventivi" / "preventivi_repository.json"),
+        "PREVENTIVI_WORKFLOW_STATES_DB": str(root / "preventivi" / "preventivi_workflow_states.json"),
+        "PREVENTIVI_FIELD_MAP_DB": str(root / "preventivi" / "preventivi_field_map.json"),
+        "PREVENTIVI_RULES_DB": str(root / "preventivi" / "preventivi_rules.json"),
+        "TERMINI_PROCESSUALI_DB": str(root / "scadenziario" / "termini_processuali.json"),
+        "TELEMATICO_DB": str(root / "telematico" / "workflow.db"),
+        "EMAIL_CASELLA_DB": str(root / "email" / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(root / "email" / "ordinaria.json"),
+        "CONFIG_STUDIO_DB": str(root / "config" / "studio.json"),
+        "STORAGE_CONFIG": str(root / "config" / "storage.json"),
+        "STUDIO_LOCAL_PACK_DB": str(root / "config" / "studio_local_pack.json"),
+        "STUDIO_CONFIG": str(root / "config" / "studio.json"),
+        "STUDIO_DB": str(root / "studio.db"),
+    }
+
+
+def _ensure_sqlite_runtime_from_json(profile: StorageRuntimeProfile) -> None:
+    """Crea o riallinea studio.db senza usare i JSON come fallback operativo."""
+
+    root = Path(profile.studio_db_path).resolve().parent
+    root.mkdir(parents=True, exist_ok=True)
+    try:
+        from pct.database import GestioneDatabase
+        from pct.storage import StudioDB
+        from pct.storage_migration import _build_json_to_sqlite_sources
+
+        try:
+            StudioDB.get(profile.studio_db_path).chiudi()
+        except Exception:
+            pass
+        paths = _runtime_paths_for_studio_root(root)
+        result = GestioneDatabase(
+            _build_json_to_sqlite_sources(paths)
+        ).migra_verso_sqlite(profile.studio_db_path)
+        if not getattr(result, "riuscita", False):
+            errors = "; ".join(str(item) for item in getattr(result, "errori", []) or [])
+            raise RuntimeError(errors or "migrazione SQL non riuscita")
+        StudioDB.get(profile.studio_db_path).ensure_schema()
+        if has_app_context():
+            current_app.logger.info(
+                "Runtime SQL tenant riallineato da mirror JSON controllati: %s",
+                profile.studio_db_path,
+            )
+    except Exception as exc:
+        message = (
+            "Archivio SQL dello studio non disponibile o non popolato. "
+            "IUSENTRA ha provato a crearlo, ma non può usare i JSON come verità operativa: "
+            f"{exc}"
+        )
+        if has_app_context():
+            current_app.logger.exception(message)
+        raise RuntimeError(message) from exc
+
+
 def get_request_studio_db(anchor_path: str):
     profile = get_request_storage_runtime(anchor_path)
 
@@ -259,21 +391,8 @@ def get_request_studio_db(anchor_path: str):
 
     anchor = Path(profile.data_anchor_path)
     studio_db_path = Path(profile.studio_db_path)
-    if _json_anchor_has_legacy_data(anchor) and _sqlite_runtime_is_unseeded(studio_db_path, anchor):
-        fallback_profile = replace(
-            profile,
-            effective_mode=DbMode.JSON,
-            uses_sqlite=False,
-            source=f"{profile.source}-json-legacy",
-        )
-        if has_request_context():
-            g._storage_runtime_profile = fallback_profile
-        if has_app_context():
-            current_app.logger.info(
-                "SQLite operativo non ancora popolato per %s: mantengo i dati legacy JSON come sorgente attiva.",
-                profile.data_anchor_path,
-            )
-        return None
+    if _sqlite_runtime_is_unseeded(studio_db_path, anchor):
+        _ensure_sqlite_runtime_from_json(profile)
 
     cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None
     if cached is not None and str(getattr(cached, "db_path", "")) == profile.studio_db_path:
@@ -282,21 +401,14 @@ def get_request_studio_db(anchor_path: str):
     try:
         studio_db = ensure_core_storage_backend_contract(StudioDB.get(profile.studio_db_path))
     except (OSError, sqlite3.Error, TypeError) as exc:
-        fallback_profile = replace(
-            profile,
-            effective_mode=DbMode.JSON,
-            uses_sqlite=False,
-            source=f"{profile.source}-sqlite-unavailable",
+        message = (
+            "Archivio SQL dello studio non disponibile. "
+            "Il sistema blocca l'operazione per evitare che un JSON storico diventi fonte operativa: "
+            f"{exc}"
         )
-        if has_request_context():
-            g._storage_runtime_profile = fallback_profile
         if has_app_context():
-            current_app.logger.warning(
-                "SQLite non disponibile per %s: fallback JSON attivato (%s)",
-                profile.studio_db_path,
-                exc,
-            )
-        return None
+            current_app.logger.exception(message)
+        raise RuntimeError(message) from exc
 
     if has_request_context():
         g._runtime_studio_db = studio_db

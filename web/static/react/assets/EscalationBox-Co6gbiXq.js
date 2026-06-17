@@ -1,1 +1,0 @@
-import{j as r,T as i}from"./index-Cd8-gdE2.js";import{A as s,a as t,b as l}from"./alert-CI633Siv.js";function c({title:e="Verifica richiesta",message:a}){return r.jsxs(s,{className:"border-amber-200 bg-amber-50 text-amber-950",children:[r.jsx(i,{"aria-hidden":"true"}),r.jsx(t,{children:e}),r.jsx(l,{children:a})]})}export{c as E};

@@ -1,6 +1,6 @@
 # Database e migrazioni
 
-Aggiornato: 2026-05-29, presidio anti-perdita SQLite `2.248.84`.
+Aggiornato: 2026-06-16, presidio SQL fonte di verita e JSON mirror censito.
 
 ## Stato reale
 
@@ -49,6 +49,27 @@ Ogni migrazione dati deve:
 7. documentare rollback.
 
 Ogni modifica che tocca JSON, SQLite, PostgreSQL, agenda, scadenziario, notifiche, PEC o creazione studi deve inoltre passare `scripts/audit_tenant_data_structure.py`. Lo script verifica tutti i JSON previsti del tenant, `studio.db`, `notifications.db`, `moduli_dati`, `moduli_json_records` e gli schemi PostgreSQL equivalenti. Con `--repair` riallinea solo la struttura minima tenant-aware e non crea backup o snapshot.
+
+### JSON operativi nascosti e mirror SQL
+
+Per ogni studio in modalita SQL, `studio.db` o PostgreSQL sono la fonte operativa. I JSON tenant-aware possono restare solo come mirror rigenerabile, bootstrap controllato, cache, archivio o import/export storico. Se un JSON operativo viene trovato sotto il tenant e non ha presidio SQL, il lavoro resta aperto finche' non viene creato il mapping, popolato il database e rieseguito l'audit a freddo.
+
+Il presidio minimo richiesto e':
+
+```powershell
+python scripts\audit_tenant_data_structure.py --registry data\tenants.json --repair --json
+python scripts\audit_tenant_data_structure.py --registry data\tenants.json --json
+```
+
+Lo stato accettabile richiede `source_of_truth=sqlite` o `source_of_truth=postgresql`, `json_authoritative=false`, zero errori e `hidden_json_summary.operational_untracked=0`.
+
+Sono gia' trattate come famiglie dinamiche SQL-mirror:
+
+- `fascicoli/documenti_ai/**/*.json` -> `documenti_ai_file_*`;
+- `fascicoli/importazioni/**/*.json` -> `fascicoli_importazione_*`;
+- `intelligence/lex_dataset/**/*.json` -> `lex_dataset_*`.
+
+Sono inoltre censiti i repository/configurazioni operative: `studio_local_pack`, `editor_ai`, `pec_cancelleria_state`, repository `intelligence`, `giurisprudenza`, `legal_*`, `telematico_*`, `template_repository`, repository `preventivi` e `termini_processuali`.
 
 ## Presidio anti-perdita SQLite
 

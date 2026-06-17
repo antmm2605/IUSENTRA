@@ -22,6 +22,7 @@ from pct.fascicolo_workspace import build_fascicolo_workspace
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
+from pct.document_signature_state import document_has_real_digital_signature, document_has_signed_container
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
@@ -526,7 +527,18 @@ def _professional_document_name(doc: Any, counters: Counter[str]) -> str:
     portal_name = _clean_document_filename(getattr(doc, "nome_portale", ""))
     original_name = _clean_document_filename(getattr(doc, "nome_originale", ""))
     stored_name = _clean_document_filename(getattr(doc, "nome", ""))
+    path_name = _clean_document_filename(getattr(doc, "percorso", ""))
     note_name = _quickorganizer_name_from_note(getattr(doc, "note", ""))
+    signed_names = [
+        candidate
+        for candidate in (portal_name, note_name, original_name, stored_name, path_name)
+        if candidate and candidate.lower().endswith(".p7m")
+    ]
+    if signed_names:
+        for candidate in signed_names:
+            if not _technical_filename(candidate):
+                return candidate
+        return signed_names[0]
     for candidate in (portal_name, note_name, original_name, stored_name):
         if candidate and not _technical_filename(candidate):
             return candidate
@@ -534,6 +546,15 @@ def _professional_document_name(doc: Any, counters: Counter[str]) -> str:
     counters[label] += 1
     suffix = f" {counters[label]}" if counters[label] > 1 else ""
     return f"{label}{suffix}"
+
+
+def _document_name_with_signature_suffix(doc: Any, display_name: str, *candidate_names: Any) -> str:
+    name = _clean_document_filename(display_name)
+    if not name or name.lower().endswith((".p7m", ".sig", ".pkcs7")):
+        return name
+    if not document_has_signed_container(doc, name, *candidate_names):
+        return name
+    return f"{name}.p7m"
 
 
 def _fascicolo_party_from_title(fascicolo: Any) -> str:
@@ -2216,8 +2237,7 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     signed_relata = [
         doc
         for doc in relata_documents
-        if bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False))
-        or _text(getattr(doc, "nome", "")).lower().endswith(".p7m")
+        if document_has_real_digital_signature(doc)
     ]
     proof_documents = [
         doc
@@ -2333,10 +2353,18 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         else:
             doc_status = "acquisito"
         doc_id = _text(getattr(doc, "id", ""))
+        monitored_name = _document_name_with_signature_suffix(
+            doc,
+            _professional_document_name(doc, Counter()),
+            getattr(doc, "nome", ""),
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome_portale", ""),
+            getattr(doc, "percorso", ""),
+        )
         monitored_documents.append(
             {
                 "id": doc_id,
-                "name": _professional_document_name(doc, Counter()),
+                "name": monitored_name,
                 "kind": kind,
                 "kindLabel": _notification_kind_label(kind),
                 "status": doc_status,
@@ -2426,9 +2454,17 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
     display_name_counters: Counter[str] = Counter()
     for doc in getattr(fascicolo, "documenti", []) or []:
         did = _text(getattr(doc, "id", ""))
-        name = _professional_document_name(doc, display_name_counters)
         technical_name = _clean_document_filename(getattr(doc, "nome", ""))
-        signed = bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False) or name.lower().endswith(".p7m") or technical_name.lower().endswith(".p7m"))
+        base_name = _professional_document_name(doc, display_name_counters)
+        name = _document_name_with_signature_suffix(
+            doc,
+            base_name,
+            technical_name,
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome_portale", ""),
+            getattr(doc, "percorso", ""),
+        )
+        signed = document_has_real_digital_signature(doc, name, technical_name)
         if did:
             local_doc_ids.add(did)
         for ref in (

@@ -3038,6 +3038,140 @@ def _prepare_documento_firma_visibile(
         return documento
 
 
+def _windows_certificato_per_firma(cert_thumbprint: Optional[str] = None) -> dict:
+    if sys.platform != "win32":
+        return {}
+    cert = _trova_certificato_windows(cert_thumbprint)
+    if cert.get("thumbprint"):
+        _ricorda_certificato_windows(cert)
+        return dict(cert)
+    try:
+        prefs = _ping_query_preferences("/ping")
+        cert = _pick_preferred_windows_cert(
+            _windows_lista_certificati(),
+            prefer_issuer=prefs["prefer_issuer"],
+            prefer_subject=prefs["prefer_subject"],
+            prefer_cf=prefs["prefer_cf"],
+            auto=True,
+        ) or {}
+    except Exception:
+        cert = {}
+    if cert.get("thumbprint"):
+        _ricorda_certificato_windows(cert)
+        return dict(cert)
+    return {}
+
+
+def _windows_store_puo_firmare(cert_thumbprint: Optional[str] = None) -> bool:
+    return bool(_windows_certificato_per_firma(cert_thumbprint).get("thumbprint"))
+
+
+def _errore_pkcs11_senza_token(exc: Exception) -> bool:
+    text = str(exc or "").lower()
+    return any(marker in text for marker in (
+        "nessun token",
+        "no token",
+        "token pkcs#11",
+        "token non",
+        "smart card/token",
+        "lettore",
+    ))
+
+
+def _firma_documento_windows_store(
+    documento: bytes,
+    *,
+    cert_thumbprint: Optional[str] = None,
+    visible_signature_mode: str = "laterale",
+    visible_signature_place: str = "",
+    visible_signature_datetime_mode: str = "data_ora",
+) -> tuple[bytes, dict]:
+    cert = _windows_certificato_per_firma(cert_thumbprint)
+    thumbprint = str(cert.get("thumbprint") or "").replace(" ", "").upper()
+    if not thumbprint:
+        raise RuntimeError(
+            "Certificato Windows non selezionato. Aprire il canale PST o selezionare il certificato "
+            "dal Local Signer, poi ripetere la firma."
+        )
+
+    intestatario = str(cert.get("soggetto_completo") or cert.get("soggetto") or "")
+    issuer = str(cert.get("emittente_completo") or cert.get("emittente") or "")
+    scadenza = str(cert.get("scadenza") or "")
+    documento = _prepare_documento_firma_visibile(
+        documento,
+        intestatario,
+        issuer,
+        thumbprint,
+        visible_signature_mode=visible_signature_mode,
+        visible_signature_place=visible_signature_place,
+        visible_signature_datetime_mode=visible_signature_datetime_mode,
+    )
+
+    script = r'''
+param(
+  [Parameter(Mandatory=$true)][string]$Thumbprint,
+  [Parameter(Mandatory=$true)][string]$InputPath,
+  [Parameter(Mandatory=$true)][string]$OutputPath
+)
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Security
+$clean = ($Thumbprint -replace ' ','').ToUpperInvariant()
+$cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { (($_.Thumbprint -replace ' ','').ToUpperInvariant()) -eq $clean } | Select-Object -First 1
+if (-not $cert) { throw 'Certificato Windows non trovato nello store utente.' }
+if (-not $cert.HasPrivateKey) { throw 'Certificato Windows senza chiave privata.' }
+$content = [System.IO.File]::ReadAllBytes($InputPath)
+$contentInfo = New-Object System.Security.Cryptography.Pkcs.ContentInfo -ArgumentList (,$content)
+$cms = New-Object System.Security.Cryptography.Pkcs.SignedCms -ArgumentList $contentInfo, $false
+$signer = New-Object System.Security.Cryptography.Pkcs.CmsSigner -ArgumentList $cert
+$signer.IncludeOption = [System.Security.Cryptography.X509Certificates.X509IncludeOption]::EndCertOnly
+try { $signer.DigestAlgorithm = New-Object System.Security.Cryptography.Oid('2.16.840.1.101.3.4.2.1') } catch {}
+$cms.ComputeSignature($signer, $false)
+[System.IO.File]::WriteAllBytes($OutputPath, $cms.Encode())
+'''
+    with tempfile.TemporaryDirectory(prefix="iusentra-win-sign-") as tmp_dir:
+        tmp = Path(tmp_dir)
+        input_path = tmp / "documento.bin"
+        output_path = tmp / "documento.p7m"
+        script_path = tmp / "firma_windows_store.ps1"
+        input_path.write_bytes(documento)
+        script_path.write_text(script, encoding="utf-8")
+        powershell = os.getenv("SystemRoot", r"C:\Windows")
+        powershell_path = Path(powershell) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+        command = [
+            str(powershell_path if powershell_path.exists() else "powershell.exe"),
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script_path),
+            "-Thumbprint",
+            thumbprint,
+            "-InputPath",
+            str(input_path),
+            "-OutputPath",
+            str(output_path),
+        ]
+        run_kwargs = _windows_hidden_subprocess_kwargs({
+            "capture_output": True,
+            "text": True,
+            "timeout": 240,
+        })
+        result = subprocess.run(command, **run_kwargs)
+        if result.returncode != 0 or not output_path.exists():
+            detail = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(detail or "Firma Windows non completata.")
+        firmato = output_path.read_bytes()
+
+    info = {
+        "intestatario": intestatario,
+        "scadenza": scadenza,
+        "windows_cert_store": True,
+        "cert_thumbprint": thumbprint,
+        "pin_session_cached": False,
+    }
+    return firmato, info
+
+
 def _firma_documento_via_sessione(
     pin_session_id: str,
     documento: bytes,
@@ -3088,7 +3222,8 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
                      pin_session_id: Optional[str] = None,
                      visible_signature_mode: str = "laterale",
                      visible_signature_place: str = "",
-                     visible_signature_datetime_mode: str = "data_ora") -> tuple[bytes, dict]:
+                     visible_signature_datetime_mode: str = "data_ora",
+                     cert_thumbprint: Optional[str] = None) -> tuple[bytes, dict]:
     """
     Firma CAdES-BES il documento usando il token PKCS#11.
 
@@ -3102,6 +3237,14 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
         return _firma_documento_via_sessione(
             requested_session_id,
             documento,
+            visible_signature_mode=visible_signature_mode,
+            visible_signature_place=visible_signature_place,
+            visible_signature_datetime_mode=visible_signature_datetime_mode,
+        )
+    if sys.platform == "win32" and not lib_path and _windows_store_puo_firmare(cert_thumbprint):
+        return _firma_documento_windows_store(
+            documento,
+            cert_thumbprint=cert_thumbprint,
             visible_signature_mode=visible_signature_mode,
             visible_signature_place=visible_signature_place,
             visible_signature_datetime_mode=visible_signature_datetime_mode,
@@ -3144,17 +3287,38 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
         return firmato, info
     except ImportError:
         pass
+    except Exception as exc:
+        if sys.platform == "win32" and _errore_pkcs11_senza_token(exc):
+            return _firma_documento_windows_store(
+                documento,
+                cert_thumbprint=cert_thumbprint,
+                visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
+            )
+        raise
 
     # Implementazione inline (fallback senza pct/)
-    return _firma_inline(
-        lib_path,
-        documento,
-        pin,
-        slot_id,
-        visible_signature_mode=visible_signature_mode,
-        visible_signature_place=visible_signature_place,
-        visible_signature_datetime_mode=visible_signature_datetime_mode,
-    )
+    try:
+        return _firma_inline(
+            lib_path,
+            documento,
+            pin,
+            slot_id,
+            visible_signature_mode=visible_signature_mode,
+            visible_signature_place=visible_signature_place,
+            visible_signature_datetime_mode=visible_signature_datetime_mode,
+        )
+    except Exception as exc:
+        if sys.platform == "win32" and _errore_pkcs11_senza_token(exc):
+            return _firma_documento_windows_store(
+                documento,
+                cert_thumbprint=cert_thumbprint,
+                visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
+            )
+        raise
 
 
 def _firma_inline(lib_path: str, documento: bytes, pin: str,
@@ -9504,26 +9668,26 @@ class _Handler(BaseHTTPRequestHandler):
         Body: {documento: <base64>, pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_sinistra"|"basso_destra", visible_signature_place?: "Taurianova", visible_signature_datetime_mode?: "data_ora"|"solo_data"|"nessuna"}
         Response: {ok, firmato_b64, intestatario, scadenza, dimensione}
         """
-        lib = _trova_libreria()
-        if not lib:
-            self._send_json({
-                "ok": False,
-                "errore": (
-                    "Libreria PKCS#11 non trovata. "
-                    "Verificare che il middleware PKCS#11 del dispositivo sia installato "
-                    "e che smart card/token o lettore siano presenti."
-                ),
-            }, 400)
-            return
-
         data = self._read_json()
         doc_b64 = data.get("documento")
         pin = data.get("pin", "")
         pin_session_id = str(data.get("pin_session_id") or "").strip()
         slot_id = data.get("slot_id")
+        cert_thumbprint = str(data.get("cert_thumbprint") or data.get("certificato_windows_thumbprint") or "").strip()
         visible_signature_mode = str(data.get("visible_signature_mode") or "laterale").strip()
         visible_signature_place = str(data.get("visible_signature_place") or "").strip()
         visible_signature_datetime_mode = str(data.get("visible_signature_datetime_mode") or "data_ora").strip()
+
+        lib = _trova_libreria()
+        if not lib and not _windows_store_puo_firmare(cert_thumbprint or None):
+            self._send_json({
+                "ok": False,
+                "errore": (
+                    "Dispositivo di firma non rilevato. "
+                    "Verificare che smart card/token o certificato Windows siano disponibili."
+                ),
+            }, 400)
+            return
 
         if not doc_b64:
             self._send_json({"ok": False, "errore": "Campo 'documento' (base64) obbligatorio"}, 400)
@@ -9543,6 +9707,7 @@ class _Handler(BaseHTTPRequestHandler):
                 visible_signature_mode=visible_signature_mode,
                 visible_signature_place=visible_signature_place,
                 visible_signature_datetime_mode=visible_signature_datetime_mode,
+                cert_thumbprint=cert_thumbprint or None,
             )
             self._send_json({
                 "ok": True,
@@ -9560,26 +9725,26 @@ class _Handler(BaseHTTPRequestHandler):
         Body: {documenti:[{documento:<base64>, nome?}], pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_sinistra"|"basso_destra", visible_signature_place?: "Taurianova", visible_signature_datetime_mode?: "data_ora"|"solo_data"|"nessuna"}
         Response: {ok, firmati, falliti, risultati:[...], pin_session_id?}
         """
-        lib = _trova_libreria()
-        if not lib:
-            self._send_json({
-                "ok": False,
-                "errore": (
-                    "Libreria PKCS#11 non trovata. "
-                    "Verificare che il middleware PKCS#11 del dispositivo sia installato "
-                    "e che smart card/token o lettore siano presenti."
-                ),
-            }, 400)
-            return
-
         data = self._read_json()
         docs = data.get("documenti") or []
         pin = data.get("pin", "")
         slot_id = data.get("slot_id")
         current_session_id = str(data.get("pin_session_id") or "").strip()
+        cert_thumbprint = str(data.get("cert_thumbprint") or data.get("certificato_windows_thumbprint") or "").strip()
         visible_signature_mode = str(data.get("visible_signature_mode") or "laterale").strip()
         visible_signature_place = str(data.get("visible_signature_place") or "").strip()
         visible_signature_datetime_mode = str(data.get("visible_signature_datetime_mode") or "data_ora").strip()
+
+        lib = _trova_libreria()
+        if not lib and not _windows_store_puo_firmare(cert_thumbprint or None):
+            self._send_json({
+                "ok": False,
+                "errore": (
+                    "Dispositivo di firma non rilevato. "
+                    "Verificare che smart card/token o certificato Windows siano disponibili."
+                ),
+            }, 400)
+            return
 
         if not isinstance(docs, list) or not docs:
             self._send_json({"ok": False, "errore": "Il batch richiede almeno un documento."}, 400)
@@ -9617,6 +9782,7 @@ class _Handler(BaseHTTPRequestHandler):
                     visible_signature_mode=visible_signature_mode,
                     visible_signature_place=visible_signature_place,
                     visible_signature_datetime_mode=visible_signature_datetime_mode,
+                    cert_thumbprint=cert_thumbprint or None,
                 )
                 current_session_id = str(info.get("pin_session_id") or current_session_id or "")
                 risultati.append({

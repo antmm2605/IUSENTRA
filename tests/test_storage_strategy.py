@@ -210,9 +210,11 @@ def test_audit_tenant_data_structure_verifica_json_sqlite_postgres(tmp_path: Pat
     assert report["ok"] is True
     assert report["postgres_schema"]["ok"] is True
     assert report["studios"][studio.slug]["json"]["scadenziario/scadenze.json"]["module"] == "scadenze"
+    assert report["studios"][studio.slug]["json"]["agenda/calendar_sync_engine.json"]["module"] == "calendar_sync_engine"
+    assert report["studios"][studio.slug]["json"]["agenda/calendar_conflicts.json"]["module"] == "calendar_conflicts"
 
 
-def test_audit_tenant_data_structure_fallisce_se_manca_mirror_json_sql(tmp_path: Path):
+def test_audit_tenant_data_structure_segnala_mirror_json_sql_non_autorevole(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))
     studio = tm.crea("Studio Audit Rosso", "studio-audit-rosso", db_config={"mode": "SQLITE"})
@@ -224,8 +226,10 @@ def test_audit_tenant_data_structure_fallisce_se_manca_mirror_json_sql(tmp_path:
 
     report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
 
-    assert report["ok"] is False
-    assert any("moduli_dati senza record per scadenze" in error for error in report["errors"])
+    assert report["ok"] is True
+    assert report["studios"][studio.slug]["source_of_truth"] == "sqlite"
+    assert report["studios"][studio.slug]["json_authoritative"] is False
+    assert any("moduli_dati senza record mirror per scadenze" in warning for warning in report["warnings"])
 
 
 def test_audit_tenant_data_structure_repair_risincronizza_mirror_json_sql(tmp_path: Path):
@@ -250,7 +254,36 @@ def test_audit_tenant_data_structure_repair_risincronizza_mirror_json_sql(tmp_pa
     assert row_count == report["studios"][studio.slug]["json"]["scadenziario/scadenze.json"]["entries"]
 
 
-def test_audit_tenant_data_structure_fallisce_se_manca_json_tenant(tmp_path: Path):
+def test_audit_tenant_data_structure_tollera_audit_json_volatile_in_sql(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Audit Volatile", "studio-audit-volatile", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+    audit_path = Path(paths["AUDIT_DB"])
+    audit_raw = json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.exists() else []
+    if not isinstance(audit_raw, list):
+        audit_raw = []
+    audit_raw.append(
+        {
+            "id": "audit-extra-non-sincronizzato",
+            "timestamp": "2026-06-16T20:00:00+02:00",
+            "azione": "test.audit",
+            "esito": "OK",
+        }
+    )
+    audit_path.write_text(json.dumps(audit_raw, ensure_ascii=False), encoding="utf-8")
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
+
+    assert report["ok"] is True
+    assert report["studios"][studio.slug]["json"]["auth/audit.json"]["volatile_mirror"] is True
+    assert not any(
+        "mirror moduli_json_records non allineato per audit" in warning
+        for warning in report["warnings"]
+    )
+
+
+def test_audit_tenant_data_structure_json_mancante_non_blocca_sql_autorevole(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))
     studio = tm.crea("Studio Audit Json", "studio-audit-json", db_config={"mode": "SQLITE"})
@@ -259,8 +292,84 @@ def test_audit_tenant_data_structure_fallisce_se_manca_json_tenant(tmp_path: Pat
 
     report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
 
+    assert report["ok"] is True
+    assert report["studios"][studio.slug]["source_of_truth"] == "sqlite"
+    assert any("JSON mirror mancante scadenziario/scadenze.json" in warning for warning in report["warnings"])
+
+
+def test_audit_tenant_data_structure_blocca_json_operativo_nascosto(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Audit Nascosto", "studio-audit-nascosto", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+    hidden = Path(paths["AGENDA_DB"]).with_name("registro_operativo_nascosto.json")
+    hidden.write_text(json.dumps({"x": {"id": "x", "valore": "non censito"}}, ensure_ascii=False), encoding="utf-8")
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
+
     assert report["ok"] is False
-    assert any("JSON mancante scadenziario/scadenze.json" in error for error in report["errors"])
+    assert report["studios"][studio.slug]["hidden_json_summary"]["operational_untracked"] == 1
+    assert any("JSON operativo non censito in studio.db" in error for error in report["errors"])
+
+
+def test_audit_tenant_data_structure_popola_sql_per_json_operativi_noti(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Audit Moduli", "studio-audit-moduli", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+
+    samples = {
+        Path(paths["DOCUMENTI_AI_DIR"])
+        / "studio-audit-moduli"
+        / "fascicoli"
+        / "FAS-1"
+        / "documenti_ai"
+        / "docai-test"
+        / "v1"
+        / "extracted_text.json": {"text": "Testo estratto", "pages": [{"number": 1, "text": "pagina"}]},
+        Path(paths["FASCICOLI_IMPORTAZIONI_DIR"])
+        / "quickorganizer"
+        / "job-1"
+        / "stage.json": {"id": "job-1", "stato": "pronto"},
+        Path(paths["LEX_DATASET_DIR"]) / "jobs.json": [{"id": "job-lex", "stato": "pronto"}],
+        Path(paths["EDITOR_AI_DB"]): {"records": [{"id": "atto-1"}], "versions": [], "sources": [], "edit_proposals": [], "audit_events": []},
+        Path(paths["PEC_CANCELLERIA_STATE_DB"]): {"last_uid": 10},
+        Path(paths["PREVENTIVI_REPOSITORY_DB"]): {"voci": [{"id": "voce-1"}]},
+        Path(paths["TERMINI_PROCESSUALI_DB"]): {"termini": [{"id": "termine-1", "giorni": 10}]},
+        Path(paths["TEMPLATE_REPOSITORY_DB"]): {"templates": [{"id": "template-1"}]},
+    }
+    for path, payload in samples.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug, repair=True)
+
+    assert report["ok"] is True
+    assert report["studios"][studio.slug]["hidden_json_summary"]["operational_untracked"] == 0
+    with sqlite3.connect(paths["STUDIO_DB"]) as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moduli_dati WHERE nome LIKE 'documenti_ai_file_%'"
+        ).fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moduli_json_records WHERE modulo LIKE 'documenti_ai_file_%'"
+        ).fetchone()[0] > 0
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moduli_dati WHERE nome LIKE 'fascicoli_importazione_%'"
+        ).fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moduli_dati WHERE nome LIKE 'lex_dataset_%'"
+        ).fetchone()[0] == 1
+        for module in (
+            "editor_ai",
+            "pec_cancelleria_state",
+            "preventivi_repository",
+            "termini_processuali",
+            "template_repository",
+        ):
+            assert conn.execute(
+                "SELECT COUNT(*) FROM moduli_dati WHERE nome = ?",
+                (module,),
+            ).fetchone()[0] == 1
 
 
 def test_practice_engine_default_follows_fascicoli_data_root(tmp_path: Path):
@@ -398,6 +507,11 @@ def test_admin_database_react_payload_uses_tenant_backup_dir(tmp_path: Path):
 
     payload = response.get_json()
     assert payload["sqlite"]["exists"] is True
+    assert Path(payload["sqlite"]["path"]).resolve() == Path(paths["STUDIO_DB"]).resolve()
+    assert payload["sqlite"]["role"] == "operativo"
+    assert payload["sourceTruth"]["sqlAuthoritative"] is True
+    assert payload["sourceTruth"]["authoritative"] == "SQLite"
+    assert payload["modules"][0]["mirror"] is True
     assert payload["sqlite"]["tables"]
 
 
@@ -577,7 +691,7 @@ def test_request_storage_runtime_uses_tenant_sqlite_profile(tmp_path: Path):
     assert studio_db.db_path == (tmp_path / "tenants" / "demo" / "studio.db").resolve()
 
 
-def test_request_storage_runtime_external_sql_keeps_json_backend_until_migration(tmp_path: Path):
+def test_request_storage_runtime_external_sql_usa_sqlite_staging_fino_a_cutover(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))
 
@@ -595,9 +709,10 @@ def test_request_storage_runtime_external_sql_keeps_json_backend_until_migration
         studio_db = get_request_studio_db(str(clienti_path))
 
     assert profile.selected_mode == DbMode.POSTGRESQL
-    assert profile.effective_mode == DbMode.JSON
+    assert profile.effective_mode == DbMode.SQLITE
+    assert profile.uses_sqlite is True
     assert profile.external_sql_configured is True
-    assert studio_db is None
+    assert studio_db is not None
 
 
 def test_request_storage_runtime_default_operational_prefers_sqlite(tmp_path: Path):
@@ -709,7 +824,7 @@ def test_login_route_migra_auth_legacy_json_verso_sqlite(tmp_path: Path):
     assert response.headers["Location"].endswith("/")
 
 
-def test_request_storage_runtime_fallbacks_to_json_when_sqlite_unavailable(
+def test_request_storage_runtime_blocca_json_fallback_quando_sqlite_non_disponibile(
     tmp_path: Path, monkeypatch
 ):
     _write_studio_config(tmp_path / "config" / "studio.json")
@@ -726,16 +841,11 @@ def test_request_storage_runtime_fallbacks_to_json_when_sqlite_unavailable(
 
     with app.test_request_context("/"):
         profile_before = get_request_storage_runtime(str(clienti_path))
-        studio_db = get_request_studio_db(str(clienti_path))
-        profile_after = get_request_storage_runtime(str(clienti_path))
+        with pytest.raises(RuntimeError):
+            get_request_studio_db(str(clienti_path))
 
     assert profile_before.selected_mode == DbMode.SQLITE
     assert profile_before.uses_sqlite is True
-    assert studio_db is None
-    assert profile_after.selected_mode == DbMode.SQLITE
-    assert profile_after.effective_mode == DbMode.JSON
-    assert profile_after.uses_sqlite is False
-    assert profile_after.source.endswith("sqlite-unavailable")
 
 
 def test_login_route_falls_back_to_json_when_sqlite_runtime_is_unavailable(

@@ -116,6 +116,7 @@ from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_payload,
     dedupe_calculator_templates,
 )
+from web.services.storage_runtime import get_request_storage_runtime
 from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
 from web.services.react_statistiche_bridge import (
@@ -3632,10 +3633,14 @@ def admin_database_react_payload():
         return jsonify(build_react_admin_database_error_payload("Runtime database non disponibile.")), 200
 
     try:
+        admin_anchor = _cfg_value("CLIENTI_DB", "")
+        storage_runtime = get_request_storage_runtime(admin_anchor).to_dict() if admin_anchor else {}
         return jsonify(build_react_admin_database_payload(
             get_database,
             latest_sqlite_snapshot_path,
             backup_dir=_cfg_value("BACKUP_DIR", "./backup"),
+            studio_db_path=str(storage_runtime.get("studio_db_path") or _cfg_value("STUDIO_DB", "")),
+            storage_runtime=storage_runtime,
             path=request.args.get("path", "/admin/database"),
         ))
     except Exception as exc:

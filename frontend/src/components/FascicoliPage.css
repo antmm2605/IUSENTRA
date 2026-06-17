@@ -922,8 +922,8 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-deposit-phase:hover{transform:translateY(-1px);border-color:rgba(37,99,235,.30);box-shadow:0 10px 22px rgba(15,23,42,.07)}
 .iu-fas-deposit-phase__index{width:26px;height:26px;display:grid;place-items:center;border-radius:9px;background:rgba(37,99,235,.10);color:var(--iu-blue-700);font-size:12px;font-weight:950}
 .iu-fas-deposit-phase__copy{min-width:0;display:grid;gap:2px}
-.iu-fas-deposit-phase__copy strong{color:#0f172a;font-size:12.5px;font-weight:950;line-height:1.15;overflow-wrap:anywhere}
-.iu-fas-deposit-phase__copy small{color:#64748b;font-size:11px;font-weight:760;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.iu-fas-deposit-phase__copy strong{color:#0f172a;font-size:12.5px;font-weight:950;line-height:1.15;overflow-wrap:normal;word-break:normal;hyphens:none}
+.iu-fas-deposit-phase__copy small{color:#64748b;font-size:11px;font-weight:760;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:normal;word-break:normal;hyphens:none}
 .iu-fas-deposit-phase .ius-status-badge{max-width:138px;justify-self:end;white-space:normal;text-align:center;line-height:1.05}
 .iu-fas-deposit-phase.is-active{border-color:rgba(37,99,235,.52);box-shadow:0 0 0 2px rgba(37,99,235,.10),0 14px 28px rgba(37,99,235,.10);background:#eff6ff}
 .iu-fas-deposit-phase.is-active .iu-fas-deposit-phase__index{background:var(--iu-blue-700);color:#fff}
@@ -949,7 +949,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-loading-panel span{color:#64748b;font-size:12px;font-weight:760;line-height:1.35}
 @keyframes iu-fas-spin{to{transform:rotate(360deg)}}
 @media(max-width:980px){.iu-fas-ai-board{grid-template-columns:1fr}.iu-fas-ai-board>div.iu-fas-ai-actions{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:1120px){.iu-fas-deposit-phases nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1120px){.iu-fas-deposit-phases nav{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 @media(max-width:760px){.iu-fas-ai-board>div.iu-fas-ai-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-deposit-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-deposit-phases>header{display:grid}.iu-fas-deposit-phases nav{grid-template-columns:1fr}.iu-fas-deposit-phase{grid-template-columns:26px minmax(0,1fr) auto}.iu-fas-deposit-phase>svg{display:none}.iu-fas-deposit-phase .ius-status-badge{max-width:112px}.iu-fas-deposit-phase-note{grid-template-columns:1fr}.iu-fas-deposit-phase-note .ius-status-badge{grid-row:auto;justify-self:start}.iu-fas-step-controls{display:grid}.iu-fas-step-controls div{display:grid;justify-content:stretch}.iu-fas-step-controls button{width:100%}}
 @media(max-width:520px){.iu-fas-ai-board>div.iu-fas-ai-actions,.iu-fas-cockpit,.iu-fas-deposit-cockpit{grid-template-columns:1fr}}
 

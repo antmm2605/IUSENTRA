@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.44 - 2026-06-17
+
+- CI Pytest core: corretto lo shard `fase 6/10 parte 9/16`, presidiando il caso reale in cui `studio.db` e' gia' operativo e i JSON sono solo mirror.
+- Database amministrazione: aggiunto test con clienti/fascicoli seminati in SQL e JSON mirror vuoti, per impedire regressioni che possano cancellare dati SQL durante `attiva-sqlite`.
+- Verifiche locali: confermati verdi lo shard 6/10 parte 9/16, il test mirato e `tests/test_database.py` completo.
+
 ## 2.253.43 - 2026-06-17
 
 - CI Pytest core: aggiornati i test di amministrazione database alla regola operativa `SQL operativo` con JSON solo mirror, mantenendo separati i test anti-perdita e riconciliazione.

@@ -2,6 +2,18 @@
 
 Aggiornato: 2026-06-17.
 
+## Aggiornamento 2.253.44 - presidio CI SQL prima della prova server
+
+Data intervento: 2026-06-17.
+
+Stato operativo:
+
+- rilevata sullo SHA `0f3a8eb` una failure di `Pytest core fase 6/10 parte 9/16`;
+- corretto il presidio: il test semina `studio.db` con record SQL reali e svuota i JSON mirror per confermare che l'attivazione SQLite resti no-op SQL e non cancelli dati;
+- verifiche locali verdi: shard 6/10 parte 9/16, test mirato e `tests/test_database.py` completo.
+
+La prova deposito server resta aperta: non e' chiusa finche' non vengono verificati visivamente su `https://app.iusentra.it` selezione documenti, firma multipla Local Signer con PIN/token reale, creazione busta, indice documenti, testo email e dry-run senza invio PEC.
+
 ## Aggiornamento 2.253.43 - gate CI prima della prova server
 
 Data intervento: 2026-06-17.

@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## CI Pytest core 2.253.44 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Pytest core fase 6/10 parte 9/16` sullo SHA `0f3a8eb` | Test database amministrazione | Risolto localmente, da verificare sul nuovo SHA remoto | Il test scriveva nei JSON dopo che il login aveva gia' inizializzato uno `studio.db` vuoto. Ora il presidio semina clienti/fascicoli nel database SQL operativo e verifica che JSON mirror vuoti non cancellino record SQL. | Pushare `2.253.44`, attendere tutti i check richiesti, poi procedere con deploy e prova server solo se CodeQL e gate sono verdi. |
+
 ## CI Pytest core 2.253.43 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |

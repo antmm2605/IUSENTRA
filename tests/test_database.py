@@ -1468,7 +1468,7 @@ def test_admin_database_migra_json(client_admin):
     assert "avvisi" in data
 
 
-def test_admin_database_attiva_sqlite_blocca_json_vuoti_su_db_pieno(client_admin):
+def test_admin_database_attiva_sqlite_preserva_sql_quando_json_mirror_vuoti(client_admin):
     clienti_path = Path(client_admin.application.config["CLIENTI_DB"])
     fascicoli_path = Path(client_admin.application.config["FASCICOLI_DB"])
     _scrivi_json(clienti_path, {
@@ -1482,19 +1482,45 @@ def test_admin_database_attiva_sqlite_blocca_json_vuoti_su_db_pieno(client_admin
     assert primo.status_code == 200
     assert primo.get_json()["ok"] is True
 
+    studio_db = Path(clienti_path).resolve().parents[1] / "studio.db"
+    conn = sqlite3.connect(studio_db)
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO clienti
+        (id, tipo, stato, cognome, nome, dati_json)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        ("CLI001", "PERSONA_FISICA", "ATTIVO", "Rossi", "Anna", json.dumps({"id": "CLI001"})),
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO fascicoli
+        (id, numero, titolo, stato, id_cliente, dati_json)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "FASC001",
+            "1/2026",
+            "Pratica",
+            "APERTO",
+            "CLI001",
+            json.dumps({"id": "FASC001", "id_cliente": "CLI001"}),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
     _scrivi_json(clienti_path, {})
     _scrivi_json(fascicoli_path, {})
     secondo = client_admin.post("/admin/database/attiva-sqlite")
     payload = secondo.get_json()
 
     assert secondo.status_code == 200
-    assert payload["ok"] is False
-    assert payload["stato"] == "Bloccata per protezione dati"
-    assert "non verrà sovrascritto" in payload["messaggio"]
-    assert any("Blocco anti-perdita su clienti" in errore for errore in payload["errori"])
-    assert payload["audit_migrazione"]["precheck"]["modules"]["clienti"]["status"] == "blocked"
+    assert payload["ok"] is True
+    assert payload["stato"] == "SQL operativo"
+    assert payload["json_mirror_only"] is True
+    assert payload["audit_migrazione"]["sql_source_of_truth"] is True
 
-    studio_db = Path(clienti_path).resolve().parents[1] / "studio.db"
     conn = sqlite3.connect(studio_db)
     counts = conn.execute(
         "SELECT (SELECT COUNT(*) FROM clienti), (SELECT COUNT(*) FROM fascicoli)"

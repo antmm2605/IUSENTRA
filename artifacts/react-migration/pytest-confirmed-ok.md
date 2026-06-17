@@ -1,5 +1,13 @@
 # Pytest shard confermati OK
 
+## CI Pytest core 2.253.44 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\run_pytest_phases.py --core-shard 6 --core-total-shards 10 --core-subshard 9 --core-total-subshards 16 --core-subdivide-items --timeout-minutes 5` | OK | 5/5: confermato il contratto SQL operativo con JSON mirror vuoti senza perdita di record in `studio.db`. |
+| `python -m pytest -q tests\test_database.py::test_admin_database_attiva_sqlite_preserva_sql_quando_json_mirror_vuoti --tb=short` | OK | Test mirato verde. |
+| `python -m pytest -q tests\test_database.py --durations=10` | OK | 67/67 test database verdi. |
+
 ## Storage SQL runtime seed 2.253.42 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |

@@ -4500,9 +4500,15 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         return jsonify({"errore": "Nessun documento indicato.", "mock_fallback": False}), 400
 
     documents_by_id = {str(getattr(doc, "id", "") or ""): doc for doc in getattr(ctx["fascicolo"], "documenti", []) or []}
+    if ctx["profile"] is None:
+        return jsonify({
+            "errore": "Profilo pratica non determinato: controlla canale deposito, registro e ufficio giudiziario prima della prova.",
+            "mock_fallback": False,
+        }), 400
     slots = ctx["repo"].ensure_slots(id_fasc, ctx["profile"])
     linked_slots: list[str] = []
     updated_documents: list[dict[str, Any]] = []
+    document_deposit_updates: list[dict[str, Any]] = []
     selected_count = 0
     used_slots: set[str] = set()
 
@@ -4528,7 +4534,7 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             doc_type = _DEPOSIT_DOCUMENT_ROLE_TO_TYPE.get(role)
             current_doc_type = str(getattr(getattr(doc, "tipo", ""), "value", getattr(doc, "tipo", "")) or "").upper()
             if doc_type and (role in {"atto_principale", "procura", "prova_notifica"} or current_doc_type == TipoDocumento.ALTRO.value):
-                ctx["gf"].aggiorna_documento_deposito(id_fasc, document_id, tipo=doc_type)
+                document_deposit_updates.append({"id_doc": document_id, "tipo": doc_type})
             slot_key = _deposit_slot_key_for_role(role, slots, used_slots)
             if slot_key and ctx["repo"].get_slot(id_fasc, slot_key):
                 ctx["repo"].link_slot(id_fasc, slot_key, document_id, actor=_actor_label())
@@ -4541,6 +4547,9 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             "alreadySigned": already_signed,
             "requiresSignature": requires_signature,
         })
+
+    if document_deposit_updates:
+        ctx["gf"].aggiorna_documenti_deposito(id_fasc, document_deposit_updates)
 
     run_predeposit_check(
         ctx["repo"],

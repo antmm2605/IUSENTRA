@@ -1,5 +1,17 @@
 # Pytest shard confermati OK
 
+## Deposito firma multipla reale e prova busta 2.253.50 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/blueprints/api_v1_react.py web/services/storage_runtime.py pct/busta.py web/bootstrap/deposito_routes.py web/services/local_pec_runtime.py pct/__init__.py` | OK | Sintassi confermata dopo fix classificazione deposito senza profilo, runtime SQLite anti-bootstrap JSON, risposta guidata PST, testo PEC e bump `2.253.50`. |
+| `python -m pytest tests/test_regia_ui_react.py::test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q --tb=short` | OK | 2/2: UI deposito con indice, testo PEC, progress bar e guardrail timeout Local Signer batch. |
+| `python -m pytest tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_non_cade_se_profilo_da_confermare tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests/test_storage_strategy.py::test_sqlite_runtime_non_rilancia_migrazione_se_db_core_ha_fascicoli -q --tb=short` | OK | 3/3: classificazione deposito non torna in 500 quando il profilo è da confermare; SQLite resta SQL fonte di verità se contiene dati core. |
+| `pnpm --filter @iusentra/studio build` | OK | Bundle React rigenerato per `2.253.50`, incluso `FascicoliPage-CNTrcuZA.js` e `FascicoliPage-BGaOdyb1.css`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale ricostruita; `app`, `scheduler-worker` e `ocr-worker` healthy; `/api/pronto` risponde `versione=2.253.50`. |
+| Browser reale locale su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta` | OK osservato | Firma multipla con PIN reale completata: 4 documenti trasformati in `.pdf.p7m`, contatore passato a `8 firmati` e `0 documenti da firmare`; `Prova senza invio reale` mostra progress bar e termina con `Busta generata e scaricata`. |
+| Anteprima `IndiceDocumentiDepositati.PDF` in browser reale locale | OK osservato | Modal con titolo, `Scarica`, `Chiudi` e iframe diretto visibile circa `1180 x 681`; screenshot `C:/Users/antmm/AppData/Local/Temp/iusentra-deposito-indice-firma-reale-225350.png`. |
+
 ## CI Pytest core 2.253.44 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |
@@ -4986,3 +4998,41 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests/test_regia_api_payloads.py::test_api_fascicolo_mostra_p7m_solo_con_firma_reale tests/test_deposito.py::test_firma_documento_ajax_rifiuta_pdf_con_testo_firmato_ma_senza_pades tests/test_deposito.py::test_firma_documento_ajax_rifiuta_p7m_non_valido tests/test_deposito.py::test_firma_documento_ajax_valido_non_fallisce_se_sync_realtime_ha_errori tests/test_deposito.py::test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione -q --tb=short` | OK | 5/5 passati: `.PDF` con testo/nome "Firmato" e flag storico resta `Da firmare`; `.p7m` CAdES e PAdES con prova tecnica risultano firmati; SQL si riallinea da JSON solo come bootstrap e rigenera il mirror. |
 | `python -m pytest tests/test_profilo_deposito.py tests/test_canali_telematici_deposito.py tests/test_busta.py tests/test_simulazione_deposito.py tests/test_deposito_server_dry_run_audit.py tests/test_scheduler_registry.py tests/test_regia_api_payloads.py tests/test_deposito.py::test_firma_documento_blocca_rifirma_senza_conferma_esplicita tests/test_deposito.py::test_firma_documento_ajax_rifiuta_pdf_con_testo_firmato_ma_senza_pades tests/test_deposito.py::test_firma_documento_ajax_rifiuta_p7m_non_valido tests/test_deposito.py::test_firma_documento_ajax_valido_non_fallisce_se_sync_realtime_ha_errori tests/test_deposito.py::test_firma_documento_ajax_recupera_errore_spazio_con_fallback_compatto tests/test_deposito.py::test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione -q --tb=short` | OK | 94/94 passati dopo la stretta firma reale e il mirror SQL/JSON dei fascicoli. |
 | `pnpm --filter @iusentra/studio build`; `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_utf8_integrity.py tests/test_react_asset_retention.py -q --tb=short` | OK | Build Vite/TypeScript, packaging, release readiness, UTF-8 e asset retention confermati dopo normalizzatore React `signed`. |
+
+## Deposito server e lock SQLite 2.253.46 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Browser reale server su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara` | Difetto reale individuato | Primo caricamento deposito con valori `n.d.` e zero documenti; log server: `database is locked` su `/api/v1/ui/fascicoli/E5AE4668?include=all`. |
+| Browser reale server, ricarica della stessa pagina | OK osservato | Pagina popolata con `2026/330`, `Tribunale di Vicenza`, canale `PCT lavoro / SICID`, 13 documenti, 11 candidati busta, 4 firmati reali e 7 da firmare; i `.PDF` non PAdES restano `Da firmare`. |
+| `python -m pytest tests/test_storage_strategy.py::test_studio_db_ensure_schema_riusa_connessione_thread_locale tests/test_storage_strategy.py::test_studio_db_fallbacks_to_delete_when_wal_non_disponibile tests/test_storage_strategy.py::test_studio_db_salva_tabella_ritenta_se_sqlite_bloccato -q --tb=short` | OK | 3/3 passati: `ensure_schema()` riusa la connessione thread-local e i retry lock SQLite restano presidiati. |
+| `python -m pytest tests/test_profilo_deposito.py tests/test_regia_api_payloads.py::test_api_fascicolo_mostra_p7m_solo_con_firma_reale tests/test_deposito.py::test_firma_documento_ajax_rifiuta_pdf_con_testo_firmato_ma_senza_pades tests/test_deposito.py::test_firma_documento_ajax_rifiuta_p7m_non_valido tests/test_deposito.py::test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione -q --tb=short` | OK | 9/9 passati dopo fix anti-lock e retry React fascicoli. |
+| `pnpm --filter @iusentra/studio build`; `python tools/sync_packaging_files.py --check`; `git diff --check` | OK | Build React, packaging e whitespace check passati prima del nuovo commit/deploy. |
+
+## Deposito prova reale busta, PEC e PST guidato 2.253.47 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Browser reale server su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara#generazione-busta` | OK osservato | Click reale su `Prova senza invio reale`; progress bar visibile con `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti `.p7m` selezionati e `Atto.enc`; esito guidato senza errore tecnico PST grezzo. |
+| `python -m pytest tests/test_busta.py -q` | OK | 11/11 passati; se il certificato PST non è disponibile, `Atto.msg` resta tracciato, `Atto.enc` resta vuoto e le azioni guidate non espongono URL tecnici. |
+| `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato -q` | OK | La route deposito restituisce `requires_guided_completion` senza `Download PST non riuscito` né URL `servizipst` nel JSON pubblico. |
+| `python -m pytest tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q` | OK | Guardrail React aggiornato per testo PEC predisposto, progress bar/ticker e risposta guidata prima dell'invio reale. |
+| `python -m py_compile pct/busta.py web/bootstrap/deposito_routes.py web/services/local_pec_runtime.py` | OK | Sintassi confermata dopo audit `Atto.msg`, risposta guidata PST e testo PEC opzionale. |
+| `python -m pytest tests/test_busta.py tests/test_deposito_server_dry_run_audit.py tests/test_deposito.py::test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q --tb=short` | OK | 17/17 passati su busta, audit dry-run, risposta guidata server e guardrail React. |
+| `python -m pytest tests/test_profilo_deposito.py tests/test_canali_telematici_deposito.py -q --tb=short` | OK | 8/8 passati: profilo deposito SQL e canali PCT/PDP/PAT/PTT restano coerenti dopo il fix busta. |
+| `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite passati dopo progress bar, testo PEC e anteprima indice. |
+| `python -m pytest tests/test_react_asset_retention.py tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_utf8_integrity.py -q --tb=short` | OK | 16/16 passati: asset React, packaging, release readiness e integrità UTF-8 confermati. |
+| `python tools/sync_packaging_files.py --check`; `git diff --check` | OK | Packaging sincronizzato a `2.253.47`; whitespace senza errori, solo warning CRLF storico su `FascicoliPage.tsx`. |
+
+## Deposito React locale, simulazione PEC e SQL tenant 2.253.54 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `GET http://127.0.0.1:8080/api/pronto` | OK | Container locale `iusentra-app` healthy dopo riallineamento codice/bundle; risposta HTTP 200. |
+| Chrome installato visibile su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta` | OK | Superficie React con `#root`, nessun fallback legacy, nessun HTML grezzo, nessun `n.d.`; ufficio/PEC Palmi, card busta leggibili, false `.p7m` restano `Da firmare`. |
+| Click `Visualizza IndiceDocumentiDepositati.PDF` | OK | Risposta `application/pdf`; viewer mostra indice con `ATTO_GENERICO`, `RG 466/2023`, codice oggetto `145009` e documenti selezionati. |
+| Click `Modifica testo PEC` | OK | Textarea visibile/editabile; modifica facoltativa e testo standard ripristinabile. |
+| Click `Simula invio PEC` | OK | Progress bar/ticker visibile; risposta JSON HTTP 200, console browser vuota, preview con destinatario, oggetto, documenti, testo PEC e blocchi obbligatori `.cer`/`Atto.enc`/PEC mittente. |
+| `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http -q` | OK | Guardrail mirato: simulazione PEC guidata con certificato PST mancante torna HTTP 200 e non registra deposito reale. |
+| `pnpm --filter @iusentra/studio build:vite`; `python -m pytest tests/test_react_asset_retention.py -q --tb=short` | OK | Bundle React rigenerato e asset retention passata dopo pulizia dei residui non referenziati. |
+| Smoke Chrome post-build su `127.0.0.1:8080` | OK | `/api/pronto` risponde `versione=2.253.54`; la pagina deposito React carica con console vuota, PEC Palmi e indice presenti, nessun `n.d.` e nessun HTML grezzo. |

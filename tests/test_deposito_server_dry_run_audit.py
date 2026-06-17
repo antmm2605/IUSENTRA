@@ -179,6 +179,7 @@ def test_prova_guidata_espone_destinatario_pec_testo_e_documenti(tmp_path):
     assert "DEPOSITO TELEMATICO: Ricorso" in response["oggetto_pec"]
     assert "Egregio sig. Cancelliere" in response["corpo_pec"]
     assert "Atto.enc" in response["corpo_pec"]
+    assert "IUSENTRA Local Signer" not in response["corpo_pec"]
     assert response["documenti_busta"] == documenti
     assert INDICE_DOCUMENTI_FILENAME in response["documenti_busta"]
     assert response["busta_audit"]["blocks_direct_send"] is True

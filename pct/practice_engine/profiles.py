@@ -296,7 +296,7 @@ def _supplemental_profiles() -> list[PracticeProfile]:
     )
     sigp_docs = [
         PracticeRequirement("ATTO_PRINCIPALE", "Atto principale", True, True, "docs/SIGP_GIUDICE_DI_PACE.md"),
-        PracticeRequirement("PROCURA_ALLE_LITI", "Procura alle liti", True, True, "docs/SIGP_GIUDICE_DI_PACE.md"),
+        PracticeRequirement("PROCURA_ALLE_LITI", "Procura alle liti quando necessaria", False, False, "docs/SIGP_GIUDICE_DI_PACE.md"),
         PracticeRequirement("XSD_SIGP", "Schema XSD SIGP disponibile", True, True, "docs/SIGP_GIUDICE_DI_PACE.md"),
     ]
     sigp = PracticeProfile(
@@ -320,7 +320,7 @@ def _supplemental_profiles() -> list[PracticeProfile]:
         template_labels=["Ricorso Giudice di Pace", "Istanza Giudice di Pace"],
         required_slots=[
             {"slot_key": "ATTO_PRINCIPALE", "label": "Atto principale", "type": SlotType.ATTO_PRINCIPALE.value, "required": True, "blocking": True, "validators": ["file_presente", "file_apribile", "hash_calcolato", "pdfa_valido", "firma_digitale_presente"], "sort_order": 1},
-            {"slot_key": "PROCURA", "label": "Procura alle liti", "type": SlotType.PROCURA.value, "required": True, "blocking": True, "validators": ["file_presente", "file_apribile", "hash_calcolato"], "sort_order": 2},
+            {"slot_key": "PROCURA", "label": "Procura alle liti quando necessaria", "type": SlotType.PROCURA.value, "required": False, "blocking": False, "validators": ["file_presente", "file_apribile", "hash_calcolato"], "sort_order": 2},
             {"slot_key": "ESITO_SIGP", "label": "Esito SIGP", "type": SlotType.ESITO_PORTALE.value, "required": False, "blocking": False, "validators": ["ricevuta_finale_presente"], "sort_order": 3},
         ],
         blocking_validators=DEFAULT_BLOCKING_VALIDATORS + DEFAULT_DEPOSIT_VALIDATORS + ["schema_xsd_presente"],

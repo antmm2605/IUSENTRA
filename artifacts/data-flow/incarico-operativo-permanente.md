@@ -167,6 +167,14 @@ Aggiornamento 2026-06-17 per deposito/preventivo/conferimento/fascicolo:
 - quando un preventivo viene accettato, il profilo passa al conferimento incarico; quando dal conferimento nasce il fascicolo, il profilo passa al fascicolo e viene rafforzato con ufficio, PEC, codice deposito e certificato quando il canale lo richiede;
 - PAT, PTT e PDP restano canali separati con regole dedicate: non sono varianti del PCT civile e non devono ereditare certificati o blocchi non pertinenti.
 
+Matrice permanente canali deposito e fonti ufficiali, da non perdere dopo compattazioni:
+
+- `PCT/SICID`, `PCT lavoro/SICID`, `PCT/SIECIC` e `SIGP/Giudice di Pace`: fonte Ministero della Giustizia/PST, DM 44/2011 art. 34 e specifiche tecniche DGSIA 7 agosto 2024 efficaci dal 30 settembre 2024. Il software deve risolvere codice oggetto PST, ufficio, PEC ufficiale, documenti, firme richieste, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `Atto.msg` e `Atto.enc` AES256. Il certificato `.cer` PST dell'ufficio è requisito del trasporto solo per questi canali/uffici quando generano `Atto.enc`. Il job `pst_certificati_cifratura_weekly` aggiorna questa cache tecnica condivisa e deve saltare uffici senza certificato pubblicato o non operativi senza far fallire gli altri certificati; il singolo deposito resta invece bloccato se il proprio ufficio richiede `.cer` e il certificato non è verificato.
+- `PDP penale`: fonte PST/Ministero della Giustizia, Decreto Ministero Giustizia 4 luglio 2023 e specifiche tecniche Portale Deposito atti Penali efficaci dal 20 luglio 2023. Non usa `DatiAtto.xml` civile, non usa `Atto.enc` PCT e non deve ereditare il `.cer` PST civile. Il software deve preparare atto e allegati secondo formato/firma richiesti, guidare o importare il deposito dal portale PDP e salvare ricevute/esiti nel fascicolo.
+- `PAT/SIGA amministrativo`: fonte Giustizia Amministrativa, regole tecnico-operative PAT e modifica 2025/2026. Dal 1 febbraio 2026 il deposito tramite Formweb è canale prioritario; la PEC è residuale solo per comprovate ragioni tecniche o casi previsti. Non usa `.cer` PST civile né `Atto.enc` PCT. Il software deve preparare modulo/atto, allegati, firme PAdES quando richieste, checklist PAT, upload assistito Formweb e import ricevute.
+- `PTT/SIGIT tributario`: fonte MEF/Dipartimento della Giustizia Tributaria e Gazzetta Ufficiale, specifiche tecniche PTT 6 novembre 2020 e modifiche 21 aprile 2023. Non usa `.cer` PST civile né `DatiAtto.xml` PCT. Il software deve controllare PDF/A quando richiesto, firma digitale, limiti file, upload SIGIT e import ricevute/esiti.
+- `UNEP`, notifiche PEC e PEC stragiudiziale: sono canali diversi dal deposito PCT. Devono avere relata/testo, destinatari, domicilio digitale, firme e ricevute governati dal flusso notifiche/PEC; non possono essere dichiarati deposito valido e non devono attivare `Atto.enc` salvo una regola specifica futura documentata.
+
 Il comando operativo è:
 
 ```powershell
@@ -200,6 +208,10 @@ Il primo comando può riparare solo parti rigenerabili: mirror SQL `moduli_json_
 ## Regola deposito e flussi sensibili
 
 Per deposito telematico, fascicoli, PEC, notifiche legali, portali, Local Signer e firma digitale resta obbligatorio aggiornare anche `artifacts/react-migration/procedura-deposito-telematico.md`. Il software deve preparare ciò che può preparare subito, spiegare cosa manca, bloccare solo requisiti obbligatori e non registrare come deposito valido un pacchetto ministeriale non conforme.
+
+Regola permanente `Invia deposito reale`: nel flusso `Prepara deposito`, dopo verifica positiva di prova senza invio, firme salvate, indice documenti visualizzabile, destinatario PEC verificato, testo PEC controllato e busta/trasporto ministeriale conforme, il bottone `Invia deposito reale` deve attivarsi. Se resta disabilitato, la UI deve indicare il requisito obbligatorio mancante in modo puntuale e verificabile; se i requisiti previsti sono tutti rispettati, il blocco del bottone è una regressione da correggere prima di commit, push e deploy.
+
+Regola permanente relata/notifica: la relata o la prova di notifica si chiude solo dopo confronto con fonti normative ufficiali, testo reale visualizzato o generato, dati obbligatori verificati, firma digitale della relata quando richiesta, prova senza invio reale e collegamento documentale nel fascicolo. Se tutto è conforme, l'esito deve essere documentato in `artifacts/react-migration/procedura-deposito-telematico.md`; se manca un requisito, la UI deve indicarlo e non deve registrare la notifica come effettiva.
 
 ## Regola anti falso-verde
 

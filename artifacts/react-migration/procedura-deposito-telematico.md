@@ -2,6 +2,177 @@
 
 Aggiornato: 2026-06-17.
 
+## Aggiornamento 2.253.54 - prova locale React deposito, indice e simulazione PEC
+
+Data intervento: 2026-06-17.
+
+Perimetro richiesto dall'utente:
+
+- superficie React, non legacy, sulla copia locale reale `http://127.0.0.1:8080`;
+- fascicolo reale locale `DC5BF1DB` (`RG 466/2023 - Alessi Robertino`);
+- verifica visiva prima dei gate lunghi, con controllo di layout, indice PDF, corpo PEC modificabile, simulazione PEC e blocco puntuale del pulsante reale.
+
+Prova materiale eseguita:
+
+- container locale `iusentra-app` aggiornato e healthy, `/api/pronto` HTTP 200;
+- pagina aperta in Google Chrome installato, modalità visibile, URL `/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta`;
+- `#root` React presente, nessun fallback legacy, nessun HTML grezzo visibile, nessun `n.d.`;
+- ufficio e destinatario risolti da SQL/tenant: `Ufficio del Giudice di Pace di Palmi`, codice ufficio `0910401`, codice ministeriale `0800570152`, PEC `gdp.palmi@civile.ptel.giustiziacert.it`;
+- card busta leggibili: l'atto principale `Note conclusive Alessi Robertino.pdf.p7m` non viene più spezzato verticalmente;
+- `IndiceDocumentiDepositati.PDF` visualizzato nel viewer PDF con risposta `application/pdf`, `ATTO_GENERICO`, `RG 466/2023`, codice oggetto `145009` ed elenco documenti;
+- `Modifica testo PEC` apre un campo editabile solo su scelta dell'avvocato; il testo standard resta usato automaticamente e contiene `Atto.enc` e l'elenco documenti;
+- `Simula invio PEC` mostra barra di avanzamento con `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti selezionati e `Atto.enc`;
+- la simulazione restituisce HTTP 200 e non produce errori console; la preview mostra destinatario PEC, oggetto `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023`, riferimento prova, elenco documenti, testo PEC e controlli obbligatori mancanti;
+- `Invia deposito reale` resta disabilitato con motivo puntuale: mancano certificato PST `.cer` dell'ufficio `0800570152`, `Atto.enc` AES256 generato da `Atto.msg` e PEC mittente dello studio configurata. Questo è blocco di conformità, non prudenza generica.
+
+Correzione applicata:
+
+- nel ramo React `/fascicoli/<id>/deposito/invia-pec`, le modalità `prova_senza_invio=1` e `simula_invio_pec=1` ora restituiscono JSON HTTP 200 quando il pacchetto di controllo è stato preparato ma l'invio reale resta sospeso per requisiti obbligatori;
+- il 409 resta per l'invio reale non conforme, così la UI può distinguere prova guidata da errore operativo.
+
+Guardrail aggiunti/eseguiti:
+
+- `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http -q`;
+- screenshot temporanei fuori repository: layout busta corretto, indice PDF visualizzato, editor corpo PEC, preview simulazione PEC.
+
+Limiti residui:
+
+- non è stato eseguito invio PEC reale;
+- la firma multipla con PIN/token reale resta dichiarabile solo dopo firma effettiva di più documenti nella UI e salvataggio dei `.p7m`;
+- prima della chiusura complessiva restano commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner e prova server sullo stesso commit.
+
+## Aggiornamento 2.253.53 - matrice canali e scheduler certificati PST
+
+Data intervento: 2026-06-17.
+
+Chiarimento permanente dopo richiamo utente:
+
+- il deposito non può essere ridotto al solo PCT civile: ogni canale ha normativa, trasporto, firma, ricevute e blocchi propri;
+- il job `.cer` è solo il presidio tecnico dei canali che cifrano `Atto.msg` in `Atto.enc` con certificato pubblico PST dell'ufficio;
+- PDP, PAT, PTT, notifiche PEC, UNEP e PEC stragiudiziale devono continuare a essere trattati come canali autonomi, senza ereditare certificati o blocchi PCT.
+
+Matrice operativa aggiornata:
+
+- `PCT/SICID`, `PCT lavoro/SICID`, `PCT/SIECIC`, `SIGP/Giudice di Pace`: fonti Ministero della Giustizia/PST, DM 44/2011 art. 34 e specifiche tecniche DGSIA 7 agosto 2024 efficaci dal 30 settembre 2024. IUSENTRA deve risolvere codice oggetto PST, ufficio, PEC, firma documentale, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `Atto.msg`, certificato `.cer` PST e `Atto.enc` AES256. Se il `.cer` del proprio ufficio non è verificato o `Atto.enc` non è generato, l'invio reale è bloccato e la UI deve dire quale requisito manca.
+- `PDP penale`: fonti PST/Ministero della Giustizia, Decreto Ministero Giustizia 4 luglio 2023 e specifiche tecniche Portale Deposito atti Penali efficaci dal 20 luglio 2023. Non genera busta PCT civile, non usa `DatiAtto.xml` civile e non usa `.cer` PST/`Atto.enc`. IUSENTRA deve preparare e controllare atti/allegati/firme secondo PDP, guidare o importare il deposito dal portale e salvare ricevute/esiti.
+- `PAT/SIGA amministrativo`: fonti Giustizia Amministrativa, regole tecnico-operative PAT e modifica 2025/2026. Dal 1 febbraio 2026 Formweb è il canale prioritario; PEC è residuale solo per casi tecnici previsti. Non usa `.cer` PST civile né `Atto.enc` PCT. IUSENTRA deve preparare modulo/atto, allegati, firma PAdES quando richiesta, checklist PAT, upload assistito e ricevute.
+- `PTT/SIGIT tributario`: fonti MEF/Dipartimento Giustizia Tributaria e Gazzetta Ufficiale, specifiche tecniche 6 novembre 2020 e modifiche 21 aprile 2023. Non usa `.cer` PST civile né `DatiAtto.xml` PCT. IUSENTRA deve controllare PDF/A quando richiesto, firme, limiti file, upload SIGIT e ricevute.
+- `UNEP`, notifiche PEC e PEC stragiudiziale: canali separati dal deposito. Servono relata/testo, destinatari, domicilio digitale, firme e ricevute proprie; non devono essere dichiarati deposito PCT e non devono attivare `Atto.enc` salvo regola futura documentata.
+
+Controllo scheduler `.cer`:
+
+- cache operativa locale inizialmente assente per Vicenza e server;
+- prova live ufficiale su codice ufficio `0241160092` ha scaricato il certificato PST del `Tribunale Ordinario - Vicenza`, SHA256 `28D0A5456A542FAC99B772AAE6B5F7E8AD909E1F569ED8D1EFD929DE9DC708AA`, valido fino all'11 gennaio 2029;
+- su Hetzner il download falliva per catena TLS incompleta (`TI Trust Technologies OV CA` non inviato come intermedio completo al client Python); il downloader ora usa `certifi` e carica solo l'intermedio TI Trust/Sectigo pinnato con SHA256 `1BFD8702D8F9BB340F353820330C0BBA7E522C63164C91F295414DAC797F0863`, senza disabilitare la verifica SSL;
+- dopo hotfix sul container Hetzner, `scripts/precarica_certificati_cifratura_pst.py --codice-ufficio 0241160092 --strict` ha scaricato `/data/pst/certificati_cifratura/0241160092.cer` con esito `ok=true`;
+- dopo `repair_deposit_profiles(verify_certificates=True)` sui database server, il fascicolo `E5AE4668` (`2026/330`, `Marchetti c. MIM`, `Carta docente`) ha profilo SQL verificato: canale `pct_civile_dm44`, codice `222050`, ufficio `Tribunale di Vicenza`, codice ufficio `0241160092`, PEC `tribunale.vicenza@civile.ptel.giustiziacert.it`, `.cer` verificato e nessun blocco profilo;
+- `scripts/precarica_certificati_cifratura_pst.py` accetta ora `--codice-ufficio` per controlli mirati su fascicoli reali;
+- `precarica_certificati_cifratura` limita il ciclo settimanale ai canali PCT/SIGP che richiedono `.cer` per `Atto.enc`; uffici non operativi, non PCT o senza certificato pubblicato sono riportati come saltati/avvisi del report e non fanno fallire gli altri certificati;
+- il singolo deposito resta comunque fail-closed: se il proprio canale richiede `.cer` e quel `.cer` non è verificato, l'invio reale non deve essere registrato come deposito valido.
+
+Fonti ufficiali riconsultate:
+
+- PST Ministero della Giustizia, specifiche tecniche ex art. 34 DM 44/2011 - provvedimento 7 agosto 2024;
+- PST Ministero della Giustizia, specifiche tecniche PDP penale 2023;
+- Giustizia Amministrativa, Processo Amministrativo Telematico e avviso Formweb/PEC dal 1 febbraio 2026;
+- Gazzetta Ufficiale, specifiche tecniche Processo Tributario Telematico 6 novembre 2020 e modifiche 21 aprile 2023.
+
+## Aggiornamento 2.253.50 - prova reale locale firma multipla, indice e prova senza invio
+
+Data intervento: 2026-06-17.
+
+Prova reale eseguita su macchina locale dell'utente:
+
+- URL verificato: `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta`;
+- versione runtime reale: `2.253.50`, verificata con `GET /api/pronto`;
+- fascicolo locale di prova: `RG 466/2023 - Alessi Robertino`, ufficio `Giudice di Pace - Palmi`;
+- superficie: React deposito su Docker locale reale, container `app`, `scheduler-worker` e `ocr-worker` healthy;
+- azione materiale: inserito il PIN nel pannello Local Signer e confermato `Firma e prepara prova`;
+- stato iniziale visto: 8 documenti candidati busta, 4 già firmati, 4 documenti da firmare nel comando busta;
+- esito firma multipla: i 4 documenti non firmati sono stati firmati e salvati come `.pdf.p7m`; la UI è passata a `8 firmati`, `0 documenti da firmare`, `Firme coerenti`;
+- file firmati osservati dopo la prova: `attoACQ.pdf.p7m`, `Note trattazione scritta Alessi Robertino c Zurich Ass.ni-signed.pdf.p7m`, `Note conclusive Alessi Robertino.pdf.p7m`, `Istanza trattazione scritta Alessi Robertino.pdf.p7m`;
+- azione successiva: click reale su `Prova senza invio reale`, conferma del pannello e osservazione della barra `PREPARAZIONE DEPOSITO IN CORSO`;
+- progress bar osservata: nome corrente `IndiceDocumentiDepositati.PDF` e ticker con `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, tutti gli 8 `.p7m` e `Atto.enc`;
+- esito prova senza invio: toast `Busta generata e scaricata`, nessun blocco su `Operazione...`, nessun errore tecnico grezzo PST o URL `servizipst` nella UI;
+- testo PEC: visibile e modificabile facoltativamente; dopo la firma elenca gli 8 documenti `.p7m`;
+- anteprima indice: click su `Visualizza IndiceDocumentiDepositati.PDF`, modal con titolo, pulsanti `Scarica`/`Chiudi` e iframe diretto visibile circa `1180 x 681`, senza riquadro grigio/vuoto;
+- screenshot locale prova indice: `C:/Users/antmm/AppData/Local/Temp/iusentra-deposito-indice-firma-reale-225350.png`.
+
+Correzioni e presidi collegati:
+
+- `frontend/src/components/FascicoliPage.tsx`: la chiamata Local Signer `/firma-batch` ora ha timeout controllato a 45 secondi con `AbortController`; se il servizio locale non risponde, la UI mostra un errore esplicito e non prosegue alla busta senza firme salvate;
+- la modifica non cambia il comportamento positivo della firma multipla: nella prova reale il lotto è stato firmato e salvato correttamente;
+- `tests/test_regia_ui_react.py`: aggiunto guardrail statico su timeout firma batch, `AbortController`, `signal: controller.signal` e messaggio utente.
+
+Limiti residui visti nella prova locale:
+
+- il fascicolo locale `DC5BF1DB` è un fascicolo Giudice di Pace con PEC ufficio non presente nel catalogo locale; la UI avvisa `Indirizzo PEC non disponibile dal catalogo uffici` e l'invio reale resta governato da verifica destinatario;
+- la conformità ministeriale finale resta subordinata alla generazione reale di `Atto.enc` quando il canale/ufficio richiede cifratura ministeriale; la prova locale conferma firma multipla, indice, testo PEC e busta di controllo, non registra un deposito valido inviato.
+
+## Aggiornamento 2.253.47 - prova reale busta, PEC e certificato PST guidato
+
+Data intervento: 2026-06-17.
+
+Prova reale eseguita su produzione:
+
+- URL verificato: `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara#generazione-busta`;
+- fascicolo: `2026/330`, `Marchetti c. MIM`, cliente `Marchetti Lucia`;
+- superficie: React deposito sul server Hetzner `app.iusentra.it`, sessione utente autenticata;
+- azione materiale: click su `Prova senza invio reale`, conferma del pannello e osservazione della barra di avanzamento;
+- esito visibile: barra `Preparazione deposito in corso` con scorrimento di `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti `.p7m` selezionati e `Atto.enc`;
+- esito finale: pannello `Prova senza invio PEC` con destinatario `tribunale.vicenza@civile.ptel.giustiziacert.it`, oggetto `DEPOSITO TELEMATICO - RICORSO - Tribunale di Vicenza`, testo PEC predisposto e documenti indicati nel pacchetto;
+- controllo regressione: non compare più l'errore tecnico grezzo `Download PST non riuscito` né l'URL PST nel contenuto visibile della UI;
+- blocco corretto: `Invia deposito reale` resta disabilitato perché mancano certificato pubblico PST `.cer` e `Atto.enc` AES256 conforme.
+
+Correzioni applicate:
+
+- `frontend/src/components/FascicoliPage.tsx`: la prova/invio deposito mostra una progress bar con nome del file in lavorazione e ticker dei documenti; il corpo PEC è visibile e modificabile solo facoltativamente; l'anteprima `IndiceDocumentiDepositati.PDF` usa URL diretto; la spunta `Da firmare` non viene mostrata sui documenti non selezionati per la busta;
+- `frontend/src/components/FascicoliPage.css`: aggiunti stili per il blocco testo PEC e per la progress bar/ticker della busta;
+- `pct/busta.py`: `Atto.msg` viene tracciato nell'audit prima del recupero certificato; se il `.cer` PST non è disponibile, l'audit resta consultabile e l'invio reale resta bloccato senza perdere il pacchetto di controllo;
+- `web/bootstrap/deposito_routes.py`: le route React e storica trasformano `PSTCifraturaError` in risposta guidata `requires_guided_completion`, senza inviare alla UI il messaggio tecnico grezzo del download PST.
+
+Guardrail tecnici eseguiti dopo la prova reale:
+
+- `python -m pytest tests/test_busta.py -q`;
+- `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato -q`;
+- `python -m pytest tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q`.
+
+Limite residuo operativo:
+
+- il software prepara indice, testo PEC, `Atto.msg` e audit del pacchetto, ma non deve registrare un deposito valido finché non viene generato `Atto.enc` ministeriale cifrato AES256 con certificato pubblico PST dell'ufficio;
+- la prova firma multipla con token fisico/PIN resta da ripetere solo quando si esegue realmente il comando di firma; il PIN non è stato scritto nei file di progetto.
+
+## Aggiornamento 2.253.46 - prova reale server e guardrail anti-lock deposito
+
+Data intervento: 2026-06-17.
+
+Prova reale eseguita su produzione:
+
+- URL verificato: `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`;
+- fascicolo: `2026/330`, `Marchetti c. MIM`, cliente `Marchetti Lucia`;
+- superficie: React deposito sul server Hetzner `app.iusentra.it`, sessione utente autenticata;
+- primo caricamento reale: la pagina ha mostrato `n.d.`, zero documenti e `Caricamento...` perché `/api/v1/ui/fascicoli/E5AE4668?include=all` ha ricevuto un lock transitorio SQLite su `studio.db`;
+- dopo ricarica reale: API `include=all` ha risposto 200 e la UI ha mostrato `Tribunale di Vicenza`, canale `PCT lavoro / SICID`, 13 documenti letti, 11 candidati busta, 4 firmati e 7 da firmare.
+
+Correzione applicata:
+
+- `pct/storage.py`: `StudioDB.ensure_schema()` riusa la connessione thread-local esistente e ritenta se lo schema SQLite è temporaneamente occupato;
+- `frontend/src/fascicoliData.ts`: le chiamate dati fascicoli ritentano brevemente su errori transitori `408/423/429/5xx`, evitando che un lock momentaneo sostituisca i dati reali con fallback vuoto;
+- `frontend/src/components/FascicoliPage.css`: la vista `Prepara deposito` è stata resa più compatta su server e locale, riducendo testata, pulsanti, cockpit, badge e percorso deposito senza cambiare le regole di firma o conformità;
+- versione riallineata a `2.253.46`.
+
+Esito firma documento per documento osservato nella UI:
+
+- i file `.pdf.p7m` osservati risultano `Firmato`;
+- i file `.PDF` o `.pdf` non PAdES osservati restano `Da firmare`, anche quando il nome o il contenuto testuale potrebbero contenere la parola "Firmato";
+- esempi visti come `Da firmare`: `Carta Identità e C.F. Lucia Marchetti.PDF`, `Contratto Rossi 2025-2026.pdf`, `Ricorso.pdf`, `Sentenza Cassazione.PDF`, `Sentenza_Tribunale_Vicenza_20-04-2023.PDF`;
+- esempi visti come `Firmato`: `Autocertificazione ricorso.PDF.p7m`, `Autocertificazione situazione reddituale.PDF.p7m`, `Contratto 24-25.pdf.p7m`, `Procura.PDF.p7m`.
+
+Limite residuo:
+
+- prova firma multipla con token fisico/PIN non ancora ripetuta dopo il fix `2.253.46`;
+- l'invio reale resta bloccato finché manca `Atto.enc` ministeriale cifrato AES256 conforme, come mostrato nella UI.
+
 ## Aggiornamento 2026-06-17 - profilo deposito SQL da preventivo a fascicolo
 
 Data intervento: 2026-06-17.
@@ -40,8 +211,8 @@ Guardrail aggiunto dopo chiarimento utente:
 
 Stato prova reale:
 
-- non verificato su macchina reale in questa tranche: le prove sopra sono guardrail tecnici e non sostituiscono la verifica visiva/server richiesta dall'utente;
-- prima della chiusura restano obbligatori build, prova reale su server/locale secondo incarico, commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner e igiene repository.
+- verificato su server reale in `2.253.46` per caricamento profilo, canale, documenti, stati firma CAdES/PAdES e blocco invio non conforme;
+- prima della chiusura completa restano obbligatori commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner del fix `2.253.46`, prova post-deploy sulla vista compatta e igiene repository.
 
 Aggiornamento operativo 2.253.45:
 

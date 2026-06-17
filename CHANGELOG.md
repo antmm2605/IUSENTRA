@@ -1,5 +1,62 @@
 # Changelog
 
+## 2.253.54 - 2026-06-17
+
+- Deposito React locale: riallineata la copia Docker reale `127.0.0.1:8080` e verificato il fascicolo `DC5BF1DB` in Chrome visibile, senza fallback legacy, senza `n.d.`, con ufficio/PEC del Giudice di Pace di Palmi, card busta leggibili e indice `IndiceDocumentiDepositati.PDF` visualizzato nel viewer.
+- Deposito PEC: `Simula invio PEC` e `Prova senza invio reale` restituiscono preview JSON `200` quando il pacchetto di controllo è generato ma il trasporto reale resta bloccato; l'errore HTTP `409` resta riservato al tentativo di invio reale non conforme.
+- Deposito React: confermata la modifica facoltativa del corpo PEC prima della prova/invio, con textarea editabile e testo standard ripristinabile.
+- Guardrail: aggiunto test per simulazione PEC guidata con `.cer`/`Atto.enc` mancanti, così la UI mostra blocchi obbligatori senza errore console.
+
+## 2.253.53 - 2026-06-17
+
+- Deposito/canali telematici: aggiornata la matrice permanente PCT/SICID, PCT lavoro, PCT/SIECIC, SIGP/Giudice di Pace, PDP penale, PAT/SIGA, PTT/SIGIT, UNEP/notifiche/PEC, con fonti ufficiali e regole distinte per trasporto, firme, ricevute e blocchi.
+- Certificati PST `.cer`: il job `pst_certificati_cifratura_weekly` ora presidia solo i canali che richiedono certificato PST per `Atto.enc`; uffici non operativi, non PCT o senza certificato pubblicato sono riportati come saltati nel report senza far fallire gli altri aggiornamenti.
+- Certificati PST `.cer`: lo script `scripts/precarica_certificati_cifratura_pst.py` accetta `--codice-ufficio` per prove mirate su fascicoli reali; verificato live il certificato `0241160092` del Tribunale di Vicenza con SHA256 ministeriale.
+- Deposito dati SQL: prosegue il backfill dei profili deposito esistenti in `profilo_deposito_json` per SQLite/PostgreSQL, includendo PEC, codice deposito, ufficio e stato certificato quando il canale lo richiede.
+
+## 2.253.52 - 2026-06-17
+
+- Deposito PEC: rimosso dal corpo PEC standard il riferimento operativo a IUSENTRA Local Signer; la cancelleria vede solo testo utile al deposito, mentre il canale locale resta tracciato nei messaggi tecnici interni.
+- Deposito uffici: il fascicolo con ufficio scritto come `Giudice di Pace - Palmi` ora viene risolto tramite il resolver ufficiale del catalogo, recuperando codice ministeriale e PEC del Giudice di Pace senza modificare i dati del fascicolo.
+
+## 2.253.51 - 2026-06-17
+
+- Deposito React: ripristinato il comando esplicito `Simula invio PEC`, separato da `Prova senza invio reale` e da `Invia deposito reale`, con progress bar dedicata e messaggio che chiarisce che nessuna PEC viene spedita.
+- Deposito API: la simulazione PEC usa `simula_invio_pec=1`, restituisce `simulazione=true`, Message-ID fittizio e registra solo una prova marcata nel fascicolo quando il pacchetto è tecnicamente inviabile; l'invio reale resta separato.
+- Incarico operativo: aggiunte regole permanenti su attivazione del bottone `Invia deposito reale` quando tutti i requisiti obbligatori sono rispettati e su chiusura della relata/notifica solo dopo prova reale e confronto normativo.
+
+## 2.253.50 - 2026-06-17
+
+- Deposito React/Local Signer: la firma batch non resta più appesa se il servizio locale non risponde; dopo 45 secondi viene mostrato un errore chiaro, la busta resta bloccata e nessun deposito viene trattato come valido senza firme salvate.
+- Guardrail UI: aggiunto presidio sul timeout `AbortController` della chiamata `/firma-batch`, così la prova reale non può regredire in una schermata ferma su `Operazione...`.
+
+## 2.253.49 - 2026-06-17
+
+- Deposito React/API: la classificazione documenti non va più in 500 quando il profilo pratica non è determinato; salva comunque la selezione documentale reale, non inventa slot, e lascia Regia in stato `profilo_da_confermare`.
+- Prova locale reale: durante `Firma e prepara prova` la barra di avanzamento è stata vista su `127.0.0.1:8080`, ma il flusso ha evidenziato il 500 sul profilo mancante; il fix è stato aggiunto prima di procedere a commit/deploy.
+
+## 2.253.48 - 2026-06-17
+
+- Storage SQLite tenant: se `studio.db` contiene già dati core reali, il runtime non rilancia più il bootstrap dai JSON storici solo perché l'anchor della richiesta è vuoto; questo evita che mirror non autorevoli blocchino la vista React dei fascicoli e del deposito.
+- Test anti-regressione: aggiunto il caso SQLite con fascicoli già presenti e anchor `clienti/anagrafica.json` vuoto, per preservare la regola SQL fonte di verità.
+
+## 2.253.47 - 2026-06-17
+
+- Deposito React: aggiunta barra di avanzamento durante `Prova senza invio reale` e `Invia deposito reale`, con nome del documento/payload in lavorazione e scorrimento di `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti selezionati e `Atto.enc`.
+- Deposito React: il testo del corpo PEC viene mostrato prima dell'invio e resta modificabile solo su scelta dell'avvocato; la modifica non è obbligatoria e può essere ripristinata allo standard.
+- Firma documenti: la spunta laterale `Da firmare` non viene più mostrata sui documenti non selezionati per la busta; resta visibile solo per documenti selezionati o già firmati, mentre le firme obbligatorie sono limitate ai ruoli che lo richiedono.
+- Indice busta: `IndiceDocumentiDepositati.PDF` viene visualizzato tramite URL diretto e non più come blob fragile, evitando il viewer grigio/vuoto visto in produzione.
+- Cifratura PST: se il certificato pubblico `.cer` dell'ufficio non è recuperabile, `Atto.msg` resta tracciato nell'audit e la UI mostra un esito guidato senza URL tecnici grezzi; l'invio reale resta bloccato finché non esiste `Atto.enc` AES256 conforme.
+- Prova server reale: su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara#generazione-busta` la prova senza invio mostra progress bar, destinatario `tribunale.vicenza@civile.ptel.giustiziacert.it`, testo PEC predisposto, documenti in busta e controlli mancanti `.cer`/`Atto.enc`, senza più `Download PST non riuscito`.
+
+## 2.253.46 - 2026-06-17
+
+- Deposito telematico server: nella prova reale su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara` il primo caricamento ha mostrato dati `n.d.` e zero documenti per un lock SQLite transitorio su `studio.db`.
+- Storage SQLite tenant: `StudioDB.ensure_schema()` ora riusa la connessione thread-local esistente e ritenta brevemente se lo schema è occupato, evitando aperture ridondanti che possono contribuire a lock intermittenti.
+- UI React fascicoli: le chiamate dati dei fascicoli ritentano in modo breve sugli errori transitori `408/423/429/5xx`, invece di sostituire subito il deposito reale con il fallback vuoto.
+- UI deposito React: ridotta la scala visiva di `Prepara deposito` con testata, pulsanti, cockpit, badge e percorso deposito più compatti, mantenendo leggibili gli stati e invariata la logica di firma/conformità.
+- Prova server: dopo ricarica reale del fascicolo `2026/330` la pagina mostra `Tribunale di Vicenza`, canale `PCT lavoro / SICID`, 13 documenti letti, 11 candidati busta, 4 firmati reali, 7 da firmare, e i `.PDF` non PAdES restano `Da firmare`.
+
 ## 2.253.45 - 2026-06-17
 
 - Deposito telematico: introdotto il profilo deposito SQL end-to-end da preventivo accettato, conferimento incarico, nuovo fascicolo diretto e fascicolo veloce/autonomo.

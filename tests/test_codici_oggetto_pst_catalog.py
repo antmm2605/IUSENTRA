@@ -38,6 +38,13 @@ def test_payload_codice_oggetto_pst_restituisce_fonte_xsd_specifica():
     assert codice_oggetto_pst_payload("222050 - Retribuzione")["codice_oggetto_pst"] == "222050"
 
 
+def test_normalizza_codice_oggetto_pst_da_descrizione_ufficiale_univoca():
+    descrizione = "Azioni di competenza del Giudice di Pace in materia di risarcimento danno"
+
+    assert normalize_codice_oggetto_pst(descrizione) == "145009"
+    assert codice_oggetto_pst_payload(descrizione)["codice_oggetto_pst"] == "145009"
+
+
 def test_heuristic_codes_accepts_official_alphanumeric_and_rejects_internal_aliases():
     assert looks_like_codice_oggetto_pst("014001") is True
     assert looks_like_codice_oggetto_pst("B02001") is True

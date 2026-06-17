@@ -61,19 +61,54 @@ def ufficio_da_nome(nome_ufficio: str) -> dict[str, Any] | None:
     if not nome_ufficio:
         return None
     try:
-        from pct.uffici_giudiziari import get_gestore as _get_uff
+        from pct.uffici_giudiziari import risolvi_ufficio
 
         cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-        return next(
-            (
-                row
-                for row in _get_uff(cache_path).carica()
-                if str(row.get("nome", "")).lower() == nome_ufficio.lower()
-            ),
-            None,
-        )
+        return risolvi_ufficio(nome_ufficio, cache_path=cache_path)
     except Exception:
         return None
+
+
+def _dict_or_empty(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def ufficio_deposito_destinatario(fascicolo: Any) -> dict[str, Any]:
+    """Risoluzione unica ufficio deposito: codice PST per busta, codice catalogo solo informativo."""
+
+    ufficio = ufficio_da_nome(str(getattr(fascicolo, "tribunale", "") or ""))
+    profilo = _dict_or_empty(getattr(fascicolo, "profilo_deposito", {}))
+    profilo_ufficio = _dict_or_empty(profilo.get("ufficio"))
+    profilo_cert = _dict_or_empty(profilo.get("certificato_cifratura"))
+    resolved = _dict_or_empty(ufficio)
+    codice_pst = (
+        str(profilo_ufficio.get("codice_pst") or "").strip()
+        or str(profilo_ufficio.get("codice_ministero") or "").strip()
+        or str(profilo_cert.get("codice_ufficio") or "").strip()
+        or str(resolved.get("codice_ministero") or "").strip()
+        or str(resolved.get("codice_pst") or "").strip()
+        or str(resolved.get("codice") or "").strip()
+        or str(getattr(fascicolo, "tribunale", "") or "").strip()
+        or "SCONOSCIUTO"
+    )
+    pec = (
+        str(profilo_ufficio.get("pec") or "").strip()
+        or str(resolved.get("pec_ministero") or "").strip()
+        or str(resolved.get("pec") or "").strip()
+    )
+    nome = (
+        str(profilo_ufficio.get("nome") or "").strip()
+        or str(resolved.get("nome") or "").strip()
+        or str(getattr(fascicolo, "tribunale", "") or "").strip()
+    )
+    return {
+        "ufficio": resolved or None,
+        "nome": nome,
+        "codice_ufficio": codice_pst,
+        "codice_pst": codice_pst,
+        "codice_catalogo": str(resolved.get("codice") or "").strip(),
+        "pec_dest": pec,
+    }
 
 
 def allegati_busta(fascicolo, gestore_fascicoli, id_fascicolo: str, allegati_ids: list[str], allegato_cls):

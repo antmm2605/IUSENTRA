@@ -8,6 +8,7 @@ from email.parser import BytesParser
 from pathlib import Path
 
 from pct.busta import BustaTelematica, DatiBusta, Allegato, ATTO_MSG_FILENAME
+from pct.pst_cifratura import PSTCifraturaError
 
 
 @pytest.fixture
@@ -141,6 +142,37 @@ def test_audit_busta_blocca_prima_della_generazione_reale(dati_busta):
     issue = next(issue for issue in audit["issues"] if issue["code"] == "ATTO-ENC-MISSING")
     assert "Atto.msg" in issue["detail"]
     assert "AES256" in issue["detail"]
+
+
+def test_busta_con_certificato_pst_non_disponibile_conserva_atto_msg(dati_busta, tmp_path, monkeypatch):
+    def resolver_non_disponibile(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        raise PSTCifraturaError(
+            "Download PST non riuscito: https://servizipst.giustizia.it/PST/it/pst_2_4.wp"
+        )
+
+    monkeypatch.setattr(
+        "pct.busta.risolvi_certificato_cifratura_ufficio",
+        resolver_non_disponibile,
+    )
+    busta = BustaTelematica(dati_busta)
+
+    with pytest.raises(PSTCifraturaError):
+        busta.crea_busta(str(tmp_path))
+
+    audit = busta.audit_conformita_pst()
+    assert audit["uses_real_encryption"] is False
+    assert audit["transport_mode"] == "atto_msg_generato_cifratura_pst_non_completata"
+    assert audit["atto_msg_generated"] is True
+    assert audit["atto_enc_path"] == ""
+    assert Path(audit["atto_msg_path"]).name == ATTO_MSG_FILENAME
+    assert Path(audit["atto_msg_path"]).exists()
+    assert audit["blocks_direct_send"] is True
+    assert audit["guided_completion_required"] is True
+    assert ".cer" in audit["certificate_error"]
+    assert "https://" not in audit["certificate_error"]
+    assert any(".cer" in action for action in audit["guided_next_actions"])
+    assert any("Atto.enc" in action and "AES256" in action for action in audit["guided_next_actions"])
+    assert not any("https://" in action for action in audit["guided_next_actions"])
 
 
 def test_busta_con_allegati(tmp_path, tmp_pdf):

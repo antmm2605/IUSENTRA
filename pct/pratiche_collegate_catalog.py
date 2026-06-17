@@ -18,6 +18,10 @@ def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _lower_key(value: Any) -> str:
+    return " ".join(_text(value).lower().split())
+
+
 @lru_cache(maxsize=1)
 def load_pratiche_collegate_catalog() -> dict[str, Any]:
     with CATALOG_PATH.open("r", encoding="utf-8") as handle:
@@ -125,6 +129,20 @@ def _codici_index() -> dict[str, dict[str, str]]:
     return {row["codice"]: row for row in list_codici_oggetto_pst()}
 
 
+@lru_cache(maxsize=1)
+def _unique_codice_by_description() -> dict[str, str]:
+    counts: dict[str, int] = {}
+    matches: dict[str, str] = {}
+    for row in list_codici_oggetto_pst():
+        key = _lower_key(row.get("descrizione"))
+        code = _text(row.get("codice"))
+        if not key or not code:
+            continue
+        counts[key] = counts.get(key, 0) + 1
+        matches[key] = code
+    return {key: code for key, code in matches.items() if counts.get(key) == 1}
+
+
 def codice_oggetto_pst_entry(codice: Any) -> dict[str, str] | None:
     return _codici_index().get(_text(codice))
 
@@ -139,6 +157,9 @@ def normalize_codice_oggetto_pst(codice: Any) -> str:
         candidate = match.group(1)
         if codice_oggetto_pst_entry(candidate):
             return candidate
+    exact_description_code = _unique_codice_by_description().get(_lower_key(testo), "")
+    if exact_description_code and codice_oggetto_pst_entry(exact_description_code):
+        return exact_description_code
     return ""
 
 

@@ -121,16 +121,6 @@ def document_has_signed_container(document: Any, *display_names: Any) -> bool:
 
 def document_has_real_digital_signature(document: Any, *display_names: Any) -> bool:
     """True solo davanti a contenitore firmato o metadato/esito tecnico reale."""
-    candidate_names = [
-        *display_names,
-        getattr(document, "nome", ""),
-        getattr(document, "nome_originale", ""),
-        getattr(document, "nome_portale", ""),
-        getattr(document, "percorso", ""),
-    ]
-    if is_signed_container_name(*candidate_names):
-        return True
-
     for attr in (
         "signed_status",
         "signed_ui",
@@ -146,8 +136,31 @@ def document_has_real_digital_signature(document: Any, *display_names: Any) -> b
     return False
 
 
+def document_bytes_have_real_digital_signature(data: bytes, *display_names: Any) -> bool:
+    """Verifica CAdES/PAdES sui byte reali; il nome file da solo non basta."""
+    if not data:
+        return False
+    if is_signed_container_name(*display_names):
+        try:
+            from pct.firma import busta_cades_valida
+
+            return bool(busta_cades_valida(data))
+        except Exception:
+            return False
+    if data[:8].startswith(b"%PDF-"):
+        try:
+            from pct.firma import analizza_firma_documento
+
+            filename = next((_text(name) for name in display_names if _text(name)), "")
+            return bool(analizza_firma_documento(data, filename))
+        except Exception:
+            return False
+    return False
+
+
 __all__ = [
     "SIGNED_CONTAINER_SUFFIXES",
+    "document_bytes_have_real_digital_signature",
     "document_has_signed_container",
     "document_has_real_digital_signature",
     "is_signed_container_name",

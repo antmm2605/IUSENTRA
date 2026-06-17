@@ -39,6 +39,19 @@ MAIN_ACT_HINTS = (
     "deduzioni",
 )
 
+MAIN_ACT_NEGATIVE_HINTS = (
+    "perizia",
+    "ctu",
+    "ctp",
+    "perital",
+    "verbale",
+    "sentenza",
+    "ordinanza",
+    "decreto",
+    "provvedimento",
+    "liquidazione",
+)
+
 
 def _notification_proof_hint(text: str) -> bool:
     return any(
@@ -98,6 +111,8 @@ def _score_for_slot(slot: Any, doc: Any) -> int:
     slot_type = str(getattr(slot, "type", "") or "").upper()
     if slot_type == SlotType.ATTO_PRINCIPALE.value or "atto principale" in slot_text:
         if negative or any(hint in text for hint in ("procura", "contributo", "pagopa", "marca", "nir", "nota iscrizione")):
+            return 0
+        if any(hint in text for hint in MAIN_ACT_NEGATIVE_HINTS):
             return 0
         score += 50 if any(hint in text for hint in MAIN_ACT_HINTS) else 0
         score += 20 if any(hint in text for hint in ("atto giudiziario", "comparsa", "ricorso", "memoria")) else 0

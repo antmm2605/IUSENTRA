@@ -11,6 +11,7 @@ import html
 import json
 import os
 import re
+import ssl
 import tempfile
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
@@ -33,10 +34,16 @@ PST_USER_AGENT = "IUSENTRA/2.0 (+https://app.iusentra.it)"
 PST_DOWNLOAD_TIMEOUT_SECONDS = 25
 PST_CERTIFICATI_CACHE_ENV = "PCT_CERTIFICATI_CIFRATURA_DIR"
 PST_UFFICI_CATALOG_PATH = Path(__file__).resolve().parent / "data" / "uffici_pst_pubblici.json"
+PST_TLS_INTERMEDIATES: tuple[dict[str, str], ...] = (
+    {
+        "url": "http://tiTrust.crt.sectigo.com/TITrustTechnologiesOVCA.crt",
+        "sha256": "1BFD8702D8F9BB340F353820330C0BBA7E522C63164C91F295414DAC797F0863",
+    },
+)
 ROME_TZ = ZoneInfo("Europe/Rome")
 CANALI_TELEMATICI_CIFRATURA_POLICY: dict[str, dict[str, Any]] = {
     "pct_civile_dm44": {
-        "nome": "PCT civile / lavoro / SICID-SIECIC via PEC",
+        "nome": "PCT civile / lavoro / SICID-SIECIC / SIGP via PEC",
         "usa_certificati_pst_cer": True,
         "trasporto": "Atto.msg cifrato in Atto.enc AES256 con certificato pubblico PST dell'ufficio",
         "formati": ["PDF", "PDF firmato PAdES", "PDF.p7m CAdES", "DatiAtto.xml", "IndiceDocumentiDepositati.PDF"],
@@ -250,10 +257,52 @@ def carica_certificato_cifratura(path: str | Path) -> x509.Certificate:
 def _request_bytes(url: str, *, timeout: int = PST_DOWNLOAD_TIMEOUT_SECONDS) -> bytes:
     request = Request(url, headers={"User-Agent": PST_USER_AGENT})
     try:
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout, context=_pst_tls_context()) as response:
             return response.read()
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
         raise PSTCifraturaError(f"Download PST non riuscito: {url}") from exc
+
+
+def _pst_tls_context() -> ssl.SSLContext | None:
+    try:
+        import certifi  # type: ignore
+
+        context = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        try:
+            context = ssl.create_default_context()
+        except Exception:
+            return None
+    _load_pinned_intermediates(context)
+    return context
+
+
+def _load_pinned_intermediates(context: ssl.SSLContext) -> None:
+    for item in PST_TLS_INTERMEDIATES:
+        try:
+            payload = _cached_tls_intermediate(item["url"], item["sha256"])
+            cert = _load_cert(payload)
+            pem = cert.public_bytes(serialization.Encoding.PEM).decode("ascii")
+            context.load_verify_locations(cadata=pem)
+        except Exception:
+            continue
+
+
+def _cached_tls_intermediate(url: str, expected_sha256: str) -> bytes:
+    cache_dir = certificati_cifratura_cache_dir() / "tls_intermediates"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    target = cache_dir / f"{expected_sha256}.crt"
+    if target.exists():
+        payload = target.read_bytes()
+        if _sha256_bytes(payload) == expected_sha256:
+            return payload
+    request = Request(url, headers={"User-Agent": PST_USER_AGENT})
+    with urlopen(request, timeout=PST_DOWNLOAD_TIMEOUT_SECONDS) as response:
+        payload = response.read()
+    if _sha256_bytes(payload) != expected_sha256:
+        raise PSTCifraturaError("Intermedio TLS PST non corrisponde all'impronta attesa.")
+    target.write_bytes(payload)
+    return payload
 
 
 def _quote_url(url: str) -> str:
@@ -281,6 +330,17 @@ def iter_uffici_pst_catalogo() -> Iterable[dict[str, Any]]:
             item = dict(row)
             item.setdefault("sezione_catalogo", sezione)
             yield item
+
+
+def _ufficio_richiede_certificato_pct(row: dict[str, Any]) -> bool:
+    """Il precarico .cer riguarda solo canali PCT/SIGP con Atto.enc."""
+
+    if str(row.get("sezione_catalogo") or "").strip().lower() != "civili":
+        return False
+    if row.get("deposito_prudenziale") is False:
+        return False
+    stato = str(row.get("stato_prudenziale") or "").strip().lower()
+    return stato != "storico_o_non_operativo"
 
 
 def trova_ufficio_pst(codice_ufficio: str) -> dict[str, Any] | None:
@@ -319,6 +379,10 @@ def _download_url_from_detail(detail_html: str, *, detail_url: str, codice_uffic
     raise PSTCifraturaError(
         f"Certificato di cifratura PST non trovato per l'ufficio {codice_ufficio}."
     )
+
+
+def _is_certificato_non_pubblicato(exc: Exception) -> bool:
+    return "Certificato di cifratura PST non trovato" in str(exc)
 
 
 def scarica_certificato_cifratura_ufficio(
@@ -450,17 +514,28 @@ def precarica_certificati_cifratura(
     cache_dir: str | Path | None = None,
     limit: int | None = None,
     force_refresh: bool = False,
+    codici_ufficio: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     risultati: list[dict[str, Any]] = []
     ok = 0
     errori = 0
+    saltati = 0
+    saltati_senza_certificato = 0
     started = datetime.now(ROME_TZ)
-    for index, row in enumerate(iter_uffici_pst_catalogo(), start=1):
-        if limit is not None and index > limit:
-            break
+    verificati = 0
+    target_codes = {str(code).strip() for code in (codici_ufficio or []) if str(code).strip()}
+    for row in iter_uffici_pst_catalogo():
         codice = str(row.get("codice_ufficio") or "").strip()
         if not codice:
             continue
+        if target_codes and codice not in target_codes:
+            continue
+        if not target_codes and not _ufficio_richiede_certificato_pct(row):
+            saltati += 1
+            continue
+        verificati += 1
+        if limit is not None and verificati > limit:
+            break
         try:
             info = risolvi_certificato_cifratura_ufficio(
                 codice,
@@ -477,6 +552,19 @@ def precarica_certificati_cifratura(
             )
             ok += 1
         except Exception as exc:
+            if _is_certificato_non_pubblicato(exc):
+                risultati.append(
+                    {
+                        "codice_ufficio": codice,
+                        "descrizione": row.get("descrizione", ""),
+                        "ok": False,
+                        "saltato": True,
+                        "motivo": "certificato_cifratura_non_pubblicato",
+                        "errore": str(exc),
+                    }
+                )
+                saltati_senza_certificato += 1
+                continue
             risultati.append(
                 {
                     "codice_ufficio": codice,
@@ -496,6 +584,12 @@ def precarica_certificati_cifratura(
         "cache_dir": str(Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()),
         "channel_scope": canali_telematici_cifratura_policy(),
         "totale": len(risultati),
+        "saltati_non_pct_o_non_operativi": saltati,
+        "saltati_senza_certificato_pubblicato": saltati_senza_certificato,
+        "perimetro": (
+            "solo uffici dei canali PCT/SIGP che richiedono certificato .cer PST "
+            "per Atto.enc; PDP, PAT e PTT usano regole e trasporti separati"
+        ),
         "scaricati_o_validi": ok,
         "errori": errori,
         "risultati": risultati,
@@ -520,6 +614,7 @@ def esegui_controllo_settimanale_certificati_cifratura(
     report_path: str | Path | None = None,
     force_refresh: bool = True,
     limit: int | None = None,
+    codici_ufficio: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Controlla e aggiorna i certificati PST ufficiali per tutti gli uffici in catalogo.
 
@@ -532,6 +627,7 @@ def esegui_controllo_settimanale_certificati_cifratura(
         cache_dir=cache_dir,
         limit=limit,
         force_refresh=force_refresh,
+        codici_ufficio=codici_ufficio,
     )
     report["job"] = "pst_certificati_cifratura_weekly"
     report["source_of_truth"] = "catalogo_pubblico_pst"

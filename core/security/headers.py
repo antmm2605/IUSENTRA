@@ -71,6 +71,7 @@ def build_csp(app: Flask | None = None) -> str:
             f"font-src {font_src}",
             f"connect-src {connect_src}",
             "worker-src 'self' blob: https://cdn.jsdelivr.net",
+            "frame-src 'self' blob:",
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",

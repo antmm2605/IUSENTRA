@@ -24,6 +24,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report-json", default="", help="Percorso report JSON.")
     parser.add_argument("--limit", type=int, default=0, help="Limite uffici per test mirati.")
     parser.add_argument(
+        "--codice-ufficio",
+        action="append",
+        default=[],
+        help="Controlla uno specifico codice ufficio PST; ripetibile.",
+    )
+    parser.add_argument(
         "--no-force-refresh",
         action="store_true",
         help="Usa la cache valida esistente senza riscaricare ogni certificato.",
@@ -40,6 +46,7 @@ def main(argv: list[str] | None = None) -> int:
         report_path=args.report_json or None,
         force_refresh=not args.no_force_refresh,
         limit=args.limit or None,
+        codici_ufficio=args.codice_ufficio or None,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     if args.strict and not report.get("ok"):

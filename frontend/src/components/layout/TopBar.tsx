@@ -92,9 +92,12 @@ export function TopBar({
     const key = `${target.entityType}:${target.entityId}`
     if (lastRecentKey.current === key) return
     lastRecentKey.current = key
-    void trackRecentItem(target.entityType, target.entityId)
-      .then(() => window.dispatchEvent(new CustomEvent('iusentra:recent-items-updated')))
-      .catch(() => {})
+    const handle = window.setTimeout(() => {
+      void trackRecentItem(target.entityType, target.entityId)
+        .then(() => window.dispatchEvent(new CustomEvent('iusentra:recent-items-updated')))
+        .catch(() => {})
+    }, 1200)
+    return () => window.clearTimeout(handle)
   }, [activePath])
   const togglePanel = (panel: Exclude<PanelName, null>) => setOpenPanel((current) => (current === panel ? null : panel))
   const closePanel = () => setOpenPanel(null)

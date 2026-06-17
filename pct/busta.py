@@ -408,10 +408,12 @@ class BustaTelematica:
         blocks_direct_send = any(issue.get("level") == "BLOCK" for issue in issues)
         next_actions = []
         if not real_transport:
-            next_actions = [
-                f"Genera Atto.msg e Atto.enc cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM} con certificato PST dell'ufficio.",
-                "Ripeti il controllo busta e verifica destinatario PEC prima dell'invio.",
-            ]
+            next_actions = list(transport.get("guided_next_actions") or [])
+            if not next_actions:
+                next_actions = [
+                    f"Genera Atto.msg e Atto.enc cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM} con certificato PST dell'ufficio.",
+                    "Ripeti il controllo busta e verifica destinatario PEC prima dell'invio.",
+                ]
 
         return {
             "transport_mode": transport.get("transport_mode") or "atto_enc_non_generato",
@@ -428,6 +430,7 @@ class BustaTelematica:
             "atto_msg_path": transport.get("atto_msg_path", ""),
             "atto_enc_path": transport.get("atto_enc_path", ""),
             "certificate": transport.get("certificate"),
+            "certificate_error": transport.get("certificate_error", ""),
             "indice_busta_generated": indice_generated,
             "indice_busta_filename": INDICE_DOCUMENTI_FILENAME,
             "size_bytes": size_bytes,
@@ -487,12 +490,49 @@ class BustaTelematica:
         atto_enc_path = busta_dir / ATTO_ENC_FILENAME
         atto_msg_path.write_bytes(atto_msg)
 
-        cert_info = risolvi_certificato_cifratura_ufficio(self.dati.codice_ufficio)
-        cert = carica_certificato_cifratura(cert_info.path)
-        encrypted = cifra_atto_msg_aes256(atto_msg, cert)
+        self._last_atto_msg_path = str(atto_msg_path)
+        self._last_atto_enc_path = ""
+        self._last_transport_audit = {
+            "transport_mode": "atto_msg_generato_senza_atto_enc",
+            "uses_real_encryption": False,
+            "required_encryption_algorithm": PST_BUSTA_ENCRYPTION_ALGORITHM,
+            "atto_msg_generated": True,
+            "atto_msg_path": str(atto_msg_path),
+            "atto_enc_path": "",
+            "atto_msg_size": len(atto_msg),
+            "certificate": None,
+            "certificate_error": "",
+            "guided_next_actions": [
+                f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {self.dati.codice_ufficio}.",
+                f"Genera Atto.enc cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM} da Atto.msg prima dell'invio reale.",
+                "Ripeti la prova busta e presidia le ricevute dal fascicolo.",
+            ],
+        }
+
+        try:
+            cert_info = risolvi_certificato_cifratura_ufficio(self.dati.codice_ufficio)
+            cert = carica_certificato_cifratura(cert_info.path)
+            encrypted = cifra_atto_msg_aes256(atto_msg, cert)
+        except PSTCifraturaError as exc:
+            public_error = (
+                f"Certificato pubblico PST .cer non recuperabile per l'ufficio {self.dati.codice_ufficio}. "
+                "Il pacchetto di controllo resta disponibile, ma Atto.enc ministeriale non e' ancora generato."
+            )
+            self._last_transport_audit = {
+                **(self._last_transport_audit or {}),
+                "transport_mode": "atto_msg_generato_cifratura_pst_non_completata",
+                "certificate_error": public_error,
+                "certificate_error_detail": str(exc),
+                "guided_next_actions": [
+                    f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {self.dati.codice_ufficio}.",
+                    f"Genera Atto.enc cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM} da Atto.msg prima dell'invio reale.",
+                    "Ripeti la prova busta e presidia le ricevute dal fascicolo.",
+                ],
+            }
+            raise
+
         atto_enc_path.write_bytes(encrypted)
 
-        self._last_atto_msg_path = str(atto_msg_path)
         self._last_atto_enc_path = str(atto_enc_path)
         self._last_transport_audit = {
             "transport_mode": "atto_enc_da_atto_msg_cifrato_aes256",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 from urllib.parse import urlencode
 
@@ -25,6 +26,62 @@ def _enum_value(value: Any) -> str:
 def _text(value: Any, default: str = "") -> str:
     text = str(value if value is not None else default).strip()
     return text if text else default
+
+
+def _mapping_text(source: Any, *keys: str) -> str:
+    if not isinstance(source, dict):
+        return ""
+    for key in keys:
+        raw = source.get(key)
+        if isinstance(raw, dict):
+            nested = _mapping_text(raw, "codice", "code", "canale", "channel", "registro", "registry", "nome", "name", "tipo", "type")
+            if nested:
+                return nested
+            continue
+        text = _text(raw)
+        if text:
+            return text
+    return ""
+
+
+def _deposit_profile_dict(fascicolo: Any) -> dict[str, Any]:
+    profile = getattr(fascicolo, "profilo_deposito", None)
+    if isinstance(profile, dict):
+        return profile
+    for attr in ("profilo_deposito_json",):
+        raw = _text(getattr(fascicolo, attr, ""))
+        if not raw:
+            continue
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    for attr in ("dati_json", "dati"):
+        raw = getattr(fascicolo, attr, None)
+        parsed: Any = raw
+        if isinstance(raw, str) and raw.strip():
+            try:
+                parsed = json.loads(raw)
+            except Exception:
+                parsed = {}
+        if isinstance(parsed, dict) and isinstance(parsed.get("profilo_deposito"), dict):
+            return parsed["profilo_deposito"]
+    return {}
+
+
+def _profile_from_deposit_profile(fascicolo: Any) -> Any | None:
+    profile = _deposit_profile_dict(fascicolo)
+    office = profile.get("ufficio") if isinstance(profile.get("ufficio"), dict) else {}
+    canale = _mapping_text(profile, "canale", "canale_operativo", "channel", "codice")
+    registro = _mapping_text(profile, "registro", "registro_operativo", "registry")
+    office_name = _mapping_text(office, "nome", "name") or _text(getattr(fascicolo, "tribunale", ""))
+    office_type = _mapping_text(office, "tipo", "type", "kind")
+    haystack = " ".join([canale, registro, office_name, office_type]).upper()
+    if any(marker in haystack for marker in ("SIGP", "PST_GDP", "GDP", "GIUDICE DI PACE")):
+        return get_profile("PROC_SIGP_GDP_001")
+    return None
 
 
 def _euro(value: Any) -> str:
@@ -257,6 +314,21 @@ def ensure_profile_for_fascicolo(
             repository.ensure_slots(_text(getattr(fascicolo, "id", "")), profile)
             repository.ensure_checklist(_text(getattr(fascicolo, "id", "")), profile)
             return profile, {"profile": profile.to_dict(), "confidence": 1.0, "reason": "profilo gia' applicato", "alternatives": [], "needs_manual_confirmation": False}
+    profile_from_deposit = _profile_from_deposit_profile(fascicolo)
+    if profile_from_deposit:
+        repository.apply_profile(
+            _text(getattr(fascicolo, "id", "")),
+            profile_from_deposit,
+            actor=actor,
+            reason="profilo deposito SQL",
+        )
+        return profile_from_deposit, {
+            "profile": profile_from_deposit.to_dict(),
+            "confidence": 0.93,
+            "reason": "profilo deposito SQL",
+            "alternatives": [],
+            "needs_manual_confirmation": False,
+        }
     resolver = resolve_practice_profile(
         preventivo=preventivo,
         conferimento=conferimento,

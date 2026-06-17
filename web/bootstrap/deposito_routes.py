@@ -18,6 +18,7 @@ from web.services.deposito_route_helpers import (
     deposito_oggetto as _deposito_oggetto,
     guided_transport_completion_response as _guided_transport_completion_response,
     manual_deposito_payload as _manual_deposito_payload,
+    ufficio_deposito_destinatario as _ufficio_deposito_destinatario,
     ufficio_da_nome as _ufficio_da_nome,
     validate_busta_document_selection as _validate_busta_document_selection,
     validation_summary as _validation_summary,
@@ -207,8 +208,8 @@ def register_deposito_routes(
             AllegatoBusta,
         )
 
-        ufficio = _ufficio_da_nome(fascicolo.tribunale or "")
-        codice_ufficio = str((ufficio or {}).get("codice") or fascicolo.tribunale or "SCONOSCIUTO")
+        ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
+        codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
 
         dati = DatiBusta(
             codice_ufficio=codice_ufficio,
@@ -249,7 +250,7 @@ def register_deposito_routes(
             flash("Errore nella generazione della busta. Verifica documenti e fascicolo.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
-    @app.route("/fascicoli/<id_fasc>/deposito/indice-documenti", methods=["POST"])
+    @app.route("/fascicoli/<id_fasc>/deposito/indice-documenti", methods=["GET", "POST"])
     def deposito_indice_documenti(id_fasc):
         """Genera l'anteprima PDF dell'indice documenti sulla selezione corrente."""
         from io import BytesIO as _BytesIO
@@ -259,7 +260,7 @@ def register_deposito_routes(
 
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
-        form = request.form
+        form = request.values
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
             return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
@@ -271,7 +272,7 @@ def register_deposito_routes(
         anno_rg_raw = form.get("anno_rg", "").strip()
         anno_rg = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fascicolo.anno_rg or None)
         atto_id = form.get("atto_principale_id", "").strip()
-        allegati_ids = request.form.getlist("allegati_ids")
+        allegati_ids = form.getlist("allegati_ids")
 
         if not atto_id:
             return jsonify({"ok": False, "errore": "Seleziona l'atto principale prima di visualizzare l'indice."}), 400
@@ -296,8 +297,8 @@ def register_deposito_routes(
                 [item for item in allegati_ids if item != atto_id],
                 AllegatoBusta,
             )
-            ufficio = _ufficio_da_nome(fascicolo.tribunale or "")
-            codice_ufficio = str((ufficio or {}).get("codice") or fascicolo.tribunale or "SCONOSCIUTO")
+            ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
+            codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
             busta = BustaTelematica(
                 DatiBusta(
                     codice_ufficio=codice_ufficio,
@@ -544,9 +545,9 @@ def register_deposito_routes(
             AllegatoBusta,
         )
 
-        ufficio = _ufficio_da_nome(fascicolo.tribunale or "")
-        codice_ufficio = str((ufficio or {}).get("codice") or fascicolo.tribunale or "SCONOSCIUTO")
-        pec_dest = str((ufficio or {}).get("pec") or "")
+        ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
+        codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
+        pec_dest = str(ufficio_deposito.get("pec_dest") or "")
         if not pec_dest:
             return jsonify(
                 {
@@ -555,8 +556,12 @@ def register_deposito_routes(
                 }
             ), 400
 
+        prova_senza_invio = form.get("prova_senza_invio", "").strip() == "1"
+        simula_invio_pec = form.get("simula_invio_pec", "").strip() == "1"
+        controllo_senza_invio = prova_senza_invio or simula_invio_pec
+        modalita_demo = simula_invio_pec
         pec_cfg = None
-        modalita_demo = False
+        pec_config_error = ""
         try:
             from pct.config_studio import GestioneConfigStudio as _GCS
 
@@ -564,41 +569,58 @@ def register_deposito_routes(
             studio_cfg = gestore_config.config
             pec_cfg = studio_cfg.pec if studio_cfg else None
             if not pec_cfg or not pec_cfg.indirizzo:
-                modalita_demo = True
+                pec_config_error = "PEC mittente dello studio non configurata."
                 pec_cfg = None
+            elif not str(getattr(pec_cfg, "smtp_host", "") or "").strip():
+                pec_config_error = "Host SMTP PEC dello studio non configurato."
         except Exception:
-            modalita_demo = True
+            pec_config_error = "Configurazione PEC dello studio non leggibile."
             pec_cfg = None
 
-        try:
-            dati = DatiBusta(
-                codice_ufficio=codice_ufficio,
-                codice_registro=codice_registro,
-                oggetto=oggetto,
-                tipo_atto=tipo_atto,
-                atto_principale=atto_path,
-                allegati=allegati_busta,
-                numero_rg=numero_rg,
-                anno_rg=anno_rg,
-                operatore=utente.username if utente else "",
-                cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
-            )
-            output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
-            busta = BustaTelematica(dati)
-            enc_path = busta.crea_busta(output_dir)
-        except PSTCifraturaError as exc:
-            app.logger.exception("Certificato PST/cifratura busta non completata %s: %s", id_fasc, exc)
+        if pec_config_error and not (simula_invio_pec or prova_senza_invio):
             return jsonify(
                 {
                     "ok": False,
-                    "errore": str(exc),
-                    "requires_pst_certificate": True,
+                    "package_ready": False,
+                    "errore": (
+                        f"{pec_config_error} Configura la PEC in Impostazioni prima della prova o dell'invio reale."
+                    ),
+                    "next_actions": [
+                        "Apri Impostazioni > PEC e verifica indirizzo, host SMTP, porta e SSL.",
+                        "Ripeti la prova senza invio: l'invio reale non viene simulato automaticamente.",
+                    ],
                 }
-            ), 409
-        except Exception as exc:
-            app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": "Creazione busta non completata. Verifica documenti e fascicolo."}), 500
+            ), 400
 
+        def _con_avviso_pec_mittente(payload: dict) -> dict:
+            if not pec_config_error:
+                return payload
+            next_actions = [
+                str(item or "").strip()
+                for item in payload.get("next_actions", [])
+                if str(item or "").strip()
+            ]
+            avviso = f"{pec_config_error} Configura la PEC dello studio prima dell'invio reale."
+            if avviso not in next_actions:
+                next_actions.append(avviso)
+            payload["next_actions"] = next_actions
+            payload["pec_sender_ready"] = False
+            return payload
+
+        dati = DatiBusta(
+            codice_ufficio=codice_ufficio,
+            codice_registro=codice_registro,
+            oggetto=oggetto,
+            tipo_atto=tipo_atto,
+            atto_principale=atto_path,
+            allegati=allegati_busta,
+            numero_rg=numero_rg,
+            anno_rg=anno_rg,
+            operatore=utente.username if utente else "",
+            cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
+        )
+        output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
+        busta = BustaTelematica(dati)
         id_dep = form.get("local_pec_id_deposito", "").strip() or busta.id_busta[:8].upper()
         timestamp = _dt.now().isoformat()
         oggetto_pec = deposito_pec_subject(
@@ -608,7 +630,49 @@ def register_deposito_routes(
             tribunale=fascicolo.tribunale or "",
         )
         documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
-        corpo_pec = deposito_pec_body(documenti_busta)
+        corpo_pec = form.get("corpo_pec", "").strip() or deposito_pec_body(documenti_busta)
+        try:
+            enc_path = busta.crea_busta(output_dir)
+        except PSTCifraturaError as exc:
+            app.logger.exception("Certificato PST/cifratura busta non completata %s: %s", id_fasc, exc)
+            guided_response = _guided_transport_completion_response(
+                busta=busta,
+                id_deposito=id_dep,
+                timestamp=timestamp,
+                pec_dest=pec_dest,
+                tipo_atto=tipo_atto,
+                oggetto_pec=oggetto_pec,
+                corpo_pec=corpo_pec,
+                documenti_busta=documenti_busta,
+                attachment_path=getattr(busta, "_last_atto_msg_path", "") or "",
+                validation=validation,
+            )
+            return jsonify(
+                _con_avviso_pec_mittente(guided_response)
+                if guided_response
+                else _con_avviso_pec_mittente(
+                    {
+                        "ok": False,
+                        "requires_guided_completion": True,
+                        "package_ready": True,
+                        "errore": "Invio diretto sospeso: certificato PST non disponibile.",
+                        "message": (
+                            "Il software ha preparato il pacchetto di controllo, ma non registra un deposito come valido "
+                            "finche' Atto.msg non viene cifrato in Atto.enc con il certificato PST dell'ufficio."
+                        ),
+                        "next_actions": [
+                            f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {codice_ufficio}.",
+                            "Genera Atto.enc ministeriale prima dell'invio reale.",
+                        ],
+                        "documenti_busta": documenti_busta,
+                        "corpo_pec": corpo_pec,
+                    }
+                )
+            ), 200 if controllo_senza_invio else 409
+        except Exception as exc:
+            app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
+            return jsonify({"ok": False, "errore": "Creazione busta non completata. Verifica documenti e fascicolo."}), 500
+
         guided_response = _guided_transport_completion_response(
             busta=busta,
             id_deposito=id_dep,
@@ -622,9 +686,9 @@ def register_deposito_routes(
             validation=validation,
         )
         if guided_response:
-            return jsonify(guided_response), 409
+            return jsonify(_con_avviso_pec_mittente(guided_response)), 200 if controllo_senza_invio else 409
 
-        if form.get("prova_senza_invio", "").strip() == "1":
+        if prova_senza_invio:
             prova_payload = local_pec_required_response(
                 pec_cfg=pec_cfg,
                 pec_dest=pec_dest,
@@ -635,13 +699,15 @@ def register_deposito_routes(
                 attachment_path=enc_path,
                 validation=validation,
                 documenti=documenti_busta,
+                corpo_pec=corpo_pec,
                 busta_audit=busta.audit_conformita_pst(),
             )
             prova_payload["messaggio"] = (
                 "Prova deposito preparata: busta, indice, destinatario e testo PEC sono pronti per il controllo. "
                 "Nessun invio PEC reale è stato eseguito."
             )
-            return jsonify(prova_payload), 409
+            _con_avviso_pec_mittente(prova_payload)
+            return jsonify(prova_payload), 200
 
         if modalita_demo:
             fake_mid = _hl.sha256(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
@@ -650,7 +716,7 @@ def register_deposito_routes(
                 "message_id": f"PROVA-{fake_mid}@iusentra.invalid",
                 "demo": True,
             }
-            app.logger.info("Deposito di prova %s - busta creata senza invio PEC reale", id_dep)
+            app.logger.info("Simulazione invio PEC deposito %s - nessun invio esterno eseguito", id_dep)
         elif form.get("local_pec_confirmed") == "1":
             try:
                 ris = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
@@ -670,6 +736,7 @@ def register_deposito_routes(
                     attachment_path=enc_path,
                     validation=validation,
                     documenti=documenti_busta,
+                    corpo_pec=corpo_pec,
                     busta_audit=busta.audit_conformita_pst(),
                 )
             )
@@ -702,7 +769,7 @@ def register_deposito_routes(
 
             from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
 
-            msg_demo = "Prova senza invio reale - " if modalita_demo else ""
+            msg_demo = "Simulazione invio PEC senza spedizione - " if modalita_demo else ""
             atto_doc = next((doc for doc in fascicolo.documenti if doc.id == atto_id), None)
             tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
             esito = EsitoDepositoPCT(
@@ -712,7 +779,8 @@ def register_deposito_routes(
                 tipo_atto=tipo_atto,
                 pec_destinatario=pec_dest,
                 messaggio=(
-                    f"{msg_demo}Busta {id_dep} predisposta verso {pec_dest}. Nessun invio esterno eseguito."
+                    f"{msg_demo}Busta {id_dep} predisposta verso {pec_dest}. "
+                    f"Message-ID fittizio: {ris.get('message_id', '')}. Nessun invio esterno eseguito."
                     if modalita_demo
                     else f"Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id', '')}"
                 ),
@@ -754,6 +822,7 @@ def register_deposito_routes(
                 {
                     "ok": True,
                     "demo": modalita_demo,
+                    "simulazione": modalita_demo,
                     "avviso": "Busta inviata, ma il salvataggio dell'esito non è stato completato.",
                     "id_deposito": id_dep,
                     "pec_dest": pec_dest,
@@ -765,10 +834,17 @@ def register_deposito_routes(
             {
                 "ok": True,
                 "demo": modalita_demo,
+                "simulazione": modalita_demo,
                 "id_deposito": id_dep,
                 "pec_dest": pec_dest,
                 "tipo_atto": tipo_atto,
                 "timestamp": timestamp,
+                "message_id": ris.get("message_id", ""),
+                "messaggio": (
+                    "Simulazione invio PEC registrata nel fascicolo. Nessun invio esterno eseguito."
+                    if modalita_demo
+                    else "Deposito inviato via PEC e registrato nel fascicolo."
+                ),
             }
         )
 
@@ -784,8 +860,8 @@ def register_deposito_routes(
             flash("Fascicolo non trovato.", "danger")
             return redirect(url_for("lista_fascicoli"))
 
-        ufficio = _ufficio_da_nome(fascicolo.tribunale or "")
-        pec_tribunale = str((ufficio or {}).get("pec") or "")
+        ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
+        pec_tribunale = str(ufficio_deposito.get("pec_dest") or "")
 
         pdfa_stato: dict[str, Any] = {}
         try:
@@ -847,9 +923,14 @@ def register_deposito_routes(
         anno_rg_str = form.get("anno_rg", "").strip()
         oggetto = _deposito_oggetto(form, fascicolo)
         note = form.get("note", "").strip()
-        tribunale_nome = form.get("tribunale_nome", "").strip()
-        tribunale_pec = form.get("tribunale_pec", "").strip()
-        codice_ufficio = form.get("codice_ufficio", "").strip()
+        ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
+        tribunale_nome = (
+            form.get("tribunale_nome", "").strip()
+            or str(ufficio_deposito.get("nome") or "").strip()
+            or fascicolo.tribunale
+        )
+        tribunale_pec = form.get("tribunale_pec", "").strip() or str(ufficio_deposito.get("pec_dest") or "").strip()
+        codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "").strip() or form.get("codice_ufficio", "").strip()
         atto_id = form.get("atto_principale_id", "").strip()
         allegati_ids = request.form.getlist("allegati_ids")
 
@@ -1018,19 +1099,43 @@ def register_deposito_routes(
                     output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
                     busta_dir = _Path(output_dir) / id_dep
                     busta = BustaTelematica(dati)
+                    documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
+                    corpo_pec = form.get("corpo_pec", "").strip() or deposito_pec_body(documenti_busta)
                     try:
                         busta_path = busta.crea_busta(str(busta_dir))
                     except PSTCifraturaError as exc:
                         app.logger.exception("Certificato PST/cifratura busta non completata %s: %s", id_fasc, exc)
+                        guided_response = _guided_transport_completion_response(
+                            busta=busta,
+                            id_deposito=id_dep,
+                            timestamp=timestamp,
+                            pec_dest=pec_dest,
+                            tipo_atto=tipo_atto,
+                            oggetto_pec=oggetto_pec,
+                            corpo_pec=corpo_pec,
+                            documenti_busta=documenti_busta,
+                            attachment_path=getattr(busta, "_last_atto_msg_path", "") or "",
+                            validation=validation,
+                        )
                         return jsonify(
-                            {
+                            guided_response
+                            or {
                                 "ok": False,
-                                "errore": str(exc),
-                                "requires_pst_certificate": True,
+                                "requires_guided_completion": True,
+                                "package_ready": True,
+                                "errore": "Invio diretto sospeso: certificato PST non disponibile.",
+                                "message": (
+                                    "Il software ha preparato il pacchetto di controllo, ma non registra un deposito "
+                                    "come valido finche' Atto.msg non viene cifrato in Atto.enc con il certificato PST."
+                                ),
+                                "next_actions": [
+                                    f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {codice_ufficio}.",
+                                    "Genera Atto.enc ministeriale prima dell'invio reale.",
+                                ],
+                                "documenti_busta": documenti_busta,
+                                "corpo_pec": corpo_pec,
                             }
                         ), 409
-                    documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
-                    corpo_pec = deposito_pec_body(documenti_busta)
                     guided_response = _guided_transport_completion_response(
                         busta=busta,
                         id_deposito=id_dep,
@@ -1057,6 +1162,7 @@ def register_deposito_routes(
                                 attachment_path=busta_path,
                                 validation=validation,
                                 documenti=documenti_busta,
+                                corpo_pec=corpo_pec,
                                 busta_audit=busta.audit_conformita_pst(),
                             )
                         )

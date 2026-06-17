@@ -719,6 +719,40 @@ def test_sqlite_runtime_non_rilancia_migrazione_se_settings_config_esiste(tmp_pa
     assert _sqlite_runtime_is_unseeded(studio_db_path, anchor_path) is False
 
 
+def test_sqlite_runtime_non_rilancia_migrazione_se_db_core_ha_fascicoli(tmp_path: Path):
+    studio_db_path = tmp_path / "tenants" / "demo" / "studio.db"
+    anchor_path = tmp_path / "tenants" / "demo" / "clienti" / "anagrafica.json"
+    studio_db_path.parent.mkdir(parents=True, exist_ok=True)
+    anchor_path.parent.mkdir(parents=True, exist_ok=True)
+    anchor_path.write_text("{}", encoding="utf-8")
+
+    db = StudioDB(str(studio_db_path))
+    try:
+        db.conn.execute(
+            """
+            INSERT OR REPLACE INTO fascicoli
+            (id, numero, titolo, tipo, stato, dati_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "FASC-SQL-001",
+                "2026/330",
+                "Marchetti c. MIM",
+                "CIVILE",
+                "APERTO",
+                json.dumps(
+                    {"id": "FASC-SQL-001", "numero": "2026/330", "titolo": "Marchetti c. MIM"},
+                    ensure_ascii=False,
+                ),
+            ),
+        )
+        db.conn.commit()
+    finally:
+        db.chiudi()
+
+    assert _sqlite_runtime_is_unseeded(studio_db_path, anchor_path) is False
+
+
 def test_request_storage_runtime_external_sql_usa_sqlite_staging_fino_a_cutover(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))
@@ -2132,6 +2166,79 @@ def test_studio_db_fallbacks_to_delete_when_wal_non_disponibile(tmp_path: Path, 
     assert any("PRAGMA journal_mode=WAL" in sql for sql in statements)
     assert any("PRAGMA journal_mode=DELETE" in sql for sql in statements)
     assert row[0] == 1
+
+
+def test_studio_db_ensure_schema_riusa_connessione_thread_locale(tmp_path: Path, monkeypatch):
+    from pct import storage as storage_module
+
+    real_connect = sqlite3.connect
+    opened: list[sqlite3.Connection] = []
+
+    def _connect(*args, **kwargs):
+        conn = real_connect(*args, **kwargs)
+        opened.append(conn)
+        return conn
+
+    monkeypatch.setattr(storage_module.sqlite3, "connect", _connect)
+
+    db = StudioDB(str(tmp_path / "studio.db"))
+    first = db.conn
+    db.ensure_schema()
+
+    assert db.conn is first
+    assert opened == [first]
+
+
+def test_studio_db_ensure_schema_backfill_profilo_deposito_record_esistenti(tmp_path: Path):
+    db = StudioDB(str(tmp_path / "studio.db"))
+    payload = {
+        "id": "FAS-OLD",
+        "numero": "2026/330",
+        "titolo": "Marchetti c. MIM",
+        "tipo": "CIVILE",
+        "stato": "APERTO",
+        "tribunale": "Tribunale di Vicenza",
+        "oggetto": "Carta docente",
+        "codice_oggetto_pst": "222050",
+        "fonte_codice_oggetto": "PST_XSD",
+        "file_fonte_codice_oggetto": "tipi-base.xsd",
+    }
+    db.conn.execute(
+        """
+        INSERT INTO fascicoli
+        (id, numero, titolo, tipo, stato, tribunale, oggetto, profilo_deposito_json, dati_json)
+        VALUES (?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            payload["id"],
+            payload["numero"],
+            payload["titolo"],
+            payload["tipo"],
+            payload["stato"],
+            payload["tribunale"],
+            payload["oggetto"],
+            "{}",
+            json.dumps(payload, ensure_ascii=False),
+        ),
+    )
+    db.conn.commit()
+
+    db.ensure_schema()
+
+    row = db.conn.execute(
+        "SELECT profilo_deposito_json, dati_json FROM fascicoli WHERE id = ?",
+        ("FAS-OLD",),
+    ).fetchone()
+    profilo = json.loads(row["profilo_deposito_json"])
+    dati = json.loads(row["dati_json"])
+
+    assert profilo["source_of_truth"] == "sqlite_postgresql_record"
+    assert profilo["canale"]["codice"] == "pct_civile_dm44"
+    assert profilo["codice_deposito"]["codice_oggetto_pst"] == "222050"
+    assert profilo["ufficio"]["nome"] == "Tribunale di Vicenza"
+    assert profilo["ufficio"]["codice_pst"] == "0241160092"
+    assert profilo["ufficio"]["pec"] == "tribunale.vicenza@civile.ptel.giustiziacert.it"
+    assert dati["profilo_deposito"]["codice_deposito"]["codice_oggetto_pst"] == "222050"
 
 
 def test_studio_db_salva_tabella_ritenta_se_sqlite_bloccato(tmp_path: Path, monkeypatch):

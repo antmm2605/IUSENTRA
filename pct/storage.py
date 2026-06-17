@@ -55,6 +55,29 @@ def _is_locked_error(exc: BaseException) -> bool:
     return "database is locked" in message or "database table is locked" in message
 
 
+def _requires_delete_journal_for_mount(db_path: Path) -> bool:
+    """Evita WAL sui bind mount Windows/9p dove i lock SQLite sono instabili."""
+    mounts = Path("/proc/mounts")
+    if not mounts.exists():
+        return False
+    try:
+        target = str(db_path.resolve())
+        best_mount = ""
+        best_type = ""
+        for raw_line in mounts.read_text(encoding="utf-8", errors="ignore").splitlines():
+            parts = raw_line.split()
+            if len(parts) < 3:
+                continue
+            mount_point = parts[1].replace("\\040", " ")
+            if target == mount_point or target.startswith(mount_point.rstrip("/") + "/"):
+                if len(mount_point) > len(best_mount):
+                    best_mount = mount_point
+                    best_type = parts[2].casefold()
+        return best_type in {"9p", "drvfs", "vboxsf", "fuse.osxfs"}
+    except Exception:
+        return False
+
+
 # ------------------------------------------------------------------ helpers I/O
 
 def _j(value: Any) -> str:
@@ -135,25 +158,63 @@ class StudioDB:
         return self._local._conn
 
     def _connect(self) -> sqlite3.Connection:
+        try:
+            return self._connect_writable()
+        except sqlite3.OperationalError as exc:
+            if not _requires_delete_journal_for_mount(self.db_path):
+                raise
+            message = str(exc).lower()
+            if "unable to open database file" not in message and "database is locked" not in message:
+                raise
+            logger.warning(
+                "SQLite tenant %s: mount locale non compatibile con lock scrivibili, "
+                "fallback SQL in sola lettura per le viste React (%s)",
+                self.db_path,
+                exc,
+            )
+            return self._connect_readonly_immutable()
+
+    def _connect_writable(self) -> sqlite3.Connection:
         c = sqlite3.connect(
             str(self.db_path),
             timeout=30,
             check_same_thread=False,
         )
-        c.row_factory = sqlite3.Row
         try:
-            c.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.OperationalError as exc:
-            logger.warning(
-                "SQLite tenant %s: WAL non disponibile, fallback a modalita' DELETE (%s)",
-                self.db_path,
-                exc,
-            )
-            c.execute("PRAGMA journal_mode=DELETE")
-        c.execute("PRAGMA foreign_keys=ON")
-        c.execute("PRAGMA synchronous=NORMAL")
-        c.execute("PRAGMA busy_timeout=15000")
-        c.execute("PRAGMA cache_size=-16000")   # 16 MB page cache
+            c.row_factory = sqlite3.Row
+            c.execute("PRAGMA busy_timeout=15000")
+            if _requires_delete_journal_for_mount(self.db_path):
+                c.execute("PRAGMA journal_mode=DELETE")
+            else:
+                try:
+                    c.execute("PRAGMA journal_mode=WAL")
+                except sqlite3.OperationalError as exc:
+                    logger.warning(
+                        "SQLite tenant %s: WAL non disponibile, fallback a modalita' DELETE (%s)",
+                        self.db_path,
+                        exc,
+                    )
+                    c.execute("PRAGMA journal_mode=DELETE")
+            c.execute("PRAGMA foreign_keys=ON")
+            c.execute("PRAGMA synchronous=NORMAL")
+            c.execute("PRAGMA cache_size=-16000")   # 16 MB page cache
+            c.execute("PRAGMA temp_store=MEMORY")
+            return c
+        except Exception:
+            c.close()
+            raise
+
+    def _connect_readonly_immutable(self) -> sqlite3.Connection:
+        db_uri = f"file:{self.db_path.resolve().as_posix()}?mode=ro&immutable=1"
+        c = sqlite3.connect(
+            db_uri,
+            uri=True,
+            timeout=30,
+            check_same_thread=False,
+        )
+        c.row_factory = sqlite3.Row
+        c.execute("PRAGMA query_only=ON")
+        c.execute("PRAGMA cache_size=-16000")
         c.execute("PRAGMA temp_store=MEMORY")
         return c
 
@@ -172,13 +233,74 @@ class StudioDB:
         ("conferimenti_records", "profilo_deposito_json", "TEXT NOT NULL DEFAULT '{}'"),
     )
 
+    def _schema_gia_pronto(self) -> bool:
+        if not self.db_path.exists() or self.db_path.stat().st_size <= 4096:
+            return False
+        try:
+            uri = f"file:{self.db_path.as_posix()}?mode=ro&immutable=1"
+            conn = sqlite3.connect(uri, uri=True, timeout=5)
+            try:
+                required_tables = {
+                    "fascicoli",
+                    "clienti",
+                    "appuntamenti",
+                    "scadenze",
+                    "moduli_dati",
+                    "moduli_json_records",
+                    "settings_config",
+                }
+                tables = {
+                    str(row[0])
+                    for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    ).fetchall()
+                }
+                if not required_tables.issubset(tables):
+                    return False
+                for table, column, _ddl in self._UPGRADE_ADD_COLUMNS:
+                    columns = {
+                        str(row[1])
+                        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+                    }
+                    if column not in columns:
+                        return False
+                return True
+            finally:
+                conn.close()
+        except Exception:
+            return False
+
     def _ensure_schema(self) -> None:
         """
         Crea il file DB, applica lo schema base e aggiunge le colonne
         dati_json alle tabelle che ne erano prive (upgrade schema idempotente).
         """
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = self._connect()
+        if self._schema_gia_pronto():
+            return
+        last_error: sqlite3.OperationalError | None = None
+        for attempt in range(5):
+            try:
+                self._ensure_schema_once()
+                return
+            except sqlite3.OperationalError as exc:
+                last_error = exc
+                if not _is_locked_error(exc) or attempt == 4:
+                    raise
+                logger.warning(
+                    "SQLite tenant %s: schema occupato, ritento (%s/5)",
+                    self.db_path,
+                    attempt + 2,
+                )
+                time.sleep(0.2 * (attempt + 1))
+        if last_error is not None:
+            raise last_error
+
+    def _ensure_schema_once(self) -> None:
+        conn = getattr(self._local, "_conn", None)
+        if conn is None:
+            conn = self._connect()
+            self._local._conn = conn
         conn.executescript(_schema_sql())
         # Upgrade: aggiungi dati_json dove mancante
         for table in self._UPGRADE_ADD_DATI_JSON:
@@ -198,13 +320,115 @@ class StudioDB:
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
             except Exception:
                 pass
+        self._backfill_deposit_profiles(conn)
         # Registra data creazione
         conn.execute(
             "INSERT OR IGNORE INTO _meta VALUES (?,?)",
             ("creato_il", __import__("datetime").datetime.now().isoformat()),
         )
         conn.commit()
-        self._local._conn = conn
+
+    def _backfill_deposit_profiles(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        verify_certificates: bool = False,
+    ) -> None:
+        """Popola i profili deposito mancanti sui record core esistenti."""
+        try:
+            from pct.deposito_profile_backfill import (
+                CORE_DEPOSIT_PROFILE_TABLES,
+                build_deposit_profile_for_record,
+                deposit_profile_needs_update,
+                merge_profile_into_payload,
+            )
+        except Exception as exc:
+            logger.warning("Backfill profilo deposito non disponibile: %s", exc)
+            return
+
+        tables = {
+            row["name"]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        updated = 0
+        for table, key_column in CORE_DEPOSIT_PROFILE_TABLES:
+            if table not in tables:
+                continue
+            try:
+                columns = {
+                    row["name"]
+                    for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+                }
+            except Exception:
+                continue
+            if key_column not in columns or "profilo_deposito_json" not in columns:
+                continue
+            try:
+                rows = conn.execute(f"SELECT * FROM {table}").fetchall()
+            except Exception:
+                continue
+            for row in rows:
+                row_dict = dict(row)
+                record_key = str(row_dict.get(key_column) or "").strip()
+                if not record_key:
+                    continue
+                try:
+                    current = json.loads(row_dict.get("profilo_deposito_json") or "{}")
+                    if not isinstance(current, dict):
+                        current = {}
+                except Exception:
+                    current = {}
+                try:
+                    profile, payload = build_deposit_profile_for_record(
+                        table,
+                        row_dict,
+                        verify_certificates=verify_certificates,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Backfill profilo deposito saltato per %s/%s: %s",
+                        table,
+                        record_key,
+                        exc,
+                    )
+                    continue
+                if not deposit_profile_needs_update(current, profile):
+                    continue
+                profile_json = json.dumps(profile, ensure_ascii=False)
+                if "dati_json" in columns:
+                    payload_json = json.dumps(
+                        merge_profile_into_payload(payload, profile),
+                        ensure_ascii=False,
+                    )
+                    conn.execute(
+                        f"""
+                        UPDATE {table}
+                        SET profilo_deposito_json = ?, dati_json = ?
+                        WHERE {key_column} = ?
+                        """,
+                        (profile_json, payload_json, record_key),
+                    )
+                else:
+                    conn.execute(
+                        f"UPDATE {table} SET profilo_deposito_json = ? WHERE {key_column} = ?",
+                        (profile_json, record_key),
+                    )
+                updated += 1
+        if updated:
+            conn.execute(
+                "INSERT OR REPLACE INTO _meta VALUES (?,?)",
+                (
+                    "profilo_deposito_backfill_il",
+                    __import__("datetime").datetime.now().isoformat(),
+                ),
+            )
+            logger.info("Backfill profilo deposito SQLite: %s record aggiornati", updated)
+
+    def repair_deposit_profiles(self, *, verify_certificates: bool = False) -> None:
+        """Riesegue il backfill profili deposito con opzioni esplicite."""
+        conn = self.conn
+        self._backfill_deposit_profiles(conn, verify_certificates=verify_certificates)
+        conn.commit()
 
     def ensure_schema(self) -> None:
         """Riallinea lo schema SQLite corrente ai requisiti runtime."""

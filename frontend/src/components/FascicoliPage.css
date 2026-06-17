@@ -721,18 +721,19 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-actions .iu-fas-post--danger{color:#b91c1c;border-color:rgba(185,28,28,.22);background:rgba(254,226,226,.82)}
 .iu-fas-actions .iu-fas-post--danger:hover{color:#991b1b;border-color:rgba(185,28,28,.36);background:#fff1f2}
 .iu-fas-actions button:disabled,.iu-fas-post:disabled{opacity:.62;cursor:wait}
-.iu-fas-package-office{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,auto) auto;gap:8px 12px;align-items:center;margin-bottom:12px;padding:12px;border:1px solid rgba(37,99,235,.18);border-radius:13px;background:#f8fbff;min-width:0}
+.iu-fas-package-office{display:grid;grid-template-columns:minmax(260px,1fr) minmax(220px,1fr) auto;gap:8px 12px;align-items:center;margin-bottom:12px;padding:12px;border:1px solid rgba(37,99,235,.18);border-radius:13px;background:#f8fbff;min-width:0}
 .iu-fas-package-office>div{display:grid;gap:4px;min-width:0}
 .iu-fas-package-office .iu-badge{width:max-content;max-width:100%}
-.iu-fas-package-office strong{color:#0f172a;font-size:14px;font-weight:950;line-height:1.2;overflow-wrap:anywhere}
-.iu-fas-package-office span,.iu-fas-package-office small{color:#475569;font-size:12px;font-weight:780;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-package-office strong{color:#0f172a;font-size:14px;font-weight:950;line-height:1.2;overflow-wrap:normal;word-break:normal;hyphens:none}
+.iu-fas-package-office span,.iu-fas-package-office small{color:#475569;font-size:12px;font-weight:780;line-height:1.35;overflow-wrap:anywhere;word-break:normal}
 .iu-fas-package-office code{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:0 9px;border:1px solid rgba(37,99,235,.14);border-radius:9px;background:#fff;color:#0f172a;font-size:11.5px;font-weight:900;white-space:nowrap}
-.iu-fas-package-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(156px,1fr));gap:10px;margin-bottom:12px}
+.iu-fas-package-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:12px}
 .iu-fas-package-board article,.iu-fas-package-docs article{display:grid;gap:6px;padding:11px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
 .iu-fas-package-board article strong{color:#111827;font-size:18px;font-weight:950;line-height:1.2;overflow-wrap:break-word;word-break:normal}
 .iu-fas-package-board article span,.iu-fas-package-board article small{color:var(--iu-slate-600);font-size:12px;font-weight:760;line-height:1.35}
-.iu-fas-package-main{grid-template-columns:minmax(0,1fr);align-items:start}
+.iu-fas-package-main{grid-column:span 2;grid-template-columns:minmax(0,1fr);align-items:start}
 .iu-fas-package-main .iu-badge{width:max-content;max-width:100%}
+.iu-fas-package-main strong{font-size:15px;line-height:1.25;overflow-wrap:anywhere}
 .iu-fas-package-main strong,.iu-fas-package-main span,.iu-fas-package-main a{grid-column:auto}
 .iu-fas-package-main a,.iu-fas-package-docs a{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:max-content;max-width:100%;padding:0 10px;border:1px solid rgba(37,99,235,.2);border-radius:9px;background:#eff6ff;color:var(--iu-blue-700);font-size:12px;font-weight:900;text-decoration:none}
 .iu-fas-package-docs{display:grid;gap:8px;margin-bottom:12px}
@@ -750,6 +751,16 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-package-actions .iu-fas-post,.iu-fas-package-actions .iu-fas-side-link{width:auto;height:auto;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 13px;border-radius:10px;font-size:12px;font-weight:930}
 .iu-fas-package-actions .iu-fas-post:disabled{cursor:not-allowed;background:#f8fafc;color:#64748b;border-color:var(--iu-border);box-shadow:none}
 .iu-fas-package-actions small{flex-basis:100%;color:var(--iu-slate-600);font-size:12px;font-weight:760}
+.iu-fas-package-progress{flex-basis:100%;display:grid;gap:8px;min-width:0;padding:10px 12px;border:1px solid rgba(37,99,235,.20);border-radius:12px;background:#f8fbff;color:#0f172a;box-shadow:inset 0 1px 0 rgba(255,255,255,.82)}
+.iu-fas-package-progress__head{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,auto);gap:8px;align-items:center;min-width:0}
+.iu-fas-package-progress__head span{color:#475569;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.03em}
+.iu-fas-package-progress__head strong{min-width:0;color:#0f172a;font-size:13px;font-weight:950;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-package-progress__bar{height:7px;overflow:hidden;border-radius:999px;background:#dbeafe}
+.iu-fas-package-progress__bar span{display:block;width:42%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#2563eb,#14b8a6);animation:iu-fas-package-progress-bar 1.15s ease-in-out infinite}
+.iu-fas-package-progress__ticker{overflow:hidden;color:#334155;font-size:12px;font-weight:850;white-space:nowrap}
+.iu-fas-package-progress__ticker span{display:inline-block;min-width:100%;padding-left:100%;animation:iu-fas-package-progress-ticker 12s linear infinite}
+@keyframes iu-fas-package-progress-bar{0%{transform:translateX(-100%)}50%{transform:translateX(85%)}100%{transform:translateX(245%)}}
+@keyframes iu-fas-package-progress-ticker{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
 .iu-fas-package-preview{display:grid;gap:12px;margin:14px 0 4px;padding:13px;border:1px solid rgba(16,185,129,.24);border-radius:14px;background:#f0fdf4;min-width:0}
 .iu-fas-package-preview>header{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}
 .iu-fas-package-preview>header div{display:grid;gap:3px;min-width:0}
@@ -764,6 +775,17 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-package-preview__documents,.iu-fas-package-preview__body,.iu-fas-package-preview__next{display:grid;gap:7px;padding:10px;border:1px solid rgba(16,185,129,.18);border-radius:11px;background:#fff}
 .iu-fas-package-preview ul{display:grid;gap:4px;margin:0;padding-left:18px}
 .iu-fas-package-preview pre{max-height:260px;margin:0;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#0f172a;font:700 12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.iu-fas-package-pec-draft{display:grid;gap:10px;margin:12px 0;padding:12px;border:1px solid rgba(37,99,235,.18);border-radius:12px;background:#f8fafc;min-width:0}
+.iu-fas-package-pec-draft>header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.iu-fas-package-pec-draft>header div{display:grid;gap:3px;min-width:0}
+.iu-fas-package-pec-draft strong{color:#0f172a;font-size:13px;font-weight:950;line-height:1.25}
+.iu-fas-package-pec-draft span{color:#475569;font-size:12px;font-weight:760;line-height:1.35}
+.iu-fas-package-pec-draft button{min-height:34px;border:1px solid rgba(37,99,235,.20);border-radius:10px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:900;cursor:pointer;white-space:nowrap}
+.iu-fas-package-pec-draft button:hover,.iu-fas-package-pec-draft button:focus-visible{background:#eff6ff;outline:0;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.iu-fas-package-pec-draft pre,.iu-fas-package-pec-draft textarea{width:100%;max-height:250px;margin:0;overflow:auto;border:1px solid rgba(148,163,184,.26);border-radius:10px;background:#fff;color:#0f172a;font:700 12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.iu-fas-package-pec-draft pre{padding:10px}
+.iu-fas-package-pec-draft textarea{min-height:170px;padding:10px;resize:vertical}
+.iu-fas-package-pec-draft__reset{justify-self:start}
 .iu-fas-action-blocked{display:flex;align-items:center;gap:6px;color:#92400e!important}
 .iu-fas-deposit-selection{display:grid;gap:10px;margin-bottom:12px;padding:12px;border:1px solid rgba(37,99,235,.18);border-radius:12px;background:#f8fbff;min-width:0;max-width:100%;overflow:visible}
 .iu-fas-deposit-selection>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
@@ -859,7 +881,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 @media(max-width:1100px){.iu-fas-package-office,.iu-fas-package-board,.iu-fas-package-preview__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-package-office code{justify-self:start}}
 @media(max-width:1600px) and (min-width:1281px){.iu-fas-deposit-step-layout{grid-template-columns:minmax(0,1fr) minmax(340px,400px)!important}.iu-fas-deposit-selection__row{grid-template-columns:66px minmax(230px,1fr) 82px minmax(160px,184px);gap:8px 9px}.iu-fas-deposit-selection__controls{max-width:184px}.iu-fas-deposit-document-actions{grid-template-columns:38px 38px}.iu-fas-deposit-document-actions a,.iu-fas-deposit-document-actions button{width:38px;min-width:38px;height:38px;min-height:38px}}
 @media(max-width:1280px){.iu-fas-deposit-step-layout{grid-template-columns:minmax(0,1fr)!important}.iu-fas-deposit-step-layout>.iu-fas-detail-side{display:grid!important}.iu-fas-deposit-selection__row{grid-template-columns:70px minmax(0,1fr) 88px;align-items:center}.iu-fas-deposit-selection__controls{grid-column:2/4;grid-template-columns:minmax(0,320px);max-width:320px;justify-self:start}.iu-fas-deposit-document-actions{grid-column:3;grid-template-columns:38px 38px}.iu-fas-deposit-document-actions a,.iu-fas-deposit-document-actions button{width:38px;min-width:38px;height:38px;min-height:38px}}
-@media(max-width:700px){.iu-fas-package-office,.iu-fas-package-board,.iu-fas-package-docs article,.iu-fas-package-preview>header,.iu-fas-package-preview__grid,.iu-fas-slot-link-form,.iu-fas-batch-signature__controls{grid-template-columns:1fr}.iu-fas-deposit-selection>header{display:grid}.iu-fas-deposit-selection__row{grid-template-columns:1fr}.iu-fas-deposit-selection__controls,.iu-fas-deposit-document-actions{grid-column:auto}.iu-fas-deposit-selection__include{min-height:30px}.iu-fas-deposit-document-actions{display:grid!important;grid-template-columns:40px 40px}.iu-fas-package-preview-button{justify-self:start}.iu-fas-package-office code{justify-self:start;white-space:normal}.iu-fas-package-main strong,.iu-fas-package-main span,.iu-fas-package-main a{grid-column:auto}.iu-fas-package-actions .iu-fas-post,.iu-fas-package-actions .iu-fas-side-link,.iu-fas-package-docs a,.iu-fas-batch-signature__actions .iu-fas-submit,.iu-fas-batch-signature__actions .iu-fas-mini-action,.iu-fas-deposit-selection__tools button,.iu-fas-deposit-selection__tools a{width:100%;white-space:normal}}
+@media(max-width:700px){.iu-fas-package-office,.iu-fas-package-board,.iu-fas-package-docs article,.iu-fas-package-preview>header,.iu-fas-package-preview__grid,.iu-fas-package-progress__head,.iu-fas-slot-link-form,.iu-fas-batch-signature__controls{grid-template-columns:1fr}.iu-fas-deposit-selection>header{display:grid}.iu-fas-deposit-selection__row{grid-template-columns:1fr}.iu-fas-deposit-selection__controls,.iu-fas-deposit-document-actions{grid-column:auto}.iu-fas-deposit-selection__include{min-height:30px}.iu-fas-deposit-document-actions{display:grid!important;grid-template-columns:40px 40px}.iu-fas-package-preview-button{justify-self:start}.iu-fas-package-office code{justify-self:start;white-space:normal}.iu-fas-package-main strong,.iu-fas-package-main span,.iu-fas-package-main a{grid-column:auto}.iu-fas-package-actions .iu-fas-post,.iu-fas-package-actions .iu-fas-side-link,.iu-fas-package-docs a,.iu-fas-batch-signature__actions .iu-fas-submit,.iu-fas-batch-signature__actions .iu-fas-mini-action,.iu-fas-deposit-selection__tools button,.iu-fas-deposit-selection__tools a{width:100%;white-space:normal}}
 .iu-fas-toast{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:9px 12px;border:1px solid var(--iu-border);border-radius:13px;background:#fff;box-shadow:var(--iu-shadow-sm);font-size:13px;font-weight:850}
 .iu-fas-toast--success{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.08);color:#047857}.iu-fas-toast--danger{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.07);color:#991b1b}
 .iu-fas-toast button{min-height:30px;border:1px solid currentColor;border-radius:9px;background:#fff;color:inherit;padding:0 10px;font-size:12px;font-weight:900;cursor:pointer}
@@ -961,6 +983,38 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-deposit-phase-note .ius-status-badge{grid-row:1/3;align-self:start}
 .iu-fas-deposit-phase-note strong{color:#0f172a;font-size:13px;font-weight:950;line-height:1.25}
 .iu-fas-deposit-phase-note span{color:#475569;font-size:12px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
+.iu-fascicolo-deposit-page{gap:10px}
+.iu-fascicolo-deposit-page .iu-fas-detail-hero{min-height:auto;padding:12px 14px;border-radius:14px;gap:12px;align-items:center}
+.iu-fascicolo-deposit-page .iu-fas-detail-hero h1{font-size:24px;line-height:1.08;margin:2px 0 3px;letter-spacing:0}
+.iu-fascicolo-deposit-page .iu-fas-detail-hero p{gap:7px;margin:0}
+.iu-fascicolo-deposit-page .iu-fas-eyebrow{gap:6px;font-size:10.5px;line-height:1.2;letter-spacing:.06em}
+.iu-fascicolo-deposit-page .iu-fas-hero__actions{gap:8px}
+.iu-fascicolo-deposit-page .iu-button{min-height:32px;padding:0 10px;border-radius:9px;font-size:12px;gap:6px;box-shadow:0 5px 14px rgba(15,23,42,.04)}
+.iu-fascicolo-deposit-page .iu-button svg{width:14px;height:14px}
+.iu-fascicolo-deposit-page .iu-badge{min-height:22px;padding:3px 9px;font-size:10.5px;line-height:1.05}
+.iu-fascicolo-deposit-page .iu-fas-case-strip{gap:6px;margin:-2px 0 8px}
+.iu-fascicolo-deposit-page .iu-fas-case-strip span,.iu-fascicolo-deposit-page .iu-fas-case-strip strong{min-height:26px;padding:0 9px;font-size:11px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:7px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit .iu-fas-stat{min-height:56px;grid-template-columns:26px minmax(0,1fr) auto;gap:1px 7px;padding:7px 8px;border-radius:10px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit .iu-fas-stat>div{width:26px;height:26px;border-radius:8px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit .iu-fas-stat>div svg{width:15px;height:15px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit .iu-fas-stat>span{font-size:10.25px;line-height:1.12;-webkit-line-clamp:2}
+.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit .iu-fas-stat>strong{font-size:18px;max-width:74px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit .iu-fas-stat>small{font-size:10px;line-height:1.12;-webkit-line-clamp:2}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phases{gap:7px;margin:0 0 10px;padding:8px;border-radius:12px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phases>header{gap:8px;align-items:center}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phases>header strong{font-size:13px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phases>header span{font-size:11px;line-height:1.25}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phases nav{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phase{min-height:54px;grid-template-columns:24px minmax(0,1fr) auto 12px;gap:6px;padding:6px 7px;border-radius:10px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phase__index{width:23px;height:23px;border-radius:8px;font-size:11px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phase__copy strong{font-size:11.5px;line-height:1.1}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phase__copy small{font-size:10.25px;line-height:1.12;-webkit-line-clamp:2}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phase .ius-status-badge{max-width:118px;font-size:10px;padding:3px 7px}
+.iu-fascicolo-deposit-page .iu-fas-deposit-phase>svg{width:12px;height:12px}
+.iu-fascicolo-deposit-page .iu-fas-step-controls{gap:8px;margin-top:8px;padding-top:8px}
+.iu-fascicolo-deposit-page .iu-fas-step-controls button{min-height:30px;padding:0 9px;border-radius:8px;font-size:11px}
+.iu-fascicolo-deposit-page .iu-fas-step-controls__progress{font-size:11px}
 .iu-fas-step-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--iu-border)}
 .iu-fas-step-controls__progress{color:#64748b;font-size:12px;font-weight:900}
 .iu-fas-step-controls div{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -977,6 +1031,8 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 @media(max-width:1120px){.iu-fas-deposit-phases nav{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 @media(max-width:760px){.iu-fas-ai-board>div.iu-fas-ai-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-deposit-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-deposit-phases>header{display:grid}.iu-fas-deposit-phases nav{grid-template-columns:1fr}.iu-fas-deposit-phase{grid-template-columns:26px minmax(0,1fr) auto}.iu-fas-deposit-phase>svg{display:none}.iu-fas-deposit-phase .ius-status-badge{max-width:112px}.iu-fas-deposit-phase-note{grid-template-columns:1fr}.iu-fas-deposit-phase-note .ius-status-badge{grid-row:auto;justify-self:start}.iu-fas-step-controls{display:grid}.iu-fas-step-controls div{display:grid;justify-content:stretch}.iu-fas-step-controls button{width:100%}}
 @media(max-width:520px){.iu-fas-ai-board>div.iu-fas-ai-actions,.iu-fas-cockpit,.iu-fas-deposit-cockpit{grid-template-columns:1fr}}
+@media(max-width:760px){.iu-fascicolo-deposit-page .iu-fas-detail-hero{padding:10px 12px}.iu-fascicolo-deposit-page .iu-fas-detail-hero h1{font-size:22px}.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fascicolo-deposit-page .iu-fas-deposit-phases>header{display:grid}.iu-fascicolo-deposit-page .iu-fas-deposit-phases nav{grid-template-columns:1fr}.iu-fascicolo-deposit-page .iu-fas-deposit-phase{grid-template-columns:24px minmax(0,1fr) auto}.iu-fascicolo-deposit-page .iu-fas-deposit-phase>svg{display:none}.iu-fascicolo-deposit-page .iu-fas-step-controls{display:grid}.iu-fascicolo-deposit-page .iu-fas-step-controls div{display:grid;justify-content:stretch}.iu-fascicolo-deposit-page .iu-fas-step-controls button{width:100%}}
+@media(max-width:520px){.iu-fascicolo-deposit-page .iu-fas-deposit-cockpit{grid-template-columns:1fr}.iu-fascicolo-deposit-page .iu-fas-case-strip span,.iu-fascicolo-deposit-page .iu-fas-case-strip strong{width:100%;justify-content:center}.iu-fascicolo-deposit-page .iu-fas-hero__actions{display:grid;grid-template-columns:1fr}.iu-fascicolo-deposit-page .iu-button{width:100%}}
 
 .iu-fas-relata-monitor{display:grid;gap:12px}.iu-fas-relata-monitor>header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(37,99,235,.16);border-radius:14px;background:linear-gradient(135deg,rgba(248,250,252,.98),rgba(239,246,255,.72))}.iu-fas-relata-monitor>header h3{margin:6px 0 3px;color:#111827;font-size:16px;line-height:1.2}.iu-fas-relata-monitor>header p{margin:0;color:var(--iu-slate-600);font-size:12.5px;font-weight:700;line-height:1.4}.iu-fas-relata-monitor>header>strong{min-width:46px;height:46px;display:grid;place-items:center;border:1px solid var(--iu-border);border-radius:13px;background:var(--iu-bg-card);color:var(--iu-blue-700);font-size:20px}.iu-fas-relata-actions{display:flex;flex-wrap:wrap;gap:8px}.iu-fas-relata-actions a{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 12px;border:1px solid rgba(37,99,235,.2);border-radius:10px;background:var(--iu-bg-card);color:var(--iu-blue-700);font-size:12px;font-weight:900}.iu-fas-relata-actions a:first-child{background:var(--iu-blue-600);border-color:var(--iu-blue-600);color:oklch(98% .006 255)}.iu-fas-relata-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:8px}.iu-fas-relata-flow__step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:7px;align-items:start;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:var(--iu-bg-card)}.iu-fas-relata-flow__step>span{width:26px;height:26px;display:grid;place-items:center;border-radius:9px;background:rgba(37,99,235,.09);color:var(--iu-blue-700);font-size:11px;font-weight:950}.iu-fas-relata-flow__step strong{display:block;color:#111827;font-size:12.5px}.iu-fas-relata-flow__step small{display:block;margin-top:3px;color:var(--iu-slate-600);font-size:11.5px;line-height:1.35}.iu-fas-relata-flow__step em{grid-column:2;width:max-content;max-width:100%;padding:3px 7px;border-radius:999px;background:rgba(100,116,139,.1);color:var(--iu-slate-600);font-size:10px;font-style:normal;font-weight:900;text-transform:capitalize}.iu-fas-relata-flow__step.is-superato em{background:rgba(34,197,94,.12);color:#166534}.iu-fas-relata-flow__step.is-da_acquisire em,.iu-fas-relata-flow__step.is-da_completare em,.iu-fas-relata-flow__step.is-da_preparare em,.iu-fas-relata-flow__step.is-da_firmare em{background:rgba(245,158,11,.14);color:#92400e}.iu-fas-relata-list{display:grid;gap:8px}.iu-fas-relata-list h4{margin:2px 0 0;color:#111827;font-size:13px}.iu-fas-relata-list article{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:var(--iu-bg-card)}.iu-fas-relata-list svg{color:var(--iu-blue-700)}.iu-fas-relata-list strong{display:block;color:#111827;font-size:12.5px}.iu-fas-relata-list strong a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}.iu-fas-relata-list span{display:block;margin-top:2px;color:var(--iu-slate-500);font-size:11.5px;font-weight:700;line-height:1.35}.iu-fas-relata-monitor--warning>header{border-color:rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(255,251,235,.9),rgba(239,246,255,.64))}.iu-fas-relata-monitor--success>header{border-color:rgba(34,197,94,.28);background:linear-gradient(135deg,rgba(240,253,244,.9),rgba(239,246,255,.62))}@media(max-width:760px){.iu-fas-relata-monitor>header,.iu-fas-relata-list article{grid-template-columns:1fr}.iu-fas-relata-monitor>header>strong{justify-self:start}.iu-fas-relata-actions a{width:100%;justify-content:center}}
 .iu-fas-doc-workspace{display:grid;gap:12px;margin-bottom:12px}

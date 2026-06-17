@@ -996,6 +996,7 @@ class PostgresStudioDB:
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]'",
                 ):
                     cur.execute(ddl)
+                self._backfill_deposit_profiles(conn)
                 cur.execute(
                     """
                     INSERT INTO _meta (chiave, valore)
@@ -1004,6 +1005,78 @@ class PostgresStudioDB:
                     """,
                     ("backend", "postgresql"),
                 )
+            conn.commit()
+
+    def _backfill_deposit_profiles(self, conn, *, verify_certificates: bool = False) -> None:
+        try:
+            from pct.deposito_profile_backfill import (
+                CORE_DEPOSIT_PROFILE_TABLES,
+                build_deposit_profile_for_record,
+                deposit_profile_needs_update,
+                merge_profile_into_payload,
+            )
+        except Exception:
+            return
+
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            for table, key_column in CORE_DEPOSIT_PROFILE_TABLES:
+                cur.execute(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = current_schema()
+                      AND table_name = %s
+                    """,
+                    (table,),
+                )
+                columns = {str(row["column_name"]) for row in (cur.fetchall() or [])}
+                if key_column not in columns or "profilo_deposito_json" not in columns:
+                    continue
+                cur.execute(f"SELECT * FROM {table}")
+                for row in cur.fetchall() or []:
+                    row_dict = dict(row)
+                    record_key = str(row_dict.get(key_column) or "").strip()
+                    if not record_key:
+                        continue
+                    try:
+                        current = json.loads(row_dict.get("profilo_deposito_json") or "{}")
+                        if not isinstance(current, dict):
+                            current = {}
+                    except Exception:
+                        current = {}
+                    try:
+                        profile, payload = build_deposit_profile_for_record(
+                            table,
+                            row_dict,
+                            verify_certificates=verify_certificates,
+                        )
+                    except Exception:
+                        continue
+                    if not deposit_profile_needs_update(current, profile):
+                        continue
+                    profile_json = json.dumps(profile, ensure_ascii=False)
+                    if "dati_json" in columns:
+                        payload_json = json.dumps(
+                            merge_profile_into_payload(payload, profile),
+                            ensure_ascii=False,
+                        )
+                        cur.execute(
+                            f"""
+                            UPDATE {table}
+                            SET profilo_deposito_json = %s, dati_json = %s
+                            WHERE {key_column} = %s
+                            """,
+                            (profile_json, payload_json, record_key),
+                        )
+                    else:
+                        cur.execute(
+                            f"UPDATE {table} SET profilo_deposito_json = %s WHERE {key_column} = %s",
+                            (profile_json, record_key),
+                        )
+
+    def repair_deposit_profiles(self, *, verify_certificates: bool = False) -> None:
+        with psycopg2.connect(self.dsn) as conn:
+            self._backfill_deposit_profiles(conn, verify_certificates=verify_certificates)
             conn.commit()
 
     def table_columns(self, table: str) -> list[str]:

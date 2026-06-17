@@ -876,6 +876,14 @@ class GestioneFascicoli:
                 payload["depositi_pct"] = _json.loads(d.get("scadenze_json") or "[]")
                 for k in ("attivita_json", "documenti_json", "scadenze_json", "dati_json"):
                     payload.pop(k, None)
+            profilo_sql = d.get("profilo_deposito_json")
+            if profilo_sql:
+                try:
+                    profilo_payload = _json.loads(profilo_sql)
+                except Exception:
+                    profilo_payload = {}
+                if isinstance(profilo_payload, dict) and profilo_payload:
+                    payload["profilo_deposito"] = profilo_payload
             _migra_payload_depositi_pct(payload)
             return Fascicolo.from_dict(payload)
         except Exception:
@@ -1677,6 +1685,46 @@ class GestioneFascicoli:
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return doc
+
+    def aggiorna_documenti_deposito(
+        self,
+        id_fasc: str,
+        updates: Iterable[dict[str, Any]],
+    ) -> list[Documento]:
+        """Aggiorna più metadati deposito e salva il fascicolo una sola volta."""
+
+        f = self._get_o_errore(id_fasc)
+        documents_by_id = {d.id: d for d in f.documenti}
+        updated: list[Documento] = []
+        touched = False
+        for raw_update in updates:
+            id_doc = str(raw_update.get("id_doc") or raw_update.get("document_id") or "").strip()
+            if not id_doc:
+                continue
+            doc = documents_by_id.get(id_doc)
+            if not doc:
+                raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
+            if "tipo" in raw_update and raw_update.get("tipo") is not None:
+                tipo = raw_update.get("tipo")
+                next_tipo = tipo if isinstance(tipo, TipoDocumento) else TipoDocumento(str(tipo))
+                if doc.tipo != next_tipo:
+                    doc.tipo = next_tipo
+                    touched = True
+            if "firmato" in raw_update and raw_update.get("firmato") is not None:
+                next_firmato = bool(raw_update.get("firmato"))
+                if doc.firmato_digitalmente != next_firmato:
+                    doc.firmato_digitalmente = next_firmato
+                    touched = True
+            if "classificazione_portale" in raw_update and raw_update.get("classificazione_portale") is not None:
+                next_classificazione = str(raw_update.get("classificazione_portale") or "").strip()
+                if doc.classificazione_portale != next_classificazione:
+                    doc.classificazione_portale = next_classificazione
+                    touched = True
+            updated.append(doc)
+        if touched:
+            f.modificato_il = datetime.now().isoformat()
+            self._salva()
+        return updated
 
     def rinomina_documento(self, id_fasc: str, id_doc: str, nome_file: str) -> Documento:
         f = self._get_o_errore(id_fasc)

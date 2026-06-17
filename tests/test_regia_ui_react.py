@@ -92,10 +92,15 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Collega" in source
     assert "Atto principale" in source
     assert "Prova senza invio reale" in source
+    assert "Simula invio PEC" in source
     assert "Invia deposito reale" in source
     assert "comando finale" in source
     assert "function DepositBatchSignaturePanel" in source
     assert "localSignerEndpoint('/firma-batch')" in source
+    assert "LOCAL_SIGNER_BATCH_TIMEOUT_MS = 45000" in source
+    assert "new AbortController()" in source
+    assert "signal: controller.signal" in source
+    assert "Local Signer non ha risposto entro 45 secondi" in source
     assert "Firma ${documents.length} documenti" in source
     assert "pinInputRef.current?.focus()" in source
     assert "recoverLocalSignerAutomatically" in source
@@ -119,17 +124,57 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
 
     assert "const officeRecipientReady" in deposit_page
     assert "PEC dell’ufficio non verificata" in deposit_page
-    assert "directPecReady || guidedCompletion" in deposit_page
+    assert "const pecWorkflowAvailable = Boolean(data.depositOffice.verified && data.depositOffice.pec)" in deposit_page
+    assert "directPecReady || guidedCompletion || pecWorkflowAvailable" in deposit_page
     assert "tribunale_pec: data.depositOffice.pec" in deposit_page
     assert "prova_senza_invio: '1'" in deposit_page
+    assert "simula_invio_pec: '1'" in deposit_page
+    assert "Simulazione PEC in corso" in deposit_page
+    assert "Message-ID fittizio" in deposit_page
+    assert "{pecWorkflowAvailable ? (" in deposit_page
     assert "deposito/indice-documenti" in deposit_page
     assert "DepositPdfPreviewButton" in deposit_page
     assert "onPackageReady={handlePackageReady}" in deposit_page
     assert "Prova senza invio PEC" in deposit_page
     assert "Testo PEC predisposto" in deposit_page
     assert "Documenti indicati nel pacchetto" in deposit_page
+    assert "progressItems={['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}" in deposit_page
+    assert "progressLabel=\"Invio deposito in corso\"" in deposit_page
+    assert "iu-fas-package-progress__ticker" in action_button
     assert "result.package_ready || result.requires_guided_completion || result.requires_local_pec" in action_button
     assert action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec") < action_button.index("!response.ok || result.ok === false")
+    assert "requiresGuidedCompletion: Boolean(payload.requires_guided_completion)" in deposit_page
+    assert "requiresLocalPec: Boolean(payload.requires_local_pec)" in deposit_page
+    assert "bustaAudit: payload.busta_audit" in deposit_page
+    assert "const proofBlocksDirectSend = Boolean(" in deposit_page
+    assert "const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend" in deposit_page
+    assert "directPecReady && !guidedCompletion" not in deposit_page
+    assert "Invio reale non attivo: manca ancora il trasporto ministeriale conforme." not in deposit_page
+    assert "packageConfirmedForReal" not in deposit_page
+    assert "setPackageConfirmedForReal" not in deposit_page
+    assert "Conferma il controllo positivo" not in deposit_page
+    assert "Controlli software superati" in deposit_page
     assert "signatureInputRequired(" in source
     assert ".iu-fas-package-office" in css
     assert ".iu-fas-package-preview" in css
+    assert ".iu-fas-package-progress" in css
+
+
+def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
+    source = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/NotificheLegaliPage.css").read_text(encoding="utf-8")
+    signature_block = source[source.index("const handleSignedRelataFile"):source.index("const applyDepositFile")]
+
+    assert "signatureHref" not in source
+    assert "Apri firma digitale" not in source
+    assert "Apri la firma digitale" not in source
+    assert "lo stato si aggiorna solo con una prova CAdES o PAdES" in source
+    assert "Verifica Local Signer" in source
+    assert "fileContainsCadesSignedData" in source
+    assert "pdfContainsPadesSignature" in source
+    assert "signedDataOid" in source
+    assert "non contiene una busta CAdES/PKCS#7 riconoscibile" in source
+    assert "setNotifica((current) => ({ ...current, relata_firmata: false }))" in signature_block
+    assert "<input type=\"checkbox\" checked={notifica.relata_firmata} readOnly disabled />" in source
+    assert "Relata firmata acquisita con prova tecnica" in source
+    assert ".iu-legal-signature-button" in css

@@ -6,6 +6,7 @@ lettura tramite API React, scritture demandate ai servizi Flask già auditati.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from collections import Counter
@@ -22,7 +23,11 @@ from pct.fascicolo_workspace import build_fascicolo_workspace
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
-from pct.document_signature_state import document_has_real_digital_signature, document_has_signed_container
+from pct.document_signature_state import (
+    document_bytes_have_real_digital_signature,
+    document_has_real_digital_signature,
+    document_has_signed_container,
+)
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
@@ -1830,6 +1835,47 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
     }
     if not office_name:
         return base
+    profile = getattr(fascicolo, "profilo_deposito", None)
+    if not isinstance(profile, dict):
+        raw_profile = _text(getattr(fascicolo, "profilo_deposito_json", ""))
+        if raw_profile:
+            try:
+                parsed_profile = json.loads(raw_profile)
+                profile = parsed_profile if isinstance(parsed_profile, dict) else {}
+            except Exception:
+                profile = {}
+        else:
+            profile = {}
+    profile_office = profile.get("ufficio") if isinstance(profile, dict) else {}
+    if isinstance(profile_office, dict):
+        profile_name = _text(profile_office.get("nome"), office_name)
+        profile_pec = _text(profile_office.get("pec") or profile.get("pec"))
+        profile_code = _text(
+            profile_office.get("codice_iusentra")
+            or profile_office.get("codice")
+            or profile_office.get("codice_ufficio")
+        )
+        profile_ministerial_code = _text(
+            profile_office.get("codice_ministero")
+            or profile_office.get("codice_pst")
+            or profile_office.get("codice_ministeriale")
+        )
+        profile_verified = bool(profile_pec and (profile_office.get("pec_verificata") is True or profile.get("pec_verificata") is True))
+        if profile_pec:
+            return {
+                "name": profile_name,
+                "code": profile_code,
+                "ministerialCode": profile_ministerial_code,
+                "district": _text(profile_office.get("distretto")),
+                "pec": profile_pec,
+                "kind": _text(profile_office.get("tipo")),
+                "verified": profile_verified,
+                "message": (
+                    f"PEC verificata dal profilo deposito SQL per {profile_name}."
+                    if profile_verified
+                    else f"PEC presente nel profilo deposito per {profile_name}: verifica manuale prima dell'invio reale."
+                ),
+            }
     try:
         from pct.uffici_giudiziari import TIPI_UFFICIO, get_gestore
 
@@ -2470,7 +2516,7 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     }
 
 
-def _documents(fascicolo: Any) -> list[dict[str, Any]]:
+def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
     local_doc_ids = set()
@@ -2515,6 +2561,28 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
         text = _text(value)
         return (field, text) if text else None
 
+    def _real_signature(doc: Any, *display_names: Any) -> bool:
+        if document_has_real_digital_signature(doc):
+            return True
+        if gestore_fascicoli is None or not fid or not _text(getattr(doc, "id", "")):
+            return False
+        try:
+            if hasattr(gestore_fascicoli, "percorso_documento_lettura"):
+                path = gestore_fascicoli.percorso_documento_lettura(fid, _text(getattr(doc, "id", "")))
+            else:
+                path = gestore_fascicoli.percorso_documento(fid, _text(getattr(doc, "id", "")))
+            data = Path(path).read_bytes()
+        except Exception:
+            return False
+        return document_bytes_have_real_digital_signature(
+            data,
+            *display_names,
+            getattr(doc, "nome", ""),
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome_portale", ""),
+            str(path),
+        )
+
     display_name_counters: Counter[str] = Counter()
     for doc in getattr(fascicolo, "documenti", []) or []:
         did = _text(getattr(doc, "id", ""))
@@ -2528,7 +2596,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
             getattr(doc, "nome_portale", ""),
             getattr(doc, "percorso", ""),
         )
-        signed = document_has_real_digital_signature(doc, name, technical_name)
+        signed = _real_signature(doc, name, technical_name)
         if did:
             local_doc_ids.add(did)
         for ref in (
@@ -3285,7 +3353,7 @@ def build_react_fascicolo_detail_payload(
         "quickCounts": quick_counts,
         "lex_indexing": lex_indexing,
         "profile": _profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
-        "documents": _documents(fascicolo) if load_documents else [],
+        "documents": _documents(fascicolo, gestore_fascicoli=fascicoli_repo) if load_documents else [],
         "activities": activities,
         "deadlines": _deadlines(scadenze) if load_deadlines else [],
         "appointments": _appointments(apps) if load_deadlines else [],

@@ -175,6 +175,40 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     assert docs[fuori.id].tipo == TipoDocumento.ALTRO
 
 
+def test_api_deposito_classifica_documenti_non_cade_se_profilo_da_confermare(tmp_path, monkeypatch):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    atto = gf.aggiungi_documento(fascicolo.id, "atto da confermare.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+
+    resolver_payload = {
+        "profile": None,
+        "confidence": 0.0,
+        "reason": "profilo non determinabile automaticamente",
+        "alternatives": [],
+        "needs_manual_confirmation": True,
+    }
+
+    def _no_profile(*_args, **_kwargs):
+        return None, resolver_payload
+
+    monkeypatch.setattr("web.blueprints.api_v1_react.ensure_profile_for_fascicolo", _no_profile)
+    monkeypatch.setattr("pct.practice_engine.evaluator.ensure_profile_for_fascicolo", _no_profile)
+
+    client = app.test_client()
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={"documents": [{"document_id": atto.id, "selected": True, "role": "atto_principale"}]},
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["mock_fallback"] is False
+    assert payload["selectedCount"] == 1
+    assert payload["linkedSlots"] == []
+    assert payload["regia"]["page_state"] == "profilo_da_confermare"
+    assert "Classificazione deposito salvata" in payload["message"]
+
+
 def test_api_fascicolo_mostra_p7m_solo_con_firma_reale(tmp_path):
     app, gf, fascicolo = _app_with_fascicolo(tmp_path)
     firmato = gf.aggiungi_documento(
@@ -231,8 +265,8 @@ def test_api_fascicolo_mostra_p7m_solo_con_firma_reale(tmp_path):
     assert response.status_code == 200
     documents = {doc["id"]: doc for doc in response.get_json()["documents"]}
     assert documents[firmato.id]["name"] == "Memoria.pdf.p7m"
-    assert documents[firmato.id]["signed"] is True
-    assert documents[firmato.id]["statusLabel"] == "Firmato"
+    assert documents[firmato.id]["signed"] is False
+    assert documents[firmato.id]["statusLabel"] == "Da firmare"
     assert documents[flag_storico.id]["name"] == "Autocertificazione ricorso.PDF"
     assert documents[flag_storico.id]["signed"] is False
     assert documents[flag_storico.id]["statusLabel"] == "Da firmare"

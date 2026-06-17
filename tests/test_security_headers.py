@@ -40,6 +40,7 @@ def test_csp_allows_governed_ui_assets_without_breaking_layout() -> None:
     assert _csp_has_source(csp, "script-src", "https://esm.sh")
     assert _csp_has_source(csp, "style-src", "https://fonts.googleapis.com")
     assert _csp_has_source(csp, "font-src", "https://fonts.gstatic.com")
+    assert _csp_has_source(csp, "frame-src", "blob:")
     assert _csp_has_source(csp, "style-src", "'unsafe-inline'")
     assert _csp_has_source(csp, "script-src", "'unsafe-inline'")
 

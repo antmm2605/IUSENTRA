@@ -570,6 +570,46 @@ def test_migra_verso_sqlite_non_blocca_impostazioni_normalizzate(tmp_path):
     assert impostazioni["status"] == "ok"
 
 
+def test_preverifica_sqlite_non_blocca_segreti_impostazioni_ricifrati(tmp_path):
+    config_path = tmp_path / "config" / "studio.json"
+    studio_db = tmp_path / "studio.db"
+    _scrivi_json(
+        config_path,
+        {
+            "studio": {"nome": "Studio Verdi"},
+            "pec": {"indirizzo": "studio@example.test", "password": "ENC:token-a"},
+            "smtp": {"host": "smtp.example.test", "password": "ENC:token-b"},
+        },
+    )
+
+    database = GestioneDatabase({"impostazioni": str(config_path)})
+    iniziale = database.migra_verso_sqlite(str(studio_db))
+    assert iniziale.riuscita is True
+
+    conn = sqlite3.connect(studio_db)
+    try:
+        for section, replacement in (("pec", "ENC:token-ruotato-a"), ("smtp", "ENC:token-ruotato-b")):
+            raw = conn.execute(
+                "SELECT dati_json FROM settings_config WHERE section = ?",
+                (section,),
+            ).fetchone()[0]
+            payload = json.loads(raw)
+            payload["password"] = replacement
+            conn.execute(
+                "UPDATE settings_config SET dati_json = ? WHERE section = ?",
+                (json.dumps(payload, ensure_ascii=False), section),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    report = database.preverifica_attivazione_sqlite(str(studio_db))
+
+    impostazioni = report["audit_migrazione"]["precheck"]["modules"]["impostazioni"]
+    assert report["ok"] is True
+    assert impostazioni["status"] == "ok"
+
+
 def test_migra_verso_sqlite_migra_moduli_json_estesi(tmp_path):
     payloads = {
         "calendar_sync": {"profiles": [{"id": "cal-1", "provider": "google"}]},

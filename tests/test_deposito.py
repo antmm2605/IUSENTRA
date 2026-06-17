@@ -17,6 +17,7 @@ from pct.deposito import DepositoCivile
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.firma import FirmaDigitale, busta_cades_valida, crea_signer_da_config
 from pct.pec import ConfigPEC
+from pct.pst_cifratura import PSTCifraturaError
 from web.app import create_app
 
 
@@ -32,6 +33,43 @@ def _pdf_base(pdfa_part: str = "2", pdfa_conf: str = "B") -> bytes:
         b"<?xpacket end='w'?>"
     )
     return b"%PDF-1.4\n" + xmp + b"\n%%EOF"
+
+
+def _cades_signed_pdf() -> bytes:
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.firma_pkcs11 import _build_cades_bes
+    from tools import local_signer as local_signer_mod
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name(
+        [x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test Firmatario")]
+    )
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+    documento = _pdf_base()
+    signed_attrs = local_signer_mod._build_signed_attrs_der_inline(documento)
+    signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+    return _build_cades_bes(
+        documento=documento,
+        signature_bytes=signature,
+        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        signed_attrs_der=signed_attrs,
+        detached=False,
+    )
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -508,7 +546,7 @@ def test_firma_documento_get_apre_shell_react_senza_405(tmp_path):
         )
         response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma")
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.get_data(as_text=True)
     assert b"Method Not Allowed" not in response.data
     assert b"IUSENTRA React Shell" in response.data or b'id="root"' in response.data
 
@@ -739,7 +777,7 @@ def test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione(tmp_path, monkey
             },
         )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.get_data(as_text=True)
     payload = response.get_json()
     assert payload["ok"] is True
     assert payload["firmati"] == 2
@@ -992,7 +1030,7 @@ def test_firma_documento_ajax_valido_non_fallisce_se_sync_realtime_ha_errori(tmp
             headers={"X-Requested-With": "XMLHttpRequest"},
         )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.get_data(as_text=True)
     payload = response.get_json()
     assert payload["ok"] is True
     assert payload["warning"] is True
@@ -1248,6 +1286,16 @@ def test_deposito_invia_pec_tributario_demo_registra_esito(tmp_path):
 def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(tmp_path, monkeypatch):
     monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
     monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+
+    def resolver_pst_non_disponibile(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        raise PSTCifraturaError(
+            "Download PST non riuscito: https://servizipst.giustizia.it/PST/it/pst_2_4.wp"
+        )
+
+    monkeypatch.setattr(
+        "pct.busta.risolvi_certificato_cifratura_ufficio",
+        resolver_pst_non_disponibile,
+    )
     cfg = _cfg_web(tmp_path)
     cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
 
@@ -1296,7 +1344,7 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
         fascicolo.id,
         "memoria.pdf.p7m",
         TipoDocumento.MEMORIA,
-        _pdf_base(),
+        _cades_signed_pdf(),
         firmato=True,
     )
 
@@ -1326,6 +1374,9 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
         )
 
         assert response.status_code == 409
+        raw_body = response.get_data(as_text=True)
+        assert "Download PST non riuscito" not in raw_body
+        assert "https://servizipst.giustizia.it" not in raw_body
         payload = response.get_json()
         assert payload["ok"] is False
         assert payload["requires_guided_completion"] is True
@@ -1333,7 +1384,11 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
         assert payload["pec_dest"] == "ufficio@example.pec.it"
         assert payload["busta_audit"]["blocks_direct_send"] is True
         assert payload["busta_audit"]["required_encryption_algorithm"] == "AES256"
+        assert payload["busta_audit"]["atto_msg_generated"] is True
+        assert payload["busta_audit"]["atto_enc_path"] == ""
+        assert "https://" not in payload["busta_audit"]["certificate_error"]
         assert any("Atto.enc" in action and "AES256" in action for action in payload["next_actions"])
+        assert any(".cer" in action for action in payload["next_actions"])
 
     gf_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -1344,3 +1399,440 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
     assert fascicolo_reload is not None
     assert fascicolo_reload.depositi_pct == []
     assert not fascicolo_reload.documenti[0].id_deposito_pct
+
+
+def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp_path, monkeypatch):
+    monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_da_nome",
+        lambda nome: {"codice": "TEST001", "pec": "ufficio@example.pec.it", "nome": nome},
+    )
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
+        lambda fascicolo: {
+            "codice_ufficio": "TEST001",
+            "pec_dest": "ufficio@example.pec.it",
+            "nome": "Tribunale di Test",
+        },
+    )
+
+    def fake_crea_busta(self, output_dir):
+        path = Path(output_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        enc = path / "Atto.enc"
+        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        self._last_transport_audit = {
+            "transport_mode": "atto_enc_aes256",
+            "uses_real_encryption": True,
+            "atto_msg_generated": True,
+            "atto_enc_path": str(enc),
+            "guided_next_actions": [],
+        }
+        return str(enc)
+
+    monkeypatch.setattr("pct.busta.BustaTelematica.crea_busta", fake_crea_busta)
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pec-simulazione-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Memoria civile",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Test",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "memoria.pdf.p7m",
+        TipoDocumento.MEMORIA,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pec-simulazione-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data={
+                "tipo_atto": "MEMORIA",
+                "codice_registro": "RG",
+                "codice_oggetto_pst": "014001",
+                "oggetto": "Memoria civile",
+                "numero_rg": "123",
+                "anno_rg": "2026",
+                "atto_principale_id": atto.id,
+                "simula_invio_pec": "1",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["demo"] is True
+    assert payload["simulazione"] is True
+    assert payload["message_id"].startswith("PROVA-")
+    assert "Nessun invio esterno eseguito" in payload["messaggio"]
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.depositi_pct) == 1
+    deposito = fascicolo_reload.depositi_pct[0]
+    assert "Simulazione invio PEC senza spedizione" in deposito.messaggio
+    assert "Nessun invio esterno eseguito" in deposito.messaggio
+    assert "PROVA SENZA INVIO REALE" in deposito.note
+
+
+def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(tmp_path, monkeypatch):
+    monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
+        lambda fascicolo: {
+            "codice_ufficio": "TEST001",
+            "pec_dest": "ufficio@example.pec.it",
+            "nome": "Tribunale di Test",
+        },
+    )
+
+    def resolver_pst_non_disponibile(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        raise PSTCifraturaError("Certificato PST non disponibile")
+
+    monkeypatch.setattr(
+        "pct.busta.risolvi_certificato_cifratura_ufficio",
+        resolver_pst_non_disponibile,
+    )
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pec-simulazione-guidata-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Memoria civile",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Test",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "memoria.pdf.p7m",
+        TipoDocumento.MEMORIA,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pec-simulazione-guidata-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data={
+                "tipo_atto": "MEMORIA",
+                "codice_registro": "RG",
+                "codice_oggetto_pst": "014001",
+                "oggetto": "Memoria civile",
+                "numero_rg": "123",
+                "anno_rg": "2026",
+                "atto_principale_id": atto.id,
+                "simula_invio_pec": "1",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert payload["requires_guided_completion"] is True
+    assert payload["package_ready"] is True
+    assert payload["pec_dest"] == "ufficio@example.pec.it"
+    assert payload["pec_sender_ready"] is False
+    assert "Atto.enc" in payload["message"]
+    assert any(".cer" in action or "Atto.enc" in action for action in payload["next_actions"])
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.depositi_pct == []
+
+
+def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp_path, monkeypatch):
+    monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
+        lambda fascicolo: {
+            "codice_ufficio": "TEST001",
+            "pec_dest": "ufficio@example.pec.it",
+            "nome": "Tribunale di Test",
+        },
+    )
+
+    def fake_crea_busta(self, output_dir):
+        path = Path(output_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        enc = path / "Atto.enc"
+        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        self._last_transport_audit = {
+            "transport_mode": "atto_enc_aes256",
+            "uses_real_encryption": True,
+            "atto_msg_generated": True,
+            "atto_enc_path": str(enc),
+            "guided_next_actions": [],
+        }
+        return str(enc)
+
+    monkeypatch.setattr("pct.busta.BustaTelematica.crea_busta", fake_crea_busta)
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            pec=StudioConfigPEC(
+                indirizzo="studio@example.pec.it",
+                password="secret",
+                smtp_host="smtp.example.pec.it",
+                smtp_port=465,
+                use_ssl=True,
+            )
+        )
+    )
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pec-prova-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Memoria civile",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Test",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "memoria.pdf.p7m",
+        TipoDocumento.MEMORIA,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pec-prova-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data={
+                "tipo_atto": "MEMORIA",
+                "codice_registro": "RG",
+                "codice_oggetto_pst": "014001",
+                "oggetto": "Memoria civile",
+                "numero_rg": "123",
+                "anno_rg": "2026",
+                "atto_principale_id": atto.id,
+                "prova_senza_invio": "1",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert payload["requires_local_pec"] is True
+    assert payload["package_ready"] is True
+    assert payload["pec_dest"] == "ufficio@example.pec.it"
+    assert payload["local_pec"]["payload"]["smtp_host"] == "smtp.example.pec.it"
+    assert "Nessun invio PEC reale" in payload["messaggio"]
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.depositi_pct == []
+
+
+def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente(tmp_path, monkeypatch):
+    monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
+        lambda fascicolo: {
+            "codice_ufficio": "TEST001",
+            "pec_dest": "ufficio@example.pec.it",
+            "nome": "Tribunale di Test",
+        },
+    )
+
+    def fake_crea_busta(self, output_dir):
+        path = Path(output_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        enc = path / "Atto.enc"
+        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        self._last_transport_audit = {
+            "transport_mode": "atto_enc_aes256",
+            "uses_real_encryption": True,
+            "atto_msg_generated": True,
+            "atto_enc_path": str(enc),
+            "guided_next_actions": [],
+        }
+        return str(enc)
+
+    monkeypatch.setattr("pct.busta.BustaTelematica.crea_busta", fake_crea_busta)
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pec-preview-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Memoria civile",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Test",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "memoria.pdf.p7m",
+        TipoDocumento.MEMORIA,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pec-preview-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data={
+                "tipo_atto": "MEMORIA",
+                "codice_registro": "RG",
+                "codice_oggetto_pst": "014001",
+                "oggetto": "Memoria civile",
+                "numero_rg": "123",
+                "anno_rg": "2026",
+                "atto_principale_id": atto.id,
+                "prova_senza_invio": "1",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert payload["requires_local_pec"] is True
+    assert payload["package_ready"] is True
+    assert payload["pec_dest"] == "ufficio@example.pec.it"
+    assert payload["local_pec"]["payload"]["smtp_host"] == ""
+    assert payload["pec_sender_ready"] is False
+    assert any("PEC mittente dello studio non configurata" in item for item in payload["next_actions"])
+    assert "Nessun invio PEC reale" in payload["messaggio"]
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.depositi_pct == []

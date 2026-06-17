@@ -109,8 +109,7 @@ def deposito_pec_body(documenti: list[str] | tuple[str, ...] | None = None) -> s
     return (
         "Egregio sig. Cancelliere,\n\n"
         "Allego alla presente il file crittografato Atto.enc per il deposito telematico."
-        f"{files}\n\n"
-        "Invio predisposto dal PC locale tramite IUSENTRA Local Signer."
+        f"{files}"
     )
 
 
@@ -125,11 +124,12 @@ def local_pec_required_response(
     attachment_path: str,
     validation: Any,
     documenti: list[str] | tuple[str, ...] | None = None,
+    corpo_pec: str | None = None,
     busta_audit: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the JSON contract used by browsers to complete PEC locally."""
 
-    corpo_pec = deposito_pec_body(documenti)
+    corpo_pec_finale = str(corpo_pec or "").strip() or deposito_pec_body(documenti)
     documenti_busta = [str(item or "").strip() for item in (documenti or []) if str(item or "").strip()]
     return {
         "ok": False,
@@ -140,13 +140,13 @@ def local_pec_required_response(
         "tipo_atto": tipo_atto,
         "timestamp": timestamp,
         "oggetto_pec": oggetto_pec,
-        "corpo_pec": corpo_pec,
+        "corpo_pec": corpo_pec_finale,
         "documenti_busta": documenti_busta,
         "local_pec": build_local_pec_payload(
             pec_cfg=pec_cfg,
             destinatario=pec_dest,
             oggetto=oggetto_pec,
-            corpo=corpo_pec,
+            corpo=corpo_pec_finale,
             attachment_path=attachment_path,
             attachment_name="Atto.enc",
         ),

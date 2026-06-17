@@ -121,7 +121,8 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool
     if not studio_db_path.exists():
         return True
     try:
-        conn = sqlite3.connect(str(studio_db_path))
+        db_uri = f"file:{studio_db_path.resolve().as_posix()}?mode=ro&immutable=1"
+        conn = sqlite3.connect(db_uri, uri=True, timeout=5)
         try:
             for marker_table in ("settings_config", "moduli_dati"):
                 try:

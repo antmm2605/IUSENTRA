@@ -171,6 +171,80 @@ async function calculateSha256(file: File): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+const RELATA_LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
+
+function relataLocalSignerBaseUrl(): string {
+  const configured = typeof window !== 'undefined' ? window.__IUSENTRA_LOCAL_SIGNER_URL__ : ''
+  return String(configured || 'http://127.0.0.1:27272').replace(/\/+$/, '')
+}
+
+function relataLocalSignerEndpoint(path: string): string {
+  const suffix = path.startsWith('/') ? path : `/${path}`
+  return `${relataLocalSignerBaseUrl()}${suffix}`
+}
+
+function requestRelataLocalSignerStart(): boolean {
+  if (typeof document === 'undefined') return false
+  const link = document.createElement('a')
+  link.href = RELATA_LOCAL_SIGNER_RESTART_URI
+  link.rel = 'noreferrer'
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  window.setTimeout(() => link.remove(), 1500)
+  return true
+}
+
+async function fetchRelataLocalSignerStatus(timeoutMs = 3000): Promise<Record<string, unknown> | null> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(relataLocalSignerEndpoint('/ping'), {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+    return await response.json().catch(() => ({} as Record<string, unknown>))
+  } catch {
+    return null
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
+async function pdfContainsPadesSignature(file: File): Promise<boolean> {
+  if (!file.name.toLowerCase().endsWith('.pdf')) return false
+  const buffer = await file.arrayBuffer()
+  const header = new TextDecoder('latin1').decode(buffer.slice(0, Math.min(buffer.byteLength, 4096)))
+  if (!header.includes('%PDF')) return false
+  const body = new TextDecoder('latin1').decode(buffer)
+  return /\/Type\s*\/Sig\b/.test(body)
+    && /\/ByteRange\s*\[/.test(body)
+    && /\/SubFilter\s*\/(?:adbe\.pkcs7\.detached|ETSI\.CAdES\.detached|ETSI\.RFC3161)/.test(body)
+}
+
+function isRelataSignedContainerName(fileName: string): boolean {
+  const lower = fileName.toLowerCase()
+  return lower.endsWith('.p7m') || lower.endsWith('.sig') || lower.endsWith('.pkcs7')
+}
+
+async function fileContainsCadesSignedData(file: File): Promise<boolean> {
+  if (!isRelataSignedContainerName(file.name)) return false
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const signedDataOid = [0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02]
+  for (let index = 0; index <= bytes.length - signedDataOid.length; index += 1) {
+    let matches = true
+    for (let offset = 0; offset < signedDataOid.length; offset += 1) {
+      if (bytes[index + offset] !== signedDataOid[offset]) {
+        matches = false
+        break
+      }
+    }
+    if (matches) return true
+  }
+  const header = new TextDecoder('latin1').decode(bytes.slice(0, Math.min(bytes.length, 2048)))
+  return /-----BEGIN (?:PKCS7|CMS)-----/.test(header)
+}
+
 function DepositFileField({
   label,
   fileName,
@@ -647,6 +721,7 @@ export function NotificheLegaliPage() {
   const [lastControlLabel, setLastControlLabel] = useState('')
   const [attestationPreviewOpen, setAttestationPreviewOpen] = useState(false)
   const [signatureMessage, setSignatureMessage] = useState('')
+  const [signatureChecking, setSignatureChecking] = useState(false)
 
   const [notifica, setNotifica] = useState({
     template_id: 'relata_pec_base_l53',
@@ -1620,6 +1695,14 @@ export function NotificheLegaliPage() {
     } catch {
       sha256 = ''
     }
+    const isCadesContainer = isRelataSignedContainerName(file.name)
+    const isCades = isCadesContainer ? await fileContainsCadesSignedData(file).catch(() => false) : false
+    const isPades = isCades ? false : await pdfContainsPadesSignature(file).catch(() => false)
+    if (!isCades && !isPades) {
+      setNotifica((current) => ({ ...current, relata_firmata: false }))
+      setSignatureMessage(`Relata non marcata come firmata: ${file.name} non contiene una busta CAdES/PKCS#7 riconoscibile né marcatori PAdES verificabili.`)
+      return
+    }
     setNotifica((current) => ({ ...current, relata_firmata: true }))
     setDeposito((current) => refreshDepositReference(current, {
       ...current,
@@ -1627,9 +1710,21 @@ export function NotificheLegaliPage() {
       relata_sha256: sha256,
     }))
     setSignatureMessage(sha256
-      ? `Relata firmata acquisita: ${file.name}. SHA-256 calcolata.`
-      : `Relata firmata acquisita: ${file.name}. Inserisci l'impronta se richiesta dal controllo.`
+      ? `Relata firmata acquisita: ${file.name}. ${isCades ? 'Contenitore CAdES' : 'Firma PAdES interna'} rilevata e SHA-256 calcolata.`
+      : `Relata firmata acquisita: ${file.name}. ${isCades ? 'Contenitore CAdES' : 'Firma PAdES interna'} rilevata; inserisci l'impronta se richiesta dal controllo.`
     )
+  }
+  const verifyRelataSigner = async () => {
+    setSignatureChecking(true)
+    setSignatureMessage('Avvio e verifico Local Signer sul PC per la firma della relata...')
+    requestRelataLocalSignerStart()
+    const status = await fetchRelataLocalSignerStatus(3500)
+    setSignatureChecking(false)
+    if (status && status.ok !== false) {
+      setSignatureMessage('Local Signer rilevato: firma la relata sul PC, poi carica qui il .p7m CAdES o il PDF PAdES firmato. Lo stato non viene aggiornato senza quel file.')
+    } else {
+      setSignatureMessage('Local Signer non ha risposto: avvialo sul PC, firma la relata e carica qui il file firmato. La guida non viene aperta da questo pulsante.')
+    }
   }
   const applyDepositFile = (current: typeof deposito, kind: DepositEvidenceKind, fileName: string, sha256: string): typeof deposito => {
     const next = { ...current }
@@ -1685,8 +1780,6 @@ export function NotificheLegaliPage() {
       '',
       `${notifica.luogo || data.defaults.studioCitta || 'Luogo'}, ${notifica.data_relata}`,
     ].join('\n')
-  const signatureHref = `${data.azioni.firmaDigitale || '/guida/firma-digitale'}${selectedPracticeId ? `?id_fascicolo=${encodeURIComponent(selectedPracticeId)}&origine=notifiche-legali` : ''}`
-
   return (
     <main className="iu-content iu-legal-notice-page">
       <section className="iu-legal-hero">
@@ -2182,12 +2275,12 @@ export function NotificheLegaliPage() {
                   <div className="iu-legal-action-panel__head">
                     <div>
                       <strong>Relata firmata digitalmente</strong>
-                      <span>Apri la firma digitale, poi rientra qui e segna la relata come firmata solo dopo avere ottenuto il file firmato.</span>
+                      <span>Verifica Local Signer sul PC, firma la relata e carica qui il file firmato: lo stato si aggiorna solo con una prova CAdES o PAdES.</span>
                     </div>
                     <div className="iu-legal-signature-actions">
-                      <a href={signatureHref} onClick={() => setSignatureMessage('Percorso firma digitale aperto: firma la relata e poi aggiorna lo stato qui.')}>
-                        <FileSignature size={15} /> Apri firma digitale
-                      </a>
+                      <button type="button" className="iu-legal-signature-button" onClick={verifyRelataSigner} disabled={signatureChecking}>
+                        <FileSignature size={15} /> {signatureChecking ? 'Verifico...' : 'Verifica Local Signer'}
+                      </button>
                       <label className="iu-legal-signature-upload">
                         <UploadCloud size={15} /> Carica relata firmata
                         <input type="file" accept=".pdf,.p7m" onChange={(event) => void handleSignedRelataFile(event.currentTarget.files)} />
@@ -2196,8 +2289,8 @@ export function NotificheLegaliPage() {
                   </div>
                   {signatureMessage ? <small>{signatureMessage}</small> : null}
                   <label className="iu-legal-check">
-                    <input type="checkbox" checked={notifica.relata_firmata} onChange={(event) => changeNotifica('relata_firmata', event.currentTarget.checked)} />
-                    <span>Relata firmata e pronta per la PEC</span>
+                    <input type="checkbox" checked={notifica.relata_firmata} readOnly disabled />
+                    <span>{notifica.relata_firmata ? 'Relata firmata acquisita con prova tecnica' : 'Relata non firmata: carica .p7m o PDF PAdES verificabile'}</span>
                   </label>
                 </div>
                 <label className="iu-legal-check"><input type="checkbox" checked={notifica.relata_documento_separato} onChange={(event) => changeNotifica('relata_documento_separato', event.currentTarget.checked)} /><span>Relata come documento separato</span></label>

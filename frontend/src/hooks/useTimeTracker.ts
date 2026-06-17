@@ -66,7 +66,8 @@ export function useTimeTracker() {
   }, [timer])
 
   useEffect(() => {
-    load()
+    const handle = window.setTimeout(() => load(), 1200)
+    return () => window.clearTimeout(handle)
   }, [load])
 
   useEffect(() => {

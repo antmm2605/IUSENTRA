@@ -1667,14 +1667,24 @@ export function formatFascicoloStatus(value: FascicoloRow['status']): string {
   return statusLabels[value] || 'Aperto'
 }
 
+const transientFetchStatuses = new Set([408, 423, 429, 500, 502, 503, 504])
+
+function retryDelay(attempt: number): Promise<void> {
+  return new Promise((resolve) => globalThis.setTimeout(resolve, 300 * (attempt + 1)))
+}
+
 async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fallback: T): Promise<T> {
-  try {
-    const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-    if (!response.ok) return fallback
-    return normalizer(await response.json())
-  } catch {
-    return fallback
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      if (response.ok) return normalizer(await response.json())
+      if (!transientFetchStatuses.has(response.status) || attempt === 2) return fallback
+    } catch {
+      if (attempt === 2) return fallback
+    }
+    await retryDelay(attempt)
   }
+  return fallback
 }
 
 function buildFascicoliQuery(params: FascicoliPageParams = {}): string {

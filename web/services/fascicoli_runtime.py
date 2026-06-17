@@ -30,6 +30,10 @@ from pct.pst_servizi_catalogo import (
     SEZIONE_UDIENZE_SCADENZE,
     sezione_fascicolo_da_servizio_pst,
 )
+from pct.document_signature_state import (
+    document_bytes_have_real_digital_signature,
+    document_has_real_digital_signature,
+)
 from pct.reginde import ClientReGINde
 
 
@@ -49,12 +53,28 @@ def build_fascicoli_runtime(
     _encrypt_doc = encrypt_doc
     _decrypt_doc = decrypt_doc
     _sync = SimpleNamespace(pubblica=sync_pubblica)
+    def _documento_firmato_reale(gf: GestioneFascicoli, fasc: Fascicolo, doc: Documento, percorso: Path) -> bool:
+        if document_has_real_digital_signature(doc):
+            return True
+        try:
+            data = percorso.read_bytes()
+        except OSError:
+            return False
+        return document_bytes_have_real_digital_signature(
+            data,
+            doc.nome,
+            doc.nome_originale,
+            doc.nome_portale,
+            str(percorso),
+        )
+
     def _documento_payload_per_validazione(gf: GestioneFascicoli, fasc: Fascicolo, doc_id: str) -> dict | None:
         doc = next((item for item in fasc.documenti if item.id == doc_id), None)
         if not doc:
             return None
         try:
-            percorso = str(gf.percorso_documento(fasc.id, doc_id))
+            percorso_path = gf.percorso_documento(fasc.id, doc_id)
+            percorso = str(percorso_path)
         except KeyError:
             return None
         return {
@@ -63,7 +83,7 @@ def build_fascicoli_runtime(
             "tipo": doc.tipo.value if hasattr(doc.tipo, "value") else str(doc.tipo),
             "percorso": percorso,
             "dimensione_bytes": doc.dimensione_bytes,
-            "firmato_digitalmente": bool(doc.firmato_digitalmente),
+            "firmato_digitalmente": _documento_firmato_reale(gf, fasc, doc, percorso_path),
             "data_documento": doc.data_documento,
         }
 

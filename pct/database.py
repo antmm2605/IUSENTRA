@@ -870,6 +870,33 @@ class GestioneDatabase:
         return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
     @classmethod
+    def _redact_encrypted_secrets_for_compare(cls, value: Any) -> Any:
+        """Confronta presenza e struttura dei segreti senza dipendere dal token cifrato."""
+        if isinstance(value, str):
+            if value.startswith("ENC:"):
+                return "__iusentra_encrypted_secret_present__"
+            return value
+        if isinstance(value, list):
+            return [cls._redact_encrypted_secrets_for_compare(item) for item in value]
+        if isinstance(value, dict):
+            return {
+                str(key): cls._redact_encrypted_secrets_for_compare(item)
+                for key, item in value.items()
+            }
+        return value
+
+    @classmethod
+    def _migration_compare_payload(cls, chiave: str, value: Any) -> str:
+        if chiave == "impostazioni":
+            if isinstance(value, str):
+                try:
+                    value = json.loads(value)
+                except (TypeError, json.JSONDecodeError):
+                    pass
+            value = cls._redact_encrypted_secrets_for_compare(value)
+        return cls._canonical_payload(value)
+
+    @classmethod
     def _source_record_identity(
         cls,
         chiave: str,
@@ -951,13 +978,15 @@ class GestioneDatabase:
             cfg = ConfigStudio.from_dict(raw)
             rows = settings_config_rows_from_config(cfg)
             return {
-                str(row.get("section") or ""): cls._canonical_payload(row.get("dati") or {})
+                str(row.get("section") or ""): cls._migration_compare_payload(
+                    "impostazioni", row.get("dati") or {}
+                )
                 for row in rows
                 if row.get("section")
             }
         except Exception:
             return {
-                str(section): cls._canonical_payload(payload)
+                str(section): cls._migration_compare_payload("impostazioni", payload)
                 for section, payload in raw.items()
                 if str(section or "").strip()
             }
@@ -1016,7 +1045,7 @@ class GestioneDatabase:
                     continue
                 ids.add(identity)
                 if "dati_json" in columns and len(row) > 1 and row[1]:
-                    payloads[identity] = cls._canonical_payload(row[1])
+                    payloads[identity] = cls._migration_compare_payload(chiave, row[1])
         return {"count": count, "ids": ids, "payloads": payloads}
 
     @classmethod

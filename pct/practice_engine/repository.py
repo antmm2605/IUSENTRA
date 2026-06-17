@@ -125,7 +125,31 @@ class PracticeEngineRepository:
         rows = list(self._data["practice_document_slots"])
         for index, spec in enumerate(profile.required_slots, start=1):
             key = str(spec.get("slot_key") or "").strip().upper()
-            if not key or key in existing:
+            if not key:
+                continue
+            if key in existing:
+                row = existing[key]
+                changed = False
+                updates = {
+                    "profile_id": profile.code,
+                    "label": str(spec.get("label") or key),
+                    "type": str(spec.get("type") or "ALTRO"),
+                    "required": bool(spec.get("required", True)),
+                    "blocking": bool(spec.get("blocking", True)),
+                    "validators": list(spec.get("validators") or []),
+                    "message": str(spec.get("message") or ""),
+                    "suggested_action": str(spec.get("suggested_action") or ""),
+                    "sort_order": int(spec.get("sort_order") or index),
+                }
+                for field, value in updates.items():
+                    if row.get(field) != value:
+                        row[field] = value
+                        changed = True
+                if changed:
+                    rows = [
+                        row if item.get("fascicolo_id") == fascicolo_id and item.get("slot_key") == key else item
+                        for item in rows
+                    ]
                 continue
             slot = DocumentSlot(
                 id=new_id("slot"),

@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 259.
+- Route Flask GET candidate rilevate fuori manifest: 260.
 
 ### Distribuzione rischio
 
@@ -764,6 +764,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/{id_fasc}/archivio/scarica | GET | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
 | /fascicoli/{id_fasc}/collaboratori | GET,POST | web/bootstrap/condivisioni_routes.py | clienti/cartelle_condivise.html, clienti/collaboratori.html, clienti/link_scaduto.html, clienti/link_temporaneo.html, fascicoli/collaboratori_fascicolo.html |
 | /fascicoli/{id_fasc}/copertina | GET | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
+| /fascicoli/{id_fasc}/deposito/indice-documenti | GET,POST | web/bootstrap/deposito_routes.py | deposito_checklist.html, fascicoli/deposito_prepara.html, guida_firma_digitale.html |
 | /fascicoli/{id_fasc}/deposito/prepara | GET | web/bootstrap/deposito_routes.py | deposito_checklist.html, fascicoli/deposito_prepara.html, guida_firma_digitale.html |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/editor | GET | web/bootstrap/fascicoli_editor_routes.py | fascicoli/editor_documento.html |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/firma | GET,POST | web/bootstrap/fascicoli_signature_routes.py | non rilevato |
@@ -808,7 +809,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /polisWeb/local-signer/download/local-signer-mod/{path:filename} | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/download/python-embedded | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/download/requirements | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/download/uffici | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

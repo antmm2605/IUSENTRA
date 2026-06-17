@@ -2026,12 +2026,13 @@ def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Pa
     )
     tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
     paths = tm.percorsi_dati(studio.slug)
+    studio_db = StudioDB.get(paths["STUDIO_DB"])
 
     fascicoli = GestioneFascicoli(
         db_path=paths["FASCICOLI_DB"],
         documents_dir=paths["FASCICOLI_DOCS"],
         archive_dir=paths["FASCICOLI_ARCH"],
-        studio_db=None,
+        studio_db=studio_db,
     )
     fascicolo = fascicoli.nuovo(
         "Vendita immobili",
@@ -2051,7 +2052,7 @@ def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Pa
         audit_path=paths["AUDIT_DB"],
         secret_key=app.secret_key,
         crea_admin_se_vuoto=False,
-        studio_db=None,
+        studio_db=studio_db,
     )
     admin = utenti.autentica(tenant_admin.username, "PasswordSicura!123")
     assert admin is not None

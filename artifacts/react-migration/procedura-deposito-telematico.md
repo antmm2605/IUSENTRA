@@ -2,6 +2,32 @@
 
 Aggiornato: 2026-06-17.
 
+## Aggiornamento 2.253.43 - gate CI prima della prova server
+
+Data intervento: 2026-06-17.
+
+Stato operativo:
+
+- il deposito e la firma multipla restano aperti fino alla prova visiva reale su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`;
+- prima della prova server e del deploy finale sono stati chiusi localmente i due rossi GitHub rimasti sullo SHA precedente: `Pytest core fase 6/10 parte 10/16` e `Pytest core fase 10/10`;
+- il test database amministrazione ora conferma la regola `SQL operativo`: quando `studio.db` e' popolato, i JSON non sono piu' fonte vera ma mirror;
+- i test Lex/Local AI usano un servizio applicativo finto ma conforme a `LexResponse` solo nei casi in cui devono verificare prompt, policy, follow-up e allegati, evitando timeout non pertinenti al deposito.
+
+Guardrail tecnici confermati:
+
+- `python -m pytest -q tests/test_local_ai.py --durations=10`;
+- `python -m pytest -q tests\test_assistente_followup.py --durations=10`;
+- `python -m pytest -q tests\test_web_bootstrap.py --durations=10`;
+- `python scripts\run_pytest_phases.py --core-shard 6 --core-total-shards 10 --core-subshard 10 --core-total-subshards 16 --core-subdivide-items --timeout-minutes 5`;
+- `python scripts\run_pytest_phases.py --core-shard 10 --core-total-shards 10 --core-subshard 1 --core-total-subshards 1 --timeout-minutes 5`.
+
+Da fare prima della chiusura:
+
+- commit e push dei branch gemelli;
+- attesa completa dei gate GitHub, incluso `Code scanning results / CodeQL`;
+- deploy Hetzner sullo stesso commit;
+- verifica server con browser reale, scroll completo, dry-run deposito senza invio PEC e prova firma multipla reale con PIN/token.
+
 Questo file va riletto prima di ogni intervento su `Prepara deposito`, busta, firma multipla, notifiche legali, portali telematici, agenda/scadenziario collegati a PEC e ricevute. Non sostituisce `AGENTS.md`: lo integra come memoria operativa specifica del deposito.
 
 ## Aggiornamento 2026-06-17 - hotfix CI dopo prova server deposito

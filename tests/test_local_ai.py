@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from lex.contracts import LexResponse
 from lex.prompts.prompt_builder import build_assistente_prompt
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.local_ai import LocalAIService, _strip_html
@@ -129,6 +130,57 @@ def _cfg_web(tmp_path: Path) -> dict:
         "PORTALE_DB": str(tmp_path / "portale" / "portali.json"),
         "PORTALE_UPLOADS": str(tmp_path / "portale" / "uploads"),
     }
+
+
+def _stub_fast_assistente_context_sections(monkeypatch) -> None:
+    class _FastLexService:
+        def ask(self, request):
+            metadata = dict(getattr(request, "metadata", {}) or {})
+            evidence_count = int(metadata.get("attachment_evidence_count") or 1)
+            return LexResponse(
+                answer="Risposta governata per test.",
+                confidence=0.78,
+                answer_mode="grounded",
+                metadata={
+                    "workflow": getattr(request, "workflow_hint", None) or "question_answering",
+                    "provider": "deterministic",
+                },
+                evidence_summary={
+                    "evidence_count": evidence_count,
+                    "evidence_sufficient": True,
+                },
+            )
+
+    def _fake_cached_section_payload(title, question, builder):
+        slug = str(title).lower().replace(" ", "-")
+        return (
+            [f"{title}: contesto sintetico per test."],
+            [
+                {
+                    "id": f"test:{slug}",
+                    "title": title,
+                    "citation": f"Fonte test - {title}",
+                    "text": f"Contesto sintetico per {title}.",
+                }
+            ],
+        )
+
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context._cached_section_payload",
+        _fake_cached_section_payload,
+    )
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.build_competence_context_hints",
+        lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.resolve_competence_section_titles",
+        lambda *args, **kwargs: set(),
+    )
+    monkeypatch.setattr(
+        "lex.http_bounded_bridge._application_lex_service",
+        lambda: _FastLexService(),
+    )
 
 
 def _gestione_fascicoli_runtime(cfg: dict[str, str]) -> GestioneFascicoli:
@@ -968,7 +1020,26 @@ def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path,
     assert any(source["id"] == "live-web:normattiva" for source in payload["sources"])
 
 
-def test_api_assistente_context_espone_profilo_richiesta_e_policy_fonti(tmp_path: Path):
+def test_api_assistente_context_espone_profilo_richiesta_e_policy_fonti(tmp_path: Path, monkeypatch):
+    _stub_fast_assistente_context_sections(monkeypatch)
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.build_live_official_web_context",
+        lambda question, **kwargs: {
+            "lines": [
+                "Normattiva: risorsa live raggiunta, titolo 'Consenso privacy', URL https://www.normattiva.it/.",
+            ],
+            "sources": [
+                {
+                    "id": "live-web:normattiva",
+                    "title": "Normattiva",
+                    "citation": "Fonte ufficiale live - Normattiva",
+                    "text": "Consenso privacy. URL ufficiale: https://www.normattiva.it/.",
+                }
+            ],
+            "citations": ["Fonte ufficiale live - Normattiva"],
+            "source_ids": ["normattiva"],
+        },
+    )
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
 
@@ -994,6 +1065,7 @@ def test_api_assistente_context_espone_profilo_richiesta_e_policy_fonti(tmp_path
 
 
 def test_api_assistente_context_eredita_tema_precedente_per_verifica_web(tmp_path: Path, monkeypatch):
+    _stub_fast_assistente_context_sections(monkeypatch)
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
 
@@ -1092,7 +1164,12 @@ def test_api_assistente_documento_esporta_docx(tmp_path: Path):
 
 
 def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path, monkeypatch):
+    _stub_fast_assistente_context_sections(monkeypatch)
     monkeypatch.setenv("LEX_GOVERNED_ONLY", "1")
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.build_live_official_web_context",
+        lambda question, **kwargs: {"lines": [], "sources": [], "citations": [], "source_ids": []},
+    )
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
 

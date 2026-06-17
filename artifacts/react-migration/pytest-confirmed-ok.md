@@ -4955,3 +4955,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py -q --tb=short` | OK | Registro e documenti App V2 riallineati dopo la nuova route; smoke inventory PASS=3, test governance App V2 15/15. |
 | `python scripts\react-migration\generate_backend_security_map.py`; `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata -q --tb=short` | OK | Risolto localmente il rosso GitHub `Lint + syntax` dello SHA `2932d2e461623fd7521b7f49b48bafed734c012c`: la mappa sicurezza backend ora conta 116 route manifest censite dopo l'introduzione di `/editor-professionale`. |
 | `python -m pytest tests\test_backend_security_phase5.py tests\test_openapi_contracts_phase6.py tests\test_data_flow_contract.py -q --tb=short` | OK | 20/20 passati: sicurezza endpoint React, OpenAPI e contratto dati/tenant/topbar restano coerenti dopo il riallineamento della mappa generata. |
+
+## CI Pytest core 2.253.43 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_local_ai.py --durations=10` | OK | 43/43 passati; i test route Lex/Local AI restano deterministici e non chiamano il workflow completo quando devono verificare solo policy, fonti e allegati. |
+| `python -m pytest -q tests\test_assistente_followup.py --durations=10` | OK | 7/7 passati; i test route follow-up coprono eredita' del tema, apertura web sentenze civili e area economica senza superare il timeout CI. |
+| `python -m pytest -q tests\test_web_bootstrap.py --durations=10` | OK | 53/53 passati; incluso `test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente` riallineato a SQLite operativo. |
+| `python scripts\run_pytest_phases.py --core-shard 6 --core-total-shards 10 --core-subshard 10 --core-total-subshards 16 --core-subdivide-items --timeout-minutes 5` | OK | Shard GitHub riprodotto: 5/5 passati, incluso `test_admin_database_sql_operativo_tratta_json_come_mirror`. |
+| `python scripts\run_pytest_phases.py --core-shard 10 --core-total-shards 10 --core-subshard 1 --core-total-subshards 1 --timeout-minutes 5` | OK | Shard GitHub riprodotto: 122/122 passati in 144.3s, sotto il timeout di 5 minuti. |

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from lex.contracts import LexResponse
 from lex.memory.followup import (
     resolve_followup_query,
     should_trigger_web_search,
@@ -99,6 +100,65 @@ def _cfg_web(tmp_path: Path) -> dict:
     }
 
 
+def _stub_fast_assistente_route(monkeypatch) -> None:
+    class _FastLexService:
+        def ask(self, request):
+            return LexResponse(
+                answer="Risposta governata per test follow-up.",
+                confidence=0.78,
+                answer_mode="grounded",
+                metadata={
+                    "workflow": getattr(request, "workflow_hint", None) or "question_answering",
+                    "provider": "deterministic",
+                },
+                evidence_summary={
+                    "evidence_count": 1,
+                    "evidence_sufficient": True,
+                },
+            )
+
+    def _fake_cached_section_payload(title, question, builder):
+        slug = str(title).lower().replace(" ", "-")
+        return (
+            [f"{title}: contesto sintetico per test."],
+            [
+                {
+                    "id": f"test:{slug}",
+                    "title": title,
+                    "citation": f"Fonte test - {title}",
+                    "text": f"Contesto sintetico per {title}.",
+                }
+            ],
+        )
+
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context._cached_section_payload",
+        _fake_cached_section_payload,
+    )
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.build_live_official_web_context",
+        lambda question, **kwargs: {
+            "lines": [
+                "Cassazione: risorsa live raggiunta, titolo 'Sentenza civile recente', URL https://www.cortedicassazione.it/.",
+            ],
+            "sources": [
+                {
+                    "id": "live-web:cassazione",
+                    "title": "Cassazione",
+                    "citation": "Fonte ufficiale live - Cassazione",
+                    "text": "Sentenza civile recente. URL ufficiale: https://www.cortedicassazione.it/.",
+                }
+            ],
+            "citations": ["Fonte ufficiale live - Cassazione"],
+            "source_ids": ["cassazione"],
+        },
+    )
+    monkeypatch.setattr(
+        "lex.http_bounded_bridge._application_lex_service",
+        lambda: _FastLexService(),
+    )
+
+
 def test_resolve_followup_query_riusa_il_tema_precedente_per_richiesta_web_breve():
     followup = resolve_followup_query(
         "puoi controllare tu sul web",
@@ -141,7 +201,8 @@ def test_should_trigger_web_search_esclude_le_richieste_solo_interne():
     assert should_trigger_web_search("ultime sentenze cassazione civile") is True
 
 
-def test_assistente_context_espone_followup_resolution_quando_eredita_il_tema(tmp_path: Path):
+def test_assistente_context_espone_followup_resolution_quando_eredita_il_tema(tmp_path: Path, monkeypatch):
+    _stub_fast_assistente_route(monkeypatch)
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
@@ -168,7 +229,8 @@ def test_assistente_context_espone_followup_resolution_quando_eredita_il_tema(tm
     assert payload["followup_resolution"]["effective_query"] == "ultime sentenze sul civile tutti gli ambienti"
 
 
-def test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili(tmp_path: Path):
+def test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili(tmp_path: Path, monkeypatch):
+    _stub_fast_assistente_route(monkeypatch)
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
@@ -190,7 +252,8 @@ def test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili(tmp_
     assert payload["execution_policy"]["requires_verified_legal_reference"] is True
 
 
-def test_assistente_context_copre_l_area_economica_di_studio(tmp_path: Path):
+def test_assistente_context_copre_l_area_economica_di_studio(tmp_path: Path, monkeypatch):
+    _stub_fast_assistente_route(monkeypatch)
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 

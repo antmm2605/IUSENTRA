@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.43 - 2026-06-17
+
+- CI Pytest core: aggiornati i test di amministrazione database alla regola operativa `SQL operativo` con JSON solo mirror, mantenendo separati i test anti-perdita e riconciliazione.
+- CI Pytest core: resi deterministici i test route Lex/Local AI che verificano follow-up, fonti, policy e allegati, evitando timeout del gate senza cambiare il comportamento prodotto.
+- Verifiche locali: confermati verdi `Pytest core fase 6/10 parte 10/16`, `Pytest core fase 10/10`, `tests/test_local_ai.py`, `tests/test_assistente_followup.py` e `tests/test_web_bootstrap.py`.
+
 ## 2.253.42 - 2026-06-17
 
 - Storage SQL tenant: corretto il rilevamento di `studio.db` già inizializzato, evitando una seconda migrazione falsa quando un archivio vuoto come `privacy/registro.json` non contiene ancora record.

@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## CI Pytest core 2.253.43 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Pytest core fase 6/10 parte 10/16` sullo SHA `1965ea0` | Test database amministrazione | Risolto localmente, da verificare sul nuovo SHA remoto | Il test pretendeva ancora la vecchia pre-verifica JSON/SQLite bloccante anche quando `studio.db` era gia' fonte operativa. Ora la route viene presidiata come `SQL operativo` e i JSON restano mirror; i test anti-perdita e riconciliazione restano separati. | Pushare `2.253.43` e attendere lo shard remoto sul nuovo SHA. |
+| GitHub `Pytest core fase 10/10` sullo SHA `1965ea0` | Timeout shard completo | Risolto localmente, da verificare sul nuovo SHA remoto | I test route Lex/Local AI e follow-up entravano nel workflow applicativo completo e superavano il timeout, pur senza regressione funzionale. Sono stati resi deterministici con servizio Lex finto ma conforme a `LexResponse`. | Pushare `2.253.43`, attendere tutti i check-run e non procedere al deploy finche' il nuovo SHA non e' verde anche su CodeQL. |
+
 ## Storage SQL runtime seed 2.253.42 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |

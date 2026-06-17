@@ -1503,7 +1503,7 @@ def test_admin_database_attiva_sqlite_blocca_json_vuoti_su_db_pieno(client_admin
     assert counts == (1, 1)
 
 
-def test_admin_database_preverifica_e_riconcilia_sqlite_json(client_admin):
+def test_admin_database_sql_operativo_tratta_json_come_mirror(client_admin):
     clienti_path = Path(client_admin.application.config["CLIENTI_DB"])
     _scrivi_json(
         clienti_path,
@@ -1530,25 +1530,18 @@ def test_admin_database_preverifica_e_riconcilia_sqlite_json(client_admin):
     precheck = client_admin.post("/admin/database/preverifica-sqlite")
     precheck_payload = precheck.get_json()
     assert precheck.status_code == 200
-    assert precheck_payload["ok"] is False
-    assert precheck_payload["stato"] == "Bloccata per protezione dati"
-    assert precheck_payload["audit_migrazione"]["precheck"]["modules"]["clienti"]["only_source_count"] == 1
+    assert precheck_payload["ok"] is True
+    assert precheck_payload["stato"] == "SQL operativo"
+    assert precheck_payload["json_mirror_only"] is True
+    assert precheck_payload["audit_migrazione"]["sql_source_of_truth"] is True
 
     riconcilia = client_admin.post("/admin/database/riconcilia-sqlite")
     payload = riconcilia.get_json()
     assert riconcilia.status_code == 200
     assert payload["ok"] is True
-    assert payload["stato"] == "Eseguita riconciliazione"
-    assert payload["audit_migrazione"]["reconciliation"]["executed"] is True
-
-    studio_db = Path(clienti_path).resolve().parents[1] / "studio.db"
-    conn = sqlite3.connect(studio_db)
-    count, nuovo = conn.execute(
-        "SELECT COUNT(*), SUM(CASE WHEN id = 'CLI999' THEN 1 ELSE 0 END) FROM clienti"
-    ).fetchone()
-    conn.close()
-    assert count == 26
-    assert nuovo == 1
+    assert payload["stato"] == "SQL operativo"
+    assert payload["json_mirror_only"] is True
+    assert payload["audit_migrazione"]["sql_source_of_truth"] is True
 
 
 def test_admin_database_export_zip(client_admin):

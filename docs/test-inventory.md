@@ -12,15 +12,15 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 70 |
+| API contract | 72 |
 | Backend | 44 |
 | E2E | 7 |
 | Frontend static gate | 1 |
 | Frontend/UI | 140 |
 | RBAC | 42 |
-| Security | 37 |
+| Security | 36 |
 | Smoke CLI | 6 |
-| Tenant isolation | 111 |
+| Tenant isolation | 110 |
 
 ## Fasi pytest governate
 
@@ -90,10 +90,12 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Auth/RBAC | RBAC | tests/test_auth_management_routes.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Auth/RBAC | RBAC | tests/test_profili.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | API contract | tests/test_advanced_ai_runtime.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_assistente_followup.py | file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_ci_cd_gates_phase11.py | tenant, feature flag, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_client_signature_providers.py | tenant, file | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_legal_skills_engine.py | 401 anonimo, 403/RBAC, tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_legal_updates_pipeline.py | 403/RBAC, tenant, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_local_ai.py | tenant, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_observability_runtime.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_performance_budget.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | Backend | tests/test_brocardi_adapter.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -215,7 +217,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | RBAC | tests/test_telematic_deposit_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_telematic_registry_fail_closed.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_topbar_operational_api.py | 401 anonimo, 403/RBAC, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Backend domain | Security | tests/test_assistente_followup.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_assistente_legal_reference_guard.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_assistente_social.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_assistente_social_intent.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -244,7 +245,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_installation_packs.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_legal_coverage_surface.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_legal_ocr_pipeline.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Backend domain | Tenant isolation | tests/test_local_ai.py | tenant, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_migration_assistant.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_operational_resilience.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_operational_surfaces.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

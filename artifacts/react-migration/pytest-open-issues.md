@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Storage SQL runtime seed 2.253.42 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Coverage moduli critici parte 10/12` sullo SHA `995683b` | `test_core_runtime_uses_tenant_paths_for_sensitive_repositories` | Risolto localmente, da verificare sul nuovo SHA remoto | Il runtime rilanciava la migrazione SQL su un archivio privacy vuoto, nonostante `studio.db` fosse già inizializzato con `settings_config`; ora il seed SQL evita la migrazione falsa senza riabilitare fallback JSON. | Rilanciare shard 10/12 locale, commit/push nuovo SHA e attendere tutti i check GitHub/CodeQL. |
+
 ## Storage SQL anti-fallback JSON 2.253.41 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |

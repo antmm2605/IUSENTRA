@@ -123,6 +123,13 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool
     try:
         conn = sqlite3.connect(str(studio_db_path))
         try:
+            for marker_table in ("settings_config", "moduli_dati"):
+                try:
+                    row = conn.execute(f"SELECT COUNT(*) FROM {marker_table}").fetchone()
+                except sqlite3.Error:
+                    continue
+                if int((row or [0])[0] or 0) > 0:
+                    return False
             tables = _anchor_seed_tables(anchor_path)
             total = 0
             for table in tables:

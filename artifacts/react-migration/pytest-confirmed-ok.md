@@ -1,5 +1,11 @@
 # Pytest shard confermati OK
 
+## Storage SQL runtime seed 2.253.42 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `COVERAGE_FILE=.coverage.critical.10.local python scripts/run_pytest_phases.py --suite coverage-critical --suite-shard 10 --suite-total-shards 12 --suite-subdivide-items --timeout-minutes 5 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=` | OK | 31/31 dopo il fix: `studio.db` già inizializzato non viene più considerato non popolato su archivi vuoti come `privacy/registro.json`; il blocco anti-fallback JSON resta attivo. |
+
 ## Storage SQL anti-fallback JSON 2.253.41 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |

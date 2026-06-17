@@ -31,7 +31,11 @@ from web.services.applicazioni_runtime import (
     _template_manager as applicazioni_template_manager,
 )
 from web.services.react_impostazioni_calendar import _cal_token_dir
-from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
+from web.services.storage_runtime import (
+    _sqlite_runtime_is_unseeded,
+    get_request_storage_runtime,
+    get_request_studio_db,
+)
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data, legacy_root_data_paths
 from web.services.topbar_operational import _cfg_value as topbar_cfg_value
 from web.template_atti import _get_gp
@@ -689,6 +693,30 @@ def test_request_storage_runtime_uses_tenant_sqlite_profile(tmp_path: Path):
     assert profile.effective_mode == DbMode.SQLITE
     assert studio_db is not None
     assert studio_db.db_path == (tmp_path / "tenants" / "demo" / "studio.db").resolve()
+
+
+def test_sqlite_runtime_non_rilancia_migrazione_se_settings_config_esiste(tmp_path: Path):
+    studio_db_path = tmp_path / "tenants" / "demo" / "studio.db"
+    anchor_path = tmp_path / "tenants" / "demo" / "privacy" / "registro.json"
+    studio_db_path.parent.mkdir(parents=True, exist_ok=True)
+    anchor_path.parent.mkdir(parents=True, exist_ok=True)
+    anchor_path.write_text("[]", encoding="utf-8")
+
+    db = StudioDB(str(studio_db_path))
+    try:
+        db.conn.execute(
+            """
+            INSERT OR REPLACE INTO settings_config
+            (section, updated_at, source, secret_fields_json, dati_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            ("studio", "2026-06-17T05:00:00", "test", "[]", "{}"),
+        )
+        db.conn.commit()
+    finally:
+        db.chiudi()
+
+    assert _sqlite_runtime_is_unseeded(studio_db_path, anchor_path) is False
 
 
 def test_request_storage_runtime_external_sql_usa_sqlite_staging_fino_a_cutover(tmp_path: Path):

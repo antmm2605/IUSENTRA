@@ -31,6 +31,8 @@ Nota successiva sullo SHA `9e0a776`: il fix precedente ha sbloccato il caso batc
 
 Nota successiva sullo SHA `49f9d8c`: `Coverage moduli critici parte 4/12` ha segnalato un test obsoleto che pretendeva ancora il fallback a JSON quando SQLite non è disponibile. La regola definitiva resta: SQL va creato/riallineato; se non riesce, il flusso si blocca con messaggio chiaro e non usa JSON storici come verità operativa.
 
+Nota successiva sullo SHA `995683b`: `Coverage moduli critici parte 10/12` ha segnalato una seconda migrazione falsa su archivi tenant vuoti come `privacy/registro.json`, anche se `studio.db` era già inizializzato. Il runtime ora riconosce `settings_config` e i mirror SQL come seed valido e non rilancia migrazioni inutili, mantenendo SQL come fonte operativa.
+
 ## Aggiornamento 2026-06-17 - prova server reale e fix rapidi UI deposito
 
 Ambiente verificato: produzione `https://app.iusentra.it`, fascicolo reale `E5AE4668` (`2026/330 - Marchetti Lucia`), studio `studio-legale-giuseppe-montagnese`.

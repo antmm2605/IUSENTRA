@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.42 - 2026-06-17
+
+- Storage SQL tenant: corretto il rilevamento di `studio.db` già inizializzato, evitando una seconda migrazione falsa quando un archivio vuoto come `privacy/registro.json` non contiene ancora record.
+- Guardrail dati: aggiunto controllo per non considerare non popolato un database che contiene `settings_config` o mirror SQL, mantenendo comunque il blocco anti-fallback JSON.
+- CI coverage: corretto lo shard `Coverage moduli critici parte 10/12`, dopo il verde confermato dello shard 4/12 sul nuovo SHA.
+
 ## 2.253.41 - 2026-06-17
 
 - Storage SQL: aggiornato il guardrail login per bloccare il fallback ai JSON quando `studio.db` non è disponibile, coerente con SQL come fonte di verità.

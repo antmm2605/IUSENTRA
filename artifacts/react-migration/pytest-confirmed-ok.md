@@ -1,5 +1,11 @@
 # Pytest shard confermati OK
 
+## Hotfix Local Signer shard CI 2.253.39 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\run_pytest_phases.py --suite signer --suite-shard 2 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | 59/59: il rosso locale/GitHub era su `test_local_signer_dist_allineato_a_sorgente_e_installer_versionati` e `test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto`; il dist è stato riallineato e il guardrail batch aggiornato per `cert_thumbprint`. |
+
 ## Hotfix CI SQL Impostazioni 2.253.38 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |

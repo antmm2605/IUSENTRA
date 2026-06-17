@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.39 - 2026-06-17
+
+- Local Signer: riallineato `tools/dist/local_signer.py` al sorgente `tools/local_signer.py`, così l'aggiornamento automatico non distribuisce più codice vecchio.
+- Firma batch: aggiornato il guardrail di riuso PIN per coprire anche il parametro `cert_thumbprint`, evitando falsi 500 nel test cross-platform.
+- CI GitHub: mirato il rosso `Local Signer e PKCS#11 (ubuntu-latest) parte 2/4` prima di ripetere push, CodeQL, deploy e riallineamento locale.
+
 ## 2.253.38 - 2026-06-17
 
 - CI GitHub: sbloccato il gate `Lint + syntax` riallineando la pre-verifica SQL di `Impostazioni` alla struttura normalizzata `settings_config`, senza trattare i JSON storici come fonte operativa.

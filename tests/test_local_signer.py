@@ -4556,6 +4556,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
             visible_signature_mode="laterale",
             visible_signature_place="",
             visible_signature_datetime_mode="data_ora",
+            cert_thumbprint=None,
         ):
             calls.append({
                 "lib_path": lib_path,
@@ -4566,6 +4567,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
                 "visible_signature_mode": visible_signature_mode,
                 "visible_signature_place": visible_signature_place,
                 "visible_signature_datetime_mode": visible_signature_datetime_mode,
+                "cert_thumbprint": cert_thumbprint,
             })
             session_id = pin_session_id or "sess-1"
             return documento + b".p7m", {
@@ -4605,11 +4607,13 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     assert calls[0]["visible_signature_mode"] == "basso_destra"
     assert calls[0]["visible_signature_place"] == "Taurianova"
     assert calls[0]["visible_signature_datetime_mode"] == "solo_data"
+    assert calls[0]["cert_thumbprint"] is None
     assert calls[1]["pin"] == ""
     assert calls[1]["pin_session_id"] == "sess-1"
     assert calls[1]["visible_signature_mode"] == "basso_destra"
     assert calls[1]["visible_signature_place"] == "Taurianova"
     assert calls[1]["visible_signature_datetime_mode"] == "solo_data"
+    assert calls[1]["cert_thumbprint"] is None
 
 
 def test_firma_singola_propaga_modalita_visibile_al_signer():

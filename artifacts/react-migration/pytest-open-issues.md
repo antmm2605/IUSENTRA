@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Hotfix Local Signer shard CI 2.253.39 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Local Signer e PKCS#11 (ubuntu-latest) parte 2/4` sullo SHA `116b3cf` | `scripts/run_pytest_phases.py --suite signer --suite-shard 2/4` | Risolto localmente, da verificare sul nuovo SHA remoto | Il dist `tools/dist/local_signer.py` non era allineato al sorgente e il fake test della firma batch non accettava `cert_thumbprint`, causando un 500 nel guardrail. | Rilanciare lo shard locale, commit/push nuovo SHA e attendere tutti i check GitHub/CodeQL. |
+
 ## Hotfix CI SQL Impostazioni 2.253.38 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |

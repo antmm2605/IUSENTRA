@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 249.
-- Endpoint con `_richiedi_auth`: 249/249.
-- Endpoint con metodo di scrittura o cancellazione: 124.
+- Endpoint React API censiti: 251.
+- Endpoint con `_richiedi_auth`: 251/251.
+- Endpoint con metodo di scrittura o cancellazione: 126.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 116; critical: 18; high/P1: 75.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -204,6 +204,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/profili` | Profili e permessi | P0 | `utenti.leggi/scrivi` | matrice permessi e override | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/profili` | Profili e permessi | P0 | `utenti.leggi/scrivi` | matrice permessi e override | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/profilo` | Profilo utente | P1 | `sessione/API tenant-aware` | dati profilo e permessi correnti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET,POST` | `/api/v1/ui/pst/pagopa-proxy/` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET,POST` | `/api/v1/ui/pst/pagopa-proxy/<path:pst_path>` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/redazione-atti` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/redazione-atti/anteprima/<model_code>` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/redazione-atti/clienti` | Redazione atti | P1 | `sessione/API tenant-aware` | produzione documenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

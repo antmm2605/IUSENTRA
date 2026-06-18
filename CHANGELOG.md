@@ -5,6 +5,8 @@
 - PagoPA PST: neutralizzato il foglio opzionale `print.css` quando il portale ministeriale lo restituisce come HTML, così la modale nel fascicolo resta senza errore MIME in Chrome.
 - Verifica reale locale: in Chrome visibile su `127.0.0.1:8080` il fascicolo `DC5BF1DB` apre PagoPA, carica `+ Nuovo pagamento`, seleziona contributo, distretto `TORINO`, `Tribunale Ordinario - Torino` e mostra `Paga subito` senza inviare il pagamento.
 
+- Verifica reale server: su `https://app.iusentra.it/fascicoli/9B9DF2A1` il fascicolo `RG 3950/2026` apre PagoPA in iframe, carica 66 uffici per `TORINO`, mantiene `print.css` come `text/css`, mostra `Paga subito` senza invio e conferma `Cliente`/`Soggetti` come modali incorporate.
+
 ## 2.253.75 - 2026-06-18
 
 - Storage tenant: corretto il controllo SQLite anti-bootstrap per leggere i database in `mode=ro` senza `immutable`, così il runtime vede le modifiche WAL appena committate e non rilancia migrazioni JSON su SQL già operativo.

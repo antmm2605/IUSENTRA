@@ -16,6 +16,7 @@
 | Docker locale reale `127.0.0.1:8080` | OK | `docker compose build --no-cache app`, `docker compose up -d --force-recreate app scheduler-worker ocr-worker`, container healthy e `/api/pronto` `versione=2.253.70`. |
 | Cookie sessione `iusentra_session` | OK locale | 2.253.74: Docker locale rebuild no-cache, `/api/pronto` `versione=2.253.74`, runtime Flask nel container con `SESSION_COOKIE_NAME=iusentra_session`; Chrome installato su `127.0.0.1:8080` ha mostrato solo la cookie `iusentra_session` per l'host. |
 | Google Chrome reale su `http://127.0.0.1:8080/fascicoli/9B9DF2A1` | OK osservato | 2.253.74: click `PagoPA`, `Nuovo pagamento`, tipo contributo unificato, distretto `TORINO`, 66 uffici giudiziari caricati, nominativo e codice fiscale compilati; nessun pagamento avviato. Browser plugin invocato ma non operativo (`browser.documentation`/`openTabs` assenti), usato Chrome installato con Playwright come fallback registrato. |
+| Google Chrome reale su `https://app.iusentra.it/fascicoli/9B9DF2A1` | OK osservato | 2.253.76: server Hetzner su commit `d80b9ce`, `/api/pronto` `2.253.76`, runtime `SESSION_COOKIE_NAME=iusentra_session`; modale PagoPA incorporata, `+ Nuovo pagamento`, contributo unificato, distretto `TORINO`, `Tribunale Ordinario - Torino` (`0012720095`), 66 uffici caricati, `Paga subito` visibile e non premuto; `print.css` 200 `text/css`, nessun errore console applicativo. Verificati anche `Cliente` e `Soggetti` come modali iframe incorporate. |
 
 ## PST lavoro anteprima completa 2.253.64 - 2026-06-18
 

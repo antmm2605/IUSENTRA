@@ -1608,4 +1608,16 @@ Prova reale locale su Docker `2.253.76`:
 - console: `0` errori dopo la correzione del `print.css`; restano solo i warning standard di Chrome sul sandbox iframe con `allow-scripts` e `allow-same-origin`, necessari al PST/DWR;
 - screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-pagopa-locale-225376-finale.png`.
 
-Stato: codice locale pronto per commit, push sui branch gemelli, attesa check GitHub/CodeQL, deploy Hetzner e prova reale server sul fascicolo `9B9DF2A1`.
+Prova reale server su Hetzner `2.253.76`:
+
+- ambiente: Google Chrome installato su Windows con Chrome visibile, produzione `https://app.iusentra.it`, commit server `d80b9ce`, container app/scheduler/OCR/Redis healthy e `/api/pronto` con `versione=2.253.76`;
+- runtime Flask nel container Hetzner: `SESSION_COOKIE_NAME=iusentra_session`;
+- percorso: fascicolo reale `9B9DF2A1`, `RG 3950/2026`, rif. interno `2026/308`, `Spagnolo Sara c. MIM`, click su `PagoPA`, modale incorporata con iframe `/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp`;
+- interazione verificata: click `+ Nuovo pagamento`, `Tipo` = `Contributo unificato e/o Diritti di cancelleria`, `Distretto` = `TORINO`, `Ufficio Giudiziario` = `Tribunale Ordinario - Torino` (`0012720095`), nominativo e codice fiscale fittizi;
+- risultato: DWR ministeriale `PagamentiTelematiciAjaxServices.getUfficiGiudiziari.dwr` HTTP 200 `text/plain`, select ufficio popolata con `66` opzioni, bottone `Paga subito` visibile e abilitato, nessun click su `Paga subito`;
+- `print.css`: proxy HTTP 200 `text/css; charset=utf-8`, contenuto CSS controllato e non HTML;
+- console: nessun errore applicativo; restano solo i warning standard Chrome del sandbox iframe;
+- Cliente e Soggetti: pulsanti top del fascicolo verificati nello stesso modello di modale incorporata, con iframe `/clienti/2A1216AA/modifica` e `/soggetti?fascicolo=9B9DF2A1`;
+- screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-pagopa-produzione-225376.png` e `C:\Users\antmm\AppData\Local\Temp\iusentra-soggetti-modale-produzione-225376.png`.
+
+Stato: codice, Docker locale, GitHub, CodeQL/check remoti e server reale risultano allineati sul comportamento verificato. Il presente blocco documenta la prova server e va mantenuto come guardrail per future modifiche a fascicoli/PagoPA.

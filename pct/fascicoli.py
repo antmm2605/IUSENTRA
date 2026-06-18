@@ -1205,6 +1205,25 @@ class GestioneFascicoli:
 
         dest.write_bytes(contenuto)
         sha256 = hashlib.sha256(contenuto).hexdigest()
+        signature_metadata: dict[str, Any] = {}
+        if firmato:
+            try:
+                from pct.document_signature_state import (
+                    document_bytes_have_real_digital_signature,
+                    is_signed_container_name,
+                )
+
+                if document_bytes_have_real_digital_signature(contenuto, nome_file):
+                    is_container = is_signed_container_name(nome_file)
+                    signature_metadata = {
+                        "signature_format": "cades" if is_container else "pades",
+                        "signature_verified": True,
+                        "is_signed_container": is_container,
+                        "source": "upload",
+                        "file_name": Path(str(nome_file or "")).name,
+                    }
+            except Exception:
+                signature_metadata = {}
 
         doc = Documento(
             id=uuid.uuid4().hex[:8].upper(),
@@ -1214,6 +1233,7 @@ class GestioneFascicoli:
             dimensione_bytes=len(contenuto),
             hash_sha256=sha256,
             firmato_digitalmente=firmato,
+            signature_metadata=signature_metadata,
             note=note,
             tags=list(tags or []),
             data_documento=data_documento or date.today().isoformat(),

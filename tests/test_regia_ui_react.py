@@ -121,6 +121,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
 
     deposit_page = source[source.index("function DepositPreparePage"):source.index("function NotificationRelataMonitor")]
     action_button = source[source.index("function DepositActionButton"):source.index("function DepositPdfPreviewButton")]
+    preview_button = source[source.index("function DepositPdfPreviewButton"):source.index("function JsonPostForm")]
 
     assert "const officeRecipientReady" in deposit_page
     assert "PEC dell’ufficio non verificata" in deposit_page
@@ -134,6 +135,9 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "{pecWorkflowAvailable ? (" in deposit_page
     assert "deposito/indice-documenti" in deposit_page
     assert "DepositPdfPreviewButton" in deposit_page
+    assert "url: previewUrl" in preview_button
+    assert "downloadUrl: previewUrl" in preview_button
+    assert "URL.createObjectURL" not in preview_button
     assert "onPackageReady={handlePackageReady}" in deposit_page
     assert "Prova senza invio PEC" in deposit_page
     assert "Testo PEC predisposto" in deposit_page
@@ -141,10 +145,25 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "progressItems={['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}" in deposit_page
     assert "progressLabel=\"Invio deposito in corso\"" in deposit_page
     assert "iu-fas-package-progress__ticker" in action_button
+    assert "const pctJsonPackageChannel" in deposit_page
+    assert "const realSendAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction" in deposit_page
+    assert "result.requires_local_pec && completeLocalPec" in action_button
+    assert "setConfirming(false)\n          const message = await completeLocalPec(result, payload)" in action_button
+    assert "await completeLocalPec(result, payload)" in action_button
     assert "result.package_ready || result.requires_guided_completion || result.requires_local_pec" in action_button
+    assert action_button.index("result.requires_local_pec && completeLocalPec") < action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec")
     assert action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec") < action_button.index("!response.ok || result.ok === false")
     assert "requiresGuidedCompletion: Boolean(payload.requires_guided_completion)" in deposit_page
     assert "requiresLocalPec: Boolean(payload.requires_local_pec)" in deposit_page
+    assert "localPec: payload.local_pec" in deposit_page
+    assert "completeDepositLocalPec" in deposit_page
+    assert "localSignerEndpoint('/pec/send')" in deposit_page
+    assert "window.prompt" not in deposit_page
+    assert "Password PEC locale" in deposit_page
+    assert "Invia dal PC locale" in deposit_page
+    assert "local_pec_confirmed" in deposit_page
+    assert "local_pec_message_id" in deposit_page
+    assert "completeLocalPec={completeDepositLocalPec}" in deposit_page
     assert "bustaAudit: payload.busta_audit" in deposit_page
     assert "const proofBlocksDirectSend = Boolean(" in deposit_page
     assert "const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend" in deposit_page

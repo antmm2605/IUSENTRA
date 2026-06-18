@@ -1,6 +1,300 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-17.
+Aggiornato: 2026-06-18.
+
+## Stato operativo da non perdere
+
+Stato consolidato `2.253.57`: la cache certificati PST è coperta per il catalogo operativo corrente dei canali PCT/SIGP/Cassazione che richiedono cifratura `Atto.enc` (`593/593` codici ministeriali coperti; `913` `.cer` fisici validi in cache). Da questo punto in avanti il software non deve più trattare il `.cer` di Palmi o Vicenza come mancante globale se la cache corrente è presente: un eventuale blocco su `Invia deposito reale` deve indicare solo il requisito effettivamente mancante nella singola prova, per esempio `Atto.enc` AES256 non generato, PEC mittente dello studio non configurata, firma obbligatoria non presente o destinatario PEC non verificato. L'invio operativo PEC non parte mai dal server: anche su `https://app.iusentra.it` il server prepara e verifica, mentre SMTP reale passa dal PC dell'avvocato tramite Local Signer.
+
+La regola è fail-closed ma non pessimistica: se tutti i requisiti obbligatori del canale sono presenti, il bottone reale deve attivarsi; se resta disabilitato, la UI deve dire esattamente cosa manca e Codex deve correggere la logica prima di commit, push e deploy.
+
+## Incarico operativo di chiusura, da rileggere dopo ogni compattazione
+
+Il lavoro deposito non è chiuso finché non è dimostrato nella vista reale, con fascicoli reali o controllati, che il software prepara, firma, controlla, simula e abilita l'invio secondo il canale corretto. I test automatici sono guardrail, non prova finale. Se la vista reale mostra un difetto, quel difetto prevale su build, typecheck, unit test o screenshot precedenti.
+
+### Regola di sviluppo da seguire
+
+1. Se l'utente segnala un difetto visibile, aprire subito la pagina reale indicata (`127.0.0.1:8080` oppure `https://app.iusentra.it`) e correggere il minimo necessario.
+2. Provare subito la modifica nella stessa vista reale, con click, scroll e dati visibili.
+3. Solo dopo il risultato reale positivo creare o aggiornare i test automatici.
+4. Solo dopo test e prova reale procedere con commit, push dei branch gemelli, deploy Hetzner, verifica `/api/pronto` e igiene.
+5. Se una prova reale resta aperta o fallisce, scriverlo qui e non dichiarare il deposito concluso.
+
+### Cosa deve fare il software
+
+- Risolvere il profilo deposito in tre casi: preventivo accettato con conferimento e fascicolo, nuovo fascicolo diretto, fascicolo veloce/autonomo.
+- Salvare il profilo in SQL, non solo nel JSON, nelle colonne `profilo_deposito_json` di `preventivi_records`, `conferimenti_records` e `fascicoli`, con parità SQLite/PostgreSQL.
+- Usare il canale corretto: PCT/SICID, PCT lavoro/SICID, PCT/SIECIC, SIGP/Giudice di Pace, Cassazione civile/PST, PDP, PAT, PTT, UNEP/notifiche sono canali diversi e non devono ereditare blocchi o certificati non pertinenti.
+- Per PCT/SIGP/Cassazione con busta PST generare o presidiare `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `Atto.msg`, certificato pubblico `.cer` e `Atto.enc` AES256 quando richiesto.
+- Per PDP, PAT e PTT preparare controlli, firme, limiti e ricevute secondo il portale specifico, senza pretendere `.cer` PST civile o `Atto.enc` PCT.
+- Leggere l'intero fascicolo, proporre atto principale, procura, allegati e prove, ma lasciare all'avvocato le scelte non obbligatorie.
+- Mostrare `Firmato` solo davanti a prova tecnica reale: CAdES/PKCS#7 `.p7m` o PAdES interno verificabile. Il testo del documento, il nome file o un vecchio flag non bastano.
+- Firmare più documenti con un unico comando quando Local Signer/PKCS#11 è disponibile, salvando ogni `.p7m` nel fascicolo e aggiornando la UI prima del passo successivo.
+- Mostrare `IndiceDocumentiDepositati.PDF` in anteprima reale e consentirne il download.
+- Mostrare il corpo PEC che verrà predisposto; l'avvocato può modificarlo facoltativamente, ma la modifica non è obbligatoria.
+- In simulazione o prova senza invio mostrare una barra avanzamento con il nome del documento o artefatto in lavorazione.
+- Conservare o ripristinare `Simula invio PEC` e `Prova senza invio reale`, perché servono a controllare il flusso senza spedire nulla.
+- Preparare l'invio reale usando le rotte corrette, il destinatario PEC verificato, la PEC mittente configurata e il payload locale per Local Signer; il server non deve essere canale SMTP reale e non devono comparire messaggi inutili alla cancelleria.
+- Presidiare le ricevute dopo l'invio, senza registrare come deposito valido un pacchetto che non ha trasporto ministeriale conforme.
+
+Regola permanente PEC locale: il riferimento operativo è la schermata `/impostazioni?tab=pec`, sezione `Verifiche PEC`, che indica `Il controllo dell'invio parte dal PC in uso: la password resta sul dispositivo locale.` Vale per deposito, notifiche legali e PEC operative: il server prepara e verifica, ma l'invio reale parte dal PC in uso tramite Local Signer/servizio locale. Se una rotta o un fallback prova a spedire dal server via SMTP, è una regressione da bloccare. La password PEC deve essere raccolta in una modale React locale, non tramite `window.prompt` e non in una rotta server.
+
+### Quando `Invia deposito reale` deve attivarsi
+
+Il bottone non deve restare spento per prudenza generica. Deve attivarsi quando sono veri tutti i requisiti obbligatori del canale:
+
+- canale reale abilitato e riconosciuto;
+- ufficio giudiziario e codice deposito/codice oggetto risolti;
+- destinatario PEC verificato;
+- PEC mittente e impostazioni SMTP disponibili per costruire il payload Local Signer, senza invio SMTP dal server;
+- documenti selezionati e ruoli coerenti;
+- firme obbligatorie già presenti o completate con Local Signer;
+- `IndiceDocumentiDepositati.PDF` generato e visualizzabile;
+- corpo PEC controllato;
+- `.cer` PST valido solo se il canale lo richiede;
+- `Atto.enc` AES256 generato solo se il canale lo richiede;
+- prova senza invio o simulazione PEC completata senza errori bloccanti;
+- ricevute presidiate dal fascicolo.
+
+Se uno di questi punti manca, la UI deve indicarlo con testo puntuale. Se nessun punto manca e il bottone resta disabilitato, è una regressione da correggere prima di commit, push e deploy.
+
+### Stato corrente da non perdere
+
+- Cache certificati PST locale: `913` `.cer` fisici DER validi, `0` invalidi.
+- Perimetro operativo che richiede `.cer/Atto.enc`: `593` codici ministeriali unici, `593/593` coperti, `0` mancanti.
+- Fonti importate: `C:\QuickOrganizer\ListaUfficiGiudiziari.xml` e `C:\QuickOrganizer\QC_Uffici.xml`, più fallback PST diretto per codice/nome ufficio.
+- Caso `Giudice di Pace - Palmi`, codice ministeriale `0800570152`: certificato recuperato e non deve essere più trattato come mancante globale se la cache corrente è presente.
+- Caso `Tribunale di Vicenza`, fascicolo server `E5AE4668`, codice deposito `222050`: profilo deposito SQL già previsto con canale PCT, PEC e certificato quando il deploy è allineato.
+- Prova locale reale aggiornata su `127.0.0.1:8080`: React autentico, PEC Palmi risolta, codice `0910401 / 0800570152` visibile, `Atto.enc` presente nella UI e anteprima `IndiceDocumentiDepositati.PDF` visibile con viewer PDF del browser, pagina `1/1`, toolbar, miniatura e contenuto `Indice documenti depositati`. Screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-dc5bf1db-indice-pdf-diretto-225356.png`.
+- Prova locale reale controllata aggiornata al 2026-06-18: sul fascicolo `DC5BF1DB` il click reale su `Invia deposito reale` ha attraversato UI React, rotta `/deposito/invia-pec`, payload Local Signer e SMTP locale fittizio senza spedire all'esterno. Il pacchetto catturato contiene destinatario `gdp.palmi@civile.ptel.giustiziacert.it`, oggetto `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023` e allegato unico `Atto.enc` da `4.637.389` byte. La configurazione PEC reale del tenant è stata ripristinata subito dopo e il server SMTP fittizio è stato spento.
+
+### Prova finale richiesta prima di chiudere
+
+- Server reale: fascicolo `E5AE4668` (`2026/330 - Marchetti c. MIM`) su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara`.
+- Locale reale: fascicolo `DC5BF1DB` su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara`.
+- Verifica visiva: apertura pagina, scroll completo, fasi deposito, lista documenti, ruoli, firme, indice, corpo PEC, simulazione PEC, prova senza invio e stato del bottone reale.
+- Verifica tecnica: API e rotte di invio, destinatario PEC, mittente/SMTP, `Atto.enc` quando richiesto, ricevute, scheduler `.cer`, parità SQLite/PostgreSQL.
+- Chiusura: commit, push su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`, check GitHub/CodeQL, deploy Hetzner, `/api/pronto`, prune Docker e repo hygiene.
+
+### Relata e prova notifica
+
+La relata non è un accessorio da confondere con la guida firma. Deve avere flusso proprio: testo reale visualizzato o generato, destinatari, domicilio digitale, dati obbligatori, documenti allegati, firma quando richiesta, prova senza invio e salvataggio nel fascicolo. Se la UI apre la guida quando si clicca firma/notifica, va corretto come difetto visivo-funzionale. La conformità della relata va scritta in questo file solo dopo prova reale e confronto con fonti ufficiali.
+
+## Aggiornamento 2.253.57 - prova reale invio PEC locale senza spedizione esterna
+
+Data intervento: 2026-06-18.
+
+Perimetro verificato:
+
+- copia Docker locale reale `http://127.0.0.1:8080`, fascicolo `DC5BF1DB`;
+- superficie React `Prepara deposito`, fase `Busta e indice`;
+- canale `SIGP/Giudice di Pace` con ufficio Palmi, codice ministeriale `0800570152` e PEC `gdp.palmi@civile.ptel.giustiziacert.it`;
+- Local Signer raggiunto su `http://127.0.0.1:27272`;
+- server SMTP fittizio temporaneo su `127.0.0.1:25252` usato solo per catturare la PEC senza inviare all'esterno;
+- configurazione PEC reale del tenant ripristinata dopo il collaudo e server fittizio spento.
+
+Correzioni applicate:
+
+- `frontend/src/components/FascicoliPage.tsx`: `Invia deposito reale` usa la rotta JSON `/fascicoli/<id>/deposito/invia-pec` anche per il canale PST/SIGP che produce pacchetto JSON/Local Signer, evitando il fallback vecchio su `/deposito/genera-busta`;
+- `frontend/src/components/FascicoliPage.tsx`: eliminata la dipendenza da `window.prompt`; la password PEC viene chiesta con modale React `Password PEC locale`, riepilogo mittente, destinatario, oggetto e allegati;
+- `frontend/src/components/FascicoliPage.tsx`: la modale di conferma `Invia deposito reale` viene chiusa prima della richiesta password locale, così non resta un overlay bloccato su `Operazione...`;
+- `frontend/src/components/FascicoliPage.css`: aggiunti gli stili della modale password PEC, con testo leggibile e campi che non escono dal contenitore;
+- `web/bootstrap/deposito_routes.py` e `web/services/local_pec_runtime.py`: il server non usa SMTP reale per depositi legali; restituisce un payload `requires_local_pec` per il Local Signer e registra la conferma solo dopo `Message-ID` locale.
+
+Prova materiale eseguita:
+
+- click reale su `Prova senza invio reale`: UI con esito `Controlli software superati`, destinatario `gdp.palmi@civile.ptel.giustiziacert.it`, oggetto `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023`;
+- click reale su `Invia deposito reale`;
+- conferma visibile accettata;
+- modale `Password PEC locale` aperta nel browser, senza errore `prompt() is not supported`;
+- inserita password fittizia solo per lo SMTP locale di collaudo;
+- click reale su `Invia dal PC locale`;
+- toast applicativo visto: `Deposito inviato via PEC e registrato nel fascicolo.`;
+- nessun errore console nel browser durante il flusso.
+
+Verifica post-rebuild Docker locale `2.253.57`:
+
+- `docker compose build --no-cache app` completato con wheel `pct-studio-legale-2.253.57`;
+- `docker compose up -d --force-recreate app`, container `iusentra-app` healthy;
+- `GET http://127.0.0.1:8080/api/pronto` HTTP 200 con `versione=2.253.57`;
+- browser integrato su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta`;
+- dopo il caricamento reale la pagina mostra `RG 466/2023 - Alessi Robertino`, `Giudice di Pace - Palmi`, PEC `gdp.palmi@civile.ptel.giustiziacert.it`, `8 documenti in busta`, `Indice dalla selezione`, nessun `n.d.` e nessun HTML grezzo;
+- click reale su `Prova senza invio reale` dopo rebuild: esito `Prova deposito preparata`, riferimento prova `F81FDC8C`, controlli software superati e bottone `Invia deposito reale` attivo;
+- click reale su `Visualizza IndiceDocumentiDepositati.PDF`: modal con URL diretto `/fascicoli/DC5BF1DB/deposito/indice-documenti?...`, toolbar PDF, miniatura, pagina `1/1` e contenuto `Indice documenti depositati`;
+- screenshot prova indice post-rebuild fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-dc5bf1db-indice-pdf-post-rebuild-225357.png`.
+
+PEC catturata dal server SMTP fittizio:
+
+- file prova fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-fake-smtp-deposito.json`;
+- EML fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-fake-smtp-deposito.eml`;
+- mittente header: `roberto.montagnese@coapalmi.legalmail.it`;
+- destinatario header: `gdp.palmi@civile.ptel.giustiziacert.it`;
+- oggetto: `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023`;
+- `Message-ID`: `<178174394892.26844.7734756242688097457@pcmarco.station>`;
+- corpo PEC contiene `Atto.enc` e l'elenco dei documenti inclusi;
+- allegato unico: `Atto.enc`, `application/octet-stream`, `4.637.389` byte, SHA256 `1dfbb7d8a8383a05a3c0dcbd84bf8e76cfa382f09c8fb35f85816c3d8dd1d579`.
+
+Limiti residui dichiarati:
+
+- questa prova non ha spedito una PEC reale a una cancelleria: ha simulato il server SMTP in locale per verificare il click reale, la composizione PEC e l'allegato senza invio esterno;
+- la firma multipla fisica con pen drive e PIN reale non può essere dichiarata completata durante l'assenza dell'utente: richiede token inserito, PIN digitato e firma effettiva di più documenti con salvataggio `.p7m`;
+- prima della chiusura complessiva restano gate finali, rebuild Docker locale, commit, push branch gemelli, deploy Hetzner e verifica server sullo stesso commit.
+
+## Regola permanente certificati PST, Atto.enc e canali deposito
+
+Questa sezione va riletta dopo ogni compattazione prima di toccare deposito, PEC, firma digitale, Local Signer, scheduler `.cer`, `/tribunali` o `Invia deposito reale`.
+
+### Regola di canale
+
+`Atto.enc` e il certificato pubblico PST `.cer` dell'ufficio si applicano solo ai canali che usano la busta telematica PST con `Atto.msg` cifrato:
+
+- `PCT/SICID`, compreso lavoro quando usa registro SICID;
+- `PCT/SIECIC`;
+- `SIGP/Giudice di Pace`;
+- Cassazione civile/procedimento di legittimità quando usa la busta PST ministeriale.
+
+Non si applicano, dentro il flusso deposito fascicolo IUSENTRA, a:
+
+- `PDP penale`: usa il Portale Deposito atti Penali, non la busta PCT civile generata dallo studio;
+- `PAT/SIGA amministrativo`: dal 1 febbraio 2026 il canale prioritario è Formweb; la PEC è residuale nei casi tecnici previsti;
+- `PTT/SIGIT tributario`: usa il portale tributario e le regole MEF/DGT proprie;
+- notifiche PEC, PEC stragiudiziale e flussi UNEP: sono canali separati dal deposito PCT del fascicolo e non devono essere dichiarati deposito PCT. Se in futuro si implementa un flusso UNEP dedicato, va documentato come canale autonomo e non ereditato dal PCT civile.
+
+### Fonti normative operative
+
+- PCT/PST civile e SIGP: specifiche tecniche DGSIA ex art. 34 D.M. 44/2011, provvedimento 7 agosto 2024, efficace dal 30 settembre 2024. Art. 15: atto principale in PDF/PDF-A, privo di elementi attivi, da documento testuale, firmato; firme ammesse PAdES-BES o CAdES-BES. Art. 17: nel procedimento civile la busta contiene `Atto.enc`, ottenuto dalla cifratura di `Atto.msg`; le chiavi pubbliche degli uffici sono nell'area pubblica PST e nel catalogo servizi; limite busta `60 MB`; invio via PEC ministeriale.
+- PDP penale: decreto Ministero Giustizia 4 luglio 2023 e specifiche tecniche PDP pubblicate sul PST. Il deposito avviene sul PDP; limite indicato dalle specifiche PDP: `50 MB` per singolo file e `500 MB` per deposito complessivo; firme ammesse PAdES e CAdES secondo il caso.
+- PAT/SIGA: regole tecnico-operative della Giustizia Amministrativa e modifica Formweb 2025/2026. Dal 1 febbraio 2026 Formweb è prioritario; limite Formweb documentato: massimo `50` file, `300 MB` per singolo file e `300 MB` complessivi.
+- PTT/SIGIT: regole MEF/Dipartimento Giustizia Tributaria. Non usa `.cer` PST civile né `Atto.enc`; limite operativo aggiornato: `50 MB` per singolo file, con suddivisione dei file superiori.
+
+### Stato tecnico certificati al controllo corrente
+
+Controllo locale eseguito sulla cache `D:\legale\IUSENTRA\data\pst\certificati_cifratura`:
+
+- `.cer` fisici in cache: `913`;
+- `.cer` DER leggibili e validi: `913`;
+- `.cer` fisici non validi: `0`;
+- perimetro operativo che richiede `.cer/Atto.enc`: `593` codici ministeriali unici;
+- target coperti: `593/593`;
+- target mancanti o non validi: `0`;
+- report job su disco: `data/pst/certificati_cifratura/audit_certificati_cifratura_pst.json`;
+- ultimo report job: `ok=true`, `catalogo_pct_operativi=593`, `scaricati_o_validi=593`, `saltati_senza_certificato_pubblicato=0`, `errori=0`, `cache_cer_presenti=913`, `generated_at=2026-06-18T00:40:32.903271+02:00`.
+
+La differenza tra `913` e `593` è voluta: `913` è la cache fisica valida complessiva; `593` è il perimetro operativo corrente degli uffici attivi che richiedono certificato PST per la cifratura `Atto.enc`. La cache conserva certificati extra validi senza usarli come obbligo su canali non pertinenti.
+
+### Perimetro uffici coperto
+
+Il target `593/593` comprende gli uffici attivi del catalogo PST/ministeriale che il software deve coprire per la busta PCT/SIGP:
+
+- Corti d'Appello e uffici civili collegati;
+- Tribunali ordinari e uffici civili collegati;
+- Giudici di Pace/SIGP;
+- Cassazione civile/PST dove prevista.
+
+Il filtro esclude dal conteggio obbligatorio del deposito PCT:
+
+- Procure, PDP penale e canali penali non PCT civile;
+- PAT, PTT/SIGIT e portali amministrativi/tributari;
+- UNEP e notifiche PEC, perché non sono il flusso `Prepara deposito` PCT del fascicolo;
+- uffici storici/non attivi o sezioni accorpate che non devono bloccare il deposito corrente;
+- uffici senza codice ministeriale utile alla cifratura.
+
+### Origine dati e recupero certificati
+
+Il software usa tre livelli, in questo ordine:
+
+1. catalogo PST pubblico già presente in `pct/data/uffici_pst_pubblici.json`;
+2. metadati ministeriali importati da `C:\QuickOrganizer\ListaUfficiGiudiziari.xml` e `C:\QuickOrganizer\QC_Uffici.xml`, riversati in `pct/data/uffici_ministero.json` e `pct/data/uffici_ministero_extra.json`;
+3. fallback diretto PST per codice ministeriale e nome ufficio, anche quando il XML ministeriale non espone `nomeCertificatoCifra`.
+
+Caso provato dall'utente e coperto: `Giudice di Pace - Palmi`, codice ministeriale `0800570152`, anche se nel XML il nome certificato è vuoto. Il downloader costruisce il nome ufficiale e scarica il `.cer` da PST; il certificato ottenuto è valido fino al 16 gennaio 2027 e ha subject `gdprc_cifra@civile.ptel.giustiziacert.it`.
+
+### Regola fail-closed
+
+Il risultato corretto non è promettere che il Ministero non cambierà mai catalogo. Il risultato corretto è:
+
+- sul catalogo corrente controllato, tutti i target sono coperti (`593/593`);
+- se il Ministero aggiunge, sposta o modifica un ufficio, il job `pst_certificati_cifratura_weekly` deve scaricare/validare il nuovo `.cer`;
+- se per un singolo fascicolo il canale richiede `.cer` e quel `.cer` non è presente o non è valido, `Invia deposito reale` resta bloccato con motivo puntuale;
+- PDP, PAT e PTT non devono essere bloccati per assenza di `.cer` PST civile, perché usano trasporti diversi;
+- un deposito non deve essere registrato come valido se manca `Atto.enc` quando il canale lo richiede.
+
+### Scheduler
+
+Il job `pst_certificati_cifratura_weekly`:
+
+- è settimanale, non giornaliero mascherato;
+- usa `day_of_week` nel registry scheduler;
+- usa worker configurabili con `PST_CERTIFICATI_CIFRATURA_WORKERS` o `PCT_PST_CERTIFICATI_CIFRATURA_WORKERS`;
+- ritorna un report strutturato anche in caso di errore, così il registro scheduler non segna falsi positivi;
+- scrive `source_of_truth=catalogo_pubblico_pst`, `tenant_scope=cache_tecnica_condivisa_non_operativa`, `json_authoritative=false`.
+
+### Guardrail eseguiti su questa regola
+
+- `python -m pytest -q tests\test_canali_telematici_deposito.py tests\test_scheduler_registry.py tests\test_checklist_atti.py tests\test_conformita_pst.py` -> esito: `59 passed`;
+- controllo fisico cache `.cer`: `913` file, `913` certificati DER leggibili, `0` invalidi;
+- controllo target: `593` codici unici, `0` mancanti;
+- controllo policy codice: `pct_civile_dm44` usa `.cer`; `pdp_penale`, `pat_amministrativo`, `ptt_tributario` non usano `.cer` PST civile.
+
+## Aggiornamento 2.253.56 - riallineamento locale anteprima indice e prova senza invio
+
+Data intervento: 2026-06-17.
+
+Perimetro verificato:
+
+- copia Docker locale reale `http://127.0.0.1:8080`, non server temporaneo;
+- container `iusentra-app` ricostruito no-cache, ricreato e healthy;
+- `/api/pronto` HTTP 200, versione `2.253.56`;
+- browser integrato Codex visibile sulla pagina `/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta`.
+
+Correzione applicata:
+
+- `frontend/src/components/FascicoliPage.tsx`: il pulsante `Visualizza IndiceDocumentiDepositati.PDF` non costruisce più un URL `blob:` per l'iframe; dopo aver verificato con fetch che l'indice risponde, apre l'anteprima con l'URL diretto autenticato `/fascicoli/<id>/deposito/indice-documenti?...`;
+- `tests/test_regia_ui_react.py`: aggiunto guardrail perché l'anteprima indice usi `url: previewUrl`, `downloadUrl: previewUrl` e non torni a `URL.createObjectURL` nel componente `DepositPdfPreviewButton`.
+
+Prova materiale eseguita:
+
+- pagina React caricata con `#root`, senza fallback legacy, senza HTML grezzo, senza `n.d.`;
+- `Busta e indice` presente e caricata;
+- `IndiceDocumentiDepositati.PDF` presente nella UI;
+- click reale sul pulsante `Visualizza IndiceDocumentiDepositati.PDF`;
+- modal aperto con titolo `IndiceDocumentiDepositati.PDF`, pulsanti `Scarica` e `Chiudi`;
+- iframe circa `1180 x 630`, URL diretto `/fascicoli/DC5BF1DB/deposito/indice-documenti?...`, non `blob:`;
+- viewer PDF Chrome visibile con toolbar, miniatura, pagina `1/1`, zoom `100%` e contenuto `Indice documenti depositati`;
+- screenshot prova indice: `C:\Users\antmm\AppData\Local\Temp\iusentra-dc5bf1db-indice-pdf-diretto-225356.png`.
+
+Prova senza invio e simulazione:
+
+- `Prova senza invio reale` abilitato;
+- conferma visibile: `Preparare busta, indice documenti, destinatario e testo PEC senza inviare nulla?`;
+- barra avanzamento visibile con `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, tutti i documenti `.p7m` selezionati e `Atto.enc`;
+- esito visibile: `Prova deposito preparata: busta, indice, destinatario e testo PEC sono pronti per il controllo. Nessun invio PEC reale è stato eseguito.`;
+- destinatario PEC: `gdp.palmi@civile.ptel.giustiziacert.it`;
+- oggetto PEC: `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023`;
+- documenti indicati nel pacchetto: `DatiAtto.xml`, atto principale, allegati `.p7m` e `IndiceDocumentiDepositati.PDF`;
+- corpo PEC visibile e coerente con `Atto.enc`;
+- `Simula invio PEC` confermata con testo esplicito `senza spedire nulla all'esterno`;
+- toast visibile: `Simulazione invio PEC registrata nel fascicolo. Nessun invio esterno eseguito.`;
+- screenshot prova senza invio/simulazione: `C:\Users\antmm\AppData\Local\Temp\iusentra-dc5bf1db-prova-senza-invio-simulazione-225356.png`.
+
+Stato del bottone reale osservato:
+
+- `Invia deposito reale` resta disabilitato con motivo puntuale: `Invio reale sospeso: completa i controlli obbligatori indicati nella prova.`;
+- il requisito mancante mostrato nella prova locale è `PEC mittente dello studio non configurata. Configura la PEC dello studio prima dell'invio reale.`;
+- non risultano più blocchi visivi su indice PDF o certificato `.cer` Palmi nella prova locale aggiornata.
+
+Guardrail eseguiti:
+
+- `python -m pytest -q tests\test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`;
+- Docker locale: `docker compose build --no-cache app`, `docker compose up -d --force-recreate app`, container healthy, `/api/pronto` OK.
+
+Stato ancora aperto prima della chiusura complessiva:
+
+- configurare/verificare PEC mittente dello studio per abilitare realmente l'invio locale, oppure dimostrare su server che il tenant ha già mittente/SMTP completo;
+- ripetere prova server sul commit allineato;
+- commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner, `/api/pronto` server e igiene repository.
 
 ## Aggiornamento 2.253.54 - prova locale React deposito, indice e simulazione PEC
 
@@ -23,7 +317,7 @@ Prova materiale eseguita:
 - `Modifica testo PEC` apre un campo editabile solo su scelta dell'avvocato; il testo standard resta usato automaticamente e contiene `Atto.enc` e l'elenco documenti;
 - `Simula invio PEC` mostra barra di avanzamento con `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti selezionati e `Atto.enc`;
 - la simulazione restituisce HTTP 200 e non produce errori console; la preview mostra destinatario PEC, oggetto `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023`, riferimento prova, elenco documenti, testo PEC e controlli obbligatori mancanti;
-- `Invia deposito reale` resta disabilitato con motivo puntuale: mancano certificato PST `.cer` dell'ufficio `0800570152`, `Atto.enc` AES256 generato da `Atto.msg` e PEC mittente dello studio configurata. Questo è blocco di conformità, non prudenza generica.
+- `Invia deposito reale` resta disabilitato solo se nella singola prova manca un requisito obbligatorio reale. Stato aggiornato `2.253.56`: il certificato PST `.cer` dell'ufficio `0800570152` non è più un mancante globale quando la cache corrente è presente; il blocco residuo corretto deve riguardare `Atto.enc` AES256 generato da `Atto.msg`, PEC mittente dello studio configurata o altro requisito effettivamente non presente nella prova.
 
 Correzione applicata:
 
@@ -106,7 +400,7 @@ Correzioni e presidi collegati:
 
 Limiti residui visti nella prova locale:
 
-- il fascicolo locale `DC5BF1DB` è un fascicolo Giudice di Pace con PEC ufficio non presente nel catalogo locale; la UI avvisa `Indirizzo PEC non disponibile dal catalogo uffici` e l'invio reale resta governato da verifica destinatario;
+- il fascicolo locale `DC5BF1DB` è un fascicolo Giudice di Pace: nelle prove storiche la PEC ufficio non era presente nel catalogo locale e la UI mostrava `Indirizzo PEC non disponibile dal catalogo uffici`; stato aggiornato `2.253.56`: i metadati `C:\QuickOrganizer` e il fallback PST diretto coprono `Giudice di Pace - Palmi`/`0800570152`, quindi quell'avviso non deve ricomparire se cache e profilo sono aggiornati;
 - la conformità ministeriale finale resta subordinata alla generazione reale di `Atto.enc` quando il canale/ufficio richiede cifratura ministeriale; la prova locale conferma firma multipla, indice, testo PEC e busta di controllo, non registra un deposito valido inviato.
 
 ## Aggiornamento 2.253.47 - prova reale busta, PEC e certificato PST guidato
@@ -122,7 +416,7 @@ Prova reale eseguita su produzione:
 - esito visibile: barra `Preparazione deposito in corso` con scorrimento di `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti `.p7m` selezionati e `Atto.enc`;
 - esito finale: pannello `Prova senza invio PEC` con destinatario `tribunale.vicenza@civile.ptel.giustiziacert.it`, oggetto `DEPOSITO TELEMATICO - RICORSO - Tribunale di Vicenza`, testo PEC predisposto e documenti indicati nel pacchetto;
 - controllo regressione: non compare più l'errore tecnico grezzo `Download PST non riuscito` né l'URL PST nel contenuto visibile della UI;
-- blocco corretto: `Invia deposito reale` resta disabilitato perché mancano certificato pubblico PST `.cer` e `Atto.enc` AES256 conforme.
+- blocco corretto al momento della prova storica: `Invia deposito reale` restava disabilitato perché mancavano certificato pubblico PST `.cer` e `Atto.enc` AES256 conforme. Stato aggiornato `2.253.56`: i certificati PST del catalogo operativo risultano coperti; se il bottone resta disabilitato, il motivo non deve più essere un `.cer` già coperto, ma solo `Atto.enc` AES256, PEC mittente o altro requisito reale della singola pratica.
 
 Correzioni applicate:
 

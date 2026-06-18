@@ -175,6 +175,29 @@ def test_busta_con_certificato_pst_non_disponibile_conserva_atto_msg(dati_busta,
     assert not any("https://" in action for action in audit["guided_next_actions"])
 
 
+def test_busta_con_certificato_pst_non_pubblicato_spiega_blocco(dati_busta, tmp_path, monkeypatch):
+    def resolver_non_pubblicato(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        raise PSTCifraturaError(
+            f"Certificato di cifratura PST non trovato per l'ufficio {codice_ufficio}."
+        )
+
+    monkeypatch.setattr(
+        "pct.busta.risolvi_certificato_cifratura_ufficio",
+        resolver_non_pubblicato,
+    )
+    busta = BustaTelematica(dati_busta)
+
+    with pytest.raises(PSTCifraturaError):
+        busta.crea_busta(str(tmp_path))
+
+    audit = busta.audit_conformita_pst()
+    assert audit["certificate_error_code"] == "certificato_cifratura_non_pubblicato"
+    assert "non pubblica" in audit["certificate_error"]
+    assert "PST" in audit["certificate_error"]
+    assert "Atto.enc" in " ".join(audit["guided_next_actions"])
+    assert "diverso ufficio/canale ufficiale" in " ".join(audit["guided_next_actions"])
+
+
 def test_busta_con_allegati(tmp_path, tmp_pdf):
     """Verifica che gli allegati vengano inclusi nella busta."""
     allegato_path = tmp_path / "allegato.pdf"

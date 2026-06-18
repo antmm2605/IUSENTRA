@@ -413,9 +413,19 @@ type DepositPackagePreview = {
   packageReady: boolean
   requiresGuidedCompletion: boolean
   requiresLocalPec: boolean
+  localPec: Record<string, unknown>
   bustaAudit: Record<string, unknown>
   pecSenderReady: boolean
   message: string
+}
+
+type LocalPecPasswordRequest = {
+  from: string
+  to: string
+  subject: string
+  attachments: string[]
+  resolve: (password: string) => void
+  reject: (error: Error) => void
 }
 
 const SIGNATURE_INPUT_REQUIRED_PREFIX = 'SIGNATURE_INPUT_REQUIRED:'
@@ -571,6 +581,7 @@ function DepositActionButton({
   onDone,
   onError,
   onPackageReady,
+  completeLocalPec,
   progressItems = [],
   progressLabel = 'Preparazione deposito in corso',
 }: {
@@ -586,6 +597,7 @@ function DepositActionButton({
   onDone?: (message?: string) => void
   onError?: (message: string) => void
   onPackageReady?: (payload: ActionPayload) => void
+  completeLocalPec?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<string | void>
   progressItems?: string[]
   progressLabel?: string
 }) {
@@ -625,6 +637,12 @@ function DepositActionButton({
       const contentType = response.headers.get('content-type') || ''
       if (contentType.includes('application/json')) {
         const result = (await response.json().catch(() => ({}))) as ActionPayload
+        if (result.requires_local_pec && completeLocalPec) {
+          setConfirming(false)
+          const message = await completeLocalPec(result, payload)
+          onDone?.(message || String(result.messaggio || result.message || 'Invio PEC locale confermato.'))
+          return
+        }
         if (result.package_ready || result.requires_guided_completion || result.requires_local_pec) {
           setConfirming(false)
           onPackageReady?.(result)
@@ -752,14 +770,10 @@ function DepositPdfPreviewButton({
         const message = String(jsonBody?.errore || jsonBody?.message || textBody || '').trim()
         throw new Error(message || `Indice non disponibile: HTTP ${response.status}`)
       }
-      const blob = await response.blob()
-      const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' })
-      const objectUrl = URL.createObjectURL(pdfBlob)
       onPreview({
         name: 'IndiceDocumentiDepositati.PDF',
-        url: objectUrl,
+        url: previewUrl,
         downloadUrl: previewUrl,
-        objectUrl,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Indice documenti non disponibile.'
@@ -2728,6 +2742,9 @@ function DepositPreparePage({ id }:{id:string}) {
   const [pecBodyDraft, setPecBodyDraft] = useState('')
   const [pecBodyEdited, setPecBodyEdited] = useState(false)
   const [pecBodyEditorOpen, setPecBodyEditorOpen] = useState(false)
+  const [localPecPasswordRequest, setLocalPecPasswordRequest] = useState<LocalPecPasswordRequest | null>(null)
+  const [localPecPassword, setLocalPecPassword] = useState('')
+  const [localPecPasswordError, setLocalPecPasswordError] = useState('')
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
 
   const refreshDetail = (message?: string) => {
@@ -2756,6 +2773,7 @@ function DepositPreparePage({ id }:{id:string}) {
       packageReady: Boolean(payload.package_ready),
       requiresGuidedCompletion: Boolean(payload.requires_guided_completion),
       requiresLocalPec: Boolean(payload.requires_local_pec),
+      localPec: payload.local_pec && typeof payload.local_pec === 'object' && !Array.isArray(payload.local_pec) ? payload.local_pec as Record<string, unknown> : {},
       bustaAudit: payload.busta_audit || {},
       pecSenderReady: payload.pec_sender_ready !== false,
       message,
@@ -2927,7 +2945,75 @@ function DepositPreparePage({ id }:{id:string}) {
   const jsonPecAction = `/fascicoli/${encodedId}/deposito/invia-pec`
   const downloadBustaAction = `/fascicoli/${encodedId}/deposito/genera-busta`
   const dryRunBustaAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction
-  const realSendAction = (directPecReady || guidedCompletion) ? jsonPecAction : downloadBustaAction
+  const realSendAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction
+  const requestLocalPecPassword = (localPayload: Record<string, unknown>) => new Promise<string>((resolve, reject) => {
+    const attachments = Array.isArray(localPayload.attachments)
+      ? localPayload.attachments
+        .map((item) => item && typeof item === 'object' && !Array.isArray(item) ? recordText(item as Record<string, unknown>, 'filename') : '')
+        .filter(Boolean)
+      : []
+    setLocalPecPassword('')
+    setLocalPecPasswordError('')
+    setLocalPecPasswordRequest({
+      from: recordText(localPayload, 'from', recordText(localPayload, 'indirizzo', recordText(localPayload, 'username'))),
+      to: recordText(localPayload, 'to'),
+      subject: recordText(localPayload, 'subject'),
+      attachments,
+      resolve,
+      reject,
+    })
+  })
+  const completeDepositLocalPec = async (payload: ActionPayload, submittedPayload: DepositActionPayload) => {
+    const localPec = payload.local_pec && typeof payload.local_pec === 'object' && !Array.isArray(payload.local_pec)
+      ? payload.local_pec as Record<string, unknown>
+      : {}
+    const localPayload = localPec.payload && typeof localPec.payload === 'object' && !Array.isArray(localPec.payload)
+      ? localPec.payload as Record<string, unknown>
+      : null
+    const endpoint = recordText(localPec, 'endpoint', localSignerEndpoint('/pec/send'))
+    if (!localPayload || !endpoint) {
+      throw new Error('Payload Local Signer PEC non disponibile. Ripeti la prova senza invio reale.')
+    }
+    const password = await requestLocalPecPassword(localPayload)
+    if (!password.trim()) {
+      throw new Error('Password PEC mancante. Inseriscila per completare l’invio dal PC locale.')
+    }
+    const localResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...localPayload, password }),
+    })
+    const localResult = await localResponse.json().catch(() => ({})) as Record<string, unknown>
+    if (!localResponse.ok || localResult.ok === false) {
+      throw new Error(recordText(localResult, 'messaggio', recordText(localResult, 'errore', 'Local Signer non ha confermato l’invio PEC.')))
+    }
+    const messageId = recordText(localResult, 'message_id')
+      || recordText(localResult, 'messageId')
+      || recordText(localResult, 'id')
+    if (!messageId) {
+      throw new Error('Local Signer ha risposto senza Message-ID: invio non registrato.')
+    }
+
+    const confirmation = new FormData()
+    Object.entries(submittedPayload).forEach(([key, value]) => {
+      if (Array.isArray(value)) value.forEach((item: string) => confirmation.append(key, item))
+      else confirmation.append(key, value)
+    })
+    confirmation.set('local_pec_confirmed', '1')
+    confirmation.set('local_pec_message_id', messageId)
+    if (payload.id_deposito) confirmation.set('local_pec_id_deposito', String(payload.id_deposito))
+    const confirmationResponse = await fetch(jsonPecAction, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: confirmation,
+    })
+    const confirmationPayload = await confirmationResponse.json().catch(() => ({})) as ActionPayload
+    if (!confirmationResponse.ok || confirmationPayload.ok === false) {
+      throw new Error(String(confirmationPayload.messaggio || confirmationPayload.message || confirmationPayload.errore || confirmationPayload.error || 'Conferma invio PEC locale non registrata.'))
+    }
+    return String(confirmationPayload.messaggio || confirmationPayload.message || `Invio PEC locale confermato. Message-ID: ${messageId}`)
+  }
   const runBatchSignatureBeforeDeposit = async () => {
     if (!signatureBatchRequired) return
     if (!batchSignatureActionRef.current) {
@@ -3025,8 +3111,85 @@ function DepositPreparePage({ id }:{id:string}) {
       setClassificationSaving(false)
     }
   }
+  const recoverPstOfficeCertificateBeforePackage = async () => {
+    const codiceUfficio = String(data.depositOffice.code || data.depositOffice.ministerialCode || '').trim()
+    if (!codiceUfficio || !pctJsonPackageChannel) return
+    const certEndpoint = `/api/v1/ui/fascicoli/${encodedId}/deposito/certificato-cifratura`
+    try {
+      const statusResponse = await fetch(`${certEndpoint}?codice_ufficio=${encodeURIComponent(codiceUfficio)}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        cache: 'no-store',
+      })
+      const statusPayload = await statusResponse.json().catch(() => ({} as Record<string, unknown>))
+      if (statusResponse.ok && statusPayload.cached) return
+    } catch {
+      // Se il controllo cache fallisce, la generazione busta dara' comunque il blocco puntuale.
+    }
+
+    let signerStatus = await fetchLocalSignerStatus(4500)
+    if (!signerStatus || signerStatus.ok === false) {
+      setDepositActionNotice({
+        tone: 'danger',
+        message: 'Local Signer non raggiungibile per recuperare il certificato PST dell\'ufficio. La prova busta userà il controllo backend e mostrerà il requisito mancante.',
+      })
+      return
+    }
+    signerStatus = await recoverLocalSignerAutomatically(signerStatus, {
+      onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
+    })
+    const windowsCertificate = localSignerWindowsCertificate(signerStatus)
+    if (!windowsCertificate?.thumbprint) {
+      setDepositActionNotice({
+        tone: 'danger',
+        message: 'Seleziona il certificato CNS/CIE in Local Signer per recuperare il .cer PST dell\'ufficio.',
+      })
+      return
+    }
+    setDepositActionNotice({
+      tone: 'success',
+      message: `Recupero certificato PST dell'ufficio ${codiceUfficio} dal Catalogo ministeriale.`,
+    })
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 90000)
+    try {
+      const localResponse = await fetch(localSignerEndpoint('/pst/certificato-ufficio'), {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codice_ufficio: codiceUfficio,
+          cert_thumbprint: windowsCertificate.thumbprint,
+        }),
+        signal: controller.signal,
+      })
+      const localPayload = await localResponse.json().catch(() => ({} as Record<string, unknown>))
+      const certificatoB64 = String(localPayload.certificato_b64 || '').trim()
+      if (!localResponse.ok || localPayload.ok === false || !certificatoB64) {
+        throw new Error(String(localPayload.errore || localPayload.error || 'Certificato PST non restituito dal Catalogo ministeriale.'))
+      }
+      await submitJsonPayload(certEndpoint, {
+        codice_ufficio: codiceUfficio,
+        certificato_b64: certificatoB64,
+        source_url: String(localPayload.source_url || 'CatalogoServizi.getCertificato'),
+      })
+      setDepositActionNotice({
+        tone: 'success',
+        message: `Certificato PST dell'ufficio ${codiceUfficio} recuperato e validato.`,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Certificato PST non recuperato dal Catalogo ministeriale.'
+      setDepositActionNotice({
+        tone: 'danger',
+        message: `${message} La prova busta resta eseguibile e mostrerà il blocco tecnico se il .cer è ancora mancante.`,
+      })
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
   const prepareDepositBeforeSubmit = async () => {
     await submitDepositClassification()
+    await recoverPstOfficeCertificateBeforePackage()
     await runBatchSignatureBeforeDeposit()
   }
   const depositActionPayload: DepositActionPayload = {
@@ -3183,6 +3346,27 @@ function DepositPreparePage({ id }:{id:string}) {
       </footer>
     )
   }
+  const submitLocalPecPassword = () => {
+    if (!localPecPasswordRequest) return
+    if (!localPecPassword.trim()) {
+      setLocalPecPasswordError('Inserisci la password PEC per completare l’invio dal PC locale.')
+      return
+    }
+    const request = localPecPasswordRequest
+    const password = localPecPassword
+    setLocalPecPassword('')
+    setLocalPecPasswordError('')
+    setLocalPecPasswordRequest(null)
+    request.resolve(password)
+  }
+  const cancelLocalPecPassword = () => {
+    if (!localPecPasswordRequest) return
+    const request = localPecPasswordRequest
+    setLocalPecPassword('')
+    setLocalPecPasswordError('')
+    setLocalPecPasswordRequest(null)
+    request.reject(new Error('Invio PEC annullato: password non inserita.'))
+  }
 
   useEffect(() => {
     if (loading || typeof window === 'undefined') return undefined
@@ -3258,6 +3442,54 @@ function DepositPreparePage({ id }:{id:string}) {
       </section>
 
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
+
+      {localPecPasswordRequest ? (
+        <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label="Password PEC locale">
+          <form
+            className="iu-fas-confirm-modal__box"
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitLocalPecPassword()
+            }}
+          >
+            <strong>Password PEC locale</strong>
+            <p>La password non viene salvata: viene inviata solo al Local Signer sul PC in uso per spedire il deposito.</p>
+            <div className="iu-fas-local-pec-summary" aria-label="Riepilogo invio PEC locale">
+              <span>Mittente</span>
+              <strong>{localPecPasswordRequest.from || 'PEC studio configurata'}</strong>
+              <span>Destinatario</span>
+              <strong>{localPecPasswordRequest.to || data.depositOffice.pec || 'PEC ufficio verificata'}</strong>
+              <span>Oggetto</span>
+              <strong>{localPecPasswordRequest.subject || 'DEPOSITO TELEMATICO'}</strong>
+              <span>Allegati</span>
+              <strong>{localPecPasswordRequest.attachments.length ? localPecPasswordRequest.attachments.join(', ') : 'Atto.enc'}</strong>
+            </div>
+            <label className="iu-fas-local-pec-password">
+              <span>Password PEC</span>
+              <input
+                type="password"
+                value={localPecPassword}
+                autoFocus
+                autoComplete="current-password"
+                onChange={(event) => {
+                  setLocalPecPassword(event.currentTarget.value)
+                  if (localPecPasswordError) setLocalPecPasswordError('')
+                }}
+              />
+            </label>
+            {localPecPasswordError ? <span className="iu-fas-inline-error" role="alert">{localPecPasswordError}</span> : null}
+            <footer>
+              <button
+                type="button"
+                onClick={cancelLocalPecPassword}
+              >
+                Annulla
+              </button>
+              <button className="is-danger" type="button" onClick={submitLocalPecPassword}>Invia dal PC locale</button>
+            </footer>
+          </form>
+        </div>
+      ) : null}
 
       <section className="iu-fas-cockpit iu-fas-deposit-cockpit" aria-label="Stato deposito">
         <StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${regia.header.completion}%`} note={depositStatusLabel(regia.header.operationalState || 'da verificare')} tone={preparationTone}/>
@@ -3685,6 +3917,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 onDone={refreshDetail}
                 onError={failDetail}
                 onPackageReady={handlePackageReady}
+                completeLocalPec={completeDepositLocalPec}
               >
                 <Send size={15}/> Invia deposito reale
               </DepositActionButton>

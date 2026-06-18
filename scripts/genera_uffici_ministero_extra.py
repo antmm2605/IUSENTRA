@@ -43,6 +43,8 @@ def _record_da_return(return_node: ET.Element) -> dict:
         "regione_ministero": (return_node.findtext("regione") or "").strip(),
         "provincia_ministero": (return_node.findtext("provincia") or "").strip(),
         "pec_ministero": (return_node.findtext("indirizzoPec") or "").strip().lower(),
+        "nome_certificato_cifra": (return_node.findtext("nomeCertificatoCifra") or "").strip(),
+        "certificato_mimetype": (return_node.findtext("certificatoMimetype") or "").strip(),
         "servizi_ministero": servizi,
         "servizio_pst_predefinito": _servizio_predefinito(servizi),
     }

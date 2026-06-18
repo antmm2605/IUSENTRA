@@ -571,7 +571,7 @@ class ClientPDPDemo(ClientPDP):
                 "messaggi": [
                     "Firma digitale: valida (CAdES-BES)",
                     "Formato file: PDF/A conforme",
-                    "Dimensione busta: entro i limiti (< 30 MB)",
+                    "Dimensione deposito: entro i limiti PDP (50 MB per file, 500 MB complessivi)",
                     "Codice fiscale avvocato: verificato",
                 ],
                 "oggettoPEC": f"Esito controlli automatici deposito {id_dep}",

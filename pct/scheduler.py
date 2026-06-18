@@ -279,7 +279,12 @@ def start_scheduler(app):
                     os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_NO_FORCE_REFRESH")
                 )
                 report = esegui_controllo_settimanale_certificati_cifratura(
-                    force_refresh=force_refresh
+                    force_refresh=force_refresh,
+                    max_workers=_parse_positive_int(
+                        app.config.get("PST_CERTIFICATI_CIFRATURA_WORKERS")
+                        or os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_WORKERS"),
+                        6,
+                    ),
                 )
                 if report.get("ok"):
                     logger.info(
@@ -295,8 +300,10 @@ def start_scheduler(app):
                         report.get("errori", 0),
                         report.get("report_path", "n.d."),
                     )
+                return report
             except Exception as e:
                 logger.error("[scheduler] Certificati PST cifratura falliti: %s", e)
+                return {"ok": False, "error": str(e), "job": "pst_certificati_cifratura_weekly"}
 
     def _run_legal_monitor(source_ids, label):
         with app.app_context():

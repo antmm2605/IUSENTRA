@@ -628,6 +628,33 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     apply_runtime_settings(app, cfg, data_peer_path=_data_peer_path)
 
+    def _tenant_config_studio_path_from_session() -> str:
+        if not (
+            has_request_context()
+            and (app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False))
+        ):
+            return ""
+        tenant_slug = str(
+            getattr(g, "tenant_context_slug", "")
+            or session.get("tenant_slug")
+            or session.get("auth_tenant_slug")
+            or ""
+        ).strip().lower()
+        if not tenant_slug:
+            return ""
+        from pct.tenant import GestioneTenant
+        from web.services.tenant_isolation_runtime import assert_tenant_data_path
+
+        paths = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"]).percorsi_dati(
+            tenant_slug,
+            reconcile_aliases=False,
+            ensure_baseline=False,
+        )
+        config_path = str(paths.get("CONFIG_STUDIO_DB") or "")
+        if not config_path:
+            return ""
+        return assert_tenant_data_path(config_path, key="CONFIG_STUDIO_DB")
+
     def _cfg_data_path(key: str) -> str:
         if has_request_context():
             paths = getattr(g, "data_paths", {}) or {}
@@ -642,6 +669,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
                     return assert_tenant_data_path(paths[key], key=key)
                 return paths[key]
+            if key == "CONFIG_STUDIO_DB":
+                tenant_config_path = _tenant_config_studio_path_from_session()
+                if tenant_config_path:
+                    return tenant_config_path
             return app.config[key]
         return app.config[key]
 

@@ -1,5 +1,19 @@
 # Pytest shard confermati OK
 
+## Certificati PST, canali deposito e soglie normative 2.253.56 - 2026-06-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_canali_telematici_deposito.py tests\test_scheduler_registry.py tests\test_checklist_atti.py tests\test_conformita_pst.py` | OK | 59/59 passati: policy canali PCT/PDP/PAT/PTT, scheduler `.cer`, checklist e validazione dimensionale restano coerenti dopo la separazione `.cer/Atto.enc` e le soglie aggiornate. |
+| `python -m pytest -q tests\test_deposito.py tests\test_local_signer.py` | OK | Blocco completo deposito + Local Signer passato dopo rigenerazione `tools/dist` `1.6.75` e aggiunta `support_agent.py` negli installer Windows/macOS/Linux serviti dalla route pubblica. |
+| `python -m pytest -q tests\test_profilo_deposito.py tests\test_canali_telematici_deposito.py tests\test_busta.py tests\test_simulazione_deposito.py tests\test_deposito_server_dry_run_audit.py tests\test_scheduler_registry.py` | OK | 98/98 passati: profilo deposito SQL, busta, simulazione, dry-run server e scheduler confermati dopo la regola certificati/canali. |
+| `python -m py_compile pct\pst_cifratura.py pct\validazione.py pct\checklist_atti.py pct\deposito_guidato.py pct\pdp.py pct\pat.py web\services\react_telematico_bridge.py web\services\telematico_runtime.py scripts\aggiorna_uffici_ministero_certificati.py scripts\precarica_certificati_cifratura_pst.py` | OK | Sintassi confermata su cifratura PST, canali, bridge React, runtime installer Local Signer e script certificati. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite confermati; asset React correnti puliti e rigenerati, con retention verificata. |
+| `python -m pytest -q tests\test_react_asset_retention.py tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py` | OK | 16/16 passati: retention asset, packaging, readiness release e integrità UTF-8. |
+| `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\sync_packaging_files.py --check`; `python tools\check_repo_governance.py`; `git diff --check` | OK | OpenAPI valido, packaging sincronizzato, governance OK e diff senza errori whitespace; presenti solo avvisi CRLF/LF governati da Git. |
+| Controllo cache `data\pst\certificati_cifratura` via `pct.pst_cifratura` | OK | Cache fisica: 913 `.cer`, 913 DER validi, 0 invalidi. Perimetro operativo: 593 codici ministeriali unici, 593/593 coperti, 0 mancanti. |
+| Report `data\pst\certificati_cifratura\audit_certificati_cifratura_pst.json` | OK | `ok=true`, `catalogo_pct_operativi=593`, `scaricati_o_validi=593`, `saltati_senza_certificato_pubblicato=0`, `errori=0`, `cache_cer_presenti=913`. |
+
 ## Deposito firma multipla reale e prova busta 2.253.50 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |
@@ -5033,6 +5047,24 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Click `Visualizza IndiceDocumentiDepositati.PDF` | OK | Risposta `application/pdf`; viewer mostra indice con `ATTO_GENERICO`, `RG 466/2023`, codice oggetto `145009` e documenti selezionati. |
 | Click `Modifica testo PEC` | OK | Textarea visibile/editabile; modifica facoltativa e testo standard ripristinabile. |
 | Click `Simula invio PEC` | OK | Progress bar/ticker visibile; risposta JSON HTTP 200, console browser vuota, preview con destinatario, oggetto, documenti, testo PEC e blocchi obbligatori `.cer`/`Atto.enc`/PEC mittente. |
+
+## Deposito PEC locale e Local Signer 2.253.57 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Browser reale su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta` | OK controllato | Click reale su `Prova senza invio reale` e `Invia deposito reale`; il flusso ha aperto la modale React `Password PEC locale`, senza `window.prompt`, e ha consegnato il payload al Local Signer locale. |
+| SMTP fittizio locale `127.0.0.1:25252` con Local Signer `127.0.0.1:27272` | OK controllato | PEC catturata senza spedizione esterna: mittente `roberto.montagnese@coapalmi.legalmail.it`, destinatario `gdp.palmi@civile.ptel.giustiziacert.it`, oggetto `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023`, allegato unico `Atto.enc` da `4.637.389` byte. Configurazione PEC reale ripristinata e SMTP fittizio spento dopo la prova. |
+| `python -m py_compile pct\config_studio.py web\services\core_runtime.py web\services\local_pec_runtime.py web\bootstrap\deposito_routes.py web\bootstrap\deposito_legacy_send_routes.py` | OK | Sintassi confermata per runtime tenant, Local PEC e route deposito dopo la rimozione dell'invio SMTP server-side come canale legale. |
+| `python -m pytest -q tests/test_storage_strategy.py::test_core_runtime_risolve_config_studio_e_smtp_dal_tenant_attivo tests/test_storage_strategy.py::test_core_runtime_config_studio_fallback_tenant_da_sessione tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice` | OK | 6/6 passati: fallback config tenant, prova/simulazione PEC, Local Signer come canale reale e guardrail React su password locale. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo modale password PEC e conferma Local Signer. |
+| `python -m pytest -q tests/test_utf8_integrity.py tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 14/14 passati: integrità UTF-8, packaging e readiness confermati dopo bump `2.253.57`. |
+| `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite passati; bundle `FascicoliPage` rigenerato con modale PEC locale. |
+| `python -m pytest -q tests/test_profilo_deposito.py tests/test_canali_telematici_deposito.py tests/test_busta.py tests/test_scheduler_registry.py --tb=short` | OK | 47/47 passati: profilo deposito, matrice canali, busta PCT/SIGP e scheduler certificati restano coerenti. |
+| `python -m pytest tests/test_react_asset_retention.py -q --tb=short` | OK | 2/2 passati: asset React pubblicati coerenti con manifest dopo build. |
+| `docker compose build --no-cache app`; `docker compose up -d --force-recreate app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Docker locale reale ricostruito no-cache e healthy; `/api/pronto` risponde `versione=2.253.57`. |
+| Browser integrato su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta` post-rebuild | OK | Dopo caricamento reale: nessun `n.d.`, PEC Palmi visibile, `8 documenti in busta`, `IndiceDocumentiDepositati.PDF`, prova senza invio `F81FDC8C`, controlli software superati, `Invia deposito reale` attivo. |
+| Click `Visualizza IndiceDocumentiDepositati.PDF` post-rebuild | OK | Modal con URL diretto autenticato, toolbar PDF, miniatura, pagina `1/1` e contenuto visibile `Indice documenti depositati`; screenshot fuori repo `C:\Users\antmm\AppData\Local\Temp\iusentra-dc5bf1db-indice-pdf-post-rebuild-225357.png`. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | OpenAPI riallineato dopo blocco pre-push; validazione OK e provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`. |
 | `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http -q` | OK | Guardrail mirato: simulazione PEC guidata con certificato PST mancante torna HTTP 200 e non registra deposito reale. |
 | `pnpm --filter @iusentra/studio build:vite`; `python -m pytest tests/test_react_asset_retention.py -q --tb=short` | OK | Bundle React rigenerato e asset retention passata dopo pulizia dei residui non referenziati. |
 | Smoke Chrome post-build su `127.0.0.1:8080` | OK | `/api/pronto` risponde `versione=2.253.54`; la pagina deposito React carica con console vuota, PEC Palmi e indice presenti, nessun `n.d.` e nessun HTML grezzo. |

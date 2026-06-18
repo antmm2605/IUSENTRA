@@ -12,6 +12,7 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 from pct.deposito_simulazione import simulated_deposit_note
 from pct.pst_cifratura import PSTCifraturaError
 from web.blueprints.react_shell import render_react_shell_response
+from web.bootstrap.deposito_legacy_send_routes import register_deposito_legacy_send_route
 from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_routes
 from web.services.deposito_route_helpers import (
     allegati_busta as _allegati_busta,
@@ -29,7 +30,6 @@ from web.services.local_pec_runtime import (
     deposito_pec_subject,
     local_pec_required_response,
     local_pec_confirmation_result,
-    pec_server_send_enabled,
 )
 
 
@@ -75,6 +75,17 @@ def register_deposito_routes(
         nomi.extend(_Path(str(getattr(allegato, "percorso", ""))).name for allegato in allegati_busta)
         nomi.append(INDICE_DOCUMENTI_FILENAME)
         return [nome for nome in nomi if nome]
+
+    register_deposito_legacy_send_route(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_config_studio=get_config_studio,
+        audit=audit,
+        sync_pubblica=sync_pubblica,
+        run_deposito_validation=run_deposito_validation,
+        polis_demo_mode=polis_demo_mode,
+        documenti_busta_nomi=_documenti_busta_nomi,
+    )
 
     @app.route("/fascicoli/<id_fasc>/depositi/aggiungi", methods=["POST"])
     def aggiungi_esito_deposito(id_fasc):
@@ -135,6 +146,69 @@ def register_deposito_routes(
         except Exception as exc:
             app.logger.exception("Errore api_deposito_valida: %s", exc)
             return jsonify({"ok": False, "errore": "Validazione deposito non completata. Verifica i dati e riprova."}), 200
+
+    @app.route("/api/v1/ui/fascicoli/<id_fasc>/deposito/certificato-cifratura", methods=["GET", "POST"])
+    def api_deposito_certificato_cifratura(id_fasc):
+        """Controlla o salva il .cer PST usato per cifrare Atto.msg in Atto.enc."""
+        from base64 import b64decode
+        from binascii import Error as Base64Error
+        from dataclasses import asdict
+
+        from pct.pst_cifratura import (
+            PSTCifraturaError as _PSTCifraturaError,
+            certificato_cifratura_in_cache,
+            salva_certificato_cifratura_ufficio,
+        )
+
+        try:
+            fascicolo = get_fascicoli().get(id_fasc)
+            if not fascicolo:
+                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
+
+            if request.method == "GET":
+                codice = str(request.args.get("codice_ufficio") or "").strip()
+                if not codice:
+                    return jsonify({"ok": False, "errore": "Codice ufficio mancante."}), 400
+                info = certificato_cifratura_in_cache(codice)
+                return jsonify({
+                    "ok": True,
+                    "codice_ufficio": codice,
+                    "cached": bool(info),
+                    "certificato": asdict(info) if info else None,
+                })
+
+            payload_json = request.get_json(silent=True) or {}
+            codice = str(payload_json.get("codice_ufficio") or "").strip()
+            certificato_b64 = str(payload_json.get("certificato_b64") or "").strip()
+            source_url = str(payload_json.get("source_url") or "").strip()
+            if not codice:
+                return jsonify({"ok": False, "errore": "Codice ufficio mancante."}), 400
+            if not certificato_b64:
+                return jsonify({"ok": False, "errore": "Certificato PST mancante."}), 400
+            try:
+                payload = b64decode(certificato_b64, validate=True)
+            except (Base64Error, ValueError) as exc:
+                raise _PSTCifraturaError("Certificato PST non codificato correttamente.") from exc
+            info = salva_certificato_cifratura_ufficio(codice, payload, source_url=source_url)
+            utente = getattr(g, "utente_corrente", None)
+            audit(
+                "fascicoli.deposito.certificato_cifratura",
+                "fascicolo",
+                id_fasc,
+                utente=getattr(utente, "username", None),
+                dettagli=f"Certificato PST {codice} salvato ({info.sha256[:12]})",
+            )
+            return jsonify({
+                "ok": True,
+                "codice_ufficio": codice,
+                "cached": True,
+                "certificato": asdict(info),
+            })
+        except _PSTCifraturaError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 400
+        except Exception as exc:
+            app.logger.exception("Certificato PST deposito non salvato %s: %s", id_fasc, exc)
+            return jsonify({"ok": False, "errore": "Certificato PST non salvato. Verifica Local Signer e riprova."}), 500
 
     @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])
     def deposito_genera_busta(id_fasc):
@@ -337,8 +411,6 @@ def register_deposito_routes(
         from pct.busta import Allegato as AllegatoBusta
         from pct.busta import BustaTelematica, DatiBusta
         from pct.fascicoli import EsitoDepositoPCT
-        from pct.pec import ClientPEC, ConfigPEC as PecCfg
-
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
         form = request.form
@@ -532,8 +604,20 @@ def register_deposito_routes(
                 {
                     "ok": True,
                     "demo": bool(modalita_demo),
+                    "simulazione": bool(modalita_demo),
+                    "id_deposito": id_dep,
+                    "pec_dest": nome_commissione,
+                    "tipo_atto": tipo_atto,
+                    "timestamp": timestamp,
                     "messaggio": "Deposito registrato nello studio.",
-                    "validation": {"ok": True, "blockers": 0, "warnings": 0, "issues": []},
+                    "validation": {
+                        "ok": True,
+                        "blockers": 0,
+                        "warnings": 0,
+                        "issues": [],
+                        "channel": "PTT_TRIBUTARIO",
+                        "can_prepare_deposit": True,
+                    },
                 }
             )
 
@@ -563,10 +647,7 @@ def register_deposito_routes(
         pec_cfg = None
         pec_config_error = ""
         try:
-            from pct.config_studio import GestioneConfigStudio as _GCS
-
-            gestore_config = _GCS(app.config.get("STUDIO_CONFIG", "./config/studio.json"))
-            studio_cfg = gestore_config.config
+            studio_cfg = get_config_studio().config
             pec_cfg = studio_cfg.pec if studio_cfg else None
             if not pec_cfg or not pec_cfg.indirizzo:
                 pec_config_error = "PEC mittente dello studio non configurata."
@@ -724,7 +805,9 @@ def register_deposito_routes(
                 app.logger.warning("Conferma Local Signer non valida per deposito %s: %s", id_dep, exc)
                 return jsonify({"ok": False, "errore": "Conferma Local Signer non valida. Ripeti l'invio dal PC locale."}), 400
             app.logger.info("Deposito %s confermato da invio PEC Local Signer", id_dep)
-        elif not pec_server_send_enabled():
+        else:
+            # Il deposito PCT/SIGP invia sempre dal PC dell'avvocato tramite
+            # Local Signer, anche quando la UI e' aperta dal server pubblico.
             return jsonify(
                 local_pec_required_response(
                     pec_cfg=pec_cfg,
@@ -740,29 +823,6 @@ def register_deposito_routes(
                     busta_audit=busta.audit_conformita_pst(),
                 )
             )
-        else:
-            try:
-                config_pec = PecCfg(
-                    indirizzo=pec_cfg.indirizzo,
-                    password=pec_cfg.password,
-                    smtp_host=getattr(pec_cfg, "smtp_host", "smtp.pec.aruba.it"),
-                    smtp_port=getattr(pec_cfg, "smtp_port", 465),
-                    imap_host=getattr(pec_cfg, "imap_host", ""),
-                    imap_port=getattr(pec_cfg, "imap_port", 993),
-                    use_ssl=getattr(pec_cfg, "use_ssl", True),
-                )
-                client_pec = ClientPEC(config_pec)
-                ris = client_pec.invia_busta(
-                    destinatario_pec=pec_dest,
-                    busta_path=enc_path,
-                    oggetto=oggetto_pec,
-                )
-                if not ris.get("inviato"):
-                    app.logger.warning("Invio PEC non completato per deposito %s", id_dep)
-                    return jsonify({"ok": False, "errore": "Invio PEC non completato. Verifica casella e credenziali."}), 500
-            except Exception as exc:
-                app.logger.exception("Errore invio PEC %s: %s", id_fasc, exc)
-                return jsonify({"ok": False, "errore": "Invio PEC non completato. Verifica casella e credenziali."}), 500
 
         try:
             from datetime import datetime as _dtnow
@@ -898,347 +958,3 @@ def register_deposito_routes(
             firma_visibile_mode=getattr(firma_cfg, "visible_signature_mode", "laterale"),
             oggi=date.today(),
         )
-
-    @app.route("/fascicoli/<id_fasc>/deposito/invia", methods=["POST"])
-    def deposito_invia(id_fasc):
-        """Crea la busta telematica e la invia via PEC all'ufficio giudiziario."""
-        import tempfile as _tmp
-        import uuid as _uuid
-        from datetime import datetime as _dt
-
-        from pct.fascicoli import EsitoDepositoPCT
-
-        gestore_fascicoli = get_fascicoli()
-        utente = g.utente_corrente
-        form = request.form
-        fascicolo = gestore_fascicoli.get(id_fasc)
-        if not fascicolo:
-            flash("Fascicolo non trovato.", "danger")
-            return redirect(url_for("lista_fascicoli"))
-
-        demo_mode = form.get("demo_mode") == "1" or polis_demo_mode()
-        tipo_atto = form.get("tipo_atto", "ATTO").strip()
-        codice_registro = form.get("codice_registro", "RG").strip()
-        numero_rg = form.get("numero_rg", "").strip()
-        anno_rg_str = form.get("anno_rg", "").strip()
-        oggetto = _deposito_oggetto(form, fascicolo)
-        note = form.get("note", "").strip()
-        ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
-        tribunale_nome = (
-            form.get("tribunale_nome", "").strip()
-            or str(ufficio_deposito.get("nome") or "").strip()
-            or fascicolo.tribunale
-        )
-        tribunale_pec = form.get("tribunale_pec", "").strip() or str(ufficio_deposito.get("pec_dest") or "").strip()
-        codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "").strip() or form.get("codice_ufficio", "").strip()
-        atto_id = form.get("atto_principale_id", "").strip()
-        allegati_ids = request.form.getlist("allegati_ids")
-
-        validation = run_deposito_validation(
-            fasc=fascicolo,
-            gf=gestore_fascicoli,
-            form_like=request.form,
-            operatore=utente.username if utente else "",
-        )
-        blockers = [issue for issue in validation.issues if issue.get("level") == "BLOCK"]
-        if blockers:
-            first = blockers[0]
-            return jsonify(
-                {
-                    "ok": False,
-                    "errore": f"{first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                    "validation": _validation_summary(validation),
-                }
-            ), 400
-
-        if not tribunale_nome:
-            flash("Seleziona un ufficio giudiziario destinatario.", "danger")
-            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-        if not atto_id:
-            flash("Seleziona l'atto principale da includere nella busta.", "danger")
-            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-        selection_error = _validate_busta_document_selection(
-            fascicolo,
-            gestore_fascicoli,
-            id_fasc,
-            form,
-            atto_id,
-            allegati_ids,
-        )
-        if selection_error:
-            if _wants_json_response(request.headers):
-                return jsonify({"ok": False, "errore": selection_error}), 400
-            flash(selection_error, "danger")
-            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-        anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else (fascicolo.anno_rg or 0)
-        id_dep = form.get("local_pec_id_deposito", "").strip() or _uuid.uuid4().hex[:8].upper()
-        timestamp = _dt.now().isoformat()
-
-        if demo_mode:
-            pec_prova = tribunale_pec or f"{tribunale_nome.lower().replace(' ', '.')}@pec.prova.invalid"
-            esito = EsitoDepositoPCT(
-                id=id_dep,
-                timestamp=timestamp,
-                stato="INVIATO",
-                tipo_atto=tipo_atto,
-                pec_destinatario=pec_prova,
-                messaggio=(
-                    f"Prova deposito senza invio reale: busta {id_dep} predisposta per {tribunale_nome}. "
-                    f"Atto: {tipo_atto} - RG {numero_rg}/{anno_rg}."
-                ),
-                note=simulated_deposit_note(note),
-                registrato_da=utente.username if utente else "prova",
-            )
-        else:
-            try:
-                from pct.busta import Allegato as AllegatoBusta
-                from pct.busta import BustaTelematica, DatiBusta
-                from pct.deposito import DepositoCivile
-                from pct.firma import crea_signer_da_config
-                from pct.pec import ConfigPEC
-
-                atto_doc = next((doc for doc in fascicolo.documenti if doc.id == atto_id), None)
-                if not atto_doc:
-                    flash("Documento selezionato come atto principale non trovato.", "danger")
-                    return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-                atto_path = str(gestore_fascicoli.percorso_documento(id_fasc, atto_id))
-                allegati_busta = _allegati_busta(
-                    fascicolo,
-                    gestore_fascicoli,
-                    id_fasc,
-                    [item for item in allegati_ids if item != atto_id],
-                    AllegatoBusta,
-                )
-
-                dati = DatiBusta(
-                    codice_ufficio=codice_ufficio or tribunale_nome,
-                    codice_registro=codice_registro,
-                    oggetto=oggetto,
-                    tipo_atto=tipo_atto,
-                    atto_principale=atto_path,
-                    allegati=allegati_busta,
-                    numero_rg=numero_rg or None,
-                    anno_rg=anno_rg or None,
-                    operatore=utente.username if utente else "",
-                    cf_mittente="",
-                )
-
-                cfg_studio = get_config_studio().config
-                pec_cfg = cfg_studio.pec if cfg_studio and hasattr(cfg_studio, "pec") else None
-                firma_cfg = cfg_studio.firma if cfg_studio and hasattr(cfg_studio, "firma") else None
-                if not pec_cfg or not pec_cfg.indirizzo:
-                    raise RuntimeError(
-                        "Configurazione PEC non trovata. Configura le credenziali PEC nelle impostazioni."
-                    )
-
-                config_pec = ConfigPEC(
-                    indirizzo=pec_cfg.indirizzo,
-                    password=pec_cfg.password,
-                    smtp_host=getattr(pec_cfg, "smtp_host", "smtp.pec.provider.it"),
-                    smtp_port=getattr(pec_cfg, "smtp_port", 465),
-                    imap_host=getattr(pec_cfg, "imap_host", ""),
-                    imap_port=getattr(pec_cfg, "imap_port", 993),
-                )
-
-                firma = None
-                if firma_cfg:
-                    try:
-                        backend_firma = firma_cfg.backend_firma_effettivo
-                    except Exception as exc:
-                        backend_firma = "nessuno"
-                        app.logger.warning("Backend firma non disponibile: %s", exc)
-                    if backend_firma == "pkcs11":
-                        app.logger.info(
-                            "Firma PKCS#11 selezionata: il deposito web usa il flusso CAdES in-device dedicato."
-                        )
-                    elif backend_firma in ("p12", "pem"):
-                        try:
-                            firma = crea_signer_da_config(firma_cfg)
-                        except Exception as exc:
-                            app.logger.warning("Signer non inizializzato: %s", exc)
-
-                output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
-                deposito_civile = DepositoCivile(config_pec=config_pec, firma=firma, output_dir=output_dir)
-
-                pec_dest = tribunale_pec
-                if not pec_dest and codice_ufficio:
-                    try:
-                        from pct.uffici_giudiziari import get_gestore as _get_uff
-
-                        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                        ufficio = next(
-                            (
-                                row
-                                for row in _get_uff(cache_path).carica()
-                                if row.get("codice") == codice_ufficio
-                            ),
-                            None,
-                        )
-                        pec_dest = str((ufficio or {}).get("pec") or "")
-                    except Exception:
-                        pass
-
-                if not pec_dest:
-                    raise RuntimeError(
-                        f"Indirizzo PEC non trovato per l'ufficio '{tribunale_nome}'. "
-                        "Verifica la selezione o imposta manualmente la PEC."
-                    )
-
-                oggetto_pec = deposito_pec_subject(
-                    tipo_atto=tipo_atto,
-                    numero_rg=numero_rg or None,
-                    anno_rg=anno_rg or None,
-                    tribunale=tribunale_nome,
-                )
-                if not pec_server_send_enabled():
-                    from pathlib import Path as _Path
-
-                    output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
-                    busta_dir = _Path(output_dir) / id_dep
-                    busta = BustaTelematica(dati)
-                    documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
-                    corpo_pec = form.get("corpo_pec", "").strip() or deposito_pec_body(documenti_busta)
-                    try:
-                        busta_path = busta.crea_busta(str(busta_dir))
-                    except PSTCifraturaError as exc:
-                        app.logger.exception("Certificato PST/cifratura busta non completata %s: %s", id_fasc, exc)
-                        guided_response = _guided_transport_completion_response(
-                            busta=busta,
-                            id_deposito=id_dep,
-                            timestamp=timestamp,
-                            pec_dest=pec_dest,
-                            tipo_atto=tipo_atto,
-                            oggetto_pec=oggetto_pec,
-                            corpo_pec=corpo_pec,
-                            documenti_busta=documenti_busta,
-                            attachment_path=getattr(busta, "_last_atto_msg_path", "") or "",
-                            validation=validation,
-                        )
-                        return jsonify(
-                            guided_response
-                            or {
-                                "ok": False,
-                                "requires_guided_completion": True,
-                                "package_ready": True,
-                                "errore": "Invio diretto sospeso: certificato PST non disponibile.",
-                                "message": (
-                                    "Il software ha preparato il pacchetto di controllo, ma non registra un deposito "
-                                    "come valido finche' Atto.msg non viene cifrato in Atto.enc con il certificato PST."
-                                ),
-                                "next_actions": [
-                                    f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {codice_ufficio}.",
-                                    "Genera Atto.enc ministeriale prima dell'invio reale.",
-                                ],
-                                "documenti_busta": documenti_busta,
-                                "corpo_pec": corpo_pec,
-                            }
-                        ), 409
-                    guided_response = _guided_transport_completion_response(
-                        busta=busta,
-                        id_deposito=id_dep,
-                        timestamp=timestamp,
-                        pec_dest=pec_dest,
-                        tipo_atto=tipo_atto,
-                        oggetto_pec=oggetto_pec,
-                        corpo_pec=corpo_pec,
-                        documenti_busta=documenti_busta,
-                        attachment_path=busta_path,
-                        validation=validation,
-                    )
-                    if guided_response:
-                        return jsonify(guided_response), 409
-                    if form.get("local_pec_confirmed") != "1":
-                        return jsonify(
-                            local_pec_required_response(
-                                pec_cfg=pec_cfg,
-                                pec_dest=pec_dest,
-                                tipo_atto=tipo_atto,
-                                id_deposito=id_dep,
-                                timestamp=timestamp,
-                                oggetto_pec=oggetto_pec,
-                                attachment_path=busta_path,
-                                validation=validation,
-                                documenti=documenti_busta,
-                                corpo_pec=corpo_pec,
-                                busta_audit=busta.audit_conformita_pst(),
-                            )
-                        )
-
-                    ris_locale = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
-                    esito = EsitoDepositoPCT(
-                        id=id_dep,
-                        timestamp=timestamp,
-                        stato="INVIATO",
-                        tipo_atto=tipo_atto,
-                        pec_destinatario=pec_dest,
-                        messaggio=(
-                            f"Busta {id_dep} inviata via PEC dal PC locale tramite Local Signer. "
-                            f"Message-ID: {ris_locale.get('message_id', '')}"
-                        ),
-                        note=note,
-                        registrato_da=utente.username if utente else "",
-                        busta_path=busta_path,
-                    )
-                else:
-                    esito_dep = deposito_civile.deposita(
-                        dati=dati,
-                        tribunale=codice_ufficio or tribunale_nome,
-                        attendi_ricevute=False,
-                    )
-                    deposito_civile.salva_esito(esito_dep)
-
-                    esito = EsitoDepositoPCT(
-                        id=esito_dep.id_deposito,
-                        timestamp=esito_dep.timestamp,
-                        stato=esito_dep.stato,
-                        tipo_atto=tipo_atto,
-                        pec_destinatario=esito_dep.pec_destinatario,
-                        messaggio=esito_dep.messaggio,
-                        ricevuta_accettazione=esito_dep.ricevuta_accettazione or "",
-                        ricevuta_consegna=esito_dep.ricevuta_consegna or "",
-                        note=note,
-                        registrato_da=utente.username if utente else "",
-                        busta_path=esito_dep.busta_path,
-                    )
-            except Exception as exc:
-                app.logger.exception("Errore deposito_invia %s: %s", id_fasc, exc)
-                flash("Deposito non completato. Verifica il canale ufficiale e riprova.", "danger")
-                return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-        try:
-            from datetime import datetime as _dtnow
-
-            documenti_deposito_ids = [atto_id] + [aid for aid in allegati_ids if aid and aid != atto_id]
-            if not getattr(esito, "documenti_ids", None):
-                esito.documenti_ids = documenti_deposito_ids
-            fascicolo.depositi_pct.append(esito)
-            for documento in fascicolo.documenti:
-                if documento.id in documenti_deposito_ids:
-                    documento.id_deposito_pct = esito.id
-            fascicolo.modificato_il = _dtnow.now().isoformat()
-            gestore_fascicoli._salva()
-            audit(
-                "fascicoli.deposito.invia",
-                "fascicolo",
-                id_fasc,
-                dettagli=f"Deposito {esito.id} - {tipo_atto} verso {esito.pec_destinatario}",
-            )
-            sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
-            if demo_mode:
-                flash(
-                    f"Deposito di prova registrato con ID {esito.id}. Nessun messaggio PEC è stato spedito.",
-                    "warning",
-                )
-            else:
-                flash(
-                    f"Deposito {esito.id} inviato via PEC a {esito.pec_destinatario}. Ricevute di accettazione e consegna saranno disponibili a breve.",
-                    "success",
-                )
-        except Exception as exc:
-            app.logger.exception("Errore salvataggio esito deposito %s: %s", id_fasc, exc)
-            flash("Deposito inviato, ma il salvataggio dell'esito non è stato completato.", "warning")
-
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))

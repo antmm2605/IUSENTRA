@@ -33,7 +33,9 @@
         "PAGAM_TEL",
         "SICID"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0850040065_Corte d'Appello - Caltanissetta.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0800630064",
@@ -54,7 +56,9 @@
         "PAGAM_TEL",
         "SICID"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0800630064_Corte d'Appello - Reggio di Calabria.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0651160068",
@@ -75,7 +79,9 @@
         "PAGAM_TEL",
         "SICID"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0651160068_Corte d'Appello - Salerno.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06300101547",
@@ -94,7 +100,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06500601569",
@@ -113,7 +121,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630491155",
@@ -130,7 +140,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870370157",
@@ -148,7 +160,9 @@
         "DEPOT",
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06502501569",
@@ -168,7 +182,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07802501515",
@@ -188,7 +204,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06602801539",
@@ -207,7 +225,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04600901591",
@@ -226,7 +246,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07202001553",
@@ -246,7 +268,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07804401516",
@@ -266,7 +290,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06003301584",
@@ -285,7 +311,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "10201101531",
@@ -304,7 +332,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06303501552",
@@ -323,7 +353,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06404301530",
@@ -342,7 +374,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0880050151",
@@ -359,7 +393,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07808701515",
@@ -378,7 +414,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03603001524",
@@ -398,7 +436,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07104301523",
@@ -417,7 +457,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08307601552",
@@ -436,7 +478,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07104601583",
@@ -456,7 +500,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07811901508",
@@ -475,7 +521,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05810201516",
@@ -494,7 +542,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07007801546",
@@ -513,7 +563,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09109501552",
@@ -532,7 +584,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07702801569",
@@ -551,7 +605,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750390157",
@@ -568,7 +624,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07804001530",
@@ -586,7 +644,9 @@
         "DEPOT",
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0050800150",
@@ -603,7 +663,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840030153",
@@ -620,7 +682,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840090155",
@@ -637,7 +701,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840110150",
@@ -654,7 +720,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840120152",
@@ -671,7 +739,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840140156",
@@ -688,7 +758,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840170152",
@@ -705,7 +777,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840270153",
@@ -722,7 +796,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840310152",
@@ -739,7 +815,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840210151",
@@ -757,7 +835,9 @@
         "DEPOT",
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040290151",
@@ -774,7 +854,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040370158",
@@ -791,7 +873,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0061140154",
@@ -808,7 +892,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0061210159",
@@ -825,7 +911,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0070230152",
@@ -842,7 +930,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0510040156",
@@ -859,7 +949,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0510170153",
@@ -876,7 +968,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0510260152",
@@ -893,7 +987,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0510330157",
@@ -910,7 +1006,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0510340159",
@@ -927,7 +1025,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0440660157",
@@ -944,7 +1044,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0050170157",
@@ -961,7 +1063,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0640430153",
@@ -978,7 +1082,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720110156",
@@ -995,7 +1101,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720210157",
@@ -1012,7 +1120,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720270159",
@@ -1029,7 +1139,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0240090153",
@@ -1046,7 +1158,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0250160159",
@@ -1063,7 +1177,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0250390157",
@@ -1080,7 +1196,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0162190158",
@@ -1099,7 +1217,9 @@
         "DEPOT",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0220840159",
@@ -1116,7 +1236,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210220158",
@@ -1133,7 +1255,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0740070159",
@@ -1150,7 +1274,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0740080151",
@@ -1167,7 +1293,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0740100156",
@@ -1184,7 +1312,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0740120150",
@@ -1201,7 +1331,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0740160158",
@@ -1218,7 +1350,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210520151",
@@ -1235,7 +1369,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0151180153",
@@ -1252,7 +1388,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870270156",
@@ -1269,7 +1407,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870540153",
@@ -1286,7 +1426,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08705401530",
@@ -1303,7 +1445,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0050690156",
@@ -1320,7 +1464,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780870151",
@@ -1337,7 +1483,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780230157",
@@ -1355,7 +1503,9 @@
         "DEPOT",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870210154",
@@ -1372,7 +1522,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870500155",
@@ -1389,7 +1541,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870240150",
@@ -1408,7 +1562,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06905801509",
@@ -1425,7 +1581,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0580130152",
@@ -1442,7 +1600,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0581200159",
@@ -1459,7 +1619,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0220880157",
@@ -1476,7 +1638,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0221100156",
@@ -1493,7 +1657,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0781190150",
@@ -1510,7 +1676,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0781050151",
@@ -1529,7 +1697,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "1010250151",
@@ -1546,7 +1716,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040250153",
@@ -1563,7 +1735,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040820153",
@@ -1580,7 +1754,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040890157",
@@ -1597,7 +1773,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210150153",
@@ -1614,7 +1792,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0440680151",
@@ -1631,7 +1811,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0480040151",
@@ -1648,7 +1830,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0480100154",
@@ -1665,7 +1849,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0480140152",
@@ -1682,7 +1868,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0480330152",
@@ -1699,7 +1887,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710460158",
@@ -1716,7 +1906,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0600330158",
@@ -1733,7 +1925,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0600030155",
@@ -1752,7 +1946,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0310120159",
@@ -1769,7 +1965,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720230151",
@@ -1788,7 +1986,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0530150151",
@@ -1805,7 +2005,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0530180157",
@@ -1822,7 +2024,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0530190159",
@@ -1839,7 +2043,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0010820150",
@@ -1856,7 +2062,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0010860158",
@@ -1873,7 +2081,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0010980153",
@@ -1890,7 +2100,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0011280158",
@@ -1907,7 +2119,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0012170157",
@@ -1924,7 +2138,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0012690156",
@@ -1941,7 +2157,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "1020110153",
@@ -1958,7 +2176,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0690050158",
@@ -1975,7 +2195,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0910950155",
@@ -1992,7 +2214,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0700780154",
@@ -2009,7 +2233,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0590190155",
@@ -2026,7 +2252,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750110159",
@@ -2043,7 +2271,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750290156",
@@ -2060,7 +2290,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750570155",
@@ -2077,7 +2309,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08008801576",
@@ -2094,7 +2328,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0460040159",
@@ -2111,7 +2347,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0460090159",
@@ -2128,7 +2366,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0460240151",
@@ -2145,7 +2385,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0460330150",
@@ -2162,7 +2404,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710040150",
@@ -2179,7 +2423,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710430152",
@@ -2196,7 +2442,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0430130155",
@@ -2213,7 +2461,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0810120159",
@@ -2230,7 +2480,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0810180151",
@@ -2247,7 +2499,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0770280156",
@@ -2264,7 +2518,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830760155",
@@ -2281,7 +2537,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830970159",
@@ -2298,7 +2556,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08300301523",
@@ -2317,7 +2577,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0360300152",
@@ -2334,7 +2596,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0360400153",
@@ -2351,7 +2615,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0880110154",
@@ -2368,7 +2634,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040430151",
@@ -2385,7 +2653,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040660159",
@@ -2402,7 +2672,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0040810151",
@@ -2419,7 +2691,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0520010151",
@@ -2436,7 +2710,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630600158",
@@ -2453,7 +2729,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0860160152",
@@ -2473,7 +2751,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0030240150",
@@ -2490,7 +2770,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0910440158",
@@ -2507,7 +2789,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09104401584",
@@ -2527,7 +2811,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0280550154",
@@ -2544,7 +2830,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820490157",
@@ -2561,7 +2849,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820540158",
@@ -2580,7 +2870,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820210159",
@@ -2597,7 +2889,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830840152",
@@ -2614,7 +2908,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830990153",
@@ -2633,7 +2929,9 @@
         "DEPOT",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0540240151",
@@ -2650,7 +2948,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0680380156",
@@ -2667,7 +2967,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0011840156",
@@ -2684,7 +2986,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0500080153",
@@ -2701,7 +3005,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0470090150",
@@ -2718,7 +3024,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0470120157",
@@ -2735,7 +3043,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0450010152",
@@ -2752,7 +3062,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0930250150",
@@ -2769,7 +3081,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0930410154",
@@ -2786,7 +3100,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0930440150",
@@ -2803,7 +3119,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760150158",
@@ -2822,7 +3140,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0880020155",
@@ -2839,7 +3159,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0880030157",
@@ -2856,7 +3178,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0580911157",
@@ -2873,7 +3197,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780250151",
@@ -2890,7 +3216,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780440151",
@@ -2907,7 +3235,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0280370156",
@@ -2924,7 +3254,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0280560156",
@@ -2941,7 +3273,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0041790158",
@@ -2958,7 +3292,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0042150156",
@@ -2975,7 +3311,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0042370152",
@@ -2992,7 +3330,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0610490152",
@@ -3009,7 +3349,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0090020150",
@@ -3026,7 +3368,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840230155",
@@ -3043,7 +3387,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0520220155",
@@ -3060,7 +3406,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890010154",
@@ -3077,7 +3425,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890090150",
@@ -3094,7 +3444,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890140151",
@@ -3111,7 +3463,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890190151",
@@ -3128,7 +3482,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0660280153",
@@ -3145,7 +3501,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0670250158",
@@ -3162,7 +3520,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820060157",
@@ -3179,7 +3539,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820270151",
@@ -3196,7 +3558,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820480155",
@@ -3213,7 +3577,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820510152",
@@ -3230,7 +3596,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820570154",
@@ -3247,7 +3615,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0580240155",
@@ -3264,7 +3634,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0580740150",
@@ -3281,7 +3653,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0300760152",
@@ -3298,7 +3672,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0010130155",
@@ -3315,7 +3691,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0010780151",
@@ -3332,7 +3710,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0012700159",
@@ -3349,7 +3729,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630240152",
@@ -3366,7 +3748,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720200155",
@@ -3383,7 +3767,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720380152",
@@ -3400,7 +3786,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0810080150",
@@ -3417,7 +3805,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0260030153",
@@ -3434,7 +3824,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0260460153",
@@ -3451,7 +3843,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0300260157",
@@ -3468,7 +3862,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0300270159",
@@ -3485,7 +3881,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0300460159",
@@ -3502,7 +3900,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0300700150",
@@ -3519,7 +3919,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0301160158",
@@ -3536,7 +3938,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0300430153",
@@ -3554,7 +3958,9 @@
         "DEPOT",
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0580030151",
@@ -3571,7 +3977,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0581020151",
@@ -3588,7 +3996,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0270120153",
@@ -3606,7 +4016,9 @@
         "COM_TEL_VAL_LEG",
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0270421157",
@@ -3623,7 +4035,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0030080156",
@@ -3640,7 +4054,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "1030280159",
@@ -3657,7 +4073,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "1030500156",
@@ -3674,7 +4092,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0021330150",
@@ -3691,7 +4111,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0230440156",
@@ -3708,7 +4130,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0230810154",
@@ -3725,7 +4149,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0240080151",
@@ -3742,7 +4168,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0241000157",
@@ -3759,7 +4187,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0241050157",
@@ -3776,7 +4206,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0560360158",
@@ -3793,7 +4225,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01500201583",
@@ -3812,7 +4246,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870040158",
@@ -3832,7 +4268,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780030155",
@@ -3851,7 +4289,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870060152",
@@ -3871,7 +4311,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0860010151",
@@ -3891,7 +4333,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0940020153",
@@ -3911,7 +4355,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0650020158",
@@ -3930,7 +4376,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0620010153",
@@ -3949,7 +4397,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0810010156",
@@ -3969,7 +4419,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720050153",
@@ -3989,7 +4441,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0530010152",
@@ -4008,7 +4462,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0610040158",
@@ -4027,7 +4483,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0670040154",
@@ -4046,7 +4504,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890020156",
@@ -4065,7 +4525,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720070157",
@@ -4085,7 +4547,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06304911552",
@@ -4105,7 +4569,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08600401577",
@@ -4125,7 +4591,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0240120150",
@@ -4144,7 +4612,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760120152",
@@ -4163,7 +4633,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870070154",
@@ -4183,7 +4655,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07801501508",
@@ -4202,7 +4676,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870080156",
@@ -4222,7 +4698,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720090151",
@@ -4241,7 +4719,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840040155",
@@ -4260,7 +4740,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0220220159",
@@ -4279,7 +4761,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210110155",
@@ -4298,7 +4782,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870090158",
@@ -4318,7 +4804,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210130159",
@@ -4337,7 +4825,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0650170159",
@@ -4356,7 +4846,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870180157",
@@ -4373,7 +4865,9 @@
       "servizi_ministero": [
         "JPW_SIGP"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0430070152",
@@ -4393,7 +4887,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720130150",
@@ -4413,7 +4909,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630140151",
@@ -4432,7 +4930,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0610170155",
@@ -4451,7 +4951,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0450030156",
@@ -4470,7 +4972,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0060390154",
@@ -4490,7 +4994,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750160159",
@@ -4510,7 +5016,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630230150",
@@ -4529,7 +5037,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0600190158",
@@ -4549,7 +5059,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0940120154",
@@ -4568,7 +5080,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0810060156",
@@ -4588,7 +5102,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0540090159",
@@ -4607,7 +5123,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780330158",
@@ -4627,7 +5145,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0650370151",
@@ -4646,7 +5166,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0220500158",
@@ -4665,7 +5187,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0490070158",
@@ -4685,7 +5209,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0860070153",
@@ -4705,7 +5231,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710200154",
@@ -4724,7 +5252,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0640250155",
@@ -4744,7 +5274,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0170520155",
@@ -4764,7 +5296,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760280155",
@@ -4783,7 +5317,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0270080154",
@@ -4803,7 +5339,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "1010070153",
@@ -4823,7 +5361,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0540120156",
@@ -4842,7 +5382,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0540130158",
@@ -4862,7 +5404,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0220620153",
@@ -4881,7 +5425,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0260210151",
@@ -4901,7 +5447,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820340156",
@@ -4921,7 +5469,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0190350151",
@@ -4941,7 +5491,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02701201531",
@@ -4961,7 +5513,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0650500159",
@@ -4981,7 +5535,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210290152",
@@ -5000,7 +5556,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04801401524",
@@ -5019,7 +5577,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0420170152",
@@ -5039,7 +5599,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0390100153",
@@ -5059,7 +5621,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0410130153",
@@ -5079,7 +5643,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03601201548",
@@ -5099,7 +5665,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0540180158",
@@ -5119,7 +5687,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0590070150",
@@ -5139,7 +5709,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06303201591",
@@ -5158,7 +5730,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0590090154",
@@ -5178,7 +5752,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750310151",
@@ -5197,7 +5773,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820360150",
@@ -5216,7 +5794,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0850070152",
@@ -5236,7 +5816,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870170155",
@@ -5256,7 +5838,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0690410154",
@@ -5275,7 +5859,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07300801508",
@@ -5295,7 +5881,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0161200159",
@@ -5315,7 +5903,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0620370158",
@@ -5334,7 +5924,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06904301584",
@@ -5353,7 +5945,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05402401516",
@@ -5372,7 +5966,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0370320157",
@@ -5391,7 +5987,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07701301553",
@@ -5410,7 +6008,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630370159",
@@ -5429,7 +6029,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0910340157",
@@ -5449,7 +6051,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0420210151",
@@ -5468,7 +6072,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0900350158",
@@ -5488,7 +6094,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02304401561",
@@ -5508,7 +6116,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01511801530",
@@ -5528,7 +6138,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890110155",
@@ -5547,7 +6159,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0860110152",
@@ -5567,7 +6181,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0820450159",
@@ -5587,7 +6203,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830410152",
@@ -5606,7 +6224,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0800430153",
@@ -5626,7 +6246,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710280150",
@@ -5645,7 +6267,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0390120157",
@@ -5665,7 +6289,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0120920154",
@@ -5684,7 +6310,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0410230154",
@@ -5703,7 +6331,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06104801508",
@@ -5722,7 +6352,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710290152",
@@ -5742,7 +6374,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630410158",
@@ -5761,7 +6395,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630430152",
@@ -5780,7 +6416,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0730130151",
@@ -5799,7 +6437,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210510159",
@@ -5818,7 +6458,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0650670154",
@@ -5837,7 +6479,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0221170150",
@@ -5856,7 +6500,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870250152",
@@ -5875,7 +6521,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0640500158",
@@ -5894,7 +6542,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830520155",
@@ -5913,7 +6563,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0041300156",
@@ -5932,7 +6584,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720300156",
@@ -5952,7 +6606,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780810159",
@@ -5971,7 +6627,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06507301577",
@@ -5991,7 +6649,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0520150150",
@@ -6010,7 +6670,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0620430151",
@@ -6030,7 +6692,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0640620153",
@@ -6050,7 +6714,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830600152",
@@ -6070,7 +6736,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0540350154",
@@ -6089,7 +6757,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890130159",
@@ -6108,7 +6778,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830620156",
@@ -6127,7 +6799,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0900470153",
@@ -6147,7 +6821,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0800550158",
@@ -6166,7 +6842,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0900520154",
@@ -6186,7 +6864,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0890150153",
@@ -6205,7 +6885,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0810140153",
@@ -6225,7 +6907,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0810150155",
@@ -6244,7 +6928,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870330159",
@@ -6264,7 +6950,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0900550150",
@@ -6284,7 +6972,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0680270153",
@@ -6304,7 +6994,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0221390156",
@@ -6323,7 +7015,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0660690159",
@@ -6342,7 +7036,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760580158",
@@ -6361,7 +7057,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "1010170154",
@@ -6381,7 +7079,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0860140158",
@@ -6401,7 +7101,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0610570159",
@@ -6420,7 +7122,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0011910151",
@@ -6440,7 +7144,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0490120159",
@@ -6460,7 +7166,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0770200150",
@@ -6479,7 +7187,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0570530155",
@@ -6499,7 +7209,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08205801569",
@@ -6519,7 +7231,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0650970157",
@@ -6538,7 +7252,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630570151",
@@ -6557,7 +7273,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0500290157",
@@ -6576,7 +7294,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0450140159",
@@ -6595,7 +7315,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0370490152",
@@ -6614,7 +7336,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0490140153",
@@ -6634,7 +7358,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630610150",
@@ -6653,7 +7379,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0720360158",
@@ -6672,7 +7400,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0870380159",
@@ -6692,7 +7422,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0151820158",
@@ -6712,7 +7444,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0840330156",
@@ -6731,7 +7465,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0221530156",
@@ -6750,7 +7486,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0651060158",
@@ -6770,7 +7508,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0651140155",
@@ -6789,7 +7529,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0042030151",
@@ -6809,7 +7551,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0270330157",
@@ -6829,7 +7573,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0730240154",
@@ -6849,7 +7595,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0620590154",
@@ -6868,7 +7616,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0781230159",
@@ -6887,7 +7637,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0500320154",
@@ -6906,7 +7658,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710510159",
@@ -6926,7 +7680,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0920570156",
@@ -6946,7 +7702,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0620700158",
@@ -6965,7 +7723,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08308401523",
@@ -6984,7 +7744,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630720153",
@@ -7003,7 +7765,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0651280154",
@@ -7023,7 +7787,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0640920156",
@@ -7042,7 +7808,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830880150",
@@ -7062,7 +7830,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760800155",
@@ -7081,7 +7851,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0651350159",
@@ -7100,7 +7872,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0781380150",
@@ -7119,7 +7893,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0420450151",
@@ -7138,7 +7914,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0610880154",
@@ -7157,7 +7935,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210930157",
@@ -7176,7 +7956,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0600740154",
@@ -7196,7 +7978,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0630800150",
@@ -7215,7 +7999,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0781430151",
@@ -7234,7 +8020,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05810301530",
@@ -7253,7 +8041,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0610910151",
@@ -7272,7 +8062,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0590320153",
@@ -7291,7 +8083,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0221990152",
@@ -7310,7 +8104,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0540520150",
@@ -7330,7 +8126,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0301210159",
@@ -7350,7 +8148,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0061740150",
@@ -7370,7 +8170,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0781500156",
@@ -7389,7 +8191,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750880150",
@@ -7408,7 +8212,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710570151",
@@ -7427,7 +8233,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0860180156",
@@ -7447,7 +8255,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0750900155",
@@ -7467,7 +8277,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0021560158",
@@ -7487,7 +8299,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09405201584",
@@ -7507,7 +8321,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760950156",
@@ -7526,7 +8342,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760960158",
@@ -7545,7 +8363,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0760980152",
@@ -7564,7 +8384,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0211150155",
@@ -7583,7 +8405,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0880120156",
@@ -7602,7 +8426,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0181820151",
@@ -7622,7 +8448,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0500390158",
@@ -7641,7 +8469,9 @@
         "JPW_SIGP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SIGP"
+      "servizio_pst_predefinito": "JPW_SIGP",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0061740092",
@@ -7664,7 +8494,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0061740092_TRIBUNALE DI ALESSANDRIA ex TRIBUNALE DI TORTONA.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0640920098",
@@ -7687,7 +8519,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0640920098_TRIBUNALE DI AVELLINO ex TRIBUNALE DI SANT'ANGELO DEI LOMBARDI.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0190350093",
@@ -7710,7 +8544,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0190350093_TRIBUNALE DI CREMONA ex TRIBUNALE DI CREMA.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0041300098",
@@ -7733,7 +8569,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0041300098_TRIBUNALE DI CUNEO ex TRIBUNALE DI MONDOVI.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0042030093",
@@ -7756,7 +8594,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0042030093_TRIBUNALE DI CUNEO ex TRIBUNALE DI SALUZZO.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0710280092",
@@ -7779,7 +8619,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0710280092_TRIBUNALE DI FOGGIA ex TRIBUNALE DI LUCERA.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0651140097",
@@ -7802,7 +8644,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0651140097_TRIBUNALE DI LAGONEGRO ex TRIBUNALE DI SALA CONSILINA.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0430070094",
@@ -7825,7 +8669,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0430070094_TRIBUNALE DI MACERATA ex TRIBUNALE DI CAMERINO.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0830520097",
@@ -7848,7 +8694,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0830520097_TRIBUNALE DI PATTI ex TRIBUNALE DI MISTRETTA.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0181770092",
@@ -7872,7 +8720,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0181770092_TRIBUNALE DI PAVIA ex TRIBUNALE DI VIGEVANO.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0181820093",
@@ -7895,7 +8745,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0181820093_TRIBUNALE DI PAVIA ex TRIBUNALE DI VOGHERA.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0520150092",
@@ -7918,7 +8770,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0520150092_TRIBUNALE DI SIENA ex TRIBUNALE DI MONTEPULCIANO.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0011910093",
@@ -7941,7 +8795,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0011910093_TRIBUNALE DI TORINO ex TRIBUNALE DI PINEROLO.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0301210091",
@@ -7964,7 +8820,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0301210091_TRIBUNALE DI UDINE ex TRIBUNALE DI TOLMEZZO.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0060390096",
@@ -7987,7 +8845,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0060390096_TRIBUNALE DI VERCELLI ex TRIBUNALE DI CASALE MONTEFERRATO.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0240120092",
@@ -8010,7 +8870,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0240120092_TRIBUNALE DI VICENZA ex TRIBUNALE DI BASSANO DEL GRAPPA.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0960040091",
@@ -8033,7 +8895,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0960040091_Tribunale Ordinario - Biella.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0850040098",
@@ -8056,7 +8920,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0850040098_Tribunale Ordinario - Caltanissetta.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0600190090",
@@ -8079,7 +8945,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0600190090_Tribunale Ordinario - Cassino.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0780330090",
@@ -8102,7 +8970,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0780330090_Tribunale Ordinario - Castrovillari.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0850070094",
@@ -8125,7 +8995,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0850070094_Tribunale Ordinario - Gela.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0800430095",
@@ -8148,7 +9020,9 @@
         "SICID",
         "SIECIC"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0800430095_Tribunale Ordinario - Locri.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09600402107",
@@ -8165,7 +9039,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08500402104",
@@ -8182,7 +9058,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06001902106",
@@ -8199,7 +9077,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07803302106",
@@ -8216,7 +9096,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08500702100",
@@ -8233,7 +9115,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08004302101",
@@ -8250,7 +9134,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0770140102",
@@ -8267,7 +9153,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0900640079",
@@ -8284,7 +9172,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0730270070",
@@ -8301,7 +9191,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210080078",
@@ -8318,7 +9210,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0850040076",
@@ -8335,7 +9229,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0800630075",
@@ -8352,7 +9248,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0651160079",
@@ -8369,7 +9267,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210080067",
@@ -8390,7 +9290,9 @@
         "PAGAM_TEL",
         "SICID"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0210080067_Sezione Distaccata di Corte d'Appello - Bolzano - Bozen.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0900640068",
@@ -8411,7 +9313,9 @@
         "PAGAM_TEL",
         "SICID"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0900640068_Sezione Distaccata di Corte d'Appello - Sassari.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0730270069",
@@ -8432,7 +9336,9 @@
         "PAGAM_TEL",
         "SICID"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "0730270069_Sezione Distaccata di Corte d'Appello - Taranto.cer",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0580910200",
@@ -8451,7 +9357,9 @@
         "JPW_SICID",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0210080114",
@@ -8470,7 +9378,9 @@
         "JPW_SICID",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0730270116",
@@ -8489,7 +9399,9 @@
         "JPW_SICID",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "0850040112",
@@ -8508,7 +9420,9 @@
         "JPW_SICID",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_SICID"
+      "servizio_pst_predefinito": "JPW_SICID",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04200200636",
@@ -8525,7 +9439,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07200600630",
@@ -8542,7 +9458,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03700600637",
@@ -8559,7 +9477,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02100800633",
@@ -8576,7 +9496,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01702900631",
@@ -8593,7 +9515,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09200900630",
@@ -8610,7 +9534,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07000600638",
@@ -8627,7 +9553,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08701500636",
@@ -8644,7 +9572,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07902300633",
@@ -8661,7 +9591,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04801700633",
@@ -8678,7 +9610,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01002500636",
@@ -8695,7 +9629,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06604900632",
@@ -8712,7 +9648,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07503500634",
@@ -8729,7 +9667,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08304800631",
@@ -8746,7 +9686,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "1514600637",
@@ -8763,7 +9705,9 @@
       "servizi_ministero": [
         "JPW_UNEP"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06304900639",
@@ -8780,7 +9724,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05403900637",
@@ -8797,7 +9743,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07606300634",
@@ -8814,7 +9762,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08205300631",
@@ -8831,7 +9781,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08006300630",
@@ -8848,7 +9800,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05809100631",
@@ -8865,7 +9819,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06511600634",
@@ -8882,7 +9838,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09006400634",
@@ -8899,7 +9857,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07302700635",
@@ -8916,7 +9876,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00127200638",
@@ -8933,7 +9895,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02220500632",
@@ -8950,7 +9914,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03200600632",
@@ -8967,7 +9933,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02704200631",
@@ -8984,7 +9952,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00600302234",
@@ -9001,7 +9971,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00700302235",
@@ -9018,7 +9990,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05100202237",
@@ -9035,7 +10009,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04400702238",
@@ -9052,7 +10028,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00500502237",
@@ -9069,7 +10047,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06400802234",
@@ -9086,7 +10066,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08400102234",
@@ -9103,7 +10085,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08300502231",
@@ -9120,7 +10104,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02500602233",
@@ -9137,7 +10123,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06200802232",
@@ -9154,7 +10142,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01602402230",
@@ -9171,7 +10161,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09600402234",
@@ -9188,7 +10180,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07400102232",
@@ -9205,7 +10199,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01202602230",
@@ -9222,7 +10218,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08701102238",
@@ -9239,7 +10237,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06001902233",
@@ -9256,7 +10256,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07803302233",
@@ -9273,7 +10275,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06902202239",
@@ -9290,7 +10294,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05803202237",
@@ -9307,7 +10313,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01307502234",
@@ -9324,7 +10332,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07804502238",
@@ -9341,7 +10351,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01903602238",
@@ -9358,7 +10370,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "10101002235",
@@ -9375,7 +10389,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00407802239",
@@ -9392,7 +10408,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08600902232",
@@ -9409,7 +10427,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04401902233",
@@ -9426,7 +10446,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03800802232",
@@ -9443,7 +10465,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07102402237",
@@ -9460,7 +10484,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04001202235",
@@ -9477,7 +10503,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06003802233",
@@ -9494,7 +10522,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08500702237",
@@ -9511,7 +10541,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03100702233",
@@ -9528,7 +10560,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05301102238",
@@ -9545,7 +10579,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00803102235",
@@ -9562,7 +10598,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09402302232",
@@ -9579,7 +10617,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00112502237",
@@ -9596,7 +10636,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01101502236",
@@ -9613,7 +10655,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07916002233",
@@ -9630,7 +10674,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09103702238",
@@ -9647,7 +10693,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07003102231",
@@ -9664,7 +10712,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05901102234",
@@ -9681,7 +10731,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09704202235",
@@ -9698,7 +10750,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04900902237",
@@ -9715,7 +10769,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08004302238",
@@ -9732,7 +10788,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09803102233",
@@ -9749,7 +10807,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04601702231",
@@ -9766,7 +10826,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04302302231",
@@ -9783,7 +10845,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02003002239",
@@ -9800,7 +10864,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04501002236",
@@ -9817,7 +10883,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07701402232",
@@ -9834,7 +10902,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03602302232",
@@ -9851,7 +10921,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08101102232",
@@ -9868,7 +10940,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01514902233",
@@ -9885,7 +10959,9 @@
       "servizi_ministero": [
         "JPW_UNEP"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06304912230",
@@ -9902,7 +10978,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06507802232",
@@ -9919,7 +10997,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06305002232",
@@ -9936,7 +11016,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00310602239",
@@ -9953,7 +11035,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09105102238",
@@ -9970,7 +11054,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09503802234",
@@ -9987,7 +11073,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02806002230",
@@ -10004,7 +11092,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08005702237",
@@ -10021,7 +11111,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07809102235",
@@ -10038,7 +11130,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03402702238",
@@ -10055,7 +11149,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08306602239",
@@ -10072,7 +11168,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01811002235",
@@ -10090,7 +11188,9 @@
         "JPW_UNEP",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06802802230",
@@ -10107,7 +11207,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03303202238",
@@ -10124,7 +11226,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05002602236",
@@ -10141,7 +11245,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "04701402236",
@@ -10158,7 +11264,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "10000502233",
@@ -10175,7 +11283,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08800902234",
@@ -10192,7 +11302,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03901402236",
@@ -10209,7 +11321,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03503302232",
@@ -10226,7 +11340,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05705902232",
@@ -10243,7 +11359,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09901402238",
@@ -10260,7 +11378,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02216102238",
@@ -10277,7 +11397,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02904102231",
@@ -10294,7 +11416,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06108302239",
@@ -10311,7 +11435,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "00905602238",
@@ -10328,7 +11454,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08404102238",
@@ -10345,7 +11473,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05203202231",
@@ -10362,7 +11492,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08901702232",
@@ -10379,7 +11511,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01406102236",
@@ -10396,7 +11530,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05405102233",
@@ -10413,7 +11549,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06609802235",
@@ -10430,7 +11568,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "09007002237",
@@ -10447,7 +11587,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06704102237",
@@ -10464,7 +11606,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08207002237",
@@ -10481,7 +11625,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05503202234",
@@ -10498,7 +11644,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05810402230",
@@ -10515,7 +11663,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06308302231",
@@ -10532,7 +11682,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "07204502232",
@@ -10549,7 +11701,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "08102102233",
@@ -10566,7 +11720,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02608602232",
@@ -10583,7 +11739,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "03012902230",
@@ -10600,7 +11758,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06515402234",
@@ -10617,7 +11777,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "01213302237",
@@ -10634,7 +11796,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05811102235",
@@ -10651,7 +11815,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "10307202237",
@@ -10668,7 +11834,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "02309102230",
@@ -10685,7 +11853,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "10204702233",
@@ -10702,7 +11872,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "05605902231",
@@ -10719,7 +11891,9 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     },
     {
       "codice_ministero": "06905802200",
@@ -10736,7 +11910,10 @@
       "servizi_ministero": [
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": ""
+      "servizio_pst_predefinito": "",
+      "nome_certificato_cifra": "",
+      "certificato_mimetype": "application/octet-stream"
     }
-  ]
+  ],
+  "fonte_certificati": "C:\\QuickOrganizer\\ListaUfficiGiudiziari.xml"
 }

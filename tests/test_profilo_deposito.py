@@ -4,8 +4,28 @@ from types import SimpleNamespace
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.profilo_deposito import costruisci_profilo_deposito
+from pct.pst_cifratura import CertificatoCifratura
 from pct.storage import StudioDB
 from pct.workflow_onboarding import build_fascicolo_onboarding
+
+
+def _fake_certificato_con_codice(monkeypatch):
+    def fake_resolver(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        return CertificatoCifratura(
+            codice_ufficio=codice_ufficio,
+            path=f"/tmp/{codice_ufficio}.cer",
+            subject="CN=test",
+            issuer="CN=test",
+            serial_number="01",
+            not_valid_after="2030-01-01T00:00:00+00:00",
+            source_url="test",
+            sha256="ABC",
+        )
+
+    monkeypatch.setattr(
+        "pct.profilo_deposito.risolvi_certificato_cifratura_ufficio",
+        fake_resolver,
+    )
 
 
 def test_profilo_pct_risolve_ufficio_pec_certificato():
@@ -28,6 +48,66 @@ def test_profilo_pct_risolve_ufficio_pec_certificato():
     assert profilo["certificato_cifratura"]["richiesto"] is True
     assert profilo["certificato_cifratura"]["verificato"] is True
     assert profilo["blocchi"] == []
+
+
+def test_profilo_deposito_palmi_usa_pec_e_codice_ministeriale(monkeypatch):
+    _fake_certificato_con_codice(monkeypatch)
+    profilo = costruisci_profilo_deposito(
+        tipo="CIVILE",
+        canale_operativo="PCT",
+        codice_oggetto_pst="999001",
+        ufficio="Palmi",
+        pec_ufficio="tribunale.palmi@civile.ptel.giustiziacert.it",
+        codice_ministero="0800570094",
+        verifica_certificato=True,
+        richiedi_ufficio=True,
+    )
+
+    assert profilo["ufficio"]["nome"] == "Tribunale di Palmi"
+    assert profilo["ufficio"]["codice_iusentra"] == "0910011"
+    assert profilo["ufficio"]["codice_pst"] == "0800570094"
+    assert profilo["ufficio"]["pec"] == "tribunale.palmi@civile.ptel.giustiziacert.it"
+    assert profilo["certificato_cifratura"]["codice_ufficio"] == "0800570094"
+    assert profilo["certificato_cifratura"]["verificato"] is True
+    assert profilo["blocchi"] == []
+
+
+def test_profilo_deposito_gdp_palmi_non_si_confonde_con_tribunale(monkeypatch):
+    _fake_certificato_con_codice(monkeypatch)
+    profilo = costruisci_profilo_deposito(
+        tipo="CIVILE",
+        canale_operativo="PCT",
+        codice_oggetto_pst="999001",
+        ufficio="Palmi",
+        pec_ufficio="gdp.palmi@civile.ptel.giustiziacert.it",
+        codice_ministero="0800570152",
+        verifica_certificato=True,
+        richiedi_ufficio=True,
+    )
+
+    assert profilo["ufficio"]["nome"] == "Ufficio del Giudice di Pace di Palmi"
+    assert profilo["ufficio"]["codice_iusentra"] == "0910401"
+    assert profilo["ufficio"]["codice_pst"] == "0800570152"
+    assert profilo["ufficio"]["pec"] == "gdp.palmi@civile.ptel.giustiziacert.it"
+    assert profilo["certificato_cifratura"]["codice_ufficio"] == "0800570152"
+    assert profilo["certificato_cifratura"]["verificato"] is True
+    assert profilo["blocchi"] == []
+
+
+def test_profilo_deposito_blocca_conflitto_pec_codice_ufficio():
+    profilo = costruisci_profilo_deposito(
+        tipo="CIVILE",
+        canale_operativo="PCT",
+        codice_oggetto_pst="999001",
+        ufficio="Palmi",
+        pec_ufficio="tribunale.palmi@civile.ptel.giustiziacert.it",
+        codice_ministero="0800570152",
+        verifica_certificato=True,
+        richiedi_ufficio=True,
+    )
+
+    assert profilo["ufficio"]["nome"] == "Tribunale di Palmi"
+    assert any("Codice ufficio e PEC ministeriale indicano uffici diversi" in blocco for blocco in profilo["blocchi"])
 
 
 def test_canali_dedicati_non_usano_certificato_pst():

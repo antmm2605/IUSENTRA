@@ -430,6 +430,7 @@ class BustaTelematica:
             "atto_msg_path": transport.get("atto_msg_path", ""),
             "atto_enc_path": transport.get("atto_enc_path", ""),
             "certificate": transport.get("certificate"),
+            "certificate_error_code": transport.get("certificate_error_code", ""),
             "certificate_error": transport.get("certificate_error", ""),
             "indice_busta_generated": indice_generated,
             "indice_busta_filename": INDICE_DOCUMENTI_FILENAME,
@@ -514,20 +515,38 @@ class BustaTelematica:
             cert = carica_certificato_cifratura(cert_info.path)
             encrypted = cifra_atto_msg_aes256(atto_msg, cert)
         except PSTCifraturaError as exc:
+            detail = str(exc)
+            non_pubblicato = "Certificato di cifratura PST non trovato" in detail
             public_error = (
-                f"Certificato pubblico PST .cer non recuperabile per l'ufficio {self.dati.codice_ufficio}. "
-                "Il pacchetto di controllo resta disponibile, ma Atto.enc ministeriale non e' ancora generato."
+                (
+                    f"Il PST non pubblica un certificato pubblico .cer di cifratura per l'ufficio "
+                    f"{self.dati.codice_ufficio}. "
+                    if non_pubblicato
+                    else f"Certificato pubblico PST .cer non recuperabile per l'ufficio {self.dati.codice_ufficio}. "
+                )
+                + "Il pacchetto di controllo resta disponibile, ma Atto.enc ministeriale non e' ancora generato."
             )
+            guided_next_actions = [
+                (
+                    f"Verifica sul PST ministeriale se l'ufficio {self.dati.codice_ufficio} pubblica un .cer "
+                    "o se deve essere usato un diverso ufficio/canale ufficiale."
+                    if non_pubblicato
+                    else f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {self.dati.codice_ufficio}."
+                ),
+                f"Genera Atto.enc cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM} da Atto.msg prima dell'invio reale.",
+                "Ripeti la prova busta e presidia le ricevute dal fascicolo.",
+            ]
             self._last_transport_audit = {
                 **(self._last_transport_audit or {}),
                 "transport_mode": "atto_msg_generato_cifratura_pst_non_completata",
+                "certificate_error_code": (
+                    "certificato_cifratura_non_pubblicato"
+                    if non_pubblicato
+                    else "certificato_cifratura_non_recuperabile"
+                ),
                 "certificate_error": public_error,
-                "certificate_error_detail": str(exc),
-                "guided_next_actions": [
-                    f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {self.dati.codice_ufficio}.",
-                    f"Genera Atto.enc cifrato {PST_BUSTA_ENCRYPTION_ALGORITHM} da Atto.msg prima dell'invio reale.",
-                    "Ripeti la prova busta e presidia le ricevute dal fascicolo.",
-                ],
+                "certificate_error_detail": detail,
+                "guided_next_actions": guided_next_actions,
             }
             raise
 

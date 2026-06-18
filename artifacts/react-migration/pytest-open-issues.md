@@ -1,5 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
+## Certificati PST e canali deposito 2.253.56 - 2026-06-17
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Copertura `.cer` per busta PCT/SIGP/Cassazione | Controllo cache e report PST | Risolto localmente, da confermare su server dopo deploy | Dopo import QuickOrganizer e recupero diretto PST, il perimetro operativo corrente è `593/593` codici ministeriali coperti; cache fisica `913` `.cer` validi e `0` invalidi. La differenza tra cache e target è documentata e voluta. | Dopo deploy Hetzner eseguire lo stesso controllo sul server e verificare `/tribunali`/fascicolo reale prima di dichiarare chiusa la release. |
+| Soglie normative canali | Test canali/scheduler/checklist/conformità | Risolto localmente | Allineate soglie visibili: PCT/PST `60 MB`, PDP `50/500 MB`, PAT/Formweb `50 file / 300 MB`, PTT/SIGIT `50 MB`; PDP, PAT e PTT non ereditano `.cer/Atto.enc` PCT. | Confermare con build, Docker locale reale e server sullo stesso commit. |
+| Installer Local Signer `1.6.75` | `tests\test_deposito.py` + `tests\test_local_signer.py` | Risolto localmente | `tools/dist/local_signer.py` è stato riallineato al sorgente e gli installer pubblici Windows/macOS/Linux scaricano anche `local_signer_mod/support_agent.py`; pacchetti `1.6.75` rigenerati. | Dopo push attendere la matrice remota Local Signer/PKCS#11 e distribuire gli installer con lo stesso commit. |
+
 ## CI Pytest core 2.253.44 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |
@@ -1694,3 +1702,11 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Certificato PST Palmi e `Atto.enc` | Prova locale `DC5BF1DB` | Aperto come requisito di conformità, non bug UI | Il software prepara `Atto.msg`, indice e preview, ma blocca `Invia deposito reale` finché non sono disponibili `.cer` PST ufficio `0800570152`, `Atto.enc` AES256 e PEC mittente studio. | Recuperare/collegare certificato PST o adapter ministeriale, configurare PEC mittente e ripetere prova prima di abilitare invio reale. |
 | Firma multipla reale con PIN | Local Signer/token fisico | Aperto | Non è stata eseguita una nuova firma batch reale in questa tranche locale; resta valida la regola anti-falso-verde. | Firmare più documenti reali con PIN inserito nella UI, verificare salvataggio `.p7m` e riabilitazione fase deposito. |
 | Deploy e CI versione `2.253.54` | GitHub/CodeQL/Hetzner/Docker locale | Aperto | Le verifiche locali non chiudono la release finché branch gemelli, check GitHub, deploy Hetzner e igiene non coincidono sullo stesso commit. | Commit, push, attesa check-run, deploy Hetzner, prune Docker, verifica `/api/pronto` e prova server. |
+
+## Deposito PEC locale 2.253.57 - 2026-06-18
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Firma multipla fisica con pen drive | Browser reale, Local Signer, token e PIN | In attesa token/PIN utente | La prova PEC locale ha verificato click reale, payload Local Signer, SMTP locale fittizio e `Atto.enc` allegato, ma non può sostituire la firma batch fisica di più documenti con pen drive. | Quando l'utente è presente con token inserito, firmare più documenti dalla UI, verificare salvataggio `.p7m`, aggiornamento fascicolo e riabilitazione busta. |
+| Prova server post-deploy | `https://app.iusentra.it` sullo stesso commit | Aperto fino al deploy | La prova `2.253.57` è stata fatta sulla copia locale reale con SMTP fittizio per evitare invii esterni notturni. La produzione deve essere allineata allo stesso commit prima della verifica finale server. | Dopo commit/push, attendere check GitHub, deployare Hetzner, verificare `/api/pronto` e aprire `E5AE4668` o fascicolo equivalente senza spedire PEC reale. |
+| Pulizia runtime locale | `data/**` e configurazione PEC tenant | Risolto operativamente, da riverificare nello status finale | La configurazione PEC reale del tenant è stata ripristinata e il server SMTP fittizio è stato spento. Le prove possono aver modificato runtime locali che non vanno committati. | Prima dello stage eseguire `git status --short`, escludere/ripristinare runtime generati e committare solo codice, test, documentazione e asset React referenziati. |

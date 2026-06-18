@@ -4539,6 +4539,7 @@ Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/ai
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -OutFile "$moduleDir\\pec_bridge.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/security.py" -OutFile "$moduleDir\\security.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -OutFile "$moduleDir\\server_bootstrap.py" -UseBasicParsing
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -OutFile "$moduleDir\\support_agent.py" -UseBasicParsing
 
 try {{
     $v = python --version 2>&1
@@ -4784,6 +4785,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handler
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
   "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
@@ -4866,6 +4868,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handler
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
   "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab

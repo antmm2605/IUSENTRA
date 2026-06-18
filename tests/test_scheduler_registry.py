@@ -256,6 +256,7 @@ def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
     assert "pst_certificati_cifratura_weekly" in templates
     assert templates["pst_certificati_cifratura_weekly"].family == "Depositi telematici"
     assert ".cer" in templates["pst_certificati_cifratura_weekly"].description
+    assert templates["pst_certificati_cifratura_weekly"].day_of_week == "sun"
     assert templates["lex_dataset_nightly"].family == "Lex AI"
     assert templates["lex_dataset_nightly"].hour == "1"
     assert templates["lex_dataset_nightly"].minute == "45"
@@ -268,6 +269,24 @@ def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
         "ai_locale_rag_runtime",
         "integrazioni_native",
     }.issubset(specs)
+
+
+def test_scheduler_registry_certificati_pst_mantiene_giorno_settimanale():
+    templates = {
+        tpl.key: tpl
+        for tpl in default_scheduler_templates(
+            {
+                "PST_CERTIFICATI_CIFRATURA_SYNC_ORA": "04:20",
+                "PST_CERTIFICATI_CIFRATURA_SYNC_GIORNO": "wed",
+            }
+        )
+    }
+
+    cert_job = templates["pst_certificati_cifratura_weekly"]
+
+    assert cert_job.hour == "04"
+    assert cert_job.minute == "20"
+    assert cert_job.day_of_week == "wed"
 
 
 def test_scheduler_registry_applica_agenti_e_richieste_manuali(monkeypatch, tmp_path: Path):

@@ -1284,6 +1284,13 @@
   margin:3px 0 0;
   font-size:21px;
 }
+.iu-tel-offices>header p{
+  margin:4px 0 0;
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:750;
+  line-height:1.35;
+}
 .iu-tel-offices>header span{color:var(--iu-slate-500)}
 .iu-tel-offices label{
   min-height:42px;
@@ -1340,9 +1347,26 @@
 .iu-tel-office-list article>div{
   display:grid;
   gap:4px;
+  justify-items:start;
 }
 .iu-tel-office-list strong{font-size:14px}
 .iu-tel-office-list span{color:var(--iu-slate-600);font-size:12px;font-weight:750}
+.iu-tel-office-cert{
+  display:flex;
+  align-items:flex-start;
+  gap:6px;
+  max-width:100%;
+  color:var(--iu-slate-600);
+  font-size:11px;
+  font-weight:750;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+.iu-tel-office-cert svg{
+  flex:0 0 auto;
+  margin-top:1px;
+  color:var(--iu-blue-600);
+}
 .iu-tel-office-list button{
   justify-self:end;
   height:auto;

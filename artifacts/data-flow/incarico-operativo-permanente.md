@@ -1,8 +1,50 @@
 # Incarico operativo permanente: dati, tenant, React e topbar
 
-Ultimo aggiornamento: 2026-06-16.
+Ultimo aggiornamento: 2026-06-17.
 
 Questo file va riletto dopo ogni compattazione insieme ad `AGENTS.md` prima di riprendere lavori su IUSENTRA. L'incarico dell'utente non riguarda un singolo pulsante: riguarda la chiusura dell'applicativo come sistema unico, con dati coerenti, route full React, tenant corretto e controlli reali.
+
+## Incarico permanente deposito telematico e relata
+
+Questa parte non va più ricostruita dalla chat. Dopo ogni compattazione, quando si riprende deposito, PEC, firma digitale, Local Signer, certificati PST, scheduler, relata o prova notifica, l'obiettivo operativo è uno solo: chiudere il flusso reale, verificabile documento per documento, senza regressioni e senza dichiarare verde ciò che non è stato visto sulla macchina reale o sul server reale richiesto.
+
+Regola di metodo:
+
+1. per difetti visibili si corregge prima il comportamento nella vista reale indicata dall'utente;
+2. solo dopo una prova reale positiva si consolidano test, documentazione, commit, push, deploy e igiene;
+3. se il problema nasce su produzione, si verifica prima su `https://app.iusentra.it`, poi si riporta lo stesso codice in locale;
+4. alla fine server, locale e GitHub devono puntare allo stesso commit, con Docker locale healthy su `127.0.0.1:8080` e Hetzner healthy su `https://app.iusentra.it/api/pronto`.
+
+Il deposito deve funzionare in tutti i percorsi di nascita della pratica:
+
+1. preventivo accettato, conferimento incarico, fascicolo;
+2. nuovo fascicolo diretto;
+3. fascicolo veloce o autonomo.
+
+In tutti e tre i casi il software deve costruire e salvare in SQL il `profilo_deposito` con canale riconosciuto, regole canale, codice deposito/codice oggetto, ufficio giudiziario, PEC verificata, certificato `.cer` quando richiesto dal PCT/SIGP/Cassazione e motivi puntuali se qualcosa manca. Il dato non deve restare solo nel JSON: le colonne dedicate `profilo_deposito_json` di `preventivi_records`, `conferimenti_records` e `fascicoli` sono parte del contratto, con parità SQLite/PostgreSQL.
+
+Per la firma digitale vale una regola assoluta: la UI può mostrare `Firmato` solo se esiste una prova tecnica reale. Per CAdES il file normalmente diventa `.pdf.p7m` o comunque contenitore PKCS#7 verificabile; per PAdES il PDF può restare `.pdf`, ma deve contenere una firma interna verificabile. Il software non deve mai scrivere `Firmato digitale` perché trova la parola "Firmato" nel testo, nel nome del file o in un flag storico.
+
+`Invia deposito reale` deve restare disabilitato solo per un requisito obbligatorio effettivamente mancante. Se prova senza invio, firme salvate, indice visualizzabile, PEC destinatario verificata, corpo PEC controllato, busta/trasporto conforme, certificato `.cer` richiesto presente, `Atto.enc` richiesto generato e PEC mittente/SMTP disponibili risultano tutti corretti, il bottone deve attivarsi. Se resta disabilitato, la UI deve indicare esattamente il requisito bloccante; se non lo indica, è una regressione.
+
+Regola permanente invio PEC: per depositi, notifiche legali e verifiche operative PEC il server non è mai il canale SMTP reale. Il comportamento corretto è quello dichiarato in `/impostazioni?tab=pec`, sezione `Verifiche PEC`: `Il controllo dell'invio parte dal PC in uso: la password resta sul dispositivo locale.` Quindi anche quando IUSENTRA gira su `https://app.iusentra.it`, il server prepara e verifica busta, destinatario, oggetto, corpo PEC, allegato `Atto.enc` e ricevute, ma l'invio effettivo parte dal PC dell'avvocato tramite Local Signer/servizio locale. Qualunque variabile, rotta legacy o scorciatoia che abiliti SMTP server-side per un invio legale è da trattare come regressione.
+
+La prova reale del deposito deve coprire almeno:
+
+- apertura React, senza fallback legacy e senza HTML grezzo visibile;
+- fascicolo reale indicato dall'utente quando presente, in particolare `E5AE4668` su server e `DC5BF1DB` in locale finché restano i casi di prova;
+- codice deposito/codice oggetto, ufficio, PEC e certificato;
+- lista documenti, ruoli, selezione `Da firmare` solo quando serve e firma multipla con PIN digitato al momento, senza salvare il PIN;
+- `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF` davvero visualizzabile, corpo PEC visibile e modificabile facoltativamente;
+- simulazione PEC e prova senza invio reale, con barra avanzamento e nome del documento in lavorazione;
+- click o dry-run controllato di `Invia deposito reale` senza sorprese sulle rotte, sul destinatario PEC, sul mittente, sull'SMTP usato dal software e sul presidio ricevute;
+- scroll completo e controllo desktop/tablet/mobile quando la UI cambia.
+
+Stato da non dimenticare: al 2026-06-17 la cache certificati PST locale risulta coperta sul perimetro operativo corrente (`593/593` codici ministeriali che richiedono `.cer/Atto.enc`; `913` `.cer` fisici DER validi; `0` invalidi). Quindi Palmi e Vicenza non devono più essere trattati come mancanze globali se la cache corrente è presente. Un blocco residuo deve riferirsi al singolo requisito reale mancante, per esempio `Atto.enc`, PEC mittente, firma obbligatoria, destinatario non verificato o canale non abilitato.
+
+Stato aggiornato: il difetto dell'area PDF bianca su `IndiceDocumentiDepositati.PDF` è stato corretto riallineando la locale al comportamento già funzionante sul server, cioè anteprima con URL diretto e viewer PDF del browser. Prova reale locale eseguita su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta`: il modal mostra titolo, toolbar PDF, miniatura, pagina `1/1` e contenuto `Indice documenti depositati`. Screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-dc5bf1db-indice-pdf-diretto-225356.png`.
+
+La relata/prova notifica è un flusso collegato ma distinto dal deposito. Si chiude solo dopo testo reale visualizzato, dati obbligatori verificati, fonti normative ufficiali confrontate, firma della relata quando richiesta, prova senza invio reale, documenti collegati nel fascicolo e nessun click che apra per errore la guida firma al posto della funzione operativa.
 
 ## Obiettivo
 
@@ -169,11 +211,22 @@ Aggiornamento 2026-06-17 per deposito/preventivo/conferimento/fascicolo:
 
 Matrice permanente canali deposito e fonti ufficiali, da non perdere dopo compattazioni:
 
-- `PCT/SICID`, `PCT lavoro/SICID`, `PCT/SIECIC` e `SIGP/Giudice di Pace`: fonte Ministero della Giustizia/PST, DM 44/2011 art. 34 e specifiche tecniche DGSIA 7 agosto 2024 efficaci dal 30 settembre 2024. Il software deve risolvere codice oggetto PST, ufficio, PEC ufficiale, documenti, firme richieste, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `Atto.msg` e `Atto.enc` AES256. Il certificato `.cer` PST dell'ufficio è requisito del trasporto solo per questi canali/uffici quando generano `Atto.enc`. Il job `pst_certificati_cifratura_weekly` aggiorna questa cache tecnica condivisa e deve saltare uffici senza certificato pubblicato o non operativi senza far fallire gli altri certificati; il singolo deposito resta invece bloccato se il proprio ufficio richiede `.cer` e il certificato non è verificato.
-- `PDP penale`: fonte PST/Ministero della Giustizia, Decreto Ministero Giustizia 4 luglio 2023 e specifiche tecniche Portale Deposito atti Penali efficaci dal 20 luglio 2023. Non usa `DatiAtto.xml` civile, non usa `Atto.enc` PCT e non deve ereditare il `.cer` PST civile. Il software deve preparare atto e allegati secondo formato/firma richiesti, guidare o importare il deposito dal portale PDP e salvare ricevute/esiti nel fascicolo.
-- `PAT/SIGA amministrativo`: fonte Giustizia Amministrativa, regole tecnico-operative PAT e modifica 2025/2026. Dal 1 febbraio 2026 il deposito tramite Formweb è canale prioritario; la PEC è residuale solo per comprovate ragioni tecniche o casi previsti. Non usa `.cer` PST civile né `Atto.enc` PCT. Il software deve preparare modulo/atto, allegati, firme PAdES quando richieste, checklist PAT, upload assistito Formweb e import ricevute.
-- `PTT/SIGIT tributario`: fonte MEF/Dipartimento della Giustizia Tributaria e Gazzetta Ufficiale, specifiche tecniche PTT 6 novembre 2020 e modifiche 21 aprile 2023. Non usa `.cer` PST civile né `DatiAtto.xml` PCT. Il software deve controllare PDF/A quando richiesto, firma digitale, limiti file, upload SIGIT e import ricevute/esiti.
-- `UNEP`, notifiche PEC e PEC stragiudiziale: sono canali diversi dal deposito PCT. Devono avere relata/testo, destinatari, domicilio digitale, firme e ricevute governati dal flusso notifiche/PEC; non possono essere dichiarati deposito valido e non devono attivare `Atto.enc` salvo una regola specifica futura documentata.
+- `PCT/SICID`, `PCT lavoro/SICID`, `PCT/SIECIC`, `SIGP/Giudice di Pace` e Cassazione civile/PST quando usa busta ministeriale: fonte Ministero della Giustizia/PST, DM 44/2011 art. 34 e specifiche tecniche DGSIA 7 agosto 2024 efficaci dal 30 settembre 2024. Il software deve risolvere codice oggetto PST, ufficio, PEC ufficiale, documenti, firme richieste, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `Atto.msg` e `Atto.enc` AES256. Il certificato `.cer` PST dell'ufficio è requisito del trasporto solo per questi canali/uffici quando generano `Atto.enc`. Limite busta PCT corrente: `60 MB`. Il job `pst_certificati_cifratura_weekly` aggiorna questa cache tecnica condivisa e deve saltare uffici non pertinenti, storici o non operativi senza far fallire gli altri certificati; il singolo deposito resta invece bloccato se il proprio ufficio richiede `.cer` e il certificato non è verificato.
+- `PDP penale`: fonte PST/Ministero della Giustizia, Decreto Ministero Giustizia 4 luglio 2023 e specifiche tecniche Portale Deposito atti Penali efficaci dal 20 luglio 2023. Non usa `DatiAtto.xml` civile, non usa `Atto.enc` PCT e non deve ereditare il `.cer` PST civile. Il software deve preparare atto e allegati secondo formato/firma richiesti, guidare o importare il deposito dal portale PDP e salvare ricevute/esiti nel fascicolo. Limiti PDP da presidiare: `50 MB` per singolo file, `500 MB` per deposito complessivo.
+- `PAT/SIGA amministrativo`: fonte Giustizia Amministrativa, regole tecnico-operative PAT e modifica 2025/2026. Dal 1 febbraio 2026 il deposito tramite Formweb è canale prioritario; la PEC è residuale solo per comprovate ragioni tecniche o casi previsti. Non usa `.cer` PST civile né `Atto.enc` PCT. Il software deve preparare modulo/atto, allegati, firme PAdES quando richieste, checklist PAT, upload assistito Formweb e import ricevute. Limiti Formweb da presidiare: massimo `50` file, `300 MB` per singolo file e `300 MB` complessivi.
+- `PTT/SIGIT tributario`: fonte MEF/Dipartimento della Giustizia Tributaria e Gazzetta Ufficiale, specifiche tecniche PTT 6 novembre 2020 e modifiche 21 aprile 2023. Non usa `.cer` PST civile né `DatiAtto.xml` PCT. Il software deve controllare PDF/A quando richiesto, firma digitale, limite `50 MB` per singolo file, upload SIGIT e import ricevute/esiti.
+- `UNEP`, notifiche PEC e PEC stragiudiziale: sono canali diversi dal deposito PCT del fascicolo. Devono avere relata/testo, destinatari, domicilio digitale, firme e ricevute governati dal flusso notifiche/PEC; non possono essere dichiarati deposito valido e non devono attivare `Atto.enc` nel flusso `Prepara deposito` salvo una regola futura documentata come canale autonomo.
+
+Regola permanente certificati PST `.cer` e conteggi, da non perdere dopo compattazioni:
+
+- il numero da usare per dire se il deposito PCT/SIGP/Cassazione è coperto non è il totale dei `.cer` fisici in cache, ma il perimetro dei codici ministeriali attivi che richiedono certificato per `Atto.enc`;
+- controllo corrente locale: cache fisica `D:\legale\IUSENTRA\data\pst\certificati_cifratura`, `913` file `.cer`, `913` certificati DER validi, `0` invalidi;
+- perimetro operativo corrente: `593` codici ministeriali unici che richiedono `.cer/Atto.enc`, `593/593` coperti, `0` mancanti;
+- `/tribunali` può mostrare più righe ufficio rispetto ai codici unici perché alcuni uffici/alias condividono lo stesso codice ministeriale e lo stesso certificato; il controllo decisivo resta sul codice ministeriale unico;
+- i metadati ministeriali importati da `C:\QuickOrganizer\ListaUfficiGiudiziari.xml` e `C:\QuickOrganizer\QC_Uffici.xml` alimentano `pct/data/uffici_ministero.json` e `pct/data/uffici_ministero_extra.json`;
+- il downloader deve usare anche il recupero diretto PST per codice ministeriale e nome ufficio quando il XML ministeriale non espone `nomeCertificatoCifra`; caso provato: `Giudice di Pace - Palmi`, codice ministeriale `0800570152`;
+- la certezza operativa corretta è: sul catalogo corrente controllato i target sono tutti coperti; se il Ministero cambia catalogo o aggiunge un ufficio, il job settimanale deve scaricare/validare il nuovo `.cer`; se un singolo fascicolo richiede `.cer` e quel certificato manca o non è valido, `Invia deposito reale` deve restare bloccato con motivo puntuale e non registrare il deposito come valido;
+- report tecnico: `data/pst/certificati_cifratura/audit_certificati_cifratura_pst.json`, con `ok=true`, `catalogo_pct_operativi=593`, `scaricati_o_validi=593`, `saltati_senza_certificato_pubblicato=0`, `errori=0`, `cache_cer_presenti=913`.
 
 Il comando operativo è:
 

@@ -13,8 +13,10 @@ import os
 import re
 import ssl
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.error import HTTPError, URLError
@@ -29,11 +31,16 @@ from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.serialization import Encoding, pkcs7
 from cryptography.x509.oid import NameOID
 
+from .pst_catalog import PST_MAX_BUSTA_MB
+
 PST_BASE_URL = "https://servizipst.giustizia.it"
 PST_USER_AGENT = "IUSENTRA/2.0 (+https://app.iusentra.it)"
 PST_DOWNLOAD_TIMEOUT_SECONDS = 25
 PST_CERTIFICATI_CACHE_ENV = "PCT_CERTIFICATI_CIFRATURA_DIR"
+PST_CERTIFICATI_WORKERS_ENV = "PCT_PST_CERTIFICATI_CIFRATURA_WORKERS"
 PST_UFFICI_CATALOG_PATH = Path(__file__).resolve().parent / "data" / "uffici_pst_pubblici.json"
+PST_UFFICI_MINISTERO_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero.json"
+PST_UFFICI_MINISTERO_EXTRA_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero_extra.json"
 PST_TLS_INTERMEDIATES: tuple[dict[str, str], ...] = (
     {
         "url": "http://tiTrust.crt.sectigo.com/TITrustTechnologiesOVCA.crt",
@@ -48,7 +55,7 @@ CANALI_TELEMATICI_CIFRATURA_POLICY: dict[str, dict[str, Any]] = {
         "trasporto": "Atto.msg cifrato in Atto.enc AES256 con certificato pubblico PST dell'ufficio",
         "formati": ["PDF", "PDF firmato PAdES", "PDF.p7m CAdES", "DatiAtto.xml", "IndiceDocumentiDepositati.PDF"],
         "firma": "Atto principale firmato digitalmente; allegati firmabili ove richiesto.",
-        "limite_dimensione_mb": 30,
+        "limite_dimensione_mb": PST_MAX_BUSTA_MB,
         "controlli_software": [
             "risoluzione PEC ufficio dal catalogo PST",
             "recupero e validazione .cer pubblico dell'ufficio",
@@ -65,7 +72,8 @@ CANALI_TELEMATICI_CIFRATURA_POLICY: dict[str, dict[str, Any]] = {
         "trasporto": "Deposito tramite servizio PDP, non invio PEC PCT con Atto.enc generato dallo studio",
         "formati": ["PDF A4 da testo", "PDF firmato digitalmente", "allegati PDF A4"],
         "firma": "Atto principale sottoscritto con firma digitale; allegati firmati nei casi previsti.",
-        "limite_dimensione_mb": None,
+        "limite_dimensione_mb": 500,
+        "limite_singolo_file_mb": 50,
         "controlli_software": [
             "non usare .cer PST e non generare Atto.enc PCT",
             "verificare PDF A4 e provenienza da documento testuale dove richiesto",
@@ -99,7 +107,7 @@ CANALI_TELEMATICI_CIFRATURA_POLICY: dict[str, dict[str, Any]] = {
         "trasporto": "Deposito guidato sul PTT/SIGIT con specifiche MEF proprie",
         "formati": ["PDF/A-1a", "PDF/A-1b"],
         "firma": "Atti e documenti firmati digitalmente secondo le specifiche PTT/SIGIT.",
-        "limite_dimensione_mb": None,
+        "limite_singolo_file_mb": 50,
         "controlli_software": [
             "non usare .cer PST e non generare Atto.enc PCT",
             "verificare PDF/A-1a o PDF/A-1b per atti processuali",
@@ -166,8 +174,11 @@ def certificati_cifratura_cache_dir() -> Path:
     for candidate in (os.getenv("IUSENTRA_RUNTIME_DIR"), os.getenv("PCT_DATA_DIR")):
         if candidate:
             return (Path(candidate).expanduser().resolve() / "pst" / "certificati_cifratura")
-    if Path("/data").exists():
+    if os.name != "nt" and Path("/data").exists():
         return Path("/data/pst/certificati_cifratura").resolve()
+    project_cache = Path(__file__).resolve().parents[1] / "data" / "pst" / "certificati_cifratura"
+    if project_cache.exists():
+        return project_cache.resolve()
     return (Path(tempfile.gettempdir()) / "iusentra" / "pst" / "certificati_cifratura").resolve()
 
 
@@ -254,6 +265,71 @@ def carica_certificato_cifratura(path: str | Path) -> x509.Certificate:
     return cert
 
 
+def certificato_cifratura_in_cache(
+    codice_ufficio: str,
+    *,
+    cache_dir: str | Path | None = None,
+) -> CertificatoCifratura | None:
+    """Restituisce il certificato gia' presente in cache senza interrogare il PST."""
+
+    codice = _codice_certificato_download(str(codice_ufficio or "").strip())
+    if not codice:
+        return None
+    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    cert_path = target_dir / f"{_safe_code(codice)}.cer"
+    meta_path = target_dir / f"{_safe_code(codice)}.json"
+    if not cert_path.exists():
+        return None
+    payload = cert_path.read_bytes()
+    cert = _load_cert(payload)
+    _validate_cert(cert, codice_ufficio=codice)
+    source_url = "cache locale"
+    if meta_path.exists():
+        try:
+            source_url = str(json.loads(meta_path.read_text(encoding="utf-8")).get("source_url") or source_url)
+        except Exception:
+            source_url = "cache locale"
+    return _cert_info(
+        codice_ufficio=codice,
+        path=cert_path,
+        payload=payload,
+        cert=cert,
+        source_url=source_url,
+    )
+
+
+def salva_certificato_cifratura_ufficio(
+    codice_ufficio: str,
+    payload: bytes,
+    *,
+    source_url: str = "",
+    cache_dir: str | Path | None = None,
+) -> CertificatoCifratura:
+    """Valida e salva un certificato PST ottenuto da un canale ministeriale autenticato."""
+
+    codice = str(codice_ufficio or "").strip()
+    if not codice:
+        raise PSTCifraturaError("Codice ufficio mancante per il certificato PST.")
+    if not payload:
+        raise PSTCifraturaError("Certificato PST vuoto.")
+    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    cert_path = target_dir / f"{_safe_code(codice)}.cer"
+    meta_path = target_dir / f"{_safe_code(codice)}.json"
+    cert = _load_cert(payload)
+    _validate_cert(cert, codice_ufficio=codice)
+    cert_path.write_bytes(payload)
+    info = _cert_info(
+        codice_ufficio=codice,
+        path=cert_path,
+        payload=payload,
+        cert=cert,
+        source_url=source_url or "CatalogoServizi.getCertificato",
+    )
+    meta_path.write_text(json.dumps(asdict(info), ensure_ascii=False, indent=2), encoding="utf-8")
+    return info
+
+
 def _request_bytes(url: str, *, timeout: int = PST_DOWNLOAD_TIMEOUT_SECONDS) -> bytes:
     request = Request(url, headers={"User-Agent": PST_USER_AGENT})
     try:
@@ -324,6 +400,60 @@ def _catalog_sections() -> Iterable[tuple[str, list[dict[str, Any]]]]:
     return sections
 
 
+def _iter_ministero_cert_records() -> Iterable[tuple[str, dict[str, Any]]]:
+    for path in (PST_UFFICI_MINISTERO_PATH, PST_UFFICI_MINISTERO_EXTRA_PATH):
+        if not path.exists():
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        rows = raw.get("uffici", {}) if isinstance(raw, dict) else {}
+        if isinstance(rows, dict):
+            for internal_code, record in rows.items():
+                if isinstance(record, dict):
+                    yield str(internal_code), record
+        elif isinstance(rows, list):
+            for record in rows:
+                if isinstance(record, dict):
+                    yield "", record
+
+
+@lru_cache(maxsize=1)
+def _ministero_cert_catalog() -> dict[str, dict[str, Any]]:
+    catalog: dict[str, dict[str, Any]] = {}
+    for internal_code, record in _iter_ministero_cert_records():
+        codice_ministero = str(record.get("codice_ministero") or record.get("codice") or "").strip()
+        if not codice_ministero:
+            continue
+        item = {
+            "codice_download": codice_ministero,
+            "codice_interno": internal_code,
+            "descrizione": str(record.get("descrizione_ministero") or record.get("nome") or "").strip(),
+            "tipo_ministero": str(record.get("tipo_ministero") or "").strip(),
+            "tipo_descrizione": str(record.get("tipo_ministero_descrizione") or "").strip(),
+            "comune": str(record.get("comune_ministero") or "").strip(),
+            "nome_certificato_cifra": str(record.get("nome_certificato_cifra") or "").strip(),
+            "certificato_mimetype": str(record.get("certificato_mimetype") or "application/octet-stream").strip()
+            or "application/octet-stream",
+            "servizi_ministero": list(record.get("servizi_ministero") or []),
+        }
+        catalog[codice_ministero] = item
+        if internal_code:
+            catalog[internal_code] = item
+    return catalog
+
+
+def _cert_catalog_record(codice_ufficio: str) -> dict[str, Any]:
+    return dict(_ministero_cert_catalog().get(str(codice_ufficio or "").strip()) or {})
+
+
+def _codice_certificato_download(codice_ufficio: str) -> str:
+    codice = str(codice_ufficio or "").strip()
+    record = _cert_catalog_record(codice)
+    return str(record.get("codice_download") or codice).strip()
+
+
 def iter_uffici_pst_catalogo() -> Iterable[dict[str, Any]]:
     for sezione, rows in _catalog_sections():
         for row in rows:
@@ -340,7 +470,87 @@ def _ufficio_richiede_certificato_pct(row: dict[str, Any]) -> bool:
     if row.get("deposito_prudenziale") is False:
         return False
     stato = str(row.get("stato_prudenziale") or "").strip().lower()
-    return stato != "storico_o_non_operativo"
+    if stato == "storico_o_non_operativo":
+        return False
+    codice = str(row.get("codice_ufficio") or "").strip()
+    record = _cert_catalog_record(codice)
+    if record and record.get("tipo_ministero"):
+        return _ministero_record_richiede_certificato(record)
+    descrizione = str(row.get("descrizione") or "").strip().upper()
+    if any(marker in descrizione for marker in ("EX GIUD", "NON ATTIVO", "EX SD", "SEZIONE DISTACCATA")):
+        return False
+    if any(marker in descrizione for marker in ("UNEP", "PROCURA", "SORVEGLIANZA", "CORTE D'ASSISE")):
+        return False
+    return any(
+        marker in descrizione
+        for marker in (
+            "GIUDICE DI PACE",
+            "TRIBUNALE ORDINARIO",
+            "TRIBUNALE DI ",
+            "CORTE D'APPELLO",
+            "CASSAZIONE",
+        )
+    )
+
+
+def _ministero_record_richiede_certificato(record: dict[str, Any]) -> bool:
+    tipo = str(record.get("tipo_ministero") or record.get("tipo") or "").strip().upper()
+    tipo_interno = str(record.get("tipo") or "").strip().upper()
+    descrizione = str(record.get("descrizione_ministero") or record.get("descrizione") or record.get("nome") or "").upper()
+    if any(marker in descrizione for marker in ("EX GIUD", "NON ATTIVO", "EX SD", "SEZIONE DISTACCATA")):
+        return False
+    if tipo not in {"CA", "OR", "SC", "TM", "GP", "CC"} and tipo_interno not in {
+        "TRIBUNALE",
+        "CORTE_APPELLO",
+        "CORTE_CASSAZIONE",
+        "TM",
+        "GDP",
+    }:
+        return False
+    servizi = {
+        str(servizio or "").strip().upper()
+        for servizio in (record.get("servizi_ministero") or [])
+        if str(servizio or "").strip()
+    }
+    return any(servizio.startswith("JPW_") for servizio in servizi)
+
+
+def _iter_ministero_cert_target_rows() -> Iterable[dict[str, Any]]:
+    """Righe certificate da ListaUfficiGiudiziari.xml usate dal job .cer."""
+
+    for internal_code, record in _iter_ministero_cert_records():
+        if not _ministero_record_richiede_certificato(record):
+            continue
+        codice = str(record.get("codice_ministero") or record.get("codice") or "").strip()
+        if not codice:
+            continue
+        yield {
+            "codice_ufficio": codice,
+            "codice_interno": str(internal_code or "").strip(),
+            "descrizione": str(record.get("descrizione_ministero") or record.get("nome") or "").strip(),
+            "sezione_catalogo": "civili",
+            "stato_prudenziale": "pst_visibile",
+            "deposito_prudenziale": True,
+            "fonte_catalogo": "ListaUfficiGiudiziari.xml",
+        }
+
+
+def _iter_certificati_cifratura_target_rows() -> Iterable[dict[str, Any]]:
+    seen: set[str] = set()
+    for row in iter_uffici_pst_catalogo():
+        codice = str(row.get("codice_ufficio") or "").strip()
+        if not codice or not _ufficio_richiede_certificato_pct(row):
+            continue
+        if codice in seen:
+            continue
+        seen.add(codice)
+        yield row
+    for row in _iter_ministero_cert_target_rows():
+        codice = str(row.get("codice_ufficio") or "").strip()
+        if not codice or codice in seen:
+            continue
+        seen.add(codice)
+        yield row
 
 
 def trova_ufficio_pst(codice_ufficio: str) -> dict[str, Any] | None:
@@ -366,6 +576,73 @@ def _detail_url_for_office(codice_ufficio: str) -> str:
     )
 
 
+def _download_url_from_filename(
+    codice_ufficio: str,
+    filename: str,
+    *,
+    mimetype: str = "application/octet-stream",
+) -> str:
+    return (
+        f"{PST_BASE_URL}/PST/do/ufficiepda/uffici/ricerca/download.action"
+        f"?codiceUfficio={quote(str(codice_ufficio))}"
+        f"&fileName={quote(str(filename))}"
+        f"&mimetype={quote(str(mimetype or 'application/octet-stream'), safe='/')}"
+    )
+
+
+def _candidate_cert_filenames(codice_ufficio: str) -> list[str]:
+    codice = str(codice_ufficio or "").strip()
+    record = _cert_catalog_record(codice)
+    download_code = str(record.get("codice_download") or codice).strip()
+    labels = [
+        str(record.get("nome_certificato_cifra") or "").strip(),
+        str(record.get("descrizione") or "").strip(),
+    ]
+    tipo = str(record.get("tipo_ministero") or "").strip().upper()
+    comune = str(record.get("comune") or "").strip()
+    if tipo == "GP" and comune:
+        labels.extend(
+            [
+                f"Giudice di Pace - {comune}",
+                f"Ufficio del Giudice di Pace - {comune}",
+            ]
+        )
+    if tipo == "OR" and comune:
+        labels.append(f"Tribunale Ordinario - {comune}")
+    out: list[str] = []
+    for label in labels:
+        if not label:
+            continue
+        filename = label if label.lower().endswith(".cer") else f"{download_code}_{label}.cer"
+        if filename not in out:
+            out.append(filename)
+    return out
+
+
+def _scarica_certificato_da_nome_catalogo(
+    codice_ufficio: str,
+    *,
+    cache_dir: str | Path,
+) -> CertificatoCifratura | None:
+    codice = _codice_certificato_download(codice_ufficio)
+    record = _cert_catalog_record(codice_ufficio) or _cert_catalog_record(codice)
+    mimetype = str(record.get("certificato_mimetype") or "application/octet-stream").strip()
+    for filename in _candidate_cert_filenames(codice):
+        download_url = _download_url_from_filename(codice, filename, mimetype=mimetype)
+        try:
+            payload = _request_bytes(download_url)
+            return salva_certificato_cifratura_ufficio(
+                codice,
+                payload,
+                source_url=download_url,
+                cache_dir=cache_dir,
+            )
+        except Exception as exc:
+            _ = exc
+            continue
+    return None
+
+
 def _download_url_from_detail(detail_html: str, *, detail_url: str, codice_ufficio: str) -> str:
     body = html.unescape(detail_html)
     patterns = [
@@ -385,13 +662,56 @@ def _is_certificato_non_pubblicato(exc: Exception) -> bool:
     return "Certificato di cifratura PST non trovato" in str(exc)
 
 
+def _cache_cer_count(cache_dir: str | Path | None = None) -> int:
+    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    try:
+        return sum(1 for path in target_dir.glob("*.cer") if path.is_file())
+    except OSError:
+        return 0
+
+
+def _eligible_pct_cert_codes() -> set[str]:
+    return {
+        str(row.get("codice_ufficio") or "").strip()
+        for row in _iter_certificati_cifratura_target_rows()
+        if str(row.get("codice_ufficio") or "").strip()
+    }
+
+
+def _precarico_workers(max_workers: int | None = None) -> int:
+    if max_workers is not None:
+        return max(1, min(int(max_workers), 12))
+    raw = os.getenv(PST_CERTIFICATI_WORKERS_ENV, "").strip()
+    if raw:
+        try:
+            return max(1, min(int(raw), 12))
+        except ValueError:
+            return 6
+    return 6
+
+
+def report_path_certificati_mirato(
+    codici_ufficio: Iterable[str],
+    *,
+    cache_dir: str | Path | None = None,
+) -> Path:
+    """Report separato per controlli puntuali: non sovrascrive l'audit completo."""
+
+    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    codes = sorted({_safe_code(code) for code in codici_ufficio if str(code or "").strip()})
+    suffix = "_".join(codes[:4]) or "ufficio"
+    if len(codes) > 4:
+        suffix = f"{suffix}_piu_{len(codes) - 4}"
+    return target_dir / f"audit_certificati_cifratura_pst_mirato_{suffix}.json"
+
+
 def scarica_certificato_cifratura_ufficio(
     codice_ufficio: str,
     *,
     cache_dir: str | Path | None = None,
     force_refresh: bool = False,
 ) -> CertificatoCifratura:
-    codice = str(codice_ufficio or "").strip()
+    codice = _codice_certificato_download(str(codice_ufficio or "").strip())
     if not codice:
         raise PSTCifraturaError("Codice ufficio mancante per il certificato PST.")
     target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
@@ -400,39 +720,24 @@ def scarica_certificato_cifratura_ufficio(
     meta_path = target_dir / f"{_safe_code(codice)}.json"
 
     if cert_path.exists() and not force_refresh:
-        payload = cert_path.read_bytes()
-        cert = _load_cert(payload)
-        _validate_cert(cert, codice_ufficio=codice)
-        source_url = ""
-        if meta_path.exists():
-            try:
-                source_url = str(json.loads(meta_path.read_text(encoding="utf-8")).get("source_url") or "")
-            except Exception:
-                source_url = ""
-        return _cert_info(
-            codice_ufficio=codice,
-            path=cert_path,
-            payload=payload,
-            cert=cert,
-            source_url=source_url or "cache locale",
-        )
+        cached = certificato_cifratura_in_cache(codice, cache_dir=target_dir)
+        if cached:
+            return cached
+
+    direct = _scarica_certificato_da_nome_catalogo(codice, cache_dir=target_dir)
+    if direct:
+        return direct
 
     detail_url = _detail_url_for_office(codice)
     detail_html = _request_bytes(_quote_url(detail_url)).decode("utf-8", errors="replace")
     download_url = _download_url_from_detail(detail_html, detail_url=detail_url, codice_ufficio=codice)
     payload = _request_bytes(download_url)
-    cert = _load_cert(payload)
-    _validate_cert(cert, codice_ufficio=codice)
-    cert_path.write_bytes(payload)
-    info = _cert_info(
-        codice_ufficio=codice,
-        path=cert_path,
-        payload=payload,
-        cert=cert,
+    return salva_certificato_cifratura_ufficio(
+        codice,
+        payload,
         source_url=download_url,
+        cache_dir=target_dir,
     )
-    meta_path.write_text(json.dumps(asdict(info), ensure_ascii=False, indent=2), encoding="utf-8")
-    return info
 
 
 def risolvi_certificato_cifratura_ufficio(
@@ -515,6 +820,7 @@ def precarica_certificati_cifratura(
     limit: int | None = None,
     force_refresh: bool = False,
     codici_ufficio: Iterable[str] | None = None,
+    max_workers: int | None = None,
 ) -> dict[str, Any]:
     risultati: list[dict[str, Any]] = []
     ok = 0
@@ -524,6 +830,9 @@ def precarica_certificati_cifratura(
     started = datetime.now(ROME_TZ)
     verificati = 0
     target_codes = {str(code).strip() for code in (codici_ufficio or []) if str(code).strip()}
+    eligible_codes = _eligible_pct_cert_codes()
+    rows_to_check: list[dict[str, Any]] = []
+    seen_to_check: set[str] = set()
     for row in iter_uffici_pst_catalogo():
         codice = str(row.get("codice_ufficio") or "").strip()
         if not codice:
@@ -536,45 +845,77 @@ def precarica_certificati_cifratura(
         verificati += 1
         if limit is not None and verificati > limit:
             break
+        rows_to_check.append(dict(row))
+        seen_to_check.add(codice)
+    if limit is None or verificati <= limit:
+        for row in _iter_ministero_cert_target_rows():
+            codice = str(row.get("codice_ufficio") or "").strip()
+            codice_interno = str(row.get("codice_interno") or "").strip()
+            if not codice or codice in seen_to_check:
+                continue
+            if target_codes and codice not in target_codes and codice_interno not in target_codes:
+                continue
+            if not target_codes:
+                verificati += 1
+            if limit is not None and verificati > limit:
+                break
+            rows_to_check.append(dict(row))
+            seen_to_check.add(codice)
+
+    def _controlla(row: dict[str, Any]) -> dict[str, Any]:
+        codice = str(row.get("codice_ufficio") or "").strip()
         try:
             info = risolvi_certificato_cifratura_ufficio(
                 codice,
                 cache_dir=cache_dir,
                 force_refresh=force_refresh,
             )
-            risultati.append(
-                {
-                    "codice_ufficio": codice,
-                    "descrizione": row.get("descrizione", ""),
-                    "ok": True,
-                    "certificato": asdict(info),
-                }
-            )
-            ok += 1
+            return {
+                "codice_ufficio": codice,
+                "descrizione": row.get("descrizione", ""),
+                "ok": True,
+                "certificato": asdict(info),
+            }
         except Exception as exc:
             if _is_certificato_non_pubblicato(exc):
-                risultati.append(
-                    {
-                        "codice_ufficio": codice,
-                        "descrizione": row.get("descrizione", ""),
-                        "ok": False,
-                        "saltato": True,
-                        "motivo": "certificato_cifratura_non_pubblicato",
-                        "errore": str(exc),
-                    }
-                )
-                saltati_senza_certificato += 1
-                continue
-            risultati.append(
-                {
+                return {
                     "codice_ufficio": codice,
                     "descrizione": row.get("descrizione", ""),
                     "ok": False,
+                    "saltato": True,
+                    "motivo": "certificato_cifratura_non_pubblicato",
                     "errore": str(exc),
                 }
-            )
+            return {
+                "codice_ufficio": codice,
+                "descrizione": row.get("descrizione", ""),
+                "ok": False,
+                "errore": str(exc),
+            }
+
+    workers = min(_precarico_workers(max_workers), max(1, len(rows_to_check)))
+    indexed_results: list[tuple[int, dict[str, Any]]] = []
+    if workers <= 1 or len(rows_to_check) <= 1:
+        indexed_results = [(index, _controlla(row)) for index, row in enumerate(rows_to_check)]
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            future_to_index = {
+                pool.submit(_controlla, row): index
+                for index, row in enumerate(rows_to_check)
+            }
+            for future in as_completed(future_to_index):
+                indexed_results.append((future_to_index[future], future.result()))
+
+    for _, result in sorted(indexed_results, key=lambda item: item[0]):
+        risultati.append(result)
+        if result.get("ok"):
+            ok += 1
+        elif result.get("motivo") == "certificato_cifratura_non_pubblicato":
+            saltati_senza_certificato += 1
+        else:
             errori += 1
     finished = datetime.now(ROME_TZ)
+    scope_mode = "mirato" if target_codes else "completo"
     return {
         "ok": errori == 0,
         "generated_at": finished.isoformat(),
@@ -582,6 +923,11 @@ def precarica_certificati_cifratura(
         "started_at": started.isoformat(),
         "finished_at": finished.isoformat(),
         "cache_dir": str(Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()),
+        "scope_mode": scope_mode,
+        "target_codes": sorted(target_codes),
+        "catalogo_pct_operativi": len(eligible_codes),
+        "cache_cer_presenti": _cache_cer_count(cache_dir),
+        "workers": workers,
         "channel_scope": canali_telematici_cifratura_policy(),
         "totale": len(risultati),
         "saltati_non_pct_o_non_operativi": saltati,
@@ -615,6 +961,7 @@ def esegui_controllo_settimanale_certificati_cifratura(
     force_refresh: bool = True,
     limit: int | None = None,
     codici_ufficio: Iterable[str] | None = None,
+    max_workers: int | None = None,
 ) -> dict[str, Any]:
     """Controlla e aggiorna i certificati PST ufficiali per tutti gli uffici in catalogo.
 
@@ -628,15 +975,24 @@ def esegui_controllo_settimanale_certificati_cifratura(
         limit=limit,
         force_refresh=force_refresh,
         codici_ufficio=codici_ufficio,
+        max_workers=max_workers,
     )
     report["job"] = "pst_certificati_cifratura_weekly"
     report["source_of_truth"] = "catalogo_pubblico_pst"
     report["tenant_scope"] = "cache_tecnica_condivisa_non_operativa"
     report["json_authoritative"] = False
+    effective_report_path = report_path
+    target_codes = [str(code).strip() for code in (codici_ufficio or []) if str(code).strip()]
+    if effective_report_path is None and target_codes:
+        effective_report_path = report_path_certificati_mirato(
+            target_codes,
+            cache_dir=cache_dir,
+        )
+        report["report_principale_preservato"] = str(certificati_cifratura_report_path(cache_dir))
     report["report_path"] = str(
         scrivi_report_certificati_cifratura(
             report,
-            report_path=report_path,
+            report_path=effective_report_path,
             cache_dir=cache_dir,
         )
     )

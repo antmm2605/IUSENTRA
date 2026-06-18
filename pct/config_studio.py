@@ -138,6 +138,7 @@ class ConfigPEC:
     imap_host: str = "imaps.pec.aruba.it"
     imap_port: int = 993
     use_ssl: bool = True
+    use_tls: bool = False
 
 
 @dataclass
@@ -464,7 +465,7 @@ class GestioneConfigStudio:
         if self._path.exists():
             try:
                 f = _fernet_instance()
-                raw = json.loads(self._path.read_text(encoding="utf-8"))
+                raw = json.loads(self._path.read_text(encoding="utf-8-sig"))
                 raw = _applica_cifratura(raw, f, cifra=False)
                 return ConfigStudio.from_dict(raw)
             except Exception:

@@ -568,7 +568,7 @@ class ClientPATDemo(ClientPAT):
                 "messaggi": [
                     "Firma digitale: valida (CAdES-BES o PAdES)",
                     "Formato file: PDF/A conforme",
-                    "Dimensione busta: entro i limiti (< 30 MB)",
+                    "Dimensione deposito: entro i limiti Formweb (50 file, 300 MB singolo e complessivo)",
                     "Codice fiscale avvocato: verificato",
                     "Tipo atto: coerente con il registro TAR",
                 ],

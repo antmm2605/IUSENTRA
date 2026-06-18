@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.74
+IUSENTRA Local Signer - v1.6.75
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -29,6 +29,7 @@ API:
     POST /firma                  → firma documento CAdES-BES
     POST /firma-batch            → firma più documenti con una sola sessione PIN
     POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
+    POST /pst/certificato-ufficio → scarica il .cer pubblico PST dell'ufficio
     POST /pst/ricerca            → ricerca fascicoli PST (curl mTLS Windows)
     POST /pst/documenti          → documenti fascicolo PST (curl mTLS Windows)
     POST /pst/fascicolo-snapshot → snapshot unico metadati/catalogo fascicolo PST
@@ -113,7 +114,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.74"
+VERSION = "1.6.75"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -458,6 +459,10 @@ def _tail_local_log(path: Path, *, max_bytes: int = _LOCAL_LOG_MAX_BYTES, lines:
 _PST_PORTALE_URL = "https://pst.giustizia.it"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
+_PST_CATALOGO_SERVIZI_URLS = (
+    f"{_PST_PROXY_SH_URL}/servizi/CatalogoServizi",
+    f"{_PST_PROXY_PDA_URL}/servizi/CatalogoServizi",
+)
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
 _PST_SIL_ENDPOINT_SERVIZI = ("JPW_SIL_DISTR", "JPW_SIL", "JPW_SILP_DISTR", "JPW_SILP")
 _PST_SICID_FAMILY_SERVIZI = (
@@ -5982,6 +5987,87 @@ def _strip_namespaces(root: ET.Element) -> ET.Element:
     return root
 
 
+def _soap_catalogo_certificato_body(codice_ufficio: str) -> str:
+    codice = str(codice_ufficio or "").strip()
+    if not codice:
+        raise RuntimeError("Codice ufficio obbligatorio per getCertificato.")
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:ser="http://www.giustizia.it/serviziTelematici/serviziGenerici">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <ser:getCertificato>
+      <codiceUfficio>{_esc(codice)}</codiceUfficio>
+    </ser:getCertificato>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+
+def _extract_catalogo_certificato_response(xml_payload: bytes | str) -> bytes:
+    text = xml_payload.decode("utf-8", "replace") if isinstance(xml_payload, bytes) else str(xml_payload or "")
+    try:
+        root = ET.fromstring(_normalizza_xml_pst(text))
+    except Exception as exc:
+        raise RuntimeError("Risposta CatalogoServizi non leggibile.") from exc
+    _strip_namespaces(root)
+    fault = _estrai_fault_soap(text)
+    if fault:
+        raise RuntimeError(f"CatalogoServizi ha restituito una SOAP Fault: {fault}")
+    candidates: list[str] = []
+    for element in root.iter():
+        tag = str(element.tag or "").lower()
+        if tag in {"return", "certificatocifra", "certificato"} and element.text:
+            candidates.append(element.text)
+    for candidate in candidates:
+        cleaned = re.sub(r"\s+", "", str(candidate or ""))
+        if not cleaned:
+            continue
+        try:
+            payload = base64.b64decode(cleaned, validate=True)
+        except Exception:
+            continue
+        if payload:
+            return payload
+    raise RuntimeError("CatalogoServizi non ha restituito un certificato .cer per l'ufficio richiesto.")
+
+
+def _pst_catalogo_certificato_ufficio(
+    codice_ufficio: str,
+    *,
+    cert_thumbprint: Optional[str] = None,
+) -> dict[str, Any]:
+    codice = str(codice_ufficio or "").strip()
+    if not codice:
+        raise RuntimeError("Campo 'codice_ufficio' obbligatorio.")
+    cert_thumbprint = _require_certificato_pst(cert_thumbprint)
+    body = _soap_catalogo_certificato_body(codice)
+    errors: list[str] = []
+    for url in _PST_CATALOGO_SERVIZI_URLS:
+        try:
+            response, _headers = _soap_call_curl_raw(
+                url,
+                body,
+                cert_thumbprint=cert_thumbprint,
+                soap_action="",
+                content_type="text/xml; charset=utf-8",
+                max_time=60,
+                connect_timeout=15,
+            )
+            payload = _extract_catalogo_certificato_response(response)
+            return {
+                "ok": True,
+                "codice_ufficio": codice,
+                "source_url": url,
+                "certificato_b64": base64.b64encode(payload).decode("ascii"),
+                "sha256": hashlib.sha256(payload).hexdigest().upper(),
+                "size": len(payload),
+            }
+        except Exception as exc:
+            errors.append(f"{url}: {exc}")
+            log.warning("CatalogoServizi getCertificato non riuscito su %s: %s", url, exc)
+    raise RuntimeError("Certificato PST non recuperato dal CatalogoServizi. " + " | ".join(errors[-2:]))
+
+
 def _soap_qbuilder_envelope(namespace: str, body_inner: str, *, role: str, group: str) -> str:
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -9060,6 +9146,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/ai/embed",
             "/update",
             "/pst/preflight-auth",
+            "/pst/certificato-ufficio",
             "/pst/ricerca",
             "/pst/ricerca-snapshot",
             "/pst/documenti",
@@ -9099,6 +9186,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._firma_batch()
         elif path == "/pst/preflight-auth":
             self._pst_preflight_auth()
+        elif path == "/pst/certificato-ufficio":
+            self._pst_certificato_ufficio()
         elif path == "/pst/ricerca":
             self._pst_ricerca()
         elif path == "/pst/ricerca-snapshot":
@@ -9940,6 +10029,37 @@ class _Handler(BaseHTTPRequestHandler):
             if session_cleanup_id:
                 _drop_pst_session(session_cleanup_id)
             log.error("Errore PST preflight auth: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pst_certificato_ufficio(self):
+        """
+        POST /pst/certificato-ufficio
+        Body: {codice_ufficio, cert_thumbprint?}
+        Response: {ok, codice_ufficio, certificato_b64, sha256, source_url}
+        """
+        if not _curl_disponibile():
+            self._send_json({
+                "ok": False,
+                "errore": (
+                    "curl non disponibile. "
+                    "Su Windows 10+ e' incluso in sistema. "
+                    "Verificare che sia nel PATH."
+                ),
+            }, 400)
+            return
+        data = self._read_json()
+        codice = str(data.get("codice_ufficio") or data.get("codiceUfficio") or "").strip()
+        if not codice:
+            self._send_json({"ok": False, "errore": "Campo 'codice_ufficio' obbligatorio."}, 400)
+            return
+        try:
+            payload = _pst_catalogo_certificato_ufficio(
+                codice,
+                cert_thumbprint=data.get("cert_thumbprint") or data.get("certificato_windows_thumbprint"),
+            )
+            self._send_json(payload)
+        except Exception as e:
+            log.error("Certificato PST ufficio non recuperato %s: %s", codice, e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pst_ricerca(self):

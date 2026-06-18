@@ -39,6 +39,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Esce con codice 2 se anche un solo certificato non viene verificato.",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help="Numero di download paralleli PST per il precarico massivo.",
+    )
     args = parser.parse_args(argv)
 
     report = esegui_controllo_settimanale_certificati_cifratura(
@@ -47,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
         force_refresh=not args.no_force_refresh,
         limit=args.limit or None,
         codici_ufficio=args.codice_ufficio or None,
+        max_workers=args.workers or None,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     if args.strict and not report.get("ok"):

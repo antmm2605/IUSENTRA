@@ -147,6 +147,8 @@ def _uffici_hash(uffici: list[dict]) -> str:
             "codice_ministero": u.get("codice_ministero", ""),
             "codice_gl": u.get("codice_gl", ""),
             "servizio_pst_predefinito": u.get("servizio_pst_predefinito", ""),
+            "nome_certificato_cifra": u.get("nome_certificato_cifra", ""),
+            "certificato_mimetype": u.get("certificato_mimetype", ""),
         }
         for u in uffici
     ]
@@ -282,7 +284,13 @@ def _cache_pst_metadata_non_allineata(cache_uffici: list[dict], bundle_uffici: l
         cached = cache_idx.get(codice)
         if not cached:
             return True
-        for chiave in ("codice_ministero", "codice_gl", "servizio_pst_predefinito"):
+        for chiave in (
+            "codice_ministero",
+            "codice_gl",
+            "servizio_pst_predefinito",
+            "nome_certificato_cifra",
+            "certificato_mimetype",
+        ):
             valore_bundle = str(bundle.get(chiave) or "").strip()
             if valore_bundle and str(cached.get(chiave) or "").strip() != valore_bundle:
                 return True
@@ -385,6 +393,8 @@ def _ufficio_extra_da_riferimento_ministeriale(ref: dict) -> dict:
         "regione_ministero",
         "provincia_ministero",
         "pec_ministero",
+        "nome_certificato_cifra",
+        "certificato_mimetype",
         "servizi_ministero",
         "servizio_pst_predefinito",
     ):
@@ -423,6 +433,8 @@ def _applica_riferimenti_ministero(uffici: list[dict]) -> list[dict]:
             "regione_ministero",
             "provincia_ministero",
             "pec_ministero",
+            "nome_certificato_cifra",
+            "certificato_mimetype",
             "servizi_ministero",
             "servizio_pst_predefinito",
         ):
@@ -1825,6 +1837,18 @@ def risolvi_ufficio(
     for ufficio in uffici:
         if _ok_tipo(ufficio) and chiave == ufficio.get("codice_ministero"):
             return ufficio
+
+    if "@" in chiave:
+        chiave_pec = chiave.casefold()
+        for ufficio in uffici:
+            if not _ok_tipo(ufficio):
+                continue
+            pec_values = (
+                str(ufficio.get("pec") or "").strip().casefold(),
+                str(ufficio.get("pec_ministero") or "").strip().casefold(),
+            )
+            if chiave_pec in pec_values:
+                return ufficio
 
     chiave_norm = _n(chiave.replace("-", " "))
     for ufficio in uffici:

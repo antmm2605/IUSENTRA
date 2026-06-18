@@ -7400,3 +7400,26 @@ def test_parse_pat_documenti_response_popola_campi_busta():
     assert parsed[0]["id_documento"] == "PAT-001"
     assert parsed[0]["id_deposito"] == "BUSTA-PAT-001"
     assert parsed[0]["tipo_atto"] == "Ricorso"
+
+
+def test_catalogo_servizi_get_certificato_parser_estrae_base64():
+    module = _load_local_signer()
+    raw = b"certificato-der-test"
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <ns2:getCertificatoResponse xmlns:ns2="http://www.giustizia.it/serviziTelematici/serviziGenerici">
+      <return>{module.base64.b64encode(raw).decode("ascii")}</return>
+    </ns2:getCertificatoResponse>
+  </soap:Body>
+</soap:Envelope>"""
+
+    assert module._extract_catalogo_certificato_response(xml) == raw
+
+
+def test_local_signer_espone_endpoint_certificato_ufficio_pst():
+    source = (Path(__file__).resolve().parents[1] / "tools" / "local_signer.py").read_text(encoding="utf-8")
+
+    assert "POST /pst/certificato-ufficio" in source
+    assert 'elif path == "/pst/certificato-ufficio":' in source
+    assert "CatalogoServizi" in source

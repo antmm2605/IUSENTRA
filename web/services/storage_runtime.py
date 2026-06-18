@@ -113,6 +113,11 @@ def _anchor_seed_tables(anchor_path: Path) -> tuple[str, ...]:
         "scadenziario": ("scadenze",),
         "utenti": ("utenti",),
         "auth": ("utenti",),
+        "audit": ("utenti",),
+        "registro": ("privacy_trattamenti",),
+        "privacy": ("privacy_trattamenti",),
+        "condivisioni": ("condivisioni",),
+        "studio": ("impostazioni", "settings_config"),
     }
     return mapping.get(stem, ("clienti", "fascicoli", "appuntamenti", "scadenze"))
 
@@ -124,7 +129,23 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool
         db_uri = f"file:{studio_db_path.resolve().as_posix()}?mode=ro&immutable=1"
         conn = sqlite3.connect(db_uri, uri=True, timeout=5)
         try:
-            for marker_table in ("settings_config", "moduli_dati"):
+            operational_tables = (
+                "settings_config",
+                "impostazioni",
+                "moduli_dati",
+                "clienti",
+                "fascicoli",
+                "appuntamenti",
+                "scadenze",
+                "utenti",
+                "soggetti",
+                "parti",
+                "privacy_trattamenti",
+                "condivisioni",
+                "preventivi_records",
+                "conferimenti_records",
+            )
+            for marker_table in operational_tables:
                 try:
                     row = conn.execute(f"SELECT COUNT(*) FROM {marker_table}").fetchone()
                 except sqlite3.Error:

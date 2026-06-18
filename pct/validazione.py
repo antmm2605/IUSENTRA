@@ -4,7 +4,7 @@ Validazione conformità documenti per il Processo Civile Telematico.
 - PDF/A:  verifica i marcatori XMP (pdfaid:part / pdfaid:conformance) e lo stato
           di cifratura nel file PDF — senza dipendenze aggiuntive (solo lettura raw bytes).
 - Conversione PDF/A: usa Ghostscript (gs) per convertire PDF standard in PDF/A-2B.
-- Dimensione busta: verifica che l'allegato non superi 30 MB (limite PST).
+- Dimensione busta: verifica che l'allegato resti entro il limite PST vigente.
 
 Norma di riferimento:
   D.M. 44/2011 art. 12 c.1 — gli atti devono essere in formato PDF/A (ISO 19005).
@@ -19,9 +19,11 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
+from .pst_catalog import PST_MAX_BUSTA_BYTES, PST_MAX_BUSTA_MB
 
-# Dimensione massima per allegato (PST — D.M. 44/2011 art. 14 c.4)
-MAX_BYTES_ALLEGATO = 30 * 1024 * 1024  # 30 MB
+# Dimensione massima tecnica usata dal validatore PCT: il limite operativo
+# decisivo resta il totale busta, centralizzato in pct.pst_catalog.
+MAX_BYTES_ALLEGATO = PST_MAX_BUSTA_BYTES
 
 
 # ---------------------------------------------------------------------------

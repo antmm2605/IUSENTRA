@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import base64
 import mimetypes
-import os
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -18,16 +17,6 @@ from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 
 
 LOCAL_SIGNER_BASE_URL = "http://127.0.0.1:27272"
-
-
-def _truthy(value: str | None) -> bool:
-    return str(value or "").strip().lower() in {"1", "true", "yes", "on", "si"}
-
-
-def pec_server_send_enabled() -> bool:
-    """Return True only when server-side real PEC delivery is explicitly enabled."""
-
-    return _truthy(os.getenv("PEC_SEND_ENABLED") or os.getenv("PCT_PEC_SERVER_SEND_ENABLED"))
 
 
 def build_local_pec_payload(
@@ -53,6 +42,7 @@ def build_local_pec_payload(
     mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     smtp_port = int(getattr(pec_cfg, "smtp_port", 465) or 465)
     use_ssl = bool(getattr(pec_cfg, "use_ssl", smtp_port == 465))
+    use_tls = bool(getattr(pec_cfg, "use_tls", not use_ssl))
     indirizzo = str(getattr(pec_cfg, "indirizzo", "") or "").strip()
     smtp_host = str(getattr(pec_cfg, "smtp_host", "") or "").strip()
 
@@ -71,6 +61,7 @@ def build_local_pec_payload(
             "smtp_host": smtp_host,
             "smtp_port": smtp_port,
             "use_ssl": use_ssl,
+            "use_tls": use_tls,
             "to": destinatario,
             "subject": oggetto,
             "body": corpo,

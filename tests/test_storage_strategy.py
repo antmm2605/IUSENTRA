@@ -3,7 +3,7 @@ import pytest
 import sqlite3
 from pathlib import Path
 
-from flask import g
+from flask import g, session
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.core_storage_backend import build_core_storage_backend
@@ -54,7 +54,7 @@ def _write_studio_config(path: Path) -> None:
             },
             ensure_ascii=False,
         ),
-        encoding="utf-8",
+        encoding="utf-8-sig",
     )
 
 
@@ -1881,7 +1881,7 @@ def test_core_runtime_risolve_config_studio_e_smtp_dal_tenant_attivo(tmp_path: P
             },
             ensure_ascii=False,
         ),
-        encoding="utf-8",
+        encoding="utf-8-sig",
     )
 
     with app.test_request_context("/"):
@@ -1894,6 +1894,65 @@ def test_core_runtime_risolve_config_studio_e_smtp_dal_tenant_attivo(tmp_path: P
     assert gm.config.email.username == "tenant-user"
     assert gm.config.email.mittente_email == "tenant@example.com"
     assert gm.config.twilio.account_sid == "tenant-sid"
+
+
+def test_core_runtime_config_studio_fallback_tenant_da_sessione(tmp_path: Path):
+    root_config_path = tmp_path / "config" / "studio.json"
+    root_config_path.parent.mkdir(parents=True, exist_ok=True)
+    root_config_path.write_text(
+        json.dumps(
+            {
+                "studio": {"nome": "Root Studio"},
+                "pec": {"indirizzo": "", "smtp_host": "", "smtp_port": 0},
+                "smtp": {},
+                "whatsapp": {},
+                "scheduler": {},
+                "ai": {},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = {**_cfg(tmp_path), "MULTI_TENANT": True, "PCT_SECRET_KEY": "test-secret"}
+    app, flask_cfg = create_flask_app(cfg)
+    core = build_core_runtime(app, flask_cfg)
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Tenant", "studio-tenant", db_config={"mode": "SQLITE"})
+    tenant_paths = tm.percorsi_dati(studio.slug)
+    Path(tenant_paths["CONFIG_STUDIO_DB"]).write_text(
+        json.dumps(
+            {
+                "studio": {"nome": "Studio Tenant"},
+                "pec": {
+                    "indirizzo": "studio.tenant@example.test",
+                    "smtp_host": "smtp.tenant.example",
+                    "smtp_port": 465,
+                    "username": "tenant-user",
+                    "password": "tenant-pass",
+                    "use_ssl": True,
+                    "use_tls": False,
+                },
+                "smtp": {},
+                "whatsapp": {},
+                "scheduler": {},
+                "ai": {},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    with app.test_request_context("/fascicoli/demo/deposito/prepara"):
+        session["tenant_slug"] = studio.slug
+        g.multi_tenant_enabled = True
+        g.tenant_context_slug = studio.slug
+        g.data_paths = {}
+        gs = core["get_config_studio"]()
+
+    assert gs.config.pec.indirizzo == "studio.tenant@example.test"
+    assert gs.config.pec.smtp_host == "smtp.tenant.example"
 
 
 def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):

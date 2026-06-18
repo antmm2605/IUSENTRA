@@ -488,7 +488,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | Frontend/UI | tests/test_codici_oggetto_pst_catalog.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_conformita_pst.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_deposito_server_dry_run_audit.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| Telematico | Frontend/UI | tests/test_profilo_deposito.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Telematico | Frontend/UI | tests/test_profilo_deposito.py | 401 anonimo | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_pst_xsd_catalog_importer.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_regia_deposito_receipts.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_simulazione_deposito.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -500,7 +500,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | RBAC | tests/test_sigp_integration.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_sigp_sync.py | 401 anonimo, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_telematico_workflow.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Telematico | Security | tests/test_canali_telematici_deposito.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | Security | tests/test_canali_telematici_deposito.py | 401 anonimo, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Security | tests/test_pst_catalog.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Tenant isolation | tests/test_telematico_dashboard.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | E2E | tests/e2e/test_tenant_migration_full.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |

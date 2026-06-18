@@ -11,55 +11,12 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
 from pct.document_signature_state import document_has_real_digital_signature
+from web.services.fascicoli_signature_pdf import attestazione_conformita_pdf
 from web.services.fascicoli_signature_options import (
     normalizza_data_ora_firma_visibile,
     nota_con_firma_visibile,
     resolve_pkcs11_runtime_config,
 )
-
-
-def _attestazione_conformita_pdf(data_raw: bytes, testo: str) -> bytes:
-    try:
-        from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-        from pyhanko.pdf_utils.reader import PdfFileReader
-        from pyhanko.stamp import TextStamp, TextStampStyle
-
-        buf_in = io.BytesIO(data_raw)
-        PdfFileReader(buf_in)
-        writer = IncrementalPdfFileWriter(buf_in)
-        style = TextStampStyle(stamp_text=testo, background_opacity=0.85)
-        stamp = TextStamp(
-            writer=writer,
-            style=style,
-            dest_page=0,
-            x=20,
-            y=20,
-            width=350,
-            height=65,
-        )
-        stamp.apply()
-
-        buf_out = io.BytesIO()
-        writer.write(buf_out)
-        buf_out.seek(0)
-        return buf_out.read()
-    except Exception:
-        import reportlab.lib.pagesizes as pagesizes
-        from reportlab.pdfgen import canvas as rlcanvas
-
-        buf_att = io.BytesIO()
-        canvas = rlcanvas.Canvas(buf_att, pagesize=pagesizes.A4)
-        canvas.setFont("Helvetica-Bold", 11)
-        canvas.drawString(50, 780, "ATTESTAZIONE DI CONFORMITÀ")
-        canvas.setFont("Helvetica", 10)
-        for index, riga in enumerate(testo.split("\n")):
-            canvas.drawString(50, 760 - index * 18, riga)
-        canvas.save()
-        buf_att.seek(0)
-        try:
-            return data_raw + buf_att.read()
-        except Exception:
-            return data_raw
 
 
 def register_fascicoli_signature_routes(
@@ -681,7 +638,7 @@ def register_fascicoli_signature_routes(
                 "ai sensi dell'art. 22, co. 2, D.Lgs. 82/2005 (CAD)\n"
                 f"Avv. {nome_avvocato} — {data_oggi}"
             )
-            attested = _attestazione_conformita_pdf(data_raw, testo)
+            attested = attestazione_conformita_pdf(data_raw, testo)
             audit("fascicoli.documento.attestazione", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
             nome_out = documento.nome.replace(".pdf", "_conf.pdf") if documento.nome.endswith(".pdf") else documento.nome + "_conf.pdf"
             return send_file(io.BytesIO(attested), mimetype="application/pdf", as_attachment=True, download_name=nome_out)

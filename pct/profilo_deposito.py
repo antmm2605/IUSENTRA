@@ -87,45 +87,66 @@ def _ufficio_payload(
     *,
     tipo_ufficio: str = "",
     pec_ufficio: str = "",
+    codice_ufficio: str = "",
+    codice_ministero: str = "",
 ) -> dict[str, Any]:
     testo = _text(ufficio)
-    if not testo:
+    tipo = _text(tipo_ufficio)
+    pec_input = _text(pec_ufficio).lower()
+    codice_input = _text(codice_ufficio)
+    codice_ministero_input = _text(codice_ministero)
+    if not any((testo, pec_input, codice_input, codice_ministero_input)):
         return {
             "nome": "",
             "tipo": "",
             "codice_iusentra": "",
             "codice_ministero": "",
             "codice_pst": "",
-            "pec": _text(pec_ufficio).lower(),
-            "pec_verificata": bool(_text(pec_ufficio)),
+            "pec": pec_input,
+            "pec_verificata": bool(pec_input),
             "fonte": "",
         }
-    try:
-        resolved = risolvi_ufficio(testo, tipo=tipo_ufficio or None)
-    except Exception:
-        resolved = None
+
+    def _resolve(value: str) -> dict[str, Any] | None:
+        candidate = _text(value)
+        if not candidate:
+            return None
+        try:
+            return risolvi_ufficio(candidate, tipo=tipo or None)
+        except Exception:
+            return None
+
+    resolved_by_pec = _resolve(pec_input)
+    resolved_by_code = _resolve(codice_ministero_input) or _resolve(codice_input)
+    resolved_by_name = _resolve(testo)
+    resolved = resolved_by_pec or resolved_by_code or resolved_by_name
+    resolved_pec_code = _text((resolved_by_pec or {}).get("codice_ministero") or (resolved_by_pec or {}).get("codice"))
+    resolved_code_code = _text((resolved_by_code or {}).get("codice_ministero") or (resolved_by_code or {}).get("codice"))
+    conflitto_codice_pec = bool(resolved_pec_code and resolved_code_code and resolved_pec_code != resolved_code_code)
+
     if not resolved:
         return {
             "nome": testo,
-            "tipo": _text(tipo_ufficio),
-            "codice_iusentra": "",
-            "codice_ministero": "",
-            "codice_pst": "",
-            "pec": _text(pec_ufficio).lower(),
-            "pec_verificata": bool(_text(pec_ufficio)),
+            "tipo": tipo,
+            "codice_iusentra": codice_input,
+            "codice_ministero": codice_ministero_input,
+            "codice_pst": codice_ministero_input or codice_input,
+            "pec": pec_input,
+            "pec_verificata": bool(pec_input and (codice_ministero_input or codice_input)),
             "fonte": "inserimento_studio",
         }
-    pec = _text(pec_ufficio) or _text(resolved.get("pec_ministero")) or _text(resolved.get("pec"))
+    pec = pec_input or _text(resolved.get("pec_ministero")) or _text(resolved.get("pec"))
     codice_ministero = _text(resolved.get("codice_ministero")) or _text(resolved.get("codice"))
     return {
         "nome": _text(resolved.get("nome")) or testo,
-        "tipo": _text(resolved.get("tipo")) or _text(tipo_ufficio),
+        "tipo": _text(resolved.get("tipo")) or tipo,
         "codice_iusentra": _text(resolved.get("codice")),
         "codice_ministero": codice_ministero,
         "codice_pst": codice_ministero,
         "pec": pec.lower(),
         "pec_verificata": bool(pec),
         "fonte": _text(resolved.get("fonte_prevalente")) or "registro_uffici_giudiziari",
+        "conflitto_codice_pec": conflitto_codice_pec,
     }
 
 
@@ -197,6 +218,8 @@ def costruisci_profilo_deposito(
     ufficio: str = "",
     tipo_ufficio: str = "",
     pec_ufficio: str = "",
+    codice_ufficio: str = "",
+    codice_ministero: str = "",
     verifica_certificato: bool = False,
     force_refresh_certificato: bool = False,
     richiedi_ufficio: bool = False,
@@ -221,7 +244,13 @@ def costruisci_profilo_deposito(
         "errore": "Canale deposito da determinare.",
         "azione": "Impostare materia, procedura o canale operativo prima del deposito.",
     }
-    ufficio_data = _ufficio_payload(ufficio, tipo_ufficio=tipo_ufficio, pec_ufficio=pec_ufficio)
+    ufficio_data = _ufficio_payload(
+        ufficio,
+        tipo_ufficio=tipo_ufficio,
+        pec_ufficio=pec_ufficio,
+        codice_ufficio=codice_ufficio,
+        codice_ministero=codice_ministero,
+    )
     usa_certificato = bool(policy.get("usa_certificati_pst_cer"))
     certificato = _certificato_payload(
         ufficio_data.get("codice_pst", ""),
@@ -235,6 +264,10 @@ def costruisci_profilo_deposito(
         blocchi.append(_text(validazione.get("errore")) or "Canale deposito non riconosciuto.")
     if richiedi_ufficio and not ufficio_data.get("nome"):
         blocchi.append("Autorità giudiziaria destinataria da selezionare.")
+    if ufficio_data.get("conflitto_codice_pec"):
+        blocchi.append(
+            "Codice ufficio e PEC ministeriale indicano uffici diversi: selezionare di nuovo l'ufficio destinatario."
+        )
     if canale == "pct_civile_dm44":
         if not _text(codice_oggetto_pst):
             blocchi.append("Codice oggetto PST mancante.")

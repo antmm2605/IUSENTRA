@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.253.57 - 2026-06-18
+
+- Deposito reale/PEC locale: `Invia deposito reale` usa sempre il payload Local Signer e non tenta invio SMTP server-side; il server prepara e verifica busta, destinatario, oggetto, corpo PEC e `Atto.enc`, poi il browser chiede la password PEC in una modale locale.
+- Deposito React: rimossa la richiesta `window.prompt` non supportata dal browser integrato; la password PEC viene digitata nel modal `Password PEC locale`, non viene salvata sul server e la conferma precedente si chiude prima della chiamata al Local Signer.
+- Prova reale controllata: su `127.0.0.1:8080`, fascicolo `DC5BF1DB`, click reale su `Invia deposito reale` con Local Signer e SMTP fittizio `127.0.0.1:25252`; catturata EML con mittente PEC Legalmail, destinatario `gdp.palmi@civile.ptel.giustiziacert.it`, oggetto `DEPOSITO TELEMATICO - ATTO_GENERICO - RG 466/2023` e allegato unico `Atto.enc` (`4.637.389` byte, SHA256 `1dfbb7d8a8383a05a3c0dcbd84bf8e76cfa382f09c8fb35f85816c3d8dd1d579`).
+- Sicurezza: la configurazione PEC reale del tenant è stata ripristinata dopo il collaudo e il server SMTP fittizio è stato spento; il test non ha inviato PEC esterne.
+- Limite operativo dichiarato: la prova senza pen drive conferma UI, rotte, payload, Local Signer, composizione PEC e allegato `Atto.enc`; la firma multipla fisica resta verificabile solo con token inserito e PIN reale.
+
+## 2.253.56 - 2026-06-17
+
+- Deposito/PST: documentata e presidiata la regola definitiva per `.cer` e `Atto.enc`: si applicano solo alla busta PST PCT/SICID, PCT/SIECIC, lavoro/SICID, SIGP/Giudice di Pace e Cassazione civile/PST quando usa busta ministeriale; PDP, PAT, PTT, notifiche PEC e UNEP restano canali separati.
+- Certificati PST `.cer`: integrati i metadati `nomeCertificatoCifra` da `C:\QuickOrganizer\ListaUfficiGiudiziari.xml` e `QC_Uffici.xml`; il downloader recupera anche per codice ministeriale quando il XML non espone il nome file, come nel caso `Giudice di Pace - Palmi` codice `0800570152`.
+- Certificati PST `.cer`: controllo locale corrente su `data/pst/certificati_cifratura` con `913` certificati DER validi, `0` invalidi, perimetro operativo `593/593` codici ministeriali coperti e `0` target mancanti.
+- Scheduler: `pst_certificati_cifratura_weekly` mantiene frequenza settimanale nel registry, usa worker configurabili e restituisce report strutturato senza falsi positivi.
+- Normativa canali: aggiornate soglie operative in codice e checklist: PCT/PST `60 MB` busta, PDP `50 MB` per file e `500 MB` complessivi, PAT/Formweb `50` file e `300 MB`, PTT/SIGIT `50 MB` per file.
+- Local Signer: rigenerati i pacchetti `1.6.75` per Windows, macOS e Linux; gli installer pubblici scaricano anche `local_signer_mod/support_agent.py`, così dist, sorgente e route di download restano allineati.
+- Documentazione permanente: aggiornata `procedura-deposito-telematico.md` e `incarico-operativo-permanente.md` con perimetro canali, fonti normative, conteggi certificati, regola fail-closed e differenza tra cache fisica e target operativo.
+- Guardrail: confermati verdi canali/scheduler/checklist/conformità, deposito, Local Signer, profilo deposito, busta, simulazione, OpenAPI, build React, retention asset, packaging, release readiness, UTF-8, governance e diff whitespace.
+
 ## 2.253.54 - 2026-06-17
 
 - Deposito React locale: riallineata la copia Docker reale `127.0.0.1:8080` e verificato il fascicolo `DC5BF1DB` in Chrome visibile, senza fallback legacy, senza `n.d.`, con ufficio/PEC del Giudice di Pace di Palmi, card busta leggibili e indice `IndiceDocumentiDepositati.PDF` visualizzato nel viewer.
@@ -3490,7 +3509,7 @@
 
 - Corretto il flusso `Testa SMTP dal PC` nelle impostazioni PEC: il pulsante locale non ricade piu' sul test SMTP server-side e non usa piu' la password salvata dal server, evitando timeout e blocchi IP del cloud.
 - Chiarito nella UI che l'invio PEC reale deve passare dal PC locale tramite Local Signer; la diagnostica SMTP dal server resta separata e indicata come controllo non operativo.
-- Protette le route di deposito PEC: salvo `PEC_SEND_ENABLED=true`, il server prepara la busta ma l'invio reale viene completato dal browser contro `Local Signer` su `127.0.0.1:27272`, senza tentativi SMTP dal cloud.
+- Protette le route di deposito PEC: il server prepara e verifica la busta, ma l'invio reale non usa SMTP cloud e viene completato dal browser contro `Local Signer` su `127.0.0.1:27272`.
 
 ## 2.198.7 - 2026-04-30
 

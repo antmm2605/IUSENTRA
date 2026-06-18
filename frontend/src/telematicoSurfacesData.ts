@@ -62,6 +62,22 @@ export type OfficeRow = {
   comune: string
   servizioPst: string
   servizi: string[]
+  nomeCertificatoCifra: string
+  certificatoMimetype: string
+  certificatoCifratura: {
+    richiesto: boolean
+    presente: boolean
+    verificato: boolean
+    codiceUfficio: string
+    stato: string
+    dettaglio: string
+    notValidAfter: string
+    sha256: string
+    sourceUrl: string
+    subject: string
+    nomeCertificatoCifra: string
+    certificatoMimetype: string
+  }
 }
 
 export type TelematicoSurfaceData = {
@@ -107,6 +123,12 @@ export type TelematicoSurfaceData = {
     cachePath: string
     expired: boolean
     perType: Record<string, number>
+    certificates: {
+      required: number
+      present: number
+      missing: number
+      notRequired: number
+    }
   }
   localSigner: {
     browserUrl: string
@@ -157,7 +179,14 @@ export const emptyTelematicoSurface: TelematicoSurfaceData = {
   notices: [],
   lexSuggestions: [],
   offices: [],
-  officeSummary: { source: '', updatedAt: '', cachePath: '', expired: false, perType: {} },
+  officeSummary: {
+    source: '',
+    updatedAt: '',
+    cachePath: '',
+    expired: false,
+    perType: {},
+    certificates: { required: 0, present: 0, missing: 0, notRequired: 0 },
+  },
   localSigner: {
     browserUrl: 'http://127.0.0.1:27272',
     latestVersion: '',
@@ -270,6 +299,8 @@ function normaliseChecklistGroup(value: unknown, index: number): ChecklistGroup 
 
 function normaliseOffice(value: unknown, index: number): OfficeRow {
   const item = isRecord(value) ? value : {}
+  const rawCertificato = item.certificatoCifratura ?? item.certificato_cifratura
+  const certificato = isRecord(rawCertificato) ? rawCertificato : {}
   return {
     id: text(item.id, `ufficio-${index}`),
     codice: text(item.codice),
@@ -284,6 +315,22 @@ function normaliseOffice(value: unknown, index: number): OfficeRow {
     comune: display(item.comune),
     servizioPst: display(item.servizioPst ?? item.servizio_pst_predefinito),
     servizi: asList(item.servizi ?? item.serviziMinistero ?? item.servizi_ministero).map((servizio) => display(servizio)).filter(Boolean),
+    nomeCertificatoCifra: text(item.nomeCertificatoCifra ?? item.nome_certificato_cifra),
+    certificatoMimetype: text(item.certificatoMimetype ?? item.certificato_mimetype),
+    certificatoCifratura: {
+      richiesto: bool(certificato.richiesto ?? certificato.required),
+      presente: bool(certificato.presente ?? certificato.present),
+      verificato: bool(certificato.verificato ?? certificato.verified),
+      codiceUfficio: text(certificato.codiceUfficio ?? certificato.codice_ufficio),
+      stato: display(certificato.stato ?? certificato.status),
+      dettaglio: display(certificato.dettaglio ?? certificato.detail),
+      notValidAfter: text(certificato.notValidAfter ?? certificato.not_valid_after),
+      sha256: text(certificato.sha256),
+      sourceUrl: text(certificato.sourceUrl ?? certificato.source_url),
+      subject: text(certificato.subject),
+      nomeCertificatoCifra: text(certificato.nomeCertificatoCifra ?? certificato.nome_certificato_cifra),
+      certificatoMimetype: text(certificato.certificatoMimetype ?? certificato.certificato_mimetype),
+    },
   }
 }
 
@@ -364,6 +411,7 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
   const summary = isRecord(payload.summary) ? payload.summary : {}
   const officeSummary = isRecord(payload.officeSummary) ? payload.officeSummary : {}
   const perType = isRecord(officeSummary.perType) ? officeSummary.perType : {}
+  const certificates = isRecord(officeSummary.certificates) ? officeSummary.certificates : {}
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
@@ -413,6 +461,12 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
       cachePath: text(officeSummary.cachePath),
       expired: bool(officeSummary.expired),
       perType: Object.fromEntries(Object.entries(perType).map(([key, value]) => [key, number(value)])),
+      certificates: {
+        required: number(certificates.required),
+        present: number(certificates.present),
+        missing: number(certificates.missing),
+        notRequired: number(certificates.notRequired ?? certificates.not_required),
+      },
     },
     localSigner: normaliseLocalSigner(payload.localSigner),
   }

@@ -1333,8 +1333,11 @@ class DocumentValidator:
                         level=LEVEL_BLOCK,
                         code="allegato_troppo_grande",
                         title="Documento oltre il limite dimensionale PST",
-                        detail=f"Il file '{doc.get('nome')}' supera il limite tecnico di 30 MB.",
-                        source="D.M. 44/2011 art. 14",
+                        detail=(
+                            f"Il file '{doc.get('nome')}' supera il limite tecnico di "
+                            f"{PST_MAX_BUSTA_MB} MB."
+                        ),
+                        source="Specifiche tecniche DGSIA 7 agosto 2024, art. 17",
                         suggested_action="Riduci il file, comprimilo o suddividi il deposito.",
                         field="allegati_ids",
                     )

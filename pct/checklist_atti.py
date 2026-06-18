@@ -8,6 +8,7 @@ import unicodedata
 from dataclasses import dataclass, field, replace
 from typing import List, Optional
 
+from .pst_catalog import PST_MAX_BUSTA_MB
 
 @dataclass
 class DocumentoRichiesto:
@@ -141,7 +142,7 @@ DECRETO_INGIUNTIVO = TemplateAtto(
         _chk("Se richiesti interessi moratori: Nota calcolo interessi allegata (D.Lgs. 231/2002)",
              note="Indicare tasso BCE + 8 pp per crediti commerciali, tasso contrattuale per altri"),
         _chk("Nomi file senza caratteri speciali (no spazi, #, %, &, ', \", accenti)", critico=True),
-        _chk("Peso totale della busta .enc < 30 MB", critico=True,
+        _chk(f"Peso totale della busta .enc < {PST_MAX_BUSTA_MB} MB", critico=True,
              note="Se supera, dividere in più depositi o comprimere i PDF"),
         _chk("Busta telematica .enc generata correttamente dal redattore atti", critico=True),
         _chk("Busta inviata dal redattore atti e ricevuta di accettazione PEC salvata", critico=True),
@@ -214,7 +215,7 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
              note="Art. 83 c.p.c.: collegare formalmente l'atto alla procura separata"),
         _chk("Privacy/GDPR: documenti con dati di terzi non coinvolti → oscurare (omissis) prima del deposito"),
         _chk("Nomi file senza caratteri speciali (no spazi, #, %, &, ', \", accenti)", critico=True),
-        _chk("Peso totale della busta .enc < 30 MB", critico=True),
+        _chk(f"Peso totale della busta .enc < {PST_MAX_BUSTA_MB} MB", critico=True),
         _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Numero RG corretto sulla nota di iscrizione"),
@@ -362,7 +363,7 @@ RICORSO_APPELLO = TemplateAtto(
         _chk("Ricevuta PagoPA: file .xml o PDF con hash — non screenshot", critico=True),
         _chk("Contributo unificato per appello pagato via PagoPA e allegato", critico=True),
         _chk("Procura alle liti specifica per il grado di appello"),
-        _chk("Peso totale della busta .enc < 30 MB", critico=True),
+        _chk(f"Peso totale della busta .enc < {PST_MAX_BUSTA_MB} MB", critico=True),
         _chk("Nomi file senza caratteri speciali", critico=True),
         _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Istanza di sospensiva se urgente"),
@@ -578,7 +579,7 @@ RICORSO_TAR = TemplateAtto(
         _chk("Interesse a ricorrere chiaramente esposto"),
         _chk("Vizi di legittimità indicati (incompetenza, eccesso di potere, violazione di legge)"),
         _chk("Nomi file senza caratteri speciali", critico=True),
-        _chk("Peso totale del deposito < 30 MB", critico=True),
+        _chk("Formweb: massimo 50 file, singolo file fino a 300 MB e totale deposito fino a 300 MB", critico=True),
         _chk("Deposito effettuato sul portale PAT e ricevuta salvata", critico=True),
         _chk("Sinteticità (C.P.A. art. 26 co. 1): ricorso TAR entro i limiti del protocollo del TAR adito. Se supera: Indice Ipertestuale",
              note="Diversi TAR hanno adottato protocolli propri — verificare sul sito del TAR competente. Conseguenza: condanna alle spese aggravata"),
@@ -673,7 +674,7 @@ APPELLO_PENALE = TemplateAtto(
         _chk("Sentenza impugnata allegata"),
         _chk("Tutti i PDF nel formato PDF/A-1b", critico=True),
         _chk("Nomi file senza caratteri speciali", critico=True),
-        _chk("Peso totale del deposito < 30 MB", critico=True),
+        _chk("PDP: singolo file fino a 50 MB e deposito complessivo fino a 500 MB", critico=True),
         _chk("Deposito effettuato sul portale PDP e ricevuta salvata", critico=True),
         _chk("Istanza misure cautelari se necessaria"),
         _chk("Procura speciale autenticata se imputato non presente"),
@@ -728,7 +729,7 @@ RICORSO_TRIBUTARIO = TemplateAtto(
         _chk("NIR: carica dati → scarica NIR dal portale MEF → firma CAdES (.p7m) → ri-carica NIR firmata",
              critico=True,
              note="Senza la NIR firmata e ri-caricata il deposito telematico tributario non si chiude — è un passaggio unico del PTT rispetto al civile"),
-        _chk("Peso totale deposito < 30 MB", critico=True),
+        _chk("PTT/SIGIT: singolo file fino a 50 MB; suddividere i documenti superiori", critico=True),
         _chk("Ricorso depositato sul PTT/SIGIT entro termine e ricevuta salvata", critico=True),
         _chk("Copia del ricorso notificata all'ente impositore (notifica preventiva o contestuale)",
              critico=True,
@@ -786,7 +787,7 @@ APPELLO_TRIBUTARIO = TemplateAtto(
              critico=True,
              note="Identico al ricorso di primo grado — senza NIR firmata il deposito non si chiude"),
         _chk("Nomi file senza caratteri speciali", critico=True),
-        _chk("Peso totale deposito < 30 MB", critico=True),
+        _chk("PTT/SIGIT: singolo file fino a 50 MB; suddividere i documenti superiori", critico=True),
         _chk("Appello depositato sul PTT/SIGIT entro termine e ricevuta salvata", critico=True),
         _chk("Copia dell'appello notificata all'ente impositore / controparte", critico=True),
         _chk("Motivi di appello specifici (non è ammissibile un richiamo generico al ricorso)",

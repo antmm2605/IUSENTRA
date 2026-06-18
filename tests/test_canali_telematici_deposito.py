@@ -3,10 +3,18 @@ from pct.pst_cifratura import (
     PSTCifraturaError,
     PST_TLS_INTERMEDIATES,
     canali_telematici_cifratura_policy,
+    certificato_cifratura_in_cache,
+    certificati_cifratura_report_path,
+    crea_certificato_cifratura_test,
+    esegui_controllo_settimanale_certificati_cifratura,
     precarica_certificati_cifratura,
+    salva_certificato_cifratura_ufficio,
     valida_canale_telematico_per_cifratura,
 )
+from pathlib import Path
+
 import pct.pst_cifratura as pst_cifratura
+import pct.uffici_giudiziari as uffici_giudiziari
 from legal_deposit.policies import channel_profile_for
 from web.services.deposito_route_helpers import ufficio_deposito_destinatario
 
@@ -110,6 +118,7 @@ def test_precarico_cer_scheduler_limita_perimetro_a_pct_civile_operativo(monkeyp
         )
 
     monkeypatch.setattr(pst_cifratura, "iter_uffici_pst_catalogo", fake_catalogo)
+    monkeypatch.setattr(pst_cifratura, "_iter_ministero_cert_target_rows", lambda: iter(()))
     monkeypatch.setattr(pst_cifratura, "risolvi_certificato_cifratura_ufficio", fake_resolver)
 
     report = precarica_certificati_cifratura(cache_dir=tmp_path, limit=1, force_refresh=True)
@@ -120,6 +129,9 @@ def test_precarico_cer_scheduler_limita_perimetro_a_pct_civile_operativo(monkeyp
     assert report["errori"] == 0
     assert report["saltati_non_pct_o_non_operativi"] == 2
     assert report["saltati_senza_certificato_pubblicato"] == 0
+    assert report["scope_mode"] == "completo"
+    assert report["catalogo_pct_operativi"] == 1
+    assert report["cache_cer_presenti"] == 1
     assert chiamate == ["0241160092"]
 
 
@@ -128,8 +140,8 @@ def test_precarico_cer_scheduler_tratta_certificato_non_pubblicato_come_salto(
 ):
     rows = [
         {
-            "codice_ufficio": "0560210157",
-            "descrizione": "GIUDICE DI PACE-VITERBO EX GIUDICE DI PACE - Civita Castellana",
+            "codice_ufficio": "0800570152",
+            "descrizione": "Giudice di Pace - Palmi",
             "sezione_catalogo": "civili",
             "stato_prudenziale": "pst_visibile",
             "deposito_prudenziale": True,
@@ -145,6 +157,7 @@ def test_precarico_cer_scheduler_tratta_certificato_non_pubblicato_come_salto(
         )
 
     monkeypatch.setattr(pst_cifratura, "iter_uffici_pst_catalogo", fake_catalogo)
+    monkeypatch.setattr(pst_cifratura, "_iter_ministero_cert_target_rows", lambda: iter(()))
     monkeypatch.setattr(pst_cifratura, "risolvi_certificato_cifratura_ufficio", fake_resolver)
 
     report = precarica_certificati_cifratura(cache_dir=tmp_path, limit=1, force_refresh=True)
@@ -155,6 +168,63 @@ def test_precarico_cer_scheduler_tratta_certificato_non_pubblicato_come_salto(
     assert report["saltati_senza_certificato_pubblicato"] == 1
     assert report["risultati"][0]["saltato"] is True
     assert report["risultati"][0]["motivo"] == "certificato_cifratura_non_pubblicato"
+    assert report["scope_mode"] == "completo"
+
+
+def test_controllo_cer_mirato_non_sovrascrive_audit_completo(monkeypatch, tmp_path):
+    rows = [
+        {
+            "codice_ufficio": "0800570152",
+            "descrizione": "Giudice di Pace - Palmi",
+            "sezione_catalogo": "civili",
+            "stato_prudenziale": "pst_visibile",
+            "deposito_prudenziale": True,
+        }
+    ]
+
+    def fake_catalogo():
+        return iter(rows)
+
+    def fake_resolver(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        raise PSTCifraturaError(
+            f"Certificato di cifratura PST non trovato per l'ufficio {codice_ufficio}."
+        )
+
+    monkeypatch.setattr(pst_cifratura, "iter_uffici_pst_catalogo", fake_catalogo)
+    monkeypatch.setattr(pst_cifratura, "_iter_ministero_cert_target_rows", lambda: iter(()))
+    monkeypatch.setattr(pst_cifratura, "risolvi_certificato_cifratura_ufficio", fake_resolver)
+
+    full_report = certificati_cifratura_report_path(tmp_path)
+    full_report.write_text('{"scope_mode":"completo"}', encoding="utf-8")
+    report = esegui_controllo_settimanale_certificati_cifratura(
+        cache_dir=tmp_path,
+        force_refresh=True,
+        codici_ufficio=["0800570152"],
+    )
+
+    assert report["scope_mode"] == "mirato"
+    assert report["target_codes"] == ["0800570152"]
+    assert report["report_principale_preservato"] == str(full_report)
+    assert report["report_path"] != str(full_report)
+    assert full_report.read_text(encoding="utf-8") == '{"scope_mode":"completo"}'
+
+
+def test_salva_certificato_catalogo_servizi_in_cache_validata(tmp_path):
+    generated = crea_certificato_cifratura_test(tmp_path / "origine.cer")
+
+    info = salva_certificato_cifratura_ufficio(
+        "0800570152",
+        (tmp_path / "origine.cer").read_bytes(),
+        source_url="https://ext.processotelematico.giustizia.it/servizi/CatalogoServizi",
+        cache_dir=tmp_path / "cache",
+    )
+    cached = certificato_cifratura_in_cache("0800570152", cache_dir=tmp_path / "cache")
+
+    assert cached is not None
+    assert info.sha256 == generated.sha256
+    assert cached.sha256 == info.sha256
+    assert cached.source_url.endswith("/servizi/CatalogoServizi")
+    assert (tmp_path / "cache" / "0800570152.cer").exists()
 
 
 def test_downloader_pst_usa_intermedio_tls_pinnato_senza_disabilitare_ssl():
@@ -174,3 +244,143 @@ def test_busta_usa_codice_pst_ministeriale_non_codice_catalogo_interno():
     assert payload["codice_catalogo"] == "0640011"
     assert payload["codice_ufficio"] == "0241160092"
     assert payload["pec_dest"] == "tribunale.vicenza@civile.ptel.giustiziacert.it"
+
+
+def test_tribunali_payload_associa_pec_codice_ministeriale_e_cer(monkeypatch, tmp_path):
+    from web.services.react_telematico_bridge import build_react_tribunali_payload
+
+    rows = [
+        {
+            "codice": "0910011",
+            "codice_ministero": "0800570094",
+            "nome": "Tribunale di Palmi",
+            "tipo": "TRIBUNALE",
+            "distretto": "Reggio Calabria",
+            "pec": "tribunale.palmi@civile.ptel.giustiziacert.it",
+            "nome_certificato_cifra": "0800570094_Tribunale Ordinario - Palmi.cer",
+            "certificato_mimetype": "application/octet-stream",
+            "servizi_ministero": ["JPW_DEPOSITO"],
+        },
+        {
+            "codice": "0910401",
+            "codice_ministero": "0800570152",
+            "nome": "Ufficio del Giudice di Pace di Palmi",
+            "tipo": "GDP",
+            "distretto": "Reggio Calabria",
+            "pec": "gdp.palmi@civile.ptel.giustiziacert.it",
+            "nome_certificato_cifra": "",
+            "certificato_mimetype": "application/octet-stream",
+            "servizi_ministero": ["JPW_DEPOSITO"],
+        },
+    ]
+
+    class FakeGestore:
+        def carica(self):
+            return rows
+
+        def stato(self):
+            return {
+                "sorgente": "test",
+                "aggiornato_il": "2026-06-17T10:00:00+02:00",
+                "cache_path": str(tmp_path / "uffici.json"),
+                "scaduta": False,
+            }
+
+    def fake_certificato(codice_ufficio, *, cache_dir=None):
+        if codice_ufficio == "0800570094":
+            path = tmp_path / "0800570094.cer"
+            path.write_bytes(b"cert")
+            return CertificatoCifratura(
+                codice_ufficio="0800570094",
+                path=str(path),
+                subject="CN=glrc_palmi_cifra",
+                issuer="CN=Ministero Giustizia",
+                serial_number="01",
+                not_valid_after="2029-01-18T09:48:49+00:00",
+                source_url="https://servizipst.giustizia.it/PST/do/ufficiepda/uffici/ricerca/download.action",
+                sha256="E976D9227CD0B5150BB56B85EBAB1FFB3D9E0228385DE635B1261C2EE3418CF6",
+            )
+        if codice_ufficio == "0800570152":
+            path = tmp_path / "0800570152.cer"
+            path.write_bytes(b"cert")
+            return CertificatoCifratura(
+                codice_ufficio="0800570152",
+                path=str(path),
+                subject="CN=gdprc_cifra",
+                issuer="CN=Ministero Giustizia",
+                serial_number="02",
+                not_valid_after="2027-01-16T14:05:08+00:00",
+                source_url=(
+                    "https://servizipst.giustizia.it/PST/do/ufficiepda/uffici/ricerca/download.action"
+                    "?codiceUfficio=0800570152&fileName=0800570152_Giudice%20di%20Pace%20-%20Palmi.cer"
+                    "&mimetype=application/octet-stream"
+                ),
+                sha256="7B25BF3F549F576266B12F56826E7096D4B6EBBB44B306D30C8E89C1BC717832",
+            )
+            return None
+        return None
+
+    monkeypatch.setattr(uffici_giudiziari, "get_gestore", lambda: FakeGestore())
+    monkeypatch.setattr(uffici_giudiziari, "indirizzi_telematici_ufficio", lambda row, **kwargs: [])
+    monkeypatch.setattr(pst_cifratura, "certificato_cifratura_in_cache", fake_certificato)
+
+    payload = build_react_tribunali_payload()
+    by_name = {office["nome"]: office for office in payload["offices"]}
+
+    tribunale = by_name["Tribunale di Palmi"]
+    gdp = by_name["Ufficio del Giudice di Pace di Palmi"]
+
+    assert tribunale["pec"] == "tribunale.palmi@civile.ptel.giustiziacert.it"
+    assert tribunale["codiceMinistero"] == "0800570094"
+    assert tribunale["nomeCertificatoCifra"] == "0800570094_Tribunale Ordinario - Palmi.cer"
+    assert tribunale["certificatoCifratura"]["verificato"] is True
+    assert tribunale["certificatoCifratura"]["sha256"].startswith("E976D")
+
+    assert gdp["pec"] == "gdp.palmi@civile.ptel.giustiziacert.it"
+    assert gdp["codiceMinistero"] == "0800570152"
+    assert gdp["certificatoCifratura"]["richiesto"] is True
+    assert gdp["certificatoCifratura"]["verificato"] is True
+    assert gdp["certificatoCifratura"]["sha256"].startswith("7B25B")
+    assert payload["officeSummary"]["certificates"] == {
+        "required": 2,
+        "present": 2,
+        "missing": 0,
+        "notRequired": 0,
+    }
+
+
+def test_gdp_palmi_cer_si_recupera_da_download_diretto_quando_xml_non_espone_nome(monkeypatch, tmp_path):
+    generated = crea_certificato_cifratura_test(tmp_path / "origine.cer")
+    payload = Path(generated.path).read_bytes()
+    calls: list[str] = []
+
+    def fake_catalog():
+        record = {
+            "codice_download": "0800570152",
+            "codice_interno": "0910401",
+            "descrizione": "Giudice di Pace - Palmi",
+            "tipo_ministero": "GP",
+            "comune": "Palmi",
+            "nome_certificato_cifra": "",
+            "certificato_mimetype": "application/octet-stream",
+        }
+        return {"0910401": record, "0800570152": record}
+
+    def fake_request(url, *, timeout=pst_cifratura.PST_DOWNLOAD_TIMEOUT_SECONDS):
+        calls.append(url)
+        return payload
+
+    monkeypatch.setattr(pst_cifratura, "_ministero_cert_catalog", fake_catalog)
+    monkeypatch.setattr(pst_cifratura, "_request_bytes", fake_request)
+
+    info = pst_cifratura.scarica_certificato_cifratura_ufficio(
+        "0910401",
+        cache_dir=tmp_path / "cache",
+        force_refresh=True,
+    )
+
+    assert info.codice_ufficio == "0800570152"
+    assert calls
+    assert "codiceUfficio=0800570152" in calls[0]
+    assert "0800570152_Giudice%20di%20Pace%20-%20Palmi.cer" in calls[0]
+    assert (tmp_path / "cache" / "0800570152.cer").exists()

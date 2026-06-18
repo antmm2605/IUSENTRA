@@ -844,7 +844,7 @@ def _office_text(row: dict[str, Any], *keys: str) -> str:
 
 
 def _office_row_payload(row: dict[str, Any], index: int) -> dict[str, Any]:
-    return {
+    office = {
         "id": _office_text(row, "codice", "codice_ministero") or f"ufficio-{index}",
         "codice": _office_text(row, "codice"),
         "codiceMinistero": _office_text(row, "codice_ministero"),
@@ -858,6 +858,90 @@ def _office_row_payload(row: dict[str, Any], index: int) -> dict[str, Any]:
         "comune": _office_text(row, "comune_ministero", "comune"),
         "servizioPst": _office_text(row, "servizio_pst_predefinito"),
         "servizi": list(row.get("servizi_ministero") or []),
+        "nomeCertificatoCifra": _office_text(row, "nome_certificato_cifra"),
+        "certificatoMimetype": _office_text(row, "certificato_mimetype"),
+    }
+    office["certificatoCifratura"] = _office_certificate_payload(row, office)
+    return office
+
+
+def _office_certificate_payload(row: dict[str, Any], office: dict[str, Any]) -> dict[str, Any]:
+    """Stato .cer PST collegato al registro uffici, senza download in render."""
+
+    codice_ministero = _office_text(row, "codice_ministero") or str(office.get("codiceMinistero") or "").strip()
+    codice = codice_ministero
+    nome_certificato = _office_text(row, "nome_certificato_cifra")
+    certificato_mimetype = _office_text(row, "certificato_mimetype") or "application/octet-stream"
+    tipo = str(row.get("tipo") or "").strip().upper()
+    servizi = {str(servizio or "").upper() for servizio in (row.get("servizi_ministero") or [])}
+    descrizione = _office_text(row, "descrizione_ministero", "nome", "descrizione").upper()
+    pct_types = {"TRIBUNALE", "CORTE_APPELLO", "CORTE_CASSAZIONE", "TM", "GDP"}
+    storico = any(marker in descrizione for marker in ("EX GIUD", "NON ATTIVO", "EX SD", "SEZIONE DISTACCATA"))
+    richiesto = bool(codice and not storico and tipo in pct_types and (not servizi or any(s.startswith("JPW_") for s in servizi)))
+    base = {
+        "richiesto": richiesto,
+        "codiceUfficio": codice,
+        "presente": False,
+        "verificato": False,
+        "stato": "Non richiesto" if not richiesto else "Da acquisire",
+        "dettaglio": (
+            "Ufficio storico/non attivo nel catalogo ministeriale: non entra nel conteggio .cer Atto.enc."
+            if storico
+            else "Codice PST ministeriale mancante: selezionare un ufficio operativo prima del deposito."
+            if not codice
+            else "Il canale dell'ufficio non usa la cifratura PCT Atto.enc."
+            if not richiesto
+            else "Certificato pubblico PST .cer non ancora associato alla cache."
+        ),
+        "notValidAfter": "",
+        "sha256": "",
+        "sourceUrl": "",
+        "subject": "",
+        "nomeCertificatoCifra": nome_certificato,
+        "certificatoMimetype": certificato_mimetype,
+    }
+    if not richiesto:
+        return base
+    try:
+        from pct.pst_cifratura import certificato_cifratura_in_cache
+
+        info = certificato_cifratura_in_cache(codice)
+    except Exception as exc:
+        return {
+            **base,
+            "stato": "Non valido",
+            "dettaglio": f"Certificato .cer in cache non validabile: {exc}",
+        }
+    if info is None:
+        return {
+            **base,
+            "dettaglio": (
+                "Certificato indicato dal catalogo PST ma non ancora presente nella cache locale."
+                if nome_certificato
+                else "Nome .cer non esposto nel catalogo XML; il recupero ministeriale diretto usa il codice PST."
+            ),
+        }
+    return {
+        **base,
+        "presente": True,
+        "verificato": True,
+        "stato": "Verificato",
+        "dettaglio": "Certificato pubblico PST .cer associato e validato.",
+        "notValidAfter": info.not_valid_after,
+        "sha256": info.sha256,
+        "sourceUrl": info.source_url,
+        "subject": info.subject,
+    }
+
+
+def _office_certificate_summary(offices: list[dict[str, Any]]) -> dict[str, int]:
+    required = sum(1 for item in offices if item.get("certificatoCifratura", {}).get("richiesto"))
+    present = sum(1 for item in offices if item.get("certificatoCifratura", {}).get("verificato"))
+    return {
+        "required": required,
+        "present": present,
+        "missing": max(required - present, 0),
+        "notRequired": max(len(offices) - required, 0),
     }
 
 
@@ -901,6 +985,7 @@ def _portal_office_rows(portal: str) -> tuple[list[dict[str, Any]], dict[str, An
         "cachePath": stato.get("cache_path", ""),
         "expired": bool(stato.get("scaduta")),
         "perType": dict(sorted(per_tipo.items())),
+        "certificates": _office_certificate_summary(offices),
     }
 
 
@@ -924,6 +1009,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
         )
         offices.append(office)
     pec_count = sum(1 for item in offices if item["pec"])
+    cert_summary = _office_certificate_summary(offices)
     return {
         "source": "repository_reali",
         "generatedAt": _iso_now(),
@@ -962,6 +1048,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
                 metrics=[
                     {"label": "Uffici", "value": len(offices)},
                     {"label": "PEC censite", "value": pec_count},
+                    {"label": ".cer associati", "value": cert_summary["present"]},
                 ],
             ),
             _surface_card(
@@ -1028,6 +1115,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             "perType": dict(sorted(per_tipo.items())),
             "sources": stato.get("fonti_uffici", []),
             "policy": stato.get("policy_pec", ""),
+            "certificates": cert_summary,
         },
     }
 

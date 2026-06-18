@@ -29,6 +29,7 @@ from web.services.local_pec_runtime import (
     local_pec_required_response,
     local_pec_confirmation_result,
 )
+from web.services.security_redaction import redacted_json_response
 
 
 def register_deposito_legacy_send_route(
@@ -222,7 +223,7 @@ def register_deposito_legacy_send_route(
                         attachment_path=getattr(busta, "_last_atto_msg_path", "") or "",
                         validation=validation,
                     )
-                    return jsonify(
+                    return redacted_json_response(
                         guided_response
                         or {
                             "ok": False,
@@ -231,7 +232,7 @@ def register_deposito_legacy_send_route(
                             "errore": "Invio diretto sospeso: certificato PST non disponibile.",
                             "message": (
                                 "Il software ha preparato il pacchetto di controllo, ma non registra un deposito "
-                                "come valido finche' Atto.msg non viene cifrato in Atto.enc con il certificato PST."
+                                "come valido finché Atto.msg non viene cifrato in Atto.enc con il certificato PST."
                             ),
                             "next_actions": [
                                 f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {codice_ufficio}.",
@@ -239,8 +240,9 @@ def register_deposito_legacy_send_route(
                             ],
                             "documenti_busta": documenti_busta,
                             "corpo_pec": corpo_pec,
-                        }
-                    ), 409
+                        },
+                        409,
+                    )
                 guided_response = _guided_transport_completion_response(
                     busta=busta,
                     id_deposito=id_dep,
@@ -254,9 +256,9 @@ def register_deposito_legacy_send_route(
                     validation=validation,
                 )
                 if guided_response:
-                    return jsonify(guided_response), 409
+                    return redacted_json_response(guided_response, 409)
                 if form.get("local_pec_confirmed") != "1":
-                    return jsonify(
+                    return redacted_json_response(
                         local_pec_required_response(
                             pec_cfg=pec_cfg,
                             pec_dest=pec_dest,
@@ -269,7 +271,8 @@ def register_deposito_legacy_send_route(
                             documenti=documenti_busta,
                             corpo_pec=corpo_pec,
                             busta_audit=busta.audit_conformita_pst(),
-                        )
+                        ),
+                        200,
                     )
 
                 ris_locale = local_pec_confirmation_result(form.get("local_pec_message_id", ""))

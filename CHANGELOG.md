@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.59 - 2026-06-18
+
+- Sicurezza deposito/firma: sanificati i payload JSON dei percorsi deposito React/legacy, database admin e apertura fascicolo da preventivo/conferimento, senza rimuovere i messaggi operativi utili su CAdES/PAdES.
+- Certificati PST: normalizzata la costruzione dei file cache/report `.cer` e aggiunta regressione anti path traversal sui codici ufficio.
+- Firma digitale: rimossa la regex fragile dalla nota di firma visibile e aggiunti test mirati per non duplicare o tagliare note utente multilinea.
+
 ## 2.253.58 - 2026-06-18
 
 - Telematico React: preservata la priorità del codice ufficio operativo rispetto al codice ministeriale nei dati inviati a Local Signer/PST; il codice ministeriale resta solo fallback quando il codice ufficio non è disponibile.

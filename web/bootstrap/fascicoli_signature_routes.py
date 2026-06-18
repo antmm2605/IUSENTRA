@@ -55,6 +55,26 @@ def register_fascicoli_signature_routes(
             "signatures": firme[:5],
         }
 
+    def _messaggio_firma_pubblico(exc: Exception, fallback: str) -> str:
+        testo = str(exc)
+        if "solo CAdES" in testo:
+            return "Con Aruba Key / PKCS#11 è consentito solo CAdES (.p7m). Per PAdES usare una firma P12 o PEM."
+        if "firma CAdES valida" in testo:
+            return (
+                "Il file .p7m caricato non contiene una firma CAdES valida. "
+                "Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
+            )
+        if "firma PAdES interna verificabile" in testo:
+            return (
+                "Il PDF caricato resta .PDF ma non contiene una firma PAdES interna verificabile. "
+                "Carica un .pdf.p7m CAdES oppure un PDF PAdES valido."
+            )
+        if "Formato file firmato non supportato" in testo:
+            return "Formato file firmato non supportato. Usa un file .p7m CAdES oppure .pdf firmato PAdES."
+        if "Per segnare un documento come firmato" in testo:
+            return "Per segnare un documento come firmato devi caricare un .pdf.p7m CAdES valido oppure un PDF PAdES verificabile."
+        return fallback
+
     def _salva_documento_firmato_compat(
         firma,
         contenuto: bytes,
@@ -127,7 +147,14 @@ def register_fascicoli_signature_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore api_pkcs11_status: %s", exc)
-            return jsonify({"disponibile": False, "libreria": None, "token": [], "messaggio": str(exc)})
+            return jsonify(
+                {
+                    "disponibile": False,
+                    "libreria": None,
+                    "token": [],
+                    "messaggio": "Stato firma digitale non disponibile. Verifica il dispositivo e riprova.",
+                }
+            )
 
     @app.route("/api/firma/pkcs11/firma-documento", methods=["POST"])
     def api_pkcs11_firma_documento():
@@ -156,7 +183,8 @@ def register_fascicoli_signature_routes(
             try:
                 backend_firma = cfg_firma.backend_firma_effettivo
             except (FileNotFoundError, ValueError) as exc:
-                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+                app.logger.warning("Configurazione backend firma non valida: %s", exc)
+                return jsonify({"ok": False, "messaggio": "Configurazione firma digitale da verificare."}), 400
             if backend_firma != "pkcs11":
                 return jsonify(
                     {
@@ -167,7 +195,16 @@ def register_fascicoli_signature_routes(
             try:
                 formato = cfg_firma.valida_formato_firma(formato)
             except ValueError as exc:
-                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+                app.logger.warning("Formato firma non valido: %s", exc)
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": _messaggio_firma_pubblico(
+                            exc,
+                            "Formato firma non supportato per questo dispositivo.",
+                        ),
+                    }
+                ), 400
             if formato != "cades":
                 return jsonify(
                     {
@@ -310,7 +347,8 @@ def register_fascicoli_signature_routes(
             try:
                 backend_firma = cfg_firma.backend_firma_effettivo
             except (FileNotFoundError, ValueError) as exc:
-                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+                app.logger.warning("Configurazione backend firma batch non valida: %s", exc)
+                return jsonify({"ok": False, "messaggio": "Configurazione firma digitale da verificare."}), 400
             if backend_firma != "pkcs11":
                 return jsonify(
                     {
@@ -321,7 +359,16 @@ def register_fascicoli_signature_routes(
             try:
                 formato = cfg_firma.valida_formato_firma(formato)
             except ValueError as exc:
-                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+                app.logger.warning("Formato firma batch non valido: %s", exc)
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": _messaggio_firma_pubblico(
+                            exc,
+                            "Formato firma non supportato per questo dispositivo.",
+                        ),
+                    }
+                ), 400
             if formato != "cades":
                 return jsonify(
                     {
@@ -617,7 +664,13 @@ def register_fascicoli_signature_routes(
                 warning_codes=warning_codes,
             )
         except (ValueError, KeyError) as exc:
-            return _chiudi_risposta(False, str(exc), "danger", status=400)
+            app.logger.warning("Firma documento non valida: %s", exc)
+            return _chiudi_risposta(
+                False,
+                _messaggio_firma_pubblico(exc, "Firma caricata non valida o non verificabile."),
+                "danger",
+                status=400,
+            )
         except Exception as exc:
             app.logger.exception("Errore firma_documento(%s, %s): %s", id_fasc, id_doc, exc)
             return _chiudi_risposta(False, signature_storage_error_message(exc), "danger", status=500)
@@ -643,5 +696,6 @@ def register_fascicoli_signature_routes(
             nome_out = documento.nome.replace(".pdf", "_conf.pdf") if documento.nome.endswith(".pdf") else documento.nome + "_conf.pdf"
             return send_file(io.BytesIO(attested), mimetype="application/pdf", as_attachment=True, download_name=nome_out)
         except (KeyError, StopIteration, ValueError) as exc:
-            flash(str(exc), "danger")
+            app.logger.warning("Attestazione documento non valida: %s", exc)
+            flash("Attestazione non generata. Verifica documento e fascicolo.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))

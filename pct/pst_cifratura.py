@@ -183,13 +183,36 @@ def certificati_cifratura_cache_dir() -> Path:
 
 
 def certificati_cifratura_report_path(cache_dir: str | Path | None = None) -> Path:
-    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    target_dir = _cert_cache_dir(cache_dir)
     return target_dir / "audit_certificati_cifratura_pst.json"
 
 
 def _safe_code(value: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or "").strip())
     return cleaned or "ufficio"
+
+
+def _safe_cert_cache_code(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_-]+", "_", str(value or "").strip())[:80].strip("_")
+    if not cleaned or not re.fullmatch(r"[A-Za-z0-9_-]+", cleaned):
+        raise PSTCifraturaError("Codice ufficio non valido per la cache certificati PST.")
+    return cleaned
+
+
+def _cert_cache_dir(cache_dir: str | Path | None = None) -> Path:
+    return Path(cache_dir).expanduser().resolve() if cache_dir else certificati_cifratura_cache_dir()
+
+
+def _cert_cache_file(target_dir: str | Path, codice_ufficio: str, suffix: str) -> Path:
+    safe_suffix = suffix if suffix in {".cer", ".json"} else ""
+    if not safe_suffix:
+        raise PSTCifraturaError("Estensione cache certificati PST non valida.")
+    root = Path(target_dir).expanduser().resolve()
+    filename = os.path.basename(f"{_safe_cert_cache_code(codice_ufficio)}{safe_suffix}")
+    target = (root / filename).resolve()
+    if target.parent != root:
+        raise PSTCifraturaError("Percorso cache certificati PST non valido.")
+    return target
 
 
 def _sha256_bytes(payload: bytes) -> str:
@@ -275,9 +298,9 @@ def certificato_cifratura_in_cache(
     codice = _codice_certificato_download(str(codice_ufficio or "").strip())
     if not codice:
         return None
-    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
-    cert_path = target_dir / f"{_safe_code(codice)}.cer"
-    meta_path = target_dir / f"{_safe_code(codice)}.json"
+    target_dir = _cert_cache_dir(cache_dir)
+    cert_path = _cert_cache_file(target_dir, codice, ".cer")
+    meta_path = _cert_cache_file(target_dir, codice, ".json")
     if not cert_path.exists():
         return None
     payload = cert_path.read_bytes()
@@ -312,10 +335,10 @@ def salva_certificato_cifratura_ufficio(
         raise PSTCifraturaError("Codice ufficio mancante per il certificato PST.")
     if not payload:
         raise PSTCifraturaError("Certificato PST vuoto.")
-    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    target_dir = _cert_cache_dir(cache_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
-    cert_path = target_dir / f"{_safe_code(codice)}.cer"
-    meta_path = target_dir / f"{_safe_code(codice)}.json"
+    cert_path = _cert_cache_file(target_dir, codice, ".cer")
+    meta_path = _cert_cache_file(target_dir, codice, ".json")
     cert = _load_cert(payload)
     _validate_cert(cert, codice_ufficio=codice)
     cert_path.write_bytes(payload)
@@ -663,7 +686,7 @@ def _is_certificato_non_pubblicato(exc: Exception) -> bool:
 
 
 def _cache_cer_count(cache_dir: str | Path | None = None) -> int:
-    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    target_dir = _cert_cache_dir(cache_dir)
     try:
         return sum(1 for path in target_dir.glob("*.cer") if path.is_file())
     except OSError:
@@ -697,12 +720,16 @@ def report_path_certificati_mirato(
 ) -> Path:
     """Report separato per controlli puntuali: non sovrascrive l'audit completo."""
 
-    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
-    codes = sorted({_safe_code(code) for code in codici_ufficio if str(code or "").strip()})
+    target_dir = _cert_cache_dir(cache_dir)
+    codes = sorted({_safe_cert_cache_code(code) for code in codici_ufficio if str(code or "").strip()})
     suffix = "_".join(codes[:4]) or "ufficio"
     if len(codes) > 4:
         suffix = f"{suffix}_piu_{len(codes) - 4}"
-    return target_dir / f"audit_certificati_cifratura_pst_mirato_{suffix}.json"
+    filename = os.path.basename(f"audit_certificati_cifratura_pst_mirato_{suffix}.json")
+    target = (target_dir / filename).resolve()
+    if target.parent != target_dir:
+        raise PSTCifraturaError("Percorso report certificati PST non valido.")
+    return target
 
 
 def scarica_certificato_cifratura_ufficio(
@@ -714,10 +741,10 @@ def scarica_certificato_cifratura_ufficio(
     codice = _codice_certificato_download(str(codice_ufficio or "").strip())
     if not codice:
         raise PSTCifraturaError("Codice ufficio mancante per il certificato PST.")
-    target_dir = Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()
+    target_dir = _cert_cache_dir(cache_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
-    cert_path = target_dir / f"{_safe_code(codice)}.cer"
-    meta_path = target_dir / f"{_safe_code(codice)}.json"
+    cert_path = _cert_cache_file(target_dir, codice, ".cer")
+    meta_path = _cert_cache_file(target_dir, codice, ".json")
 
     if cert_path.exists() and not force_refresh:
         cached = certificato_cifratura_in_cache(codice, cache_dir=target_dir)
@@ -922,7 +949,7 @@ def precarica_certificati_cifratura(
         "timezone": "Europe/Rome",
         "started_at": started.isoformat(),
         "finished_at": finished.isoformat(),
-        "cache_dir": str(Path(cache_dir) if cache_dir else certificati_cifratura_cache_dir()),
+        "cache_dir": str(_cert_cache_dir(cache_dir)),
         "scope_mode": scope_mode,
         "target_codes": sorted(target_codes),
         "catalogo_pct_operativi": len(eligible_codes),

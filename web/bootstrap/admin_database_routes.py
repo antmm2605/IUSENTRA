@@ -12,6 +12,7 @@ from pathlib import Path
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
 from web.bootstrap.admin_database_sqlite_helpers import ottimizza_sqlite_file
+from web.services.security_redaction import redacted_json_response
 
 
 def register_admin_database_routes(
@@ -436,13 +437,14 @@ def register_admin_database_routes(
             if search_index and Path(search_index).exists():
                 risultati_sql.append(ottimizza_sqlite_file(search_index, "search_index"))
             audit("database.ottimizza_sql", risorsa_tipo="db", risorsa_id=percorso_db)
-            return jsonify(
+            return redacted_json_response(
                 {
                     "ok": all(item.get("ok") for item in risultati_sql),
                     "json_mirror_only": True,
                     "messaggio": "Ottimizzazione SQL completata: i JSON mirror non sono stati compattati.",
                     "risultati": risultati_sql,
-                }
+                },
+                200,
             )
         database = get_database()
         risultati = database.ottimizza()

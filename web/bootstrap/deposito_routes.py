@@ -31,6 +31,7 @@ from web.services.local_pec_runtime import (
     local_pec_required_response,
     local_pec_confirmation_result,
 )
+from web.services.security_redaction import redacted_json_response
 
 
 def register_deposito_routes(
@@ -205,7 +206,13 @@ def register_deposito_routes(
                 "certificato": asdict(info),
             })
         except _PSTCifraturaError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 400
+            app.logger.warning("Certificato PST deposito non accettato %s: %s", id_fasc, exc)
+            return jsonify(
+                {
+                    "ok": False,
+                    "errore": "Certificato PST non valido o non compatibile con l'ufficio indicato.",
+                }
+            ), 400
         except Exception as exc:
             app.logger.exception("Certificato PST deposito non salvato %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": "Certificato PST non salvato. Verifica Local Signer e riprova."}), 500
@@ -317,7 +324,7 @@ def register_deposito_routes(
             )
         except PSTCifraturaError as exc:
             app.logger.exception("Certificato PST/cifratura busta non completata %s: %s", id_fasc, exc)
-            flash(str(exc), "danger")
+            flash("Busta non generata: certificato PST o cifratura ministeriale da verificare.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         except Exception as exc:
             app.logger.exception("Errore genera_busta %s: %s", id_fasc, exc)
@@ -728,7 +735,7 @@ def register_deposito_routes(
                 attachment_path=getattr(busta, "_last_atto_msg_path", "") or "",
                 validation=validation,
             )
-            return jsonify(
+            payload_guidato = (
                 _con_avviso_pec_mittente(guided_response)
                 if guided_response
                 else _con_avviso_pec_mittente(
@@ -739,7 +746,7 @@ def register_deposito_routes(
                         "errore": "Invio diretto sospeso: certificato PST non disponibile.",
                         "message": (
                             "Il software ha preparato il pacchetto di controllo, ma non registra un deposito come valido "
-                            "finche' Atto.msg non viene cifrato in Atto.enc con il certificato PST dell'ufficio."
+                            "finché Atto.msg non viene cifrato in Atto.enc con il certificato PST dell'ufficio."
                         ),
                         "next_actions": [
                             f"Recupera o collega il certificato pubblico PST .cer dell'ufficio {codice_ufficio}.",
@@ -749,7 +756,8 @@ def register_deposito_routes(
                         "corpo_pec": corpo_pec,
                     }
                 )
-            ), 200 if controllo_senza_invio else 409
+            )
+            return redacted_json_response(payload_guidato, 200 if controllo_senza_invio else 409)
         except Exception as exc:
             app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": "Creazione busta non completata. Verifica documenti e fascicolo."}), 500
@@ -767,7 +775,10 @@ def register_deposito_routes(
             validation=validation,
         )
         if guided_response:
-            return jsonify(_con_avviso_pec_mittente(guided_response)), 200 if controllo_senza_invio else 409
+            return redacted_json_response(
+                _con_avviso_pec_mittente(guided_response),
+                200 if controllo_senza_invio else 409,
+            )
 
         if prova_senza_invio:
             prova_payload = local_pec_required_response(
@@ -788,7 +799,7 @@ def register_deposito_routes(
                 "Nessun invio PEC reale è stato eseguito."
             )
             _con_avviso_pec_mittente(prova_payload)
-            return jsonify(prova_payload), 200
+            return redacted_json_response(prova_payload, 200)
 
         if modalita_demo:
             fake_mid = _hl.sha256(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
@@ -808,7 +819,7 @@ def register_deposito_routes(
         else:
             # Il deposito PCT/SIGP invia sempre dal PC dell'avvocato tramite
             # Local Signer, anche quando la UI e' aperta dal server pubblico.
-            return jsonify(
+            return redacted_json_response(
                 local_pec_required_response(
                     pec_cfg=pec_cfg,
                     pec_dest=pec_dest,
@@ -821,7 +832,8 @@ def register_deposito_routes(
                     documenti=documenti_busta,
                     corpo_pec=corpo_pec,
                     busta_audit=busta.audit_conformita_pst(),
-                )
+                ),
+                200,
             )
 
         try:

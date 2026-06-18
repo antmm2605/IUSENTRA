@@ -5078,3 +5078,17 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest -q tests\test_utf8_integrity.py tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 14/14 passati dopo bump `2.253.58` e aggiornamento versione Docker/Railway/package. |
 | `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | OpenAPI rigenerato e valido su `2.253.58`; provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`. |
 | `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | 2/2 passati dopo pulizia degli asset React non più referenziati dal manifest corrente. |
+
+## Sicurezza deposito/firma 2.253.59 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\pst_cifratura.py web\services\fascicoli_signature_options.py web\bootstrap\fascicoli_signature_routes.py web\bootstrap\deposito_routes.py web\bootstrap\deposito_legacy_send_routes.py web\bootstrap\admin_database_routes.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per cache PST, firma, deposito React/legacy, database admin e bridge React preventivo/conferimento. |
+| `python -m pytest -q tests\test_canali_telematici_deposito.py tests\test_fascicoli_signature_options.py --tb=short` | OK | 15/15 passati: include anti path traversal cache/report `.cer` e nota firma visibile senza regex fragile o taglio note multilinea. |
+| `python -m pytest -q tests\test_deposito.py tests\test_busta.py tests\test_profilo_deposito.py tests\test_canali_telematici_deposito.py tests\test_fascicoli_signature_options.py --tb=short` | OK | 62/62 passati: deposito PEC, busta, profilo deposito SQL, canali/certificati e messaggi firma CAdES/PAdES preservati. |
+| `python tools\check_local_signer_boundaries.py` | OK | Confermato che Telematico React continua a inviare il codice ufficio operativo prima del codice ministeriale fallback. |
+| `python -m pytest -q tests\test_database.py::test_admin_database_ottimizza_json --tb=short` | OK | Endpoint admin database ottimizzazione passa con risposta redatta. |
+| `python scripts\react-migration\generate_api_contracts.py` | OK | `docs\openapi.yaml`, `docs\api-endpoint-contract-map.md` e `docs\api-contracts.md` rigenerati dopo bump `2.253.59`. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python tools\sync_packaging_files.py --check` | OK | Contratti API allineati, OpenAPI valido, provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`, packaging sincronizzato. |
+| `python -m pytest -q tests\test_utf8_integrity.py tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short`; `pnpm --filter @iusentra/studio typecheck` | OK | 14/14 passati su UTF-8/packaging/readiness; TypeScript senza errori. |
+| `pnpm --filter @iusentra/studio build`; `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | Build Vite completata e asset retention 2/2 passati dopo rigenerazione manifest. |

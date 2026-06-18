@@ -8,6 +8,7 @@ from pct.pst_cifratura import (
     crea_certificato_cifratura_test,
     esegui_controllo_settimanale_certificati_cifratura,
     precarica_certificati_cifratura,
+    report_path_certificati_mirato,
     salva_certificato_cifratura_ufficio,
     valida_canale_telematico_per_cifratura,
 )
@@ -225,6 +226,28 @@ def test_salva_certificato_catalogo_servizi_in_cache_validata(tmp_path):
     assert cached.sha256 == info.sha256
     assert cached.source_url.endswith("/servizi/CatalogoServizi")
     assert (tmp_path / "cache" / "0800570152.cer").exists()
+
+
+def test_cache_certificati_pst_normalizza_codici_senza_path_traversal(tmp_path):
+    generated = crea_certificato_cifratura_test(tmp_path / "origine.cer")
+    cache_dir = tmp_path / "cache"
+
+    info = salva_certificato_cifratura_ufficio(
+        "..\\..\\0800570152",
+        (tmp_path / "origine.cer").read_bytes(),
+        cache_dir=cache_dir,
+    )
+    report_path = report_path_certificati_mirato(
+        ["../0800570152", "..\\..\\palmi"],
+        cache_dir=cache_dir,
+    )
+
+    assert info.sha256 == generated.sha256
+    assert Path(info.path).parent == cache_dir.resolve()
+    assert Path(info.path).name == "0800570152.cer"
+    assert report_path.parent == cache_dir.resolve()
+    assert ".." not in report_path.name
+    assert not (tmp_path / "0800570152.cer").exists()
 
 
 def test_downloader_pst_usa_intermedio_tls_pinnato_senza_disabilitare_ssl():

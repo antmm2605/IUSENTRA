@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 
@@ -61,16 +60,10 @@ def nota_con_firma_visibile(
     datetime_mode: str = "data_ora",
 ) -> str:
     base = str(note or "Versione firmata per deposito").strip()
-    base = re.sub(
-        (
-            r"\s*\.?\s*Posizione firma visibile:\s*[^.;\n]+"
-            r"(?:[.;]\s*Luogo firma:\s*[^.;\n]+)?"
-            r"(?:[.;]\s*Data/ora firma visibile:\s*[^.;\n]+)?\.?\s*$"
-        ),
-        "",
-        base,
-        flags=re.IGNORECASE,
-    ).strip()
+    marker = "posizione firma visibile:"
+    marker_at = base.casefold().rfind(marker)
+    if marker_at >= 0 and "\n" not in base[:marker_at]:
+        base = base[:marker_at].rstrip(" .;")
     label = FIRMA_VISIBILE_MODE_LABELS.get(str(mode or "").strip(), FIRMA_VISIBILE_MODE_LABELS["laterale"])
     dettagli = [f"Posizione firma visibile: {label}"]
     place = str(place or "").strip()

@@ -4773,7 +4773,15 @@ def regia_apri_fascicolo_da_preventivo(preventivo_id: str):
             message="Apertura fascicolo autorizzata con override economico.",
             reason=str(payload.get("override_reason") or payload.get("motivo_override") or ""),
         )
-    return jsonify({"ok": True, "mock_fallback": False, "created": result["created"], "fascicolo_id": getattr(fascicolo, "id", ""), "practice_engine_profile": result.get("practice_engine_profile", "")})
+    return _jsonify_redacted(
+        {
+            "ok": True,
+            "mock_fallback": False,
+            "created": result["created"],
+            "fascicolo_id": getattr(fascicolo, "id", ""),
+            "practice_engine_profile": result.get("practice_engine_profile", ""),
+        }
+    )
 
 
 @api_v1_react.post("/conferimenti/<conferimento_id>/apri-fascicolo")
@@ -4808,7 +4816,15 @@ def regia_apri_fascicolo_da_conferimento(conferimento_id: str):
             message="Apertura fascicolo autorizzata con override economico.",
             reason=str(payload.get("override_reason") or payload.get("motivo_override") or ""),
         )
-    return jsonify({"ok": True, "mock_fallback": False, "created": result["created"], "fascicolo_id": getattr(fascicolo, "id", ""), "practice_engine_profile": result.get("practice_engine_profile", "")})
+    return _jsonify_redacted(
+        {
+            "ok": True,
+            "mock_fallback": False,
+            "created": result["created"],
+            "fascicolo_id": getattr(fascicolo, "id", ""),
+            "practice_engine_profile": result.get("practice_engine_profile", ""),
+        }
+    )
 # IUSENTRA_REACT_FASCICOLI_ROUTES_END
 
 

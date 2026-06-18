@@ -5,6 +5,10 @@
 | Comando | Esito | Note |
 | --- | --- | --- |
 | `python -m pytest tests\test_polisweb.py::test_api_portale_acquisizione_preview_pst_arricchisce_catalogo_da_fascicolo_locale tests\test_polisweb.py::test_api_portale_acquisizione_preview_pst_preserva_iscrizione_da_snapshot tests\test_polisweb.py::test_api_portale_acquisizione_preview_pst_usa_fallback_payload_e_id_fascicolo -q` | OK | 3 passed. Verificato che la preview PST arricchisce lo snapshot parziale dal fascicolo locale e mantiene 29/29 documenti, incluso un allegato senza id forte. |
+| `python -m pytest tests\test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests\test_react_asset_retention.py -q --tb=short` | OK | 3 passed. Confermati riuso snapshot anteprima PST e asset React referenziati. |
+| `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | 14 passed. Packaging, release readiness e integrità UTF-8 confermati sul commit `93de6fb7`. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build`; generatori `sync_packaging_files`, `generate_app_v2_test_docs`, `generate_api_contracts --check` | OK | TypeScript, build Vite e contratti/documenti generati allineati; bundle produzione contiene `TelematicoSurfacePage-B2_fCC4h.js`. |
+| Browser reale server `https://app.iusentra.it/portali/pst/acquisizione?...RG3950...` | OK osservato | Commit `93de6fb7`, versione `2.253.64`; ricerca PST completata, anteprima Step 3 aperta in circa 1 secondo, `Documenti 31`, `7 buste o gruppi`, `Parti 2`, `Eventi 1`, nessun timeout verso `ext.processotelematico.giustizia.it`. |
 
 ## PST lavoro Torino e Local Signer 1.6.76 - 2026-06-18
 

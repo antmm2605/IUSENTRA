@@ -9,6 +9,7 @@ Data: 18/06/2026.
 - Caso reale: Tribunale di Torino, registro LAV, RG 3950/2026.
 - Dopo deploy `2.253.63`, prova reale su `https://app.iusentra.it` in Google Chrome: `Cerca fascicolo` ha confermato il certificato PST e ha trovato `RG 3950/2026`; `Carica anteprima` ha aperto Step 3 senza timeout verso `ext.processotelematico.giustizia.it`.
 - Residuo corretto in `2.253.64`: l'anteprima mostrava solo 4 righe principali quando il fascicolo locale già importato conteneva il catalogo completo; ora la preview PST arricchisce lo snapshot parziale con i documenti portale del fascicolo locale esatto.
+- Prova reale server `2.253.64` su Google Chrome: `Cerca fascicolo` ha trovato `RG 3950/2026`; `Carica anteprima` ha aperto Step 3 in circa 1 secondo, senza timeout, con `Documenti 31`, `7 buste o gruppi`, `Parti 2` ed `Eventi 1`.
 - Guardrail: `test_api_portale_acquisizione_preview_pst_arricchisce_catalogo_da_fascicolo_locale` copre `29/29` documenti in preview e preserva anche un allegato reale senza id forte.
 - Limite operativo: questa correzione riguarda consultazione/anteprima e catalogo documenti; non dichiara completo l'invio reale del deposito, che resta soggetto a firme, `Atto.enc`, PEC locale e ricevute.
 

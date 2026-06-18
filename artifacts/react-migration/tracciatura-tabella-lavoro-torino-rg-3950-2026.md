@@ -130,12 +130,15 @@ Guardrail:
 
 - `tests/test_polisweb.py::test_api_portale_acquisizione_preview_pst_arricchisce_catalogo_da_fascicolo_locale` verifica uno snapshot con un solo documento e un fascicolo PST locale con `29/29` documenti, incluso un allegato senza id portale forte.
 
-Da ripetere dopo deploy `2.253.64`:
+Prova reale server dopo deploy `2.253.64`:
 
-- ricaricare `https://app.iusentra.it/portali/pst/acquisizione?...RG3950...`;
-- cercare il fascicolo;
-- caricare l'anteprima;
-- verificare assenza timeout e contatore/documenti in anteprima allineati al catalogo completo già scaricato.
+- deploy Hetzner eseguito sul commit `93de6fb7`; `/api/pronto` risponde `versione=2.253.64`, container `app`, `scheduler-worker` e `ocr-worker` healthy, cache Docker rigenerabile prunata e `/opt/iusentra/tmp-backup-snapshot` assente;
+- Google Chrome reale collegato al PC dell'utente su `https://app.iusentra.it/portali/pst/acquisizione?...RG3950...`: bundle caricato `TelematicoSurfacePage-B2_fCC4h.js`;
+- `Cerca fascicolo` ha completato la lettura PST e mostrato `1 risultati trovati`, `RG 3950/2026`, `Tribunale di Torino - SPAGNOLO SARA`, senza finestra Adobe e senza timeout;
+- `Carica anteprima` ha aperto Step 3 in circa 1 secondo, con messaggio `Anteprima caricata: verifica dati, parti, eventi e documenti`;
+- anteprima visibile: `Parti 2`, `Documenti 31`, `7 buste o gruppi`, `Eventi 1`, `R.G. 3950`, `RITO LAVORO 1 GRADO`, `ATTESA ESITO UDIENZA DI DISCUSSIONE`, `QUINTA SEZIONE LAVORO`, oggetto `retribuzione`;
+- documenti visibili in anteprima, tra gli altri: `Ricorso (originale notificato).pdf`, `Relata di notifica.pdf.pdf`, `Procura (originale notificato).pdf`, `IndiceDocumentiDepositati.PDF`, `DatiAtto.xml.p7m`, ricevute `CONSEGNA` e `ACCETTAZIONE`, `Decreto_173140769.pdf`, `AssegnazioneSezioneGiudice_172453268.pdf`, `Ricorso_172365050.pdf`, `Nota d'iscrizione a ruolo.PDF`, `Lettera di diffida Carta Docenti Spagnolo Sara.PDF`, `Contratto 25-26 per interesse ad agire.PDF`, `Contratto 24-25.PDF`;
+- non è comparso `Timeout connessione a ext.processotelematico.giustizia.it (90s)`.
 
 ## Stato residuo
 
@@ -145,7 +148,5 @@ Il fascicolo è stato scaricato e importato sul server reale. Restano da chiuder
 - build React e retention asset;
 - Docker locale reale su `127.0.0.1:8080`;
 - prova visiva locale post-rebuild;
-- commit e push dei branch gemelli;
 - controlli GitHub/CodeQL sullo SHA corrente;
-- deploy Hetzner dello stesso commit;
 - igiene repository finale.

@@ -6,8 +6,9 @@ import json
 from collections.abc import Callable
 from datetime import date
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlparse
 
-from flask import Flask, flash, g, redirect, render_template, request, url_for
+from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
 from web.bootstrap.telematico_portali_common import (
     group_documenti_per_deposito,
@@ -32,6 +33,39 @@ def register_telematico_portali_routes(
     register_direct_portale_import_sync: Callable[..., None],
 ) -> None:
     """Register remaining PDP, PAT and SIGIT UI routes."""
+
+    def _pagopa_fascicolo_from_referrer() -> str:
+        referrer = str(request.referrer or "").strip()
+        if not referrer:
+            return ""
+        parsed = urlparse(referrer)
+        if parsed.netloc and parsed.netloc != request.host:
+            return ""
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+            if key == "iusentra_fascicolo":
+                return value
+        return ""
+
+    @app.route("/PST/", defaults={"pst_path": ""}, methods=["GET", "POST"])
+    @app.route("/PST/<path:pst_path>", methods=["GET", "POST"])
+    def pst_pagopa_absolute_escape(pst_path: str):
+        cleaned = str(pst_path or "it/pagopa_altripag.wp").strip().replace("\\", "/").lstrip("/")
+        if "://" in cleaned or cleaned.startswith("//"):
+            return redirect("/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp", code=302)
+
+        query_pairs = list(request.args.items(multi=True))
+        fascicolo_id = (
+            str(request.args.get("iusentra_fascicolo") or "").strip()
+            or str(session.get("pst_pagopa_fascicolo_id") or "").strip()
+            or _pagopa_fascicolo_from_referrer().strip()
+        )
+        if fascicolo_id and not any(key == "iusentra_fascicolo" for key, _value in query_pairs):
+            query_pairs.append(("iusentra_fascicolo", fascicolo_id))
+        query = urlencode(query_pairs, doseq=True)
+        target = f"/api/v1/ui/pst/pagopa-proxy/{cleaned}"
+        if query:
+            target = f"{target}?{query}"
+        return redirect(target, code=307 if request.method == "POST" else 302)
 
     @app.route("/pdp", methods=["GET"])
     def pdp_home():

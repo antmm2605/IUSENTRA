@@ -4024,16 +4024,29 @@ def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path:
         response.url = url
         response.cookies = RequestsCookieJar()
         response.cookies.set("JSESSIONID", "pst-test")
+        if url.endswith("/PST/dwr/interface/PagamentiTelematiciAjaxServices.js"):
+            response.headers["Content-Type"] = "text/javascript;charset=utf-8"
+            response._content = b"PagamentiTelematiciAjaxServices._path = '/PST/dwr';"
+            return response
+        if url.endswith("/PST/resources/static/js/pst.js"):
+            response.headers["Content-Type"] = "application/javascript"
+            response._content = b'window.dwr = { engine: { _execute: function(){ return "/PST/dwr/call"; } } };'
+            return response
         if url.endswith("/PST/resources/ricevuta.pdf"):
             response.headers["Content-Type"] = "application/pdf"
             response.headers["Content-Disposition"] = 'inline; filename="ricevuta-pagopa.pdf"'
             response._content = b"%PDF-1.4\nricevuta pagoPA\n%%EOF"
             return response
-        response.headers["Content-Type"] = "text/html; charset=utf-8"
+        if url.endswith("/PST/it/pagopa_nuovarich.wp"):
+            response.headers["Content-Type"] = "application/xhtml+xml; charset=utf-8"
+        else:
+            response.headers["Content-Type"] = "text/html; charset=utf-8"
         response._content = (
             b'<html><head><link href="/PST/resources/static/css/pst.css"></head>'
             b'<body><form method="post" action="/PST/it/pagopa_altripag.wp?action=conferma">'
             b'<input name="codice"></form>'
+            b'<a href=/PST/it/pagopa_nuovarich.wp>+ Nuovo pagamento</a>'
+            b'<img src=/PST/resources/cms/images/pagoPA_d0.jpg>'
             b'<a href="/PST/resources/ricevuta.pdf">Richiedi ricevuta PDF</a>'
             b'</body></html>'
         )
@@ -4049,6 +4062,48 @@ def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path:
         pdf_response = client.get(
             f"/api/v1/ui/pst/pagopa-proxy/resources/ricevuta.pdf?iusentra_fascicolo={fascicolo.id}"
         )
+        xhtml_response = client.get(
+            f"/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp?iusentra_fascicolo={fascicolo.id}"
+        )
+        javascript_response = client.get(
+            f"/api/v1/ui/pst/pagopa-proxy/resources/static/js/pst.js?iusentra_fascicolo={fascicolo.id}"
+        )
+        dwr_interface_response = client.get(
+            f"/api/v1/ui/pst/pagopa-proxy/dwr/interface/PagamentiTelematiciAjaxServices.js?iusentra_fascicolo={fascicolo.id}"
+        )
+        dwr_response = client.post(
+            f"/api/v1/ui/pst/pagopa-proxy/dwr/call/plaincall/PagamentiTelematiciAjaxServices.getUfficiGiudiziari.dwr?iusentra_fascicolo={fascicolo.id}",
+            data=(
+                "callCount=1\n"
+                f"page=%2Fapi%2Fv1%2Fui%2Fpst%2Fpagopa-proxy%2Fit%2Fpagopa_nuovarich.wp%3Fiusentra_fascicolo%3D{fascicolo.id}\n"
+                "httpSessionId=\n"
+            ),
+            headers={
+                "Content-Type": "text/plain; charset=UTF-8",
+                "Referer": (
+                    "http://localhost/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp"
+                    f"?iusentra_fascicolo={fascicolo.id}"
+                ),
+            },
+        )
+        dwr_response_without_content_type = client.post(
+            f"/api/v1/ui/pst/pagopa-proxy/dwr/call/plaincall/__System.pageLoaded.dwr?iusentra_fascicolo={fascicolo.id}",
+            data=(
+                "callCount=1\n"
+                f"page=%2Fapi%2Fv1%2Fui%2Fpst%2Fpagopa-proxy%2Fit%2Fpagopa_altripag.wp%3Fiusentra_fascicolo%3D{fascicolo.id}\n"
+                "httpSessionId=\n"
+            ),
+            headers={
+                "Referer": (
+                    "http://localhost/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp"
+                    f"?iusentra_fascicolo={fascicolo.id}"
+                )
+            },
+        )
+        absolute_escape_response = client.get(
+            f"/PST/it/pagopa_nuovarich.wp?iusentra_fascicolo={fascicolo.id}",
+            follow_redirects=False,
+        )
 
     html = html_response.get_data(as_text=True)
     assert html_response.status_code == 200
@@ -4059,12 +4114,55 @@ def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path:
         in html
     )
     assert f"/api/v1/ui/pst/pagopa-proxy/resources/ricevuta.pdf?iusentra_fascicolo={fascicolo.id}" in html
+    assert f"/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp?iusentra_fascicolo={fascicolo.id}" in html
+    assert f"/api/v1/ui/pst/pagopa-proxy/resources/cms/images/pagoPA_d0.jpg?iusentra_fascicolo={fascicolo.id}" in html
+    assert "function proxiedUrl(raw)" in html
+    assert "attributeFilter: ['href', 'src', 'action']" in html
+    assert "proxyPrefix + proxyPath + absolute.search" in html
+    assert "'unsafe-eval'" in html_response.headers["Content-Security-Policy"]
     assert pdf_response.status_code == 200
     assert pdf_response.content_type == "application/pdf"
     assert pdf_response.headers["X-IUSENTRA-Fascicolo"] == fascicolo.id
     assert pdf_response.headers["X-IUSENTRA-Fascicolo-Documento"]
+    assert xhtml_response.status_code == 200
+    assert xhtml_response.content_type.startswith("text/html")
+    assert (
+        f"/api/v1/ui/pst/pagopa-proxy/resources/static/css/pst.css?iusentra_fascicolo={fascicolo.id}"
+        in xhtml_response.get_data(as_text=True)
+    )
+    assert javascript_response.status_code == 200
+    assert javascript_response.content_type == "application/javascript"
+    assert 'return "/PST/dwr/call"' in javascript_response.get_data(as_text=True)
+    assert "/api/v1/ui/pst/pagopa-proxy/dwr/call" not in javascript_response.get_data(as_text=True)
+    assert dwr_interface_response.status_code == 200
+    assert (
+        "PagamentiTelematiciAjaxServices._path = '/api/v1/ui/pst/pagopa-proxy/dwr';"
+        in dwr_interface_response.get_data(as_text=True)
+    )
+    assert dwr_response.status_code == 200
+    assert dwr_response_without_content_type.status_code == 200
+    assert absolute_escape_response.status_code == 302
+    assert absolute_escape_response.headers["Location"].endswith(
+        f"/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp?iusentra_fascicolo={fascicolo.id}"
+    )
     assert calls[0][1] == "https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp"
     assert calls[1][1] == "https://servizipst.giustizia.it/PST/resources/ricevuta.pdf"
+    dwr_call = next(call for call in calls if call[1].endswith("PagamentiTelematiciAjaxServices.getUfficiGiudiziari.dwr"))
+    assert dwr_call[1] == (
+        "https://servizipst.giustizia.it/PST/dwr/call/plaincall/"
+        "PagamentiTelematiciAjaxServices.getUfficiGiudiziari.dwr"
+    )
+    assert dwr_call[2]["headers"]["Referer"] == "https://servizipst.giustizia.it/PST/it/pagopa_nuovarich.wp"
+    assert dwr_call[2]["headers"]["Origin"] == "https://servizipst.giustizia.it"
+    assert dwr_call[2]["headers"]["Content-Type"] == "text/plain; charset=UTF-8"
+    assert "page=%2FPST%2Fit%2Fpagopa_nuovarich.wp" in dwr_call[2]["data"].decode("utf-8")
+    assert "httpSessionId=pst-test" in dwr_call[2]["data"].decode("utf-8")
+    page_loaded_call = next(call for call in calls if call[1].endswith("__System.pageLoaded.dwr"))
+    assert page_loaded_call[2]["headers"]["Content-Type"] == "text/plain"
+    assert "page=%2FPST%2Fit%2Fpagopa_altripag.wp" in page_loaded_call[2]["data"].decode("utf-8")
+    assert "httpSessionId=pst-test" in page_loaded_call[2]["data"].decode("utf-8")
+    assert calls[0][2]["verify"] is not False
+    assert react_api_module.PST_PAGOPA_EXTRA_CA_PATH.read_bytes() in Path(calls[0][2]["verify"]).read_bytes()
     fascicolo_aggiornato = GestioneFascicoli(
         db_path=app.config["FASCICOLI_DB"],
         documents_dir=app.config["FASCICOLI_DOCS"],
@@ -4206,7 +4304,8 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "externalHref: PAGOPA_PST_URL" in page_source
     assert "src={record.href}" in page_source
     assert "sandbox={isPagoPa ?" in page_source
-    assert "referrerPolicy={isPagoPa ? 'no-referrer' : undefined}" in page_source
+    assert "allow-same-origin allow-forms allow-scripts allow-popups" in page_source
+    assert "referrerPolicy={isPagoPa ? 'same-origin' : undefined}" in page_source
     assert "Visualizza cliente nel fascicolo" in page_source
     assert "Visualizza soggetti e parti nel fascicolo" in page_source
     assert "Quando richiedi la ricevuta PDF" in page_source

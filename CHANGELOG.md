@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.253.70 - 2026-06-18
+
+- PagoPA PST: stabilizzato il bridge dentro il fascicolo anche sui JavaScript/DWR ministeriali; il percorso DWR viene riportato al proxy IUSENTRA, `page` e `Referer` tornano ai percorsi PST ufficiali e `httpSessionId` usa la sessione PST custodita dal proxy.
+- PagoPA PST: aggiunta una CSP dedicata solo alla risposta proxy, con compatibilità per il codice storico DWR del PST senza allentare le intestazioni generali IUSENTRA.
+- Fascicoli React: l'iframe PagoPA mantiene same-origin nel sandbox e referrer coerente, così il form PagoPA resta compilabile nella modale e la ricevuta PDF continua a essere archiviata come `RICEVUTA_PAGOPA` quando il PST la restituisce.
+- Prova reale locale: su Chrome installato e `127.0.0.1:8080` il flusso PagoPA ha aperto `Nuovo pagamento`, selezionato `Contributo unificato e/o Diritti di cancelleria`, scelto il distretto `TORINO`, popolato 66 uffici giudiziari e compilato il codice fiscale senza errori CSRF/CSP; non è stato premuto `Paga subito`.
+
+## 2.253.69 - 2026-06-18
+
+- PagoPA PST: corretto il bridge interno aggiungendo al bundle TLS l'intermedio ufficiale `TI Trust Technologies OV CA`, necessario perché il portale ministeriale espone una catena non chiudibile da `requests/certifi`.
+- Sicurezza: la verifica TLS resta attiva; non viene usato `verify=False` e il bundle extra è limitato alla chiamata PagoPA PST.
+- Guardrail: il test del bridge verifica che la chiamata al PST usi un bundle CA reale contenente l'intermedio TI Trust.
+
 ## 2.253.68 - 2026-06-18
 
 - Fascicoli React: Cliente e Soggetti si aprono in overlay interno sopra il fascicolo, senza uscire dalla pratica aperta.

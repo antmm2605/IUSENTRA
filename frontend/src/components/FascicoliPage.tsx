@@ -2634,8 +2634,8 @@ function EmbeddedRecordModal({ record, onClose }:{record:EmbeddedRecordState | n
           <iframe
             src={record.href}
             title={record.title}
-            sandbox={isPagoPa ? 'allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-top-navigation-by-user-activation' : undefined}
-            referrerPolicy={isPagoPa ? 'no-referrer' : undefined}
+            sandbox={isPagoPa ? 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-top-navigation-by-user-activation' : undefined}
+            referrerPolicy={isPagoPa ? 'same-origin' : undefined}
           />
         </div>
       </div>

@@ -13,13 +13,15 @@ import json
 import os
 import re
 import shutil
+import tempfile
 from datetime import date, datetime, timedelta, timezone
-from functools import wraps
+from functools import lru_cache, wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
-from urllib.parse import parse_qsl, unquote, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qsl, quote_plus, unquote, unquote_plus, urlencode, urljoin, urlparse, urlunparse
 from zoneinfo import ZoneInfo
 
+import certifi
 import requests
 from flask import Blueprint, Response, current_app, g, jsonify, request, send_file, session, url_for
 from werkzeug.exceptions import HTTPException
@@ -366,9 +368,27 @@ PST_PAGOPA_HOST = "servizipst.giustizia.it"
 PST_PAGOPA_ROOT = f"https://{PST_PAGOPA_HOST}/PST/"
 PST_PAGOPA_PROXY_PREFIX = "/api/v1/ui/pst/pagopa-proxy/"
 PST_PAGOPA_TIMEOUT_SECONDS = 25
-PST_PAGOPA_TEXT_TYPES = ("text/html", "text/css", "javascript", "application/xml", "text/xml")
+PST_PAGOPA_TEXT_TYPES = ("text/html", "application/xhtml+xml", "text/css", "javascript", "application/xml", "text/xml")
+PST_PAGOPA_EXTRA_CA_PATH = Path(__file__).resolve().parents[1] / "certs" / "TITrustTechnologiesOVCA.pem"
+PST_PAGOPA_PROXY_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: https:; "
+    "font-src 'self' data:; "
+    "connect-src 'self'; "
+    "worker-src 'self' blob:; "
+    "frame-src 'self' blob:; "
+    "frame-ancestors 'self'; "
+    "base-uri 'self'; "
+    "form-action 'self'"
+)
 
-_PST_PAGOPA_ATTR_RE = re.compile(r"(?P<prefix>\b(?:href|src|action)=['\"])(?P<url>[^'\"]+)(?P<suffix>['\"])", re.IGNORECASE)
+_PST_PAGOPA_ATTR_RE = re.compile(
+    r"(?P<prefix>\b(?:href|src|action)\s*=\s*)"
+    r"(?:(?P<quote>['\"])(?P<quoted>[^'\"]+)(?P=quote)|(?P<unquoted>[^\s>]+))",
+    re.IGNORECASE,
+)
 _PST_PAGOPA_CSS_URL_RE = re.compile(r"url\((?P<quote>['\"]?)(?P<url>[^)'\"\s][^)'\"]*?)(?P=quote)\)")
 
 
@@ -419,6 +439,22 @@ def _pst_pagopa_query_pairs() -> list[tuple[str, str]]:
     ]
 
 
+@lru_cache(maxsize=1)
+def _pst_pagopa_verify_bundle() -> str:
+    """CA bundle per il PST: certifi più intermedio TI Trust mancante nella chain ministeriale."""
+    base_path = Path(certifi.where())
+    extra_path = PST_PAGOPA_EXTRA_CA_PATH
+    if not extra_path.exists():
+        return str(base_path)
+    base = base_path.read_bytes()
+    extra = extra_path.read_bytes()
+    digest = hashlib.sha256(extra).hexdigest()[:16]
+    bundle_path = Path(tempfile.gettempdir()) / f"iusentra-pst-pagopa-ca-{digest}.pem"
+    if not bundle_path.exists():
+        bundle_path.write_bytes(base + b"\n" + extra)
+    return str(bundle_path)
+
+
 def _pst_pagopa_target_url(pst_path: str = "") -> str:
     cleaned = str(pst_path or "it/pagopa_altripag.wp").strip().replace("\\", "/")
     if cleaned.startswith("PST/"):
@@ -432,6 +468,99 @@ def _pst_pagopa_target_url(pst_path: str = "") -> str:
         return ""
     query = urlencode(_pst_pagopa_query_pairs(), doseq=True)
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", query, ""))
+
+
+def _pst_pagopa_strip_iusentra_query(raw_query: str) -> str:
+    pairs = [
+        (key, value)
+        for key, value in parse_qsl(raw_query, keep_blank_values=True)
+        if not str(key).startswith("iusentra_")
+    ]
+    return urlencode(pairs, doseq=True)
+
+
+def _pst_pagopa_upstream_referer(target_url: str) -> str:
+    referrer = str(request.referrer or "").strip()
+    if referrer:
+        parsed = urlparse(referrer)
+        same_iusentra_host = not parsed.netloc or parsed.netloc == request.host
+        if same_iusentra_host and parsed.path.startswith(PST_PAGOPA_PROXY_PREFIX):
+            proxy_path = parsed.path.removeprefix(PST_PAGOPA_PROXY_PREFIX).lstrip("/")
+            candidate = urljoin(PST_PAGOPA_ROOT, proxy_path)
+            candidate_parsed = urlparse(candidate)
+            if (
+                candidate_parsed.scheme == "https"
+                and candidate_parsed.netloc.lower() == PST_PAGOPA_HOST
+                and candidate_parsed.path.startswith("/PST/")
+            ):
+                return urlunparse(
+                    (
+                        candidate_parsed.scheme,
+                        candidate_parsed.netloc,
+                        candidate_parsed.path,
+                        "",
+                        _pst_pagopa_strip_iusentra_query(parsed.query),
+                        "",
+                    )
+                )
+        if parsed.scheme == "https" and parsed.netloc.lower() == PST_PAGOPA_HOST and parsed.path.startswith("/PST/"):
+            return urlunparse(
+                (parsed.scheme, parsed.netloc, parsed.path, "", _pst_pagopa_strip_iusentra_query(parsed.query), "")
+            )
+    parsed_target = urlparse(target_url)
+    if "/dwr/" in parsed_target.path:
+        return urljoin(PST_PAGOPA_ROOT, "it/pagopa_nuovarich.wp")
+    return target_url
+
+
+def _pst_pagopa_local_page_to_upstream(raw_page: str) -> str:
+    value = str(raw_page or "").strip()
+    if not value:
+        return value
+    parsed = urlparse(value)
+    path = parsed.path or value
+    if path.startswith(PST_PAGOPA_PROXY_PREFIX):
+        proxy_path = path.removeprefix(PST_PAGOPA_PROXY_PREFIX).lstrip("/")
+        upstream_path = f"/PST/{proxy_path}"
+    elif path.startswith("/PST/"):
+        upstream_path = path
+    else:
+        return value
+    query = _pst_pagopa_strip_iusentra_query(parsed.query)
+    return urlunparse(("", "", upstream_path, "", query, ""))
+
+
+def _pst_pagopa_rewrite_dwr_body(body: bytes, cookies: Mapping[str, str] | None = None) -> bytes:
+    if not body:
+        return body
+    pst_session_id = str((cookies or {}).get("JSESSIONID") or "").strip()
+    text = body.decode("utf-8", errors="replace")
+    lines: list[str] = []
+    changed = False
+    for line in text.splitlines():
+        if line.startswith("page="):
+            upstream_page = _pst_pagopa_local_page_to_upstream(unquote_plus(line[5:]))
+            if upstream_page:
+                encoded_page = quote_plus(upstream_page)
+                if encoded_page != line[5:]:
+                    line = f"page={encoded_page}"
+                    changed = True
+        elif pst_session_id and line == "httpSessionId=":
+            line = f"httpSessionId={pst_session_id}"
+            changed = True
+        lines.append(line)
+    if not changed:
+        return body
+    suffix = "\n" if text.endswith(("\n", "\r\n")) else ""
+    return ("\n".join(lines) + suffix).encode("utf-8")
+
+
+def _pst_pagopa_rewrite_dwr_javascript(text: str) -> str:
+    return re.sub(
+        r"(?P<prefix>\._path\s*=\s*)(?P<quote>['\"])/PST/dwr(?P=quote)",
+        lambda match: f"{match.group('prefix')}{match.group('quote')}{PST_PAGOPA_PROXY_PREFIX.rstrip('/')}/dwr{match.group('quote')}",
+        text,
+    )
 
 
 def _pst_pagopa_proxy_href(raw_url: str, *, base_url: str, fascicolo_id: str) -> str:
@@ -456,11 +585,10 @@ def _pst_pagopa_proxy_href(raw_url: str, *, base_url: str, fascicolo_id: str) ->
 
 def _pst_pagopa_rewrite_text(text: str, *, base_url: str, fascicolo_id: str) -> str:
     def _attr_replace(match: re.Match[str]) -> str:
-        return (
-            match.group("prefix")
-            + _pst_pagopa_proxy_href(match.group("url"), base_url=base_url, fascicolo_id=fascicolo_id)
-            + match.group("suffix")
-        )
+        quote = match.group("quote") or ""
+        raw_url = match.group("quoted") if quote else match.group("unquoted")
+        rewritten = _pst_pagopa_proxy_href(raw_url or "", base_url=base_url, fascicolo_id=fascicolo_id)
+        return f"{match.group('prefix')}{quote}{rewritten}{quote}"
 
     def _css_replace(match: re.Match[str]) -> str:
         rewritten = _pst_pagopa_proxy_href(match.group("url"), base_url=base_url, fascicolo_id=fascicolo_id)
@@ -477,6 +605,93 @@ def _pst_pagopa_rewrite_text(text: str, *, base_url: str, fascicolo_id: str) -> 
         rewritten,
     )
     return rewritten
+
+
+def _pst_pagopa_runtime_bridge_script(*, base_url: str, fascicolo_id: str) -> str:
+    base_json = json.dumps(base_url, ensure_ascii=False)
+    fascicolo_json = json.dumps(fascicolo_id, ensure_ascii=False)
+    prefix_json = json.dumps(PST_PAGOPA_PROXY_PREFIX, ensure_ascii=False)
+    host_json = json.dumps(PST_PAGOPA_HOST, ensure_ascii=False)
+    return f"""
+<script>
+(function(){{
+  var baseUrl = {base_json};
+  var fascicoloId = {fascicolo_json};
+  var proxyPrefix = {prefix_json};
+  var pstHost = {host_json};
+  function proxiedUrl(raw) {{
+    if (!raw || raw.charAt(0) === '#' || /^(javascript|mailto|tel|data):/i.test(raw)) return raw;
+    if (raw.indexOf(proxyPrefix) === 0) return raw;
+    try {{
+      var absolute = new URL(raw, baseUrl);
+      if (absolute.hostname !== pstHost || absolute.pathname.indexOf('/PST/') !== 0) return raw;
+      var proxyPath = absolute.pathname.replace(/^\\/PST\\/?/, '');
+      if (fascicoloId && !absolute.searchParams.has('iusentra_fascicolo')) {{
+        absolute.searchParams.append('iusentra_fascicolo', fascicoloId);
+      }}
+      return proxyPrefix + proxyPath + absolute.search;
+    }} catch (error) {{
+      return raw;
+    }}
+  }}
+  function rewriteNode(node) {{
+    if (!node || !node.getAttribute || !node.setAttribute) return;
+    ['href', 'src', 'action'].forEach(function(attr) {{
+      var raw = node.getAttribute(attr);
+      var next = proxiedUrl(raw);
+      if (next && next !== raw) node.setAttribute(attr, next);
+    }});
+  }}
+  function rewriteTree(root) {{
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('[href], [src], [action]').forEach(rewriteNode);
+  }}
+  document.addEventListener('click', function(event) {{
+    var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if (!link) return;
+    var raw = link.getAttribute('href');
+    var next = proxiedUrl(raw);
+    if (next && next !== raw) {{
+      event.preventDefault();
+      window.location.href = next;
+    }}
+  }}, true);
+  document.addEventListener('submit', function(event) {{
+    rewriteNode(event.target);
+  }}, true);
+  if (document.readyState === 'loading') {{
+    document.addEventListener('DOMContentLoaded', function() {{ rewriteTree(document); }});
+  }} else {{
+    rewriteTree(document);
+  }}
+  if (window.MutationObserver) {{
+    new MutationObserver(function(mutations) {{
+      mutations.forEach(function(mutation) {{
+        if (mutation.type === 'attributes') {{
+          rewriteNode(mutation.target);
+          return;
+        }}
+        mutation.addedNodes.forEach(function(node) {{
+          rewriteNode(node);
+          rewriteTree(node);
+        }});
+      }});
+    }}).observe(document.documentElement, {{
+      attributes: true,
+      attributeFilter: ['href', 'src', 'action'],
+      childList: true,
+      subtree: true
+    }});
+  }}
+}})();
+</script>"""
+
+
+def _pst_pagopa_inject_runtime_bridge(text: str, *, base_url: str, fascicolo_id: str) -> str:
+    script = _pst_pagopa_runtime_bridge_script(base_url=base_url, fascicolo_id=fascicolo_id)
+    if re.search(r"</body\s*>", text, flags=re.IGNORECASE):
+        return re.sub(r"</body\s*>", script + r"\g<0>", text, count=1, flags=re.IGNORECASE)
+    return text + script
 
 
 def _pst_pagopa_filename(response: requests.Response, target_url: str) -> str:
@@ -3530,20 +3745,30 @@ def pst_pagopa_proxy(pst_path: str):
         "User-Agent": request.headers.get("User-Agent") or "IUSENTRA PagoPA PST bridge",
         "Accept": request.headers.get("Accept") or "*/*",
         "Accept-Language": request.headers.get("Accept-Language") or "it-IT,it;q=0.9",
+        "Referer": _pst_pagopa_upstream_referer(target_url),
     }
     if request.method == "POST":
         content_type = request.headers.get("Content-Type")
         if content_type:
             headers["Content-Type"] = content_type
+        elif "/dwr/call/" in urlparse(target_url).path:
+            headers["Content-Type"] = "text/plain"
+        headers["Origin"] = f"https://{PST_PAGOPA_HOST}"
+    upstream_data = None
+    if request.method == "POST":
+        upstream_data = request.get_data()
+        if "/dwr/call/" in urlparse(target_url).path:
+            upstream_data = _pst_pagopa_rewrite_dwr_body(upstream_data, cookies)
 
     try:
         upstream = requests.request(
             request.method,
             target_url,
             headers=headers,
-            data=request.get_data() if request.method == "POST" else None,
+            data=upstream_data,
             cookies=cookies,
             timeout=PST_PAGOPA_TIMEOUT_SECONDS,
+            verify=_pst_pagopa_verify_bundle(),
             allow_redirects=False,
         )
     except requests.RequestException as exc:
@@ -3568,6 +3793,7 @@ def pst_pagopa_proxy(pst_path: str):
     body = upstream.content
     response_headers: dict[str, str] = {
         "Cache-Control": "no-store",
+        "Content-Security-Policy": PST_PAGOPA_PROXY_CSP,
         "X-IUSENTRA-PagoPA-Bridge": "pst",
     }
     disposition = upstream.headers.get("Content-Disposition")
@@ -3589,8 +3815,15 @@ def pst_pagopa_proxy(pst_path: str):
     if any(marker in lower_content_type for marker in PST_PAGOPA_TEXT_TYPES):
         encoding = upstream.encoding or "utf-8"
         text = upstream.content.decode(encoding, errors="replace")
-        text = _pst_pagopa_rewrite_text(text, base_url=target_url, fascicolo_id=fascicolo_id)
-        return Response(text, status=upstream.status_code, headers=response_headers, content_type=content_type)
+        is_javascript = "javascript" in lower_content_type or urlparse(target_url).path.lower().endswith(".js")
+        if is_javascript and "/PST/dwr/" in urlparse(target_url).path:
+            text = _pst_pagopa_rewrite_dwr_javascript(text)
+        elif not is_javascript:
+            text = _pst_pagopa_rewrite_text(text, base_url=target_url, fascicolo_id=fascicolo_id)
+            if "text/html" in lower_content_type:
+                text = _pst_pagopa_inject_runtime_bridge(text, base_url=target_url, fascicolo_id=fascicolo_id)
+        response_content_type = "text/html; charset=utf-8" if "application/xhtml+xml" in lower_content_type else content_type
+        return Response(text, status=upstream.status_code, headers=response_headers, content_type=response_content_type)
 
     return Response(body, status=upstream.status_code, headers=response_headers, content_type=content_type)
 

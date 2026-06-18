@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 260.
+- Route Flask GET candidate rilevate fuori manifest: 262.
 
 ### Distribuzione rischio
 
@@ -649,6 +649,8 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 
 | URL | Metodi | File | Template rilevati |
 | --- | --- | --- | --- |
+| /PST | GET,POST | web/bootstrap/telematico_portali_routes.py | pat.html, pdp.html, pdp_documenti.html, sigit.html |
+| /PST/{path:pst_path} | GET,POST | web/bootstrap/telematico_portali_routes.py | pat.html, pdp.html, pdp_documenti.html, sigit.html |
 | /accesso/{token} | GET | web/bootstrap/condivisioni_routes.py | clienti/cartelle_condivise.html, clienti/collaboratori.html, clienti/link_scaduto.html, clienti/link_temporaneo.html, fascicoli/collaboratori_fascicolo.html |
 | /admin | GET | web/blueprints/admin.py | admin/assistente_migrazione.html, admin/dashboard.html, admin/governance.html, admin/lex_scorecard.html, admin/osservabilita.html, admin/salute_sistema.html, admin/stato_installazione.html, admin/studi_lista.html, admin/studio_database.html, admin/studio_dettaglio.html, admin/studio_nuovo.html, admin/studio_utenti.html, admin/utenti_piattaforma.html |
 | /admin/aggiornamenti-legali | GET | web/blueprints/legal_updates_admin.py | admin/legal_updates_analysis.html, admin/legal_updates_archive.html, admin/legal_updates_dashboard.html, admin/legal_updates_review.html, admin/legal_updates_sources.html, admin/legal_updates_staging.html, admin/legal_updates_staging_detail.html |
@@ -807,8 +809,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /polisWeb/local-signer/download/lex-document-context | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/download/local-ai-bridge | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/download/local-signer-mod/{path:filename} | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/download/python-embedded | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/download/requirements | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

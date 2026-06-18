@@ -1482,3 +1482,54 @@ Guardrail locali:
 - `python tools/sync_packaging_files.py --check` passato.
 
 Stato: da portare su branch gemelli, deployare su Hetzner e verificare visivamente su produzione con click reale su `Cliente`, `Soggetti`, `PagoPA`, compilazione/visualizzazione iniziale del portale e richiesta ricevuta PDF quando disponibile.
+
+## Aggiornamento 2.253.69 - TLS PagoPA PST
+
+Data intervento: 2026-06-18.
+
+La prova visiva server della versione `2.253.68` ha mostrato errore 502 nella modale PagoPA: il portale PST era raggiungibile da Chrome/curl Windows, ma `requests` locale e nel container fallivano con `CERTIFICATE_VERIFY_FAILED`.
+
+Diagnosi:
+
+- il leaf `servizipst.giustizia.it` risulta emesso da `TI Trust Technologies OV CA`;
+- il server PST non espone una catena chiudibile dal bundle `requests/certifi`;
+- con curl server l'errore era `unable to get local issuer certificate`;
+- con bundle composto da `certifi` più l'intermedio ufficiale `TI Trust Technologies OV CA`, la chiamata al PST restituisce HTTP 200 e `text/html;charset=utf-8`.
+
+Correzione applicata:
+
+- aggiunto `web/certs/TITrustTechnologiesOVCA.pem`;
+- il bridge PagoPA usa un bundle CA mirato `certifi + TI Trust` solo per `servizipst.giustizia.it/PST`;
+- la verifica TLS resta attiva: non è stato introdotto `verify=False`;
+- la modifica non tocca PIN, Local Signer, firma digitale, invio PEC, volumi o dati applicativi.
+
+## Aggiornamento 2.253.70 - PagoPA PST DWR compilabile nel fascicolo
+
+Data intervento: 2026-06-18.
+
+Dopo la prova reale locale della modale PagoPA, il portale PST caricava la pagina iniziale ma il form `Nuovo pagamento` non era ancora affidabile: le chiamate DWR del Ministero uscivano verso `/PST/dwr`, perdevano il contesto della sessione e potevano ricevere errori CSRF o restare senza elenco uffici.
+
+Correzione applicata:
+
+- il bridge riscrive solo l'assegnazione DWR `_path`, lasciando invariato il resto dei JavaScript ministeriali per non corrompere sintassi o regex del PST;
+- le POST DWR traducono `Referer`, `Origin`, `page` e `Content-Type` nel formato atteso dal portale ufficiale;
+- `httpSessionId` vuoto viene valorizzato con il `JSESSIONID` PST già custodito nella sessione proxy;
+- i percorsi raw `/PST/...` che sfuggono dal JavaScript vengono ricondotti al proxy IUSENTRA con redirect interno;
+- la modale React concede `allow-same-origin` solo all'iframe PagoPA e usa referrer `same-origin`, così form, DWR e download PDF restano nello stesso contesto di proxy;
+- la CSP rilassata con `unsafe-eval` è limitata alla risposta proxy PagoPA, perché il codice DWR storico del PST lo richiede; la CSP ordinaria IUSENTRA non viene allentata.
+
+Prova reale locale:
+
+- ambiente: Google Chrome installato su Windows, applicazione reale Docker `http://127.0.0.1:8080`, container healthy, `/api/pronto` con versione `2.253.70`;
+- percorso: dettaglio fascicolo locale `9B9DF2A1`, click reale su `PagoPA`, apertura modale, click `+ Nuovo pagamento`;
+- compilazione osservata: `Tipo pagamento` = `Contributo unificato e/o Diritti di cancelleria`, `Distretto` = `TORINO`, `Nominativo debitore` e `Codice fiscale` compilati;
+- risultato: select `Ufficio Giudiziario` popolata con 66 opzioni, tra cui `Corte d'Appello - Torino`, `Giudice di Pace - Torino`, Procure e Tribunali del distretto;
+- non sono comparsi errori CSRF, blocchi CSP pertinenti, errori console applicativi o timeout; non è stato premuto `Paga subito` e non è stato effettuato alcun pagamento;
+- Browser plugin non disponibile nella sessione Codex: prova eseguita con Chrome installato controllato via Playwright, come fallback previsto per la verifica frontend;
+- screenshot di prova fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-pagopa-225370-auth2-1781800757169\04-form-compilato-ok-locator.png`.
+
+Limiti residui:
+
+- IUSENTRA non inventa il link ricevuta: quando l'utente richiede manualmente la ricevuta PDF nel PST, il bridge intercetta il PDF restituito e lo collega ai documenti del fascicolo;
+- se il pagamento passa a PSP, banca o dominio esterno al PST, quel tratto può imporre policy proprie e resta fuori dal proxy ristretto al Ministero;
+- nessun PIN, certificato, firma digitale, Local Signer o invio PEC è stato usato da questa modifica.

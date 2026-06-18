@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## PagoPA PST nel fascicolo - 2.253.70
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Modale PagoPA compilabile | Google Chrome reale su `127.0.0.1:8080` | Risolto localmente su `2.253.70` | Docker locale healthy, `/api/pronto` `2.253.70`. La modale apre il portale PST, `Nuovo pagamento` mostra il form, `Tipo pagamento` e `Distretto TORINO` popolano 66 uffici giudiziari e il codice fiscale resta compilabile senza errori CSRF/CSP pertinenti. Non è stato premuto `Paga subito`. | Committare, pushare i branch gemelli, attendere i check GitHub, deployare Hetzner e ripetere la prova reale su `https://app.iusentra.it/fascicoli/9B9DF2A1`. |
+| Ricevuta PDF PagoPA | Bridge PST + prova reale | Presidiato, da provare con ricevuta effettiva | Il bridge salva nel fascicolo ogni PDF restituito dal PST come `RICEVUTA_PAGOPA`. La prova locale non ha generato pagamento o ricevuta perché non è stato cliccato `Paga subito`. | Verificare l'archiviazione quando il PST restituisce una ricevuta reale richiesta dall'utente. |
+
 ## PST lavoro Torino UX acquisizione - 2.253.65
 
 | Area | Gate | Stato | Nota | Azione |
@@ -1778,3 +1785,4 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Tratto PSP/banca esterno | Domini fuori `servizipst.giustizia.it` | Limite governato | Il bridge è volutamente ristretto al PST ministeriale. Se PagoPA manda su PSP/banca esterni, quei domini possono imporre finestre o policy proprie. | Non ampliare il proxy a domini generici senza analisi di sicurezza; usare `Apri fuori` solo per tratti esterni che non possono stare in overlay. |
 | Quality gate `ui-support` su stage 2.253.68 | `python tools\codex_harness\run_codex_quality_gate.py --mode ui-support` | Policy in conflitto, non usato come verde prodotto | Il gate passa dipendenze runtime, `AGENTS.md` e Open Design support, ma fallisce sullo scope perché in questa release sono modificati codice prodotto React/Flask, bump obbligatorio, documentazione operativa e bundle Vite sotto `web/static/react`. | Non rimuovere modifiche necessarie per soddisfare il gate di supporto. Usare come blocchi effettivi typecheck, test React/PST, UTF-8, packaging, OpenAPI, CI GitHub/CodeQL, deploy Hetzner e prova visiva reale. |
 | GitHub `Lint + syntax` sullo SHA `a9a634c` | `generate_backend_security_map.py --check` | Risolto localmente, da confermare su nuovo SHA remoto | Il primo push `2.253.68` ha fallito perché `docs/backend-endpoint-security-map.md` non includeva ancora le due route `/api/v1/ui/pst/pagopa-proxy/...`. La mappa è stata rigenerata e il test mirato passa localmente. | Commit correttivo, push dei branch gemelli e nuova attesa check-run/CodeQL prima del deploy Hetzner. |
+| TLS PagoPA PST su `2.253.68` | Prova visiva server | Risolto localmente, da riverificare dopo deploy `2.253.69` | La modale PagoPA mostrava 502 perché il backend non riusciva a verificare la catena TLS del PST. Il fix aggiunge l'intermedio ufficiale TI Trust al bundle usato dal bridge, mantenendo verifica TLS attiva. | Deployare `2.253.69`, ricaricare il fascicolo e verificare che la modale mostri la pagina PagoPA PST invece del messaggio 502. |

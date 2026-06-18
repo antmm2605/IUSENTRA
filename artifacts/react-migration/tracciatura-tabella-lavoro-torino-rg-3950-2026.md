@@ -71,6 +71,12 @@ Prova visiva su server:
 - indice Lex: 52 totali, 52 pronti;
 - visibili `Ricorso.PDF`, `Nota d'iscrizione a ruolo.PDF`, `26830376s.pdf` e `20200029s.pdf` con origine PST ufficiale e date portale.
 
+## PagoPA nel fascicolo `9B9DF2A1`
+
+Aggiornamento 2026-06-18: la modale PagoPA collegata al fascicolo usa il bridge interno PST e non l'iframe diretto bloccato da `X-Frame-Options`. La prova reale locale `2.253.70` su Docker `127.0.0.1:8080` ha confermato che il portale si apre dentro IUSENTRA, il comando `Nuovo pagamento` mostra il form ministeriale, il distretto `TORINO` carica 66 uffici giudiziari e il codice fiscale resta compilabile. Non è stato avviato alcun pagamento.
+
+Stato prima della chiusura release: da ripetere su produzione `https://app.iusentra.it/fascicoli/9B9DF2A1` dopo commit, push e deploy Hetzner dello stesso SHA. La ricevuta PDF verrà collegata ai documenti solo quando il PST la restituirà dopo richiesta manuale dell'utente.
+
 ## Correzione software
 
 La struttura della tabella lavoro PST è stata trattata come quella civile:
@@ -254,3 +260,21 @@ Guardrail locali:
 - `python tools/sync_packaging_files.py --check`.
 
 Stato: codice locale pronto per commit, push branch gemelli, deploy Hetzner e prova visiva server reale sul fascicolo `9B9DF2A1`.
+
+## Aggiornamento 2.253.69 - Fix TLS bridge PagoPA
+
+Richiesta utente del 18/06/2026: la modale PagoPA nel fascicolo `9B9DF2A1` non deve mostrare `Portale PagoPA PST momentaneamente non raggiungibile`.
+
+Diagnosi reale:
+
+- dal PC/Chrome il portale ministeriale risponde;
+- dal backend Python locale e dal container Hetzner la stessa URL falliva con `CERTIFICATE_VERIFY_FAILED`;
+- dal server Hetzner `curl` riportava `unable to get local issuer certificate`;
+- il certificato del PST è emesso da `TI Trust Technologies OV CA`, intermedio non disponibile nella catena verificabile da `requests/certifi`.
+
+Correzione locale prima di commit/deploy:
+
+- aggiunto l'intermedio ufficiale `TI Trust Technologies OV CA` al repository;
+- il bridge PagoPA costruisce un bundle TLS mirato `certifi + TI Trust`;
+- il test del bridge verifica che `verify` non sia disabilitato e che il bundle usato contenga `TI Trust Technologies OV CA`;
+- la prova tecnica locale e nel container conferma HTTP 200 verso `https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp` con verifica TLS attiva.

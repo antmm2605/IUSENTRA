@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.75
+IUSENTRA Local Signer - v1.6.78
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,11 +70,12 @@ import webbrowser
 import xml.etree.ElementTree as ET
 from email import policy
 from email.parser import BytesParser
+from html.parser import HTMLParser
 from datetime import UTC, date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, unquote_plus, urlencode, urljoin, urlparse
 
 _THIS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -114,7 +115,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.75"
+VERSION = "1.6.78"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -658,6 +659,7 @@ _WSDL_RICERCA_TRIB = f"{_SIGIT_BASE}/RicercaFascicoliTributarioService?wsdl"
 _WSDL_CONSULTA_TRIB = f"{_SIGIT_BASE}/ConsultazioneDocumentiTributarioService?wsdl"
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 _PST_CERT_ISSUER_PRIORITIES = (
+    "ArubaPEC EU Authentication Certificates CA G1",
     "ArubaPEC EU Authentica Certificates CA G1",
     "ArubaPEC EU Qualified Certificates CA G1",
     "ArubaPEC",
@@ -1646,6 +1648,66 @@ def _format_cert_not_valid_after(cert_obj) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
+def _cert_scadenza_date(cert: Optional[dict]) -> Optional[date]:
+    raw = str((cert or {}).get("scadenza") or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw[:10], "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
+def _cert_scaduto(cert: Optional[dict]) -> bool:
+    scadenza = _cert_scadenza_date(cert)
+    return bool(scadenza and scadenza < date.today())
+
+
+def _cert_subject_text(cert: Optional[dict]) -> str:
+    return (
+        f"{(cert or {}).get('codice_fiscale', '')} "
+        f"{(cert or {}).get('soggetto', '')} "
+        f"{(cert or {}).get('soggetto_completo', '')}"
+    )
+
+
+def _cert_issuer_norm(cert: Optional[dict]) -> str:
+    return _cert_match_normalized(
+        " ".join(
+            [
+                str((cert or {}).get("emittente") or ""),
+                str((cert or {}).get("emittente_completo") or ""),
+            ]
+        )
+    )
+
+
+def _cert_is_authentication_issuer(issuer_norm: str) -> bool:
+    return any(hint in issuer_norm for hint in ("authentica", "authentication", "authentic"))
+
+
+def _certificato_windows_pst_candidato(cert: Optional[dict], *, prefer_cf: str = "") -> bool:
+    if not cert or not str(cert.get("thumbprint") or "").strip():
+        return False
+    if _cert_scaduto(cert):
+        return False
+
+    subject_raw = _cert_subject_text(cert)
+    cf_cert = _estrai_codice_fiscale_testo(subject_raw)
+    prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
+    if prefer_cf_norm:
+        return prefer_cf_norm in subject_raw.upper()
+    if not cf_cert:
+        return False
+
+    issuer_norm = _cert_issuer_norm(cert)
+    subject_norm = _cert_match_normalized(subject_raw)
+    has_authentication = _cert_is_authentication_issuer(issuer_norm)
+    has_web_hint = any(hint in subject_norm for hint in _PST_CERT_SUBJECT_HINTS)
+    is_only_qualified = ("qualified" in issuer_norm) and not has_authentication and not has_web_hint
+    return not is_only_qualified
+
+
 def _ricorda_certificato_windows(cert: Optional[dict]) -> None:
     global _ultimo_certificato_windows
     if cert and cert.get("thumbprint"):
@@ -2279,7 +2341,10 @@ def _pick_preferred_windows_cert(
     prefer_cf: str = "",
     auto: bool = False,
 ) -> Optional[dict]:
-    lista = list(certs or [])
+    lista = [
+        cert for cert in list(certs or [])
+        if _certificato_windows_pst_candidato(cert, prefer_cf=prefer_cf)
+    ]
     if not lista:
         return None
 
@@ -2416,21 +2481,10 @@ def _pick_preferred_windows_cert(
             prefer_cf=prefer_cf_norm,
         )
 
-        issuer_norm = _cert_match_normalized(
-            " ".join([
-                str(cert.get("emittente") or ""),
-                str(cert.get("emittente_completo") or ""),
-            ])
-        )
-        subject_norm = _cert_match_normalized(
-            " ".join([
-                str(cert.get("soggetto") or ""),
-                str(cert.get("soggetto_completo") or ""),
-                str(cert.get("codice_fiscale") or ""),
-            ])
-        )
+        issuer_norm = _cert_issuer_norm(cert)
+        subject_norm = _cert_match_normalized(_cert_subject_text(cert))
 
-        has_authentica = "authentica" in issuer_norm
+        has_authentica = _cert_is_authentication_issuer(issuer_norm)
         has_web_hint = any(h in subject_norm for h in _PST_CERT_SUBJECT_HINTS)
         is_only_qualified = ("qualified" in issuer_norm) and not has_authentica and not has_web_hint
 
@@ -2466,26 +2520,17 @@ def _certificato_windows_compatibile_pst(
     prefer_subject: str = "",
     prefer_cf: str = "",
 ) -> bool:
-    if not cert or not str(cert.get("thumbprint") or "").strip():
+    if not _certificato_windows_pst_candidato(cert, prefer_cf=prefer_cf):
         return False
 
     prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
-    subject_raw = (
-        f"{cert.get('codice_fiscale', '')} "
-        f"{cert.get('soggetto', '')} "
-        f"{cert.get('soggetto_completo', '')}"
-    )
+    subject_raw = _cert_subject_text(cert)
     if prefer_cf_norm and prefer_cf_norm not in subject_raw.upper():
         return False
 
-    issuer_norm = _cert_match_normalized(
-        " ".join([
-            str(cert.get("emittente") or ""),
-            str(cert.get("emittente_completo") or ""),
-        ])
-    )
+    issuer_norm = _cert_issuer_norm(cert)
     subject_norm = _cert_match_normalized(subject_raw)
-    has_authentica = "authentica" in issuer_norm
+    has_authentica = _cert_is_authentication_issuer(issuer_norm)
     has_web_hint = any(h in subject_norm for h in _PST_CERT_SUBJECT_HINTS)
     is_only_qualified = ("qualified" in issuer_norm) and not has_authentica and not has_web_hint
     if is_only_qualified:
@@ -7076,6 +7121,576 @@ def _merge_documenti_catalogo(base: list[dict], extra: list[dict]) -> list[dict]
     return merged
 
 
+class _PstInfoFascicoloHtmlParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.links: list[dict] = []
+        self.rows: list[list[str]] = []
+        self.text_parts: list[str] = []
+        self._link_stack: list[dict] = []
+        self._row: Optional[list[str]] = None
+        self._cell: Optional[list[str]] = None
+        self._current_section = "DocumentiFascicolo"
+
+    @staticmethod
+    def _clean(value: str) -> str:
+        return re.sub(r"\s+", " ", str(value or "").replace("\xa0", " ")).strip()
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+        tag_name = tag.lower()
+        attrs_dict = {str(k or "").lower(): str(v or "") for k, v in attrs}
+        if tag_name == "a":
+            self._link_stack.append(
+                {
+                    "href": attrs_dict.get("href", ""),
+                    "text_parts": [],
+                    "section": self._current_section,
+                }
+            )
+        elif tag_name == "tr":
+            self._row = []
+            self._current_section = "DocumentiFascicolo"
+        elif tag_name in {"td", "th"}:
+            self._cell = []
+
+    def handle_data(self, data: str) -> None:
+        if not data:
+            return
+        self.text_parts.append(data)
+        if re.search(r"\ballegati\b", str(data or ""), re.I):
+            self._current_section = "Allegati"
+        if self._link_stack:
+            self._link_stack[-1]["text_parts"].append(data)
+        if self._cell is not None:
+            self._cell.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        tag_name = tag.lower()
+        if tag_name == "a" and self._link_stack:
+            item = self._link_stack.pop()
+            text = self._clean("".join(item.get("text_parts") or []))
+            href = str(item.get("href") or "").strip()
+            if href or text:
+                self.links.append(
+                    {
+                        "text": text,
+                        "href": href,
+                        "section": str(item.get("section") or "DocumentiFascicolo"),
+                    }
+                )
+        elif tag_name in {"td", "th"} and self._cell is not None:
+            if self._row is not None:
+                self._row.append(self._clean("".join(self._cell)))
+            self._cell = None
+        elif tag_name == "tr" and self._row is not None:
+            row = [cell for cell in self._row if cell]
+            if row:
+                self.rows.append(row)
+            self._row = None
+            self._current_section = "DocumentiFascicolo"
+
+
+def _decode_pst_html(body: bytes, headers_text: str = "") -> str:
+    content_type = _http_header_value(headers_text, "Content-Type")
+    charset_match = re.search(r"charset=([A-Za-z0-9._-]+)", content_type or "", re.I)
+    encodings = [charset_match.group(1)] if charset_match else []
+    encodings.extend(["utf-8", "cp1252", "iso-8859-1"])
+    for encoding in encodings:
+        try:
+            return (body or b"").decode(encoding, "strict")
+        except Exception:
+            continue
+    return (body or b"").decode("utf-8", "replace")
+
+
+def _parse_pst_infofascicolo_html(html: str, page_url: str) -> dict:
+    parser = _PstInfoFascicoloHtmlParser()
+    try:
+        parser.feed(html or "")
+    except Exception as exc:
+        log.warning("Parser HTML info fascicolo PST non riuscito: %s", exc)
+    links = []
+    for item in parser.links:
+        href = str(item.get("href") or "").strip()
+        if href:
+            href = urljoin(page_url, href)
+        text = _PstInfoFascicoloHtmlParser._clean(str(item.get("text") or ""))
+        links.append(
+            {
+                "text": text,
+                "href": href,
+                "section": str(item.get("section") or "DocumentiFascicolo"),
+            }
+        )
+    text = _PstInfoFascicoloHtmlParser._clean(" ".join(parser.text_parts))
+    return {"links": links, "rows": parser.rows, "text": text}
+
+
+def _pst_infofascicolo_slug(base_url: str, registro: str = "") -> str:
+    registro_norm = str(registro or "").strip().upper()
+    if registro_norm == "LAV":
+        return "lav"
+    if registro_norm in {"RGN", "SICID", "CONTENZIOSO", "CIVILE"}:
+        return "sicid"
+    if registro_norm in {"VG", "SIVG"}:
+        return "sivg"
+    if registro_norm in {"MIN", "SIMIN"}:
+        return "min"
+    servizio = _pst_servizio_proxy(base_url)
+    if servizio == "JPW_SICID":
+        return "sicid"
+    if servizio in {"JPW_SIL_DISTR", "JPW_SIL", "JPW_SILP_DISTR", "JPW_SILP"}:
+        return "lav"
+    if servizio == "JPW_SIVG":
+        return "sivg"
+    if servizio in {"JPW_MIN", "JPW_SIMIN"}:
+        return "min"
+    return ""
+
+
+def _pst_infofascicolo_url(
+    *,
+    base_url: str,
+    sezione: str,
+    codice_ufficio: str,
+    numero_rg: str,
+    anno_rg: int | str,
+    cf_avvocato: str = "",
+    sub_procedimento: str = "",
+    registro: str = "",
+    item: str = "",
+) -> str:
+    slug = _pst_infofascicolo_slug(base_url, registro)
+    if not slug:
+        return ""
+    registro_ricerca = str(registro or "").strip().upper() or _pst_tipo_ricerca_qbuilder(base_url)
+    action = str(sezione or "").strip()
+    if not action.endswith(".action"):
+        action = f"{action}.action"
+    params = {
+        "actionPath": f"/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/{action}",
+        "currentFrame": "0",
+        "registroRicerca": registro_ricerca,
+        "ruoloRicerca": "AVV@AVV",
+        "ufficioRicerca": str(codice_ufficio or "").strip(),
+        "numero": str(numero_rg or "").strip(),
+        "anno": str(anno_rg or "").strip(),
+        "subpro": str(sub_procedimento or "").strip(),
+    }
+    cf_clean = _estrai_codice_fiscale_testo(cf_avvocato or "")
+    if cf_clean:
+        params["pa"] = f"[{cf_clean}]"
+    if item:
+        params["item"] = str(item).strip()
+    return (
+        f"https://servizipst.giustizia.it/PST/it/{slug}_infofascicolo.wp?"
+        f"{urlencode(params, safe='/@[]')}"
+    )
+
+
+def _pst_infofascicolo_download_documenti(html: str, page_url: str) -> list[dict]:
+    parsed = _parse_pst_infofascicolo_html(html, page_url)
+    documenti: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    last_main_id = ""
+    last_main_name = ""
+    for link in parsed.get("links", []):
+        href = str(link.get("href") or "").strip()
+        if "downloadDocumentoSemplice.action" not in href:
+            continue
+        query = parse_qs(urlparse(href).query or "")
+        id_doc = str((query.get("idDocDownload") or [""])[0] or "").strip()
+        nome = str(link.get("text") or "").strip()
+        if not nome:
+            nome = unquote_plus(str((query.get("fileName") or [""])[0] or "")).strip()
+        if not id_doc and not nome:
+            continue
+        key = (id_doc, nome.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates = [value for value in (id_doc,) if value]
+        sezione = str(link.get("section") or "DocumentiFascicolo").strip() or "DocumentiFascicolo"
+        is_allegato = sezione == "Allegati"
+        parent_id = last_main_id if is_allegato else ""
+        parent_name = last_main_name if is_allegato else ""
+        documenti.append(
+            {
+                "id_documento": id_doc,
+                "id_cat": "",
+                "nome": nome or f"documento_{id_doc}",
+                "nome_documento": nome or f"documento_{id_doc}",
+                "tipo": _qbuilder_tipo_documento(nome or "Documento"),
+                "data_deposito": "",
+                "mittente": "",
+                "dimensione_bytes": 0,
+                "id_deposito": "",
+                "tipo_atto": "",
+                "id_repeatto": "",
+                "id_reperto": "",
+                "msg_id": "",
+                "id_documento_candidates": candidates,
+                "download_url": href,
+                "download_url_portale": href,
+                "download_mode": "downloadDocumentoSemplice",
+                "servizio_portale": "DocumentiFascicolo",
+                "sezione_portale": sezione,
+                "fonte_catalogo": "infofascicolo_web",
+                "is_allegato": is_allegato,
+                "id_documento_padre": parent_id,
+                "parent_id_documento": parent_id,
+                "parent_nome": parent_name,
+                "disponibile": True,
+            }
+        )
+        if not is_allegato:
+            last_main_id = id_doc
+            last_main_name = nome or f"documento_{id_doc}"
+    return documenti
+
+
+def _pst_infofascicolo_paginazione(html: str, page_url: str) -> list[str]:
+    parsed = _parse_pst_infofascicolo_html(html, page_url)
+    urls: list[str] = []
+    for link in parsed.get("links", []):
+        href = str(link.get("href") or "").strip()
+        text = str(link.get("text") or "").strip()
+        if "documentiFascicolo.action" not in href:
+            continue
+        if not re.fullmatch(r"(?:\d+|>|>>|<|<<)", text):
+            continue
+        absolute = urljoin(page_url, href)
+        if absolute != page_url and absolute not in urls:
+            urls.append(absolute)
+    return urls
+
+
+def _pst_infofascicolo_rows(html: str, page_url: str) -> list[list[str]]:
+    return list(_parse_pst_infofascicolo_html(html, page_url).get("rows") or [])
+
+
+def _pst_infofascicolo_eventi_da_rows(rows: list[list[str]]) -> list[dict]:
+    eventi: list[dict] = []
+    for row in rows or []:
+        if len(row) < 3:
+            continue
+        if row[0].strip().lower() in {"data", "nessun risultato trovato."}:
+            continue
+        data = _normalizza_data_pst(row[0])
+        descrizione = row[1] if len(row) > 1 else ""
+        tipo = row[2] if len(row) > 2 else ""
+        nome = row[3] if len(row) > 3 else ""
+        if not any((data, descrizione, tipo, nome)):
+            continue
+        eventi.append(
+            {
+                "tipo_evento": tipo or "Evento PST",
+                "tipo": tipo or "Evento PST",
+                "descrizione": descrizione,
+                "data_evento": data,
+                "data": data,
+                "nome_documento": nome,
+                "servizio_portale": "StoricoFascicolo",
+                "fonte_catalogo": "infofascicolo_web",
+            }
+        )
+    return eventi
+
+
+def _pst_infofascicolo_comunicazioni_da_rows(rows: list[list[str]]) -> list[dict]:
+    comunicazioni: list[dict] = []
+    for row in rows or []:
+        if len(row) < 3:
+            continue
+        if row[0].strip().lower() in {"tipo atto", "nessun risultato trovato."}:
+            continue
+        data = _normalizza_data_pst(row[1] if len(row) > 1 else "")
+        comunicazioni.append(
+            {
+                "tipo": row[0],
+                "tipo_atto": row[0],
+                "data": data,
+                "data_invio": data,
+                "evento": row[2] if len(row) > 2 else "",
+                "descrizione": row[2] if len(row) > 2 else "",
+                "servizio_portale": "ComunicazioniFascicolo",
+                "fonte_catalogo": "infofascicolo_web",
+            }
+        )
+    return comunicazioni
+
+
+def _merge_pst_section_items(base: list[dict], extra: list[dict]) -> list[dict]:
+    merged: list[dict] = []
+    seen: set[tuple[str, str, str, str, str]] = set()
+    for raw in [*(base or []), *(extra or [])]:
+        item = dict(raw or {})
+        if not item:
+            continue
+        key = (
+            str(item.get("data") or item.get("data_evento") or item.get("data_invio") or "").strip(),
+            str(item.get("tipo") or item.get("tipo_evento") or item.get("tipo_atto") or "").strip().lower(),
+            str(item.get("descrizione") or item.get("evento") or "").strip().lower(),
+            str(item.get("nome_documento") or item.get("nome") or "").strip().lower(),
+            str(item.get("servizio_portale") or "").strip().lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(item)
+    return merged
+
+
+def _pst_http_get_batch_raw_best_effort(
+    requests: list[dict],
+    *,
+    cert_thumbprint: Optional[str] = None,
+) -> list[dict]:
+    if not requests:
+        return []
+
+    tmp_files: list[str] = []
+    try:
+        transfers: list[dict] = []
+        for i, req in enumerate(requests):
+            resp_fd, resp_file = tempfile.mkstemp(suffix=f"_pst_get_{i}.bin")
+            os.close(resp_fd)
+            hdr_fd, hdr_file = tempfile.mkstemp(suffix=f"_pst_get_{i}.hdr")
+            os.close(hdr_fd)
+            tmp_files.extend([resp_file, hdr_file])
+            transfers.append(
+                {
+                    "url": str(req.get("url") or ""),
+                    "resp_file": resp_file,
+                    "hdr_file": hdr_file,
+                    "cookie_file": str(req.get("cookie_file") or ""),
+                    "max_time": int(req.get("max_time") or PST_DOWNLOAD_MAX_TIME),
+                    "connect_timeout": int(req.get("connect_timeout") or PST_DOWNLOAD_CONNECT_TIMEOUT),
+                    "accept": str(req.get("accept") or "text/html,application/xhtml+xml,*/*"),
+                }
+            )
+
+        def _qp(path: str) -> str:
+            return Path(path).as_posix() if path else ""
+
+        cert_spec = (
+            _format_windows_cert_spec(cert_thumbprint)
+            if sys.platform == "win32" and cert_thumbprint
+            else ""
+        )
+        cfg_lines: list[str] = []
+        for i, transfer in enumerate(transfers):
+            if i > 0:
+                cfg_lines += ["next", ""]
+            cfg_lines += [
+                f'url = "{_curl_config_escape(transfer["url"])}"',
+                f'header = "Accept: {_curl_config_escape(transfer["accept"])}"',
+                f'output = "{_qp(transfer["resp_file"])}"',
+                f'dump-header = "{_qp(transfer["hdr_file"])}"',
+                f'max-time = {transfer["max_time"]}',
+                f'connect-timeout = {transfer["connect_timeout"]}',
+                "location",
+                "globoff",
+            ]
+            if transfer["cookie_file"]:
+                cookie_path = _qp(_ensure_cookie_file(transfer["cookie_file"]))
+                cfg_lines += [f'cookie = "{cookie_path}"', f'cookie-jar = "{cookie_path}"']
+            if sys.platform == "win32":
+                if cert_spec:
+                    cfg_lines.append(f'cert = "{_curl_config_escape(cert_spec)}"')
+                cfg_lines.extend(_curl_windows_ssl_revoke_config_lines())
+            cfg_lines.append("")
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix="_pst_get.cfg", delete=False, encoding="utf-8"
+        ) as cfg:
+            cfg.write("\n".join(cfg_lines))
+            cfg_file = cfg.name
+        tmp_files.append(cfg_file)
+
+        result = _run_curl_with_pin_foreground(
+            [_curl_command(), "-s", "-S", "-K", cfg_file],
+            capture_output=True,
+            timeout=sum((int(t["max_time"]) + 10) for t in transfers),
+        )
+        global_error = ""
+        if result.returncode != 0:
+            global_error = _curl_errore_leggibile(
+                result.returncode,
+                result.stderr.decode("utf-8", "replace"),
+                transfers[0]["url"],
+                timeout_sec=max(int(t["max_time"]) for t in transfers),
+            )
+
+        results: list[dict] = []
+        for transfer in transfers:
+            headers_text = Path(transfer["hdr_file"]).read_text(encoding="utf-8", errors="replace")
+            body_bytes = Path(transfer["resp_file"]).read_bytes()
+            status_code = _http_status_from_headers(headers_text)
+            error = global_error
+            if not error and status_code and status_code >= 400:
+                error = f"HTTP {status_code}"
+            results.append(
+                {
+                    "body_bytes": body_bytes,
+                    "headers_text": headers_text,
+                    "status_code": status_code,
+                    "error": error,
+                }
+            )
+        return results
+    except Exception as exc:
+        return [
+            {
+                "body_bytes": b"",
+                "headers_text": "",
+                "status_code": 0,
+                "error": str(exc),
+            }
+            for _ in requests
+        ]
+    finally:
+        for tmp in tmp_files:
+            try:
+                Path(tmp).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+def _pst_carica_infofascicolo_web(
+    *,
+    base_url: str,
+    codice_ufficio: str,
+    numero_rg: str,
+    anno_rg: int,
+    sub_procedimento: str = "",
+    cf_avvocato: str = "",
+    cert_thumbprint: str = "",
+    cookie_file: str = "",
+    registro: str = "",
+) -> dict:
+    if not _pst_infofascicolo_slug(base_url, registro):
+        return {"documenti": [], "eventi": [], "comunicazioni": [], "source_urls": []}
+
+    info_url = _pst_infofascicolo_url(
+        base_url=base_url,
+        sezione="infoFascicolo",
+        codice_ufficio=codice_ufficio,
+        numero_rg=numero_rg,
+        anno_rg=anno_rg,
+        cf_avvocato=cf_avvocato,
+        sub_procedimento=sub_procedimento,
+        registro=registro,
+    )
+    documenti_url = _pst_infofascicolo_url(
+        base_url=base_url,
+        sezione="documentiFascicolo",
+        codice_ufficio=codice_ufficio,
+        numero_rg=numero_rg,
+        anno_rg=anno_rg,
+        cf_avvocato=cf_avvocato,
+        sub_procedimento=sub_procedimento,
+        registro=registro,
+    )
+    eventi_url = _pst_infofascicolo_url(
+        base_url=base_url,
+        sezione="storicoFascicolo",
+        codice_ufficio=codice_ufficio,
+        numero_rg=numero_rg,
+        anno_rg=anno_rg,
+        cf_avvocato=cf_avvocato,
+        sub_procedimento=sub_procedimento,
+        registro=registro,
+    )
+    comunicazioni_url = _pst_infofascicolo_url(
+        base_url=base_url,
+        sezione="comunicazioniFascicolo",
+        codice_ufficio=codice_ufficio,
+        numero_rg=numero_rg,
+        anno_rg=anno_rg,
+        cf_avvocato=cf_avvocato,
+        sub_procedimento=sub_procedimento,
+        registro=registro,
+    )
+    base_request = {
+        "cookie_file": cookie_file,
+        "max_time": PST_DOWNLOAD_MAX_TIME,
+        "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
+    }
+    source_urls = [url for url in (info_url, documenti_url, eventi_url, comunicazioni_url) if url]
+
+    # Il portale popola la sezione documenti dopo la visita al dettaglio fascicolo.
+    warmup = _pst_http_get_batch_raw_best_effort(
+        [{**base_request, "url": info_url}],
+        cert_thumbprint=cert_thumbprint,
+    )
+    if warmup and warmup[0].get("error"):
+        log.info("Info fascicolo PST web non disponibile: %s", warmup[0].get("error"))
+
+    first_batch = _pst_http_get_batch_raw_best_effort(
+        [
+            {**base_request, "url": documenti_url},
+            {**base_request, "url": eventi_url},
+            {**base_request, "url": comunicazioni_url},
+        ],
+        cert_thumbprint=cert_thumbprint,
+    )
+    documenti: list[dict] = []
+    eventi: list[dict] = []
+    comunicazioni: list[dict] = []
+    pending_pages: list[str] = []
+
+    if first_batch:
+        docs_result = first_batch[0]
+        if not docs_result.get("error"):
+            html = _decode_pst_html(docs_result.get("body_bytes") or b"", docs_result.get("headers_text") or "")
+            documenti = _merge_documenti_catalogo(
+                documenti,
+                _pst_infofascicolo_download_documenti(html, documenti_url),
+            )
+            pending_pages.extend(_pst_infofascicolo_paginazione(html, documenti_url))
+        elif docs_result.get("error"):
+            log.info("Documenti fascicolo PST web non disponibili: %s", docs_result.get("error"))
+    if len(first_batch) > 1 and not first_batch[1].get("error"):
+        html = _decode_pst_html(first_batch[1].get("body_bytes") or b"", first_batch[1].get("headers_text") or "")
+        eventi = _pst_infofascicolo_eventi_da_rows(_pst_infofascicolo_rows(html, eventi_url))
+    if len(first_batch) > 2 and not first_batch[2].get("error"):
+        html = _decode_pst_html(first_batch[2].get("body_bytes") or b"", first_batch[2].get("headers_text") or "")
+        comunicazioni = _pst_infofascicolo_comunicazioni_da_rows(_pst_infofascicolo_rows(html, comunicazioni_url))
+
+    visited = {documenti_url}
+    for _ in range(10):
+        next_pages = [url for url in pending_pages if url not in visited]
+        if not next_pages:
+            break
+        pending_pages = []
+        for url in next_pages:
+            visited.add(url)
+        page_results = _pst_http_get_batch_raw_best_effort(
+            [{**base_request, "url": url} for url in next_pages],
+            cert_thumbprint=cert_thumbprint,
+        )
+        for url, result in zip(next_pages, page_results):
+            if result.get("error"):
+                log.info("Pagina documenti PST web non disponibile %s: %s", url, result.get("error"))
+                continue
+            html = _decode_pst_html(result.get("body_bytes") or b"", result.get("headers_text") or "")
+            documenti = _merge_documenti_catalogo(
+                documenti,
+                _pst_infofascicolo_download_documenti(html, url),
+            )
+            for page_url in _pst_infofascicolo_paginazione(html, url):
+                if page_url not in visited:
+                    pending_pages.append(page_url)
+
+    return {
+        "documenti": documenti,
+        "eventi": eventi,
+        "comunicazioni": comunicazioni,
+        "source_urls": source_urls,
+    }
+
+
 def _flatten_qbuilder_documenti(rows: list[dict]) -> list[dict]:
     documenti: list[dict] = []
 
@@ -7497,6 +8112,105 @@ def _parse_download_documento_response(body_bytes: bytes, content_type: str = ""
     }
 
 
+def _filename_from_content_disposition(headers_text: str) -> str:
+    disposition = _http_header_value(headers_text, "Content-Disposition")
+    if not disposition:
+        return ""
+    match = re.search(r"filename\*=UTF-8''([^;\r\n]+)", disposition, re.I)
+    if match:
+        return unquote_plus(match.group(1)).strip().strip('"')
+    match = re.search(r'filename="?([^";\r\n]+)"?', disposition, re.I)
+    if match:
+        return unquote_plus(match.group(1)).strip().strip('"')
+    return ""
+
+
+def _pst_download_documenti_da_url_semplice(
+    *,
+    base_url: str,
+    cert_thumbprint: str,
+    cookie_file: str,
+    documenti: list[dict],
+    original: bool = False,
+) -> tuple[list[dict], list[dict]]:
+    files: list[dict] = []
+    failures: list[dict] = []
+    requests: list[dict] = []
+    meta: list[dict] = []
+    for raw in documenti or []:
+        item = raw if isinstance(raw, dict) else {}
+        url = str(item.get("download_url") or item.get("download_url_portale") or "").strip()
+        if not url:
+            continue
+        requests.append(
+            {
+                "url": url,
+                "cookie_file": cookie_file,
+                "accept": "*/*",
+                "max_time": PST_DOWNLOAD_MAX_TIME,
+                "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
+            }
+        )
+        id_doc = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
+        nome = str(item.get("nome_documento") or item.get("nome") or "").strip()
+        if not nome:
+            nome = unquote_plus(str((parse_qs(urlparse(url).query or "").get("fileName") or [""])[0] or "")).strip()
+        meta.append({"item": item, "id_documento": id_doc, "nome_documento": nome})
+
+    if not requests:
+        return files, failures
+
+    results = _pst_http_get_batch_raw_best_effort(requests, cert_thumbprint=cert_thumbprint)
+    for result, info in zip(results, meta):
+        item = info["item"]
+        id_doc = info["id_documento"]
+        nome = info["nome_documento"]
+        try:
+            error = str(result.get("error") or "").strip()
+            if error:
+                raise RuntimeError(error)
+            headers_text = str(result.get("headers_text") or "")
+            content_type = _http_header_value(headers_text, "Content-Type") or "application/octet-stream"
+            body = result.get("body_bytes") or b""
+            filename = _filename_from_content_disposition(headers_text) or nome
+            parsed = {
+                "content": body,
+                "content_type": content_type,
+                "filename": filename,
+                "content_id": "",
+                "soap_xml": "",
+            }
+            payload = _assemble_download_file_payload(
+                parsed,
+                item,
+                id_doc,
+                nome,
+                base_url,
+                original=original,
+            )
+            payload["download_url_portale"] = str(item.get("download_url_portale") or item.get("download_url") or "").strip()
+            payload["download_mode"] = "downloadDocumentoSemplice"
+            files.append(payload)
+        except Exception as exc:
+            failures.append(
+                {
+                    "id_documento": id_doc,
+                    "nome_documento": nome,
+                    "errore": str(exc),
+                }
+            )
+    if len(results) < len(meta):
+        for info in meta[len(results):]:
+            failures.append(
+                {
+                    "id_documento": info["id_documento"],
+                    "nome_documento": info["nome_documento"],
+                    "errore": "Il lotto downloadDocumentoSemplice non ha restituito risposta.",
+                }
+            )
+    return files, failures
+
+
 def _looks_like_pkcs7_signed(payload: bytes, content_type: str = "", filename: str = "") -> bool:
     header = (content_type or "").lower()
     name = (filename or "").lower()
@@ -7860,6 +8574,7 @@ def _pst_arricchisci_documenti_con_master_detail(
     cookie_file: str = "",
     prefer_cookie_only: bool = False,
     allow_cert_retry: bool = True,
+    registro_portale: str = "",
 ) -> list[dict]:
     if not documenti or not _pst_namespace_qbuilder(base_url):
         return documenti
@@ -7875,7 +8590,7 @@ def _pst_arricchisci_documenti_con_master_detail(
     requests: list[dict] = []
     meta: list[dict] = []
     extra_headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
-    registro = _pst_registro_documenti_sicid(base_url)
+    registro = str(registro_portale or "").strip().upper() or _pst_registro_documenti_sicid(base_url)
     for doc_index, doc in enumerate(source_docs):
         for candidate in _pst_document_id_candidates(doc):
             if _pst_servizio_sicid_family(base_url):
@@ -7903,6 +8618,8 @@ def _pst_arricchisci_documenti_con_master_detail(
                     "extra_headers": extra_headers,
                     "soap_action": "",
                     "cookie_file": cookie_file,
+                    "max_time": PST_DOWNLOAD_MAX_TIME,
+                    "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
                 }
             )
             meta.append({"doc_index": doc_index, "doc": doc, "candidate": candidate})
@@ -8393,6 +9110,7 @@ def _pst_download_documenti_batch_payloads(
     if not isinstance(documenti, list) or not documenti:
         raise RuntimeError("Il lotto download richiede almeno un documento ufficiale.")
 
+    documenti_richiesti = len(documenti)
     files: list[dict] = []
     failures: list[dict] = []
     preflight: Optional[dict] = None
@@ -8415,6 +9133,42 @@ def _pst_download_documenti_batch_payloads(
         prefer_cookie_only = _pst_download_can_use_cookie_only(base_url, download_cookie_file)
         usa_wasp = bool(policy.get("x_wasp_user")) or _pst_servizio_sicid_family(base_url) or servizio == "JPW_SIECIC"
         extra_base = [f"X-WASP-User: {cf_avvocato}"] if (usa_wasp and cf_avvocato) else []
+
+        direct_documenti = [
+            dict(item)
+            for item in documenti
+            if isinstance(item, dict)
+            and str(item.get("download_url") or item.get("download_url_portale") or "").strip()
+        ]
+        if direct_documenti:
+            direct_files, direct_failures = _pst_download_documenti_da_url_semplice(
+                base_url=base_url,
+                cert_thumbprint=cert_thumbprint,
+                cookie_file=download_cookie_file,
+                documenti=direct_documenti,
+                original=original,
+            )
+            files.extend(direct_files)
+            failures.extend(direct_failures)
+            direct_keys = {
+                (
+                    str(item.get("download_url") or item.get("download_url_portale") or "").strip(),
+                    str(item.get("id_documento") or item.get("id_documento_portale") or "").strip(),
+                )
+                for item in direct_documenti
+            }
+            documenti = [
+                item
+                for item in documenti
+                if not (
+                    isinstance(item, dict)
+                    and (
+                        str(item.get("download_url") or item.get("download_url_portale") or "").strip(),
+                        str(item.get("id_documento") or item.get("id_documento_portale") or "").strip(),
+                    )
+                    in direct_keys
+                )
+            ]
 
         # ── Fase 1: risolvi id_cat e metadati mancanti per SICID/SIECIC ──
         # Un solo processo curl per tutti i profili da recuperare.
@@ -8606,7 +9360,7 @@ def _pst_download_documenti_batch_payloads(
             return {
                 "ok": True, "files": files, "failures": failures,
                 "preflight": preflight,
-                "documenti_richiesti": len(documenti), "documenti_scaricati": len(files),
+                "documenti_richiesti": documenti_richiesti, "documenti_scaricati": len(files),
             }
 
         # ── Fase 3: UN SOLO processo curl per tutti i download ──
@@ -8742,7 +9496,7 @@ def _pst_download_documenti_batch_payloads(
             "files": files,
             "failures": failures,
             "preflight": preflight,
-            "documenti_richiesti": len(documenti),
+            "documenti_richiesti": documenti_richiesti,
             "documenti_scaricati": len(files),
         }
     finally:
@@ -9600,7 +10354,7 @@ class _Handler(BaseHTTPRequestHandler):
         prefer_issuer = str((query.get("prefer_issuer") or [""])[0] or "").strip()
         prefer_subject = str((query.get("prefer_subject") or [""])[0] or "").strip()
         prefer_cf = str((query.get("prefer_cf") or [""])[0] or "").strip()
-        auto_select = str((query.get("auto") or ["0"])[0] or "").strip().lower() in {"1", "true", "yes", "on"}
+        auto_select = str((query.get("auto") or ["1"])[0] or "").strip().lower() in {"1", "true", "yes", "on"}
 
         if sys.platform == "win32":
             try:
@@ -9624,6 +10378,18 @@ class _Handler(BaseHTTPRequestHandler):
                         auto=auto_select,
                     )
                     auto_pick = cert is not None
+                if cert is None and auto_select:
+                    self._send_json({
+                        "ok": False,
+                        "dialog_non_aperto": True,
+                        "errore": (
+                            "Nessun certificato PST personale valido e compatibile è stato trovato nello store Windows. "
+                            "IUSENTRA non apre la finestra generica dei certificati per evitare selezioni errate come "
+                            "certificati Adobe o certificati scaduti. Verificare che il token CNS/CIE dell'avvocato sia "
+                            "inserito e ripetere la verifica Local Signer."
+                        ),
+                    })
+                    return
                 if cert is None:
                     cert = _windows_seleziona_cert()
                     auto_pick = False
@@ -9632,6 +10398,20 @@ class _Handler(BaseHTTPRequestHandler):
                         "ok": False,
                         "annullato": True,
                         "errore": "Selezione annullata dall'utente",
+                    })
+                elif not _certificato_windows_compatibile_pst(
+                    cert,
+                    prefer_issuer=prefer_issuer,
+                    prefer_subject=prefer_subject,
+                    prefer_cf=prefer_cf,
+                ):
+                    self._send_json({
+                        "ok": False,
+                        "certificato_non_compatibile": True,
+                        "errore": (
+                            "Il certificato selezionato non è un certificato PST personale valido per l'avvocato. "
+                            "Usare il certificato CNS/CIE di autenticazione web, non certificati Adobe, intermedi o scaduti."
+                        ),
                     })
                 else:
                     _ricorda_certificato_windows(cert)
@@ -10795,17 +11575,43 @@ class _Handler(BaseHTTPRequestHandler):
             sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
             include_full_snapshot = bool(data.get("include_full_snapshot"))
             if _pst_namespace_qbuilder(base_url) and include_full_snapshot:
-                documenti = _pst_arricchisci_documenti_con_master_detail(
-                    documenti,
+                web_info = _pst_carica_infofascicolo_web(
                     base_url=base_url,
-                    url_documenti=url_documenti,
                     codice_ufficio=codice_pst,
+                    numero_rg=numero_rg,
+                    anno_rg=anno_rg,
+                    sub_procedimento=sub_procedimento,
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
-                    prefer_cookie_only=True,
-                    allow_cert_retry=False,
+                    registro=str(
+                        data.get("registro_portale")
+                        or data.get("registro")
+                        or data.get("tipo_ricerca")
+                        or ""
+                    ).strip(),
                 )
+                web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
+                if isinstance(web_documenti, list) and web_documenti:
+                    documenti = _merge_documenti_catalogo(documenti, web_documenti)
+                else:
+                    documenti = _pst_arricchisci_documenti_con_master_detail(
+                        documenti,
+                        base_url=base_url,
+                        url_documenti=url_documenti,
+                        codice_ufficio=codice_pst,
+                        cf_avvocato=cf_avvocato,
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=True,
+                        allow_cert_retry=True,
+                        registro_portale=str(
+                            data.get("registro_portale")
+                            or data.get("registro")
+                            or data.get("tipo_ricerca")
+                            or ""
+                        ).strip(),
+                    )
                 sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
                     base_url=base_url,
                     url_ricerca=url_ricerca,
@@ -10819,6 +11625,15 @@ class _Handler(BaseHTTPRequestHandler):
                     prefer_cookie_only=True,
                     allow_cert_retry=False,
                 )
+                if isinstance(web_info, dict):
+                    sezioni_pst["eventi"] = _merge_pst_section_items(
+                        sezioni_pst.get("eventi", []),
+                        web_info.get("eventi") if isinstance(web_info.get("eventi"), list) else [],
+                    )
+                    sezioni_pst["comunicazioni"] = _merge_pst_section_items(
+                        sezioni_pst.get("comunicazioni", []),
+                        web_info.get("comunicazioni") if isinstance(web_info.get("comunicazioni"), list) else [],
+                    )
             if not fascicoli and documenti:
                 ufficio = _risolvi_ufficio_da_snapshot(codice_pst) or {}
                 fascicoli = [
@@ -10891,6 +11706,8 @@ class _Handler(BaseHTTPRequestHandler):
                     "fascicolo": fascicolo,
                     "documenti": documenti,
                     "catalogo": documenti,
+                    "full_snapshot": include_full_snapshot,
+                    "master_detail": include_full_snapshot,
                     "depositi": [],
                     "sezioni": {
                         "documenti_fascicolo": documenti,
@@ -11065,20 +11882,50 @@ class _Handler(BaseHTTPRequestHandler):
                 else:
                     documenti = _sigp_merge_documenti_con_profili(
                         documenti,
-                        _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
-                    )
+                            _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
+                        )
             if _pst_namespace_qbuilder(base_url):
-                documenti = _pst_arricchisci_documenti_con_master_detail(
-                    documenti,
+                web_info = _pst_carica_infofascicolo_web(
                     base_url=base_url,
-                    url_documenti=url_documenti,
                     codice_ufficio=codice_pst,
+                    numero_rg=rg,
+                    anno_rg=anno,
+                    sub_procedimento=str(
+                        data.get("sub_procedimento")
+                        or data.get("subpro")
+                        or ""
+                    ).strip(),
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
-                    prefer_cookie_only=True,
-                    allow_cert_retry=False,
+                    registro=str(
+                        data.get("registro_portale")
+                        or data.get("registro")
+                        or data.get("tipo_ricerca")
+                        or ""
+                    ).strip(),
                 )
+                web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
+                if isinstance(web_documenti, list) and web_documenti:
+                    documenti = _merge_documenti_catalogo(documenti, web_documenti)
+                else:
+                    documenti = _pst_arricchisci_documenti_con_master_detail(
+                        documenti,
+                        base_url=base_url,
+                        url_documenti=url_documenti,
+                        codice_ufficio=codice_pst,
+                        cf_avvocato=cf_avvocato,
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=True,
+                        allow_cert_retry=False,
+                        registro_portale=str(
+                            data.get("registro_portale")
+                            or data.get("registro")
+                            or data.get("tipo_ricerca")
+                            or ""
+                        ).strip(),
+                    )
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],
@@ -11245,17 +12092,52 @@ class _Handler(BaseHTTPRequestHandler):
                         )
                 sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
                 if _pst_namespace_qbuilder(base_url):
-                    documenti = _pst_arricchisci_documenti_con_master_detail(
-                        documenti,
+                    web_info = _pst_carica_infofascicolo_web(
                         base_url=base_url,
-                        url_documenti=url_documenti,
                         codice_ufficio=codice_pst,
+                        numero_rg=rg,
+                        anno_rg=anno,
+                        sub_procedimento=str(
+                            data.get("sub_procedimento")
+                            or selection.get("sub_procedimento")
+                            or data.get("subpro")
+                            or ""
+                        ).strip(),
                         cf_avvocato=cf_avvocato,
                         cert_thumbprint=cert_thumbprint,
                         cookie_file=cookie_file,
-                        prefer_cookie_only=True,
-                        allow_cert_retry=True,
+                        registro=str(
+                            data.get("registro_portale")
+                            or data.get("registro")
+                            or selection.get("registro_portale")
+                            or selection.get("registro")
+                            or data.get("tipo_ricerca")
+                            or ""
+                        ).strip(),
                     )
+                    web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
+                    if isinstance(web_documenti, list) and web_documenti:
+                        documenti = _merge_documenti_catalogo(documenti, web_documenti)
+                    else:
+                        documenti = _pst_arricchisci_documenti_con_master_detail(
+                            documenti,
+                            base_url=base_url,
+                            url_documenti=url_documenti,
+                            codice_ufficio=codice_pst,
+                            cf_avvocato=cf_avvocato,
+                            cert_thumbprint=cert_thumbprint,
+                            cookie_file=cookie_file,
+                            prefer_cookie_only=True,
+                            allow_cert_retry=True,
+                            registro_portale=str(
+                                data.get("registro_portale")
+                                or data.get("registro")
+                                or selection.get("registro_portale")
+                                or selection.get("registro")
+                                or data.get("tipo_ricerca")
+                                or ""
+                            ).strip(),
+                        )
                     sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
                         base_url=base_url,
                         url_ricerca=_pst_url_ricerca(base_url),
@@ -11274,6 +12156,15 @@ class _Handler(BaseHTTPRequestHandler):
                         prefer_cookie_only=True,
                         allow_cert_retry=False,
                     )
+                    if isinstance(web_info, dict):
+                        sezioni_pst["eventi"] = _merge_pst_section_items(
+                            sezioni_pst.get("eventi", []),
+                            web_info.get("eventi") if isinstance(web_info.get("eventi"), list) else [],
+                        )
+                        sezioni_pst["comunicazioni"] = _merge_pst_section_items(
+                            sezioni_pst.get("comunicazioni", []),
+                            web_info.get("comunicazioni") if isinstance(web_info.get("comunicazioni"), list) else [],
+                        )
 
             if session_entry:
                 _update_pst_session(

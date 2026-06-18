@@ -8,6 +8,31 @@ Stato consolidato `2.253.60`: la cache certificati PST è coperta per il catalog
 
 La regola è fail-closed ma non pessimistica: se tutti i requisiti obbligatori del canale sono presenti, il bottone reale deve attivarsi; se resta disabilitato, la UI deve dire esattamente cosa manca e Codex deve correggere la logica prima di commit, push e deploy.
 
+## Aggiornamento 2.253.61 - tracciatura tabella lavoro PST Torino RG 3950/2026
+
+Data intervento: 2026-06-18.
+
+Il fascicolo lavoro `RG 3950/2026` del Tribunale di Torino, registro `LAV`, è stato scaricato dal PST ufficiale con browser autenticato e importato nel fascicolo IUSENTRA `9B9DF2A1` (`Spagnolo Sara c. MIM`). Il log produzione è `PST-20260618085430-C4891C`.
+
+Esito operativo:
+
+- documenti PST individuati: 29;
+- documenti scaricati: 29;
+- documenti importati: 29;
+- documenti mancanti, senza contenuto o scartati: 0;
+- depositi ricostruiti: 4;
+- eventi generati: 5;
+- comunicazioni generate: 3;
+- contatore visibile `Documenti e atti`: 52.
+
+La correzione Local Signer tratta `lav_infofascicolo.wp` come superficie ministeriale equivalente alla tabella civile: riga principale, blocco `Allegati:`, nuova riga principale e paginazione. Il parser conserva la sezione reale del link, collega gli allegati al documento padre e non trascina più la sezione `Allegati` sui documenti principali successivi. Il download usa i link portale `downloadDocumentoSemplice.action` quando sono disponibili nella sessione PST autenticata.
+
+Aggiornamento dopo prova utente: il flusso React `Carica anteprima` non deve più bloccare la vista con il timeout `ext.processotelematico.giustizia.it` quando la ricerca ha già restituito documenti PST utilizzabili. In `2.253.61` l'anteprima usa subito i documenti già ricevuti dalla ricerca; l'aggiornamento esterno resta un arricchimento e, se fallisce ma i documenti sono presenti, viene tracciato senza lasciare l'anteprima vuota.
+
+Prova visiva server già eseguita su `https://app.iusentra.it/fascicoli/9B9DF2A1#documenti`: visibili tra gli altri `Ricorso.PDF`, `Nota d'iscrizione a ruolo.PDF`, `26830376s.pdf` e `20200029s.pdf`, con origine PST ufficiale e date portale. Dettaglio esteso in `artifacts/react-migration/tracciatura-tabella-lavoro-torino-rg-3950-2026.md`.
+
+Dato sensibile: il PIN della pen drive e le credenziali dell'utente non sono stati scritti nei log o nei report.
+
 ## Incarico operativo di chiusura, da rileggere dopo ogni compattazione
 
 Il lavoro deposito non è chiuso finché non è dimostrato nella vista reale, con fascicoli reali o controllati, che il software prepara, firma, controlla, simula e abilita l'invio secondo il canale corretto. I test automatici sono guardrail, non prova finale. Se la vista reale mostra un difetto, quel difetto prevale su build, typecheck, unit test o screenshot precedenti.
@@ -1330,3 +1355,19 @@ Stato ancora aperto prima di dichiarare chiuso il deposito:
 - prova visiva reale server desktop/tablet/mobile con click e scroll completo;
 - dry-run server del fascicolo `E5AE4668` senza invio PEC reale;
 - firma multipla reale da chiudere con PIN digitato al momento della firma e token fisico rilevato; installazione, aggiornamento e riallineamento Local Signer non sono un prerequisito esterno, ma responsabilità del software React.
+## Aggiornamento 2.253.63 - Local Signer PST e anteprima fascicolo lavoro
+
+Data intervento: 2026-06-18.
+
+Per il fascicolo lavoro Tribunale di Torino RG 3950/2026 e per i flussi PST collegati:
+
+- Local Signer aggiornato a `1.6.78`, con auto-selezione del certificato personale ArubaPEC Authentication e blocco dei certificati Adobe/intermedi/scaduti in modalita' automatica;
+- launcher Windows corretto per non chiudere il processo padre del servizio in ascolto su `127.0.0.1:27272`;
+- smoke reale Local Signer eseguito su macchina utente: `/ping?auto=1`, `/certificati`, `/diagnosi`, `/ai/status`, `/pst/status` e dipendenze `cryptography`, `asn1crypto`, `zeep`, `pdfplumber`, `mammoth`, `pypdf`, `reportlab`, `pkcs11`;
+- React PST corretto per aprire l'anteprima dai dati fascicolo gia' restituiti dalla ricerca, senza bloccare la vista sul timeout esterno `ext.processotelematico.giustizia.it`;
+- il timeout del PST esterno resta un avviso/limite del servizio ministeriale, non un motivo per lasciare vuota l'anteprima se il fascicolo e' gia' stato trovato.
+
+Stato prova reale:
+
+- certificato e Local Signer: verificati su macchina reale con Chrome e Local Signer locale `1.6.78`;
+- anteprima server: ancora da ripetere dopo deploy Hetzner della versione `2.253.63`, perche' al momento della riproduzione `https://app.iusentra.it/api/pronto` rispondeva `2.253.60`.

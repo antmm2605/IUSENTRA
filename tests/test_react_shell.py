@@ -1534,6 +1534,29 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "function statusHasPstCertificatePreference" in source
     assert "const statusForPstCertificate = async (): Promise<JsonRecord>" in source
     assert "const certificateStatus = await statusForPstCertificate()" in source
+
+
+def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
+    source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    assert "const signerDocumenti = asList(signerPayload.documenti || signerPayload.documents || signerPayload.catalogo)" in source
+    assert "...(searchDocumenti.length ? { documenti: searchDocumenti } : {})" in source
+    assert "activeSelection.raw.documenti || activeSelection.raw.documents || activeSelection.raw.catalogo" in source
+    assert "snapshot = { fascicolo: activeSelection.raw, documenti, catalogo: documenti }" in source
+    assert "function pstDocumentHasDirectPortalDownload(row: JsonRecord): boolean" in source
+    assert "downloadDocumentoSemplice.action" in source
+    assert "const hasSearchSnapshotPayload = Object.keys(snapshot).length > 0" in source
+    assert "const hasSearchSnapshotDocuments = hasSearchSnapshotPayload" in source
+    assert "const hasCompleteSearchSnapshotDocuments = hasSearchSnapshotDocuments" in source
+    assert "activeSelection.raw.full_snapshot" in source
+    assert "snapshot.master_detail" in source
+    assert "Uso il catalogo documenti completo" in source
+    assert "Uso i documenti gi" in source
+    cached_branch = source.split("if (hasSearchSnapshotPayload)", 1)[1].split("} else {", 1)[0]
+    fallback_branch = source.split("if (hasSearchSnapshotPayload)", 1)[1].split("} else {", 1)[1].split("payload = await portalJson(portal, 'preview'", 1)[0]
+    assert "localSignerPstFascicoloSnapshotJob" not in cached_branch
+    assert "localSignerPstFascicoloSnapshotJob" in fallback_branch
+    assert "if (!documenti.length && !Object.keys(snapshot).length) throw refreshError" in fallback_branch
+    assert "Apro l\\'anteprima con i documenti" in fallback_branch
     assert "localSignerJson(`/ping${signerCertPreferenceQuery(certificateStatus)}`" in source
     assert "const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery(certificateStatus)}`" in source
     assert "const pstAttorneyFiscalCode = (cert?: PstCertificate | null)" in source
@@ -1605,7 +1628,7 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     run_preview_source = source.split("const runPreview = async", 1)[1].split("const runAnalysis = async", 1)[0]
     assert "localSignerPstFascicoloSnapshotJob({" in run_preview_source
     assert "localSignerJson('/pst/fascicolo-snapshot'" not in run_preview_source
-    assert "if (!documenti.length)" not in run_preview_source
+    assert "if (!documenti.length && !Object.keys(snapshot).length) throw refreshError" in run_preview_source
 
 
 def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():

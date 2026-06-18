@@ -288,11 +288,61 @@ function Stop-LocalSignerProcesses {
     }
 }
 
+function Stop-LocalSignerDuplicateProcesses {
+    $owner = $null
+    try {
+        $owner = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty OwningProcess
+    } catch {
+        $owner = $null
+    }
+    if (-not $owner) {
+        return
+    }
+    $processes = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)
+    $protected = @{}
+    $cursor = [int]$owner
+    while ($cursor -and -not $protected.ContainsKey($cursor)) {
+        $protected[$cursor] = $true
+        $parent = $processes | Where-Object { [int]$_.ProcessId -eq $cursor } | Select-Object -First 1 -ExpandProperty ParentProcessId
+        if (-not $parent) {
+            break
+        }
+        $cursor = [int]$parent
+    }
+    $processes |
+        Where-Object {
+            $_.Name -in @("python.exe", "pythonw.exe") -and
+            -not $protected.ContainsKey([int]$_.ProcessId) -and
+            $_.CommandLine -and
+            $_.CommandLine -like "*local_signer*"
+        } |
+        ForEach-Object {
+            try {
+                Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop
+                Write-InstallerLog "Istanza Local Signer duplicata chiusa: PID $($_.ProcessId)"
+            } catch {
+            }
+        }
+}
+
 function Uninstall-ExistingLocalSigner {
     Write-InstallerLog "Avvio disinstallazione controllata della vecchia installazione"
 
     Stop-LocalSignerProcesses
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+    try {
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction Stop | Out-Null
+    } catch {
+        Write-InstallerLog "Attivita' pianificata non rimossa da PowerShell: $($_.Exception.Message)"
+    }
+    try {
+        & schtasks.exe /Delete /TN $taskName /F *> $null
+        if ($LASTEXITCODE -ne 0) {
+            Write-InstallerLog "Attivita' pianificata non rimossa da schtasks: codice $LASTEXITCODE"
+        }
+    } catch {
+        Write-InstallerLog "Attivita' pianificata non rimossa da schtasks: $($_.Exception.Message)"
+    }
 
     $startupDir = [Environment]::GetFolderPath("Startup")
     if ($startupDir) {
@@ -386,7 +436,8 @@ powershell -NoProfile -WindowStyle Hidden -Command "$target = [regex]::Escape($e
 powershell -NoProfile -WindowStyle Hidden -Command "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop } catch {} }" >nul 2>&1
 
 if exist "%PYW%" if exist "%PY%" (
-    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -FilePath $env:PYW -ArgumentList @($env:PY)"
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)"
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; $target=[regex]::Escape($env:TARGET); $owner=(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($owner) { $all=@(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue); $keep=@{}; $cursor=[int]$owner; while ($cursor -and -not $keep.ContainsKey($cursor)) { $keep[$cursor]=$true; $parent=$all | Where-Object { [int]$_.ProcessId -eq $cursor } | Select-Object -First 1 -ExpandProperty ParentProcessId; if (-not $parent) { break }; $cursor=[int]$parent }; $all | Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and -not $keep.ContainsKey([int]$_.ProcessId) -and $_.CommandLine -and $_.CommandLine -match $target } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} } }"
 ) else (
     exit /b 1
 )
@@ -461,8 +512,8 @@ function Register-LocalSignerStartupShortcut {
 }
 
 function Register-LocalSignerScheduledTask {
-    $cmdExe = Join-Path $env:SystemRoot "System32\cmd.exe"
-    $action = New-ScheduledTaskAction -Execute $cmdExe -Argument "/c `"$starterCmd`" --background"
+    $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
+    $action = New-ScheduledTaskAction -Execute $wscriptExe -Argument "`"$starterVbs`""
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
     $settings = New-ScheduledTaskSettingsSet `
         -ExecutionTimeLimit 0 `
@@ -667,6 +718,9 @@ if (Test-Path $servicePythonExe) {
 
 Write-Step "Attendo che il servizio risponda su 127.0.0.1:27272..."
 $online = Wait-LocalSigner
+if ($online) {
+    Stop-LocalSignerDuplicateProcesses
+}
 $exitCode = 0
 if (-not $online) {
     $exitCode = 1

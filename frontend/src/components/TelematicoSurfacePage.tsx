@@ -1355,6 +1355,12 @@ function pstPreviewDocumentIsDownloadable(row: JsonRecord, index: number): boole
   return /\b(citazione|sentenza|verbale|ordinanza|decreto|scritti|note|produzione|intimazione|consegna)\b/.test(searchable)
 }
 
+function pstDocumentHasDirectPortalDownload(row: JsonRecord): boolean {
+  const url = asText(row.download_url || row.download_url_portale)
+  const mode = asText(row.download_mode || row.modalita_download).toLowerCase()
+  return Boolean(url.includes('downloadDocumentoSemplice.action') || mode === 'downloaddocumentosemplice')
+}
+
 function pstPreviewDocumentContentKey(row: JsonRecord, index: number): string {
   const rawTitle = rawPreviewDocumentTitle(row) || previewDocumentTitle(row, index)
   const title = normaliseSearch(rawTitle)
@@ -2737,10 +2743,12 @@ function AcquisitionWizard({
         const snapshot = asRecord(signerPayload.snapshot)
         const signerRows = asList(signerPayload.fascicoli || signerPayload.results)
         const snapshotFascicolo = asRecord(snapshot.fascicolo)
-        const snapshotDocumenti = asList(snapshot.documenti || snapshot.catalogo)
+        const snapshotDocumenti = asList(snapshot.documenti || snapshot.catalogo || snapshot.documents)
+        const signerDocumenti = asList(signerPayload.documenti || signerPayload.documents || signerPayload.catalogo)
+        const searchDocumenti = snapshotDocumenti.length ? snapshotDocumenti : signerDocumenti
         const sourceRows = signerRows.length
           ? signerRows
-          : (Object.keys(snapshotFascicolo).length || snapshotDocumenti.length ? [snapshotFascicolo] : [])
+          : (Object.keys(snapshotFascicolo).length || searchDocumenti.length ? [snapshotFascicolo] : [])
         rows = sourceRows.map((row, index) => {
           const item = normalisePstAcquisitionResult(row, index, query, tribunale)
           return {
@@ -2748,6 +2756,7 @@ function AcquisitionWizard({
             raw: {
               ...item.raw,
               ...(Object.keys(snapshot).length ? { snapshot } : {}),
+              ...(searchDocumenti.length ? { documenti: searchDocumenti } : {}),
               pst_session: pstSessionForServer(nextSession, cert),
             },
           }
@@ -2852,43 +2861,93 @@ function AcquisitionWizard({
         })
         const tribunale = asText(activeSelection.raw.ufficio_codice || resolvedOfficeCode())
         let snapshot = asRecord(activeSelection.raw.snapshot)
-        let documenti = asList(snapshot.catalogo || snapshot.documenti).map(asRecord)
+        const rawDocumenti = asList(activeSelection.raw.documenti || activeSelection.raw.documents || activeSelection.raw.catalogo).map(asRecord)
+        let documenti = asList(snapshot.catalogo || snapshot.documenti || snapshot.documents).map(asRecord)
+        if (!documenti.length && rawDocumenti.length) {
+          documenti = rawDocumenti
+        }
+        if (!Object.keys(snapshot).length) {
+          snapshot = { fascicolo: activeSelection.raw, documenti, catalogo: documenti }
+        } else if (!Object.keys(asRecord(snapshot.fascicolo)).length) {
+          snapshot = { ...snapshot, fascicolo: activeSelection.raw }
+        }
+        if (documenti.length) {
+          const snapshotHasDocuments = asList(snapshot.catalogo || snapshot.documenti || snapshot.documents).length > 0
+          if (!snapshotHasDocuments) {
+            snapshot = { ...snapshot, documenti, catalogo: documenti }
+          }
+        }
         let pstSessionPayload = asRecord(activeSelection.raw.pst_session)
-        const cert = await ensurePstCertificate()
-        const session = activePstSessionFor(tribunale, cert)
-        setImportProgress((current) => ({
-          ...current,
-          current: 'Aggiorno scheda ministeriale, allegati e comunicazioni disponibili',
-          completed: Math.max(current.completed, 1),
-        }))
-        const signerPayload = await localSignerPstFascicoloSnapshotJob({
-          selection: activeSelection.raw,
-          codice_ufficio: tribunale,
-          numero_rg: asText(activeSelection.raw.numero || query.numero),
-          anno_rg: asText(activeSelection.raw.anno || query.anno),
-          id_fascicolo: asText(activeSelection.raw.id_fascicolo),
-          sub_procedimento: asText(activeSelection.raw.sub_procedimento),
-          servizio_pst: asText(activeSelection.raw.servizio_pst || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).servizio_pst),
-          registro_portale: asText(activeSelection.raw.registro_portale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).registro_portale),
-          tabella_ministeriale: asText(activeSelection.raw.tabella_ministeriale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).tabella_ministeriale),
-          ...ministerialHintsFromQuery(query),
-          cf_avvocato: pstAttorneyFiscalCode(cert),
-          cert_thumbprint: cert.thumbprint || null,
-          cert_key: cert.thumbprint || '',
-          purpose: REACT_PST_SESSION_PURPOSE,
-          pst_session_id: session?.sessionId || '',
-        }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
-        const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
-        if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
-        const refreshedSnapshot = asRecord(signerPayload.snapshot)
-        if (Object.keys(refreshedSnapshot).length) {
-          snapshot = refreshedSnapshot
+        const hasSearchSnapshotPayload = Object.keys(snapshot).length > 0
+        const hasSearchSnapshotDocuments = hasSearchSnapshotPayload
+          && documenti.length > 0
+          && (
+            documenti.some((item, index) => pstPreviewDocumentIsDownloadable(item, index))
+            || documenti.some(pstDocumentHasDirectPortalDownload)
+          )
+        const hasCompleteSearchSnapshotDocuments = hasSearchSnapshotDocuments
+          && Boolean(
+            activeSelection.raw.full_snapshot
+            || activeSelection.raw.master_detail
+            || snapshot.full_snapshot
+            || snapshot.master_detail
+          )
+        if (hasSearchSnapshotPayload) {
+          setImportProgress((current) => ({
+            ...current,
+            current: hasCompleteSearchSnapshotDocuments
+              ? 'Uso il catalogo documenti completo già ricevuto dalla ricerca PST'
+              : 'Uso i documenti già ricevuti dalla ricerca PST',
+            completed: Math.max(current.completed, 2),
+          }))
+        } else {
+          const cert = await ensurePstCertificate()
+          const session = activePstSessionFor(tribunale, cert)
+          setImportProgress((current) => ({
+            ...current,
+            current: 'Aggiorno scheda ministeriale, allegati e comunicazioni disponibili',
+            completed: Math.max(current.completed, 1),
+          }))
+          try {
+            const signerPayload = await localSignerPstFascicoloSnapshotJob({
+            selection: activeSelection.raw,
+            codice_ufficio: tribunale,
+            numero_rg: asText(activeSelection.raw.numero || query.numero),
+            anno_rg: asText(activeSelection.raw.anno || query.anno),
+            id_fascicolo: asText(activeSelection.raw.id_fascicolo),
+            sub_procedimento: asText(activeSelection.raw.sub_procedimento),
+            servizio_pst: asText(activeSelection.raw.servizio_pst || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).servizio_pst),
+            registro_portale: asText(activeSelection.raw.registro_portale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).registro_portale),
+            tabella_ministeriale: asText(activeSelection.raw.tabella_ministeriale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).tabella_ministeriale),
+            ...ministerialHintsFromQuery(query),
+            cf_avvocato: pstAttorneyFiscalCode(cert),
+            cert_thumbprint: cert.thumbprint || null,
+            cert_key: cert.thumbprint || '',
+            purpose: REACT_PST_SESSION_PURPOSE,
+            pst_session_id: session?.sessionId || '',
+          }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
+          const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+          if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
+          const refreshedSnapshot = asRecord(signerPayload.snapshot)
+          if (Object.keys(refreshedSnapshot).length) {
+            snapshot = refreshedSnapshot
+          }
+          const refreshedDocumenti = asList(snapshot.documenti || snapshot.catalogo || signerPayload.documenti).map(asRecord)
+          if (refreshedDocumenti.length) {
+            documenti = refreshedDocumenti
+          }
+            pstSessionPayload = pstSessionForServer(nextSession, cert)
+          } catch (refreshError: unknown) {
+            if (!documenti.length && !Object.keys(snapshot).length) throw refreshError
+            const refreshMessage = asText(refreshError instanceof Error ? refreshError.message : refreshError)
+            setImportProgress((current) => ({
+              ...current,
+              current: 'Apro l\'anteprima con i documenti già disponibili',
+              completed: Math.max(current.completed, 2),
+              failures: refreshMessage ? [...current.failures, refreshMessage] : current.failures,
+            }))
+          }
         }
-        const refreshedDocumenti = asList(snapshot.documenti || snapshot.catalogo || signerPayload.documenti).map(asRecord)
-        if (refreshedDocumenti.length) {
-          documenti = refreshedDocumenti
-        }
-        pstSessionPayload = pstSessionForServer(nextSession, cert)
         payload = await portalJson(portal, 'preview', {
           selection: {
             ...activeSelection.raw,

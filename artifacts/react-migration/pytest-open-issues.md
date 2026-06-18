@@ -1,5 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
+## PST lavoro Torino RG 3950/2026 - 2026-06-18
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Scarico fascicolo lavoro dal PST | Browser autenticato e import server | Risolto operativamente | Il fascicolo `RG 3950/2026` del Tribunale di Torino è stato scaricato dal PST ufficiale e importato in IUSENTRA con log `PST-20260618085430-C4891C`; 29/29 documenti, 0 mancanti. | Mantenere il log dedicato `tracciatura-tabella-lavoro-torino-rg-3950-2026.md`; non riportare PIN o credenziali in repository. |
+| Anteprima bloccata da timeout `ext.processotelematico.giustizia.it` | React Telematico `Carica anteprima` | Risolto localmente, da portare su server | L'utente ha verificato che la pagina visualizzava il fascicolo ma poi falliva con timeout a 90 secondi verso `ext.processotelematico.giustizia.it`. Il ramo React ora apre l'anteprima con i documenti già ricevuti dalla ricerca PST e usa l'aggiornamento esterno solo se necessario; se il refresh esterno fallisce ma i documenti ci sono, non blocca più la vista. | Ricostruire Docker locale, prova reale su `127.0.0.1:8080`, poi commit/push e deploy Hetzner per rendere il fix visibile su `https://app.iusentra.it`. |
+| Parser tabella lavoro LAV | Test Local Signer mirati | Risolto localmente, da confermare su release completa | Il parser riconosce `lav_infofascicolo.wp`, distingue `DocumentiFascicolo` e `Allegati`, segue la paginazione e non perde i documenti successivi al blocco allegati. | Eseguire gate finali, Docker locale, commit/push, check GitHub/CodeQL e deploy Hetzner sullo stesso commit. |
+| Firma multipla fisica con pen drive | Browser reale, token e PIN | Non inclusa in questa chiusura | Lo scarico fascicolo e la tabella lavoro non equivalgono a una nuova prova firma batch con pen drive. | Quando serve firmare, usare il PIN solo nella UI reale e aggiornare il report documento per documento. |
+
 ## Certificati PST e canali deposito 2.253.56 - 2026-06-17
 
 | Area | Gate | Stato | Nota | Azione |
@@ -1718,3 +1727,9 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- | --- |
 | CodeQL Advanced Security sullo SHA `6143b50` | `Code scanning results / CodeQL` | Corretto localmente, da confermare su nuovo SHA | Il check remoto ha segnalato path expression nella cache certificati PST, regex fragile nella nota firma visibile e payload con dettagli tecnici in deposito/firma/database. Il codice locale `2.253.60` normalizza i file cache/report, rimuove la regex, usa messaggi pubblici/redatti senza perdere indicazioni operative CAdES/PAdES e riporta il modulo firma sotto il limite governance. | Commit, push dei branch gemelli, attendere CodeQL sul nuovo SHA e correggere eventuali nuove annotazioni prima del deploy Hetzner finale. |
 | Firma multipla fisica con pen drive | Browser reale, Local Signer, token e PIN | Ancora non verificata su macchina reale dopo `2.253.60` | La prova senza invio/PEC locale non richiede il certificato fisico; la firma batch reale di più documenti richiede invece pen drive inserita e PIN digitato dall'avvocato nella UI. | Quando l'utente è presente, eseguire la prova reale di firma multipla e aggiornare questa sezione con esito documento per documento. |
+## PST lavoro Torino RG 3950/2026 - 2.253.63
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Anteprima server dopo ricerca PST | Browser reale su `https://app.iusentra.it` | Aperto fino a deploy `2.253.63` | Il difetto e' stato riprodotto su server `2.253.60`: ricerca riuscita, `Carica anteprima` abilitato, ma refresh esterno `ext.processotelematico.giustizia.it` in timeout 90s. Il codice locale ora usa lo snapshot gia' restituito dalla ricerca. | Deployare `2.253.63`, ricaricare la pagina server, eseguire `Cerca fascicolo` e poi `Carica anteprima`, verificando che l'anteprima non resti vuota anche se il PST esterno e' lento. |
+| Firma multipla fisica con pen drive | Browser reale, Local Signer `1.6.78`, token e PIN | Non verificata in questa prova | Il PIN non va scritto nei log; la prova certificato/consultazione PST non equivale alla firma batch di piu' documenti. | Quando serve il deposito/firma, far inserire il PIN nella UI e verificare salvataggio dei `.p7m` documento per documento. |

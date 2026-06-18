@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.253.63 - 2026-06-18
+
+- Local Signer `1.6.78`: corretta la pulizia anti-duplicati su Windows preservando anche il processo padre del servizio che possiede la porta `127.0.0.1:27272`. Questo evita che il launcher chiuda il wrapper `pythonw.exe` del virtualenv e lasci il Local Signer spento subito dopo l'avvio.
+- PST React: `Carica anteprima` apre subito i dati fascicolo già restituiti dalla ricerca, senza restare bloccato sul refresh esterno verso `ext.processotelematico.giustizia.it`; il refresh ministeriale resta un arricchimento e non un blocco della vista.
+- Guardrail: esteso il test del launcher per impedire il ritorno della regola `ProcessId -ne $owner`, che non distingue un vero duplicato dal padre necessario del processo in ascolto.
+
+## 2.253.62 - 2026-06-18
+
+- Local Signer `1.6.77`: ripristinata la selezione automatica del certificato PST dell'avvocato. Il flusso PST non apre più la finestra generica di Windows quando l'auto-selezione è attiva; se manca un certificato personale valido mostra un errore controllato invece di proporre certificati Adobe, intermedi o scaduti.
+- Local Signer Windows: l'avvio elimina le istanze duplicate non proprietarie della porta `127.0.0.1:27272`, evitando processi o prompt appesi nella barra di Windows dopo riavvii o reinstallazioni.
+- Guardrail: aggiunti test che impediscono il ritorno del dialog generico in auto-selezione PST e verificano la preferenza per il certificato personale ArubaPEC Authentication anche quando non arriva un codice fiscale esplicito dalla UI.
+
+## 2.253.61 - 2026-06-18
+
+- PST lavoro: completata la tracciatura del fascicolo Tribunale di Torino RG 3950/2026, registro LAV, importando 29/29 documenti reali nel fascicolo IUSENTRA `9B9DF2A1` e salvando il log produzione `PST-20260618085430-C4891C`.
+- Telematico React: `Carica anteprima` PST ora riusa i documenti già ricevuti dalla ricerca e non lascia la vista vuota quando l'arricchimento esterno verso `ext.processotelematico.giustizia.it` va in timeout.
+- Local Signer: il parser `lav_infofascicolo.wp` ora legge la stessa struttura della tabella civile, distinguendo righe principali, blocchi `Allegati:` e paginazione senza perdere i documenti sotto `downloadDocumentoSemplice.action`.
+- Local Signer Windows: rigenerati i pacchetti `1.6.76` e mantenuto l'avvio nascosto, così il servizio non resta agganciato alla barra degli strumenti.
+
 ## 2.253.60 - 2026-06-18
 
 - Governance: spostati gli helper firma CAdES/PAdES nel service `fascicoli_signature_options`, riportando `fascicoli_signature_routes.py` sotto il limite di righe senza cambiare i messaggi operativi o il comportamento del deposito.

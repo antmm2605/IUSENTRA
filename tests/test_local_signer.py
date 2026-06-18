@@ -50,6 +50,144 @@ def test_pst_master_detail_arricchisce_anteprima_nella_sessione_di_visualizzazio
     assert "_pst_start_fascicolo_snapshot_job(data)" in source
     assert "allow_cert_retry=True" in snapshot_block
     assert "prefer_cookie_only=True" in snapshot_block
+    assert '"max_time": PST_DOWNLOAD_MAX_TIME' in source
+    assert '"connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT' in source
+
+
+def test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    ricerca_block = source[
+        source.index("    def _pst_ricerca_snapshot(self):"):source.index("    def _pst_documenti(self):")
+    ]
+
+    assert 'include_full_snapshot = bool(data.get("include_full_snapshot"))' in ricerca_block
+    full_branch = ricerca_block.split("if _pst_namespace_qbuilder(base_url) and include_full_snapshot:", 1)[1].split("sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder", 1)[0]
+    assert "allow_cert_retry=True" in full_branch
+    assert '"full_snapshot": include_full_snapshot' in ricerca_block
+    assert '"master_detail": include_full_snapshot' in ricerca_block
+
+
+def test_pst_infofascicolo_web_documenti_estrae_allegati_e_paginazione_sicid_lav():
+    module = _load_local_signer()
+    page_url = (
+        "https://servizipst.giustizia.it/PST/it/lav_infofascicolo.wp?"
+        "actionPath=/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/documentiFascicolo.action"
+        "&currentFrame=0&registroRicerca=LAV&ruoloRicerca=AVV@AVV&ufficioRicerca=0012720095"
+        "&numero=3950&anno=2026&subpro=&pa=[RSSMRA80A01H501U]"
+    )
+    html = """
+    <html><body>
+      <a href="lav_infofascicolo.wp?actionPath=/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/documentiFascicolo.action&currentFrame=0&registroRicerca=LAV&numero=3950&anno=2026&item=2">2</a>
+      <table>
+        <tr><th>Dettagli</th><th>File</th><th>Tipo</th><th>Data</th><th>Depositante</th><th>Descrizione</th></tr>
+        <tr>
+          <td>[+]</td>
+          <td><a href="/PST/do/consultazioneregistri/sicid/dettagliofascicolo/downloadDocumentoSemplice.action?fileName=Ricorso.PDF&idDocDownload=172365050&ufficioRicerca=0012720095">Ricorso.PDF</a></td>
+          <td></td><td>12/05/2026</td><td>MONTAGNESE GIUSEPPE</td><td></td>
+        </tr>
+        <tr>
+          <td colspan="6">
+            <strong>Allegati:</strong>
+            <a href="/PST/do/consultazioneregistri/sicid/dettagliofascicolo/downloadDocumentoSemplice.action?fileName=Nota+d%27iscrizione+a+ruolo.PDF&idDocDownload=172365051">Nota d'iscrizione a ruolo.PDF</a>
+            <a href="/PST/do/consultazioneregistri/sicid/dettagliofascicolo/downloadDocumentoSemplice.action?fileName=DatiAtto.xml.p7m&idDocDownload=172365064">DatiAtto.xml.p7m</a>
+          </td>
+        </tr>
+        <tr>
+          <td>[+]</td>
+          <td><a href="/PST/do/consultazioneregistri/sicid/dettagliofascicolo/downloadDocumentoSemplice.action?fileName=26830376s.pdf&idDocDownload=172453268&ufficioRicerca=0012720095">26830376s.pdf</a></td>
+          <td></td><td>13/05/2026</td><td></td><td></td>
+        </tr>
+      </table>
+    </body></html>
+    """
+
+    docs = module._pst_infofascicolo_download_documenti(html, page_url)
+    names = {doc["nome"] for doc in docs}
+    assert names == {"Ricorso.PDF", "Nota d'iscrizione a ruolo.PDF", "DatiAtto.xml.p7m", "26830376s.pdf"}
+    by_name = {doc["nome"]: doc for doc in docs}
+    assert by_name["Ricorso.PDF"]["sezione_portale"] == "DocumentiFascicolo"
+    assert by_name["Nota d'iscrizione a ruolo.PDF"]["sezione_portale"] == "Allegati"
+    assert by_name["Nota d'iscrizione a ruolo.PDF"]["id_documento_padre"] == "172365050"
+    assert by_name["26830376s.pdf"]["sezione_portale"] == "DocumentiFascicolo"
+    assert all(doc["download_mode"] == "downloadDocumentoSemplice" for doc in docs)
+    assert docs[1]["download_url"].startswith("https://servizipst.giustizia.it/PST/do/")
+    assert module._pst_infofascicolo_paginazione(html, page_url)
+
+    lav_url = module._pst_infofascicolo_url(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+        sezione="documentiFascicolo",
+        codice_ufficio="0012720095",
+        numero_rg="3950",
+        anno_rg=2026,
+        cf_avvocato="RSSMRA80A01H501U",
+        registro="LAV",
+    )
+    civile_url = module._pst_infofascicolo_url(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+        sezione="documentiFascicolo",
+        codice_ufficio="0012720095",
+        numero_rg="3950",
+        anno_rg=2026,
+        cf_avvocato="RSSMRA80A01H501U",
+    )
+    assert "lav_infofascicolo.wp" in lav_url
+    assert "registroRicerca=LAV" in lav_url
+    assert "sicid_infofascicolo.wp" in civile_url
+    assert "registroRicerca=RGN" in civile_url
+
+
+def test_pst_download_batch_usa_download_documento_semplice_senza_soap(monkeypatch):
+    module = _load_local_signer()
+    called = {"soap": 0, "get": 0}
+
+    def _fake_get_batch(requests, *, cert_thumbprint=None):
+        called["get"] += 1
+        assert cert_thumbprint == "CERT-123"
+        assert requests[0]["url"].endswith("idDocDownload=172365050")
+        return [
+            {
+                "body_bytes": b"%PDF-1.4\n% test\n",
+                "headers_text": (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: application/pdf\r\n"
+                    "Content-Disposition: attachment; filename=\"Ricorso.PDF\"\r\n\r\n"
+                ),
+                "status_code": 200,
+                "error": "",
+            }
+        ]
+
+    def _forbidden_soap(*args, **kwargs):
+        called["soap"] += 1
+        raise AssertionError("Il downloadDocumentoSemplice non deve usare SOAP downloadDocumento")
+
+    monkeypatch.setattr(module, "_pst_http_get_batch_raw_best_effort", _fake_get_batch)
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", _forbidden_soap)
+
+    result = module._pst_download_documenti_batch_payloads(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+        codice_ufficio="0012720095",
+        cert_thumbprint="CERT-123",
+        cf_avvocato="MNTGPP94L01G791A",
+        cookie_file="C:\\temp\\pst.cookies",
+        do_preflight=False,
+        documenti=[
+            {
+                "id_documento": "172365050",
+                "nome": "Ricorso.PDF",
+                "download_url": "https://servizipst.giustizia.it/PST/do/consultazioneregistri/sicid/dettagliofascicolo/downloadDocumentoSemplice.action?idDocDownload=172365050",
+                "download_mode": "downloadDocumentoSemplice",
+            }
+        ],
+    )
+
+    assert called == {"soap": 0, "get": 1}
+    assert result["documenti_richiesti"] == 1
+    assert result["documenti_scaricati"] == 1
+    assert result["failures"] == []
+    assert result["files"][0]["nome"] == "Ricorso.PDF"
+    assert result["files"][0]["contenuto_b64"] == base64.b64encode(b"%PDF-1.4\n% test\n").decode("ascii")
 
 
 def test_pst_session_manager_riusa_view_e_separa_import():
@@ -1646,9 +1784,20 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     monitor = (Path(__file__).resolve().parents[1] / "web" / "static" / "js" / "local-signer-monitor.js").read_text(encoding="utf-8")
 
     assert 'set "SILENT_MODE=0"' in installer
-    assert 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -FilePath $env:PYW -ArgumentList @($env:PY)"' in installer
+    assert 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)"' in installer
+    assert "$protected = @{}" in installer
+    assert "$keep=@{}" in installer
+    assert "ParentProcessId" in installer
+    assert "ProcessId -ne $owner" not in installer
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in installer
     assert "Register-LocalSignerScheduledTask" in installer
+    scheduled_task_start = installer.index("function Register-LocalSignerScheduledTask")
+    scheduled_task = installer[
+        scheduled_task_start:installer.index("# ═", scheduled_task_start)
+    ]
+    assert 'System32\\wscript.exe' in scheduled_task
+    assert '$starterVbs' in scheduled_task
+    assert 'cmd.exe' not in scheduled_task
     assert "Register-LocalSignerStartupShortcut" in installer
     assert "IUSENTRA Local Signer.lnk" in installer
     assert "iusentra-local-signer://restart" in installer
@@ -1958,6 +2107,62 @@ def test_diagnosi_windows_mostra_certificato_avvocato_selezionato(monkeypatch):
     assert any("Certificato avvocato selezionato:" in item for item in payload["info"])
 
 
+def test_ping_windows_auto_senza_cf_esclude_adobe_e_sceglie_auth_personale(monkeypatch):
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_trova = module._trova_libreria
+    orig_curl = module._curl_disponibile
+    orig_lista = module._windows_lista_certificati
+    orig_cached = module._ultimo_certificato_windows
+    captured = {}
+
+    class _FakeHandler:
+        path = "/ping?auto=1"
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        monkeypatch.delenv("PCT_CF_AVVOCATO", raising=False)
+        module.sys.platform = "win32"
+        module._trova_libreria = lambda: None
+        module._curl_disponibile = lambda: True
+        module._ultimo_certificato_windows = {}
+        module._windows_lista_certificati = lambda: [
+            {
+                "thumbprint": "ADOBE-EXPIRED",
+                "soggetto": "Adobe Content Certificate 10-5",
+                "emittente": "Adobe Intermediate CA 10-3",
+                "scadenza": "2025-08-18",
+                "codice_fiscale": "",
+            },
+            {
+                "thumbprint": "AUTH-PERSONALE",
+                "soggetto": "MNTGPP94L01G791A/7430010029148800",
+                "soggetto_completo": "CN=MNTGPP94L01G791A/7430010029148800,2.5.4.42=GIUSEPPE,2.5.4.4=MONTAGNESE",
+                "codice_fiscale": "MNTGPP94L01G791A",
+                "emittente": "ArubaPEC EU Authentication Certificates CA G1",
+                "emittente_completo": "CN=ArubaPEC EU Authentication Certificates CA G1",
+                "scadenza": "2029-03-02",
+            },
+        ]
+
+        module._Handler._ping(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._trova_libreria = orig_trova
+        module._curl_disponibile = orig_curl
+        module._windows_lista_certificati = orig_lista
+        module._ultimo_certificato_windows = orig_cached
+
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["certificato_windows_selezionato"]["thumbprint"] == "AUTH-PERSONALE"
+    assert payload["certificato_windows_selezionato"]["codice_fiscale"] == "MNTGPP94L01G791A"
+
+
 def test_ping_windows_suggerisce_riavvio_quando_il_probe_fresco_vede_il_token():
     module = _load_local_signer()
 
@@ -2022,7 +2227,7 @@ def test_ping_windows_suggerisce_riavvio_quando_il_probe_fresco_vede_il_token():
     assert "riallineare automaticamente il Local Signer" in payload["nota_riavvio_signer"]
 
 
-def test_seleziona_certificato_windows_usa_dialog_nativo_quando_non_c_e_auto_pick():
+def test_seleziona_certificato_windows_usa_dialog_nativo_solo_se_auto_disattivato():
     module = _load_local_signer()
 
     orig_platform = module.sys.platform
@@ -2035,7 +2240,7 @@ def test_seleziona_certificato_windows_usa_dialog_nativo_quando_non_c_e_auto_pic
     remembered = {}
 
     class _FakeHandler:
-        path = "/seleziona-certificato?auto=1&prefer_cf=MNTRRT64L01L063H"
+        path = "/seleziona-certificato?auto=0&prefer_cf=MNTRRT64L01L063H"
 
         def _send_json(self, payload, status=200):
             captured["payload"] = payload
@@ -2068,6 +2273,55 @@ def test_seleziona_certificato_windows_usa_dialog_nativo_quando_non_c_e_auto_pic
     assert payload["auto_selezionato"] is False
     assert payload["thumbprint"] == "MANUAL-SELECT"
     assert remembered["thumbprint"] == "MANUAL-SELECT"
+
+
+def test_seleziona_certificato_windows_auto_non_apre_dialog_generico_se_manca_match():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_lista = module._windows_lista_certificati
+    orig_pick = module._pick_preferred_windows_cert
+    orig_select = module._windows_seleziona_cert
+    orig_cached = module._ultimo_certificato_windows
+    captured = {}
+
+    class _FakeHandler:
+        path = "/seleziona-certificato?auto=1&prefer_cf=MNTRRT64L01L063H"
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    def _should_not_open_store():
+        raise AssertionError("Il flusso PST auto non deve aprire la finestra Windows generica")
+
+    try:
+        module.sys.platform = "win32"
+        module._ultimo_certificato_windows = {}
+        module._windows_lista_certificati = lambda: [
+            {
+                "thumbprint": "ADOBE-EXPIRED",
+                "soggetto": "Adobe Content Certificate 10-5",
+                "emittente": "Adobe Intermediate CA 10-3",
+                "scadenza": "2025-08-18",
+                "codice_fiscale": "",
+            }
+        ]
+        module._pick_preferred_windows_cert = orig_pick
+        module._windows_seleziona_cert = _should_not_open_store
+
+        module._Handler._seleziona_certificato(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._windows_lista_certificati = orig_lista
+        module._pick_preferred_windows_cert = orig_pick
+        module._windows_seleziona_cert = orig_select
+        module._ultimo_certificato_windows = orig_cached
+
+    payload = captured["payload"]
+    assert payload["ok"] is False
+    assert payload["dialog_non_aperto"] is True
+    assert "Adobe" in payload["errore"]
 
 
 def test_seleziona_certificato_windows_auto_riusa_cache_compatibile():

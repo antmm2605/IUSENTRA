@@ -1,5 +1,21 @@
 # Pytest shard confermati OK
 
+## PST lavoro Torino e Local Signer 1.6.76 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Scarico PST ufficiale fascicolo `RG 3950/2026`, Tribunale di Torino, registro `LAV` | OK osservato | 29/29 documenti scaricati via browser autenticato e link `downloadDocumentoSemplice.action`; 7.380.295 byte complessivi; errori download 0. |
+| Import server su `https://app.iusentra.it` nel fascicolo `9B9DF2A1` | OK osservato | Log produzione `PST-20260618085430-C4891C`; 29 documenti importati, 0 mancanti, 4 depositi, 5 eventi e 3 comunicazioni generate. |
+| Browser reale server su `https://app.iusentra.it/fascicoli/9B9DF2A1#documenti` | OK osservato | Contatore `Documenti e atti` a 52; visibili `Ricorso.PDF`, `Nota d'iscrizione a ruolo.PDF`, `26830376s.pdf` e `20200029s.pdf` con origine PST ufficiale. |
+| `python -m py_compile tools\local_signer.py` | OK | Sintassi confermata dopo parser `lav_infofascicolo.wp`, download diretto e gestione allegati/paginazione. |
+| `python -m pytest tests\test_local_signer.py::test_pst_infofascicolo_web_documenti_estrae_allegati_e_paginazione_sicid_lav tests\test_local_signer.py::test_pst_download_batch_usa_download_documento_semplice_senza_soap -q` | OK | 2/2 passati: tabella lavoro con riga principale, blocco `Allegati:` e nuova riga principale; download diretto senza SOAP. |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tools\installa_local_signer_locale.ps1 -Quiet` | OK | Local Signer installato in AppData con versione `1.6.76`; avvio Windows silenzioso e processo `pythonw` senza finestra visibile. |
+| `GET http://127.0.0.1:27272/ping?light=1` | OK | Risposta `ok=true`, versione `1.6.76`, libreria `C:\Windows\System32\bit4xpki.dll`, `curl_disponibile=true`. |
+| Hash SHA256 `tools\local_signer.py`, `tools\dist\local_signer.py`, installazione AppData | OK | Tutti allineati a `7478FBE95E00FAD8D82103D81F957620EFB3176844ACD9276A98974AF722B3E9`. |
+| `python -m pytest tests\test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests\test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser -q` | OK | 2/2 passati: `Carica anteprima` riusa i documenti già ricevuti dalla ricerca PST e non chiama il job lento nel ramo con documenti disponibili. |
+| `python -m pytest tests\test_local_signer.py::test_pst_infofascicolo_web_documenti_estrae_allegati_e_paginazione_sicid_lav tests\test_local_signer.py::test_pst_download_batch_usa_download_documento_semplice_senza_soap tests\test_local_signer.py::test_pst_master_detail_arricchisce_anteprima_nella_sessione_di_visualizzazione tests\test_local_signer.py::test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail -q` | OK | 4/4 passati: parser LAV, download diretto, master-detail e snapshot ricerca restano coperti. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build`; `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | TypeScript, build Vite e retention asset passati; manifest punta `assets/TelematicoSurfacePage-B2gl634y.js` con fallback anteprima PST. |
+
 ## Certificati PST, canali deposito e soglie normative 2.253.56 - 2026-06-17
 
 | Comando / verifica | Esito | Nota |
@@ -5103,3 +5119,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python tools\sync_packaging_files.py --check`; `python tools\check_local_signer_boundaries.py` | OK | Contratti/API/packaging allineati, provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`, confini Local Signer preservati. |
 | `python -m pytest -q tests\test_utf8_integrity.py tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short`; `python -m pytest -q tests\test_deposito.py tests\test_busta.py tests\test_profilo_deposito.py tests\test_canali_telematici_deposito.py tests\test_fascicoli_signature_options.py --tb=short` | OK | 14/14 readiness e 62/62 deposito/busta/profilo/canali/firma passati su `2.253.60`. |
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build`; `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | TypeScript, build Vite e asset retention 2/2 verdi dopo bump `2.253.60`. |
+## PST lavoro e Local Signer 2.253.63 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso tests\test_local_signer.py::test_ping_windows_auto_senza_cf_esclude_adobe_e_sceglie_auth_personale tests\test_local_signer.py::test_seleziona_certificato_windows_auto_non_apre_dialog_generico_se_manca_match tests\test_local_signer.py::test_seleziona_certificato_windows_usa_dialog_nativo_solo_se_auto_disattivato tests\test_local_signer.py::test_seleziona_certificato_windows_auto_riusa_cache_compatibile -q` | OK | 5/5 passati: filtro Adobe/scaduti, auto-selezione ArubaPEC Authentication e launcher padre/figlio Windows coperti. |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tools\installa_local_signer_locale.ps1 -Quiet` | OK | Installato Local Signer `1.6.78` sulla macchina reale; servizio vivo su `127.0.0.1:27272`. |
+| `GET http://127.0.0.1:27272/ping?auto=1` | OK | Versione `1.6.78`, certificato selezionato ArubaPEC EU Authentication Certificates CA G1, CF `MNTGPP94L01G791A`, auto-selezione `true`. |
+| Smoke Local Signer `/ping?light=1`, `/ping?auto=1`, `/certificati`, `/ai/status`, `/pst/status`, `/diagnosi` | OK | Endpoint lettura/diagnostica vivi; nessuna finestra Windows di selezione certificato rimasta aperta dopo il test. |
+| Dipendenze runtime Local Signer `cryptography`, `asn1crypto`, `zeep`, `pdfplumber`, `mammoth`, `pypdf`, `reportlab`, `pkcs11` | OK | Tutte importabili nel virtualenv installato in AppData. |
+| `python -m pytest tests\test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests\test_local_signer.py::test_ping_windows_auto_senza_cf_esclude_adobe_e_sceglie_auth_personale tests\test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso -q` | OK | Guardrail anteprima PST e Local Signer confermati dopo fallback `hasSearchSnapshotPayload`. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite completati; bundle `TelematicoSurfacePage-KD_TIFeq.js` generato. |

@@ -285,3 +285,5 @@ Correzione locale prima di commit/deploy:
 - il bridge PagoPA costruisce un bundle TLS mirato `certifi + TI Trust`;
 - il test del bridge verifica che `verify` non sia disabilitato e che il bundle usato contenga `TI Trust Technologies OV CA`;
 - la prova tecnica locale e nel container conferma HTTP 200 verso `https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp` con verifica TLS attiva.
+
+Aggiornamento `2.253.74`: corretto il secondo alert CodeQL del bridge PagoPA usando un file temporaneo generato dal server per le risposte testuali PST e mantenendo DWR `/dwr/call/plaincall/...` come `text/plain`. Prova reale locale su Docker `127.0.0.1:8080`: cookie `iusentra_session`, PagoPA nel fascicolo `9B9DF2A1`, `Nuovo pagamento`, tipo contributo unificato, distretto `TORINO`, `66` uffici giudiziari caricati, nominativo/codice fiscale compilati e nessun click su `Paga subito`. La prova server resta da ripetere dopo deploy dello stesso SHA.

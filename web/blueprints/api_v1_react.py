@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
-from io import BytesIO
 import json
 import os
 import re
@@ -496,25 +495,35 @@ def _pst_pagopa_inline_text_response(
 ) -> Response:
     lower_content_type = content_type.lower()
     if "text/html" in lower_content_type or "application/xhtml+xml" in lower_content_type:
-        filename = "pagopa.html"
+        safe_content_type = "text/html; charset=utf-8"
     elif "css" in lower_content_type:
-        filename = "pagopa.css"
+        safe_content_type = "text/css; charset=utf-8"
     elif "javascript" in lower_content_type:
-        filename = "pagopa.js"
+        safe_content_type = "application/javascript"
     elif "xml" in lower_content_type:
-        filename = "pagopa.xml"
+        safe_content_type = "application/xml; charset=utf-8"
     else:
-        filename = "pagopa.txt"
+        safe_content_type = "text/plain; charset=utf-8"
+    suffix = ".html" if safe_content_type.startswith("text/html") else ".txt"
+    with tempfile.NamedTemporaryFile(
+        mode="wb",
+        prefix="iusentra-pagopa-",
+        suffix=suffix,
+        delete=False,
+    ) as temp_file:
+        temp_file.write(response_body)
+        temp_path = Path(temp_file.name)
     response = send_file(
-        BytesIO(response_body),
-        mimetype=content_type.split(";", 1)[0].strip() or "text/plain",
-        download_name=filename,
+        temp_path,
+        mimetype=safe_content_type.split(";", 1)[0],
+        download_name="pagopa-pst-inline.txt",
         as_attachment=False,
         max_age=0,
     )
+    response.call_on_close(lambda: temp_path.unlink(missing_ok=True))
     response.status_code = status_code
     response.headers.update(response_headers)
-    response.headers["Content-Type"] = content_type
+    response.headers["Content-Type"] = safe_content_type
     return response
 
 
@@ -3863,14 +3872,18 @@ def pst_pagopa_proxy(pst_path: str):
     if any(marker in lower_content_type for marker in PST_PAGOPA_TEXT_TYPES):
         encoding = upstream.encoding or "utf-8"
         text = upstream.content.decode(encoding, errors="replace")
-        is_javascript = "javascript" in lower_content_type or urlparse(target_url).path.lower().endswith(".js")
-        if is_javascript and "/PST/dwr/" in urlparse(target_url).path:
+        target_path_lower = urlparse(target_url).path.lower()
+        is_javascript = "javascript" in lower_content_type or target_path_lower.endswith(".js")
+        if is_javascript and "/pst/dwr/" in target_path_lower:
             text = _pst_pagopa_rewrite_dwr_javascript(text)
         elif not is_javascript:
             text = _pst_pagopa_rewrite_text(text, base_url=target_url, fascicolo_id=fascicolo_id)
             if "text/html" in lower_content_type:
                 text = _pst_pagopa_inject_runtime_bridge(text, base_url=target_url, fascicolo_id=fascicolo_id)
-        response_content_type = "text/html; charset=utf-8" if "application/xhtml+xml" in lower_content_type else content_type
+        if "/dwr/call/" in target_path_lower:
+            response_content_type = "text/plain; charset=utf-8"
+        else:
+            response_content_type = "text/html; charset=utf-8" if "application/xhtml+xml" in lower_content_type else content_type
         response_body = text.encode("utf-8")
         return _pst_pagopa_inline_text_response(
             response_body,

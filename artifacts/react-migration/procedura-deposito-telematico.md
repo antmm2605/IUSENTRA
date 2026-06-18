@@ -1569,3 +1569,9 @@ Test ripetuti dopo il refactor:
 
 - `python -m py_compile weblueprintspi_v1_react.py webootstrap	elematico_portali_routes.py web\services\security_runtime.py tests	est_security_headers.py`;
 - `python -m pytest tests	est_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf tests	est_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests	est_security_headers.py -q --tb=short`.
+
+## Aggiornamento 2.253.74 - CodeQL path bridge PagoPA
+
+Data intervento: 2026-06-18.
+
+Sul nuovo SHA 878ae1e il workflow CodeQL ha superato l'analisi, ma il required check di code scanning ha aperto un alert bloccante Uncontrolled data used in path expression sulla risposta send_file(BytesIO(...)) del bridge PagoPA. Il bridge ora scrive le risposte testuali PST in un file temporaneo creato dal server, con nome generato dal sistema, Content-Type ristretto ai tipi testuali attesi e nome inline costante. Il path non dipende più da contenuto PST o parametri utente; le chiamate DWR `/dwr/call/plaincall/...` tornano come `text/plain; charset=utf-8` così il motore DWR popola correttamente gli uffici. Il cookie di sessione resta `iusentra_session`. Prova reale locale su Docker `2.253.74`: Chrome installato su `127.0.0.1:8080/fascicoli/9B9DF2A1`, cookie visibile solo `iusentra_session`, PagoPA aperto, `Nuovo pagamento`, tipo `Contributo unificato e/o Diritti di cancelleria`, distretto `TORINO`, `66` uffici giudiziari caricati, nominativo/codice fiscale compilati, nessun click su `Paga subito`.

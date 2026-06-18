@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.74 - 2026-06-18
+
+- PagoPA PST: eliminato anche il secondo alert CodeQL sul bridge inline servendo le risposte testuali da file temporaneo generato dal server, con Content-Type ristretto e nome inline costante.
+- Sessione: confermato che il runtime continua a usare iusentra_session come cookie predefinito.
+
 ## 2.253.73 - 2026-06-18
 
 - PagoPA PST: refactor della risposta HTML/CSS/JS del bridge in payload inline servito da file in memoria dopo allowlist host/path, per chiudere l'alert CodeQL XSS senza cambiare il comportamento visibile della modale.

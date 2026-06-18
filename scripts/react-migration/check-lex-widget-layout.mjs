@@ -261,7 +261,7 @@ async function main() {
   await client.send('Network.setCacheDisabled', { cacheDisabled: true })
   if (cookie) {
     await client.send('Network.setCookie', {
-      name: 'hacs_session',
+      name: 'iusentra_session',
       value: cookie,
       url: host,
       path: '/',

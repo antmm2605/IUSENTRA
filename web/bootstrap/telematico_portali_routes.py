@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from datetime import date
 from typing import Any
@@ -14,6 +15,9 @@ from web.bootstrap.telematico_portali_common import (
     group_documenti_per_deposito,
     resolve_nome_ufficio,
 )
+
+_PAGOPA_SAFE_PATH_RE = re.compile(r"^[A-Za-z0-9._~!$&'()*+,;=:@%/-]{1,512}$")
+_PAGOPA_ALLOWED_PATH_PREFIXES = ("it/pagopa_", "resources/", "dwr/")
 
 def register_telematico_portali_routes(
     app: Flask,
@@ -46,12 +50,26 @@ def register_telematico_portali_routes(
                 return value
         return ""
 
+    def _pagopa_safe_pst_path(raw_path: str) -> str:
+        cleaned = str(raw_path or "it/pagopa_altripag.wp").strip().replace("\\", "/")
+        if cleaned.startswith("PST/"):
+            cleaned = cleaned[4:]
+        cleaned = cleaned.lstrip("/")
+        parts = [part for part in cleaned.split("/") if part]
+        if (
+            "://" in cleaned
+            or cleaned.startswith("//")
+            or not _PAGOPA_SAFE_PATH_RE.fullmatch(cleaned)
+            or any(part == ".." for part in parts)
+            or not cleaned.startswith(_PAGOPA_ALLOWED_PATH_PREFIXES)
+        ):
+            return "it/pagopa_altripag.wp"
+        return "/".join(parts)
+
     @app.route("/PST/", defaults={"pst_path": ""}, methods=["GET", "POST"])
     @app.route("/PST/<path:pst_path>", methods=["GET", "POST"])
     def pst_pagopa_absolute_escape(pst_path: str):
-        cleaned = str(pst_path or "it/pagopa_altripag.wp").strip().replace("\\", "/").lstrip("/")
-        if "://" in cleaned or cleaned.startswith("//"):
-            return redirect("/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp", code=302)
+        cleaned = _pagopa_safe_pst_path(pst_path)
 
         query_pairs = list(request.args.items(multi=True))
         fascicolo_id = (
@@ -62,7 +80,7 @@ def register_telematico_portali_routes(
         if fascicolo_id and not any(key == "iusentra_fascicolo" for key, _value in query_pairs):
             query_pairs.append(("iusentra_fascicolo", fascicolo_id))
         query = urlencode(query_pairs, doseq=True)
-        target = f"/api/v1/ui/pst/pagopa-proxy/{cleaned}"
+        target = url_for("api_v1_react.pst_pagopa_proxy", pst_path=cleaned)
         if query:
             target = f"{target}?{query}"
         return redirect(target, code=307 if request.method == "POST" else 302)

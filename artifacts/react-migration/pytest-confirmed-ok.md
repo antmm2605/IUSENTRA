@@ -1,16 +1,18 @@
 # Pytest shard confermati OK
 
-## PagoPA PST nel fascicolo 2.253.70 - 2026-06-18
+## PagoPA PST nel fascicolo 2.253.70 / 2.253.72 - 2026-06-18
 
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
 | `python -m py_compile web\blueprints\api_v1_react.py web\bootstrap\telematico_portali_routes.py` | OK | Sintassi confermata dopo bridge PagoPA, riscrittura DWR, bundle TLS mirato e route `/PST/...` di rientro al proxy. |
 | `python -m pytest tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_security_headers.py -q --tb=short` | OK | 7/7: guardrail su iframe PagoPA, CSP proxy, DWR `_path`, `page`, `httpSessionId`, `Referer`, XHTML, link non quotati, salvataggio PDF come `RICEVUTA_PAGOPA` e intestazioni di sicurezza. |
+| `python -m py_compile web\blueprints\api_v1_react.py web\bootstrap\telematico_portali_routes.py`; `python -m pytest tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_security_headers.py -q --tb=short` | OK | 2.253.71: confermato hardening CodeQL con allowlist path PagoPA (`it/pagopa_*`, `resources/`, `dwr/`), redirect `/PST` interno e payload HTML codificato; 7/7 test mirati passati. |
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build`; `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata tests\test_react_asset_retention.py -q --tb=short` | OK | TypeScript, build Vite, mappa sicurezza backend e retention asset confermati dopo la modifica a `FascicoliPage.tsx` e al bridge PagoPA. |
 | `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\react-migration\generate_backend_security_map.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python tools\sync_packaging_files.py --check` | OK | Contratti API, mappa sicurezza, OpenAPI, provider e packaging allineati alla versione `2.253.70`. |
 | `python -m pytest tests\test_utf8_integrity.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `git diff --check` | OK | 14/14 su UTF-8, packaging e readiness; diff senza errori whitespace, solo avvisi CRLF/LF già governati da Git. |
 | Docker locale reale `127.0.0.1:8080` | OK | `docker compose build --no-cache app`, `docker compose up -d --force-recreate app scheduler-worker ocr-worker`, container healthy e `/api/pronto` `versione=2.253.70`. |
-| Google Chrome reale su `http://127.0.0.1:8080/fascicoli/9B9DF2A1` | OK osservato | Click `PagoPA`, `+ Nuovo pagamento`, tipo contributo unificato, distretto `TORINO`, 66 uffici giudiziari caricati, nominativo e codice fiscale compilati; nessun pagamento avviato. Browser plugin non disponibile nella sessione, usato Chrome installato con Playwright come fallback registrato. |
+| Cookie sessione `iusentra_session` | OK locale | 2.253.72: Docker locale rebuild no-cache, `/api/pronto` `versione=2.253.72`, runtime Flask nel container con `SESSION_COOKIE_NAME=iusentra_session`; Chrome installato su `127.0.0.1:8080` ha mostrato solo la cookie `iusentra_session` per l'host. |
+| Google Chrome reale su `http://127.0.0.1:8080/fascicoli/9B9DF2A1` | OK osservato | 2.253.70 e 2.253.72: click `PagoPA`, `+ Nuovo pagamento`, tipo contributo unificato, distretto `TORINO`, 66 uffici giudiziari caricati, nominativo e codice fiscale compilati; nessun pagamento avviato. Browser plugin invocato ma non operativo (`browser.documentation`/`openTabs` assenti), usato Chrome installato con Playwright come fallback registrato. |
 
 ## PST lavoro anteprima completa 2.253.64 - 2026-06-18
 

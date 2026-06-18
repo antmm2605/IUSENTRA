@@ -174,7 +174,7 @@ payload = {{
   "auth_tenant_slug": {tenant.slug!r},
   "last_activity": datetime.now().isoformat(),
 }}
-print("AUDIT_JSON:" + json.dumps({{"cookie_name": app.config.get("SESSION_COOKIE_NAME", "hacs_session"), "cookie": serializer.dumps(payload)}}))
+print("AUDIT_JSON:" + json.dumps({{"cookie_name": app.config.get("SESSION_COOKIE_NAME", "iusentra_session"), "cookie": serializer.dumps(payload)}}))
 """
     return json_from_command_marker(["docker", "compose", "exec", "-T", "app", "python", "-"], code)
 

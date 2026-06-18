@@ -1533,3 +1533,28 @@ Limiti residui:
 - IUSENTRA non inventa il link ricevuta: quando l'utente richiede manualmente la ricevuta PDF nel PST, il bridge intercetta il PDF restituito e lo collega ai documenti del fascicolo;
 - se il pagamento passa a PSP, banca o dominio esterno al PST, quel tratto può imporre policy proprie e resta fuori dal proxy ristretto al Ministero;
 - nessun PIN, certificato, firma digitale, Local Signer o invio PEC è stato usato da questa modifica.
+
+## Aggiornamento 2.253.71 - Hardening CodeQL bridge PagoPA
+
+Data intervento: 2026-06-18.
+
+Il primo push della release PagoPA ha fatto emergere su CodeQL un alert di XSS riflesso sul punto in cui il proxy restituisce l'HTML ministeriale. Il comportamento è intenzionale solo dentro il bridge PagoPA, ma è stato irrigidito per evitare che path non pertinenti o redirect locali non governati entrino nel flusso.
+
+Correzione applicata:
+
+- il proxy serve solo path PST attesi per PagoPA: `it/pagopa_*`, `resources/` e `dwr/`;
+- i path con schema, doppio slash, segmenti `..`, caratteri non previsti o prefissi fuori perimetro vengono rifiutati;
+- la route di rientro `/PST/...` costruisce il target con `url_for("api_v1_react.pst_pagopa_proxy", ...)`, quindi resta sempre interna;
+- la risposta testuale viene emessa come payload UTF-8 codificato, con commento CodeQL motivato perché il contenuto arriva dal dominio ministeriale verificato tramite bundle CA e rimane coperto da CSP/iframe PagoPA.
+
+Test locali ripetuti:
+
+- `python -m py_compile web\blueprints\api_v1_react.py web\bootstrap\telematico_portali_routes.py`;
+- `python -m pytest tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_security_headers.py -q --tb=short`.
+
+
+## Aggiornamento 2.253.72 - Cookie sessione IUSENTRA
+
+Data intervento: 2026-06-18.
+
+Su richiesta dell'utente il cookie HTTP di sessione dell'app viene rinominato da `hacs_session` a `iusentra_session`. La modifica è centralizzata nel runtime di sicurezza Flask e gli script di audit browser che impostano sessioni locali di collaudo sono stati aggiornati allo stesso nome. Non cambia il contenuto della sessione, non vengono salvati PIN o credenziali e restano invariati `HttpOnly`, `SameSite=Lax` e il perimetro tenant. Prova reale locale eseguita su Docker `2.253.72`: `/api/pronto` risponde `versione=2.253.72`, il container Flask espone `SESSION_COOKIE_NAME=iusentra_session`, Chrome installato su `http://127.0.0.1:8080/fascicoli/9B9DF2A1` ha aperto PagoPA nel fascicolo, selezionato `Contributo unificato e/o Diritti di cancelleria`, distretto `TORINO`, caricato `66` uffici e compilato nominativo/codice fiscale senza premere `Paga subito`.

@@ -166,7 +166,7 @@ async function newPage() {
   await client.send('Log.enable')
   if (cookie) {
     await client.send('Network.setCookie', {
-      name: 'hacs_session',
+      name: 'iusentra_session',
       value: cookie,
       url: host,
       path: '/',

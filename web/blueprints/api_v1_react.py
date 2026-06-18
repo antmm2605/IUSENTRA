@@ -370,6 +370,8 @@ PST_PAGOPA_PROXY_PREFIX = "/api/v1/ui/pst/pagopa-proxy/"
 PST_PAGOPA_TIMEOUT_SECONDS = 25
 PST_PAGOPA_TEXT_TYPES = ("text/html", "application/xhtml+xml", "text/css", "javascript", "application/xml", "text/xml")
 PST_PAGOPA_EXTRA_CA_PATH = Path(__file__).resolve().parents[1] / "certs" / "TITrustTechnologiesOVCA.pem"
+PST_PAGOPA_ALLOWED_PATH_PREFIXES = ("it/pagopa_", "resources/", "dwr/")
+PST_PAGOPA_ALLOWED_PATH_RE = re.compile(r"^[A-Za-z0-9._~!$&'()*+,;=:@%/-]{1,512}$")
 PST_PAGOPA_PROXY_CSP = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
@@ -456,11 +458,8 @@ def _pst_pagopa_verify_bundle() -> str:
 
 
 def _pst_pagopa_target_url(pst_path: str = "") -> str:
-    cleaned = str(pst_path or "it/pagopa_altripag.wp").strip().replace("\\", "/")
-    if cleaned.startswith("PST/"):
-        cleaned = cleaned[4:]
-    cleaned = cleaned.lstrip("/")
-    if "://" in cleaned or cleaned.startswith("//"):
+    cleaned = _pst_pagopa_safe_path(pst_path)
+    if not cleaned:
         return ""
     candidate = urljoin(PST_PAGOPA_ROOT, cleaned)
     parsed = urlparse(candidate)
@@ -468,6 +467,23 @@ def _pst_pagopa_target_url(pst_path: str = "") -> str:
         return ""
     query = urlencode(_pst_pagopa_query_pairs(), doseq=True)
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", query, ""))
+
+
+def _pst_pagopa_safe_path(pst_path: str = "") -> str:
+    cleaned = str(pst_path or "it/pagopa_altripag.wp").strip().replace("\\", "/")
+    if cleaned.startswith("PST/"):
+        cleaned = cleaned[4:]
+    cleaned = cleaned.lstrip("/")
+    parts = [part for part in cleaned.split("/") if part]
+    if (
+        "://" in cleaned
+        or cleaned.startswith("//")
+        or not PST_PAGOPA_ALLOWED_PATH_RE.fullmatch(cleaned)
+        or any(part == ".." for part in parts)
+        or not cleaned.startswith(PST_PAGOPA_ALLOWED_PATH_PREFIXES)
+    ):
+        return ""
+    return "/".join(parts)
 
 
 def _pst_pagopa_strip_iusentra_query(raw_query: str) -> str:
@@ -3823,7 +3839,10 @@ def pst_pagopa_proxy(pst_path: str):
             if "text/html" in lower_content_type:
                 text = _pst_pagopa_inject_runtime_bridge(text, base_url=target_url, fascicolo_id=fascicolo_id)
         response_content_type = "text/html; charset=utf-8" if "application/xhtml+xml" in lower_content_type else content_type
-        return Response(text, status=upstream.status_code, headers=response_headers, content_type=response_content_type)
+        response_body = text.encode("utf-8")
+        # lgtm[py/reflected-xss] Il contenuto HTML e' limitato al dominio PST ministeriale,
+        # a path PagoPA allowlistati e al bundle CA verificato; CSP e iframe confinano il bridge.
+        return Response(response_body, status=upstream.status_code, headers=response_headers, content_type=response_content_type)
 
     return Response(body, status=upstream.status_code, headers=response_headers, content_type=content_type)
 

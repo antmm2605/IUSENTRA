@@ -75,7 +75,11 @@ Prova visiva su server:
 
 Aggiornamento 2026-06-18: la modale PagoPA collegata al fascicolo usa il bridge interno PST e non l'iframe diretto bloccato da `X-Frame-Options`. La prova reale locale `2.253.70` su Docker `127.0.0.1:8080` ha confermato che il portale si apre dentro IUSENTRA, il comando `Nuovo pagamento` mostra il form ministeriale, il distretto `TORINO` carica 66 uffici giudiziari e il codice fiscale resta compilabile. Non è stato avviato alcun pagamento.
 
-Stato prima della chiusura release: da ripetere su produzione `https://app.iusentra.it/fascicoli/9B9DF2A1` dopo commit, push e deploy Hetzner dello stesso SHA. La ricevuta PDF verrà collegata ai documenti solo quando il PST la restituirà dopo richiesta manuale dell'utente.
+Aggiornamento `2.253.71`: dopo alert CodeQL sul primo SHA pushato, il bridge è stato ristretto ai soli path PagoPA/PST attesi (`it/pagopa_*`, `resources/`, `dwr/`) e il redirect `/PST/...` usa solo target interni costruiti da Flask. La prova reale va ripetuta sulla versione `2.253.71` prima della chiusura server.
+
+Stato prima della chiusura release: da ripetere su produzione `https://app.iusentra.it/fascicoli/9B9DF2A1` dopo commit, push e deploy Hetzner dello stesso SHA.
+
+Aggiornamento `2.253.72`: il cookie HTTP di sessione richiesto dall'utente è `iusentra_session`; gli audit browser di collaudo sono stati allineati. Prova reale locale ripetuta su Docker `127.0.0.1:8080`, versione `2.253.72`: Chrome installato ha ricevuto solo la cookie `iusentra_session`, PagoPA si apre nel fascicolo `9B9DF2A1`, `Contributo unificato e/o Diritti di cancelleria` e distretto `TORINO` caricano `66` uffici giudiziari, nominativo/codice fiscale risultano compilabili e non è stato premuto `Paga subito`. La prova server resta da ripetere dopo deploy dello stesso SHA. La ricevuta PDF verrà collegata ai documenti solo quando il PST la restituirà dopo richiesta manuale dell'utente.
 
 ## Correzione software
 

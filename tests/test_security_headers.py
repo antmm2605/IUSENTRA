@@ -3,6 +3,7 @@ from __future__ import annotations
 from flask import Flask
 
 from core.security.headers import apply_security_headers
+from web.services.security_runtime import apply_security_defaults
 
 
 def _csp_sources(csp: str, directive: str) -> set[str]:
@@ -82,3 +83,27 @@ def test_regular_pages_allow_studio_media_only_on_same_origin() -> None:
     assert "local-network-access=(self)" in policy
     assert "local-network=(self)" in policy
     assert "loopback-network=(self)" in policy
+
+
+def test_security_defaults_use_iusentra_session_cookie_name() -> None:
+    app = Flask(__name__)
+
+    apply_security_defaults(app, {"SECRET_KEY": "test-secret-key"})
+
+    assert app.config["SESSION_COOKIE_NAME"] == "iusentra_session"
+    assert app.config["SESSION_COOKIE_HTTPONLY"] is True
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+
+
+def test_security_defaults_keep_explicit_session_cookie_override() -> None:
+    app = Flask(__name__)
+
+    apply_security_defaults(
+        app,
+        {
+            "SECRET_KEY": "test-secret-key",
+            "SESSION_COOKIE_NAME": "studio_session",
+        },
+    )
+
+    assert app.config["SESSION_COOKIE_NAME"] == "studio_session"

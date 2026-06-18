@@ -159,7 +159,7 @@ def apply_security_defaults(app: Flask, config: Mapping[str, object] | None = No
     app.config["SECRET_KEY"] = configured_secret
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
     app.config["SESSION_COOKIE_NAME"] = str(
-        cfg.get("SESSION_COOKIE_NAME") or "hacs_session"
+        cfg.get("SESSION_COOKIE_NAME") or "iusentra_session"
     )
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"

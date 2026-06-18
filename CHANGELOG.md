@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.253.72 - 2026-06-18
+
+- Sicurezza sessione: rinominato il cookie HTTP di sessione da `hacs_session` a `iusentra_session`, mantenendo invariati `HttpOnly`, `SameSite=Lax` e la configurazione centrale del runtime.
+- Audit visuali: aggiornati gli script di collaudo che impostano la cookie locale, così le prove reali su Chrome usano lo stesso nome esposto dal server.
+
+## 2.253.71 - 2026-06-18
+
+- PagoPA PST: ristretto il proxy interno ai soli percorsi attesi del pagamento ministeriale (`it/pagopa_*`, `resources/`, `dwr/`), evitando che un path arbitrario venga servito dentro IUSENTRA.
+- Sicurezza: il redirect di rientro `/PST/...` costruisce solo URL interni con `url_for` e ricade sulla pagina PagoPA iniziale per percorsi non consentiti.
+- CodeQL: documentata la natura controllata del bridge HTML ministeriale e mantenuti CSP, verifica TLS e allowlist path come guardrail anti-regressione.
+
 ## 2.253.70 - 2026-06-18
 
 - PagoPA PST: stabilizzato il bridge dentro il fascicolo anche sui JavaScript/DWR ministeriali; il percorso DWR viene riportato al proxy IUSENTRA, `page` e `Referer` tornano ai percorsi PST ufficiali e `httpSessionId` usa la sessione PST custodita dal proxy.

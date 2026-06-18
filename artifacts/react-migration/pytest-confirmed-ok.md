@@ -1,5 +1,11 @@
 # Pytest shard confermati OK
 
+## PST lavoro anteprima completa 2.253.64 - 2026-06-18
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests\test_polisweb.py::test_api_portale_acquisizione_preview_pst_arricchisce_catalogo_da_fascicolo_locale tests\test_polisweb.py::test_api_portale_acquisizione_preview_pst_preserva_iscrizione_da_snapshot tests\test_polisweb.py::test_api_portale_acquisizione_preview_pst_usa_fallback_payload_e_id_fascicolo -q` | OK | 3 passed. Verificato che la preview PST arricchisce lo snapshot parziale dal fascicolo locale e mantiene 29/29 documenti, incluso un allegato senza id forte. |
+
 ## PST lavoro Torino e Local Signer 1.6.76 - 2026-06-18
 
 | Comando / verifica | Esito | Nota |

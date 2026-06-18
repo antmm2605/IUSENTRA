@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.64 - 2026-06-18
+
+- PST lavoro: l'anteprima React del fascicolo Tribunale di Torino RG 3950/2026 arricchisce lo snapshot parziale della ricerca con il catalogo completo già importato nel fascicolo locale, evitando che restino visibili solo le righe principali quando gli allegati sono già tracciati.
+- Telematico: la deduplica dei documenti PST ora considera anche la busta/deposito e non scarta allegati reali privi di id forte quando nome, data e deposito sono sufficienti a identificarli.
+- Guardrail: aggiunto test API che riproduce uno snapshot PST parziale con fascicolo locale già allineato e verifica `29/29` documenti in preview, incluso un allegato senza id portale forte.
+
 ## 2.253.63 - 2026-06-18
 
 - Local Signer `1.6.78`: corretta la pulizia anti-duplicati su Windows preservando anche il processo padre del servizio che possiede la porta `127.0.0.1:27272`. Questo evita che il launcher chiuda il wrapper `pythonw.exe` del virtualenv e lasci il Local Signer spento subito dopo l'avvio.

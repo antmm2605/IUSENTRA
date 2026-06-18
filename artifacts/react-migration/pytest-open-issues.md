@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## PST lavoro Torino RG 3950/2026 - 2.253.64
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Timeout anteprima server | Browser reale `https://app.iusentra.it` | Risolto su prova reale `2.253.63` | In Google Chrome reale, dopo ricerca completata, `Carica anteprima` ha aperto Step 3 in circa 2,5 secondi senza timeout verso `ext.processotelematico.giustizia.it`. | Ripetere dopo deploy `2.253.64` perché cambia anche il catalogo documenti mostrato. |
+| Completezza documenti anteprima | React/API preview PST | Corretto a codice, da verificare su server | La prova `2.253.63` mostrava 4 documenti in anteprima pur avendo fascicolo locale già importato. `2.253.64` unisce il catalogo documenti del fascicolo locale esatto e non scarta allegati senza id forte. | Deployare `2.253.64`, ricaricare server, cercare RG 3950/2026, caricare anteprima e verificare contatore/documenti completi. |
+
 ## PST lavoro Torino RG 3950/2026 - 2026-06-18
 
 | Area | Gate | Stato | Nota | Azione |

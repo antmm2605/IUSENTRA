@@ -648,7 +648,12 @@ def build_telematico_runtime(
                     "mittente": str(item.get("mittente") or "").strip(),
                     "dimensione_bytes": int(item.get("dimensione_bytes") or 0),
                     "disponibile": bool(item.get("disponibile", True)),
-                    "id_deposito": str(item.get("id_deposito") or item.get("id_deposito_esterno") or "").strip(),
+                    "id_deposito": str(
+                        item.get("id_deposito")
+                        or item.get("id_deposito_esterno")
+                        or item.get("id_deposito_pct")
+                        or ""
+                    ).strip(),
                     "id_cat": id_cat,
                     "id_repeatto": str(item.get("id_repeatto") or "").strip(),
                     "id_reperto": str(item.get("id_reperto") or "").strip(),
@@ -884,6 +889,16 @@ def build_telematico_runtime(
             ):
                 if isinstance(source, list):
                     raw_documenti.extend(dict(row or {}) for row in source if isinstance(row, dict))
+            try:
+                existing_fascicolo = _find_exact_fascicolo_locale_portale("pst", selection)
+            except Exception:
+                existing_fascicolo = None
+            if existing_fascicolo:
+                raw_documenti.extend(
+                    dict(row or {})
+                    for row in _catalogo_documenti_portale_fascicolo(existing_fascicolo)
+                    if isinstance(row, dict)
+                )
         docs = _normalize_portale_documents(raw_documenti)
         if (portale or "").strip().lower() == "pst":
             def _doc_content_key(doc: dict[str, Any]) -> str:
@@ -904,6 +919,12 @@ def build_telematico_runtime(
                     or doc.get("parent_nome")
                     or ""
                 ).strip()
+                deposito = str(
+                    doc.get("id_deposito")
+                    or doc.get("id_deposito_esterno")
+                    or doc.get("id_deposito_pct")
+                    or ""
+                ).strip()
                 role = "allegato" if doc.get("is_allegato") or parent else "principale"
                 return "|".join(
                     part
@@ -912,6 +933,7 @@ def build_telematico_runtime(
                         str(doc.get("data_deposito") or doc.get("data_documento") or "").strip(),
                         str(doc.get("tipo_atto") or doc.get("tipo") or "").strip().lower(),
                         str(doc.get("mittente") or "").strip().lower(),
+                        deposito,
                         parent,
                         role,
                     )
@@ -923,15 +945,16 @@ def build_telematico_runtime(
             seen_doc_content: set[str] = set()
             for doc in docs:
                 identifiers = _portale_document_identifier_values(doc)
-                if not identifiers:
-                    continue
-                key = "|".join(sorted(identifiers))
-                if key in seen_docs:
-                    continue
                 content_key = _doc_content_key(doc)
+                if not identifiers and not content_key:
+                    continue
+                key = "|".join(sorted(identifiers)) if identifiers else ""
+                if key and key in seen_docs:
+                    continue
                 if content_key and content_key in seen_doc_content:
                     continue
-                seen_docs.add(key)
+                if key:
+                    seen_docs.add(key)
                 if content_key:
                     seen_doc_content.add(content_key)
                 filtered_docs.append(doc)

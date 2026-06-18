@@ -6580,6 +6580,109 @@ def test_api_portale_acquisizione_preview_pst_preserva_iscrizione_da_snapshot(tm
     assert identity["oggetto"] == "Responsabilita contrattuale"
 
 
+def test_api_portale_acquisizione_preview_pst_arricchisce_catalogo_da_fascicolo_locale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="Spagnolo Sara c. MIM",
+        tipo=TipoFascicolo.LAVORO,
+        tribunale="Tribunale di Torino",
+        numero_rg="3950",
+        anno_rg=2026,
+        oggetto="Retribuzione",
+        source="PST",
+        source_external_id="0012720095:3950:2026:LAV",
+    )
+    catalogo_completo = [
+        {
+            "id_documento": f"DOC-LAV-3950-{index:02d}",
+            "id_cat": f"CAT-LAV-3950-{index:02d}",
+            "nome": f"Documento_lavoro_{index:02d}.pdf",
+            "tipo": "Documento",
+            "tipo_atto": "Ricorso" if index == 1 else "Documento",
+            "data_deposito": "2026-05-12" if index <= 14 else "2026-05-13",
+            "mittente": "MONTAGNESE GIUSEPPE",
+            "dimensione_bytes": 1000 + index,
+            "disponibile": True,
+            "id_deposito": "DEP-LAV-3950-1" if index <= 14 else "DEP-LAV-3950-2",
+            "is_allegato": index > 1,
+            "id_documento_padre": "DOC-LAV-3950-01" if index > 1 else "",
+        }
+        for index in range(1, 30)
+    ]
+    catalogo_completo[-1]["id_documento"] = ""
+    catalogo_completo[-1]["id_cat"] = ""
+    catalogo_completo[-1]["nome"] = "Allegato_senza_id_ma_reale.pdf"
+    gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PST",
+        id_deposito_esterno="DEP-LAV-3950",
+        tipo_atto="Ricorso",
+        data_deposito="2026-05-12",
+        mittente="MONTAGNESE GIUSEPPE",
+        documenti_portale=catalogo_completo,
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {
+                    "external_id": "0012720095:3950:2026:LAV",
+                    "numero": "3950",
+                    "anno": 2026,
+                    "ufficio_codice": "0012720095",
+                    "ufficio_nome": "Tribunale di Torino",
+                    "procedimento": "LAVORO",
+                    "snapshot": {
+                        "fascicolo": {
+                            "numero": "3950",
+                            "anno": 2026,
+                            "ufficio_nome": "Tribunale di Torino",
+                            "oggetto": "Retribuzione",
+                        },
+                        "documenti": [catalogo_completo[0]],
+                    },
+                },
+                "documenti": [catalogo_completo[0]],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    preview = data["preview"]
+    assert preview["counts"]["documenti"] == 29
+    assert len(preview["documenti"]) == 29
+    assert "Allegato_senza_id_ma_reale.pdf" in {doc["nome"] for doc in preview["documenti"]}
+
+
 def test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

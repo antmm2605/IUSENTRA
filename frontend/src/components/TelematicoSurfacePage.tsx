@@ -1370,9 +1370,10 @@ function pstPreviewDocumentContentKey(row: JsonRecord, index: number): string {
   const date = asText(row.data_documento || row.data_deposito || row.data)
   const type = normaliseSearch(asText(row.tipo_atto || row.tipo))
   const sender = normaliseSearch(asText(row.mittente || row.depositante))
+  const deposit = asText(row.id_deposito || row.id_deposito_esterno || row.id_deposito_pct)
   const parent = normaliseSearch(asText(row.id_documento_padre || row.parent_id_documento || row.parent_nome))
   const role = row.is_allegato || parent ? 'allegato' : 'principale'
-  return [title, date, type, sender, parent, role].filter(Boolean).join('::')
+  return [title, date, type, sender, deposit, parent, role].filter(Boolean).join('::')
 }
 
 function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {

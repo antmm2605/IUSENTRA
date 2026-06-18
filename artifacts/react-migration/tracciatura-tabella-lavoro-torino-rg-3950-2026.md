@@ -112,7 +112,30 @@ Prova reale prima del deploy:
 
 - server `https://app.iusentra.it` ancora su versione `2.253.60`: timeout ancora visibile perche' il bundle vecchio e' in produzione;
 - Local Signer reale aggiornato e stabile: `ping?auto=1` risponde `1.6.78` e seleziona ArubaPEC Authentication;
-- da ripetere subito dopo deploy Hetzner dello stesso commit `2.253.63`: ricerca, anteprima, controllo documenti/eventi e assenza finestra Adobe.
+- deploy Hetzner `2.253.63` eseguito sul commit `646ad9cf`, container healthy e `/api/pronto` aggiornato;
+- prova reale su Google Chrome collegato al PC dell'utente: ricerca `RG 3950/2026` su `https://app.iusentra.it` completata dopo circa 72 secondi con certificato confermato e senza selezione Adobe;
+- click reale `Carica anteprima`: Step 3 aperto in circa 2,5 secondi senza `Timeout connessione a ext.processotelematico.giustizia.it`;
+- residuo rilevato in prova: l'anteprima mostrava 4 documenti principali, mentre il fascicolo locale già importato espone 28/29+ documenti governati. La correzione `2.253.64` arricchisce la preview PST dal catalogo completo del fascicolo locale esistente e conserva gli allegati senza id forte.
+
+## Aggiornamento 2.253.64 - completezza anteprima documenti
+
+Correzione applicata:
+
+- `_build_portale_preview` unisce allo snapshot PST parziale il catalogo documenti del fascicolo locale esatto quando RG, anno e ufficio coincidono;
+- la deduplica considera anche `id_deposito`/busta, così documenti omonimi in depositi diversi non si oscurano;
+- gli allegati reali senza identificatore forte non vengono scartati se nome, data, tipo e deposito permettono una chiave contenuto stabile;
+- lato React la deduplica visuale include la busta nella chiave contenuto.
+
+Guardrail:
+
+- `tests/test_polisweb.py::test_api_portale_acquisizione_preview_pst_arricchisce_catalogo_da_fascicolo_locale` verifica uno snapshot con un solo documento e un fascicolo PST locale con `29/29` documenti, incluso un allegato senza id portale forte.
+
+Da ripetere dopo deploy `2.253.64`:
+
+- ricaricare `https://app.iusentra.it/portali/pst/acquisizione?...RG3950...`;
+- cercare il fascicolo;
+- caricare l'anteprima;
+- verificare assenza timeout e contatore/documenti in anteprima allineati al catalogo completo già scaricato.
 
 ## Stato residuo
 

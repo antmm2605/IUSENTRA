@@ -2,6 +2,16 @@
 
 Aggiornato: 2026-06-18.
 
+## Aggiornamento 2.253.64 - anteprima PST lavoro con catalogo completo
+
+Data: 18/06/2026.
+
+- Caso reale: Tribunale di Torino, registro LAV, RG 3950/2026.
+- Dopo deploy `2.253.63`, prova reale su `https://app.iusentra.it` in Google Chrome: `Cerca fascicolo` ha confermato il certificato PST e ha trovato `RG 3950/2026`; `Carica anteprima` ha aperto Step 3 senza timeout verso `ext.processotelematico.giustizia.it`.
+- Residuo corretto in `2.253.64`: l'anteprima mostrava solo 4 righe principali quando il fascicolo locale già importato conteneva il catalogo completo; ora la preview PST arricchisce lo snapshot parziale con i documenti portale del fascicolo locale esatto.
+- Guardrail: `test_api_portale_acquisizione_preview_pst_arricchisce_catalogo_da_fascicolo_locale` copre `29/29` documenti in preview e preserva anche un allegato reale senza id forte.
+- Limite operativo: questa correzione riguarda consultazione/anteprima e catalogo documenti; non dichiara completo l'invio reale del deposito, che resta soggetto a firme, `Atto.enc`, PEC locale e ricevute.
+
 ## Stato operativo da non perdere
 
 Stato consolidato `2.253.60`: la cache certificati PST è coperta per il catalogo operativo corrente dei canali PCT/SIGP/Cassazione che richiedono cifratura `Atto.enc` (`593/593` codici ministeriali coperti; `913` `.cer` fisici validi in cache). Da questo punto in avanti il software non deve più trattare il `.cer` di Palmi o Vicenza come mancante globale se la cache corrente è presente: un eventuale blocco su `Invia deposito reale` deve indicare solo il requisito effettivamente mancante nella singola prova, per esempio `Atto.enc` AES256 non generato, PEC mittente dello studio non configurata, firma obbligatoria non presente o destinatario PEC non verificato. L'invio operativo PEC non parte mai dal server: anche su `https://app.iusentra.it` il server prepara e verifica, mentre SMTP reale passa dal PC dell'avvocato tramite Local Signer. In `2.253.60` restano presidiati il gate `Local Signer boundaries`, la priorità del codice ufficio operativo in `TelematicoSurfacePage`, la sanificazione dei payload JSON deposito/firma/database senza perdere i messaggi operativi CAdES/PAdES e il limite governance del modulo firma.

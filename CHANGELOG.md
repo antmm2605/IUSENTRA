@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.60 - 2026-06-18
+
+- Governance: spostati gli helper firma CAdES/PAdES nel service `fascicoli_signature_options`, riportando `fascicoli_signature_routes.py` sotto il limite di righe senza cambiare i messaggi operativi o il comportamento del deposito.
+
 ## 2.253.59 - 2026-06-18
 
 - Sicurezza deposito/firma: sanificati i payload JSON dei percorsi deposito React/legacy, database admin e apertura fascicolo da preventivo/conferimento, senza rimuovere i messaggi operativi utili su CAdES/PAdES.

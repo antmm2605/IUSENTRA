@@ -13,9 +13,13 @@ from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_fo
 from pct.document_signature_state import document_has_real_digital_signature
 from web.services.fascicoli_signature_pdf import attestazione_conformita_pdf
 from web.services.fascicoli_signature_options import (
+    messaggio_firma_pubblico as _messaggio_firma_pubblico,
+    metadata_firma_cades as _metadata_firma_cades,
+    metadata_firma_pades as _metadata_firma_pades,
     normalizza_data_ora_firma_visibile,
     nota_con_firma_visibile,
     resolve_pkcs11_runtime_config,
+    salva_documento_firmato_compat as _salva_documento_firmato_compat,
 )
 
 
@@ -34,78 +38,6 @@ def register_fascicoli_signature_routes(
     audit: Callable[..., None],
 ) -> None:
     """Register PKCS#11, uploaded-signature, and attestazione routes."""
-
-    def _metadata_firma_cades(nome_file: str, *, source: str) -> dict[str, Any]:
-        return {
-            "signature_format": "cades",
-            "is_signed_container": True,
-            "signature_verified": True,
-            "source": source,
-            "file_name": Path(str(nome_file or "")).name,
-        }
-
-    def _metadata_firma_pades(nome_file: str, firme: list[dict[str, Any]], *, source: str) -> dict[str, Any]:
-        return {
-            "signature_format": "pades",
-            "pades_verified": True,
-            "signature_verified": True,
-            "source": source,
-            "file_name": Path(str(nome_file or "")).name,
-            "signatures_count": len(firme),
-            "signatures": firme[:5],
-        }
-
-    def _messaggio_firma_pubblico(exc: Exception, fallback: str) -> str:
-        testo = str(exc)
-        if "solo CAdES" in testo:
-            return "Con Aruba Key / PKCS#11 è consentito solo CAdES (.p7m). Per PAdES usare una firma P12 o PEM."
-        if "firma CAdES valida" in testo:
-            return (
-                "Il file .p7m caricato non contiene una firma CAdES valida. "
-                "Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
-            )
-        if "firma PAdES interna verificabile" in testo:
-            return (
-                "Il PDF caricato resta .PDF ma non contiene una firma PAdES interna verificabile. "
-                "Carica un .pdf.p7m CAdES oppure un PDF PAdES valido."
-            )
-        if "Formato file firmato non supportato" in testo:
-            return "Formato file firmato non supportato. Usa un file .p7m CAdES oppure .pdf firmato PAdES."
-        if "Per segnare un documento come firmato" in testo:
-            return "Per segnare un documento come firmato devi caricare un .pdf.p7m CAdES valido oppure un PDF PAdES verificabile."
-        return fallback
-
-    def _salva_documento_firmato_compat(
-        firma,
-        contenuto: bytes,
-        output_path: str,
-        *,
-        formato: str,
-        visible_signature_mode: str,
-        visible_signature_place: str,
-        visible_signature_datetime_mode: str = "data_ora",
-    ):
-        try:
-            return firma.salva_documento_firmato(
-                contenuto,
-                output_path,
-                formato=formato,
-                visible_signature_mode=visible_signature_mode,
-                visible_signature_place=visible_signature_place,
-                visible_signature_datetime_mode=visible_signature_datetime_mode,
-            )
-        except TypeError as exc:
-            if (
-                "visible_signature_mode" not in str(exc)
-                and "visible_signature_place" not in str(exc)
-                and "visible_signature_datetime_mode" not in str(exc)
-            ):
-                raise
-            return firma.salva_documento_firmato(
-                contenuto,
-                output_path,
-                formato=formato,
-            )
 
     @app.route("/api/firma/pkcs11/status", methods=["GET"])
     def api_pkcs11_status():

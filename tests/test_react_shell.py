@@ -1592,7 +1592,11 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "add(initialTargetFascicoloId, 'Pratica locale selezionata')" in source
     assert "params.get('mode')" in source
     assert "params.get('fascicolo_id')" in source
-    assert "Step 4 - Selezione" in source
+    assert "Step 4 - Cosa scaricare" in source
+    assert "Scarico separato dall'importazione finale" in source
+    assert "Documenti da scaricare:" in source
+    assert "Vai alla destinazione" in source
+    assert "Step 4 - Selezione" not in source
     assert "Scarica selezionati" in source
     assert "Scarica tutti" in source
     assert "Scarica selezionati dal PST" not in source
@@ -1607,7 +1611,18 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "downloaded ? 'Scaricato' : selected ? 'Da scaricare' : 'Escluso'" in source
     assert "Usa pratica esistente" in source
     assert "Importa nel fascicolo" in source
-    assert "Scegli destinazione" in source
+    assert "Step 7 - Importa nel fascicolo" in source
+    assert "Riepilogo importazione finale" in source
+    assert "Importa nel fascicolo selezionato" in source
+    assert "Crea pratica e importa" in source
+    assert "window.location.assign(importRedirectHref)" in source
+    assert "Importazione completata. Apro il fascicolo importato." in source
+    assert "Fascicolo importato" in source
+    assert "Importazione completata o presa in carico dal gestionale operativo" not in source
+    assert "Importa nel gestionale" not in source
+    assert "Import completato" not in source
+    assert "Vai alla destinazione" in source
+    assert "Scegli destinazione" not in source
     assert "Aggiorna pratica esistente" not in source
     assert "Collega a pratica esistente" not in source
     assert "Fascicolo locale da aggiornare" not in source

@@ -355,6 +355,19 @@ function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: 
   return `/portali/${encodeURIComponent(portal)}/acquisizione${queryString ? `?${queryString}` : ''}#wizard-acquisizione`
 }
 
+function appInternalHref(value: unknown): string {
+  const raw = asText(value)
+  if (!raw) return ''
+  if (raw.startsWith('/')) return raw
+  try {
+    const parsed = new URL(raw, window.location.origin)
+    if (parsed.origin !== window.location.origin) return ''
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return ''
+  }
+}
+
 function friendlyAcquisitionReason(value: unknown): string {
   const raw = asText(value, 'Operazione non completata.')
   const lower = raw.toLowerCase()
@@ -3287,12 +3300,22 @@ function AcquisitionWizard({
       setImportResult(payload)
       setFiles(activeFiles)
       setStep(7)
+      const importRedirectHref = appInternalHref(payload.fascicolo_url || payload.redirect_url || payload.url)
       if (downloadFailureMessages.length) {
         recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloadFailureMessages.join(' | '))
       }
-      setMessage(downloadFailureMessages.length
-        ? `Importazione completata con ${downloadFailureMessages.length} avviso da verificare sul portale ufficiale.`
-        : 'Importazione completata o presa in carico dal gestionale operativo.')
+      if (importRedirectHref) {
+        setMessage(downloadFailureMessages.length
+          ? `Importazione completata con ${downloadFailureMessages.length} avviso. Apro il fascicolo importato.`
+          : 'Importazione completata. Apro il fascicolo importato.')
+        window.setTimeout(() => {
+          window.location.assign(importRedirectHref)
+        }, 250)
+      } else {
+        setMessage(downloadFailureMessages.length
+          ? `Importazione completata con ${downloadFailureMessages.length} avviso da verificare sul portale ufficiale.`
+          : 'Importazione completata. Fascicolo registrato nel gestionale.')
+      }
     } catch (error: unknown) {
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
       setImportProgress((current) => ({
@@ -3449,15 +3472,35 @@ function AcquisitionWizard({
   const missingImportNames = asList(documentReport.documenti_senza_contenuto_elenco || documentReport.documenti_mancanti_elenco)
     .map((item) => asText(item))
     .filter(Boolean)
+  const selectedMappingMode = acquisitionMappingModes.find(([value]) => value === mapping.mode)
+  const selectedTargetTitle = mapping.target_fascicolo_id
+    ? mappingTargetOptions.find((item) => item.id === mapping.target_fascicolo_id)?.title || mapping.target_fascicolo_id
+    : ''
+  const finalDestinationLabel = mapping.mode === 'create_new'
+    ? 'Nuova pratica da creare'
+    : selectedTargetTitle || 'Fascicolo interno non selezionato'
+  const finalDocumentLabel = options.importa_documenti
+    ? `${selectedPreviewDocuments.length}/${previewDocuments.length} documenti selezionati`
+    : 'Documenti esclusi'
+  const finalDataLabel = [
+    options.importa_eventi ? `${previewCount(preview, 'eventi')} eventi` : '',
+    options.importa_parti ? 'parti del fascicolo' : '',
+    options.importa_scadenze ? 'scadenziario' : '',
+  ].filter(Boolean).join(', ') || 'Solo file selezionati'
+  const finalDownloadLabel = portal === 'pst'
+    ? downloadedPstDocumentCount
+      ? `${downloadedPstDocumentCount} documenti PST già scaricati`
+      : 'Documenti PST ancora da scaricare o già disponibili come dati'
+    : `${files.length} file raccolti`
   const official = officialPortalHref(portal)
   const steps = [
     { id: 1, label: 'Accesso', help: 'Sorgente e connessione' },
     { id: 2, label: 'Ricerca', help: 'Trova il fascicolo' },
     { id: 3, label: 'Anteprima', help: 'Verifica dati trovati' },
-    { id: 4, label: 'Selezione', help: 'Scegli cosa importare' },
-    { id: 5, label: 'Mappatura', help: 'Collega al gestionale' },
+    { id: 4, label: 'Scarico', help: 'Documenti e dati' },
+    { id: 5, label: 'Destinazione', help: 'Fascicolo interno' },
     { id: 6, label: 'Verifica', help: 'Conflitti e semafori' },
-    { id: 7, label: 'Importa', help: 'Acquisizione finale' },
+    { id: 7, label: 'Registra', help: 'Import nel fascicolo' },
   ]
   const currentStep = steps.find((item) => item.id === step) || steps[1]
   const retryEvents = localEvents.filter((item) => item.portal === portal).slice(0, 3)
@@ -3779,26 +3822,47 @@ function AcquisitionWizard({
                 </>
               ) : <p className="iu-empty">Carica l'anteprima dopo aver selezionato il fascicolo.</p>}
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={!Object.keys(preview).length} onClick={() => setStep(4)}><ArrowRight size={15}/> Scegli cosa importare</button>
+                <button type="button" disabled={!Object.keys(preview).length} onClick={() => setStep(4)}><ArrowRight size={15}/> Scegli cosa scaricare</button>
               </div>
             </Panel>
           ) : null}
 
           {step === 4 ? (
-            <Panel title="Step 4 - Selezione" subtitle="Scegli documenti, eventi, parti e file autorizzati" icon={<ClipboardCheck size={17}/>}>
-              <div className="iu-tel-acq-switches">
-                <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => {
-                  const checked = event.currentTarget.checked
-                  updateOption('importa_documenti', checked)
-                  if (checked && previewDocumentKeys.length && !selectedDocumentKeys.length) setSelectedDocumentKeys(previewDocumentKeys)
-                  if (!checked) setSelectedDocumentKeys([])
-                }}/> Importa documenti</label>
-                <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/> Importa eventi</label>
-                <label><input type="checkbox" checked={options.importa_scadenze} onChange={(event) => updateOption('importa_scadenze', event.currentTarget.checked)}/> Scadenziario</label>
-                <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/> Importa parti</label>
-                <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/> Originale portale</label>
-                <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni struttura originale</label>
+            <Panel title="Step 4 - Cosa scaricare" subtitle="Prepara i contenuti PST prima della destinazione" icon={<ClipboardCheck size={17}/>}>
+              <div className="iu-tel-acq-step-brief">
+                <ClipboardCheck size={18}/>
+                <div>
+                  <strong>Scarico separato dall'importazione finale</strong>
+                  <span>Questo passaggio prepara documenti e dati. Il fascicolo interno si conferma nello Step 5, poi lo Step 7 registra tutto nel fascicolo.</span>
+                </div>
               </div>
+              <section className="iu-tel-acq-fieldset">
+                <header>
+                  <strong>Dati da portare nel fascicolo</strong>
+                  <span>Seleziona le famiglie di dati che verranno importate dopo la verifica.</span>
+                </header>
+                <div className="iu-tel-acq-switches">
+                  <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => {
+                    const checked = event.currentTarget.checked
+                    updateOption('importa_documenti', checked)
+                    if (checked && previewDocumentKeys.length && !selectedDocumentKeys.length) setSelectedDocumentKeys(previewDocumentKeys)
+                    if (!checked) setSelectedDocumentKeys([])
+                  }}/><span><strong>Documenti del fascicolo</strong><small>Scarica e registra i file selezionati come documenti e atti.</small></span></label>
+                  <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/><span><strong>Eventi di cancelleria</strong><small>Porta nel fascicolo la cronologia disponibile dal portale.</small></span></label>
+                  <label><input type="checkbox" checked={options.importa_scadenze} onChange={(event) => updateOption('importa_scadenze', event.currentTarget.checked)}/><span><strong>Scadenziario</strong><small>Usa date ministeriali o documenti fonte senza creare scadenze non verificate.</small></span></label>
+                  <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/><span><strong>Parti</strong><small>Aggiorna assistito, controparti e dati di ruolo quando esposti.</small></span></label>
+                </div>
+              </section>
+              <section className="iu-tel-acq-fieldset">
+                <header>
+                  <strong>Formato dei documenti PST</strong>
+                  <span>Imposta come conservare i file scaricati dal portale.</span>
+                </header>
+                <div className="iu-tel-acq-switches iu-tel-acq-switches--compact">
+                  <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/><span><strong>Originale portale</strong><small>Usa il file originale solo quando serve la copia ministeriale nativa.</small></span></label>
+                  <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/><span><strong>Struttura originale</strong><small>Mantieni cartelle e gruppi del PST per buste, allegati e ricevute.</small></span></label>
+                </div>
+              </section>
               {!structuredHearingLabel && deadlineSourceDocuments.length && options.importa_scadenze ? (
                 <p className="iu-tel-acq-note">Scadenziario: manca la data ministeriale, quindi verranno usati i documenti fonte selezionati per estrarre termine o udienza dopo lo scarico.</p>
               ) : null}
@@ -3806,8 +3870,8 @@ function AcquisitionWizard({
               {previewDocuments.length ? (
                 <>
                   <div className="iu-tel-acq-selection-toolbar">
-                    <strong>{selectedPreviewDocuments.length}/{previewDocuments.length} documenti selezionati</strong>
-                    <span>{downloadedPstDocumentCount ? `${downloadedPstDocumentCount} scaricati in questa sessione` : 'Nessun documento ancora scaricato'}</span>
+                    <strong>Documenti da scaricare: {selectedPreviewDocuments.length}/{previewDocuments.length}</strong>
+                    <span>{downloadedPstDocumentCount ? `${downloadedPstDocumentCount} già scaricati in questa sessione` : 'Scarico non ancora avviato'}</span>
                     <button type="button" onClick={selectAllPreviewDocuments}><CheckCircle2 size={14}/> Seleziona tutti</button>
                     <button type="button" onClick={clearPreviewDocumentSelection}><ClipboardCheck size={14}/> Nessuno</button>
                     {portal === 'pst' ? (
@@ -3853,33 +3917,21 @@ function AcquisitionWizard({
                   </div>
                 </>
               ) : null}
-              <div className="iu-tel-acq-mapping-mode" aria-label="Destinazione pratica">
-                {acquisitionMappingModes.map(([value, label, help]) => (
-                  <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
-                    <input type="radio" checked={mapping.mode === value} onChange={() => updateMapping('mode', value)} />
-                    <strong>{label}</strong>
-                    <span>{help}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
-                <label><span>Fascicolo locale</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
-                  <option value="">Seleziona se necessario</option>
-                  {mappingTargetOptions.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
-                </select></label>
-              </div>
-              <label className="iu-tel-acq-file">
-                <span>File, ZIP o dati autorizzati</span>
-                <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
-              </label>
-              <div className="iu-tel-acq-results iu-tel-acq-results--compact">
-                {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - dati autorizzati' : ''}</span>)}
-              </div>
+              <section className="iu-tel-acq-fieldset">
+                <header>
+                  <strong>File già raccolti</strong>
+                  <span>Aggiungi ZIP, PDF, XML, EML o altri file ufficiali ottenuti dal portale.</span>
+                </header>
+                <label className="iu-tel-acq-file">
+                  <span>File, ZIP o dati autorizzati</span>
+                  <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
+                </label>
+                <div className="iu-tel-acq-results iu-tel-acq-results--compact">
+                  {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - dati autorizzati' : ''}</span>)}
+                </div>
+              </section>
               <div className="iu-tel-acq-actions">
-                {mapping.target_fascicolo_id ? (
-                  <button type="button" disabled={busy === 'import'} onClick={() => runImport()}><UploadCloud size={15}/> Importa nel fascicolo</button>
-                ) : null}
-                <button type="button" onClick={() => setStep(5)}><ArrowRight size={15}/> {mapping.target_fascicolo_id ? 'Verifica destinazione' : 'Scegli destinazione'}</button>
+                <button type="button" onClick={() => setStep(5)}><ArrowRight size={15}/> Vai alla destinazione</button>
               </div>
             </Panel>
           ) : null}
@@ -3946,10 +3998,28 @@ function AcquisitionWizard({
           ) : null}
 
           {step === 7 ? (
-            <Panel title="Step 7 - Importazione finale" subtitle="Registrazione controllata nel gestionale" icon={<UploadCloud size={17}/>}>
-              <p className="iu-tel-acq-note">{portalUsesOfficialAssistant ? 'IUSENTRA importa nel fascicolo interno i file raccolti dalla sessione locale assistita o i dati autorizzati selezionati.' : "L'importazione non scarica dati dai portali in modo nascosto: usa dati autorizzati, file selezionati dall'utente o canale Local Signer quando disponibile."}</p>
+            <Panel title="Step 7 - Importa nel fascicolo" subtitle="Registrazione controllata nella pratica interna" icon={<UploadCloud size={17}/>}>
+              <div className="iu-tel-acq-final-review" aria-label="Riepilogo importazione finale">
+                <article>
+                  <span>Destinazione</span>
+                  <strong>{finalDestinationLabel}</strong>
+                  <small>{selectedMappingMode?.[1] || 'Modalità non indicata'}</small>
+                </article>
+                <article>
+                  <span>Documenti</span>
+                  <strong>{finalDocumentLabel}</strong>
+                  <small>{finalDownloadLabel}</small>
+                </article>
+                <article>
+                  <span>Dati collegati</span>
+                  <strong>{finalDataLabel}</strong>
+                  <small>{selectedMappingMode?.[2] || 'Importazione controllata nel gestionale.'}</small>
+                </article>
+              </div>
+              <p className="iu-tel-acq-note">{portalUsesOfficialAssistant ? 'IUSENTRA registra nel fascicolo interno i file raccolti dalla sessione locale assistita e i dati autorizzati selezionati.' : "Questo comando registra nel fascicolo interno i documenti già scaricati, i file selezionati e i dati autorizzati. Non avvia uno scarico nascosto dal portale."}</p>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'import'} onClick={() => runImport()}><UploadCloud size={15}/> Importa nel gestionale</button>
+                <button type="button" disabled={busy === 'import' || (mapping.mode === 'update_existing' && !mapping.target_fascicolo_id)} onClick={() => runImport()}><UploadCloud size={15}/> {mapping.mode === 'create_new' ? 'Crea pratica e importa' : 'Importa nel fascicolo selezionato'}</button>
+                <button type="button" disabled={busy === 'import'} onClick={() => setStep(5)}><FolderOpen size={15}/> Correggi destinazione</button>
               </div>
               {Object.keys(documentReport).length ? (
                 <div className="iu-tel-acq-document-report" aria-label="Report documenti importazione">
@@ -3969,9 +4039,9 @@ function AcquisitionWizard({
               ) : null}
               {Object.keys(importResult).length ? (
                 <div className="iu-tel-acq-import-result">
-                  <strong>Import completato</strong>
-                  <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato nel gestionale.')}</span>
-                  {asText(summary.fascicolo_url || summary.redirect_url || summary.url) ? <a href={asText(summary.fascicolo_url || summary.redirect_url || summary.url)}>Apri fascicolo importato</a> : null}
+                  <strong>Fascicolo importato</strong>
+                  <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato nel fascicolo.')}</span>
+                  {appInternalHref(summary.fascicolo_url || summary.redirect_url || summary.url) ? <a href={appInternalHref(summary.fascicolo_url || summary.redirect_url || summary.url)}>Apri fascicolo</a> : null}
                 </div>
               ) : null}
             </Panel>

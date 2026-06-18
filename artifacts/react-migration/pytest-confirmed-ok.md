@@ -5140,3 +5140,16 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Dipendenze runtime Local Signer `cryptography`, `asn1crypto`, `zeep`, `pdfplumber`, `mammoth`, `pypdf`, `reportlab`, `pkcs11` | OK | Tutte importabili nel virtualenv installato in AppData. |
 | `python -m pytest tests\test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests\test_local_signer.py::test_ping_windows_auto_senza_cf_esclude_adobe_e_sceglie_auth_personale tests\test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso -q` | OK | Guardrail anteprima PST e Local Signer confermati dopo fallback `hasSearchSnapshotPayload`. |
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite completati; bundle `TelematicoSurfacePage-KD_TIFeq.js` generato. |
+
+## PST lavoro Torino UX acquisizione 2.253.65 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo riorganizzazione Step 4, Step 7 e redirect interno al fascicolo importato. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata; bundle `TelematicoSurfacePage-Cv54qAla.js` e CSS `TelematicoSurfacePage-C088iBlL.css` generati. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati dopo nuovi testi italiani visibili. |
+| `python tools/sync_packaging_files.py --check` | OK | Versione `2.253.65` coerente su sorgente, Dockerfile e railway. |
+| `python -m pytest tests/test_react_asset_retention.py -q --tb=short` | OK | 2/2 passati dopo rigenerazione asset React. |
+| `python -m pytest tests\test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg -q --tb=short` | OK | Guardrail React aggiornato: Step 4 usa `Cosa scaricare`, Step 7 usa `Importa nel fascicolo`, il testo generico `Importazione completata o presa in carico dal gestionale operativo` e il bottone `Importa nel gestionale` non sono più presenti nel sorgente. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | OpenAPI riallineato dopo blocco pre-push; contratti allineati, OpenAPI valido, provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`. |
+| `git diff --check -- frontend/src/components/TelematicoSurfacePage.tsx frontend/src/components/TelematicoSurfacePage.css pct/__init__.py Dockerfile railway.toml web/static/react/.vite/manifest.json web/static/react/index.html` | OK | Nessun errore whitespace sul perimetro UI/versione/manifest. |

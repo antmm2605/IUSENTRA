@@ -1382,3 +1382,17 @@ Stato prova reale:
 
 - certificato e Local Signer: verificati su macchina reale con Chrome e Local Signer locale `1.6.78`;
 - anteprima server: ancora da ripetere dopo deploy Hetzner della versione `2.253.63`, perche' al momento della riproduzione `https://app.iusentra.it/api/pronto` rispondeva `2.253.60`.
+
+## Aggiornamento 2.253.65 - UX acquisizione PST e uscita verso fascicolo
+
+Data intervento: 2026-06-18.
+
+Per il flusso PST lavoro `RG 3950/2026`, la procedura di acquisizione React è stata resa più esplicita:
+
+- Step 4 è dedicato solo a cosa scaricare o includere: documenti, eventi, scadenziario, parti, formato PST e file già raccolti;
+- la scelta del fascicolo interno resta nello Step 5, evitando duplicazioni nello Step 4;
+- Step 7 presenta il riepilogo finale per destinazione, documenti e dati collegati;
+- il comando finale registra nel fascicolo selezionato e, se il backend restituisce un URL interno, apre direttamente il fascicolo importato;
+- il messaggio generico `Importazione completata o presa in carico dal gestionale operativo` è stato sostituito da messaggi puntuali: apertura automatica del fascicolo quando possibile, fallback `Fascicolo importato` solo se il redirect non è disponibile.
+
+Il PIN del certificato non è stato scritto nei file di progetto né nei log.

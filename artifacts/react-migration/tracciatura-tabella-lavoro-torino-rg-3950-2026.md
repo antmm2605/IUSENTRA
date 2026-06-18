@@ -150,3 +150,31 @@ Il fascicolo è stato scaricato e importato sul server reale. Restano da chiuder
 - prova visiva locale post-rebuild;
 - controlli GitHub/CodeQL sullo SHA corrente;
 - igiene repository finale.
+
+## Aggiornamento 2.253.65 - chiarezza Step 4 e redirect Step 7
+
+Richiesta utente del 18/06/2026 dopo prova reale server: il flusso funziona, ma gli step risultavano poco intuitivi, in particolare:
+
+- Step 4 mescolava selezione documenti, formato scarico, file manuali e destinazione;
+- Step 7 mostrava ancora `Importa nel gestionale`, report numerico e `Import completato`, lasciando l'utente nella pagina di acquisizione anche quando il fascicolo era già importato.
+
+Correzione UI applicata:
+
+- Step 4 rinominato in `Scarico`, con pannello `Step 4 - Cosa scaricare`;
+- separati visivamente `Dati da portare nel fascicolo`, `Formato dei documenti PST`, lista `Documenti da scaricare` e `File già raccolti`;
+- rimossa dallo Step 4 la scelta duplicata del fascicolo interno: la destinazione resta nello Step 5;
+- Step 7 rinominato in `Registra`, con titolo `Step 7 - Importa nel fascicolo`;
+- il pulsante finale ora è `Importa nel fascicolo selezionato` oppure `Crea pratica e importa`;
+- quando il backend restituisce `fascicolo_url`, `redirect_url` o `url` interno, IUSENTRA apre automaticamente il fascicolo importato invece di lasciare l'utente nello Step 7;
+- il fallback dello Step 7 mostra `Fascicolo importato` e link `Apri fascicolo` solo se il redirect non è disponibile.
+
+Guardrail locali prima del deploy server:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`;
+- `python -m pytest tests/test_utf8_integrity.py -q --tb=short`;
+- `python tools/sync_packaging_files.py --check`;
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short`;
+- `git diff --check` sul perimetro UI/versione/manifest.
+
+Prova reale server: da eseguire dopo deploy `2.253.65` su `https://app.iusentra.it`, con controllo visivo di testi, card, bottoni, click sugli step 4-7 e redirect finale al fascicolo importato.

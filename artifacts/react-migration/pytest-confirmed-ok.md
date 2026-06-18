@@ -5208,3 +5208,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python tools\sync_packaging_files.py --check`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Packaging sincronizzato, contratti API allineati, OpenAPI valido, provider verification `auth-error=267`, `public-safe=15`, `success=29`, `backend-security=1`. |
 | `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata -q --tb=short` | OK | Mappa sicurezza backend riallineata dopo aggiunta delle due route PagoPA proxy: 251 endpoint censiti, 251/251 con `_richiedi_auth`. |
 | `git diff --check` | OK con warning noto | Nessun errore whitespace; Git segnala solo normalizzazione CRLF futura su `docs/openapi.yaml`, `docs/api-contracts.md` e `docs/api-endpoint-contract-map.md`. |
+
+## Fascicolo PagoPA bridge 2.253.76 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\blueprints\api_v1_react.py tests\test_react_shell.py pct\__init__.py` | OK | Sintassi confermata dopo neutralizzazione del `print.css` opzionale del PST. |
+| `python -m pytest tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf -q --tb=short` | OK | Test esteso: il bridge restituisce `print.css` come `text/css; charset=utf-8` anche se il PST risponde HTML, senza toccare HTML, DWR o PDF ricevuta. |
+| `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | 14/14 passati dopo bump `2.253.76`. |
+| `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python tools\sync_packaging_files.py --check` | OK | OpenAPI valido, provider verification `auth-error=267`, `public-safe=15`, `success=29`, `backend-security=1`, contratti e packaging allineati. |
+| `docker compose build --no-cache app`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `curl http://127.0.0.1:8080/api/pronto` | OK | Docker locale reale healthy, versione `2.253.76`. |
+| Google Chrome reale su `http://127.0.0.1:8080/fascicoli/DC5BF1DB` | OK osservato | PagoPA aperto nel fascicolo, `Nuovo pagamento`, contributo, distretto `TORINO`, `Tribunale Ordinario - Torino`, 66 uffici caricati, `Paga subito` visibile, 0 errori console, nessun pagamento inviato. |

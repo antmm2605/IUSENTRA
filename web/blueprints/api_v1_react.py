@@ -3858,6 +3858,7 @@ def pst_pagopa_proxy(pst_path: str):
         response_headers["Content-Disposition"] = disposition
 
     lower_content_type = content_type.lower()
+    target_path_lower = urlparse(target_url).path.lower()
     is_pdf = "application/pdf" in lower_content_type or ".pdf" in str(disposition or "").lower()
     if is_pdf:
         filename = _pst_pagopa_filename(upstream, target_url)
@@ -3869,10 +3870,17 @@ def pst_pagopa_proxy(pst_path: str):
             response_headers["Content-Disposition"] = f'inline; filename="{filename}"'
         return Response(body, status=upstream.status_code, headers=response_headers, content_type="application/pdf")
 
+    if target_path_lower.endswith("/resources/static/css/print.css") and "text/css" not in lower_content_type:
+        return Response(
+            "/* Foglio di stampa PST non disponibile nel bridge PagoPA IUSENTRA. */\n",
+            status=200,
+            headers=response_headers,
+            content_type="text/css; charset=utf-8",
+        )
+
     if any(marker in lower_content_type for marker in PST_PAGOPA_TEXT_TYPES):
         encoding = upstream.encoding or "utf-8"
         text = upstream.content.decode(encoding, errors="replace")
-        target_path_lower = urlparse(target_url).path.lower()
         is_javascript = "javascript" in lower_content_type or target_path_lower.endswith(".js")
         if is_javascript and "/pst/dwr/" in target_path_lower:
             text = _pst_pagopa_rewrite_dwr_javascript(text)

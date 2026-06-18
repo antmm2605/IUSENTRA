@@ -1585,3 +1585,27 @@ Test locali ripetuti:
 
 - `python scripts\run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 3 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5` -> 32/32 OK;
 - `python -m pytest tests\test_storage_strategy.py::test_sqlite_runtime_non_rilancia_migrazione_se_settings_config_esiste tests\test_storage_strategy.py::test_core_runtime_uses_tenant_paths_for_sensitive_repositories -q --tb=short` -> 2/2 OK.
+
+## Aggiornamento 2.253.76 - Pulizia rendering PagoPA PST
+
+Data intervento: 2026-06-18.
+
+Durante la prova visiva locale del bridge PagoPA, Chrome segnalava un errore MIME sul foglio opzionale `resources/static/css/print.css`: il portale PST lo restituiva come HTML, quindi il browser lo rifiutava come stylesheet. Il problema non bloccava la compilazione del pagamento, ma lasciava un errore console visibile nel controllo qualità.
+
+Correzione applicata:
+
+- per il solo stylesheet opzionale `print.css`, quando il PST risponde con contenuto non CSS, il bridge restituisce un CSS vuoto e valido (`text/css; charset=utf-8`);
+- le pagine HTML, i JavaScript ministeriali, le chiamate DWR e i PDF ricevuta restano invariati;
+- il cookie runtime resta `iusentra_session` e non vengono salvati PIN, credenziali, dati pagamento o certificati.
+
+Prova reale locale su Docker `2.253.76`:
+
+- ambiente: Google Chrome installato su Windows, applicazione reale `http://127.0.0.1:8080`, container healthy, `/api/pronto` con `versione=2.253.76`;
+- runtime Flask nel container: `SESSION_COOKIE_NAME=iusentra_session`;
+- percorso: fascicolo locale reale `DC5BF1DB`, click su `PagoPA`, apertura modale, click `+ Nuovo pagamento`;
+- compilazione controllata senza invio: `Tipo` = `Contributo unificato e/o Diritti di cancelleria`, `Distretto` = `TORINO`, `Ufficio Giudiziario` = `Tribunale Ordinario - Torino` (`0012720095`), nominativo e codice fiscale fittizi;
+- risultato: DWR ministeriale `PagamentiTelematiciAjaxServices.getUfficiGiudiziari.dwr` HTTP 200, select ufficio popolata con `66` opzioni, bottone `Paga subito` visibile, nessun click su `Paga subito`;
+- console: `0` errori dopo la correzione del `print.css`; restano solo i warning standard di Chrome sul sandbox iframe con `allow-scripts` e `allow-same-origin`, necessari al PST/DWR;
+- screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-pagopa-locale-225376-finale.png`.
+
+Stato: codice locale pronto per commit, push sui branch gemelli, attesa check GitHub/CodeQL, deploy Hetzner e prova reale server sul fascicolo `9B9DF2A1`.

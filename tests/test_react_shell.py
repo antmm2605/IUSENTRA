@@ -4068,6 +4068,9 @@ def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path:
         javascript_response = client.get(
             f"/api/v1/ui/pst/pagopa-proxy/resources/static/js/pst.js?iusentra_fascicolo={fascicolo.id}"
         )
+        print_css_response = client.get(
+            f"/api/v1/ui/pst/pagopa-proxy/resources/static/css/print.css?iusentra_fascicolo={fascicolo.id}"
+        )
         dwr_interface_response = client.get(
             f"/api/v1/ui/pst/pagopa-proxy/dwr/interface/PagamentiTelematiciAjaxServices.js?iusentra_fascicolo={fascicolo.id}"
         )
@@ -4134,6 +4137,10 @@ def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path:
     assert javascript_response.content_type == "application/javascript"
     assert 'return "/PST/dwr/call"' in javascript_response.get_data(as_text=True)
     assert "/api/v1/ui/pst/pagopa-proxy/dwr/call" not in javascript_response.get_data(as_text=True)
+    assert print_css_response.status_code == 200
+    assert print_css_response.content_type == "text/css; charset=utf-8"
+    assert "Foglio di stampa PST" in print_css_response.get_data(as_text=True)
+    assert "<html" not in print_css_response.get_data(as_text=True).lower()
     assert dwr_interface_response.status_code == 200
     assert (
         "PagamentiTelematiciAjaxServices._path = '/api/v1/ui/pst/pagopa-proxy/dwr';"

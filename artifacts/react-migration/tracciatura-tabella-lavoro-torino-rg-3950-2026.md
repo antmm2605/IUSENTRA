@@ -177,4 +177,15 @@ Guardrail locali prima del deploy server:
 - `python -m pytest tests/test_react_asset_retention.py -q --tb=short`;
 - `git diff --check` sul perimetro UI/versione/manifest.
 
-Prova reale server: da eseguire dopo deploy `2.253.65` su `https://app.iusentra.it`, con controllo visivo di testi, card, bottoni, click sugli step 4-7 e redirect finale al fascicolo importato.
+Prova reale server dopo deploy `2.253.65`:
+
+- commit server verificato: `718ae2a241f3e9e1ec9200e2873f3fd463427f2b`; `/api/pronto` risponde `versione=2.253.65`;
+- Google Chrome reale sul PC dell'utente collegato a `https://app.iusentra.it/portali/pst/acquisizione?...RG3950...`; il browser integrato Codex non è stato usato per Local Signer perché blocca `127.0.0.1:27272`;
+- Local Signer reale raggiunto da Chrome: `/ping?light=1` versione `1.6.78`, `/ping?auto=1` con certificato ArubaPEC Authentication del codice fiscale `MNTGPP94L01G791A`, `/diagnosi` senza blocchi e senza finestra Adobe;
+- controllo PST live: `ext.processotelematico.giustizia.it` raggiungibile da `/pst/status`, mentre `pda.processotelematico.giustizia.it` risultava lento; la ricerca `Cerca fascicolo` è rimasta in attesa fino a `attesa 360s` e ha poi mostrato il messaggio guidato `Consultazione PST ancora in attesa...`;
+- dopo ricarica cache-bust della pagina server, lo stepper mostra `4 Scarico - Documenti e dati`, `5 Destinazione - Fascicolo interno`, `7 Registra - Import nel fascicolo`;
+- click reale su Step 4: visibili `Step 4 - Cosa scaricare`, `Scarico separato dall'importazione finale`, `Dati da portare nel fascicolo`, `Documenti del fascicolo`, `Eventi di cancelleria`, `Scadenziario`, `Parti`, `Formato dei documenti PST`, `Originale portale`, `Struttura originale`, `File già raccolti` e pulsante `Vai alla destinazione`;
+- click reale su `Vai alla destinazione`: Step 5 apre `Step 5 - Destinazione`, con `Crea nuova pratica`, `Usa pratica esistente` e selettore `FASCICOLO LOCALE`;
+- click reale su Step 7: visibili `Step 7 - Importa nel fascicolo`, card `DESTINAZIONE`, `DOCUMENTI`, `DATI COLLEGATI`, nota `Non avvia uno scarico nascosto dal portale`, pulsanti `Crea pratica e importa` e `Correggi destinazione`;
+- stringhe vecchie assenti nella pagina server: `Step 4 - Selezione`, `Importa nel gestionale`, `Import completato`, `Importazione completata o presa in carico dal gestionale operativo`;
+- il redirect automatico al fascicolo importato è implementato quando il backend restituisce `fascicolo_url`, `redirect_url` o `url` interno ed è coperto dal guardrail React; non è stato cliccato `Crea pratica e importa` nella prova live perché la ricerca PST non ha restituito dati in quella sessione e importare `0/0` documenti avrebbe rischiato una pratica vuota o duplicata.

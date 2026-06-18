@@ -1396,3 +1396,14 @@ Per il flusso PST lavoro `RG 3950/2026`, la procedura di acquisizione React è s
 - il messaggio generico `Importazione completata o presa in carico dal gestionale operativo` è stato sostituito da messaggi puntuali: apertura automatica del fascicolo quando possibile, fallback `Fascicolo importato` solo se il redirect non è disponibile.
 
 Il PIN del certificato non è stato scritto nei file di progetto né nei log.
+
+Prova reale server del 18 giugno 2026:
+
+- produzione Hetzner su `https://app.iusentra.it` verificata con commit `718ae2a241f3e9e1ec9200e2873f3fd463427f2b` e versione `2.253.65`;
+- controllo visivo eseguito in Google Chrome reale sul PC dell'utente, non nel browser integrato, perché il Local Signer deve essere raggiunto da `127.0.0.1:27272`;
+- Local Signer `1.6.78` raggiungibile da Chrome; auto-selezione del certificato ArubaPEC Authentication dell'avvocato confermata senza finestra Adobe e senza richiesta PIN in questa prova;
+- Step 4 verificato con click reale: `Cosa scaricare`, dati/documenti/eventi/scadenziario/parti separati dal formato PST e dalla destinazione;
+- Step 5 verificato con click reale: destinazione isolata in `Crea nuova pratica` / `Usa pratica esistente`;
+- Step 7 verificato con click reale: riepilogo `Destinazione`, `Documenti`, `Dati collegati`, comando finale `Crea pratica e importa` o `Importa nel fascicolo selezionato`, e testo che chiarisce che non parte uno scarico nascosto dal portale;
+- le vecchie diciture `Importa nel gestionale`, `Import completato` e `Importazione completata o presa in carico dal gestionale operativo` non compaiono più nella pagina server;
+- la ricerca PST live del fascicolo `RG 3950/2026` in quella sessione è rimasta in attesa fino a circa 360 secondi e poi ha mostrato un messaggio guidato di servizio ministeriale lento. Per questo non è stato eseguito un import finale con `0/0` documenti e il redirect materiale al fascicolo non è stato cliccato; il redirect resta implementato e coperto dal guardrail React quando l'API restituisce un URL interno.

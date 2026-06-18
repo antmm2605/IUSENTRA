@@ -1,5 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
+## PST lavoro Torino UX acquisizione - 2.253.65
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Chiarezza Step 4 e Step 7 | Google Chrome reale su `https://app.iusentra.it` | Risolto su prova reale server | Dopo ricarica cache-bust della pagina `2.253.65`, Step 4, Step 5 e Step 7 sono stati cliccati materialmente. Visibili `Step 4 - Cosa scaricare`, `Step 5 - Destinazione`, `Step 7 - Importa nel fascicolo`; assenti `Importa nel gestionale`, `Import completato` e il vecchio messaggio generico. | Mantenere il guardrail React e ripetere prova reale se cambia il wizard PST. |
+| Redirect automatico dopo import | Codice React + prova server parziale | Implementato, prova materiale finale non eseguita | Il codice apre automaticamente l'URL interno restituito dal backend (`fascicolo_url`, `redirect_url` o `url`) ed è coperto dal test React. Nella prova server la ricerca PST live è rimasta in attesa fino a circa 360 secondi e non ha prodotto dati importabili; non è stato cliccato un import `0/0` per evitare pratica vuota o duplicata. | Riprovare il click finale quando il PST restituisce di nuovo il catalogo del fascicolo; non registrare come prova del redirect un import vuoto. |
+| Local Signer da Chrome server | `127.0.0.1:27272` da Google Chrome reale | Risolto su prova reale server | Local Signer `1.6.78` raggiunto da Chrome, certificato ArubaPEC Authentication auto-selezionato, nessuna finestra Adobe. Il PIN non è stato richiesto in questa prova. | Continuare a non salvare PIN o credenziali nei log. |
+
 ## PST lavoro Torino RG 3950/2026 - 2.253.64
 
 | Area | Gate | Stato | Nota | Azione |
@@ -12,8 +20,8 @@
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Scarico fascicolo lavoro dal PST | Browser autenticato e import server | Risolto operativamente | Il fascicolo `RG 3950/2026` del Tribunale di Torino è stato scaricato dal PST ufficiale e importato in IUSENTRA con log `PST-20260618085430-C4891C`; 29/29 documenti, 0 mancanti. | Mantenere il log dedicato `tracciatura-tabella-lavoro-torino-rg-3950-2026.md`; non riportare PIN o credenziali in repository. |
-| Anteprima bloccata da timeout `ext.processotelematico.giustizia.it` | React Telematico `Carica anteprima` | Risolto localmente, da portare su server | L'utente ha verificato che la pagina visualizzava il fascicolo ma poi falliva con timeout a 90 secondi verso `ext.processotelematico.giustizia.it`. Il ramo React ora apre l'anteprima con i documenti già ricevuti dalla ricerca PST e usa l'aggiornamento esterno solo se necessario; se il refresh esterno fallisce ma i documenti ci sono, non blocca più la vista. | Ricostruire Docker locale, prova reale su `127.0.0.1:8080`, poi commit/push e deploy Hetzner per rendere il fix visibile su `https://app.iusentra.it`. |
-| Parser tabella lavoro LAV | Test Local Signer mirati | Risolto localmente, da confermare su release completa | Il parser riconosce `lav_infofascicolo.wp`, distingue `DocumentiFascicolo` e `Allegati`, segue la paginazione e non perde i documenti successivi al blocco allegati. | Eseguire gate finali, Docker locale, commit/push, check GitHub/CodeQL e deploy Hetzner sullo stesso commit. |
+| Anteprima bloccata da timeout `ext.processotelematico.giustizia.it` | React Telematico `Carica anteprima` | Risolto su prova reale server `2.253.64` | L'utente aveva verificato che la pagina visualizzava il fascicolo ma poi falliva con timeout a 90 secondi verso `ext.processotelematico.giustizia.it`. In `2.253.64` Google Chrome reale su server ha aperto Step 3 in circa 1 secondo con `Documenti 31`, senza timeout. | Mantenere il guardrail; se il PST torna lento prima della ricerca completa, la UI deve restare esplicita come in `2.253.65`. |
+| Parser tabella lavoro LAV | Test Local Signer mirati e import reale | Risolto su release `2.253.61+` | Il parser riconosce `lav_infofascicolo.wp`, distingue `DocumentiFascicolo` e `Allegati`, segue la paginazione e non perde i documenti successivi al blocco allegati. Il fascicolo è stato importato con log `PST-20260618085430-C4891C`. | Mantenere il log dedicato e i test mirati quando si tocca parser o download PST. |
 | Firma multipla fisica con pen drive | Browser reale, token e PIN | Non inclusa in questa chiusura | Lo scarico fascicolo e la tabella lavoro non equivalgono a una nuova prova firma batch con pen drive. | Quando serve firmare, usare il PIN solo nella UI reale e aggiornare il report documento per documento. |
 
 ## Certificati PST e canali deposito 2.253.56 - 2026-06-17

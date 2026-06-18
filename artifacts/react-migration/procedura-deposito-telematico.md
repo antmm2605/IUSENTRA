@@ -1575,3 +1575,13 @@ Test ripetuti dopo il refactor:
 Data intervento: 2026-06-18.
 
 Sul nuovo SHA 878ae1e il workflow CodeQL ha superato l'analisi, ma il required check di code scanning ha aperto un alert bloccante Uncontrolled data used in path expression sulla risposta send_file(BytesIO(...)) del bridge PagoPA. Il bridge ora scrive le risposte testuali PST in un file temporaneo creato dal server, con nome generato dal sistema, Content-Type ristretto ai tipi testuali attesi e nome inline costante. Il path non dipende più da contenuto PST o parametri utente; le chiamate DWR `/dwr/call/plaincall/...` tornano come `text/plain; charset=utf-8` così il motore DWR popola correttamente gli uffici. Il cookie di sessione resta `iusentra_session`. Prova reale locale su Docker `2.253.74`: Chrome installato su `127.0.0.1:8080/fascicoli/9B9DF2A1`, cookie visibile solo `iusentra_session`, PagoPA aperto, `Nuovo pagamento`, tipo `Contributo unificato e/o Diritti di cancelleria`, distretto `TORINO`, `66` uffici giudiziari caricati, nominativo/codice fiscale compilati, nessun click su `Paga subito`.
+## Aggiornamento 2.253.75 - Guardrail SQLite WAL nei gate CI
+
+Data intervento: 2026-06-18.
+
+Dopo il push dello SHA `3e42314`, CodeQL è risultato `success`, ma il gate remoto `Pytest core fase 7/10 observability parte 3/3` ha fallito su `tests/test_storage_strategy.py::test_core_runtime_uses_tenant_paths_for_sensitive_repositories`. La causa non era il bridge PagoPA: il rilevatore `_sqlite_runtime_is_unseeded()` apriva `studio.db` con `immutable=1`; con WAL attivo la lettura poteva non vedere le modifiche appena committate nello stesso request e rilanciare una migrazione JSON su SQL già operativo. Il runtime ora usa `mode=ro` senza `immutable`, così legge lo stato reale del database senza aprirlo in scrittura e senza indebolire il blocco anti-perdita sui JSON vuoti.
+
+Test locali ripetuti:
+
+- `python scripts\run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 3 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5` -> 32/32 OK;
+- `python -m pytest tests\test_storage_strategy.py::test_sqlite_runtime_non_rilancia_migrazione_se_settings_config_esiste tests\test_storage_strategy.py::test_core_runtime_uses_tenant_paths_for_sensitive_repositories -q --tb=short` -> 2/2 OK.

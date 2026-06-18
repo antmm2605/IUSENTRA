@@ -1,9 +1,10 @@
 # Pytest shard confermati OK
 
-## PagoPA PST nel fascicolo 2.253.70 / 2.253.74 - 2026-06-18
+## PagoPA PST nel fascicolo 2.253.70 / 2.253.75 - 2026-06-18
 
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
+| `python scripts\run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 3 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5`; `python -m pytest tests\test_storage_strategy.py::test_sqlite_runtime_non_rilancia_migrazione_se_settings_config_esiste tests\test_storage_strategy.py::test_core_runtime_uses_tenant_paths_for_sensitive_repositories -q --tb=short` | OK | 2.253.75: corretto `_sqlite_runtime_is_unseeded()` per leggere SQLite in `mode=ro` senza `immutable`; con WAL attivo il runtime vede SQL già popolato e non rilancia migrazioni JSON vuote. Shard remoto fallito riprodotto e confermato 32/32 OK localmente. |
 | `python -m py_compile web\blueprints\api_v1_react.py web\bootstrap\telematico_portali_routes.py web\services\security_runtime.py tests\test_security_headers.py`; `python -m pytest tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_security_headers.py -q --tb=short` | OK | 2.253.74: fix CodeQL path expression con file temporaneo server-side per le risposte testuali PagoPA; DWR `/dwr/call/plaincall/...` servito come `text/plain`; cookie `iusentra_session` invariato; 9/9 test mirati passati. |
 | `python -m py_compile web\blueprints\api_v1_react.py web\bootstrap\telematico_portali_routes.py` | OK | Sintassi confermata dopo bridge PagoPA, riscrittura DWR, bundle TLS mirato e route `/PST/...` di rientro al proxy. |
 | `python -m pytest tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_security_headers.py -q --tb=short` | OK | 7/7: guardrail su iframe PagoPA, CSP proxy, DWR `_path`, `page`, `httpSessionId`, `Referer`, XHTML, link non quotati, salvataggio PDF come `RICEVUTA_PAGOPA` e intestazioni di sicurezza. |

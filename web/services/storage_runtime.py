@@ -126,7 +126,9 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool
     if not studio_db_path.exists():
         return True
     try:
-        db_uri = f"file:{studio_db_path.resolve().as_posix()}?mode=ro&immutable=1"
+        # Non usare immutable qui: con WAL attivo SQLite puo' non vedere le
+        # modifiche appena committate e rilanciare una migrazione JSON inutile.
+        db_uri = f"file:{studio_db_path.resolve().as_posix()}?mode=ro"
         conn = sqlite3.connect(db_uri, uri=True, timeout=5)
         try:
             operational_tables = (

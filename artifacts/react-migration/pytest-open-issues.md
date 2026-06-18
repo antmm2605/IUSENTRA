@@ -1,9 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-## PagoPA PST nel fascicolo - 2.253.70 / 2.253.74
+## PagoPA PST nel fascicolo - 2.253.70 / 2.253.75
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
+| Shard CI storage/observability | `Pytest core fase 7/10 observability parte 3/3` | Risolto localmente in `2.253.75`, da ripushare | Il job remoto ha fallito perché `_sqlite_runtime_is_unseeded()` leggeva `studio.db` con `immutable=1` e poteva non vedere WAL appena committati, rilanciando una migrazione JSON su SQL già operativo. Localmente lo stesso shard ora passa 32/32 e i test storage mirati passano 2/2. | Commit/push `2.253.75`, attendere nuovamente matrice CI, CodeQL e deploy Hetzner. |
 | Cookie sessione `iusentra_session` | Docker locale + Chrome reale | Risolto localmente, da confermare su server | Il cookie HTTP di sessione passa da `hacs_session` a `iusentra_session`; gli script di audit locali usano il nuovo nome. Localmente `2.253.74` espone solo `iusentra_session`, la modale PagoPA apre il form, `TORINO` carica 66 uffici e non compaiono timeout/CSRF. | Commit, push, check GitHub/CodeQL e deploy Hetzner; ripetere prova reale su `https://app.iusentra.it/fascicoli/9B9DF2A1`. |
 | CodeQL su bridge PagoPA | Check remoto SHA `34a42e9` | Risolto localmente in `2.253.74`, da ripushare | CodeQL ha continuato a segnalare il sink XSS sul ritorno HTML. Il fix mantiene allowlist host/path e riscritture controllate, ma serve le risposte testuali PagoPA tramite file temporaneo generato dal server, eliminando sia `Response(text)` diretto sia `send_file(BytesIO(...))`. | Fix `2.253.74` applicato dopo alert `Uncontrolled data used in path expression`; test mirati, rebuild Docker locale e prova reale Chrome eseguiti; pushare e attendere CodeQL verde sul nuovo SHA. |
 | Modale PagoPA compilabile | Google Chrome reale su `127.0.0.1:8080` | Risolto localmente su `2.253.74` | Docker locale healthy, `/api/pronto` `2.253.74`. La modale apre il portale PST, `Nuovo pagamento` mostra il form, `Tipo pagamento` e `Distretto TORINO` popolano 66 uffici giudiziari e il codice fiscale resta compilabile senza errori CSRF/CSP pertinenti. Non è stato premuto `Paga subito`. | Committare, pushare i branch gemelli, attendere i check GitHub, deployare Hetzner e ripetere la prova reale su `https://app.iusentra.it/fascicoli/9B9DF2A1`. |

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.75 - 2026-06-18
+
+- Storage tenant: corretto il controllo SQLite anti-bootstrap per leggere i database in `mode=ro` senza `immutable`, così il runtime vede le modifiche WAL appena committate e non rilancia migrazioni JSON su SQL già operativo.
+- CI: ripristinato lo shard `Pytest core fase 7/10 observability parte 3/3` senza indebolire il blocco anti-perdita sui JSON vuoti.
+
 ## 2.253.74 - 2026-06-18
 
 - PagoPA PST: eliminato anche il secondo alert CodeQL sul bridge inline servendo le risposte testuali da file temporaneo generato dal server, con Content-Type ristretto e nome inline costante.

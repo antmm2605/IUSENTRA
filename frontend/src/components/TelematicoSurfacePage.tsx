@@ -368,6 +368,45 @@ function appInternalHref(value: unknown): string {
   }
 }
 
+function importResultRedirectHref(result: JsonRecord): string {
+  const payload = asRecord(result)
+  const nested = asRecord(payload.result)
+  const summary = importSummary(payload)
+  const candidates = [
+    payload.redirect_url,
+    payload.documenti_url,
+    nested.redirect_url,
+    nested.documenti_url,
+    summary.redirect_url,
+    summary.documenti_url,
+    payload.fascicolo_url,
+    payload.dettaglio_url,
+    nested.fascicolo_url,
+    nested.dettaglio_url,
+    summary.fascicolo_url,
+    summary.dettaglio_url,
+    payload.quadro_url,
+    nested.quadro_url,
+    summary.quadro_url,
+    payload.url,
+    nested.url,
+    summary.url,
+  ]
+  for (const candidate of candidates) {
+    const href = appInternalHref(candidate)
+    if (href) return href
+  }
+  const fascicoloId = asText(
+    payload.id_fascicolo
+    || payload.fascicolo_id
+    || nested.id_fascicolo
+    || nested.fascicolo_id
+    || summary.id_fascicolo
+    || summary.fascicolo_id,
+  )
+  return fascicoloId ? `/fascicoli/${encodeURIComponent(fascicoloId)}#sezione-documenti-fascicolo` : ''
+}
+
 function friendlyAcquisitionReason(value: unknown): string {
   const raw = asText(value, 'Operazione non completata.')
   const lower = raw.toLowerCase()
@@ -3300,7 +3339,7 @@ function AcquisitionWizard({
       setImportResult(payload)
       setFiles(activeFiles)
       setStep(7)
-      const importRedirectHref = appInternalHref(payload.fascicolo_url || payload.redirect_url || payload.url)
+      const importRedirectHref = importResultRedirectHref(payload)
       if (downloadFailureMessages.length) {
         recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloadFailureMessages.join(' | '))
       }
@@ -3314,7 +3353,7 @@ function AcquisitionWizard({
       } else {
         setMessage(downloadFailureMessages.length
           ? `Importazione completata con ${downloadFailureMessages.length} avviso da verificare sul portale ufficiale.`
-          : 'Importazione completata. Fascicolo registrato nel gestionale.')
+          : "Importazione registrata, ma il collegamento al fascicolo non è stato restituito. Riapri l'elenco fascicoli.")
       }
     } catch (error: unknown) {
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
@@ -3460,6 +3499,7 @@ function AcquisitionWizard({
   const warnings = issueRows(analysis, 'warnings')
   const oks = issueRows(analysis, 'ok')
   const summary = importSummary(importResult)
+  const importResultHref = importResultRedirectHref(importResult)
   const documentReport = asRecord(summary.report_documentale)
   const reportValue = (primary: unknown, fallback: unknown, empty = '0') => asText(primary ?? fallback, empty)
   const documentReportCards = [
@@ -4041,7 +4081,7 @@ function AcquisitionWizard({
                 <div className="iu-tel-acq-import-result">
                   <strong>Fascicolo importato</strong>
                   <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato nel fascicolo.')}</span>
-                  {appInternalHref(summary.fascicolo_url || summary.redirect_url || summary.url) ? <a href={appInternalHref(summary.fascicolo_url || summary.redirect_url || summary.url)}>Apri fascicolo</a> : null}
+                  {importResultHref ? <a href={importResultHref}>Apri fascicolo</a> : null}
                 </div>
               ) : null}
             </Panel>

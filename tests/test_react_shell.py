@@ -1615,9 +1615,17 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "Riepilogo importazione finale" in source
     assert "Importa nel fascicolo selezionato" in source
     assert "Crea pratica e importa" in source
+    assert "function importResultRedirectHref(result: JsonRecord): string" in source
+    assert "payload.documenti_url" in source
+    assert "nested.documenti_url" in source
+    assert "summary.documenti_url" in source
+    assert "#sezione-documenti-fascicolo" in source
+    assert "const importRedirectHref = importResultRedirectHref(payload)" in source
     assert "window.location.assign(importRedirectHref)" in source
     assert "Importazione completata. Apro il fascicolo importato." in source
     assert "Fascicolo importato" in source
+    assert "Importazione completata. Fascicolo registrato nel gestionale." not in source
+    assert "il collegamento al fascicolo non è stato restituito" in source
     assert "Importazione completata o presa in carico dal gestionale operativo" not in source
     assert "Importa nel gestionale" not in source
     assert "Import completato" not in source
@@ -3765,7 +3773,7 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
 
     assert "/fascicoli" in app_source
     assert "isFascicoliPage?<FascicoliPage" in app_source
-    assert 'href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli' in app_source
+    assert 'href="/fascicoli"><BriefcaseBusiness size={18}/><span>Fascicoli</span>' in app_source
     assert "getFascicoliPage" in data_source
     assert "/api/v1/ui/fascicoli" in data_source
     assert "FascicoliPage" in page_source
@@ -4013,10 +4021,10 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
         assert endpoint in data_source
     assert "/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}" in data_source
     assert "updateFascicoloPayment" in data_source
-    assert "EconomicSheet" in page_source
+    assert "EconomicPaymentCell" in page_source
     assert "Stato fascicolo" in page_source
     assert "Solo controllo economico da completare" in page_source
-    assert ".iu-fas-economic-table" in css
+    assert ".iu-fas-table--economic" in css
     assert ".iu-fas-economic-cell__details" in css
     for service_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
         assert service_action in bridge
@@ -4027,7 +4035,8 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "quadroHref" in page_source
     assert "fascicolo-quadro" in page_source
     assert "operationalHref}/copertina" in page_source
-    assert "<details id={id}" in page_source
+    assert "<details ref={detailsRef} id={id} open={actualOpen}" in page_source
+    assert "onToggle={(event) =>" in page_source
     assert 'className="iu-fas-detail-section" open' not in page_source
     assert "Quadro intelligente" in page_source
     assert "Quadro intelligente AI" in page_source
@@ -4112,6 +4121,16 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-office-card__contacts" in css
     assert ".iu-fas-command-bar" in css
     assert ".iu-fas-preview-modal" in css
+    assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source
+    assert "const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'" in page_source
+    assert "function PagoPaPortalModal" in page_source
+    assert "function PagoPaActionButton" in page_source
+    assert "src={PAGOPA_PST_URL}" in page_source
+    assert "setPagoPaOpen(true)" in page_source
+    assert "Apri fuori" in page_source
+    assert Path("frontend/public/pagopa-removebg-preview.png").exists()
+    assert ".iu-fas-pagopa-button" in css
+    assert ".iu-fas-pagopa-modal" in css
     assert ".iu-fas-editor-board" in css
     assert ".iu-fas-action-stack .iu-fas-post" in css
     assert ".iu-fas-compliance-toggle" in css

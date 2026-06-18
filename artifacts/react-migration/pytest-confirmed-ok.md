@@ -5156,3 +5156,25 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Google Chrome reale su `https://app.iusentra.it/portali/pst/acquisizione?...RG3950...` | OK osservato | Dopo ricarica cache-bust, pagina server `2.253.65` mostra `4 Scarico - Documenti e dati`, `5 Destinazione - Fascicolo interno`, `7 Registra - Import nel fascicolo`; Step 4, Step 5 e Step 7 cliccati materialmente. |
 | Local Signer reale da Chrome su `127.0.0.1:27272` | OK osservato | `/ping?light=1`, `/ping?auto=1`, `/diagnosi` e `/pst/status` raggiunti; versione `1.6.78`, certificato ArubaPEC Authentication auto-selezionato, nessuna finestra Adobe e nessuna richiesta PIN nella prova. |
 | Controllo testi vecchi su pagina server | OK osservato | Assenti `Step 4 - Selezione`, `Importa nel gestionale`, `Import completato` e `Importazione completata o presa in carico dal gestionale operativo`. |
+
+## PST lavoro Torino redirect Step 7 2.253.66 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero -q` | OK | 2/2 passati: il wizard React usa `importResultRedirectHref`, legge `documenti_url`/campi annidati e l'API PST restituisce `redirect_url` verso `#sezione-documenti-fascicolo`. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.253.66`. |
+| `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite completati; bundle `TelematicoSurfacePage-qzZxPLq8.js` generato. |
+
+## Fascicolo PagoPA e redirect import PST 2.253.67 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo aggiunta del comando PagoPA nel dettaglio fascicolo e dopo helper redirect Step 7. |
+| `python -m pytest tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_react_shell.py::test_react_fascicoli_page_collegata_nav_api_e_lex tests\test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests\test_polisweb.py::test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero -q --tb=short` | OK | 4/4 passati: Fascicoli React contiene `PagoPaActionButton`, modale iframe PST, asset PagoPA, tabella economica corrente e redirect import PST verso `#sezione-documenti-fascicolo`. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata; asset PagoPA copiato in `/static/react/pagopa-removebg-preview.png`, bundle `FascicoliPage-CYMN66WO.js` e `TelematicoSurfacePage-DVehNXJ9.js` generati. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | 2/2 passati dopo build e pulizia dei soli asset hashati non referenziati dal manifest corrente. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati sui testi italiani aggiunti. |
+| `python tools\sync_packaging_files.py --check` | OK | Versione `2.253.67` coerente su `pct/__init__.py`, `Dockerfile`, `railway.toml` e packaging dinamico. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Contratti API rigenerati e allineati; OpenAPI valido, provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`. |
+| `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | 10/10 passati su packaging e readiness dopo bump `2.253.67`. |
+| `git diff --check` | OK con warning noto | Nessun errore whitespace; Git segnala solo normalizzazione CRLF futura su `docs/openapi.yaml`. |

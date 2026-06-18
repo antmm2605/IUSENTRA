@@ -1407,3 +1407,45 @@ Prova reale server del 18 giugno 2026:
 - Step 7 verificato con click reale: riepilogo `Destinazione`, `Documenti`, `Dati collegati`, comando finale `Crea pratica e importa` o `Importa nel fascicolo selezionato`, e testo che chiarisce che non parte uno scarico nascosto dal portale;
 - le vecchie diciture `Importa nel gestionale`, `Import completato` e `Importazione completata o presa in carico dal gestionale operativo` non compaiono più nella pagina server;
 - la ricerca PST live del fascicolo `RG 3950/2026` in quella sessione è rimasta in attesa fino a circa 360 secondi e poi ha mostrato un messaggio guidato di servizio ministeriale lento. Per questo non è stato eseguito un import finale con `0/0` documenti e il redirect materiale al fascicolo non è stato cliccato; il redirect resta implementato e coperto dal guardrail React quando l'API restituisce un URL interno.
+
+## Aggiornamento 2.253.66 - acquisizione PST e apertura fascicolo importato
+
+Data intervento: 2026-06-18.
+
+Per il flusso PST lavoro `RG 3950/2026`, lo Step 7 ora deve uscire dalla pagina di acquisizione appena l'importazione è stata registrata:
+
+- il runtime telematico restituisce `fascicolo_url`, `redirect_url` e `documenti_url` sia in radice sia nel `summary`;
+- `redirect_url` apre la scheda del fascicolo con ancora `#sezione-documenti-fascicolo`, cioè la zona in cui sono stati salvati i documenti;
+- il frontend non si limita più a `fascicolo_url`/`url`: legge anche `documenti_url`, `dettaglio_url`, valori annidati e id fascicolo;
+- la frase `Importazione completata. Fascicolo registrato nel gestionale.` non è più usata come fallback ordinario.
+
+Questa modifica non tocca invio PEC, firma digitale, PIN, certificati o contenuto dei documenti. Interviene solo sul collegamento operativo post-import.
+
+Guardrail locali:
+
+- `python -m pytest tests/test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero -q` passato;
+- `pnpm --filter @iusentra/studio build` passato;
+- `python tools/sync_packaging_files.py --check` passato.
+
+## Aggiornamento 2.253.67 - PagoPA PST nel fascicolo
+
+Data intervento: 2026-06-18.
+
+Su richiesta utente, nella pagina dettaglio fascicolo React è stato aggiunto un comando PagoPA vicino alle azioni PDF e nel pannello laterale `Gestione fascicolo`:
+
+- icona PagoPA fornita dall'utente copiata in `frontend/public/pagopa-removebg-preview.png` e pubblicata nel bundle statico come `/static/react/pagopa-removebg-preview.png`;
+- il click apre una finestra sovrapposta al fascicolo con iframe verso `https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp`;
+- la finestra include il comando `Apri fuori`, necessario se il portale ministeriale impone restrizioni di incorporamento iframe;
+- la modale si chiude con il pulsante `Chiudi` o con `Esc`, senza navigare via dal fascicolo;
+- la modifica non salva dati di pagamento, non invia PEC, non usa PIN, non tocca firma digitale, Local Signer o deposito reale.
+
+Guardrail locali:
+
+- `pnpm --filter @iusentra/studio typecheck` passato;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_react_fascicoli_page_collegata_nav_api_e_lex tests/test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero -q --tb=short` passato;
+- `pnpm --filter @iusentra/studio build` passato;
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short` passato;
+- `python -m pytest tests/test_utf8_integrity.py -q --tb=short` passato;
+- `python tools/sync_packaging_files.py --check` passato.
+
+Stato: da verificare dopo commit, push e deploy Hetzner su `https://app.iusentra.it/fascicoli/9B9DF2A1`, con click reale su `PagoPA`, apertura modale sopra il fascicolo, fallback `Apri fuori`, chiusura e controllo testi/card/bottoni.

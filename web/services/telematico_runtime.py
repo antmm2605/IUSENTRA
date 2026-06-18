@@ -3124,6 +3124,8 @@ def build_telematico_runtime(
                     "audit_studio": final_audit_events,
                 },
             )
+        detail_url = url_for("dettaglio_fascicolo", id_fasc=id_fasc)
+        documenti_url = detail_url + "#sezione-documenti-fascicolo"
         return {
             "id_fascicolo": id_fasc,
             "created": created,
@@ -3131,14 +3133,21 @@ def build_telematico_runtime(
             "auto_integrated": auto_integrated,
             "import_log_id": log_id,
             "quadro_url": url_for("quadro_fascicolo", id_fasc=id_fasc),
-            "dettaglio_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc),
-            "scadenziario_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-udienze-scadenze",
-            "timeline_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-attivita-processuali",
-            "documenti_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-documenti-fascicolo",
+            "fascicolo_url": detail_url,
+            "redirect_url": documenti_url,
+            "dettaglio_url": detail_url,
+            "scadenziario_url": detail_url + "#sezione-udienze-scadenze",
+            "timeline_url": detail_url + "#sezione-attivita-processuali",
+            "documenti_url": documenti_url,
             "workflow_url": workflow_url,
             "summary": {
+                "id_fascicolo": id_fasc,
+                "fascicolo_id": id_fasc,
                 "numero_pratica": getattr(fasc, "numero", ""),
                 "titolo": getattr(fasc, "titolo", ""),
+                "fascicolo_url": detail_url,
+                "redirect_url": documenti_url,
+                "documenti_url": documenti_url,
                 "documenti": documenti_importati_count,
                 "documenti_catalogo": documenti_attesi,
                 "documenti_da_acquisire": documenti_da_acquisire,
@@ -4327,6 +4336,8 @@ def build_telematico_runtime(
             "ricevute": len(imported_receipts),
             "depositi": len(document_result.get("depositi_agganciati") or []) + len(imported_receipts),
             "fascicolo_url": detail_url,
+            "redirect_url": detail_url + "#sezione-documenti-fascicolo",
+            "documenti_url": detail_url + "#sezione-documenti-fascicolo",
             "message": "File, ricevute ed esiti acquisiti nel fascicolo interno.",
         }
         if receipt_warning:
@@ -4336,6 +4347,8 @@ def build_telematico_runtime(
             "created": False,
             "resolved_mode": "update_existing",
             "import_log_id": log_id,
+            "fascicolo_url": detail_url,
+            "redirect_url": detail_url + "#sezione-documenti-fascicolo",
             "dettaglio_url": detail_url,
             "documenti_url": detail_url + "#sezione-documenti-fascicolo",
             "timeline_url": detail_url + "#sezione-attivita-processuali",

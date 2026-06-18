@@ -5132,7 +5132,13 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     data = response.get_json()
     assert response.status_code == 200
     assert data["ok"] is True
+    assert data["redirect_url"] == f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo"
+    assert data["fascicolo_url"] == f"/fascicoli/{fascicolo.id}"
+    assert data["documenti_url"] == f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo"
+    assert data["result"]["redirect_url"] == f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo"
     assert data["result"]["summary"]["documenti"] == 1
+    assert data["result"]["summary"]["redirect_url"] == f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo"
+    assert data["result"]["summary"]["fascicolo_url"] == f"/fascicoli/{fascicolo.id}"
     assert data["result"]["summary"]["albero_originale_salvato"] is True
     assert data["result"]["summary"]["modalita_documento_portale"] == "copia"
 

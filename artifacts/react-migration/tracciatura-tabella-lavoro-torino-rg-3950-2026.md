@@ -189,3 +189,45 @@ Prova reale server dopo deploy `2.253.65`:
 - click reale su Step 7: visibili `Step 7 - Importa nel fascicolo`, card `DESTINAZIONE`, `DOCUMENTI`, `DATI COLLEGATI`, nota `Non avvia uno scarico nascosto dal portale`, pulsanti `Crea pratica e importa` e `Correggi destinazione`;
 - stringhe vecchie assenti nella pagina server: `Step 4 - Selezione`, `Importa nel gestionale`, `Import completato`, `Importazione completata o presa in carico dal gestionale operativo`;
 - il redirect automatico al fascicolo importato è implementato quando il backend restituisce `fascicolo_url`, `redirect_url` o `url` interno ed è coperto dal guardrail React; non è stato cliccato `Crea pratica e importa` nella prova live perché la ricerca PST non ha restituito dati in quella sessione e importare `0/0` documenti avrebbe rischiato una pratica vuota o duplicata.
+
+## Aggiornamento 2.253.66 - redirect Step 7 verso documenti fascicolo
+
+Richiesta utente del 18/06/2026: dopo il messaggio `Importazione completata. Fascicolo registrato nel gestionale.`, lo Step 7 non deve restare nella pagina di acquisizione, ma deve aprire direttamente il fascicolo dove sono stati scaricati o importati i documenti.
+
+Correzione applicata:
+
+- l'API di import PST ora restituisce sempre `fascicolo_url`, `redirect_url` e `documenti_url` quando la pratica interna è stata risolta;
+- `redirect_url` punta alla sezione documenti del fascicolo: `/fascicoli/<id>#sezione-documenti-fascicolo`;
+- la risposta `summary` contiene gli stessi collegamenti, così anche le viste annidate e il link `Apri fascicolo` restano coerenti;
+- il wizard React dello Step 7 usa un helper unico che legge `redirect_url`, `documenti_url`, `fascicolo_url`, `dettaglio_url`, campi annidati in `result`/`summary` e infine costruisce il link dal solo `id_fascicolo`;
+- il vecchio fallback `Importazione completata. Fascicolo registrato nel gestionale.` è stato rimosso dal sorgente React. Se in futuro l'API non restituisse alcun collegamento, la UI segnala esplicitamente che manca il link al fascicolo.
+
+Guardrail eseguiti prima del deploy:
+
+- `python -m pytest tests/test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero -q`;
+- `python tools/sync_packaging_files.py --check`;
+- `pnpm --filter @iusentra/studio build`.
+
+Stato: codice e test locali pronti per commit, push, deploy Hetzner e prova visiva server reale su `https://app.iusentra.it`.
+
+## Aggiornamento 2.253.67 - comando PagoPA fascicolo
+
+Richiesta utente del 18/06/2026: aggiungere nel dettaglio fascicolo `https://app.iusentra.it/fascicoli/9B9DF2A1` l'icona PagoPA sotto/accanto al PDF, con apertura del portale `https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp` dentro una finestra sovrapposta al fascicolo.
+
+Correzione applicata:
+
+- asset PagoPA fornito dall'utente inserito in `frontend/public/pagopa-removebg-preview.png`;
+- dettaglio fascicolo React esteso con `PagoPaActionButton` vicino a `PDF` e nel pannello `Gestione fascicolo`;
+- click PagoPA apre `PagoPaPortalModal`, con iframe PST, chiusura dalla modale, chiusura con `Esc` e fallback `Apri fuori`;
+- nessuna modifica a PIN, Local Signer, invio PEC, firma digitale o dati pagamento.
+
+Guardrail locali:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_react_fascicoli_page_collegata_nav_api_e_lex tests/test_react_shell.py::test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero -q --tb=short`;
+- `pnpm --filter @iusentra/studio build`;
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short`;
+- `python -m pytest tests/test_utf8_integrity.py -q --tb=short`;
+- `python tools/sync_packaging_files.py --check`.
+
+Stato: da portare su branch gemelli, deployare su Hetzner e verificare visivamente su produzione.

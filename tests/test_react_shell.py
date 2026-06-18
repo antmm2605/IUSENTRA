@@ -4002,6 +4002,81 @@ def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
     assert not payload["items"][0]["href"].startswith("/app-v2/")
 
 
+def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path: Path, monkeypatch):
+    import web.blueprints.api_v1_react as react_api_module
+    from requests import Response as RequestsResponse
+    from requests.cookies import RequestsCookieJar
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo("Pagamento contributo unificato", TipoFascicolo.CIVILE)
+    calls: list[tuple[str, str, dict]] = []
+
+    def fake_request(method: str, url: str, **kwargs):
+        calls.append((method, url, kwargs))
+        response = RequestsResponse()
+        response.status_code = 200
+        response.url = url
+        response.cookies = RequestsCookieJar()
+        response.cookies.set("JSESSIONID", "pst-test")
+        if url.endswith("/PST/resources/ricevuta.pdf"):
+            response.headers["Content-Type"] = "application/pdf"
+            response.headers["Content-Disposition"] = 'inline; filename="ricevuta-pagopa.pdf"'
+            response._content = b"%PDF-1.4\nricevuta pagoPA\n%%EOF"
+            return response
+        response.headers["Content-Type"] = "text/html; charset=utf-8"
+        response._content = (
+            b'<html><head><link href="/PST/resources/static/css/pst.css"></head>'
+            b'<body><form method="post" action="/PST/it/pagopa_altripag.wp?action=conferma">'
+            b'<input name="codice"></form>'
+            b'<a href="/PST/resources/ricevuta.pdf">Richiedi ricevuta PDF</a>'
+            b'</body></html>'
+        )
+        return response
+
+    monkeypatch.setattr(react_api_module.requests, "request", fake_request)
+
+    with app.test_client() as client:
+        _login(client)
+        html_response = client.get(
+            f"/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?iusentra_fascicolo={fascicolo.id}"
+        )
+        pdf_response = client.get(
+            f"/api/v1/ui/pst/pagopa-proxy/resources/ricevuta.pdf?iusentra_fascicolo={fascicolo.id}"
+        )
+
+    html = html_response.get_data(as_text=True)
+    assert html_response.status_code == 200
+    assert html_response.headers.get("X-Frame-Options", "").upper() != "DENY"
+    assert f"/api/v1/ui/pst/pagopa-proxy/resources/static/css/pst.css?iusentra_fascicolo={fascicolo.id}" in html
+    assert (
+        f"/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?action=conferma&iusentra_fascicolo={fascicolo.id}"
+        in html
+    )
+    assert f"/api/v1/ui/pst/pagopa-proxy/resources/ricevuta.pdf?iusentra_fascicolo={fascicolo.id}" in html
+    assert pdf_response.status_code == 200
+    assert pdf_response.content_type == "application/pdf"
+    assert pdf_response.headers["X-IUSENTRA-Fascicolo"] == fascicolo.id
+    assert pdf_response.headers["X-IUSENTRA-Fascicolo-Documento"]
+    assert calls[0][1] == "https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp"
+    assert calls[1][1] == "https://servizipst.giustizia.it/PST/resources/ricevuta.pdf"
+    fascicolo_aggiornato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert fascicolo_aggiornato is not None
+    ricevuta = next(doc for doc in fascicolo_aggiornato.documenti if doc.nome == "ricevuta-pagopa.pdf")
+    assert ricevuta.fonte_documento == "PORTALE_TELEMATICO"
+    assert ricevuta.classificazione_portale == "RICEVUTA_PAGOPA"
+    assert "PagoPA" in ricevuta.tags
+
+
 
 def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
@@ -4122,15 +4197,24 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-command-bar" in css
     assert ".iu-fas-preview-modal" in css
     assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source
+    assert "const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'" in page_source
     assert "const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'" in page_source
-    assert "function PagoPaPortalModal" in page_source
+    assert "function EmbeddedRecordModal" in page_source
+    assert "function RecordOverlayButton" in page_source
     assert "function PagoPaActionButton" in page_source
-    assert "src={PAGOPA_PST_URL}" in page_source
-    assert "setPagoPaOpen(true)" in page_source
+    assert "pagoPaEmbeddedHref" in page_source
+    assert "externalHref: PAGOPA_PST_URL" in page_source
+    assert "src={record.href}" in page_source
+    assert "sandbox={isPagoPa ?" in page_source
+    assert "referrerPolicy={isPagoPa ? 'no-referrer' : undefined}" in page_source
+    assert "Visualizza cliente nel fascicolo" in page_source
+    assert "Visualizza soggetti e parti nel fascicolo" in page_source
+    assert "Quando richiedi la ricevuta PDF" in page_source
     assert "Apri fuori" in page_source
     assert Path("frontend/public/pagopa-removebg-preview.png").exists()
     assert ".iu-fas-pagopa-button" in css
-    assert ".iu-fas-pagopa-modal" in css
+    assert ".iu-fas-embedded-modal" in css
+    assert ".iu-fas-pagopa-proxy-note" in css
     assert ".iu-fas-editor-board" in css
     assert ".iu-fas-action-stack .iu-fas-post" in css
     assert ".iu-fas-compliance-toggle" in css
@@ -5103,9 +5187,9 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "matterIds:" in soggetti_data
     assert "clientRecordHref" in fascicoli_page
     assert "partiesRecordHref" in fascicoli_page
-    assert 'target="_blank" rel="noopener noreferrer"' in fascicoli_page
-    assert "Apri anagrafica cliente in una nuova finestra" in fascicoli_page
-    assert "Apri soggetti e parti in una nuova finestra" in fascicoli_page
+    assert "RecordOverlayButton" in fascicoli_page
+    assert "Visualizza cliente nel fascicolo" in fascicoli_page
+    assert "Visualizza soggetti e parti nel fascicolo" in fascicoli_page
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
     assert "Genera CF" in new_page

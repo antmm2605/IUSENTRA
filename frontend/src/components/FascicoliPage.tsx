@@ -120,6 +120,7 @@ import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import './FascicoliPage.css'
 
 const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'
+const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'
 const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'
 
 type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti'
@@ -2540,6 +2541,8 @@ function FascicoloUfficiCompetentiPanel({ fascicolo }:{fascicolo:FascicoloFull})
 
 type PreviewDocument = { name: string; url: string; downloadUrl: string; objectUrl?: string }
 type LazySectionStatus = 'idle' | 'loading' | 'loaded' | 'error'
+type EmbeddedRecordKind = 'cliente' | 'soggetti' | 'pagopa'
+type EmbeddedRecordState = { kind: EmbeddedRecordKind; title: string; href: string; externalHref?: string }
 
 const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
   documenti: 'idle',
@@ -2589,30 +2592,51 @@ function PagoPaActionButton({ onClick, variant = 'hero' }:{onClick:()=>void; var
   )
 }
 
-function PagoPaPortalModal({ open, onClose }:{open:boolean; onClose:()=>void}) {
+function RecordOverlayButton({ onClick, icon, label, title }:{onClick:()=>void; icon:ReactNode; label:string; title:string}) {
+  return (
+    <button type="button" className="iu-button iu-button--secondary iu-fas-record-link" onClick={onClick} aria-label={title} title={title}>
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+function embeddedRecordIcon(kind: EmbeddedRecordKind) {
+  if (kind === 'cliente') return <UserRound size={18}/>
+  if (kind === 'soggetti') return <UsersRound size={18}/>
+  return <img src={PAGOPA_LOGO_URL} alt="" aria-hidden="true"/>
+}
+
+function EmbeddedRecordModal({ record, onClose }:{record:EmbeddedRecordState | null; onClose:()=>void}) {
   useEffect(() => {
-    if (!open) return undefined
+    if (!record) return undefined
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
+  }, [record, onClose])
 
-  if (!open) return null
+  if (!record) return null
+  const isPagoPa = record.kind === 'pagopa'
   return (
-    <div className="iu-fas-preview-modal iu-fas-pagopa-modal" role="dialog" aria-modal="true" aria-label="Portale PagoPA PST">
+    <div className={`iu-fas-preview-modal iu-fas-embedded-modal${isPagoPa ? ' iu-fas-embedded-modal--pagopa' : ''}`} role="dialog" aria-modal="true" aria-label={record.title}>
       <div className="iu-fas-preview-modal__box">
         <header>
-          <div><img src={PAGOPA_LOGO_URL} alt="" aria-hidden="true"/><strong>PagoPA PST</strong></div>
+          <div>{embeddedRecordIcon(record.kind)}<strong>{record.title}</strong></div>
           <nav>
-            <a href={PAGOPA_PST_URL} target="_blank" rel="noopener noreferrer">Apri fuori</a>
-            <button type="button" onClick={onClose} aria-label="Chiudi PagoPA PST">Chiudi</button>
+            <a href={record.externalHref || record.href} target="_blank" rel="noopener noreferrer">Apri fuori</a>
+            <button type="button" onClick={onClose} aria-label={`Chiudi ${record.title}`}>Chiudi</button>
           </nav>
         </header>
-        <div className="iu-fas-pagopa-modal__body">
-          <p>Portale ufficiale del Ministero della Giustizia per altri pagamenti PagoPA. Se il portale non consente l'incorporamento, usa “Apri fuori”.</p>
-          <iframe src={PAGOPA_PST_URL} title="PagoPA PST - altri pagamenti"/>
+        <div className="iu-fas-embedded-modal__body">
+          {isPagoPa ? <p className="iu-fas-pagopa-proxy-note">Compila qui il pagamento PagoPA PST. Quando richiedi la ricevuta PDF, IUSENTRA la intercetta e la collega ai documenti del fascicolo.</p> : null}
+          <iframe
+            src={record.href}
+            title={record.title}
+            sandbox={isPagoPa ? 'allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-top-navigation-by-user-activation' : undefined}
+            referrerPolicy={isPagoPa ? 'no-referrer' : undefined}
+          />
         </div>
       </div>
     </div>
@@ -6067,7 +6091,7 @@ function DetailPage({ id }:{id:string}) {
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
-  const [pagoPaOpen, setPagoPaOpen] = useState(false)
+  const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   useEffect(() => {
     let active = true
@@ -6097,6 +6121,7 @@ function DetailPage({ id }:{id:string}) {
   const clientId = data.client?.id || f.clientId
   const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/modifica` : '/clienti'
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
+  const pagoPaEmbeddedHref = `${PAGOPA_PROXY_URL}?iusentra_fascicolo=${encodedId}`
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const documentsCount = data.quickCounts.documenti || data.documents.length
   const unsignedDocuments = Math.max(0, documentsCount - signedDocuments)
@@ -6156,7 +6181,7 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button variant="primary" href={depositTelematicHref}><Send size={15}/> Deposito telematico</Button><a className="iu-button iu-button--secondary iu-fas-record-link" href={clientRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri anagrafica cliente in una nuova finestra" title="Apri anagrafica cliente in una nuova finestra"><UserRound size={15}/> Cliente</a><a className="iu-button iu-button--secondary iu-fas-record-link" href={partiesRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri soggetti e parti in una nuova finestra" title="Apri soggetti e parti in una nuova finestra"><UsersRound size={15}/> Soggetti</a><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setPagoPaOpen(true)}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button variant="primary" href={depositTelematicHref}><Send size={15}/> Deposito telematico</Button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
@@ -6294,7 +6319,7 @@ function DetailPage({ id }:{id:string}) {
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>}>
             <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
-            <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={() => setPagoPaOpen(true)}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
+            <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
           <DetailSection id="economia" title="Contesto economico" icon={<WalletCards size={17}/>} count={data.economics.length}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} onClick={item.href.startsWith('#') ? openSection(item.href.slice(1)) : undefined} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
           <DetailSection id="workflow" title="Percorso cliente-incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
@@ -6306,7 +6331,7 @@ function DetailPage({ id }:{id:string}) {
         </div>
       </section>
       <PdfPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)}/>
-      <PagoPaPortalModal open={pagoPaOpen} onClose={() => setPagoPaOpen(false)}/>
+      <EmbeddedRecordModal record={embeddedRecord} onClose={() => setEmbeddedRecord(null)}/>
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
       <FloatingLex
         context="fascicolo-dettaglio"

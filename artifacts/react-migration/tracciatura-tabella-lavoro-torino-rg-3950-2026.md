@@ -231,3 +231,26 @@ Guardrail locali:
 - `python tools/sync_packaging_files.py --check`.
 
 Stato: da portare su branch gemelli, deployare su Hetzner e verificare visivamente su produzione.
+
+## Aggiornamento 2.253.68 - PagoPA dentro fascicolo e ricevuta PDF
+
+Richiesta utente del 18/06/2026: il riquadro PagoPA non deve restare vuoto e non deve limitarsi a `Apri fuori`. La compilazione deve avvenire direttamente dentro il fascicolo; la ricevuta PDF non arriva con link automatico, ma va richiesta dall'utente nel portale.
+
+Correzione applicata:
+
+- il comando PagoPA del fascicolo `9B9DF2A1` apre una modale interna con iframe verso il bridge IUSENTRA `/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?iusentra_fascicolo=<id>`;
+- il bridge scarica dal PST ministeriale `servizipst.giustizia.it`, riscrive link, form, asset e redirect sotto `/PST/`, e mantiene la navigazione dentro la modale del fascicolo;
+- i POST dei form PagoPA sono inoltrati al PST senza leggere prima il corpo della richiesta;
+- quando l'utente chiede la ricevuta PDF nel portale, il PDF viene intercettato dal bridge, mostrato/scaricato dal browser e salvato nei documenti del fascicolo come `RICEVUTA_PAGOPA`;
+- Cliente e Soggetti non aprono più una scheda separata: si aprono in overlay sopra il fascicolo, con gli stessi comandi `Apri fuori` e `Chiudi`.
+
+Guardrail locali:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `python -m pytest tests/test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf -q --tb=short`;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf tests/test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf -q --tb=short`;
+- `pnpm --filter @iusentra/studio build`;
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short`;
+- `python tools/sync_packaging_files.py --check`.
+
+Stato: codice locale pronto per commit, push branch gemelli, deploy Hetzner e prova visiva server reale sul fascicolo `9B9DF2A1`.

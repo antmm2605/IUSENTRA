@@ -5178,3 +5178,15 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Contratti API rigenerati e allineati; OpenAPI valido, provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`. |
 | `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | 10/10 passati su packaging e readiness dopo bump `2.253.67`. |
 | `git diff --check` | OK con warning noto | Nessun errore whitespace; Git segnala solo normalizzazione CRLF futura su `docs/openapi.yaml`. |
+
+## Fascicolo PagoPA bridge interno 2.253.68 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo overlay Cliente/Soggetti, modale PagoPA via bridge interno e stato `EmbeddedRecordModal`. |
+| `python -m pytest tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf -q --tb=short` | OK | Il proxy PagoPA riscrive pagina, asset, form e link PST dentro `/api/v1/ui/pst/pagopa-proxy/...`; il PDF ricevuta richiesto manualmente viene salvato nel fascicolo come documento `RICEVUTA_PAGOPA`. |
+| `python -m pytest tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_react_shell.py::test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf tests\test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf -q --tb=short` | OK | 3/3 passati: Fascicoli React usa `PAGOPA_PROXY_URL`, Cliente/Soggetti aprono overlay interno, e il bridge PagoPA resta coperto. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata dopo sandbox iframe PagoPA; nuovo bundle `FascicoliPage-DDDi4lOy.js` e CSS `FascicoliPage-BACE0QFv.css` generati. |
+| `python -m pytest tests\test_utf8_integrity.py tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_react_asset_retention.py -q --tb=short` | OK | 16/16 passati: testi UTF-8, packaging, readiness e asset retention confermati dopo build e pulizia degli asset intermedi non referenziati. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Packaging sincronizzato, contratti API allineati, OpenAPI valido, provider verification `auth-error=267`, `public-safe=15`, `success=29`, `backend-security=1`. |
+| `git diff --check` | OK con warning noto | Nessun errore whitespace; Git segnala solo normalizzazione CRLF futura su `docs/openapi.yaml`, `docs/api-contracts.md` e `docs/api-endpoint-contract-map.md`. |

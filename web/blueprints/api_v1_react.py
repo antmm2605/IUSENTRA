@@ -17,10 +17,11 @@ from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, unquote, urlencode, urljoin, urlparse, urlunparse
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, current_app, g, jsonify, request, send_file, session, url_for
+import requests
+from flask import Blueprint, Response, current_app, g, jsonify, request, send_file, session, url_for
 from werkzeug.exceptions import HTTPException
 
 from pct import __version__ as APP_VERSION
@@ -361,6 +362,14 @@ from web.helpers import (
 api_v1_react = Blueprint("api_v1_react", __name__, url_prefix="/api/v1/ui")
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+PST_PAGOPA_HOST = "servizipst.giustizia.it"
+PST_PAGOPA_ROOT = f"https://{PST_PAGOPA_HOST}/PST/"
+PST_PAGOPA_PROXY_PREFIX = "/api/v1/ui/pst/pagopa-proxy/"
+PST_PAGOPA_TIMEOUT_SECONDS = 25
+PST_PAGOPA_TEXT_TYPES = ("text/html", "text/css", "javascript", "application/xml", "text/xml")
+
+_PST_PAGOPA_ATTR_RE = re.compile(r"(?P<prefix>\b(?:href|src|action)=['\"])(?P<url>[^'\"]+)(?P<suffix>['\"])", re.IGNORECASE)
+_PST_PAGOPA_CSS_URL_RE = re.compile(r"url\((?P<quote>['\"]?)(?P<url>[^)'\"\s][^)'\"]*?)(?P=quote)\)")
 
 
 @api_v1_react.errorhandler(TenantDataPathError)
@@ -389,6 +398,145 @@ def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
         ), 401
 
     return wrapper
+
+
+def _pst_pagopa_fascicolo_id() -> str:
+    raw = str(request.args.get("iusentra_fascicolo") or session.get("pst_pagopa_fascicolo_id") or "").strip()
+    if not raw:
+        return ""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", raw):
+        return ""
+    session["pst_pagopa_fascicolo_id"] = raw
+    session.modified = True
+    return raw
+
+
+def _pst_pagopa_query_pairs() -> list[tuple[str, str]]:
+    return [
+        (key, value)
+        for key, value in request.args.items(multi=True)
+        if not str(key).startswith("iusentra_")
+    ]
+
+
+def _pst_pagopa_target_url(pst_path: str = "") -> str:
+    cleaned = str(pst_path or "it/pagopa_altripag.wp").strip().replace("\\", "/")
+    if cleaned.startswith("PST/"):
+        cleaned = cleaned[4:]
+    cleaned = cleaned.lstrip("/")
+    if "://" in cleaned or cleaned.startswith("//"):
+        return ""
+    candidate = urljoin(PST_PAGOPA_ROOT, cleaned)
+    parsed = urlparse(candidate)
+    if parsed.scheme != "https" or parsed.netloc.lower() != PST_PAGOPA_HOST or not parsed.path.startswith("/PST/"):
+        return ""
+    query = urlencode(_pst_pagopa_query_pairs(), doseq=True)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", query, ""))
+
+
+def _pst_pagopa_proxy_href(raw_url: str, *, base_url: str, fascicolo_id: str) -> str:
+    value = str(raw_url or "").strip()
+    if not value or value.startswith("#"):
+        return value
+    if re.match(r"(?i)^(javascript|mailto|tel|data):", value):
+        return value
+    absolute = urljoin(base_url, value)
+    parsed = urlparse(absolute)
+    if parsed.scheme not in {"http", "https"}:
+        return value
+    if parsed.netloc.lower() != PST_PAGOPA_HOST or not parsed.path.startswith("/PST/"):
+        return absolute
+    proxy_path = parsed.path.removeprefix("/PST/").lstrip("/")
+    query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
+    if fascicolo_id and not any(key == "iusentra_fascicolo" for key, _value in query_pairs):
+        query_pairs.append(("iusentra_fascicolo", fascicolo_id))
+    query = urlencode(query_pairs, doseq=True)
+    return f"{PST_PAGOPA_PROXY_PREFIX}{proxy_path}{'?' + query if query else ''}"
+
+
+def _pst_pagopa_rewrite_text(text: str, *, base_url: str, fascicolo_id: str) -> str:
+    def _attr_replace(match: re.Match[str]) -> str:
+        return (
+            match.group("prefix")
+            + _pst_pagopa_proxy_href(match.group("url"), base_url=base_url, fascicolo_id=fascicolo_id)
+            + match.group("suffix")
+        )
+
+    def _css_replace(match: re.Match[str]) -> str:
+        rewritten = _pst_pagopa_proxy_href(match.group("url"), base_url=base_url, fascicolo_id=fascicolo_id)
+        quote = match.group("quote") or ""
+        return f"url({quote}{rewritten}{quote})"
+
+    rewritten = _PST_PAGOPA_ATTR_RE.sub(_attr_replace, text)
+    rewritten = _PST_PAGOPA_CSS_URL_RE.sub(_css_replace, rewritten)
+    rewritten = re.sub(
+        r"(?P<quote>['\"])(?P<url>/PST/[^'\"]+)(?P=quote)",
+        lambda match: match.group("quote")
+        + _pst_pagopa_proxy_href(match.group("url"), base_url=base_url, fascicolo_id=fascicolo_id)
+        + match.group("quote"),
+        rewritten,
+    )
+    return rewritten
+
+
+def _pst_pagopa_filename(response: requests.Response, target_url: str) -> str:
+    disposition = str(response.headers.get("Content-Disposition") or "")
+    filename = ""
+    match = re.search(r"filename\*=UTF-8''([^;]+)", disposition, flags=re.IGNORECASE)
+    if match:
+        filename = unquote(match.group(1).strip().strip('"'))
+    if not filename:
+        match = re.search(r'filename="?([^";]+)"?', disposition, flags=re.IGNORECASE)
+        if match:
+            filename = unquote(match.group(1).strip())
+    if not filename:
+        path_name = Path(urlparse(target_url).path).name
+        if path_name.lower().endswith(".pdf"):
+            filename = path_name
+    if not filename:
+        filename = f"ricevuta-pagopa-pst-{datetime.now(ZoneInfo('Europe/Rome')).strftime('%Y%m%d-%H%M%S')}.pdf"
+    filename = Path(filename).name
+    return filename if filename.lower().endswith(".pdf") else f"{filename}.pdf"
+
+
+def _pst_pagopa_capture_pdf(fascicolo_id: str, content: bytes, *, filename: str, target_url: str) -> str:
+    if not fascicolo_id or not content:
+        return ""
+    digest = hashlib.sha256(content).hexdigest()
+    try:
+        gf = _fascicoli_loader()()
+        fascicolo = gf.get(fascicolo_id)
+        if not fascicolo:
+            return ""
+        for doc in getattr(fascicolo, "documenti", []) or []:
+            if str(getattr(doc, "hash_sha256", "") or "") == digest:
+                return str(getattr(doc, "id", "") or "")
+        documento = gf.aggiungi_documento(
+            fascicolo_id,
+            filename,
+            TipoDocumento.ALLEGATO,
+            content,
+            note="Ricevuta PagoPA PST acquisita dal portale ministeriale dentro il fascicolo.",
+            tags=["PagoPA", "PST", "ricevuta"],
+            caricato_da=_actor_label(),
+            fonte_documento="PORTALE_TELEMATICO",
+            nome_originale=filename,
+            nome_portale=filename,
+            classificazione_portale="RICEVUTA_PAGOPA",
+            tipo_atto_portale="Ricevuta PagoPA",
+            servizio_portale="PST PagoPA",
+            id_documento_portale=target_url,
+        )
+        _audit_event(
+            "pst_pagopa.receipt_captured",
+            "fascicolo",
+            fascicolo_id,
+            f"Ricevuta PagoPA PST acquisita: {filename}.",
+        )
+        return documento.id
+    except Exception as exc:
+        current_app.logger.warning("Acquisizione ricevuta PagoPA PST non completata: %s", exc)
+        return ""
 
 
 def _puo_leggere_admin_database() -> bool:
@@ -3366,6 +3514,85 @@ def telematico_react_surface(surface: str):
             logger=current_app.logger,
         )
     )
+
+
+@api_v1_react.route("/pst/pagopa-proxy/", defaults={"pst_path": ""}, methods=["GET", "POST"])
+@api_v1_react.route("/pst/pagopa-proxy/<path:pst_path>", methods=["GET", "POST"])
+@_richiedi_auth
+def pst_pagopa_proxy(pst_path: str):
+    target_url = _pst_pagopa_target_url(pst_path)
+    if not target_url:
+        return Response("Percorso PagoPA PST non consentito.", status=400, mimetype="text/plain; charset=utf-8")
+
+    fascicolo_id = _pst_pagopa_fascicolo_id()
+    cookies = dict(session.get("pst_pagopa_cookies") or {})
+    headers = {
+        "User-Agent": request.headers.get("User-Agent") or "IUSENTRA PagoPA PST bridge",
+        "Accept": request.headers.get("Accept") or "*/*",
+        "Accept-Language": request.headers.get("Accept-Language") or "it-IT,it;q=0.9",
+    }
+    if request.method == "POST":
+        content_type = request.headers.get("Content-Type")
+        if content_type:
+            headers["Content-Type"] = content_type
+
+    try:
+        upstream = requests.request(
+            request.method,
+            target_url,
+            headers=headers,
+            data=request.get_data() if request.method == "POST" else None,
+            cookies=cookies,
+            timeout=PST_PAGOPA_TIMEOUT_SECONDS,
+            allow_redirects=False,
+        )
+    except requests.RequestException as exc:
+        current_app.logger.warning("Bridge PagoPA PST non raggiungibile: %s", exc)
+        return Response(
+            "Portale PagoPA PST momentaneamente non raggiungibile. Riprova dalla modale del fascicolo.",
+            status=502,
+            mimetype="text/plain; charset=utf-8",
+        )
+
+    updated_cookies = dict(cookies)
+    updated_cookies.update(upstream.cookies.get_dict())
+    if updated_cookies:
+        session["pst_pagopa_cookies"] = updated_cookies
+        session.modified = True
+
+    if 300 <= upstream.status_code < 400 and upstream.headers.get("Location"):
+        location = _pst_pagopa_proxy_href(upstream.headers["Location"], base_url=target_url, fascicolo_id=fascicolo_id)
+        return Response(status=upstream.status_code, headers={"Location": location})
+
+    content_type = upstream.headers.get("Content-Type") or "application/octet-stream"
+    body = upstream.content
+    response_headers: dict[str, str] = {
+        "Cache-Control": "no-store",
+        "X-IUSENTRA-PagoPA-Bridge": "pst",
+    }
+    disposition = upstream.headers.get("Content-Disposition")
+    if disposition:
+        response_headers["Content-Disposition"] = disposition
+
+    lower_content_type = content_type.lower()
+    is_pdf = "application/pdf" in lower_content_type or ".pdf" in str(disposition or "").lower()
+    if is_pdf:
+        filename = _pst_pagopa_filename(upstream, target_url)
+        document_id = _pst_pagopa_capture_pdf(fascicolo_id, body, filename=filename, target_url=target_url)
+        if document_id:
+            response_headers["X-IUSENTRA-Fascicolo-Documento"] = document_id
+            response_headers["X-IUSENTRA-Fascicolo"] = fascicolo_id
+        if "Content-Disposition" not in response_headers:
+            response_headers["Content-Disposition"] = f'inline; filename="{filename}"'
+        return Response(body, status=upstream.status_code, headers=response_headers, content_type="application/pdf")
+
+    if any(marker in lower_content_type for marker in PST_PAGOPA_TEXT_TYPES):
+        encoding = upstream.encoding or "utf-8"
+        text = upstream.content.decode(encoding, errors="replace")
+        text = _pst_pagopa_rewrite_text(text, base_url=target_url, fascicolo_id=fascicolo_id)
+        return Response(text, status=upstream.status_code, headers=response_headers, content_type=content_type)
+
+    return Response(body, status=upstream.status_code, headers=response_headers, content_type=content_type)
 
 
 @api_v1_react.post("/local-signer/diagnostics")

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.68 - 2026-06-18
+
+- Fascicoli React: Cliente e Soggetti si aprono in overlay interno sopra il fascicolo, senza uscire dalla pratica aperta.
+- PagoPA PST: sostituito l'iframe diretto bloccato dal Ministero con bridge IUSENTRA ristretto a `servizipst.giustizia.it/PST`, con riscrittura di link, form, asset e redirect dentro la modale fascicolo.
+- Ricevuta PagoPA: quando l'utente richiede il PDF nel portale PST, il bridge lo serve come PDF e lo salva nei documenti del fascicolo con fonte `PORTALE_TELEMATICO` e classificazione `RICEVUTA_PAGOPA`.
+- Guardrail: aggiunto test del bridge PagoPA con pagina PST simulata, richiesta ricevuta PDF e salvataggio documento nel fascicolo.
+
 ## 2.253.64 - 2026-06-18
 
 - PST lavoro: l'anteprima React del fascicolo Tribunale di Torino RG 3950/2026 arricchisce lo snapshot parziale della ricerca con il catalogo completo già importato nel fascicolo locale, evitando che restino visibili solo le righe principali quando gli allegati sono già tracciati.

@@ -1449,3 +1449,36 @@ Guardrail locali:
 - `python tools/sync_packaging_files.py --check` passato.
 
 Stato: da verificare dopo commit, push e deploy Hetzner su `https://app.iusentra.it/fascicoli/9B9DF2A1`, con click reale su `PagoPA`, apertura modale sopra il fascicolo, fallback `Apri fuori`, chiusura e controllo testi/card/bottoni.
+
+## Aggiornamento 2.253.68 - PagoPA PST compilabile nel fascicolo
+
+Data intervento: 2026-06-18.
+
+Dopo la prova visiva su `https://app.iusentra.it/fascicoli/9B9DF2A1`, il portale ministeriale PagoPA ha mostrato il limite tecnico `X-Frame-Options: SAMEORIGIN`, che impedisce l'incorporamento diretto cross-origin in un iframe IUSENTRA.
+
+Correzione applicata:
+
+- il dettaglio fascicolo React non punta più l'iframe PagoPA direttamente al dominio ministeriale;
+- la modale PagoPA usa il bridge autenticato IUSENTRA `/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?iusentra_fascicolo=<id>`;
+- il bridge è limitato al solo host `servizipst.giustizia.it` e ai percorsi sotto `/PST/`, riscrive link, form, asset e redirect verso lo stesso proxy interno;
+- i form PagoPA restano compilabili nella modale e i POST vengono inoltrati al PST senza consumare prima il corpo della richiesta;
+- quando l'utente richiede manualmente la ricevuta PDF nel portale, la risposta PDF passa dal bridge, viene mostrata/scaricata dal browser e viene salvata nei documenti del fascicolo con fonte `PORTALE_TELEMATICO`, classificazione `RICEVUTA_PAGOPA` e tag `PagoPA`, `PST`, `ricevuta`;
+- i comandi `Cliente` e `Soggetti` nel dettaglio fascicolo aprono ora la rispettiva pagina React in overlay interno, con lo stesso schema di modale usato da PagoPA, senza perdere la pratica aperta;
+- `Apri fuori` resta disponibile come comando di emergenza, ma non è più il comportamento ordinario per la compilazione PagoPA.
+
+Limiti operativi:
+
+- IUSENTRA non genera ricevute PagoPA e non inventa link: intercetta e archivia il PDF solo quando il portale PST lo restituisce dopo la richiesta dell'utente;
+- se durante il pagamento il circuito PagoPA porta l'utente su PSP, banca o dominio esterno al PST, quel tratto può imporre regole proprie di sicurezza; il bridge resta ristretto al PST ministeriale per non trasformarsi in proxy generico;
+- nessun PIN, certificato, Local Signer, firma digitale o invio PEC è stato coinvolto da questa modifica.
+
+Guardrail locali:
+
+- `pnpm --filter @iusentra/studio typecheck` passato;
+- `python -m pytest tests/test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf -q --tb=short` passato;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf tests/test_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf -q --tb=short` passato;
+- `pnpm --filter @iusentra/studio build` passato;
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short` passato;
+- `python tools/sync_packaging_files.py --check` passato.
+
+Stato: da portare su branch gemelli, deployare su Hetzner e verificare visivamente su produzione con click reale su `Cliente`, `Soggetti`, `PagoPA`, compilazione/visualizzazione iniziale del portale e richiesta ricevuta PDF quando disponibile.

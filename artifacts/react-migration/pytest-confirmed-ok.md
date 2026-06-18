@@ -5068,3 +5068,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http -q` | OK | Guardrail mirato: simulazione PEC guidata con certificato PST mancante torna HTTP 200 e non registra deposito reale. |
 | `pnpm --filter @iusentra/studio build:vite`; `python -m pytest tests/test_react_asset_retention.py -q --tb=short` | OK | Bundle React rigenerato e asset retention passata dopo pulizia dei residui non referenziati. |
 | Smoke Chrome post-build su `127.0.0.1:8080` | OK | `/api/pronto` risponde `versione=2.253.54`; la pagina deposito React carica con console vuota, PEC Palmi e indice presenti, nessun `n.d.` e nessun HTML grezzo. |
+
+## Telematico React e Local Signer boundaries 2.253.58 - 2026-06-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools\check_local_signer_boundaries.py` | OK | Gate riprodotto localmente dopo il fix: `TelematicoSurfacePage` mantiene `office.codice || office.codiceMinistero` e non preferisce il codice ministeriale rispetto al codice ufficio operativo. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite passati dopo la correzione React; bundle `TelematicoSurfacePage` rigenerato. |
+| `python -m pytest -q tests\test_utf8_integrity.py tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 14/14 passati dopo bump `2.253.58` e aggiornamento versione Docker/Railway/package. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | OpenAPI rigenerato e valido su `2.253.58`; provider verification `auth-error=263`, `public-safe=15`, `success=29`, `backend-security=1`. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | 2/2 passati dopo pulizia degli asset React non più referenziati dal manifest corrente. |

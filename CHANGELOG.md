@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.58 - 2026-06-18
+
+- Telematico React: preservata la priorità del codice ufficio operativo rispetto al codice ministeriale nei dati inviati a Local Signer/PST; il codice ministeriale resta solo fallback quando il codice ufficio non è disponibile.
+- Gate CI: riallineato il guardrail `Local Signer boundaries`, così il flusso PST non può regredire tornando a preferire il codice ministeriale nella selezione ufficio.
+
 ## 2.253.57 - 2026-06-18
 
 - Deposito reale/PEC locale: `Invia deposito reale` usa sempre il payload Local Signer e non tenta invio SMTP server-side; il server prepara e verifica busta, destinatario, oggetto, corpo PEC e `Atto.enc`, poi il browser chiede la password PEC in una modale locale.

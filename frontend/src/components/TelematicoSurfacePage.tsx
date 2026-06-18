@@ -1062,7 +1062,7 @@ function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
               <Badge tone="primary">{office.tipo || 'Ufficio'}</Badge>
               <Badge tone={certificateTone(office)}>{certificateLabel(office)}</Badge>
               <strong>{office.nome}</strong>
-              <span>{[office.codiceMinistero || office.codice, office.distretto, office.comune || office.provincia].filter(Boolean).join(' - ')}</span>
+              <span>{[office.codice || office.codiceMinistero, office.distretto, office.comune || office.provincia].filter(Boolean).join(' - ')}</span>
               <small className="iu-tel-office-cert">
                 <ShieldCheck size={14}/>
                 {office.certificatoCifratura.richiesto

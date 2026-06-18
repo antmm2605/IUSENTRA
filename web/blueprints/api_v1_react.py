@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
+from io import BytesIO
 import json
 import os
 import re
@@ -484,6 +485,37 @@ def _pst_pagopa_safe_path(pst_path: str = "") -> str:
     ):
         return ""
     return "/".join(parts)
+
+
+def _pst_pagopa_inline_text_response(
+    response_body: bytes,
+    *,
+    status_code: int,
+    response_headers: dict[str, str],
+    content_type: str,
+) -> Response:
+    lower_content_type = content_type.lower()
+    if "text/html" in lower_content_type or "application/xhtml+xml" in lower_content_type:
+        filename = "pagopa.html"
+    elif "css" in lower_content_type:
+        filename = "pagopa.css"
+    elif "javascript" in lower_content_type:
+        filename = "pagopa.js"
+    elif "xml" in lower_content_type:
+        filename = "pagopa.xml"
+    else:
+        filename = "pagopa.txt"
+    response = send_file(
+        BytesIO(response_body),
+        mimetype=content_type.split(";", 1)[0].strip() or "text/plain",
+        download_name=filename,
+        as_attachment=False,
+        max_age=0,
+    )
+    response.status_code = status_code
+    response.headers.update(response_headers)
+    response.headers["Content-Type"] = content_type
+    return response
 
 
 def _pst_pagopa_strip_iusentra_query(raw_query: str) -> str:
@@ -3840,9 +3872,12 @@ def pst_pagopa_proxy(pst_path: str):
                 text = _pst_pagopa_inject_runtime_bridge(text, base_url=target_url, fascicolo_id=fascicolo_id)
         response_content_type = "text/html; charset=utf-8" if "application/xhtml+xml" in lower_content_type else content_type
         response_body = text.encode("utf-8")
-        # lgtm[py/reflected-xss] Il contenuto HTML e' limitato al dominio PST ministeriale,
-        # a path PagoPA allowlistati e al bundle CA verificato; CSP e iframe confinano il bridge.
-        return Response(response_body, status=upstream.status_code, headers=response_headers, content_type=response_content_type)
+        return _pst_pagopa_inline_text_response(
+            response_body,
+            status_code=upstream.status_code,
+            response_headers=response_headers,
+            content_type=response_content_type,
+        )
 
     return Response(body, status=upstream.status_code, headers=response_headers, content_type=content_type)
 

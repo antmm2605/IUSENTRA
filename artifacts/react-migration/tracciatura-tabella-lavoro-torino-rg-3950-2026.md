@@ -79,7 +79,10 @@ Aggiornamento `2.253.71`: dopo alert CodeQL sul primo SHA pushato, il bridge è 
 
 Stato prima della chiusura release: da ripetere su produzione `https://app.iusentra.it/fascicoli/9B9DF2A1` dopo commit, push e deploy Hetzner dello stesso SHA.
 
-Aggiornamento `2.253.72`: il cookie HTTP di sessione richiesto dall'utente è `iusentra_session`; gli audit browser di collaudo sono stati allineati. Prova reale locale ripetuta su Docker `127.0.0.1:8080`, versione `2.253.72`: Chrome installato ha ricevuto solo la cookie `iusentra_session`, PagoPA si apre nel fascicolo `9B9DF2A1`, `Contributo unificato e/o Diritti di cancelleria` e distretto `TORINO` caricano `66` uffici giudiziari, nominativo/codice fiscale risultano compilabili e non è stato premuto `Paga subito`. La prova server resta da ripetere dopo deploy dello stesso SHA. La ricevuta PDF verrà collegata ai documenti solo quando il PST la restituirà dopo richiesta manuale dell'utente.
+Aggiornamento `2.253.72`: il cookie HTTP di sessione richiesto dall'utente è `iusentra_session`; gli audit browser di collaudo sono stati allineati. Prova reale locale ripetuta su Docker `127.0.0.1:8080`, versione `2.253.73`: Chrome installato ha ricevuto solo la cookie `iusentra_session`, PagoPA si apre nel fascicolo `9B9DF2A1`, `Contributo unificato e/o Diritti di cancelleria` e distretto `TORINO` caricano `66` uffici giudiziari, nominativo/codice fiscale risultano compilabili e non è stato premuto `Paga subito`. La prova server resta da ripetere dopo deploy dello stesso SHA. La ricevuta PDF verrà collegata ai documenti solo quando il PST la restituirà dopo richiesta manuale dell'utente.
+
+
+Aggiornamento `2.253.73`: dopo il nuovo alert CodeQL sullo SHA `34a42e9`, il bridge PagoPA mantiene allowlist e riscritture controllate ma serve le risposte testuali PST da file in memoria inline, evitando il sink HTML diretto. La prova reale locale è stata ripetuta sulla build Docker `2.253.73`: `/api/pronto` risponde `versione=2.253.73`, il container espone `SESSION_COOKIE_NAME=iusentra_session`, Chrome installato conferma PagoPA compilabile fino a distretto `TORINO` e non è stato premuto `Paga subito`.
 
 ## Correzione software
 

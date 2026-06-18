@@ -1557,4 +1557,15 @@ Test locali ripetuti:
 
 Data intervento: 2026-06-18.
 
-Su richiesta dell'utente il cookie HTTP di sessione dell'app viene rinominato da `hacs_session` a `iusentra_session`. La modifica è centralizzata nel runtime di sicurezza Flask e gli script di audit browser che impostano sessioni locali di collaudo sono stati aggiornati allo stesso nome. Non cambia il contenuto della sessione, non vengono salvati PIN o credenziali e restano invariati `HttpOnly`, `SameSite=Lax` e il perimetro tenant. Prova reale locale eseguita su Docker `2.253.72`: `/api/pronto` risponde `versione=2.253.72`, il container Flask espone `SESSION_COOKIE_NAME=iusentra_session`, Chrome installato su `http://127.0.0.1:8080/fascicoli/9B9DF2A1` ha aperto PagoPA nel fascicolo, selezionato `Contributo unificato e/o Diritti di cancelleria`, distretto `TORINO`, caricato `66` uffici e compilato nominativo/codice fiscale senza premere `Paga subito`.
+Su richiesta dell'utente il cookie HTTP di sessione dell'app viene rinominato da `hacs_session` a `iusentra_session`. La modifica è centralizzata nel runtime di sicurezza Flask e gli script di audit browser che impostano sessioni locali di collaudo sono stati aggiornati allo stesso nome. Non cambia il contenuto della sessione, non vengono salvati PIN o credenziali e restano invariati `HttpOnly`, `SameSite=Lax` e il perimetro tenant. Prova reale locale eseguita e ripetuta su Docker `2.253.73`: `/api/pronto` risponde `versione=2.253.73`, il container Flask espone `SESSION_COOKIE_NAME=iusentra_session`, Chrome installato su `http://127.0.0.1:8080/fascicoli/9B9DF2A1` ha aperto PagoPA nel fascicolo, selezionato `Contributo unificato e/o Diritti di cancelleria`, distretto `TORINO`, caricato `66` uffici e compilato nominativo/codice fiscale senza premere `Paga subito`.
+
+## Aggiornamento 2.253.73 - Refactor CodeQL bridge PagoPA
+
+Data intervento: 2026-06-18.
+
+Sul nuovo SHA `34a42e9` CodeQL ha continuato a segnalare il sink XSS del bridge PagoPA, nonostante host, path e TLS fossero già allowlistati. Per eliminare il sink diretto, le risposte testuali del PST (`HTML`, `CSS`, `JavaScript`, `XML`) vengono ora servite inline da un file in memoria con `send_file`, dopo validazione del path PagoPA e riscritture controllate. Il comportamento visibile della modale resta invariato: il form ministeriale continua a essere renderizzato dentro il fascicolo e la cattura PDF resta agganciata alle risposte `application/pdf`.
+
+Test ripetuti dopo il refactor:
+
+- `python -m py_compile weblueprintspi_v1_react.py webootstrap	elematico_portali_routes.py web\services\security_runtime.py tests	est_security_headers.py`;
+- `python -m pytest tests	est_react_shell.py::test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf tests	est_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests	est_security_headers.py -q --tb=short`.

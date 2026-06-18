@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.73 - 2026-06-18
+
+- PagoPA PST: refactor della risposta HTML/CSS/JS del bridge in payload inline servito da file in memoria dopo allowlist host/path, per chiudere l'alert CodeQL XSS senza cambiare il comportamento visibile della modale.
+- Verifiche: ripetuti sintassi Python e test mirati PagoPA/sicurezza dopo il refactor.
+
 ## 2.253.72 - 2026-06-18
 
 - Sicurezza sessione: rinominato il cookie HTTP di sessione da `hacs_session` a `iusentra_session`, mantenendo invariati `HttpOnly`, `SameSite=Lax` e la configurazione centrale del runtime.

@@ -27,6 +27,7 @@ def build_local_pec_payload(
     corpo: str,
     attachment_path: str,
     attachment_name: str | None = None,
+    include_attachment_content: bool = True,
 ) -> dict[str, Any]:
     """Build a Local Signer `/pec/send` payload without exposing any saved password."""
 
@@ -37,9 +38,15 @@ def build_local_pec_payload(
     if not path.is_file():
         raise ValueError("Allegato PEC non disponibile.")
     # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e radici runtime consentite.
-    content = base64.b64encode(path.read_bytes()).decode("ascii")
     filename = attachment_name or path.name
     mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    attachment = {
+        "filename": filename,
+        "mime_type": mime_type,
+        "size_bytes": path.stat().st_size,
+    }
+    if include_attachment_content:
+        attachment["content_base64"] = base64.b64encode(path.read_bytes()).decode("ascii")
     smtp_port = int(getattr(pec_cfg, "smtp_port", 465) or 465)
     use_ssl = bool(getattr(pec_cfg, "use_ssl", smtp_port == 465))
     use_tls = bool(getattr(pec_cfg, "use_tls", not use_ssl))
@@ -65,13 +72,7 @@ def build_local_pec_payload(
             "to": destinatario,
             "subject": oggetto,
             "body": corpo,
-            "attachments": [
-                {
-                    "filename": filename,
-                    "content_base64": content,
-                    "mime_type": mime_type,
-                }
-            ],
+            "attachments": [attachment],
         },
     }
 
@@ -117,6 +118,7 @@ def local_pec_required_response(
     documenti: list[str] | tuple[str, ...] | None = None,
     corpo_pec: str | None = None,
     busta_audit: dict[str, Any] | None = None,
+    include_attachment_content: bool = True,
 ) -> dict[str, Any]:
     """Build the JSON contract used by browsers to complete PEC locally."""
 
@@ -140,6 +142,7 @@ def local_pec_required_response(
             corpo=corpo_pec_finale,
             attachment_path=attachment_path,
             attachment_name="Atto.enc",
+            include_attachment_content=include_attachment_content,
         ),
         "validation": validation.to_dict() if hasattr(validation, "to_dict") else validation,
         "busta_audit": busta_audit or {},

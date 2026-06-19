@@ -1,7 +1,28 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-18.
+Aggiornato: 2026-06-19.
 
+## Aggiornamento 2.253.77 - firma multipla .p7m e simulazione PEC senza invio reale
+
+Data intervento: 2026-06-19.
+
+Correzione applicata sul flusso React `Prepara deposito` e sulla route `/fascicoli/<id>/deposito/invia-pec`:
+
+- i file già contenitori di firma CAdES (`.p7m`, `.sig`, `.pkcs7`) non vengono più inseriti nel batch di firma multipla Local Signer e non vengono più rimandati al token quando si clicca `Simula invio PEC` o `Prova senza invio reale`;
+- questa esclusione non equivale a dichiarare `Firmato digitale`: la UI continua a mostrare `Firmato` solo quando il documento ha prova tecnica CAdES/PAdES verificata; un `.p7m` non verificato viene indicato come contenitore presente e non rifirmato;
+- `Simula invio PEC` non genera più `Message-ID` fittizi e non registra più il deposito come `INVIATO`; registra solo `PROVA_SENZA_INVIO`, con `documenti_ids` collegati per presidio ricevute e senza impostare `id_deposito_pct` sui documenti come se fossero stati realmente depositati;
+- la simulazione prepara lo stesso payload Local Signer dell’invio reale, incluso `Atto.enc` in `content_base64`, destinatario, oggetto, corpo PEC e allegato, ma non chiama l’invio PEC e non chiede la password;
+- la risposta include `compatibility_report` con percentuale, controlli strutturali, confronto con i campioni PEC reali allegati dall’utente e piano ricevute (`accettazione`, `RdAC`, controlli automatici, esito cancelleria), mostrato nella preview busta.
+
+Guardrail tecnici già eseguiti: `python -m pytest tests/test_regia_ui_react.py tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_non_richiede_firma_su_contenitore_p7m tests/test_regia_api_payloads.py::test_api_fascicolo_mostra_p7m_solo_con_firma_reale tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http -q` → `10/10` passati.
+
+Stato prova reale locale: eseguita il 19/06/2026 alle 10:17 su Docker reale `127.0.0.1:8080`, versione `2.253.77`, fascicolo `DC5BF1DB` (`RG 466/2023 - Alessi Robertino`, `Giudice di Pace - Palmi`). La pagina è React (`#root`), senza HTML grezzo visibile; dopo il caricamento API sono visibili ufficio `Ufficio del Giudice di Pace di Palmi`, PEC `gdp.palmi@civile.ptel.giustiziacert.it`, codici `0910401 / 0800570152`, `8` candidati busta e `8` firmati, `0` documenti da firmare.
+
+Prova materiale finale su `Simula invio PEC`: click reale su pulsante, conferma modale, barra `SIMULAZIONE PEC IN CORSO` con scorrimento documenti (`DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, documenti `.p7m` e `Atto.enc`), nessuna richiesta di firma e nessun errore `ComputeSignature`. Esito UI: `Simulazione PEC completata senza invio reale: compatibilità 100%`; controlli OK per `Atto.enc ministeriale AES256`, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, atto/allegati, PEC ufficio, oggetto PEC, corpo PEC e simulazione senza SMTP. Il testo PEC è visibile e il riquadro finale mostra `Promemoria prima dell’invio reale`, non un blocco. Il bottone `Invia deposito reale` risulta abilitato (`disabled=false`).
+
+La simulazione non registra un invio reale e non produce `Message-ID` fittizio: salva una prova `PROVA_SENZA_INVIO` e confronta la struttura con i campioni PEC reali allegati. L'invio reale resta demandato al PC locale tramite Local Signer/servizio locale, coerentemente con `/impostazioni?tab=pec`; il server prepara e verifica busta, destinatario, oggetto, corpo PEC, `Atto.enc` e ricevute da presidiare, ma non diventa canale SMTP operativo.
+
+Stato produzione: da confermare su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/` dopo commit, push branch gemelli e deploy Hetzner della stessa versione `2.253.77`. Fino a quella prova, la parte locale è accettata su macchina reale; la chiusura complessiva resta vincolata al server sullo stesso commit.
 ## Aggiornamento 2.253.64 - anteprima PST lavoro con catalogo completo
 
 Data: 18/06/2026.

@@ -131,7 +131,13 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "prova_senza_invio: '1'" in deposit_page
     assert "simula_invio_pec: '1'" in deposit_page
     assert "Simulazione PEC in corso" in deposit_page
-    assert "Message-ID fittizio" in deposit_page
+    assert "Message-ID fittizio" not in deposit_page
+    assert "isSignedContainerDocument" in deposit_page
+    assert "!isSignedContainerDocument(doc)" in deposit_page
+    assert "packageDocumentSignatureLabel" in deposit_page
+    assert "Contenitore .p7m" in deposit_page
+    assert "File .p7m presente: non viene rifirmato" in deposit_page
+    assert "Report compatibilità" in deposit_page
     assert "{pecWorkflowAvailable ? (" in deposit_page
     assert "deposito/indice-documenti" in deposit_page
     assert "DepositPdfPreviewButton" in deposit_page

@@ -772,6 +772,19 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-package-preview__confirm{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid rgba(37,99,235,.18);border-radius:11px;background:#fff;color:#0f172a;font-size:12px;font-weight:880;line-height:1.35;cursor:pointer}
 .iu-fas-package-preview__confirm input{width:17px;height:17px;flex:0 0 auto;margin-top:1px;accent-color:var(--iu-blue-600)}
 .iu-fas-package-preview__confirm span{color:#0f172a;font-size:12px;font-weight:880;line-height:1.35}
+.iu-fas-compat-report{display:grid;gap:10px;padding:11px;border:1px solid rgba(37,99,235,.18);border-radius:11px;background:#fff;min-width:0}
+.iu-fas-compat-report>header{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}
+.iu-fas-compat-report>header div{display:grid;gap:3px;min-width:0}
+.iu-fas-compat-report__checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.iu-fas-compat-report__checks article{display:grid;gap:4px;padding:9px;border:1px solid rgba(148,163,184,.22);border-radius:9px;background:#f8fafc;min-width:0}
+.iu-fas-compat-report__checks article.is-ok{border-color:rgba(16,185,129,.24);background:#f0fdf4}
+.iu-fas-compat-report__checks article.is-blocco{border-color:rgba(239,68,68,.24);background:#fff1f2}
+.iu-fas-compat-report__checks span{width:max-content;max-width:100%;padding:2px 7px;border-radius:999px;background:#e2e8f0;color:#334155;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.03em}
+.iu-fas-compat-report__checks .is-ok span{background:#dcfce7;color:#047857}
+.iu-fas-compat-report__checks .is-blocco span{background:#fee2e2;color:#b91c1c}
+.iu-fas-compat-report__checks small{color:#475569;font-size:11.5px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-compat-report__receipts{display:grid;gap:6px;padding-top:2px}
+.iu-fas-compat-report__receipts strong{font-size:12px}
 .iu-fas-package-preview__documents,.iu-fas-package-preview__body,.iu-fas-package-preview__next{display:grid;gap:7px;padding:10px;border:1px solid rgba(16,185,129,.18);border-radius:11px;background:#fff}
 .iu-fas-package-preview ul{display:grid;gap:4px;margin:0;padding-left:18px}
 .iu-fas-package-preview pre{max-height:260px;margin:0;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#0f172a;font:700 12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}

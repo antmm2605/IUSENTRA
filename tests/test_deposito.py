@@ -1406,13 +1406,13 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
     monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
     monkeypatch.setattr(
         "web.bootstrap.deposito_routes._ufficio_da_nome",
-        lambda nome: {"codice": "TEST001", "pec": "ufficio@example.pec.it", "nome": nome},
+        lambda nome: {"codice": "TEST001", "pec": "tribunale.test@civile.ptel.giustiziacert.it", "nome": nome},
     )
     monkeypatch.setattr(
         "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
         lambda fascicolo: {
             "codice_ufficio": "TEST001",
-            "pec_dest": "ufficio@example.pec.it",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
             "nome": "Tribunale di Test",
         },
     )
@@ -1424,6 +1424,7 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
         enc.write_bytes(b"ATTO-ENC-CONFORME")
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
+            "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
@@ -1495,10 +1496,19 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
     assert response.status_code == 200, response.get_data(as_text=True)
     payload = response.get_json()
     assert payload["ok"] is True
-    assert payload["demo"] is True
     assert payload["simulazione"] is True
-    assert payload["message_id"].startswith("PROVA-")
-    assert "Nessun invio esterno eseguito" in payload["messaggio"]
+    assert payload["requires_local_pec"] is False
+    assert "message_id" not in payload
+    assert "senza invio reale" in payload["messaggio"]
+    assert "Il pacchetto locale" in payload["messaggio"]
+    report = payload["compatibility_report"]
+    assert report["percentuale"] == 100
+    assert report["blockers"] == 0
+    corpo_check = next(item for item in report["checks"] if item["code"] == "CORPO_PEC")
+    assert corpo_check["status"] == "ok"
+    local_payload = payload["local_pec"]["payload"]
+    assert local_payload["attachments"][0]["filename"] == "Atto.enc"
+    assert local_payload["attachments"][0]["content_base64"]
 
     gf_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -1509,9 +1519,12 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
     assert fascicolo_reload is not None
     assert len(fascicolo_reload.depositi_pct) == 1
     deposito = fascicolo_reload.depositi_pct[0]
-    assert "Simulazione invio PEC senza spedizione" in deposito.messaggio
+    assert deposito.stato == "PROVA_SENZA_INVIO"
+    assert "Payload Local Signer completo con Atto.enc" in deposito.messaggio
     assert "Nessun invio esterno eseguito" in deposito.messaggio
     assert "PROVA SENZA INVIO REALE" in deposito.note
+    doc_reload = next(doc for doc in fascicolo_reload.documenti if doc.id == atto.id)
+    assert not doc_reload.id_deposito_pct
 
 
 def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(tmp_path, monkeypatch):
@@ -1521,7 +1534,7 @@ def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(t
         "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
         lambda fascicolo: {
             "codice_ufficio": "TEST001",
-            "pec_dest": "ufficio@example.pec.it",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
             "nome": "Tribunale di Test",
         },
     )
@@ -1620,7 +1633,7 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
         "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
         lambda fascicolo: {
             "codice_ufficio": "TEST001",
-            "pec_dest": "ufficio@example.pec.it",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
             "nome": "Tribunale di Test",
         },
     )
@@ -1632,6 +1645,7 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
         enc.write_bytes(b"ATTO-ENC-CONFORME")
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
+            "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
@@ -1737,7 +1751,7 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
         "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
         lambda fascicolo: {
             "codice_ufficio": "TEST001",
-            "pec_dest": "ufficio@example.pec.it",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
             "nome": "Tribunale di Test",
         },
     )
@@ -1755,6 +1769,7 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
         enc.write_bytes(b"ATTO-ENC-CONFORME")
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
+            "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
@@ -1864,7 +1879,7 @@ def test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_serve
         "web.bootstrap.deposito_legacy_send_routes._ufficio_deposito_destinatario",
         lambda fascicolo: {
             "codice_ufficio": "TEST001",
-            "pec_dest": "ufficio@example.pec.it",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
             "nome": "Tribunale di Test",
         },
     )
@@ -1876,6 +1891,7 @@ def test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_serve
         enc.write_bytes(b"ATTO-ENC-CONFORME")
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
+            "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
@@ -1980,7 +1996,7 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
         "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
         lambda fascicolo: {
             "codice_ufficio": "TEST001",
-            "pec_dest": "ufficio@example.pec.it",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
             "nome": "Tribunale di Test",
         },
     )
@@ -1992,6 +2008,7 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
         enc.write_bytes(b"ATTO-ENC-CONFORME")
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
+            "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),

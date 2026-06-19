@@ -257,7 +257,7 @@ def apply_simulated_receipt(
         if not getattr(deposito, "ricevuta_accettazione", ""):
             deposito.ricevuta_accettazione = text
             updated = True
-        if stato in {"", "INVIATO", "ACCETTATO"}:
+        if stato in {"", "PROVA_SENZA_INVIO", "INVIATO", "ACCETTATO"}:
             deposito.stato = "ACCETTATO_PEC"
             updated = True
     elif phase == "consegna":

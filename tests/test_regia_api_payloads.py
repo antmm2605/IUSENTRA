@@ -175,6 +175,41 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     assert docs[fuori.id].tipo == TipoDocumento.ALTRO
 
 
+def test_api_deposito_classifica_documenti_non_richiede_firma_su_contenitore_p7m(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    p7m = gf.aggiungi_documento(fascicolo.id, "Procura.PDF.p7m", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+    client = app.test_client()
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={
+            "documents": [
+                {
+                    "document_id": p7m.id,
+                    "selected": True,
+                    "role": "procura",
+                    "already_signed": False,
+                    "requires_signature": True,
+                }
+            ]
+        },
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    row = next(item for item in payload["updatedDocuments"] if item["documentId"] == p7m.id)
+    assert row["alreadySigned"] is True
+    assert row["requiresSignature"] is False
+
+    aggiornato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )._get_o_errore(fascicolo.id)
+    doc = next(item for item in aggiornato.documenti if item.id == p7m.id)
+    assert doc.firmato_digitalmente is False
+
 def test_api_deposito_classifica_documenti_non_cade_se_profilo_da_confermare(tmp_path, monkeypatch):
     app, gf, fascicolo = _app_with_fascicolo(tmp_path)
     atto = gf.aggiungi_documento(fascicolo.id, "atto da confermare.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.77 - 2026-06-19
+
+- Deposito telematico: la firma multipla non tenta più di rifirmare contenitori già firmati `.p7m`, `.sig` o `.pkcs7`; la UI li mostra come contenitori presenti senza dichiarare “Firmato digitale” se manca prova tecnica CAdES/PAdES.
+- Simulazione PEC: rimosso il vecchio `Message-ID` fittizio. `Simula invio PEC` prepara lo stesso payload Local Signer dell’invio reale, incluso `Atto.enc`, ma salva solo una prova `PROVA_SENZA_INVIO` e non marca i documenti come depositati.
+- Report deposito: aggiunto report di compatibilità con percentuale, controlli strutturali e ricevute da presidiare, visibile nella preview busta.
 ## 2.253.76 - 2026-06-18
 
 - PagoPA PST: neutralizzato il foglio opzionale `print.css` quando il portale ministeriale lo restituisce come HTML, così la modale nel fascicolo resta senza errore MIME in Chrome.

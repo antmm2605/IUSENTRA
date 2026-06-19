@@ -1,5 +1,12 @@
 # Pytest shard confermati OK
 
+## Deposito simulazione PEC e contenitori .p7m 2.253.77 - 2026-06-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio build` | OK | Asset React rigenerati dopo correzione microcopy e titolo promemoria; bundle contiene `FascicoliPage-DsZX74PD.js`. |
+| `docker compose build --no-cache app`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale ricostruita; `app`, `scheduler-worker`, `ocr-worker` healthy; `/api/pronto` `versione=2.253.77`. |
+| Browser reale integrato su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara?cb=2253774#generazione-busta` | OK osservato | Fascicolo Palmi caricato in React, PEC `gdp.palmi@civile.ptel.giustiziacert.it`, codici `0910401 / 0800570152`, contenitori `.p7m` non rifirmati, progress bar con documenti e `Atto.enc`, report `Compatibilità 100%`, `8/8` controlli OK, nessun `ComputeSignature`, `Invia deposito reale` abilitato. |
 ## PagoPA PST nel fascicolo 2.253.70 / 2.253.75 - 2026-06-18
 
 | Comando / verifica | Esito | Nota |
@@ -5220,3 +5227,9 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python tools\sync_packaging_files.py --check` | OK | OpenAPI valido, provider verification `auth-error=267`, `public-safe=15`, `success=29`, `backend-security=1`, contratti e packaging allineati. |
 | `docker compose build --no-cache app`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `curl http://127.0.0.1:8080/api/pronto` | OK | Docker locale reale healthy, versione `2.253.76`. |
 | Google Chrome reale su `http://127.0.0.1:8080/fascicoli/DC5BF1DB` | OK osservato | PagoPA aperto nel fascicolo, `Nuovo pagamento`, contributo, distretto `TORINO`, `Tribunale Ordinario - Torino`, 66 uffici caricati, `Paga subito` visibile, 0 errori console, nessun pagamento inviato. |
+## Deposito firma multipla e simulazione PEC 2.253.77 - 2026-06-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\bootstrap\deposito_routes.py web\services\local_pec_runtime.py pct\deposito_compatibilita.py pct\fascicoli.py pct\deposito_simulazione.py` | OK | Sintassi confermata dopo stato `PROVA_SENZA_INVIO`, report compatibilità e ramo simulazione senza `Message-ID` fittizio. |
+| `python -m pytest tests/test_regia_ui_react.py tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_non_richiede_firma_su_contenitore_p7m tests/test_regia_api_payloads.py::test_api_fascicolo_mostra_p7m_solo_con_firma_reale tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http -q` | OK | 10/10 passati: `.p7m` esclusi dalla firma multipla senza falso `Firmato digitale`, payload `Atto.enc` completo nella simulazione, stato `PROVA_SENZA_INVIO` e nessun `Message-ID` fittizio. |

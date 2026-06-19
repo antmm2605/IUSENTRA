@@ -4969,6 +4969,14 @@ def _deposit_document_role(value: Any) -> str:
     return aliases.get(role, "allegato")
 
 
+def _documento_contenitore_firma(doc: Any) -> bool:
+    for attr in ("nome", "nome_originale", "nome_archivio", "percorso"):
+        value = str(getattr(doc, attr, "") or "").strip().lower().split("?", 1)[0]
+        if value.endswith((".p7m", ".sig", ".pkcs7")):
+            return True
+    return False
+
+
 def _deposit_slot_key_for_role(role: str, slots: Iterable[Any], used: set[str]) -> str:
     role = _deposit_document_role(role)
     if role == "atto_principale":
@@ -5058,12 +5066,13 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             return jsonify({"errore": "Documento reale non trovato nel fascicolo.", "mock_fallback": False}), 404
         selected = bool(raw_row.get("selected"))
         role = _deposit_document_role(raw_row.get("role"))
-        already_signed = bool(raw_row.get("already_signed") or raw_row.get("alreadySigned"))
+        signed_container = _documento_contenitore_firma(doc)
+        already_signed = bool(raw_row.get("already_signed") or raw_row.get("alreadySigned") or signed_container)
         requires_signature = bool(
             raw_row.get("requires_signature")
             if "requires_signature" in raw_row
             else raw_row.get("requiresSignature")
-        )
+        ) and not signed_container
         if selected and role != "fuori_busta":
             selected_count += 1
             doc_type = _DEPOSIT_DOCUMENT_ROLE_TO_TYPE.get(role)

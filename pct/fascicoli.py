@@ -360,6 +360,7 @@ class DatiArchivio:
 # ------------------------------------------------------------------ Esito deposito PCT
 
 STATI_DEPOSITO_PCT_CANONICI = {
+    "PROVA_SENZA_INVIO",
     "INVIATO",
     "ACCETTATO_PEC",
     "CONSEGNATO",

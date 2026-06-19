@@ -9,6 +9,7 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
+from pct.deposito_compatibilita import build_deposito_compatibility_report
 from pct.deposito_simulazione import simulated_deposit_note
 from pct.pst_cifratura import PSTCifraturaError
 from web.blueprints.react_shell import render_react_shell_response
@@ -409,7 +410,6 @@ def register_deposito_routes(
     @app.route("/fascicoli/<id_fasc>/deposito/invia-pec", methods=["POST"])
     def deposito_invia_pec(id_fasc):
         """Crea la busta telematica e la invia via PEC all'ufficio giudiziario."""
-        import hashlib as _hl
         import json as _json
         import tempfile as _tmp
         import uuid as _uuid
@@ -719,8 +719,29 @@ def register_deposito_routes(
         )
         documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
         corpo_pec = form.get("corpo_pec", "").strip() or deposito_pec_body(documenti_busta)
+
+        def _compatibility_report(attachment_path: str, busta_audit: dict[str, Any] | None = None) -> dict[str, Any]:
+            return build_deposito_compatibility_report(
+                id_deposito=id_dep,
+                pec_dest=pec_dest,
+                oggetto_pec=oggetto_pec,
+                corpo_pec=corpo_pec,
+                documenti_busta=documenti_busta,
+                attachment_path=attachment_path,
+                busta_audit=busta_audit or busta.audit_conformita_pst(),
+                validation=validation,
+                codice_ufficio=codice_ufficio,
+                ufficio_nome=fascicolo.tribunale or "",
+                tipo_atto=tipo_atto,
+                numero_rg=numero_rg,
+                anno_rg=anno_rg,
+                simulazione_senza_invio=controllo_senza_invio,
+            )
+
         try:
             enc_path = busta.crea_busta(output_dir)
+            busta_audit = busta.audit_conformita_pst()
+            compatibility_report = _compatibility_report(enc_path, busta_audit)
         except PSTCifraturaError as exc:
             app.logger.exception("Certificato PST/cifratura busta non completata %s: %s", id_fasc, exc)
             guided_response = _guided_transport_completion_response(
@@ -757,6 +778,12 @@ def register_deposito_routes(
                     }
                 )
             )
+            guided_audit = payload_guidato.get("busta_audit") if isinstance(payload_guidato.get("busta_audit"), dict) else busta.audit_conformita_pst()
+            payload_guidato.setdefault("busta_audit", guided_audit)
+            payload_guidato["compatibility_report"] = _compatibility_report(
+                getattr(busta, "_last_atto_msg_path", "") or "",
+                guided_audit,
+            )
             return redacted_json_response(payload_guidato, 200 if controllo_senza_invio else 409)
         except Exception as exc:
             app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
@@ -775,8 +802,11 @@ def register_deposito_routes(
             validation=validation,
         )
         if guided_response:
+            guided_payload = _con_avviso_pec_mittente(guided_response)
+            guided_payload.setdefault("busta_audit", busta_audit)
+            guided_payload["compatibility_report"] = compatibility_report
             return redacted_json_response(
-                _con_avviso_pec_mittente(guided_response),
+                guided_payload,
                 200 if controllo_senza_invio else 409,
             )
 
@@ -792,8 +822,9 @@ def register_deposito_routes(
                 validation=validation,
                 documenti=documenti_busta,
                 corpo_pec=corpo_pec,
-                busta_audit=busta.audit_conformita_pst(),
+                busta_audit=busta_audit,
             )
+            prova_payload["compatibility_report"] = compatibility_report
             prova_payload["messaggio"] = (
                 "Prova deposito preparata: busta, indice, destinatario e testo PEC sono pronti per il controllo. "
                 "Nessun invio PEC reale è stato eseguito."
@@ -801,15 +832,93 @@ def register_deposito_routes(
             _con_avviso_pec_mittente(prova_payload)
             return redacted_json_response(prova_payload, 200)
 
-        if modalita_demo:
-            fake_mid = _hl.sha256(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
-            ris = {
-                "inviato": True,
-                "message_id": f"PROVA-{fake_mid}@iusentra.invalid",
-                "demo": True,
-            }
-            app.logger.info("Simulazione invio PEC deposito %s - nessun invio esterno eseguito", id_dep)
-        elif form.get("local_pec_confirmed") == "1":
+        if simula_invio_pec:
+            sim_payload = local_pec_required_response(
+                pec_cfg=pec_cfg,
+                pec_dest=pec_dest,
+                tipo_atto=tipo_atto,
+                id_deposito=id_dep,
+                timestamp=timestamp,
+                oggetto_pec=oggetto_pec,
+                attachment_path=enc_path,
+                validation=validation,
+                documenti=documenti_busta,
+                corpo_pec=corpo_pec,
+                busta_audit=busta_audit,
+            )
+            sim_payload.update(
+                {
+                    "ok": True,
+                    "simulazione": True,
+                    "requires_local_pec": False,
+                    "package_ready": True,
+                    "compatibility_report": compatibility_report,
+                    "messaggio": (
+                        f"Simulazione PEC completata senza invio reale: compatibilità {compatibility_report.get('percentuale', 0)}%. "
+                        "Il pacchetto locale e l'allegato Atto.enc sono stati preparati come per l'invio reale dal PC locale."
+                    ),
+                    "next_actions": [
+                        "Controlla destinatario, oggetto e corpo PEC prima dell'invio reale.",
+                        "Quando l'avvocato conferma, usa Invia deposito reale: l'invio parte dal PC locale tramite Local Signer.",
+                        "Presidia ricevuta di accettazione, RdAC, controlli automatici ed esito cancelleria nel fascicolo.",
+                    ],
+                }
+            )
+            _con_avviso_pec_mittente(sim_payload)
+            try:
+                from datetime import datetime as _dtnow
+
+                from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
+
+                atto_doc = next((doc for doc in fascicolo.documenti if doc.id == atto_id), None)
+                tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
+                label_atto = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
+                esito = EsitoDepositoPCT(
+                    id=id_dep,
+                    timestamp=timestamp,
+                    stato="PROVA_SENZA_INVIO",
+                    tipo_atto=tipo_atto,
+                    pec_destinatario=pec_dest,
+                    messaggio=(
+                        f"Prova senza invio PEC: busta {id_dep} predisposta verso {pec_dest}. "
+                        "Payload Local Signer completo con Atto.enc; Nessun invio esterno eseguito."
+                    ),
+                    note=simulated_deposit_note(note),
+                    registrato_da=utente.username if utente else "",
+                    documenti_ids=tutti_ids,
+                    nome_atto_principale=atto_doc.nome if atto_doc else "",
+                )
+                fascicolo.depositi_pct.append(esito)
+                fascicolo.attivita.append(
+                    AttivitaProcessuale(
+                        id=_uuid.uuid4().hex[:8].upper(),
+                        tipo=_tipo_attivita_da_tipo_atto(tipo_atto),
+                        data=date.today().isoformat(),
+                        titolo=f"Prova deposito telematico senza invio - {label_atto}",
+                        descrizione=(
+                            f"Tipo atto: {label_atto}. PEC: {pec_dest}. Busta: {id_dep}. "
+                            "Nessun invio reale eseguito."
+                        ),
+                        esito=EsitoAttivita.NON_APPLICABILE,
+                        id_deposito_pct=id_dep,
+                        avvocato=utente.username if utente else "",
+                    )
+                )
+                fascicolo.modificato_il = _dtnow.now().isoformat()
+                gestore_fascicoli._salva()
+                audit(
+                    "fascicoli.deposito.simula_invio_pec",
+                    "fascicolo",
+                    id_fasc,
+                    dettagli=f"Prova senza invio {id_dep} - {tipo_atto} -> {pec_dest}",
+                )
+                sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
+            except Exception as exc:
+                app.logger.exception("Errore salvataggio prova senza invio PEC %s: %s", id_fasc, exc)
+                sim_payload["avviso"] = "La prova è stata generata, ma il salvataggio nel fascicolo non è stato completato."
+            return redacted_json_response(sim_payload, 200)
+
+        if form.get("local_pec_confirmed") == "1":
             try:
                 ris = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
             except ValueError as exc:
@@ -831,7 +940,7 @@ def register_deposito_routes(
                     validation=validation,
                     documenti=documenti_busta,
                     corpo_pec=corpo_pec,
-                    busta_audit=busta.audit_conformita_pst(),
+                    busta_audit=busta_audit,
                 ),
                 200,
             )
@@ -841,7 +950,6 @@ def register_deposito_routes(
 
             from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
 
-            msg_demo = "Simulazione invio PEC senza spedizione - " if modalita_demo else ""
             atto_doc = next((doc for doc in fascicolo.documenti if doc.id == atto_id), None)
             tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
             esito = EsitoDepositoPCT(
@@ -850,13 +958,8 @@ def register_deposito_routes(
                 stato="INVIATO",
                 tipo_atto=tipo_atto,
                 pec_destinatario=pec_dest,
-                messaggio=(
-                    f"{msg_demo}Busta {id_dep} predisposta verso {pec_dest}. "
-                    f"Message-ID fittizio: {ris.get('message_id', '')}. Nessun invio esterno eseguito."
-                    if modalita_demo
-                    else f"Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id', '')}"
-                ),
-                note=simulated_deposit_note(note) if modalita_demo else note,
+                messaggio=f"Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id', '')}",
+                note=note,
                 registrato_da=utente.username if utente else "",
                 documenti_ids=tutti_ids,
                 nome_atto_principale=atto_doc.nome if atto_doc else "",
@@ -893,8 +996,8 @@ def register_deposito_routes(
             return jsonify(
                 {
                     "ok": True,
-                    "demo": modalita_demo,
-                    "simulazione": modalita_demo,
+                    "demo": False,
+                    "simulazione": False,
                     "avviso": "Busta inviata, ma il salvataggio dell'esito non è stato completato.",
                     "id_deposito": id_dep,
                     "pec_dest": pec_dest,
@@ -905,18 +1008,14 @@ def register_deposito_routes(
         return jsonify(
             {
                 "ok": True,
-                "demo": modalita_demo,
-                "simulazione": modalita_demo,
+                "demo": False,
+                "simulazione": False,
                 "id_deposito": id_dep,
                 "pec_dest": pec_dest,
                 "tipo_atto": tipo_atto,
                 "timestamp": timestamp,
                 "message_id": ris.get("message_id", ""),
-                "messaggio": (
-                    "Simulazione invio PEC registrata nel fascicolo. Nessun invio esterno eseguito."
-                    if modalita_demo
-                    else "Deposito inviato via PEC e registrato nel fascicolo."
-                ),
+                "messaggio": "Deposito inviato via PEC e registrato nel fascicolo.",
             }
         )
 

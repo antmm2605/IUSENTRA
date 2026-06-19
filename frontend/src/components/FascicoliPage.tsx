@@ -345,6 +345,7 @@ type ActionPayload = {
   busta_audit?: Record<string, unknown>
   pec_sender_ready?: boolean
   local_pec?: Record<string, unknown>
+  compatibility_report?: Record<string, unknown>
 }
 
 function PostAction({ action, children, tone = 'secondary', confirm, confirmTitle = 'Conferma operazione', onDone, onError, redirectTo, title, ariaLabel }:{action:string; children:ReactNode; tone?:'primary'|'secondary'|'danger'|'ghost'; confirm?:string; confirmTitle?:string; onDone?:(message?:string)=>void; onError?:(message:string)=>void; redirectTo?:string; title?:string; ariaLabel?:string}) {
@@ -419,6 +420,7 @@ type DepositPackagePreview = {
   requiresLocalPec: boolean
   localPec: Record<string, unknown>
   bustaAudit: Record<string, unknown>
+  compatibilityReport: Record<string, unknown>
   pecSenderReady: boolean
   message: string
 }
@@ -2653,6 +2655,11 @@ function recordBool(row: Record<string, unknown> | undefined, key: string) {
   return value === true || value === 'true' || value === '1' || value === 1
 }
 
+function recordNumber(row: Record<string, unknown> | undefined, key: string, fallback = 0) {
+  const value = Number(row?.[key] ?? fallback)
+  return Number.isFinite(value) ? value : fallback
+}
+
 function recordHref(row: Record<string, unknown> | undefined, key: string, fallback = '') {
   const value = recordText(row, key, fallback)
   return value.startsWith('/') || value.startsWith('#') ? value : fallback
@@ -2844,6 +2851,7 @@ function DepositPreparePage({ id }:{id:string}) {
       requiresLocalPec: Boolean(payload.requires_local_pec),
       localPec: payload.local_pec && typeof payload.local_pec === 'object' && !Array.isArray(payload.local_pec) ? payload.local_pec as Record<string, unknown> : {},
       bustaAudit: payload.busta_audit || {},
+      compatibilityReport: payload.compatibility_report && typeof payload.compatibility_report === 'object' && !Array.isArray(payload.compatibility_report) ? payload.compatibility_report as Record<string, unknown> : {},
       pecSenderReady: payload.pec_sender_ready !== false,
       message,
     })
@@ -2876,8 +2884,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const visibleRg = depositVisibleReference(f.rg, f.ref || f.id)
   const portalCatalog = buildPortalCatalogRows(data)
   const depositCandidateDocuments = data.documents.filter(isDepositCandidateDocument)
-  const signedCandidateDocuments = depositCandidateDocuments.filter((doc) => doc.signed).length
-  const unsignedCandidateDocuments = Math.max(0, depositCandidateDocuments.length - signedCandidateDocuments)
+  const signedCandidateDocuments = depositCandidateDocuments.filter((doc) => doc.signed || isSignedContainerDocument(doc)).length
+  const unsignedCandidateDocuments = depositCandidateDocuments.filter((doc) => !doc.signed && !isSignedContainerDocument(doc) && requiresPackageSignature(doc)).length
   const communicationDocuments = data.documents.filter(isCommunicationDocument)
   const documentsToClassify = data.documents.filter((doc) => documentOperationalRole(doc).label === 'Da classificare')
   const mainActs = depositCandidateDocuments.filter((doc) => {
@@ -3156,14 +3164,15 @@ function DepositPreparePage({ id }:{id:string}) {
     documents: depositSelectableDocuments.map((doc) => {
       const selected = Boolean(effectiveDepositClassificationById[doc.id]?.selected)
       const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
+      const signedContainerPresent = isSignedContainerDocument(doc)
       const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, role)
       const requestedSignature = selected && Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature)
       return {
         document_id: doc.id,
         selected,
         role: normaliseDepositRoleForUi(role),
-        already_signed: Boolean(doc.signed),
-        requires_signature: Boolean(mandatorySignature || requestedSignature),
+        already_signed: Boolean(doc.signed || signedContainerPresent),
+        requires_signature: Boolean(!signedContainerPresent && (mandatorySignature || requestedSignature)),
       }
     }),
   })
@@ -3296,6 +3305,14 @@ function DepositPreparePage({ id }:{id:string}) {
     || recordBool(packagePreview?.bustaAudit, 'blocks_direct_send')
     || recordBool(packagePreview?.bustaAudit, 'guided_completion_required')
   )
+  const compatibilityReport = packagePreview?.compatibilityReport || {}
+  const compatibilityPercent = packagePreview ? recordNumber(compatibilityReport, 'percentuale', -1) : -1
+  const compatibilityChecks = Array.isArray(compatibilityReport.checks)
+    ? compatibilityReport.checks.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    : []
+  const compatibilityReceipts = Array.isArray(compatibilityReport.ricevute_attese)
+    ? compatibilityReport.ricevute_attese.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    : []
   const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend
   const realSendDisabledReason = !packagePreview?.packageReady
     ? 'Esegui prima la prova senza invio reale.'
@@ -3707,13 +3724,14 @@ function DepositPreparePage({ id }:{id:string}) {
                   const selected = Boolean(classification.selected)
                   const isMainAct = mainActDocument?.id === doc.id
                   const roleValue = normaliseDepositRoleForUi(classification.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id))
-                  const canRequestSignature = !doc.signed && requiresPackageSignature(doc)
+                  const signedContainerPresent = isSignedContainerDocument(doc)
+                  const canRequestSignature = !doc.signed && !signedContainerPresent && requiresPackageSignature(doc)
                   const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, roleValue)
                   const signatureRequested = selected && canRequestSignature && (mandatorySignature || Boolean(classification.requiresSignature))
                   const signatureLabel = doc.signed
                     ? 'Firmato'
-                    : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Firma facoltativa') : 'Firma non necessaria'
-                  const showSignatureControl = selected || doc.signed
+                    : signedContainerPresent ? 'Contenitore .p7m' : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Firma facoltativa') : 'Firma non necessaria'
+                  const showSignatureControl = selected || doc.signed || signedContainerPresent
                   return (
                     <article className={`iu-fas-deposit-selection__row${selected ? ' is-selected' : ''}${isMainAct ? ' is-main' : ''}`} key={`select-${doc.id}`}>
                       <label className="iu-fas-deposit-selection__include">
@@ -3728,7 +3746,8 @@ function DepositPreparePage({ id }:{id:string}) {
                       <div className="iu-fas-deposit-selection__document">
                         <strong>{doc.name}</strong>
                         <span>{[doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
-                        {doc.signed ? <em>{doc.name.toLowerCase().endsWith('.p7m') ? 'File firmato .p7m' : 'Firma digitale verificata'}</em> : null}
+                        {doc.signed ? <em>Firma digitale verificata</em> : null}
+                        {signedContainerPresent && !doc.signed ? <em>File .p7m presente: non viene rifirmato</em> : null}
                         {selected && signatureRequested ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
                       <div className="iu-fas-deposit-document-actions" aria-label={`Azioni documento ${doc.name}`}>
@@ -3807,10 +3826,10 @@ function DepositPreparePage({ id }:{id:string}) {
             </div>
             <div className="iu-fas-package-board">
               <article className="iu-fas-package-main">
-                <Badge tone={mainActDocument ? (mainActDocument.signed ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
+                <Badge tone={mainActDocument ? (mainActDocument.signed || isSignedContainerDocument(mainActDocument) ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
                 <strong>{mainActDocument?.name || 'Da selezionare'}</strong>
-                <span>{mainActDocument ? [mainActDocument.type, mainActDocument.statusLabel, mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
-                {mainActDocument && !mainActDocument.signed ? <small>Firma prevista nel comando finale.</small> : null}
+                <span>{mainActDocument ? [mainActDocument.type, packageDocumentSignatureLabel(mainActDocument), mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
+                {mainActDocument && !mainActDocument.signed && !isSignedContainerDocument(mainActDocument) ? <small>Firma prevista nel comando finale.</small> : null}
               </article>
               <article>
                 <Badge tone={selectedAttachmentIds.length ? 'primary' : 'neutral'}>Allegati</Badge>
@@ -3861,14 +3880,16 @@ function DepositPreparePage({ id }:{id:string}) {
               {packageDocuments.map((doc) => {
                 const proofLabel = notificationProofKind(doc) ? notificationProofLabel(doc) : ''
                 const willSign = unsignedPackageDocuments.some((item) => item.id === doc.id)
+                const signatureLabel = packageDocumentSignatureLabel(doc)
                 return (
                   <article key={`package-${doc.id}`}>
                     <FileText size={16}/>
                     <div>
                       <strong>{doc.name}</strong>
-                      <span>{[proofLabel, doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
+                      <span>{[proofLabel, doc.type, signatureLabel, doc.size].filter(Boolean).join(' - ')}</span>
                     </div>
                     {willSign ? <small>Firma nel comando busta</small> : null}
+                    {!doc.signed && isSignedContainerDocument(doc) ? <small>File .p7m presente: non viene rifirmato</small> : null}
                   </article>
                 )
               })}
@@ -3964,7 +3985,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 progressItems={['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
                 progressLabel="Simulazione PEC in corso"
                 tone="secondary"
-                confirm="Simulare l'invio PEC senza spedire nulla all'esterno? Il software genera un Message-ID fittizio e registra la prova come simulazione."
+                confirm="Simulare l'invio PEC senza spedire nulla all'esterno? Il software prepara Atto.enc, controlla corpo e destinatario, confronta la prova con i campioni reali e registra solo una prova senza invio."
                 confirmTitle="Simula invio PEC"
                 onDone={refreshDetail}
                 onError={failDetail}
@@ -4016,6 +4037,38 @@ function DepositPreparePage({ id }:{id:string}) {
                     <strong>{packagePreview.idDeposito || 'Non registrato'}</strong>
                   </article>
                 </div>
+                {compatibilityPercent >= 0 ? (
+                  <section className="iu-fas-compat-report" aria-label="Report compatibilità deposito">
+                    <header>
+                      <Badge tone={compatibilityPercent === 100 ? 'success' : compatibilityPercent >= 80 ? 'warning' : 'danger'}>Compatibilità {compatibilityPercent}%</Badge>
+                      <div>
+                        <strong>{recordText(compatibilityReport, 'summary', 'Report di compatibilità generato dalla prova senza invio.')}</strong>
+                        <span>Confronto strutturale con i campioni PEC reali allegati e con gli artefatti ministeriali prodotti.</span>
+                      </div>
+                    </header>
+                    {compatibilityChecks.length ? (
+                      <div className="iu-fas-compat-report__checks">
+                        {compatibilityChecks.slice(0, 8).map((item) => {
+                          const code = recordText(item, 'code') || recordText(item, 'label')
+                          const status = recordText(item, 'status', 'warning')
+                          return (
+                            <article className={`is-${status}`} key={code}>
+                              <span>{status === 'ok' ? 'OK' : status === 'blocco' ? 'Blocco' : 'Avviso'}</span>
+                              <strong>{recordText(item, 'label', code)}</strong>
+                              <small>{recordText(item, 'detail')}</small>
+                            </article>
+                          )
+                        })}
+                      </div>
+                    ) : null}
+                    {compatibilityReceipts.length ? (
+                      <div className="iu-fas-compat-report__receipts">
+                        <strong>Ricevute da presidiare dopo l'invio reale</strong>
+                        <ul>{compatibilityReceipts.map((item) => <li key={recordText(item, 'id', recordText(item, 'label'))}>{recordText(item, 'label')}</li>)}</ul>
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
                 {pecWorkflowAvailable ? (
                   proofBlocksDirectSend ? (
                     <p className="iu-fas-package-preview__confirm">
@@ -4047,7 +4100,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 ) : null}
                 {packagePreview.nextActions.length ? (
                   <div className="iu-fas-package-preview__next">
-                    <strong>Controlli ancora richiesti prima dell’invio reale</strong>
+                    <strong>{realSendAvailable ? 'Promemoria prima dell’invio reale' : 'Controlli ancora richiesti prima dell’invio reale'}</strong>
                     <ul>{packagePreview.nextActions.map((item) => <li key={item}>{item}</li>)}</ul>
                   </div>
                 ) : null}
@@ -4161,7 +4214,7 @@ function DepositPreparePage({ id }:{id:string}) {
                       <JsonPostForm className="iu-fas-slot-link-form" action={`/api/v1/ui/fascicoli/${encodedId}/document-slots/${encodeURIComponent(slotKey)}/link`} onDone={refreshDetail} onError={failDetail}>
                         <select name="document_id" defaultValue={linkedDocument?.id || ''} required>
                           <option value="">Scegli documento</option>
-                          {data.documents.map((doc) => <option key={`${slotKey}-${doc.id}`} value={doc.id}>{doc.name} - {doc.statusLabel}</option>)}
+                          {data.documents.map((doc) => <option key={`${slotKey}-${doc.id}`} value={doc.id}>{doc.name} - {packageDocumentSignatureLabel(doc)}</option>)}
                         </select>
                         <button type="submit"><Save size={14}/> Collega</button>
                       </JsonPostForm>
@@ -4223,6 +4276,7 @@ function DepositBatchSignaturePanel({
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
+  const signableDocuments = documents.filter((doc) => !doc.signed && !isSignedContainerDocument(doc) && requiresPackageSignature(doc))
 
   useEffect(() => {
     setVisibleSignatureMode(loadVisibleSignatureMode(signature?.visibleSignatureMode || 'laterale'))
@@ -4258,8 +4312,8 @@ function DepositBatchSignaturePanel({
   }
 
   useEffect(() => {
-    if (documents.length) void checkLocalSigner(true)
-  }, [documents.length])
+    if (signableDocuments.length) void checkLocalSigner(true)
+  }, [signableDocuments.length])
 
   const scheduleLocalSignerRestartCheck = () => {
     setError('')
@@ -4295,6 +4349,13 @@ function DepositBatchSignaturePanel({
   }
 
   const signAll = async () => {
+    const targetDocuments = documents.filter((doc) => !doc.signed && !isSignedContainerDocument(doc) && requiresPackageSignature(doc))
+    if (!targetDocuments.length) {
+      const message = 'Nessun documento da firmare: i file già firmati o i contenitori .p7m non vengono rifirmati.'
+      setMessage(message)
+      onDone(message)
+      return
+    }
     if (restartSuggested || localSignerOutdated) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
@@ -4334,7 +4395,7 @@ function DepositBatchSignaturePanel({
     setError('')
     setMessage('Firma multipla in corso...')
     try {
-      const documenti = await Promise.all(documents.map(async (doc) => {
+      const documenti = await Promise.all(targetDocuments.map(async (doc) => {
         if (!doc.actions.download) throw new Error(`${doc.name}: download non disponibile.`)
         const response = await fetch(doc.actions.download, { credentials: 'same-origin' })
         if (!response.ok) throw new Error(`${doc.name}: download non riuscito HTTP ${response.status}.`)
@@ -4376,8 +4437,8 @@ function DepositBatchSignaturePanel({
       }
       const errors: string[] = []
       let saved = 0
-      for (let index = 0; index < documents.length; index += 1) {
-        const doc = documents[index]
+      for (let index = 0; index < targetDocuments.length; index += 1) {
+        const doc = targetDocuments[index]
         const result = risultati.find((item) => Number(item.indice) === index) || risultati[index]
         if (!result || result.ok === false || !result.firmato_b64) {
           errors.push(`${doc.name}: ${String(result?.errore || result?.messaggio || 'firma non completata')}`)
@@ -4409,9 +4470,9 @@ function DepositBatchSignaturePanel({
   }
 
   useEffect(() => {
-    registerAction?.(documents.length ? signAll : null)
+    registerAction?.(signableDocuments.length ? signAll : null)
     return () => registerAction?.(null)
-  }, [documents.length, pin, localSignerCanSign, restartSuggested, localSignerReachable, primaryToken?.slot_id, visibleSignatureMode, visibleSignaturePlace, visibleSignatureDatetimeMode])
+  }, [signableDocuments.length, pin, localSignerCanSign, restartSuggested, localSignerReachable, primaryToken?.slot_id, visibleSignatureMode, visibleSignaturePlace, visibleSignatureDatetimeMode])
 
   if (!documents.length) return null
 
@@ -4736,11 +4797,25 @@ function isDecisiveDepositIssue(row: { tone?: string; label?: string; message?: 
   return /(atto principale|codice oggetto|catalogo ufficiale|ufficio|registro|rg|documento selezionato|file|percorso|hash|datiatto|xml|schema|busta|indice|pdf\/?a|dimensione|slot|obbligator)/.test(text)
 }
 
+function isSignedContainerName(value: string): boolean {
+  return /\.(p7m|sig|pkcs7)$/i.test(String(value || '').trim().split(/[?#]/)[0])
+}
+
+function isSignedContainerDocument(doc: FascicoloDocument): boolean {
+  return [doc.name, doc.portalName, doc.actions?.download || ''].some((value) => isSignedContainerName(value))
+}
+
 function requiresPackageSignature(doc: FascicoloDocument): boolean {
+  if (isSignedContainerDocument(doc)) return false
   const proofKind = notificationProofKind(doc)
   if (proofKind && proofKind !== 'relata') return false
-  if (proofKind === 'relata' && /\.p7m$/i.test(doc.name)) return false
   return !doc.signed
+}
+
+function packageDocumentSignatureLabel(doc: FascicoloDocument): string {
+  if (doc.signed) return 'Firmato'
+  if (isSignedContainerDocument(doc)) return 'Contenitore .p7m'
+  return doc.statusLabel || 'Firma non necessaria'
 }
 
 function defaultSignatureRequiredForDepositRole(doc: FascicoloDocument | undefined, role: DepositDocumentRole): boolean {

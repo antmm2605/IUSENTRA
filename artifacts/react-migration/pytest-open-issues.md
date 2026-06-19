@@ -1,5 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
+## Deposito simulazione PEC 2.253.77 - 2026-06-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Corpo PEC nel report compatibilità | Browser reale locale `DC5BF1DB` | Risolto localmente | Il falso residuo `92%` era dovuto a un controllo troppo rigido sul corpo PEC. Ora il report richiede `Atto.enc` e i documenti contenuti; prova reale locale 19/06/2026 mostra `Compatibilità 100%`, `Corpo PEC verificabile` OK e nessun blocker. | Mantenere il test `test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme`; ripetere prova server dopo deploy. |
+| Contenitori `.p7m` già presenti | Browser reale locale `DC5BF1DB` | Risolto localmente | `Simula invio PEC` non richiama più Local Signer sui `.p7m`, non compare `ComputeSignature` e la UI mostra contenitori presenti/non rifirmati. | Confermare su produzione `E5AE4668` dopo deploy dello stesso commit. |
+| Produzione `E5AE4668` | `https://app.iusentra.it/fascicoli/E5AE4668/deposito/` | Da verificare dopo deploy | La prova locale reale è positiva; la chiusura finale richiede server Hetzner sullo stesso commit, `/api/pronto` OK e prova visiva produzione. | Commit, push branch gemelli, check GitHub, deploy Hetzner, prova server e igiene. |
 ## PagoPA PST nel fascicolo - 2.253.70 / 2.253.75
 
 | Area | Gate | Stato | Nota | Azione |

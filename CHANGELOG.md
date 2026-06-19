@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.79 - 2026-06-19
+
+- Deposito telematico: corretto il validatore busta per non bloccare l'atto principale quando il documento è già un contenitore CAdES `.p7m`, anche se il vecchio flag storico `firmato_digitalmente` non è valorizzato.
+- Anti-regressione: aggiunto test mirato sul caso Palmi/atto principale `.pdf.p7m` per evitare che la simulazione PEC richieda una rifirma non necessaria.
+
 ## 2.253.78 - 2026-06-19
 
 - Deposito telematico: estratti gli helper PEC locali dalla route bootstrap per rispettare il gate governance senza cambiare il comportamento già verificato.

@@ -784,6 +784,56 @@ def test_ricevuta_prova_rifiuta_depositi_non_simulati(tmp_path):
     assert "solo per depositi senza invio reale" in payload["errore"]
 
 
+def test_orchestratore_non_blocca_atto_principale_cades_p7m_senza_flag_storico(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Alessi Robertino c. Zurich",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Giudice di Pace - Palmi",
+        numero_rg="466",
+        anno_rg=2023,
+        controparte="Zurich Ass.ni",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "attoACQ.pdf.p7m",
+        TipoDocumento.RICORSO,
+        _pdf_base(),
+        firmato=False,
+    )
+    docs = [_doc_payload(gf, fasc.id, atto)]
+
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / "validation.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+    run = orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "RICORSO",
+            "codice_registro": "RG",
+            "oggetto": "Ricorso",
+            "codice_oggetto_pst": "222050",
+            "numero_rg": "466",
+            "anno_rg": 2023,
+            "atto_principale_id": atto.id,
+            "allegati_ids": [],
+            "operatore": "admin",
+        },
+        selected_documents=docs,
+        all_documents=docs,
+    )
+
+    codes = {issue["code"] for issue in run.issues}
+    assert "atto_principale_non_firmato" not in codes
+    assert run.semaforo["documentale"] != "blocco"
+
+
 def test_orchestratore_tributario_consente_prededeposito_con_nir(tmp_path):
     gf = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),

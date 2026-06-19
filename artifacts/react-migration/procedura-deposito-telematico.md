@@ -1643,6 +1643,43 @@ Prova reale server su Hetzner `2.253.76`:
 
 Stato: codice, Docker locale, GitHub, CodeQL/check remoti e server reale risultano allineati sul comportamento verificato. Il presente blocco documenta la prova server e va mantenuto come guardrail per future modifiche a fascicoli/PagoPA.
 
+## Aggiornamento 2.253.79 - Validazione CAdES atto principale
+
+Data intervento: 2026-06-19.
+
+Caso reale: nella prova su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara#generazione-busta`, fascicolo `2026/330 - Marchetti Lucia`, la UI React riconosceva l'atto principale `Autocertificazione ricorso.PDF.p7m` come contenitore `.p7m` e mostrava zero documenti da firmare, ma la simulazione PEC bloccava ancora con `Atto principale non firmato digitalmente`.
+
+Causa: il validatore documentale controllava solo il flag storico `firmato_digitalmente`; per un contenitore CAdES già presente questo non è sufficiente, perché la prova tecnica primaria è il contenitore `.p7m`/PKCS#7 e non una stringa o un flag storico.
+
+Correzione applicata:
+
+- il validatore busta considera firmato un documento principale se il file selezionato è già un contenitore CAdES `.p7m`, `.sig` o `.pkcs7`;
+- resta invariata la regola anti-falso-verde: un semplice nome o testo con parola `Firmato` non basta per mostrare firma digitale se il file non è un contenitore o non ha prova PAdES/CAdES;
+- la firma multipla non deve rifirmare contenitori già firmati;
+- aggiunto test mirato `test_orchestratore_non_blocca_atto_principale_cades_p7m_senza_flag_storico`.
+
+Verifica tecnica eseguita prima del rebuild: `python -m py_compile pct\deposito_guidato.py` e test mirato `.p7m` verdi.
+
+Prova reale locale `2.253.79` eseguita su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta`, fascicolo `RG 466/2023 - Alessi Robertino`, ufficio `Giudice di Pace - Palmi`:
+
+- pagina React autenticata, senza fallback legacy e senza HTML grezzo;
+- `Simula invio PEC` cliccato e confermato dalla UI reale;
+- esito visibile: `Simulazione PEC completata senza invio reale: compatibilità 100%`;
+- nessun blocco `Atto principale non firmato digitalmente`;
+- report UI con `Atto.enc ministeriale AES256`, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `8 documenti operativi indicati nella busta`, `PEC ufficio giudiziario`, `Corpo PEC verificabile`, `Simulazione senza invio SMTP`;
+- `Invia deposito reale` abilitato dopo la prova positiva;
+- testo PEC verificato con gli 8 documenti operativi richiesti dall'utente.
+
+Doppia verifica fisica locale `2.253.79`:
+
+- file prodotti nel container reale: `/tmp/busta_8FA0E152/Atto.msg` da `4.636.574` byte e `/tmp/busta_8FA0E152/Atto.enc` da `4.637.389` byte;
+- allegati effettivi in `Atto.msg`: `DatiAtto.xml`, `Note conclusive Alessi Robertino.pdf.p7m`, `attoACQ.pdf.p7m`, `Note trattazione scritta Alessi Robertino c Zurich Ass.ni-signed.pdf.p7m`, `perizia_r_ino_alessi__zurich_ass_ni.pdf.p7m`, `giudice_di_pace_di_palmi2.pdf.p7m`, `MEMORIA_CONCLUSIVA_ZURICH.pdf.p7m`, `Istanza trattazione scritta Alessi Robertino.pdf.p7m`, `MOD. Inizio Attivita Peritali.pdf.p7m`, `IndiceDocumentiDepositati.PDF`;
+- confronto sugli 8 documenti operativi richiesti: `expected_present_count=8`, `missing=[]`, `extra_operativi=[]`;
+- tecnici presenti e distinti dai documenti operativi: `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`;
+- `Atto.enc`: CMS `enveloped_data`, algoritmo `aes256_cbc`, `aes256=true`.
+
+La prova server va ripetuta dopo deploy `2.253.79` prima di dichiarare chiuso anche `E5AE4668` in produzione.
+
 ## Aggiornamento 2.253.78 - Doppia verifica Atto.enc deposito Palmi
 
 Data intervento: 2026-06-19.

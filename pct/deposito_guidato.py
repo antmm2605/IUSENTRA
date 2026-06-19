@@ -78,6 +78,16 @@ def _contains_any(text: str, needles: Iterable[str]) -> bool:
     return any(_slug(needle) in base for needle in needles if needle)
 
 
+def _is_signed_container_document(doc: dict[str, Any], path: Path | None = None) -> bool:
+    values = [
+        str(doc.get("nome") or ""),
+        str(doc.get("filename") or ""),
+        str(doc.get("percorso") or ""),
+        str(path or ""),
+    ]
+    return any(value.lower().endswith((".p7m", ".sig", ".pkcs7")) for value in values if value)
+
+
 def _guess_comune_from_label(label: str) -> str:
     text = str(label or "").strip()
     if not text:
@@ -1344,7 +1354,7 @@ class DocumentValidator:
                 )
 
             if doc.get("id") == main_doc_id:
-                if not bool(doc.get("firmato_digitalmente")):
+                if not bool(doc.get("firmato_digitalmente")) and not _is_signed_container_document(doc, path):
                     issues.append(
                         ValidationIssue(
                             service=SERVICE_DOCUMENTALE,

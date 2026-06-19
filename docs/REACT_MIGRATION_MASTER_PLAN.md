@@ -1,5 +1,25 @@
 # Migrazione progressiva Flask + React
 
+## PAT/SIGA documenti fascicolo e moduli ufficiali XFA - 2026-06-19 - 2.253.82
+
+La superficie `/pat` è stata ridotta a una cabina operativa: fascicolo, deposito Formweb, documenti del fascicolo, modulo ufficiale e consegna SIGA. Le sezioni descrittive, le card generiche e i pannelli non necessari non fanno più parte della pagina PAT principale.
+
+Stato codice:
+
+- React `/pat` mostra una procedura compatta a step: `Fascicolo`, `Deposito`, `Documenti`, `Modulo`, `SIGA`;
+- i documenti del fascicolo selezionato vengono letti dal repository reale e mostrati con `Visualizza`, `Scarica`, dimensione, firma, ruolo suggerito, selezione allegato e flag `Firma PAdES`;
+- `/api/v1/ui/pat/moduli/prefill` espone anche `documents` e `documentsSummary`, non solo i campi del modulo;
+- `/api/v1/ui/pat/moduli/compila` verifica che gli allegati scelti appartengano al fascicolo, rispetta i limiti Formweb e li passa al generatore PDF;
+- aggiunto `pct/pat_pdf_templates.py`: i PDF prodotti partono dai template ministeriali XFA ufficiali 4.x e non da un riepilogo sintetico;
+- aggiunti in `pct/data/pat_moduli/` i template ufficiali per ricorso, atto, richieste segreteria, ausiliari/parti non rituali, istanza ante causam e rimborso contributo unificato;
+- il PDF generato preserva `/AcroForm` e `/XFA`, usa il nome ufficiale del modulo e incorpora i documenti selezionati come allegati del PDF.
+
+Verifiche locali eseguite su `2.253.82`: `python -m compileall web\blueprints\api_v1_react.py pct\pat_pdf_templates.py`, `npm run build`, `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q`, `python tools\sync_packaging_files.py --check`, `python scripts\validate_openapi.py docs\openapi.yaml`, `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py tests\test_react_asset_retention.py -q --tb=short`, `git diff --check`.
+
+Prova reale locale eseguita su Docker `127.0.0.1:8080`, browser integrato visibile: fascicolo `DC5BF1DB`, `20` documenti caricati e allegabili, anteprima documento PDF interna, hover/focus `Visualizza`, selezione massiva `Nessuno`/`Seleziona tutti`, modulo precompilato, generazione PDF `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf` con `20` allegati e riepilogo operativo dati/allegati senza warning XFA del browser. Desktop, tablet `820x900` e mobile `390x844` verificati; su mobile è stato trovato e corretto il taglio dei campi modulo con `box-sizing:border-box` sui controlli PAT.
+
+Restano prima della chiusura complessiva: commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner con prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
+
 ## PAT/SIGA moduli compilabili interni - 2026-06-19 - 2.253.81
 
 La superficie `/pat` è stata corretta da catalogo/link a procedura software interna: il portale SIGA resta la fase finale dove l'avvocato consegna tutto, mentre IUSENTRA prepara prima fascicolo, deposito Formweb, modulo compilabile, allegati, firma e PDF dati modulo.

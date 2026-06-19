@@ -1,5 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
+## PAT/SIGA moduli ufficiali e allegati fascicolo - 2.253.82 - 2026-06-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Pagina `/pat` operativa | Browser reale locale `127.0.0.1:8080` | Risolto localmente | La pagina è stata ridotta al flusso operativo `Fascicolo`, `Deposito`, `Documenti`, `Modulo`, `SIGA`; caricati `20` documenti del fascicolo `DC5BF1DB`, con anteprima PDF interna, download, ruoli, selezione massiva e fase SIGA finale. | Ripetere smoke produzione dopo deploy Hetzner sullo stesso commit. |
+| PDF modulo PAT ufficiale | Test mirati + prova UI locale | Risolto localmente | Il generatore usa i PDF ufficiali 4.x come template, mantiene XFA/AcroForm e incorpora gli allegati selezionati dal fascicolo. La UI mostra controllo dati/allegati e non il warning XFA del viewer browser dentro il flusso operativo. | Conservare i test `pat_modulo` e confrontare ogni nuova versione ministeriale dei PDF prima di sostituire i template. |
+| Responsive mobile modulo PAT | Browser reale locale `390x844` | Risolto localmente | La prova mobile ha rilevato campi modulo tagliati a destra; causa individuata in `width:100%` con padding/bordo content-box. Fix applicato con `box-sizing:border-box` sui controlli PAT, rebuild Docker e nuova prova mobile senza overflow dei controlli. | Mantenere verifica mobile quando si tocca `TelematicoSurfacePage.css`. |
+| Produzione `https://app.iusentra.it/pat` | Hetzner + browser reale | Aperto fino a deploy | La locale Docker `2.253.82` è positiva; la chiusura complessiva richiede commit, push branch gemelli, check GitHub/CodeQL verdi, deploy Hetzner, `/api/pronto` produzione e prova visiva su `https://app.iusentra.it/pat`. | Eseguire commit/push/deploy e aggiornare questo report dopo la prova server. |
+
 ## PAT/SIGA Local Connector e iframe - 2.253.80 - 2026-06-19
 
 | Area | Gate | Stato | Nota | Azione |
@@ -1817,3 +1826,10 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | GitHub `Lint + syntax` sullo SHA `dafd2d1` | `generate_backend_security_map.py --check` | Risolto localmente, da confermare su nuovo SHA remoto | Il primo push della tranche PAT/SIGA finale ha fallito per `docs/backend-endpoint-security-map.md` non ancora allineato ai nuovi endpoint React `/api/v1/ui/pat/moduli/prefill` e `/api/v1/ui/pat/moduli/compila`. | Mappa sicurezza backend rigenerata, test mirato e blocco RBAC/tenant/OpenAPI 79/79 passati localmente; committare, pushare di nuovo entrambi i branch e attendere GitHub/CodeQL sul nuovo SHA prima del deploy Hetzner. |
+
+## PAT/SIGA documenti fascicolo e PDF ufficiali XFA 2.253.82 - 2026-06-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Prova reale locale `/pat` | Browser reale su `127.0.0.1:8080` | Aperto fino al rebuild Docker | Codice, test e build sono pronti: la UI PAT mostra documenti del fascicolo, ruoli allegato e generazione modulo ufficiale XFA. | Ricostruire Docker locale, verificare `/api/pronto=2.253.82`, aprire `/pat`, scegliere fascicolo, controllare documenti, hover/focus, responsive desktop/tablet/mobile e generazione modulo. |
+| Prova reale produzione `/pat` | `https://app.iusentra.it` sul commit pushato | Aperto fino a deploy Hetzner | La produzione attuale non contiene ancora la tranche 2.253.82. | Dopo commit/push e deploy Hetzner, verificare pagina reale, container healthy, `/api/pronto`, scroll completo e interazioni su documenti/modulo/SIGA. |

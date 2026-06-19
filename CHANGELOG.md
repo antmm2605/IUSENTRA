@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.253.82 - 2026-06-19
+
+- PAT/SIGA: rifatta `/pat` come superficie operativa compatta con soli passaggi utili: fascicolo, deposito Formweb, documenti del fascicolo, modulo ufficiale e consegna SIGA.
+- Documenti fascicolo: la precompilazione PAT espone tutti i documenti del fascicolo con anteprima, scarico, dimensione, firma e ruolo suggerito; l'avvocato può selezionare quali allegare e modificare il ruolo prima del deposito.
+- PDF ufficiali: aggiunti i template ministeriali XFA 4.x nel repository e nuovo generatore `pct.pat_pdf_templates` che parte dal PDF ufficiale, valorizza i campi XFA e incorpora gli allegati selezionati dal fascicolo.
+- API PAT: `/api/v1/ui/pat/moduli/compila` valida i limiti Formweb 50 file/300 MB, verifica che i documenti appartengano al fascicolo e produce il nome del modulo ministeriale compilato.
+- UI: rimossi dalla route PAT hero, KPI, card generiche, fonti estese e checklist laterali non operative; hover/focus e responsive desktop/tablet/mobile sono governati dagli stili dedicati.
+- Mobile: corretto il taglio dei campi modulo PAT su smartphone usando `box-sizing:border-box` sui controlli, rilevato e riprovato nella vista reale `390x844`.
+- Verifica reale locale: su Docker `127.0.0.1:8080` il fascicolo `DC5BF1DB` carica `20` documenti, apre l'anteprima PDF, seleziona gli allegati, genera il modulo ufficiale con `20` allegati e mostra la fase finale SIGA senza iframe.
+- Anti-regressione: estesi i test React/PAT per XFA ufficiale, allegati incorporati nel PDF e documenti reali del fascicolo con link `Visualizza`/`Scarica`.
+
 ## 2.253.81 - 2026-06-19
 
 - PAT/SIGA: riorganizzata `/pat` come percorso operativo `Fascicolo IUSENTRA -> Deposito Formweb -> Modulo compilabile -> Allegati e firme -> Sessione SIGA`, lasciando il portale ufficiale come fase finale di consegna.

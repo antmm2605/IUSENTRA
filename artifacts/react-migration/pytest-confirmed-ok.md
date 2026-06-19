@@ -1,5 +1,19 @@
 # Pytest shard confermati OK
 
+## PAT/SIGA moduli ufficiali e allegati fascicolo 2.253.82 - 2026-06-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm run build` | OK | Asset React rigenerati dopo fix CSS mobile PAT; bundle corrente include `TelematicoSurfacePage-vVAj0Xhr.js` e `TelematicoSurfacePage-DuLqMluE.css`. |
+| `docker compose build --no-cache app`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale ricostruita; `app`, `scheduler-worker`, `ocr-worker` healthy; `/api/pronto` `versione=2.253.82`. |
+| Browser integrato visibile su `http://127.0.0.1:8080/pat` | OK osservato | Verificati prima schermata operativa, assenza iframe/KPI vecchi, fascicolo `DC5BF1DB`, `20` documenti letti dal fascicolo, hover/focus `Visualizza`, anteprima PDF documento, `Nessuno`/`Seleziona tutti`, modulo precompilato, generazione PDF ufficiale con `20` allegati e fase finale `Consegna SIGA`. |
+| Responsive reale desktop/tablet/mobile | OK osservato | Desktop top/centro/fondo; tablet `820x900` senza overflow; mobile `390x844` ha fatto emergere taglio reale dei campi modulo, corretto con `box-sizing:border-box` sui controlli PAT e riprovato: nessun overflow visibile sui controlli PAT. |
+| `python -m compileall web\blueprints\api_v1_react.py pct\pat_pdf_templates.py` | OK | Sintassi confermata per endpoint PAT e generatore template ufficiali. |
+| `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q` | OK | `8/8` passati: PDF ufficiale XFA, allegati incorporati, sessione preview interna, prefill da fascicolo/clienti e guardrail UI PAT. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Packaging sincronizzato e OpenAPI valido. |
+| `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py tests\test_react_asset_retention.py -q --tb=short` | OK | `16/16` passati: packaging, readiness, UTF-8 e asset React. |
+| `git diff --check` | OK | Nessun errore whitespace; solo avvisi CRLF/LF governati da Git. |
+
 ## Deposito simulazione PEC e contenitori .p7m 2.253.77 - 2026-06-19
 
 | Comando / verifica | Esito | Nota |
@@ -5286,3 +5300,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose build --no-cache app`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Docker locale reale healthy; `/api/pronto` risponde `versione=2.253.81`; manifest container punta a `assets/TelematicoSurfacePage-B27PcjQt.js`. |
 | Browser integrato visibile su `http://127.0.0.1:8080/portali/pat/acquisizione` desktop/tablet/mobile | OK osservato | Desktop: titolo `Consegna finale PAT / SIGA e rientro ricevute`, bottone `Vai alla consegna SIGA`, assenti `Vai alla ricerca`, `create new`, `Scarica modulo ufficiale`; click reali su Step 2, Step 3, Step 4 e ritorno Step 1; disabilitati leggibili. Tablet `1024x768` e mobile `390x844`: zero overflow, sessione assistita SIGA impilata e pulsanti leggibili sopra la barra inferiore. |
 | `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest -q tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata --tb=short`; `python -m pytest -q tests\test_auth.py tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_openapi_contracts_phase6.py --tb=short` | OK | Mappa sicurezza backend riallineata dopo i nuovi endpoint PAT `/api/v1/ui/pat/moduli/prefill` e `/api/v1/ui/pat/moduli/compila`; 79/79 controlli RBAC/tenant/OpenAPI passati localmente dopo il rosso GitHub sullo SHA `dafd2d1`. |
+
+## PAT/SIGA documenti fascicolo e PDF ufficiali XFA 2.253.82 - 2026-06-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall pct\pat_pdf_templates.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per compilatore XFA ufficiale e API React PAT con documenti fascicolo. |
+| `npm run typecheck` | OK | TypeScript senza errori dopo nuova superficie `/pat` operativa e documenti allegabili. |
+| Generazione tecnica di tutti i moduli in `pct.pat_pdf_templates.PAT_PDF_TEMPLATES` | OK | Ricorso, atto, richieste segreteria, ausiliari/parti non rituali, istanza ante causam e rimborso generano PDF ufficiali con `/XFA=True`, 1 pagina e allegati incorporati. |
+| `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q` | OK | 7/7 passati: payload PAT, PDF ufficiale XFA, allegati incorporati, documenti fascicolo con `Visualizza`/`Scarica`, validazione campi obbligatori e contratti UI. |
+| `npm run build` | OK | Build Vite completata dopo la nuova pagina PAT operativa e bundle `TelematicoSurfacePage-8sB6y0yv.js`/CSS `TelematicoSurfacePage-fhiB4PFt.css`. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py tests\test_react_asset_retention.py -q --tb=short`; `git diff --check` | OK | Packaging sincronizzato, OpenAPI valido, 16/16 readiness/UTF-8/asset retention passati; `git diff --check` senza errori, solo warning CRLF su file già tracciati. |

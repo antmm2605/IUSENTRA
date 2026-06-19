@@ -13,6 +13,7 @@ import ipaddress
 import json
 import os
 import re
+import secrets
 import shutil
 import tempfile
 from datetime import date, datetime, timedelta, timezone
@@ -3909,6 +3910,127 @@ def _pat_soggetto_label(soggetto: Any) -> str:
     )
 
 
+def _pat_document_size_label(size: Any) -> str:
+    try:
+        value = int(size or 0)
+    except (TypeError, ValueError):
+        value = 0
+    if value <= 0:
+        return "dimensione non indicata"
+    if value < 1024:
+        return f"{value} B"
+    if value < 1024 * 1024:
+        return f"{value / 1024:.1f} KB".replace(".", ",")
+    return f"{value / (1024 * 1024):.1f} MB".replace(".", ",")
+
+
+def _pat_document_role(doc: Any) -> str:
+    tipo = _pat_enum_text(getattr(doc, "tipo", "")).casefold()
+    searchable = " ".join(
+        str(item or "")
+        for item in (
+            getattr(doc, "nome", ""),
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome_portale", ""),
+            getattr(doc, "note", ""),
+            " ".join(str(tag) for tag in (getattr(doc, "tags", []) or [])),
+            tipo,
+        )
+    )
+    normalized = re.sub(r"[^a-z0-9àèéìòù]+", " ", searchable.casefold()).strip()
+    if "procura" in normalized:
+        return "procura"
+    if "notifica" in normalized or "relata" in normalized:
+        return "notifica"
+    if "ricevuta" in normalized or "contributo" in normalized or "pagopa" in normalized or "iuv" in normalized:
+        return "ricevuta_pagamento"
+    if re.search(r"\b(ricorso|atto introduttivo|atto di appello|appello cautelare|motivi aggiunti)\b", normalized):
+        return "atto_principale"
+    if tipo == "ricorso":
+        return "atto_principale"
+    if re.search(r"\b(decreto|ordinanza|sentenza|verbale|perizia|ctu|ctp|comunicazione|minuta|liquidazione|note?|memoria conclusiva)\b", normalized):
+        return "allegato"
+    return "allegato"
+
+
+def _pat_document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
+    doc_id = _pat_module_prefill_text(getattr(doc, "id", ""))
+    name = _pat_module_prefill_text(
+        getattr(doc, "nome", "")
+        or getattr(doc, "nome_originale", "")
+        or getattr(doc, "nome_portale", "")
+        or "Documento"
+    )
+    try:
+        preview_url = url_for("visualizza_documento", id_fasc=fascicolo_id, id_doc=doc_id)
+        download_url = url_for("scarica_documento", id_fasc=fascicolo_id, id_doc=doc_id)
+    except Exception:
+        preview_url = f"/fascicoli/{fascicolo_id}/documenti/{doc_id}/visualizza" if fascicolo_id and doc_id else ""
+        download_url = f"/fascicoli/{fascicolo_id}/documenti/{doc_id}/scarica" if fascicolo_id and doc_id else ""
+    size = int(getattr(doc, "dimensione_bytes", 0) or 0)
+    return {
+        "id": doc_id,
+        "name": name,
+        "type": _pat_enum_text(getattr(doc, "tipo", "")) or "Documento",
+        "sizeBytes": size,
+        "sizeLabel": _pat_document_size_label(size),
+        "signed": bool(getattr(doc, "firmato_digitalmente", False) or getattr(doc, "firmato", False)),
+        "suggestedRole": _pat_document_role(doc),
+        "uploadedAt": _pat_module_prefill_text(getattr(doc, "data_caricamento", "")),
+        "documentDate": _pat_module_prefill_text(getattr(doc, "data_documento", "")),
+        "source": _pat_module_prefill_text(getattr(doc, "fonte_documento", "")),
+        "previewUrl": preview_url,
+        "downloadUrl": download_url,
+    }
+
+
+def _pat_read_document_bytes(gestore: Any, fascicolo_id: str, document_id: str) -> bytes:
+    path = gestore.percorso_documento_lettura(fascicolo_id, document_id)
+    if not path.exists() or not path.is_file():
+        raise FileNotFoundError(f"File documento non trovato: {document_id}")
+    from web.services.document_crypto import decrypt_doc
+
+    return decrypt_doc(path.read_bytes())
+
+
+def _pat_selected_documents_from_payload(gestore: Any, fascicolo: Any, payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    raw_items = payload.get("documents") or payload.get("documenti") or []
+    if not isinstance(raw_items, list):
+        raw_items = []
+    by_id = {
+        _pat_module_prefill_text(getattr(doc, "id", "")): doc
+        for doc in (getattr(fascicolo, "documenti", []) or [])
+        if _pat_module_prefill_text(getattr(doc, "id", ""))
+    }
+    selected: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in raw_items:
+        if not isinstance(raw, Mapping):
+            continue
+        doc_id = _pat_module_prefill_text(raw.get("id") or raw.get("documentId"))
+        if not doc_id or doc_id in seen:
+            continue
+        doc = by_id.get(doc_id)
+        if doc is None:
+            raise ValueError(f"Documento non appartenente al fascicolo: {doc_id}")
+        item = _pat_document_payload(_pat_module_prefill_text(getattr(fascicolo, "id", "")), doc)
+        role = _pat_module_prefill_text(raw.get("role") or raw.get("ruolo") or item.get("suggestedRole")) or "allegato"
+        item["role"] = role
+        item["requiresSignature"] = bool(raw.get("requiresSignature") or raw.get("firmaRichiesta"))
+        item["contentBytes"] = _pat_read_document_bytes(gestore, _pat_module_prefill_text(getattr(fascicolo, "id", "")), doc_id)
+        selected.append(item)
+        seen.add(doc_id)
+
+    total_size = sum(len(item.get("contentBytes") or b"") for item in selected)
+    if len(selected) > 50:
+        raise ValueError("Il Formweb PAT consente al massimo 50 file per deposito.")
+    if any(len(item.get("contentBytes") or b"") > 300 * 1024 * 1024 for item in selected):
+        raise ValueError("Un allegato supera il limite Formweb di 300 MB per singolo file.")
+    if total_size > 300 * 1024 * 1024:
+        raise ValueError("Gli allegati selezionati superano il limite Formweb di 300 MB complessivi.")
+    return selected
+
+
 def _pat_first_party_by_roles(parti: Iterable[tuple[Any, Any]], roles: set[str]) -> str:
     for parte, soggetto in parti:
         role = _pat_enum_text(getattr(parte, "ruolo", "")).upper()
@@ -3936,7 +4058,8 @@ def _pat_prefill_item_from_fascicolo(fascicolo: Any) -> dict[str, Any]:
     anno_rg = _pat_module_prefill_text(getattr(fascicolo, "anno_rg", ""))
     numero_rg = _pat_module_prefill_text(getattr(fascicolo, "numero_rg", ""))
     oggetto = _pat_module_prefill_text(getattr(fascicolo, "oggetto", "") or getattr(fascicolo, "titolo", ""))
-    documenti = list(getattr(fascicolo, "documenti", []) or [])[:8]
+    documenti = list(getattr(fascicolo, "documenti", []) or [])
+    document_payloads = [_pat_document_payload(fascicolo_id, doc) for doc in documenti]
     documenti_descrizione = ", ".join(_pat_module_prefill_text(getattr(doc, "nome", "")) for doc in documenti if getattr(doc, "nome", ""))
     fields = {
         "sede": _pat_module_prefill_text(getattr(fascicolo, "tribunale", "")),
@@ -3982,6 +4105,8 @@ def _pat_prefill_item_from_fascicolo(fascicolo: Any) -> dict[str, Any]:
         "counterparty": controparte,
         "source": "repository_fascicoli_clienti_soggetti",
         "fields": fields,
+        "documents": document_payloads,
+        "documentsSummary": f"{len(document_payloads)} documenti disponibili nel fascicolo",
         "warnings": warnings,
     }
 
@@ -4132,10 +4257,12 @@ def pat_moduli_compila_pdf():
         return jsonify({"ok": False, "errore": "Modulo PAT non riconosciuto."}), 404
 
     fascicolo_id = _pat_pdf_text(payload.get("fascicolo_id") or payload.get("fascicoloId"))
+    selected_documents: list[dict[str, Any]] = []
     prefill_fields: dict[str, str] = {}
     prefill_meta: dict[str, Any] = {}
     if fascicolo_id:
-        fascicolo = get_fascicoli().get(fascicolo_id)
+        gestore_fascicoli = get_fascicoli()
+        fascicolo = gestore_fascicoli.get(fascicolo_id)
         if fascicolo is None:
             return jsonify({"ok": False, "errore": "Fascicolo IUSENTRA non trovato per la precompilazione."}), 404
         prefill_meta = _pat_prefill_item_from_fascicolo(fascicolo)
@@ -4144,6 +4271,13 @@ def pat_moduli_compila_pdf():
             for key, value in (prefill_meta.get("fields") or {}).items()
             if _pat_pdf_text(value)
         }
+        try:
+            selected_documents = _pat_selected_documents_from_payload(gestore_fascicoli, fascicolo, payload)
+        except ValueError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 422
+        except Exception as exc:
+            current_app.logger.exception("PAT compila: lettura allegati fascicolo %s fallita: %s", fascicolo_id, exc)
+            return jsonify({"ok": False, "errore": "Impossibile leggere uno o più documenti del fascicolo selezionato."}), 500
 
     fields_payload = payload.get("fields") if isinstance(payload.get("fields"), dict) else {}
     fields = dict(prefill_fields)
@@ -4159,17 +4293,162 @@ def pat_moduli_compila_pdf():
             "missing": missing,
         }), 422
 
-    generated_at = datetime.now(ZoneInfo("Europe/Rome")).strftime("%d/%m/%Y %H:%M")
-    pdf = _build_pat_module_pdf(module, fields, {
-        "generated_at": generated_at,
-        "fascicolo_title": prefill_meta.get("title", ""),
-    })
+    from pct.pat_pdf_templates import build_pat_official_pdf
+
+    try:
+        pdf, download_name = build_pat_official_pdf(module.id, fields, selected_documents)
+    except Exception as exc:
+        current_app.logger.exception("PAT compila: modulo ufficiale %s non generato: %s", module.id, exc)
+        return jsonify({"ok": False, "errore": "Modulo ufficiale PAT non generato. Verifica template ministeriale e dati compilati."}), 500
+    pdf_bytes = pdf.getvalue()
+    if request.headers.get("X-IUSENTRA-PAT-Preview") == "1" or payload.get("previewSession") is True:
+        preview = _pat_store_preview_pdf(pdf_bytes, download_name)
+        return jsonify(
+            {
+                "ok": True,
+                "filename": download_name,
+                "sizeBytes": len(pdf_bytes),
+                "documentCount": len(selected_documents),
+                "previewUrl": url_for("api_v1_react.pat_moduli_preview_pdf", token=preview["token"]),
+                "downloadUrl": url_for(
+                    "api_v1_react.pat_moduli_preview_pdf",
+                    token=preview["token"],
+                    download="1",
+                ),
+            }
+        )
+    pdf.seek(0)
     return send_file(
         pdf,
         mimetype="application/pdf",
         as_attachment=False,
-        download_name=_pat_module_pdf_name(module.id),
+        download_name=download_name,
     )
+
+
+_PAT_PREVIEW_SESSION_KEY = "pat_pdf_previews"
+_PAT_PREVIEW_MAX_AGE_SECONDS = 2 * 60 * 60
+_PAT_PREVIEW_MAX_ITEMS = 8
+
+
+def _pat_preview_tenant_slug() -> str:
+    tenant = getattr(g, "tenant", None)
+    candidates = [
+        getattr(tenant, "slug", ""),
+        getattr(g, "tenant_context_slug", ""),
+        session.get("tenant_slug", ""),
+        getattr(g.get("utente_corrente") if hasattr(g, "get") else None, "tenant_slug", ""),
+        "single-studio",
+    ]
+    for candidate in candidates:
+        value = re.sub(r"[^a-zA-Z0-9_.-]+", "-", str(candidate or "").strip()).strip(".-")
+        if value:
+            return value[:80]
+    return "single-studio"
+
+
+def _pat_preview_root() -> Path:
+    root = Path(tempfile.gettempdir()) / "iusentra-pat-previews" / _pat_preview_tenant_slug()
+    root.mkdir(parents=True, exist_ok=True)
+    return root.resolve()
+
+
+def _pat_safe_preview_filename(filename: str) -> str:
+    name = Path(str(filename or "modulo-pat-compilato.pdf")).name.strip() or "modulo-pat-compilato.pdf"
+    name = re.sub(r"[\r\n\t]+", " ", name)
+    if not name.lower().endswith(".pdf"):
+        name = f"{name}.pdf"
+    return name[:180]
+
+
+def _pat_cleanup_preview_session(root: Path) -> dict[str, dict[str, Any]]:
+    now = datetime.now(timezone.utc).timestamp()
+    raw = session.get(_PAT_PREVIEW_SESSION_KEY) or {}
+    previews: dict[str, dict[str, Any]] = {}
+    if isinstance(raw, dict):
+        for token, meta_raw in raw.items():
+            token_text = str(token or "").strip()
+            meta = meta_raw if isinstance(meta_raw, dict) else {}
+            created_at = float(meta.get("created_at") or 0)
+            path = Path(str(meta.get("path") or ""))
+            expired = not created_at or now - created_at > _PAT_PREVIEW_MAX_AGE_SECONDS
+            try:
+                resolved = path.resolve()
+                inside_root = root in resolved.parents or resolved == root
+            except Exception:
+                inside_root = False
+            if expired or not inside_root or not path.exists():
+                try:
+                    if inside_root and path.exists():
+                        path.unlink()
+                except Exception:
+                    pass
+                continue
+            previews[token_text] = {
+                "path": str(path),
+                "filename": _pat_safe_preview_filename(str(meta.get("filename") or "")),
+                "created_at": created_at,
+            }
+    ordered = sorted(previews.items(), key=lambda item: float(item[1].get("created_at") or 0), reverse=True)
+    kept = dict(ordered[:_PAT_PREVIEW_MAX_ITEMS])
+    for _token, meta in ordered[_PAT_PREVIEW_MAX_ITEMS:]:
+        try:
+            Path(str(meta.get("path") or "")).unlink(missing_ok=True)
+        except Exception:
+            pass
+    session[_PAT_PREVIEW_SESSION_KEY] = kept
+    return kept
+
+
+def _pat_store_preview_pdf(pdf_bytes: bytes, filename: str) -> dict[str, str]:
+    root = _pat_preview_root()
+    previews = _pat_cleanup_preview_session(root)
+    token = secrets.token_urlsafe(18)
+    path = root / f"{token}.pdf"
+    path.write_bytes(pdf_bytes)
+    previews[token] = {
+        "path": str(path),
+        "filename": _pat_safe_preview_filename(filename),
+        "created_at": datetime.now(timezone.utc).timestamp(),
+    }
+    session[_PAT_PREVIEW_SESSION_KEY] = previews
+    return {"token": token, "path": str(path)}
+
+
+def _pat_preview_from_session(token: str) -> tuple[Path, str] | None:
+    token_text = str(token or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", token_text):
+        return None
+    root = _pat_preview_root()
+    previews = _pat_cleanup_preview_session(root)
+    meta = previews.get(token_text)
+    if not isinstance(meta, dict):
+        return None
+    path = Path(str(meta.get("path") or ""))
+    try:
+        resolved = path.resolve()
+        if not (root in resolved.parents or resolved == root) or not resolved.exists():
+            return None
+    except Exception:
+        return None
+    return resolved, _pat_safe_preview_filename(str(meta.get("filename") or ""))
+
+
+@api_v1_react.get("/pat/moduli/preview/<token>")
+@_richiedi_auth
+def pat_moduli_preview_pdf(token: str):
+    preview = _pat_preview_from_session(token)
+    if preview is None:
+        return jsonify({"ok": False, "errore": "Anteprima modulo PAT non disponibile. Rigenera il modulo."}), 404
+    path, filename = preview
+    response = send_file(
+        path,
+        mimetype="application/pdf",
+        as_attachment=request.args.get("download") == "1",
+        download_name=filename,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @api_v1_react.route("/pst/pagopa-proxy/", defaults={"pst_path": ""}, methods=["GET", "POST"])

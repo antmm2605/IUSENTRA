@@ -2,6 +2,38 @@
 
 Aggiornato: 2026-06-19.
 
+## Aggiornamento 2.253.82 - PAT/SIGA operativo con moduli ufficiali e allegati dal fascicolo
+
+Data intervento: 2026-06-19.
+
+Correzione applicata alla superficie React `/pat`, agli endpoint `/api/v1/ui/pat/moduli/*` e ai template ministeriali PAT:
+
+- la pagina PAT è stata ridotta a percorso operativo essenziale: `Fascicolo`, `Deposito`, `Documenti`, `Modulo`, `SIGA`; rimossi KPI e pannelli non necessari alla lavorazione;
+- IUSENTRA legge il fascicolo reale selezionato, mostra tutti i documenti disponibili, consente `Visualizza`, `Scarica`, selezione/deselezione massiva, ruolo documentale e spunta `Firma PAdES`;
+- i moduli ufficiali PDF 4.x della Giustizia Amministrativa sono stati integrati nel repository applicativo come template sorgente, non come semplici link esterni;
+- il PDF prodotto per `ModuloDepositoRicorso_4.02` mantiene il template ufficiale XFA/AcroForm e incorpora gli allegati selezionati dal fascicolo come file allegati al PDF;
+- la UI non mostra dentro la pagina il warning XFA del viewer browser: IUSENTRA espone invece il controllo operativo dei dati compilati e degli allegati inclusi, con link al PDF ufficiale generato per firma/consegna;
+- la fase SIGA resta la fase finale di consegna ufficiale: IUSENTRA prepara modulo, allegati e controlli; il portale ufficiale non viene forzato in iframe e non vengono intercettati SPID, CIE, CNS, PIN o token.
+
+Prova reale locale eseguita su Docker `127.0.0.1:8080`, versione `2.253.82`, browser integrato visibile, route `/pat`, fascicolo `DC5BF1DB` (`RG 466/2023`, `Giudice di Pace - Palmi`, `Alessi Robertino c. Zurich Ass.Ni`):
+
+- prima schermata: titolo `Prepara deposito PAT`, cinque passi operativi, nessun iframe, nessuna card KPI vecchia;
+- selezione fascicolo: caricati `20` documenti reali, `20` selezionati automaticamente, totale visibile `4,7 MB`;
+- hover/focus pulsante `Visualizza`: testo leggibile, contrasto stabile e nessun salto layout;
+- anteprima documento: click reale su `decretoGenerico.pdf`, modal interno con toolbar PDF del browser, pagina del documento visibile e link `Apri in nuova scheda`;
+- selezione allegati: `Nessuno` porta `0` selezionati e disabilita `20` selettori ruolo; `Seleziona tutti` riporta `20` selezionati e riabilita i ruoli;
+- modulo ufficiale: sede, parte depositante, oggetto, tipo ricorso, ricorrente e controparte precompilati dal fascicolo; compilati `Codice fiscale / partita IVA` e `Contributo unificato`;
+- generazione: `Genera modulo ufficiale` produce `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf` con `20` allegati; la UI mostra `Dati compilati nel modulo ufficiale`, `Allegati inclusi nel PDF`, dimensione PDF `6,1 MB` e non mostra `Adobe Reader`, `Please wait` o `Anteprima PDF non disponibile`;
+- fase finale: sezione `5. Consegna SIGA` visibile con `Avvia SIGA` abilitato e `Raccogli ricevute` / `Chiudi sessione` disabilitati finché la sessione non parte.
+
+Prova responsive reale:
+
+- desktop: scroll top/centro/fondo, pulsanti e testo leggibili;
+- tablet `820x900`: nessun overflow orizzontale, passi e campi impilati correttamente;
+- mobile `390x844`: rilevato un taglio reale dei campi modulo dovuto a `width:100%` senza `box-sizing:border-box`; corretto in CSS e riprovato dopo rebuild Docker. Dopo fix i controlli PAT non escono dalla colonna, i documenti hanno pulsanti verticali leggibili e il select ruolo resta visibile. L'unico elemento oltre viewport rilevato è la barra mobile globale, non il modulo PAT.
+
+Stato operativo: localmente la preparazione PAT è accettata su macchina reale per pagina, documenti del fascicolo, generazione PDF ufficiale con allegati e responsive. Restano obbligatori commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner e verifica produzione `https://app.iusentra.it/pat` sullo stesso commit prima della chiusura complessiva.
+
 ## Aggiornamento 2.253.81 - PAT/SIGA come consegna finale, non pagina di link
 
 Data intervento: 2026-06-19.
@@ -1806,3 +1838,38 @@ Prova reale locale eseguita nel browser integrato visibile su `http://127.0.0.1:
 - mobile `390x844`: `PAT Amministrativo`, zero iframe, zero overflow, pulsanti sessione impilati e leggibili a `259x44`; click reale su `Avvia sessione ufficiale SIGA` dopo scroll materiale, stato `monitor_download_attivo`, nessun errore Local Connector, chiusura sessione e scroll completo fino al fondo con fonti e guide visibili.
 
 Stato anti-regressione: i test mirati impediscono che PAT/SIGA torni a ereditare busta PCT, `.cer` PST, `Atto.enc` o PEC come canale ordinario, verificano che il payload React esponga moduli ufficiali, Formweb e portale ufficiale, e presidiano che l'avvio del Portale Avvocato passi da Local Connector/browser locale senza iframe o apertura esterna come soluzione finale.
+
+## Aggiornamento 2.253.82 - PAT/SIGA documenti fascicolo e PDF ufficiali XFA
+
+Data intervento: 2026-06-19.
+
+Obiettivo operativo: trasformare `/pat` da pagina informativa/catalago a procedura effettiva per l'avvocato, con lettura dei documenti del fascicolo, selezione allegati, generazione del modulo ufficiale PAT e consegna finale SIGA.
+
+Fonti e materiali usati:
+
+- pagina ufficiale Giustizia Amministrativa `Documentazione operativa e modulistica`, sezione `Moduli 4.x aggiornati al 7/07/2025`;
+- template ufficiali PDF XFA: `ModuloDepositoRicorso_4.02.pdf`, `ModuloDepositoAtto_4.02.pdf`, `ModuloDepositoRichiesteSegreteria_4.01.pdf`, `ModuloDepositoIstanza_4.01.pdf`, `ModuloDepositoPerAusiliariDelGiudiceEPartiNonRituali_4.01.pdf`, `ModuloDepositoRimborso_4.01_2026.pdf`;
+- PDF prodotto in precedenza da IUSENTRA confrontato come non conforme perché era un riepilogo da pochi KB e non il modulo XFA ufficiale.
+
+Modifiche applicate:
+
+- aggiunto `pct/pat_pdf_templates.py`, compilatore XFA che clona il PDF ministeriale, valorizza il pacchetto `template` XFA e preserva `/AcroForm` e `/XFA`;
+- aggiunti i PDF ufficiali in `pct/data/pat_moduli/`;
+- `/api/v1/ui/pat/moduli/prefill` ora espone i documenti reali del fascicolo con id, nome, tipo, dimensione, stato firma, ruolo suggerito, URL `Visualizza` e URL `Scarica`;
+- `/api/v1/ui/pat/moduli/compila` accetta `documents`, verifica che ogni documento appartenga al fascicolo selezionato, legge i file con `percorso_documento_lettura()` e `decrypt_doc()`, applica i limiti Formweb e incorpora gli allegati nel PDF generato;
+- React `/pat` ora mostra solo le sezioni operative `Fascicolo`, `Deposito`, `Documenti`, `Modulo`, `SIGA`;
+- la sezione `Documenti del fascicolo` consente selezione/deselezione, ruolo allegato, flag `Firma PAdES`, apertura anteprima e download del documento.
+
+Verifiche automatiche già eseguite:
+
+- `python -m compileall pct\pat_pdf_templates.py web\blueprints\api_v1_react.py`;
+- `npm run typecheck`;
+- generazione tecnica di tutti i moduli PAT ufficiali configurati: tutti hanno una pagina, `/AcroForm`, `/XFA=True`, dimensione circa 1,3-1,7 MB e allegati incorporati;
+- `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q`;
+- `npm run build`.
+
+Limiti residui prima della chiusura:
+
+- prova reale su `127.0.0.1:8080/pat` dopo rebuild Docker locale ancora da eseguire in questa tranche;
+- prova visiva produzione `https://app.iusentra.it/pat` ancora da eseguire dopo commit/push/deploy;
+- la consegna ufficiale resta nel portale SIGA/Formweb: IUSENTRA prepara modulo e allegati, poi importa ricevute e file ufficiali prodotti dalla sessione.

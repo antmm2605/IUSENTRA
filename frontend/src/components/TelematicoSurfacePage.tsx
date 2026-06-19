@@ -200,6 +200,23 @@ type AssistantSession = {
   message: string
 }
 
+type PatDocumentRole = 'atto_principale' | 'procura' | 'notifica' | 'ricevuta_pagamento' | 'allegato'
+
+type PatFascicoloDocument = {
+  id: string
+  name: string
+  type: string
+  sizeBytes: number
+  sizeLabel: string
+  signed: boolean
+  suggestedRole: PatDocumentRole
+  uploadedAt: string
+  documentDate: string
+  source: string
+  previewUrl: string
+  downloadUrl: string
+}
+
 type PatPrefillMatter = {
   id: string
   title: string
@@ -210,6 +227,8 @@ type PatPrefillMatter = {
   counterparty: string
   source: string
   fields: Record<string, string>
+  documents: PatFascicoloDocument[]
+  documentsSummary: string
   warnings: string[]
 }
 
@@ -1210,20 +1229,52 @@ function LexPanel({ data }:{ data:TelematicoSurfaceData }) {
   )
 }
 
+const PAT_DOCUMENT_ROLE_LABELS: Record<PatDocumentRole, string> = {
+  atto_principale: 'Atto principale',
+  procura: 'Procura',
+  notifica: 'Notifica o relata',
+  ricevuta_pagamento: 'Ricevuta pagamento',
+  allegato: 'Allegato',
+}
+
+const PAT_DOCUMENT_ROLES = Object.entries(PAT_DOCUMENT_ROLE_LABELS) as Array<[PatDocumentRole, string]>
+
+function normalisePatDocumentRole(value: string): PatDocumentRole {
+  if (value === 'atto_principale' || value === 'procura' || value === 'notifica' || value === 'ricevuta_pagamento' || value === 'allegato') {
+    return value
+  }
+  return 'allegato'
+}
+
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  if (bytes < 1024) return `${Math.round(bytes)} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${kb.toFixed(kb >= 10 ? 0 : 1)} KB`
+  const mb = kb / 1024
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`
+}
+
 function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   const procedure = data.patProcedure
   const [moduleQuery, setModuleQuery] = useState('')
   const [selectedDepositId, setSelectedDepositId] = useState('')
   const [selectedModuleId, setSelectedModuleId] = useState('')
   const [selectedFascicoloId, setSelectedFascicoloId] = useState('')
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([])
+  const [documentRoles, setDocumentRoles] = useState<Record<string, PatDocumentRole>>({})
+  const [documentSignatureRequired, setDocumentSignatureRequired] = useState<Record<string, boolean>>({})
   const [draftValues, setDraftValues] = useState<Record<string, string>>({})
   const [prefillMatters, setPrefillMatters] = useState<PatPrefillMatter[]>([])
   const [prefillBusy, setPrefillBusy] = useState(false)
   const [prefillMessage, setPrefillMessage] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState('')
+  const [pdfDownloadUrl, setPdfDownloadUrl] = useState('')
   const [pdfFileName, setPdfFileName] = useState('')
+  const [pdfSizeLabel, setPdfSizeLabel] = useState('')
   const [draftMessage, setDraftMessage] = useState('')
+  const [previewDocument, setPreviewDocument] = useState<PatFascicoloDocument | null>(null)
   const [portalSessionStarted, setPortalSessionStarted] = useState(false)
   const [portalSession, setPortalSession] = useState<AssistantSession | null>(null)
   const [portalSessionBusy, setPortalSessionBusy] = useState<'start' | 'collect' | 'close' | ''>('')
@@ -1263,6 +1314,15 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   const selectedPrefillMatter = useMemo(() => (
     prefillMatters.find((item) => item.id === selectedFascicoloId) || null
   ), [prefillMatters, selectedFascicoloId])
+  const selectedPatDocuments = useMemo(() => {
+    const docs = selectedPrefillMatter?.documents || []
+    const selected = new Set(selectedDocumentIds)
+    return docs.filter((doc) => selected.has(doc.id))
+  }, [selectedPrefillMatter, selectedDocumentIds])
+  const selectedDocumentsSizeMb = selectedPatDocuments.reduce((total, doc) => total + doc.sizeBytes, 0) / (1024 * 1024)
+  const selectedDocumentsOverLimit = selectedPatDocuments.length > (procedure?.limits.formweb.maxFiles || 50)
+    || selectedDocumentsSizeMb > (procedure?.limits.formweb.maxTotalSizeMb || 300)
+    || selectedPatDocuments.some((doc) => (doc.sizeBytes / (1024 * 1024)) > (procedure?.limits.formweb.maxSingleFileSizeMb || 300))
   const requiredFields = useMemo(
     () => (activeModule?.fillableFields || []).filter((field) => field.required),
     [activeModule],
@@ -1310,6 +1370,23 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
           Object.entries(fieldsRaw).forEach(([key, value]) => {
             fields[key] = asText(value)
           })
+          const documents = asList(row.documents).map((docRaw) => {
+            const doc = asRecord(docRaw)
+            return {
+              id: asText(doc.id),
+              name: asText(doc.name, 'Documento'),
+              type: asText(doc.type, 'Documento'),
+              sizeBytes: asNumber(doc.sizeBytes),
+              sizeLabel: asText(doc.sizeLabel),
+              signed: Boolean(doc.signed),
+              suggestedRole: normalisePatDocumentRole(asText(doc.suggestedRole)),
+              uploadedAt: asText(doc.uploadedAt),
+              documentDate: asText(doc.documentDate),
+              source: asText(doc.source),
+              previewUrl: asText(doc.previewUrl),
+              downloadUrl: asText(doc.downloadUrl),
+            }
+          }).filter((doc) => doc.id)
           return {
             id: asText(row.id),
             title: asText(row.title, 'Fascicolo'),
@@ -1320,6 +1397,8 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
             counterparty: asText(row.counterparty),
             source: asText(row.source, 'repository IUSENTRA'),
             fields,
+            documents,
+            documentsSummary: asText(row.documentsSummary, `${documents.length} documenti disponibili nel fascicolo`),
             warnings: asList(row.warnings).map((warning) => asText(warning)).filter(Boolean),
           }
         }).filter((item) => item.id)
@@ -1339,7 +1418,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   }, [procedure])
 
   useEffect(() => () => {
-    if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl)
+    if (pdfPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(pdfPreviewUrl)
   }, [pdfPreviewUrl])
 
   if (!procedure) return null
@@ -1359,14 +1438,49 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
     setDraftValues((current) => ({ ...current, [fieldId]: value }))
   }
 
+  const toggleDocument = (documentId: string, checked: boolean) => {
+    setSelectedDocumentIds((current) => {
+      if (checked) return current.includes(documentId) ? current : [...current, documentId]
+      return current.filter((item) => item !== documentId)
+    })
+  }
+
+  const setAllDocuments = (checked: boolean) => {
+    const docs = selectedPrefillMatter?.documents || []
+    setSelectedDocumentIds(checked ? docs.map((doc) => doc.id) : [])
+  }
+
+  const updateDocumentRole = (documentId: string, role: PatDocumentRole) => {
+    setDocumentRoles((current) => ({ ...current, [documentId]: role }))
+  }
+
+  const updateDocumentSignature = (documentId: string, required: boolean) => {
+    setDocumentSignatureRequired((current) => ({ ...current, [documentId]: required }))
+  }
+
   const applyPrefillMatter = (matter: PatPrefillMatter | null) => {
     if (!matter || !activeModule) return
     const allowed = new Set(activeModule.fillableFields.map((field) => field.id))
     const next: Record<string, string> = {}
     Object.entries(matter.fields).forEach(([key, value]) => {
-      if (allowed.has(key) && value.trim()) next[key] = value
+        if (allowed.has(key) && value.trim()) next[key] = value
     })
     setDraftValues((current) => ({ ...current, ...next }))
+    setSelectedDocumentIds(matter.documents.map((doc) => doc.id))
+    setDocumentRoles(() => {
+      const nextRoles: Record<string, PatDocumentRole> = {}
+      matter.documents.forEach((doc) => {
+        nextRoles[doc.id] = doc.suggestedRole || 'allegato'
+      })
+      return nextRoles
+    })
+    setDocumentSignatureRequired(() => {
+      const nextRequired: Record<string, boolean> = {}
+      matter.documents.forEach((doc) => {
+        nextRequired[doc.id] = doc.suggestedRole === 'atto_principale' && !doc.signed
+      })
+      return nextRequired
+    })
     setDraftMessage(`Dati del fascicolo "${matter.title}" applicati al modulo. Completa solo i campi mancanti.`)
   }
 
@@ -1382,34 +1496,46 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
       setDraftMessage(`Completa prima: ${missingRequiredFields.map((field) => field.label).join(', ')}.`)
       return
     }
+    if (selectedDocumentsOverLimit) {
+      setDraftMessage(`Riduci gli allegati: Formweb consente ${procedure.limits.formweb.maxFiles} file e ${procedure.limits.formweb.maxTotalSizeMb} MB complessivi.`)
+      return
+    }
     setPdfBusy(true)
-    setDraftMessage('Genero il PDF compilato da IUSENTRA...')
+    setDraftMessage('Genero il modulo ufficiale PAT con i documenti selezionati...')
     try {
       const response = await fetch('/api/v1/ui/pat/moduli/compila', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { Accept: 'application/pdf, application/json', 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-IUSENTRA-PAT-Preview': '1' },
         body: JSON.stringify({
           moduleId: activeModule.id,
           depositId: activeDeposit?.id || '',
           fascicoloId: selectedFascicoloId,
           fields: draftValues,
+          documents: selectedPatDocuments.map((doc) => ({
+            id: doc.id,
+            name: doc.name,
+            role: documentRoles[doc.id] || doc.suggestedRole || 'allegato',
+            requiresSignature: Boolean(documentSignatureRequired[doc.id]),
+          })),
         }),
       })
-      if (!response.ok) {
-        const payload = asRecord(await response.json().catch(() => ({})))
+      const payload = asRecord(await response.json().catch(() => ({})))
+      if (!response.ok || payload.ok === false) {
         throw new Error(asText(payload.errore || payload.message, 'PDF non generato. Controlla i campi obbligatori.'))
       }
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const disposition = response.headers.get('Content-Disposition') || ''
-      const match = /filename="?([^";]+)"?/i.exec(disposition)
+      const previewUrl = asText(payload.previewUrl)
+      const downloadUrl = asText(payload.downloadUrl || payload.previewUrl)
+      if (!previewUrl) throw new Error('Anteprima PDF non disponibile. Rigenera il modulo PAT.')
       setPdfPreviewUrl((current) => {
-        if (current) URL.revokeObjectURL(current)
-        return url
+        if (current.startsWith('blob:')) URL.revokeObjectURL(current)
+        return previewUrl
       })
-      setPdfFileName(match?.[1] || `${activeModule.id}-iusentra-compilato.pdf`)
-      setDraftMessage('PDF compilato generato dentro IUSENTRA. Controllalo nell\'anteprima prima della sessione SIGA.')
+      setPdfDownloadUrl(downloadUrl || previewUrl)
+      setPdfFileName(asText(payload.filename, `${activeModule.id}-compilato-iusentra.pdf`))
+      const sizeBytes = asNumber(payload.sizeBytes)
+      setPdfSizeLabel(sizeBytes ? formatFileSize(sizeBytes) : '')
+      setDraftMessage('Modulo ufficiale compilato. Controlla PDF e allegati prima della sessione SIGA.')
     } catch (error: unknown) {
       setDraftMessage(asText(error instanceof Error ? error.message : error, 'Generazione PDF non riuscita.'))
     } finally {
@@ -1577,233 +1703,257 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   }
 
   return (
-    <section className="iu-pat-workspace iu-tel-anchor-target" id="procedura-pat">
-      <header className="iu-pat-command">
+    <section className="iu-pat-workspace iu-pat-workspace--focused iu-tel-anchor-target" id="procedura-pat">
+      <header className="iu-pat-op-header">
         <div>
-          <span><FileText size={15}/> PAT / SIGA dentro IUSENTRA</span>
-          <h2>Deposito amministrativo guidato dal fascicolo</h2>
-          <p>Seleziona il fascicolo, scegli il deposito Formweb, compila il modulo in IUSENTRA e genera il PDF già pronto per controllo, firma e sessione ufficiale.</p>
+          <span><FileText size={15}/> PAT / SIGA</span>
+          <h2>Prepara deposito PAT</h2>
+          <p>Lavora dal fascicolo IUSENTRA: dati, documenti, modulo ufficiale e consegna finale sul Portale Avvocato.</p>
         </div>
         <aside>
           <Badge tone="success">{procedure.regime.formwebPriorityLabel}</Badge>
           <Badge tone="info">{procedure.limits.formweb.maxFiles} file</Badge>
-          <Badge tone="warning">{procedure.limits.formweb.maxTotalSizeMb} MB totali</Badge>
-          <Badge tone="purple">Firma {procedure.limits.formweb.signature}</Badge>
+          <Badge tone={selectedDocumentsOverLimit ? 'danger' : 'warning'}>
+            {selectedPatDocuments.length} selezionati, {selectedDocumentsSizeMb.toFixed(1).replace('.', ',')} MB
+          </Badge>
         </aside>
       </header>
 
-      <nav className="iu-pat-process-tabs" aria-label="Sezioni procedura PAT">
-        <a href="#pat-fascicolo">Fascicolo</a>
-        <a href="#pat-depositi">Depositi</a>
-        <a href="#moduli-pat">Moduli compilabili</a>
-        <a href="#pat-allegati">Allegati e firme</a>
-        <a href="#portale-avvocato-siga">Sessione SIGA</a>
+      <nav className="iu-pat-op-steps" aria-label="Passaggi deposito PAT">
+        {['Fascicolo', 'Deposito', 'Documenti', 'Modulo', 'SIGA'].map((step, index) => (
+          <a href={`#pat-step-${index + 1}`} key={step}>
+            <span>{index + 1}</span>
+            <strong>{step}</strong>
+          </a>
+        ))}
       </nav>
 
-      <div className="iu-pat-operational-grid">
-        <div className="iu-pat-left-flow">
-          <section className="iu-pat-block iu-pat-prefill" id="pat-fascicolo">
-            <header>
-              <div>
-                <span>Dati IUSENTRA</span>
-                <h3>Fascicolo per precompilare</h3>
-                <p>Usa sede, RG, parti, oggetto e dati anagrafici già presenti nel database dello studio.</p>
-              </div>
-              <Badge tone={prefillMatters.length ? 'success' : 'warning'}>{prefillBusy ? 'Caricamento' : `${prefillMatters.length} fascicoli`}</Badge>
-            </header>
+      <div className="iu-pat-op-grid">
+        <section className="iu-pat-step-card" id="pat-step-1">
+          <header>
+            <span>1. Fascicolo</span>
+            <Badge tone={prefillMatters.length ? 'success' : 'warning'}>{prefillBusy ? 'Carico' : `${prefillMatters.length}`}</Badge>
+          </header>
+          <label className="iu-pat-select-line">
+            <span>Fascicolo IUSENTRA</span>
+            <select value={selectedFascicoloId} onChange={(event) => selectPrefillMatter(event.target.value)}>
+              <option value="">Scegli fascicolo</option>
+              {prefillMatters.map((matter) => (
+                <option value={matter.id} key={matter.id}>{matter.title}{matter.rg ? `, RG ${matter.rg}` : ''}</option>
+              ))}
+            </select>
+          </label>
+          {selectedPrefillMatter ? (
+            <div className="iu-pat-selected-matter">
+              <strong>{selectedPrefillMatter.title}</strong>
+              <dl>
+                <div><dt>Sede</dt><dd>{selectedPrefillMatter.office || 'Da indicare'}</dd></div>
+                <div><dt>Cliente</dt><dd>{selectedPrefillMatter.client || 'Da indicare'}</dd></div>
+                <div><dt>Controparte</dt><dd>{selectedPrefillMatter.counterparty || 'Da indicare'}</dd></div>
+                <div><dt>Documenti</dt><dd>{selectedPrefillMatter.documentsSummary}</dd></div>
+              </dl>
+              {selectedPrefillMatter.warnings.length ? (
+                <ul>
+                  {selectedPrefillMatter.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                </ul>
+              ) : null}
+              <button type="button" onClick={() => applyPrefillMatter(selectedPrefillMatter)}>
+                <Copy size={15}/> Aggiorna dati dal fascicolo
+              </button>
+            </div>
+          ) : <p className="iu-pat-state-note">{prefillMessage}</p>}
+        </section>
+
+        <section className="iu-pat-step-card" id="pat-step-2">
+          <header>
+            <span>2. Deposito</span>
+            <Badge tone="info">{activeDeposit?.steps || 'step'}</Badge>
+          </header>
+          <label className="iu-pat-select-line">
+            <span>Tipo deposito Formweb</span>
+            <select
+              value={activeDeposit?.id || ''}
+              onChange={(event) => {
+                const deposit = procedure.formwebDeposits.find((item) => item.id === event.target.value)
+                if (deposit) selectDeposit(deposit.id, deposit.moduleId)
+              }}
+            >
+              {procedure.formwebDeposits.map((deposit) => (
+                <option value={deposit.id} key={deposit.id}>{deposit.title}</option>
+              ))}
+            </select>
+          </label>
+          <div className="iu-pat-deposit-summary">
+            <strong>{activeDeposit?.title || 'Deposito da scegliere'}</strong>
+            <span>{activeDeposit?.mandatoryFocus.join(', ') || 'Scegli il percorso operativo.'}</span>
+            <small>{activeDeposit?.produces.join(', ') || ''}</small>
+          </div>
+        </section>
+
+        <section className="iu-pat-step-card iu-pat-step-card--wide" id="pat-step-3">
+          <header>
+            <span>3. Documenti del fascicolo</span>
+            <Badge tone={selectedPatDocuments.length ? 'success' : 'warning'}>{selectedPatDocuments.length} allegati</Badge>
+          </header>
+          <div className="iu-pat-document-toolbar">
+            <p>Apri i documenti, scegli cosa depositare e assegna il ruolo che entrerà nel modulo ufficiale.</p>
+            <div>
+              <button type="button" disabled={!selectedPrefillMatter?.documents.length} onClick={() => setAllDocuments(true)}>
+                Seleziona tutti
+              </button>
+              <button type="button" disabled={!selectedPatDocuments.length} onClick={() => setAllDocuments(false)}>
+                Nessuno
+              </button>
+            </div>
+          </div>
+          {selectedPrefillMatter?.documents.length ? (
+            <div className="iu-pat-document-list" role="list">
+              {selectedPrefillMatter.documents.map((doc) => {
+                const selected = selectedDocumentIds.includes(doc.id)
+                const role = documentRoles[doc.id] || doc.suggestedRole || 'allegato'
+                return (
+                  <article className={`iu-pat-doc-row ${selected ? 'is-selected' : ''}`} key={doc.id} role="listitem">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={(event) => toggleDocument(doc.id, event.target.checked)}
+                      aria-label={`Allega ${doc.name}`}
+                    />
+                    <div className="iu-pat-doc-main">
+                      <strong>{doc.name}</strong>
+                      <span>{doc.type} · {doc.sizeLabel || 'dimensione non indicata'} · {doc.signed ? 'Firmato' : 'Non firmato'}</span>
+                    </div>
+                    <div className="iu-pat-doc-actions">
+                      <button type="button" onClick={() => setPreviewDocument(doc)}>Visualizza</button>
+                      <a href={doc.downloadUrl} target="_blank" rel="noreferrer">Scarica</a>
+                    </div>
+                    <label className="iu-pat-doc-role">
+                      <span>Ruolo</span>
+                      <select value={role} disabled={!selected} onChange={(event) => updateDocumentRole(doc.id, normalisePatDocumentRole(event.target.value))}>
+                        {PAT_DOCUMENT_ROLES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+                      </select>
+                    </label>
+                    <label className="iu-pat-doc-signature">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(documentSignatureRequired[doc.id])}
+                        disabled={!selected}
+                        onChange={(event) => updateDocumentSignature(doc.id, event.target.checked)}
+                      />
+                      <span>Firma PAdES</span>
+                    </label>
+                  </article>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="iu-pat-state-note">Seleziona un fascicolo con documenti caricati per prepararli al deposito.</p>
+          )}
+          {selectedDocumentsOverLimit ? (
+            <p className="iu-pat-warning-text">Riduci allegati o dimensione: Formweb consente {procedure.limits.formweb.maxFiles} file, {procedure.limits.formweb.maxSingleFileSizeMb} MB per file e {procedure.limits.formweb.maxTotalSizeMb} MB complessivi.</p>
+          ) : null}
+        </section>
+
+        <section className="iu-pat-step-card iu-pat-step-card--wide" id="pat-step-4">
+          <header>
+            <span>4. Modulo ufficiale</span>
+            <Badge tone={missingRequiredFields.length ? 'warning' : 'success'}>{requiredCompletion}</Badge>
+          </header>
+          <div className="iu-pat-module-line">
             <label className="iu-pat-select-line">
-              <span>Fascicolo</span>
-              <select value={selectedFascicoloId} onChange={(event) => selectPrefillMatter(event.target.value)}>
-                <option value="">Scegli fascicolo IUSENTRA</option>
-                {prefillMatters.map((matter) => (
-                  <option value={matter.id} key={matter.id}>{matter.title} {matter.rg ? `- ${matter.rg}` : ''}</option>
+              <span>Modulo ministeriale</span>
+              <select
+                value={activeModule?.id || ''}
+                onChange={(event) => {
+                  const module = procedure.modules.find((item) => item.id === event.target.value)
+                  if (module) selectModule(module)
+                }}
+              >
+                {procedure.modules.map((module) => (
+                  <option value={module.id} key={module.id}>{module.title}, versione {module.version}</option>
                 ))}
               </select>
             </label>
-            {selectedPrefillMatter ? (
-              <div className="iu-pat-prefill-card">
-                <strong>{selectedPrefillMatter.title}</strong>
-                <span>{selectedPrefillMatter.subtitle || 'Dati letti dai repository del tenant corrente.'}</span>
-                <dl>
-                  <div><dt>Sede</dt><dd>{selectedPrefillMatter.office || 'Da indicare'}</dd></div>
-                  <div><dt>Cliente</dt><dd>{selectedPrefillMatter.client || 'Da indicare'}</dd></div>
-                  <div><dt>Controparte</dt><dd>{selectedPrefillMatter.counterparty || 'Da indicare'}</dd></div>
-                </dl>
-                {selectedPrefillMatter.warnings.length ? (
-                  <ul>
-                    {selectedPrefillMatter.warnings.map((warning) => <li key={warning}>{warning}</li>)}
-                  </ul>
-                ) : null}
-                <button type="button" onClick={() => applyPrefillMatter(selectedPrefillMatter)}>
-                  <Copy size={15}/> Aggiorna campi dal fascicolo
-                </button>
-              </div>
-            ) : <p className="iu-pat-state-note">{prefillMessage}</p>}
-          </section>
-
-          <section className="iu-pat-block iu-pat-deposit-panel" id="pat-depositi">
-            <header>
-              <div>
-                <span>Depositi Formweb</span>
-                <h3>Seleziona il percorso</h3>
-                <p>Ogni deposito aggancia automaticamente il modulo compilabile più coerente.</p>
-              </div>
-            </header>
-            <div className="iu-pat-deposit-list">
-              {procedure.formwebDeposits.map((deposit) => (
-                <button
-                  type="button"
-                  key={deposit.id}
-                  className={deposit.id === activeDeposit?.id ? 'is-selected' : ''}
-                  onClick={() => selectDeposit(deposit.id, deposit.moduleId)}
-                >
-                  <span>{deposit.steps}</span>
-                  <strong>{deposit.title}</strong>
-                  <small>{deposit.mandatoryFocus.join(' - ')}</small>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <section className="iu-pat-block iu-pat-compiler" id="moduli-pat">
-          <header>
             <div>
-              <span>Moduli compilabili in IUSENTRA</span>
-              <h3>{activeModule?.title || 'Modulo PAT'}</h3>
-              <p>{activeModule?.note || 'Compila i campi del modulo direttamente nel gestionale e usa i dati del fascicolo dove disponibili.'}</p>
+              <strong>{activeModule?.title || 'Modulo PAT'}</strong>
+              <span>{activeModule?.note || 'Compila i campi richiesti con dati del fascicolo.'}</span>
             </div>
-            <Badge tone={missingRequiredFields.length ? 'warning' : 'success'}>{requiredCompletion} obbligatori</Badge>
-          </header>
-
-          <div className="iu-pat-compiler-layout">
-            <aside className="iu-pat-module-rail" aria-label="Moduli PAT disponibili">
-              <label>
-                <Search size={15}/>
-                <input value={moduleQuery} onChange={(event) => setModuleQuery(event.target.value)} placeholder="Cerca modulo o materia"/>
+          </div>
+          <div className="iu-pat-form-grid">
+            {(activeModule?.fillableFields || []).map((field) => (
+              <label className={`iu-pat-field ${field.type === 'textarea' ? 'iu-pat-field--wide' : ''}`} key={field.id}>
+                <span>{field.label}{field.required ? ' *' : ''}</span>
+                {renderFieldControl(field)}
+                {field.help ? <small>{field.help}</small> : null}
               </label>
-              <div>
-                {modules.map((module) => {
-                  const linkedDeposits = depositsByModule.get(module.id) || []
-                  return (
-                    <button
-                      type="button"
-                      key={module.id}
-                      className={module.id === activeModule?.id ? 'is-selected' : ''}
-                      onClick={() => selectModule(module)}
-                    >
-                      <strong>{module.title}</strong>
-                      <span>v{module.version}{linkedDeposits.length ? ` - ${linkedDeposits.length} percorsi` : ''}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </aside>
-
-            <div className="iu-pat-compiler-board">
-              <div className="iu-pat-compiler-summary">
-                <div>
-                  <span>Deposito selezionato</span>
-                  <strong>{activeDeposit?.title || 'Da scegliere'}</strong>
-                  <small>{activeDeposit?.produces.join(' - ') || 'Seleziona un deposito Formweb.'}</small>
-                </div>
-                <div>
-                  <span>Fonte modulo</span>
-                  <strong>{activeModule ? `Versione ${activeModule.version}` : 'Da scegliere'}</strong>
-                  <small>La compilazione operativa resta dentro IUSENTRA.</small>
-                </div>
-              </div>
-
-              <div className="iu-pat-form-grid">
-                {(activeModule?.fillableFields || []).map((field) => (
-                  <label className={`iu-pat-field ${field.type === 'textarea' ? 'iu-pat-field--wide' : ''}`} key={field.id}>
-                    <span>{field.label}{field.required ? ' *' : ''}</span>
-                    {renderFieldControl(field)}
-                    {field.help ? <small>{field.help}</small> : null}
-                  </label>
-                ))}
-              </div>
-
-              <div className="iu-pat-compiler-actions">
-                <button type="button" disabled={!activeModule || pdfBusy} onClick={generateInternalPdf}>
-                  <FileCheck2 size={16}/> {pdfBusy ? 'Genero PDF...' : 'Genera PDF compilato'}
-                </button>
-                <span>{missingRequiredFields.length ? `Mancano: ${missingRequiredFields.map((field) => field.label).join(', ')}` : 'Dati obbligatori compilati. Procedi al controllo allegati.'}</span>
-              </div>
-              {draftMessage ? <p className="iu-pat-session-message">{draftMessage}</p> : null}
-              {pdfPreviewUrl ? (
-                <div className="iu-pat-pdf-preview">
-                  <header>
-                    <strong>Anteprima PDF compilato</strong>
-                    <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">{pdfFileName || 'Apri PDF'}</a>
-                  </header>
-                  <object data={pdfPreviewUrl} type="application/pdf">
-                    <p>Anteprima PDF non disponibile nel browser. Apri il file dal collegamento sopra.</p>
-                  </object>
-                </div>
-              ) : null}
-            </div>
+            ))}
           </div>
+          <div className="iu-pat-compiler-actions">
+            <button type="button" disabled={!activeModule || pdfBusy || selectedDocumentsOverLimit} onClick={generateInternalPdf}>
+              <FileCheck2 size={16}/> {pdfBusy ? 'Genero modulo...' : 'Genera modulo ufficiale'}
+            </button>
+            <span>{missingRequiredFields.length ? `Mancano: ${missingRequiredFields.map((field) => field.label).join(', ')}` : 'Campi obbligatori compilati.'}</span>
+          </div>
+          {draftMessage ? <p className="iu-pat-session-message">{draftMessage}</p> : null}
+          {pdfPreviewUrl ? (
+            <div className="iu-pat-pdf-ready">
+              <strong>Modulo ufficiale pronto</strong>
+              <span>{pdfFileName || 'PDF PAT compilato'} con {selectedPatDocuments.length} allegati selezionati dal fascicolo.</span>
+              <a href={pdfDownloadUrl || pdfPreviewUrl} target="_blank" rel="noreferrer">Apri PDF compilato</a>
+            </div>
+          ) : null}
+          {pdfPreviewUrl ? (
+            <div className="iu-pat-generated-pdf-viewer">
+              <header>
+                <strong>Controllo PDF prodotto da IUSENTRA</strong>
+                <span>Verifica dati e allegati prima della firma e della consegna SIGA.</span>
+              </header>
+              <div className="iu-pat-generated-review">
+                <section>
+                  <strong>Dati compilati nel modulo ufficiale</strong>
+                  <dl>
+                    {(activeModule?.fillableFields || []).map((field) => (
+                      <div key={`review-${field.id}`}>
+                        <dt>{field.label}</dt>
+                        <dd>{draftValues[field.id] || 'Non indicato'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+                <section>
+                  <strong>Allegati inclusi nel PDF</strong>
+                  <span>{selectedPatDocuments.length} file selezionati dal fascicolo{pdfSizeLabel ? ` · PDF ${pdfSizeLabel}` : ''}</span>
+                  <ul>
+                    {selectedPatDocuments.map((doc) => (
+                      <li key={`pdf-doc-${doc.id}`}>
+                        <span>{doc.name}</span>
+                        <small>{PAT_DOCUMENT_ROLE_LABELS[documentRoles[doc.id] || doc.suggestedRole || 'allegato']} · {doc.sizeLabel || formatFileSize(doc.sizeBytes)}</small>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+            </div>
+          ) : null}
         </section>
-      </div>
 
-      <section className="iu-pat-block iu-pat-attachments" id="pat-allegati">
-        <header>
-          <div>
-            <span>Allegati e firme</span>
-            <h3>Controllo prima del portale</h3>
-            <p>La sessione SIGA deve iniziare solo con modulo compilato, allegati ordinati e firma PAdES pronta.</p>
-          </div>
-          <Badge tone={missingRequiredFields.length ? 'warning' : 'success'}>{missingRequiredFields.length ? 'Dati mancanti' : 'Pronto al controllo'}</Badge>
-        </header>
-        <div className="iu-pat-checklist-columns">
-          <div>
-            <h4>Allegati richiesti</h4>
-            <ul>
-              {(activeModule?.attachments || []).map((attachment) => <li key={attachment}>{attachment}</li>)}
-            </ul>
-          </div>
-          <div>
-            <h4>Controlli Formweb</h4>
-            <ul>
-              <li>Massimo {procedure.limits.formweb.maxFiles} file.</li>
-              <li>{procedure.limits.formweb.maxSingleFileSizeMb} MB per singolo file e {procedure.limits.formweb.maxTotalSizeMb} MB complessivi.</li>
-              <li>Firma digitale {procedure.limits.formweb.signature} quando richiesta.</li>
-            </ul>
-          </div>
-          <div>
-            <h4>Dati mancanti</h4>
-            {missingRequiredFields.length ? (
-              <ul>
-                {missingRequiredFields.map((field) => <li key={field.id}>{field.label}</li>)}
-              </ul>
-            ) : <p>Tutti i campi obbligatori del modulo selezionato risultano compilati.</p>}
-          </div>
-        </div>
-      </section>
-
-      <section className="iu-pat-block iu-pat-portal" id="portale-avvocato-siga">
-          <div className="iu-pat-portal__head">
-            <div>
-              <h3>Sessione ufficiale {procedure.portal.label}</h3>
-              <p>Dopo modulo e allegati, IUSENTRA avvia il portale nel contesto sicuro richiesto da {procedure.portal.authMethods.join(', ')} e raccoglie i file ufficiali prodotti dalla sessione.</p>
-            </div>
-            <Badge tone={portalSessionStarted ? 'success' : 'warning'}>
-              {portalSessionStarted ? 'Sessione avviata' : 'Da avviare'}
-            </Badge>
-          </div>
-          <div className="iu-pat-session-board">
+        <section className="iu-pat-step-card iu-pat-step-card--wide" id="pat-step-5">
+          <header>
+            <span>5. Consegna SIGA</span>
+            <Badge tone={portalSessionStarted ? 'success' : 'warning'}>{portalSessionStarted ? 'Avviata' : 'Da avviare'}</Badge>
+          </header>
+          <div className="iu-pat-session-board iu-pat-session-board--compact">
             <section>
-              <strong>1. Prima dell'accesso</strong>
-              <span>Classifica deposito, materia, sede, modulo ufficiale e allegati obbligatori.</span>
+              <strong>Prima dell'accesso</strong>
+              <span>Modulo ufficiale generato, documenti scelti e firme controllate.</span>
             </section>
             <section>
-              <strong>2. Durante Formweb</strong>
-              <span>Carica i PDF preparati da IUSENTRA, firma in PAdES e completa il riepilogo ufficiale.</span>
+              <strong>Durante Formweb</strong>
+              <span>Carica PDF e allegati preparati da IUSENTRA, poi completa il riepilogo ufficiale.</span>
             </section>
             <section>
-              <strong>3. Rientro in fascicolo</strong>
-              <span>Importa ricevuta di ricezione, ricevuta di registrazione e deposito originale.</span>
+              <strong>Rientro</strong>
+              <span>Importa ricevute e deposito originale nel fascicolo.</span>
             </section>
           </div>
           <div className="iu-pat-session-actions">
@@ -1814,61 +1964,50 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
                 disabled={portalSessionBusy === 'start'}
                 onClick={startOfficialSession}
               >
-                <ExternalLink size={15}/> {portalSessionBusy === 'start' ? 'Avvio sessione...' : 'Avvia sessione ufficiale SIGA'}
+                <ExternalLink size={15}/> {portalSessionBusy === 'start' ? 'Avvio sessione...' : 'Avvia SIGA'}
               </button>
               <button type="button" disabled={!portalSession?.session_id || portalSessionBusy === 'collect'} onClick={collectOfficialFiles}>
-                <Download size={15}/> Raccogli file ufficiali
+                <Download size={15}/> Raccogli ricevute
               </button>
               <button type="button" disabled={!portalSession?.session_id || portalSessionBusy === 'close'} onClick={closeOfficialSession}>
                 <CheckCircle2 size={15}/> Chiudi sessione
               </button>
             </div>
-            <span>Il Local Connector apre il portale in un contesto browser locale governato; IUSENTRA non intercetta credenziali, PIN o token.</span>
+            <span>Il portale ufficiale resta la fase finale di consegna; IUSENTRA prepara dati, modulo e allegati senza intercettare credenziali, PIN o token.</span>
             {portalSession ? (
               <div className="iu-pat-session-status">
                 <strong>Stato sessione</strong>
                 <span>{portalSession.status || 'Da verificare'}</span>
-                <small>{portalSession.downloaded_files.length ? `${portalSession.downloaded_files.length} file raccolti` : 'Nessun file ufficiale ancora raccolto'}</small>
+                <small>{portalSession.downloaded_files.length ? `${portalSession.downloaded_files.length} file raccolti` : 'Nessuna ricevuta ancora raccolta'}</small>
               </div>
             ) : null}
             {portalSessionMessage ? <p className="iu-pat-session-message">{portalSessionMessage}</p> : null}
           </div>
-      </section>
-
-      <section className="iu-pat-block iu-pat-guides" id="fonti-pat">
-        <div>
-          <h3>Fasi operative integrate</h3>
-          <div className="iu-pat-steps">
-            {procedure.workflowSteps.map((step, index) => (
-              <section key={step.id}>
-                <em>{index + 1}</em>
-                <div>
-                  <strong>{step.title}</strong>
-                  <p>{step.body}</p>
-                </div>
-              </section>
-            ))}
+        </section>
+      </div>
+      {previewDocument ? (
+        <div className="iu-pat-preview-backdrop" role="dialog" aria-modal="true" aria-label={`Anteprima ${previewDocument.name}`}>
+          <div className="iu-pat-preview-panel">
+            <header>
+              <div>
+                <span>Documento del fascicolo</span>
+                <strong>{previewDocument.name}</strong>
+                <small>{previewDocument.type} · {previewDocument.sizeLabel || 'dimensione non indicata'} · {previewDocument.signed ? 'Firmato' : 'Non firmato'}</small>
+              </div>
+              <div>
+                <a href={previewDocument.previewUrl} target="_blank" rel="noreferrer">Apri in nuova scheda</a>
+                <button type="button" onClick={() => setPreviewDocument(null)}>Chiudi</button>
+              </div>
+            </header>
+            <object data={previewDocument.previewUrl} type="application/pdf" aria-label={`Anteprima documento ${previewDocument.name}`}>
+              <p>Anteprima non disponibile. Apri il documento in nuova scheda per leggerlo.</p>
+            </object>
           </div>
         </div>
-        <div>
-          <h3>Fonti e regole ufficiali</h3>
-          <p>{procedure.chromePdfGuide.summary}</p>
-          <ol>
-            {procedure.chromePdfGuide.steps.map((step) => <li key={step}>{step}</li>)}
-          </ol>
-          <div className="iu-pat-source-list">
-            {procedure.documents.map((doc) => (
-              <a href={doc.url} target="_blank" rel="noreferrer" key={doc.id}>
-                <span>{doc.kind}</span>
-                <strong>{doc.title}</strong>
-                <small>{doc.updated || doc.note}</small>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
+      ) : null}
     </section>
   )
+
 }
 
 function portalLabel(portal: string): string {
@@ -5069,6 +5208,23 @@ export function TelematicoSurfacePage() {
     window.requestAnimationFrame(() => scrollToSurfaceTarget('operazione-attiva'))
   }
 
+  if (data.surface.id === 'pat') {
+    return (
+      <main className="iu-content iu-tel-surface-page iu-tel-surface-page--pat iu-tel-surface-page--pat-operativa">
+        <PatProcedureWorkspace data={data}/>
+        <FloatingLex
+          context={surfaceFallbacks[data.surface.id]?.context || surfaceFallbacks[surfaceId].context}
+          title={`Lex AI - ${title}`}
+          body="Posso aiutarti a controllare dati, documenti, modulo ufficiale e ricevute PAT senza uscire dal flusso operativo."
+          primaryHref="#lex"
+          primaryLabel="Apri Lex"
+          secondaryHref="/telematico"
+          secondaryLabel="Centro telematico"
+        />
+      </main>
+    )
+  }
+
   return (
     <main className={`iu-content iu-tel-surface-page iu-tel-surface-page--${data.surface.id}`}>
       <section className={`iu-tel-surface-hero iu-tel-surface-hero--${tone}`}>
@@ -5133,8 +5289,6 @@ export function TelematicoSurfacePage() {
           onLex={openSurfaceLex}
         />
       ) : null}
-
-      {data.surface.id === 'pat' ? <PatProcedureWorkspace data={data}/> : null}
 
       <AcquisitionWizard surfaceId={surfaceId} data={data} localEvents={localAcquisitionEvents}/>
 

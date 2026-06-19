@@ -6,6 +6,8 @@ import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from pypdf import PdfReader
+
 from pct.agenda import Agenda, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
@@ -1473,22 +1475,34 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     component_source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
     assert "function PatProcedureWorkspace" in component_source
     pat_workspace_source = component_source.split("function PatProcedureWorkspace", 1)[1].split("function portalLabel", 1)[0]
-    assert 'id="portale-avvocato-siga"' in pat_workspace_source
+    assert 'id="pat-step-5"' in pat_workspace_source
     assert "iu-pat-session-board" in pat_workspace_source
     assert "iu-pat-session-launch" in pat_workspace_source
     assert "/api/portali/pat/assistant" in pat_workspace_source
     assert "data.localSigner.browserUrl" in pat_workspace_source
     assert "patLocalConnectorJson('/portal-assistant/session/start'" in pat_workspace_source
     assert "local_session_id" in pat_workspace_source
-    assert "Raccogli file ufficiali" in pat_workspace_source
+    assert "Raccogli ricevute" in pat_workspace_source
     assert "window.open" not in pat_workspace_source
-    assert "Avvia sessione ufficiale SIGA" in pat_workspace_source
-    assert "Moduli compilabili in IUSENTRA" in pat_workspace_source
-    assert "Genera PDF compilato" in pat_workspace_source
+    assert "Avvia SIGA" in pat_workspace_source
+    assert "Documenti del fascicolo" in pat_workspace_source
+    assert "Genera modulo ufficiale" in pat_workspace_source
     assert "/api/v1/ui/pat/moduli/compila" in pat_workspace_source
     assert "/api/v1/ui/pat/moduli/prefill" in pat_workspace_source
-    assert "iu-pat-operational-grid" in Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
+    assert "X-IUSENTRA-PAT-Preview" in pat_workspace_source
+    assert "pdfDownloadUrl" in pat_workspace_source
+    css_source = Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
+    assert "iu-pat-op-grid" in css_source
+    assert "iu-pat-doc-row" in css_source
+    assert "iu-pat-preview-panel" in css_source
+    assert "iu-pat-generated-pdf-viewer" in css_source
     assert "<iframe" not in pat_workspace_source
+    assert "setPreviewDocument(doc)" in pat_workspace_source
+    assert "Anteprima documento" in pat_workspace_source
+    assert "Controllo PDF prodotto da IUSENTRA" in pat_workspace_source
+    assert "Dati compilati nel modulo ufficiale" in pat_workspace_source
+    assert "Allegati inclusi nel PDF" in pat_workspace_source
+    assert "Anteprima PDF non disponibile nel browser" not in pat_workspace_source
     assert "Apri fuori" not in pat_workspace_source
     assert "sandbox=" not in pat_workspace_source
     assert "Scarica modulo ufficiale" not in pat_workspace_source
@@ -1519,7 +1533,114 @@ def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
     assert response.status_code == 200
     assert response.mimetype == "application/pdf"
     assert response.data.startswith(b"%PDF")
-    assert "deposito_ricorso-iusentra-compilato.pdf" in response.headers["Content-Disposition"]
+    assert len(response.data) > 1_000_000
+    assert "ModuloDepositoRicorso_4.02_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
+    reader = PdfReader(io.BytesIO(response.data))
+    assert len(reader.pages) == 1
+    acroform = reader.trailer["/Root"]["/AcroForm"]
+    assert acroform.get("/XFA")
+
+
+def test_react_pat_modulo_compilabile_allega_documenti_del_fascicolo(tmp_path: Path):
+    app = _app(tmp_path)
+    clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501U",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Ricorso appalti PNRR",
+        TipoFascicolo.AMMINISTRATIVO,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="TAR Lazio - Roma",
+        numero_rg="1234",
+        anno_rg=2026,
+        controparte="Comune di Roma",
+        oggetto="Impugnazione gara appalti PNRR",
+    )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Ricorso principale.pdf",
+        TipoDocumento.RICORSO,
+        b"%PDF-1.4\n%ricorso allegato\n",
+        note="Atto principale PAT",
+    )
+
+    client = app.test_client()
+    response = client.post(
+        "/api/v1/ui/pat/moduli/compila",
+        headers={"X-API-Key": "react-test-key"},
+        json={
+            "moduleId": "deposito_ricorso",
+            "fascicoloId": fascicolo.id,
+            "fields": {
+                "sede": "TAR Lazio - Roma",
+                "parte_depositante": "Mario Rossi",
+                "codice_fiscale": "RSSMRA80A01H501U",
+                "oggetto": "Impugnazione gara appalti PNRR",
+                "tipo_ricorso": "Ordinario",
+                "ricorrente": "Mario Rossi",
+                "resistente": "Comune di Roma",
+                "contributo_unificato": "Pagato",
+            },
+            "documents": [{"id": documento.id, "role": "atto_principale", "requiresSignature": True}],
+        },
+    )
+
+    assert response.status_code == 200
+    reader = PdfReader(io.BytesIO(response.data))
+    names = reader.trailer["/Root"].get("/Names")
+    assert names
+    embedded = names.get_object()["/EmbeddedFiles"].get_object()["/Names"]
+    assert any(str(item) == "Ricorso principale.pdf" for item in embedded)
+
+
+def test_react_pat_modulo_compilabile_espone_anteprima_sessione(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.post(
+        "/api/v1/ui/pat/moduli/compila",
+        headers={"X-API-Key": "react-test-key", "X-IUSENTRA-PAT-Preview": "1"},
+        json={
+            "moduleId": "deposito_ricorso",
+            "fields": {
+                "sede": "TAR Lazio - Roma",
+                "parte_depositante": "Mario Rossi",
+                "codice_fiscale": "RSSMRA80A01H501U",
+                "oggetto": "Impugnazione provvedimento amministrativo",
+                "tipo_ricorso": "Ordinario",
+                "ricorrente": "Mario Rossi",
+                "resistente": "Comune di Roma",
+                "contributo_unificato": "Pagato",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["filename"] == "ModuloDepositoRicorso_4.02_compilato_iusentra.pdf"
+    assert payload["previewUrl"].startswith("/api/v1/ui/pat/moduli/preview/")
+    assert payload["downloadUrl"].endswith("?download=1")
+
+    preview = client.get(payload["previewUrl"], headers={"X-API-Key": "react-test-key"})
+    assert preview.status_code == 200
+    assert preview.mimetype == "application/pdf"
+    assert preview.data.startswith(b"%PDF")
+    assert preview.headers["Cache-Control"] == "no-store"
+
+    download = client.get(payload["downloadUrl"], headers={"X-API-Key": "react-test-key"})
+    assert download.status_code == 200
+    assert "attachment" in download.headers["Content-Disposition"]
 
 
 def test_react_pat_modulo_compilabile_valida_campi_obbligatori(tmp_path: Path):
@@ -1564,6 +1685,30 @@ def test_react_pat_prefill_usa_fascicoli_clienti_reali(tmp_path: Path):
         controparte="Comune di Roma",
         oggetto="Impugnazione gara appalti PNRR CIG 123",
     )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Ricorso principale.pdf",
+        TipoDocumento.RICORSO,
+        b"%PDF-1.4\n%ricorso\n",
+        note="Atto principale PAT",
+        fonte_documento="CARICAMENTO_STUDIO",
+    )
+    decreto = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "decretoGenerico.pdf",
+        TipoDocumento.DECRETO,
+        b"%PDF-1.4\n%decreto\n",
+        note="Provvedimento storico da allegare",
+        fonte_documento="CARICAMENTO_STUDIO",
+    )
+    ricevuta = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "ricevuta_pagopa_contributo.pdf",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\n%ricevuta\n",
+        note="Ricevuta contributo unificato",
+        fonte_documento="CARICAMENTO_STUDIO",
+    )
 
     client = app.test_client()
     response = client.get("/api/v1/ui/pat/moduli/prefill", headers={"X-API-Key": "react-test-key"})
@@ -1576,6 +1721,17 @@ def test_react_pat_prefill_usa_fascicoli_clienti_reali(tmp_path: Path):
     assert matter["fields"]["ricorrente"] == "Rossi Mario"
     assert matter["fields"]["resistente"] == "Comune di Roma"
     assert matter["fields"]["tipo_ricorso"] == "Appalti"
+    assert matter["documentsSummary"] == "3 documenti disponibili nel fascicolo"
+    assert matter["fields"]["descrizione_allegati"] == "Ricorso principale.pdf, decretoGenerico.pdf, ricevuta_pagopa_contributo.pdf"
+    documents_by_name = {item["name"]: item for item in matter["documents"]}
+    assert documents_by_name["Ricorso principale.pdf"]["id"] == documento.id
+    assert documents_by_name["Ricorso principale.pdf"]["suggestedRole"] == "atto_principale"
+    assert documents_by_name["Ricorso principale.pdf"]["previewUrl"].endswith(f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza")
+    assert documents_by_name["Ricorso principale.pdf"]["downloadUrl"].endswith(f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/scarica")
+    assert documents_by_name["decretoGenerico.pdf"]["id"] == decreto.id
+    assert documents_by_name["decretoGenerico.pdf"]["suggestedRole"] == "allegato"
+    assert documents_by_name["ricevuta_pagopa_contributo.pdf"]["id"] == ricevuta.id
+    assert documents_by_name["ricevuta_pagopa_contributo.pdf"]["suggestedRole"] == "ricevuta_pagamento"
 
 
 def test_react_user_facing_links_non_espongono_app_v2_prefix():

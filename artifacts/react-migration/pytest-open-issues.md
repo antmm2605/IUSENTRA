@@ -1811,3 +1811,9 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Prova server PagoPA nel fascicolo reale | `https://app.iusentra.it/fascicoli/9B9DF2A1` su commit `d80b9ce`, versione `2.253.76` | Risolto e verificato in produzione | Hetzner healthy, `/api/pronto` `2.253.76`, runtime `SESSION_COOKIE_NAME=iusentra_session`. Nel fascicolo `RG 3950/2026` la modale PagoPA incorpora il PST, `+ Nuovo pagamento` apre la form, DWR carica 66 uffici per `TORINO`, `Tribunale Ordinario - Torino` è selezionabile, `Paga subito` è visibile e non è stato premuto. `print.css` risponde 200 `text/css`; nessun errore console applicativo. | Nessuna azione aperta sul bridge PagoPA. Per future modifiche a fascicoli/PagoPA ripetere prova reale locale e server senza inviare pagamento. |
+
+## PAT/SIGA acquisizione finale 2.253.81 - 2026-06-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| GitHub `Lint + syntax` sullo SHA `dafd2d1` | `generate_backend_security_map.py --check` | Risolto localmente, da confermare su nuovo SHA remoto | Il primo push della tranche PAT/SIGA finale ha fallito per `docs/backend-endpoint-security-map.md` non ancora allineato ai nuovi endpoint React `/api/v1/ui/pat/moduli/prefill` e `/api/v1/ui/pat/moduli/compila`. | Mappa sicurezza backend rigenerata, test mirato e blocco RBAC/tenant/OpenAPI 79/79 passati localmente; committare, pushare di nuovo entrambi i branch e attendere GitHub/CodeQL sul nuovo SHA prima del deploy Hetzner. |

@@ -1267,6 +1267,13 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "portalJson(portal, 'importa-payload'" in page_source
     assert "portalJson(portal, 'importa-file'" in page_source
     assert "Sessione IUSENTRA" in page_source
+    assert "Consegna finale PAT / SIGA e rientro ricevute" in page_source
+    assert "Apri SIGA per consegna finale" in page_source
+    assert "Step 3 - Rientro ricevute SIGA" in page_source
+    assert "Step 4 - File ufficiali da registrare" in page_source
+    assert "Il portale SIGA non viene incastrato in iframe" in page_source
+    assert "Vai alla consegna SIGA" in page_source
+    assert "create new" not in page_source
     assert "item.practiceId || item.id" in page_source
     assert "Endpoint browser:" not in page_source
     assert "collectAcquisitionFiles" in page_source
@@ -1476,10 +1483,99 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert "Raccogli file ufficiali" in pat_workspace_source
     assert "window.open" not in pat_workspace_source
     assert "Avvia sessione ufficiale SIGA" in pat_workspace_source
+    assert "Moduli compilabili in IUSENTRA" in pat_workspace_source
+    assert "Genera PDF compilato" in pat_workspace_source
+    assert "/api/v1/ui/pat/moduli/compila" in pat_workspace_source
+    assert "/api/v1/ui/pat/moduli/prefill" in pat_workspace_source
+    assert "iu-pat-operational-grid" in Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
     assert "<iframe" not in pat_workspace_source
     assert "Apri fuori" not in pat_workspace_source
     assert "sandbox=" not in pat_workspace_source
-    assert "Scarica modulo ufficiale" in pat_workspace_source
+    assert "Scarica modulo ufficiale" not in pat_workspace_source
+
+
+def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.post(
+        "/api/v1/ui/pat/moduli/compila",
+        headers={"X-API-Key": "react-test-key"},
+        json={
+            "module_id": "deposito_ricorso",
+            "fields": {
+                "sede": "TAR Lazio - Roma",
+                "parte_depositante": "Mario Rossi",
+                "codice_fiscale": "RSSMRA80A01H501U",
+                "oggetto": "Impugnazione provvedimento amministrativo",
+                "tipo_ricorso": "Ordinario",
+                "ricorrente": "Mario Rossi",
+                "resistente": "Comune di Roma",
+                "contributo_unificato": "Pagato",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert response.data.startswith(b"%PDF")
+    assert "deposito_ricorso-iusentra-compilato.pdf" in response.headers["Content-Disposition"]
+
+
+def test_react_pat_modulo_compilabile_valida_campi_obbligatori(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.post(
+        "/api/v1/ui/pat/moduli/compila",
+        headers={"X-API-Key": "react-test-key"},
+        json={"moduleId": "deposito_ricorso", "fields": {}},
+    )
+
+    assert response.status_code == 422
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert "Compilare i campi obbligatori" in payload["errore"]
+    assert "Sede TAR / CDS / CGARS" in payload["missing"]
+
+
+def test_react_pat_prefill_usa_fascicoli_clienti_reali(tmp_path: Path):
+    app = _app(tmp_path)
+    clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501U",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Ricorso appalti PNRR",
+        TipoFascicolo.AMMINISTRATIVO,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="TAR Lazio - Roma",
+        numero_rg="1234",
+        anno_rg=2026,
+        controparte="Comune di Roma",
+        oggetto="Impugnazione gara appalti PNRR CIG 123",
+    )
+
+    client = app.test_client()
+    response = client.get("/api/v1/ui/pat/moduli/prefill", headers={"X-API-Key": "react-test-key"})
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    matter = next(item for item in payload["matters"] if item["id"] == fascicolo.id)
+    assert matter["source"] == "repository_fascicoli_clienti_soggetti"
+    assert matter["fields"]["sede"] == "TAR Lazio - Roma"
+    assert matter["fields"]["ricorrente"] == "Rossi Mario"
+    assert matter["fields"]["resistente"] == "Comune di Roma"
+    assert matter["fields"]["tipo_ricorso"] == "Appalti"
 
 
 def test_react_user_facing_links_non_espongono_app_v2_prefix():
@@ -1635,7 +1731,9 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "params.get('mode')" in source
     assert "params.get('fascicolo_id')" in source
     assert "Step 4 - Cosa scaricare" in source
+    assert "Step 4 - File ufficiali da registrare" in source
     assert "Scarico separato dall'importazione finale" in source
+    assert "Registrazione separata dalla consegna ufficiale" in source
     assert "Documenti da scaricare:" in source
     assert "Vai alla destinazione" in source
     assert "Step 4 - Selezione" not in source
@@ -2690,7 +2788,7 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "auto_pst_test" in page_source
     assert "exact?.codice || exact?.codiceMinistero || query.ufficio" in page_source
     assert "office.codiceMinistero || office.codice" not in page_source
-    assert "Step 5 - Mappatura nel gestionale" in page_source
+    assert "Step 5 - Fascicolo IUSENTRA" in page_source
     assert "Riepilogo sempre visibile" in page_source
     assert "acquisitionVisible" in page_source
     assert "AcquisitionWizardLegacy" not in page_source

@@ -2,6 +2,25 @@
 
 Aggiornato: 2026-06-19.
 
+## Aggiornamento 2.253.81 - PAT/SIGA come consegna finale, non pagina di link
+
+Data intervento: 2026-06-19.
+
+Correzione applicata alla superficie React `/pat` e agli endpoint `/api/v1/ui/pat/moduli/*`:
+
+- il Portale Avvocato/SIGA viene trattato come fase finale di consegna, non come luogo in cui l'avvocato deve ricostruire da zero la pratica;
+- la pagina PAT è stata riorganizzata nel percorso operativo `Fascicolo IUSENTRA -> Deposito Formweb -> Modulo compilabile -> Allegati e firme -> Sessione SIGA`;
+- la pagina React `/portali/pat/acquisizione` è stata riallineata come fase finale `Consegna finale PAT / SIGA e rientro ricevute`, non più come importazione generica: accesso SIGA, deposito Formweb, rientro ricevute, file ufficiali, fascicolo IUSENTRA, verifica esiti e registrazione;
+- il wizard PAT mostra che il portale ufficiale non viene incastrato in iframe quando SIGA lo blocca: la procedura primaria usa sessione ufficiale assistita dal Local Connector, con raccolta dei soli file autorizzati dall'avvocato e registrazione nel fascicolo;
+- i moduli ufficiali restano fonti/versioni di riferimento, ma l'azione primaria non è più scaricare il modulo: IUSENTRA propone campi compilabili interni e genera un PDF dati modulo prima della sessione ufficiale;
+- la precompilazione legge repository reali del tenant corrente: fascicoli, clienti e soggetti/parti processuali, senza creare una fonte dati parallela;
+- il PDF compilato da IUSENTRA valida i campi obbligatori e, quando viene passato un fascicolo, rilegge i dati lato server prima di generare il documento;
+- la sessione SIGA assistita resta governata dal Local Connector del PC, senza iframe del sito ufficiale e senza intercettare SPID, CIE, CNS, PIN o token.
+- i testi visibili del wizard non espongono più `create new` o passaggi PST generici sul percorso PAT; hover, focus, selected e disabled dei pulsanti devono restare leggibili nella prova reale desktop/tablet/mobile.
+- prova reale locale eseguita su Docker `127.0.0.1:8080/portali/pat/acquisizione` dopo rebuild: desktop con titolo `Consegna finale PAT / SIGA e rientro ricevute`, bottone `Vai alla consegna SIGA`, assenti `Vai alla ricerca`, `create new` e `Scarica modulo ufficiale`; click reali su Step 2 `Deposito`, Step 3 `Rientro`, Step 4 `File ufficiali` e ritorno Step 1; scroll completo senza overflow orizzontale; tablet `1024x768` e mobile `390x844` verificati; su mobile i pulsanti `Apri SIGA per consegna finale`, `Importa ricevute SIGA` e `Chiudi sessione` risultano impilati e leggibili.
+
+Stato operativo: questa tranche prepara modulo, dati e PDF per PAT/Formweb e governa il rientro delle ricevute SIGA; non registra un deposito PAT come validamente inviato finché non risultano importate e collegate le ricevute ufficiali della sessione SIGA nel fascicolo. La prova reale locale su `/pat` e `/portali/pat/acquisizione` è stata eseguita su Docker `127.0.0.1:8080`; restano comunque obbligatori commit, push dei branch gemelli, controlli GitHub e deploy Hetzner prima della chiusura complessiva.
+
 ## Aggiornamento 2.253.77 - firma multipla .p7m e simulazione PEC senza invio reale
 
 Data intervento: 2026-06-19.

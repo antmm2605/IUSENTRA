@@ -29,6 +29,8 @@ import {
   getTelematicoSurfacePage,
   type ChecklistGroup,
   type OfficeRow,
+  type PatProcedureField,
+  type PatProcedureModule,
   type SurfaceAction,
   type SurfaceCard,
   type TelematicoSurfaceData,
@@ -196,6 +198,19 @@ type AssistantSession = {
   local_connector_available: boolean
   downloaded_files: JsonRecord[]
   message: string
+}
+
+type PatPrefillMatter = {
+  id: string
+  title: string
+  subtitle: string
+  rg: string
+  office: string
+  client: string
+  counterparty: string
+  source: string
+  fields: Record<string, string>
+  warnings: string[]
 }
 
 type PstCertificate = {
@@ -1198,10 +1213,30 @@ function LexPanel({ data }:{ data:TelematicoSurfaceData }) {
 function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   const procedure = data.patProcedure
   const [moduleQuery, setModuleQuery] = useState('')
+  const [selectedDepositId, setSelectedDepositId] = useState('')
+  const [selectedModuleId, setSelectedModuleId] = useState('')
+  const [selectedFascicoloId, setSelectedFascicoloId] = useState('')
+  const [draftValues, setDraftValues] = useState<Record<string, string>>({})
+  const [prefillMatters, setPrefillMatters] = useState<PatPrefillMatter[]>([])
+  const [prefillBusy, setPrefillBusy] = useState(false)
+  const [prefillMessage, setPrefillMessage] = useState('')
+  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState('')
+  const [pdfFileName, setPdfFileName] = useState('')
+  const [draftMessage, setDraftMessage] = useState('')
   const [portalSessionStarted, setPortalSessionStarted] = useState(false)
   const [portalSession, setPortalSession] = useState<AssistantSession | null>(null)
   const [portalSessionBusy, setPortalSessionBusy] = useState<'start' | 'collect' | 'close' | ''>('')
   const [portalSessionMessage, setPortalSessionMessage] = useState('')
+  const activeDeposit = useMemo(() => {
+    const items = procedure?.formwebDeposits || []
+    return items.find((deposit) => deposit.id === selectedDepositId) || items[0] || null
+  }, [procedure, selectedDepositId])
+  const activeModule = useMemo(() => {
+    const items = procedure?.modules || []
+    const moduleId = selectedModuleId || activeDeposit?.moduleId || ''
+    return items.find((module) => module.id === moduleId) || items[0] || null
+  }, [procedure, selectedModuleId, activeDeposit?.moduleId])
   const modules = useMemo(() => {
     const items = procedure?.modules || []
     const needle = normaliseSearch(moduleQuery)
@@ -1225,8 +1260,192 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
     })
     return map
   }, [procedure])
+  const selectedPrefillMatter = useMemo(() => (
+    prefillMatters.find((item) => item.id === selectedFascicoloId) || null
+  ), [prefillMatters, selectedFascicoloId])
+  const requiredFields = useMemo(
+    () => (activeModule?.fillableFields || []).filter((field) => field.required),
+    [activeModule],
+  )
+  const missingRequiredFields = useMemo(
+    () => requiredFields.filter((field) => !draftValues[field.id]?.trim()),
+    [requiredFields, draftValues],
+  )
+  const requiredCompletion = `${Math.max(0, requiredFields.length - missingRequiredFields.length)}/${requiredFields.length}`
+
+  useEffect(() => {
+    if (!procedure) return
+    setSelectedDepositId((current) => (
+      current && procedure.formwebDeposits.some((deposit) => deposit.id === current)
+        ? current
+        : procedure.formwebDeposits[0]?.id || ''
+    ))
+    setSelectedModuleId((current) => (
+      current && procedure.modules.some((module) => module.id === current)
+        ? current
+        : procedure.formwebDeposits[0]?.moduleId || procedure.modules[0]?.id || ''
+    ))
+  }, [procedure])
+
+  useEffect(() => {
+    if (!procedure) return
+    let cancelled = false
+    const loadPrefill = async () => {
+      setPrefillBusy(true)
+      setPrefillMessage('Carico fascicoli e anagrafiche da IUSENTRA...')
+      try {
+        const response = await fetch('/api/v1/ui/pat/moduli/prefill', {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        const payload = asRecord(await response.json().catch(() => ({})))
+        if (!response.ok || payload.ok === false) {
+          throw new Error(asText(payload.errore || payload.message, 'Dati fascicolo non disponibili.'))
+        }
+        const matters = asList(payload.matters).map((item) => {
+          const row = asRecord(item)
+          const fieldsRaw = asRecord(row.fields)
+          const fields: Record<string, string> = {}
+          Object.entries(fieldsRaw).forEach(([key, value]) => {
+            fields[key] = asText(value)
+          })
+          return {
+            id: asText(row.id),
+            title: asText(row.title, 'Fascicolo'),
+            subtitle: asText(row.subtitle),
+            rg: asText(row.rg),
+            office: asText(row.office),
+            client: asText(row.client),
+            counterparty: asText(row.counterparty),
+            source: asText(row.source, 'repository IUSENTRA'),
+            fields,
+            warnings: asList(row.warnings).map((warning) => asText(warning)).filter(Boolean),
+          }
+        }).filter((item) => item.id)
+        if (cancelled) return
+        setPrefillMatters(matters)
+        setPrefillMessage(matters.length ? `${matters.length} fascicoli disponibili per la precompilazione.` : 'Nessun fascicolo attivo disponibile per la precompilazione.')
+      } catch (error: unknown) {
+        if (cancelled) return
+        setPrefillMatters([])
+        setPrefillMessage(asText(error instanceof Error ? error.message : error, 'Precompilazione non disponibile.'))
+      } finally {
+        if (!cancelled) setPrefillBusy(false)
+      }
+    }
+    void loadPrefill()
+    return () => { cancelled = true }
+  }, [procedure])
+
+  useEffect(() => () => {
+    if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl)
+  }, [pdfPreviewUrl])
 
   if (!procedure) return null
+
+  const selectDeposit = (depositId: string, moduleId: string) => {
+    setSelectedDepositId(depositId)
+    setSelectedModuleId(moduleId)
+    setDraftMessage('Percorso deposito selezionato. I campi compatibili restano compilati.')
+  }
+
+  const selectModule = (module: PatProcedureModule) => {
+    setSelectedModuleId(module.id)
+    setDraftMessage(`Modulo "${module.title}" pronto per la compilazione interna.`)
+  }
+
+  const updateDraftField = (fieldId: string, value: string) => {
+    setDraftValues((current) => ({ ...current, [fieldId]: value }))
+  }
+
+  const applyPrefillMatter = (matter: PatPrefillMatter | null) => {
+    if (!matter || !activeModule) return
+    const allowed = new Set(activeModule.fillableFields.map((field) => field.id))
+    const next: Record<string, string> = {}
+    Object.entries(matter.fields).forEach(([key, value]) => {
+      if (allowed.has(key) && value.trim()) next[key] = value
+    })
+    setDraftValues((current) => ({ ...current, ...next }))
+    setDraftMessage(`Dati del fascicolo "${matter.title}" applicati al modulo. Completa solo i campi mancanti.`)
+  }
+
+  const selectPrefillMatter = (matterId: string) => {
+    setSelectedFascicoloId(matterId)
+    const matter = prefillMatters.find((item) => item.id === matterId) || null
+    applyPrefillMatter(matter)
+  }
+
+  const generateInternalPdf = async () => {
+    if (!activeModule) return
+    if (missingRequiredFields.length) {
+      setDraftMessage(`Completa prima: ${missingRequiredFields.map((field) => field.label).join(', ')}.`)
+      return
+    }
+    setPdfBusy(true)
+    setDraftMessage('Genero il PDF compilato da IUSENTRA...')
+    try {
+      const response = await fetch('/api/v1/ui/pat/moduli/compila', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/pdf, application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moduleId: activeModule.id,
+          depositId: activeDeposit?.id || '',
+          fascicoloId: selectedFascicoloId,
+          fields: draftValues,
+        }),
+      })
+      if (!response.ok) {
+        const payload = asRecord(await response.json().catch(() => ({})))
+        throw new Error(asText(payload.errore || payload.message, 'PDF non generato. Controlla i campi obbligatori.'))
+      }
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const disposition = response.headers.get('Content-Disposition') || ''
+      const match = /filename="?([^";]+)"?/i.exec(disposition)
+      setPdfPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current)
+        return url
+      })
+      setPdfFileName(match?.[1] || `${activeModule.id}-iusentra-compilato.pdf`)
+      setDraftMessage('PDF compilato generato dentro IUSENTRA. Controllalo nell\'anteprima prima della sessione SIGA.')
+    } catch (error: unknown) {
+      setDraftMessage(asText(error instanceof Error ? error.message : error, 'Generazione PDF non riuscita.'))
+    } finally {
+      setPdfBusy(false)
+    }
+  }
+
+  const renderFieldControl = (field: PatProcedureField) => {
+    const value = draftValues[field.id] || ''
+    if (field.type === 'textarea') {
+      return (
+        <textarea
+          value={value}
+          onChange={(event) => updateDraftField(field.id, event.target.value)}
+          placeholder={field.placeholder}
+          rows={4}
+        />
+      )
+    }
+    if (field.type === 'select') {
+      return (
+        <select value={value} onChange={(event) => updateDraftField(field.id, event.target.value)}>
+          <option value="">Seleziona</option>
+          {field.options.map((option) => <option value={option} key={option}>{option}</option>)}
+        </select>
+      )
+    }
+    return (
+      <input
+        type={field.type === 'date' ? 'date' : 'text'}
+        value={value}
+        onChange={(event) => updateDraftField(field.id, event.target.value)}
+        placeholder={field.placeholder}
+      />
+    )
+  }
 
   const patAssistantJson = async (path: string, body?: JsonRecord): Promise<JsonRecord> => {
     const response = await fetch(`/api/portali/pat/assistant${path}`, {
@@ -1359,11 +1578,11 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
 
   return (
     <section className="iu-pat-workspace iu-tel-anchor-target" id="procedura-pat">
-      <header className="iu-pat-workspace__head">
+      <header className="iu-pat-command">
         <div>
-          <span><FileText size={15}/> Procedura PAT / SIGA</span>
-          <h2>Sessione Portale Avvocato governata</h2>
-          <p>{procedure.regime.note}</p>
+          <span><FileText size={15}/> PAT / SIGA dentro IUSENTRA</span>
+          <h2>Deposito amministrativo guidato dal fascicolo</h2>
+          <p>Seleziona il fascicolo, scegli il deposito Formweb, compila il modulo in IUSENTRA e genera il PDF già pronto per controllo, firma e sessione ufficiale.</p>
         </div>
         <aside>
           <Badge tone="success">{procedure.regime.formwebPriorityLabel}</Badge>
@@ -1373,32 +1592,201 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         </aside>
       </header>
 
-      <div className="iu-pat-overview">
-        <article>
-          <h3>Fasi operative</h3>
-          <div className="iu-pat-steps">
-            {procedure.workflowSteps.map((step, index) => (
-              <section key={step.id}>
-                <em>{index + 1}</em>
-                <div>
-                  <strong>{step.title}</strong>
-                  <p>{step.body}</p>
-                  {step.actions.length ? (
-                    <ul>
-                      {step.actions.map((action) => <li key={action}>{action}</li>)}
-                    </ul>
-                  ) : null}
-                </div>
-              </section>
-            ))}
-          </div>
-        </article>
+      <nav className="iu-pat-process-tabs" aria-label="Sezioni procedura PAT">
+        <a href="#pat-fascicolo">Fascicolo</a>
+        <a href="#pat-depositi">Depositi</a>
+        <a href="#moduli-pat">Moduli compilabili</a>
+        <a href="#pat-allegati">Allegati e firme</a>
+        <a href="#portale-avvocato-siga">Sessione SIGA</a>
+      </nav>
 
-        <article className="iu-pat-portal" id="portale-avvocato-siga">
+      <div className="iu-pat-operational-grid">
+        <div className="iu-pat-left-flow">
+          <section className="iu-pat-block iu-pat-prefill" id="pat-fascicolo">
+            <header>
+              <div>
+                <span>Dati IUSENTRA</span>
+                <h3>Fascicolo per precompilare</h3>
+                <p>Usa sede, RG, parti, oggetto e dati anagrafici già presenti nel database dello studio.</p>
+              </div>
+              <Badge tone={prefillMatters.length ? 'success' : 'warning'}>{prefillBusy ? 'Caricamento' : `${prefillMatters.length} fascicoli`}</Badge>
+            </header>
+            <label className="iu-pat-select-line">
+              <span>Fascicolo</span>
+              <select value={selectedFascicoloId} onChange={(event) => selectPrefillMatter(event.target.value)}>
+                <option value="">Scegli fascicolo IUSENTRA</option>
+                {prefillMatters.map((matter) => (
+                  <option value={matter.id} key={matter.id}>{matter.title} {matter.rg ? `- ${matter.rg}` : ''}</option>
+                ))}
+              </select>
+            </label>
+            {selectedPrefillMatter ? (
+              <div className="iu-pat-prefill-card">
+                <strong>{selectedPrefillMatter.title}</strong>
+                <span>{selectedPrefillMatter.subtitle || 'Dati letti dai repository del tenant corrente.'}</span>
+                <dl>
+                  <div><dt>Sede</dt><dd>{selectedPrefillMatter.office || 'Da indicare'}</dd></div>
+                  <div><dt>Cliente</dt><dd>{selectedPrefillMatter.client || 'Da indicare'}</dd></div>
+                  <div><dt>Controparte</dt><dd>{selectedPrefillMatter.counterparty || 'Da indicare'}</dd></div>
+                </dl>
+                {selectedPrefillMatter.warnings.length ? (
+                  <ul>
+                    {selectedPrefillMatter.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                  </ul>
+                ) : null}
+                <button type="button" onClick={() => applyPrefillMatter(selectedPrefillMatter)}>
+                  <Copy size={15}/> Aggiorna campi dal fascicolo
+                </button>
+              </div>
+            ) : <p className="iu-pat-state-note">{prefillMessage}</p>}
+          </section>
+
+          <section className="iu-pat-block iu-pat-deposit-panel" id="pat-depositi">
+            <header>
+              <div>
+                <span>Depositi Formweb</span>
+                <h3>Seleziona il percorso</h3>
+                <p>Ogni deposito aggancia automaticamente il modulo compilabile più coerente.</p>
+              </div>
+            </header>
+            <div className="iu-pat-deposit-list">
+              {procedure.formwebDeposits.map((deposit) => (
+                <button
+                  type="button"
+                  key={deposit.id}
+                  className={deposit.id === activeDeposit?.id ? 'is-selected' : ''}
+                  onClick={() => selectDeposit(deposit.id, deposit.moduleId)}
+                >
+                  <span>{deposit.steps}</span>
+                  <strong>{deposit.title}</strong>
+                  <small>{deposit.mandatoryFocus.join(' - ')}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section className="iu-pat-block iu-pat-compiler" id="moduli-pat">
+          <header>
+            <div>
+              <span>Moduli compilabili in IUSENTRA</span>
+              <h3>{activeModule?.title || 'Modulo PAT'}</h3>
+              <p>{activeModule?.note || 'Compila i campi del modulo direttamente nel gestionale e usa i dati del fascicolo dove disponibili.'}</p>
+            </div>
+            <Badge tone={missingRequiredFields.length ? 'warning' : 'success'}>{requiredCompletion} obbligatori</Badge>
+          </header>
+
+          <div className="iu-pat-compiler-layout">
+            <aside className="iu-pat-module-rail" aria-label="Moduli PAT disponibili">
+              <label>
+                <Search size={15}/>
+                <input value={moduleQuery} onChange={(event) => setModuleQuery(event.target.value)} placeholder="Cerca modulo o materia"/>
+              </label>
+              <div>
+                {modules.map((module) => {
+                  const linkedDeposits = depositsByModule.get(module.id) || []
+                  return (
+                    <button
+                      type="button"
+                      key={module.id}
+                      className={module.id === activeModule?.id ? 'is-selected' : ''}
+                      onClick={() => selectModule(module)}
+                    >
+                      <strong>{module.title}</strong>
+                      <span>v{module.version}{linkedDeposits.length ? ` - ${linkedDeposits.length} percorsi` : ''}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </aside>
+
+            <div className="iu-pat-compiler-board">
+              <div className="iu-pat-compiler-summary">
+                <div>
+                  <span>Deposito selezionato</span>
+                  <strong>{activeDeposit?.title || 'Da scegliere'}</strong>
+                  <small>{activeDeposit?.produces.join(' - ') || 'Seleziona un deposito Formweb.'}</small>
+                </div>
+                <div>
+                  <span>Fonte modulo</span>
+                  <strong>{activeModule ? `Versione ${activeModule.version}` : 'Da scegliere'}</strong>
+                  <small>La compilazione operativa resta dentro IUSENTRA.</small>
+                </div>
+              </div>
+
+              <div className="iu-pat-form-grid">
+                {(activeModule?.fillableFields || []).map((field) => (
+                  <label className={`iu-pat-field ${field.type === 'textarea' ? 'iu-pat-field--wide' : ''}`} key={field.id}>
+                    <span>{field.label}{field.required ? ' *' : ''}</span>
+                    {renderFieldControl(field)}
+                    {field.help ? <small>{field.help}</small> : null}
+                  </label>
+                ))}
+              </div>
+
+              <div className="iu-pat-compiler-actions">
+                <button type="button" disabled={!activeModule || pdfBusy} onClick={generateInternalPdf}>
+                  <FileCheck2 size={16}/> {pdfBusy ? 'Genero PDF...' : 'Genera PDF compilato'}
+                </button>
+                <span>{missingRequiredFields.length ? `Mancano: ${missingRequiredFields.map((field) => field.label).join(', ')}` : 'Dati obbligatori compilati. Procedi al controllo allegati.'}</span>
+              </div>
+              {draftMessage ? <p className="iu-pat-session-message">{draftMessage}</p> : null}
+              {pdfPreviewUrl ? (
+                <div className="iu-pat-pdf-preview">
+                  <header>
+                    <strong>Anteprima PDF compilato</strong>
+                    <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">{pdfFileName || 'Apri PDF'}</a>
+                  </header>
+                  <object data={pdfPreviewUrl} type="application/pdf">
+                    <p>Anteprima PDF non disponibile nel browser. Apri il file dal collegamento sopra.</p>
+                  </object>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section className="iu-pat-block iu-pat-attachments" id="pat-allegati">
+        <header>
+          <div>
+            <span>Allegati e firme</span>
+            <h3>Controllo prima del portale</h3>
+            <p>La sessione SIGA deve iniziare solo con modulo compilato, allegati ordinati e firma PAdES pronta.</p>
+          </div>
+          <Badge tone={missingRequiredFields.length ? 'warning' : 'success'}>{missingRequiredFields.length ? 'Dati mancanti' : 'Pronto al controllo'}</Badge>
+        </header>
+        <div className="iu-pat-checklist-columns">
+          <div>
+            <h4>Allegati richiesti</h4>
+            <ul>
+              {(activeModule?.attachments || []).map((attachment) => <li key={attachment}>{attachment}</li>)}
+            </ul>
+          </div>
+          <div>
+            <h4>Controlli Formweb</h4>
+            <ul>
+              <li>Massimo {procedure.limits.formweb.maxFiles} file.</li>
+              <li>{procedure.limits.formweb.maxSingleFileSizeMb} MB per singolo file e {procedure.limits.formweb.maxTotalSizeMb} MB complessivi.</li>
+              <li>Firma digitale {procedure.limits.formweb.signature} quando richiesta.</li>
+            </ul>
+          </div>
+          <div>
+            <h4>Dati mancanti</h4>
+            {missingRequiredFields.length ? (
+              <ul>
+                {missingRequiredFields.map((field) => <li key={field.id}>{field.label}</li>)}
+              </ul>
+            ) : <p>Tutti i campi obbligatori del modulo selezionato risultano compilati.</p>}
+          </div>
+        </div>
+      </section>
+
+      <section className="iu-pat-block iu-pat-portal" id="portale-avvocato-siga">
           <div className="iu-pat-portal__head">
             <div>
               <h3>Sessione ufficiale {procedure.portal.label}</h3>
-              <p>IUSENTRA prepara moduli, allegati e controlli, poi avvia il portale nel contesto sicuro richiesto da {procedure.portal.authMethods.join(', ')}. Questa pagina resta la cabina di lavoro per checklist, fascicolo, PDF e ricevute.</p>
+              <p>Dopo modulo e allegati, IUSENTRA avvia il portale nel contesto sicuro richiesto da {procedure.portal.authMethods.join(', ')} e raccoglie i file ufficiali prodotti dalla sessione.</p>
             </div>
             <Badge tone={portalSessionStarted ? 'success' : 'warning'}>
               {portalSessionStarted ? 'Sessione avviata' : 'Da avviare'}
@@ -1445,74 +1833,29 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
             ) : null}
             {portalSessionMessage ? <p className="iu-pat-session-message">{portalSessionMessage}</p> : null}
           </div>
-        </article>
-      </div>
+      </section>
 
-      <section className="iu-pat-deposits">
-        <header>
-          <div>
-            <span>Depositi Formweb</span>
-            <h3>Tipologie previste dal manuale</h3>
-          </div>
-          <a href={procedure.portal.faqUrl} target="_blank" rel="noreferrer"><ExternalLink size={14}/> FAQ nuovo portale</a>
-        </header>
+      <section className="iu-pat-block iu-pat-guides" id="fonti-pat">
         <div>
-          {procedure.formwebDeposits.map((deposit) => (
-            <article key={deposit.id}>
-              <Badge tone="success">{deposit.steps}</Badge>
-              <strong>{deposit.title}</strong>
-              <span>{deposit.mandatoryFocus.join(' - ')}</span>
-              <small>Produce: {deposit.produces.join(' - ')}</small>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="iu-pat-modules" id="moduli-pat">
-        <header>
-          <div>
-            <span>Moduli ufficiali 4.x</span>
-            <h3>PDF compilabili e allegati per materia</h3>
-            <p>I PDF sono quelli pubblicati dalla Giustizia Amministrativa; IUSENTRA li seleziona in base a materia e tipo deposito.</p>
+          <h3>Fasi operative integrate</h3>
+          <div className="iu-pat-steps">
+            {procedure.workflowSteps.map((step, index) => (
+              <section key={step.id}>
+                <em>{index + 1}</em>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.body}</p>
+                </div>
+              </section>
+            ))}
           </div>
-          <label><Search size={15}/><input value={moduleQuery} onChange={(event) => setModuleQuery(event.target.value)} placeholder="Cerca materia, atto, appalti, rimborso..."/></label>
-        </header>
-        <div className="iu-pat-module-grid">
-          {modules.map((module) => {
-            const linkedDeposits = depositsByModule.get(module.id) || []
-            return (
-              <article key={module.id}>
-                <header>
-                  <Badge tone={module.id === 'deposito_ricorso' ? 'success' : 'info'}>v{module.version}</Badge>
-                  {linkedDeposits.length ? <Badge tone="warning">{linkedDeposits.length} percorsi</Badge> : null}
-                </header>
-                <h4>{module.title}</h4>
-                <p>{module.note || module.recommendedFor.join(' - ')}</p>
-                <dl>
-                  <div><dt>Uso</dt><dd>{module.recommendedFor.slice(0, 4).join(' - ')}</dd></div>
-                  <div><dt>Dati</dt><dd>{module.requiredData.slice(0, 5).join(' - ')}</dd></div>
-                  <div><dt>Allegati</dt><dd>{module.attachments.slice(0, 5).join(' - ')}</dd></div>
-                </dl>
-                <footer>
-                  <a href={module.url} target="_blank" rel="noreferrer"><Download size={15}/> Scarica modulo ufficiale</a>
-                </footer>
-              </article>
-            )
-          })}
         </div>
-      </section>
-
-      <section className="iu-pat-guides" id="download-pdf-pat">
-        <article>
-          <h3>Chrome e Acrobat</h3>
+        <div>
+          <h3>Fonti e regole ufficiali</h3>
           <p>{procedure.chromePdfGuide.summary}</p>
           <ol>
             {procedure.chromePdfGuide.steps.map((step) => <li key={step}>{step}</li>)}
           </ol>
-          <a href={procedure.chromePdfGuide.source} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Istruzioni ufficiali download PDF</a>
-        </article>
-        <article>
-          <h3>Fonti operative</h3>
           <div className="iu-pat-source-list">
             {procedure.documents.map((doc) => (
               <a href={doc.url} target="_blank" rel="noreferrer" key={doc.id}>
@@ -1522,7 +1865,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
               </a>
             ))}
           </div>
-        </article>
+        </div>
       </section>
     </section>
   )
@@ -3896,12 +4239,18 @@ function AcquisitionWizard({
   const missingImportNames = asList(documentReport.documenti_senza_contenuto_elenco || documentReport.documenti_mancanti_elenco)
     .map((item) => asText(item))
     .filter(Boolean)
-  const selectedMappingMode = acquisitionMappingModes.find(([value]) => value === mapping.mode)
+  const isPatAcquisition = portal === 'pat'
+  const patMappingModes: Array<[AcquisitionMapping['mode'], string, string]> = [
+    ['update_existing', 'Usa fascicolo preparato', 'Collega ricevute, riepilogo e file ufficiali al fascicolo già lavorato in IUSENTRA.'],
+    ['create_new', 'Crea fascicolo da ricevute', 'Usalo solo se la pratica non esiste ancora nel gestionale.'],
+  ]
+  const mappingModes = isPatAcquisition ? patMappingModes : acquisitionMappingModes
+  const selectedMappingMode = mappingModes.find(([value]) => value === mapping.mode)
   const selectedTargetTitle = mapping.target_fascicolo_id
     ? mappingTargetOptions.find((item) => item.id === mapping.target_fascicolo_id)?.title || mapping.target_fascicolo_id
     : ''
   const finalDestinationLabel = mapping.mode === 'create_new'
-    ? 'Nuova pratica da creare'
+    ? isPatAcquisition ? 'Nuovo fascicolo IUSENTRA da creare' : 'Nuova pratica da creare'
     : selectedTargetTitle || 'Fascicolo interno non selezionato'
   const finalDocumentLabel = options.importa_documenti
     ? `${selectedPreviewDocuments.length}/${previewDocuments.length} documenti selezionati`
@@ -3915,9 +4264,21 @@ function AcquisitionWizard({
     ? downloadedPstDocumentCount
       ? `${downloadedPstDocumentCount} documenti PST già scaricati`
       : 'Documenti PST ancora da scaricare o già disponibili come dati'
+    : isPatAcquisition
+      ? files.length
+        ? `${files.length} ricevute o file SIGA raccolti`
+        : 'Ricevute e riepilogo SIGA ancora da raccogliere'
     : `${files.length} file raccolti`
   const official = officialPortalHref(portal)
-  const steps = [
+  const steps = isPatAcquisition ? [
+    { id: 1, label: 'Accesso SIGA', help: 'SPID, CIE o CNS' },
+    { id: 2, label: 'Deposito', help: 'Nuovo deposito Formweb' },
+    { id: 3, label: 'Rientro', help: 'Ricevute e riepilogo' },
+    { id: 4, label: 'File ufficiali', help: 'Documenti da registrare' },
+    { id: 5, label: 'Fascicolo', help: 'Collega in IUSENTRA' },
+    { id: 6, label: 'Controlli', help: 'Esiti e allegati' },
+    { id: 7, label: 'Registra', help: 'Stato deposito' },
+  ] : [
     { id: 1, label: 'Accesso', help: 'Sorgente e connessione' },
     { id: 2, label: 'Ricerca', help: 'Trova il fascicolo' },
     { id: 3, label: 'Anteprima', help: 'Verifica dati trovati' },
@@ -3930,21 +4291,35 @@ function AcquisitionWizard({
   const retryEvents = localEvents.filter((item) => item.portal === portal).slice(0, 3)
   const previewRecovered = Boolean(Object.keys(preview).length || previewCount(preview, 'documenti') || previewCount(preview, 'eventi'))
   const visibleRetryEvents = previewRecovered || files.length || Object.keys(importResult).length ? [] : retryEvents
+  const acquisitionEyebrow = isPatAcquisition ? 'PAT / SIGA · consegna ufficiale assistita' : `${portalLabel(portal)} · Acquisizione guidata`
+  const acquisitionTitle = isPatAcquisition ? 'Consegna finale PAT / SIGA e rientro ricevute' : `Importa pratica da ${portalLabel(portal)}`
+  const acquisitionLead = isPatAcquisition
+    ? 'IUSENTRA prepara fascicolo, modulo, PDF dati, allegati e controlli nella pagina PAT. Qui si apre la sessione ufficiale SIGA solo per consegnare il deposito e riportare nel fascicolo ricevute, riepiloghi e comunicazioni.'
+    : 'Ricerca, verifica e acquisizione guidata del fascicolo telematico. Credenziali, token e sessione restano sul portale ufficiale o sul Local Signer del PC.'
+  const assistantOpenLabel = isPatAcquisition ? 'Apri SIGA per consegna finale' : 'Sessione IUSENTRA'
+  const assistantCollectLabel = isPatAcquisition ? 'Importa ricevute SIGA' : 'Raccogli file nel software'
+  const manualFilesTitle = isPatAcquisition ? 'Ricevute e file SIGA raccolti' : 'File già raccolti'
+  const manualFilesHelp = isPatAcquisition
+    ? 'Aggiungi ricevute, riepilogo deposito, modulo PDF, allegati firmati, comunicazioni di cortesia o file esportati dalla sessione ufficiale.'
+    : 'Aggiungi ZIP, PDF, XML, EML o altri file ufficiali ottenuti dal portale.'
+  const mappingSummaryLabel = mapping.mode === 'create_new'
+    ? isPatAcquisition ? 'Crea nuovo fascicolo IUSENTRA' : 'Crea nuova pratica'
+    : isPatAcquisition ? 'Collega a fascicolo IUSENTRA' : 'Usa pratica esistente'
 
   return (
     <section className="iu-tel-acquisition" id="wizard-acquisizione">
       <header className="iu-tel-acquisition__head">
         <div>
-          <span><Download size={16}/> {portalLabel(portal)} · Acquisizione guidata</span>
-          <h2>Importa pratica da {portalLabel(portal)}</h2>
-          <p>Ricerca, verifica e acquisizione guidata del fascicolo telematico. Credenziali, token e sessione restano sul portale ufficiale o sul Local Signer del PC.</p>
+          <span><Download size={16}/> {acquisitionEyebrow}</span>
+          <h2>{acquisitionTitle}</h2>
+          <p>{acquisitionLead}</p>
         </div>
         <aside>
           <strong>Step {step}/7</strong>
           <span>{busy ? 'Operazione in corso...' : currentStep.help}</span>
           {portalUsesOfficialAssistant ? (
             <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}>
-              <ExternalLink size={14}/> Sessione IUSENTRA
+              <ExternalLink size={14}/> {assistantOpenLabel}
             </button>
           ) : null}
           {official && !portalUsesOfficialAssistant ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
@@ -3992,7 +4367,11 @@ function AcquisitionWizard({
       <div className="iu-tel-acquisition__grid">
         <div className="iu-tel-acquisition__main">
           {step === 1 ? (
-            <Panel title="Step 1 - Accesso" subtitle="Stato tecnico del canale autorizzato" icon={<MonitorCheck size={17}/>}>
+            <Panel
+              title={isPatAcquisition ? 'Step 1 - Accesso al Portale Avvocato / SIGA' : 'Step 1 - Accesso'}
+              subtitle={isPatAcquisition ? 'Sessione ufficiale con SPID, CIE o CNS e controllo Local Signer del PC' : 'Stato tecnico del canale autorizzato'}
+              icon={<MonitorCheck size={17}/>}
+            >
               <div className="iu-tel-acq-status">
                 <span><strong>Canale</strong>{portalLabel(portal)}</span>
                 <span><strong>Stato</strong>{asText(status.status_text || status.label || status.mode, 'Da verificare')}</span>
@@ -4018,19 +4397,19 @@ function AcquisitionWizard({
                 <button type="button" disabled={localSigner.unsupported} onClick={() => checkLocalSigner(true)}><RefreshCw size={15}/> Avvia e verifica</button>
                 {localSigner.unsupported ? null : <button type="button" disabled={localSigner.checking} onClick={updateLocalSignerAutomatically}><Download size={15}/> Aggiorna automaticamente</button>}
                 {localSigner.unsupported ? null : <a href={localSignerInstallHref(data)}><Download size={15}/> Installa o aggiorna</a>}
-                <button type="button" disabled={localSigner.unsupported} onClick={() => setStep(2)}><ArrowRight size={15}/> Vai alla ricerca</button>
+                <button type="button" disabled={localSigner.unsupported} onClick={() => setStep(2)}><ArrowRight size={15}/> {isPatAcquisition ? 'Vai alla consegna SIGA' : 'Vai alla ricerca'}</button>
               </div>
               {portalUsesOfficialAssistant ? (
                 <div className={`iu-tel-local-signer-card ${assistantSession?.local_connector_available ? 'is-ok' : 'is-missing'}`}>
                   <MonitorCheck size={18}/>
                   <div>
                     <strong>{assistantMonitoring ? 'Monitor download attivo' : assistantSession ? 'Sessione assistita pronta' : 'Sessione assistita portale'}</strong>
-                    <span>{assistantSession?.message || 'IUSENTRA apre una sessione locale assistita, raccoglie i file ufficiali e li importa nel fascicolo interno scelto.'}</span>
-                    <small>{assistantSession?.downloaded_files?.length ? `${assistantSession.downloaded_files.length} file raccolti` : 'Nessun file ufficiale ancora raccolto'}</small>
+                    <span>{assistantSession?.message || (isPatAcquisition ? 'Il portale SIGA non viene incastrato in iframe: IUSENTRA apre una sessione ufficiale assistita dal Local Connector, poi raccoglie solo i file autorizzati dall’avvocato.' : 'IUSENTRA apre una sessione locale assistita, raccoglie i file ufficiali e li importa nel fascicolo interno scelto.')}</span>
+                    <small>{assistantSession?.downloaded_files?.length ? `${assistantSession.downloaded_files.length} file raccolti` : isPatAcquisition ? 'Nessuna ricevuta SIGA ancora raccolta' : 'Nessun file ufficiale ancora raccolto'}</small>
                   </div>
                   <div className="iu-tel-acq-actions">
-                    <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}><ExternalLink size={15}/> Apri sessione IUSENTRA</button>
-                    <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={() => collectAssistantDownloads(false)}><Download size={15}/> Raccogli file nel software</button>
+                    <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}><ExternalLink size={15}/> {assistantOpenLabel}</button>
+                    <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={() => collectAssistantDownloads(false)}><Download size={15}/> {assistantCollectLabel}</button>
                     <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={closeAssistantSession}><CheckCircle2 size={15}/> Chiudi sessione</button>
                   </div>
                 </div>
@@ -4040,15 +4419,15 @@ function AcquisitionWizard({
 
           {step === 2 ? (
             <Panel
-              title={portalUsesOfficialAssistant ? 'Step 2 - Dati di riferimento' : 'Step 2 - Ricerca fascicolo'}
-              subtitle={portalUsesOfficialAssistant ? 'La ricerca resta nella sessione assistita IUSENTRA' : "Cerca l'ufficio mentre scrivi e usa i filtri del portale"}
+              title={isPatAcquisition ? 'Step 2 - Deposito sul SIGA' : portalUsesOfficialAssistant ? 'Step 2 - Dati di riferimento' : 'Step 2 - Ricerca fascicolo'}
+              subtitle={isPatAcquisition ? 'Usa Depositi, Nuovo deposito o Deposito telematico con modulo e allegati preparati in IUSENTRA' : portalUsesOfficialAssistant ? 'La ricerca resta nella sessione assistita IUSENTRA' : "Cerca l'ufficio mentre scrivi e usa i filtri del portale"}
               icon={<Search size={17}/>}
             >
               {portalUsesOfficialAssistant ? (
                 <div className="iu-tel-local-signer-inline">
                   <MonitorCheck size={16}/>
-                  <span>Per questo canale la consultazione avviene nella sessione locale assistita. Qui puoi completare i dati utili, poi importare file o dati autorizzati nel fascicolo interno.</span>
-                  <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}>Apri sessione IUSENTRA</button>
+                  <span>{isPatAcquisition ? 'Prima completa la procedura PAT dentro IUSENTRA. Nella sessione SIGA fai solo la consegna ufficiale e poi rientri con ricevute, riepilogo e comunicazioni.' : 'Per questo canale la consultazione avviene nella sessione locale assistita. Qui puoi completare i dati utili, poi importare file o dati autorizzati nel fascicolo interno.'}</span>
+                  <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}>{assistantOpenLabel}</button>
                 </div>
               ) : null}
               {portalNeedsLocalSigner && !localSignerDesktopSupported ? (
@@ -4075,7 +4454,7 @@ function AcquisitionWizard({
               ) : null}
               <div className="iu-tel-acq-form">
                 <label className="iu-tel-acq-form__wide">
-                  <span>Ufficio giudiziario</span>
+                  <span>{isPatAcquisition ? 'Sede PAT / SIGA' : 'Ufficio giudiziario'}</span>
                   <div className="iu-tel-acq-office-search">
                     <input
                       value={query.ufficio}
@@ -4088,7 +4467,7 @@ function AcquisitionWizard({
                           ufficioNome: '',
                         }))
                       }}
-                      placeholder="Cerca mentre scrivi: es. Tribunale di Vibo Valentia"
+                      placeholder={isPatAcquisition ? 'Es. TAR Lazio - Roma, Consiglio di Stato, CGARS' : 'Cerca mentre scrivi: es. Tribunale di Vibo Valentia'}
                       autoComplete="off"
                     />
                     <select value={officeTypeFilter} onChange={(event) => setOfficeTypeFilter(event.currentTarget.value)} aria-label="Filtra tipo ufficio">
@@ -4113,7 +4492,7 @@ function AcquisitionWizard({
                 <label><span>Numero</span><input value={query.numero} onChange={(event) => updateQuery('numero', event.currentTarget.value)} placeholder="Es. 466"/></label>
                 <label><span>Anno</span><input value={query.anno} onChange={(event) => updateQuery('anno', event.currentTarget.value)} inputMode="numeric"/></label>
                 <label>
-                  <span>Tabella ministeriale</span>
+                  <span>{isPatAcquisition ? 'Tipologia deposito PAT' : 'Tabella ministeriale'}</span>
                   <select
                     value={query.schema}
                     onChange={(event) => {
@@ -4126,26 +4505,40 @@ function AcquisitionWizard({
                       }))
                     }}
                   >
-                    <option value="">Automatica</option>
-                    <option value="civile">Civile contenzioso</option>
-                    <option value="lavoro">Lavoro e previdenza</option>
-                    <option value="volontaria">Volontaria giurisdizione</option>
-                    <option value="minori">Minori</option>
-                    <option value="esecuzioni">Esecuzioni e concorsuali</option>
-                    <option value="giudice di pace">Giudice di pace</option>
-                    <option value="cassazione civile">Cassazione civile</option>
-                    <option value="cassazione penale">Cassazione penale</option>
+                    {isPatAcquisition ? (
+                      <>
+                        <option value="">Da modulo preparato in IUSENTRA</option>
+                        <option value="ricorso">Ricorso</option>
+                        <option value="atto successivo">Atto successivo</option>
+                        <option value="richiesta segreteria">Richiesta alla segreteria</option>
+                        <option value="istanza ante causam">Istanza ante causam</option>
+                        <option value="ausiliari">Ausiliari del giudice e parti non rituali</option>
+                        <option value="rimborso contributo unificato">Rimborso contributo unificato</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="">Automatica</option>
+                        <option value="civile">Civile contenzioso</option>
+                        <option value="lavoro">Lavoro e previdenza</option>
+                        <option value="volontaria">Volontaria giurisdizione</option>
+                        <option value="minori">Minori</option>
+                        <option value="esecuzioni">Esecuzioni e concorsuali</option>
+                        <option value="giudice di pace">Giudice di pace</option>
+                        <option value="cassazione civile">Cassazione civile</option>
+                        <option value="cassazione penale">Cassazione penale</option>
+                      </>
+                    )}
                   </select>
                 </label>
-                <label><span>Parte assistita</span><input value={query.assistito} onChange={(event) => updateQuery('assistito', event.currentTarget.value)} placeholder="Cliente, imputato, ricorrente..."/></label>
-                <label><span>Controparte</span><input value={query.controparte} onChange={(event) => updateQuery('controparte', event.currentTarget.value)} placeholder="Controparte, resistente, parte offesa..."/></label>
+                <label><span>Parte assistita</span><input value={query.assistito} onChange={(event) => updateQuery('assistito', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Ricorrente, istante o richiedente' : 'Cliente, imputato, ricorrente...'}/></label>
+                <label><span>Controparte</span><input value={query.controparte} onChange={(event) => updateQuery('controparte', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Amministrazione resistente o controinteressato' : 'Controparte, resistente, parte offesa...'}/></label>
                 <label><span>CF / P.IVA</span><input value={query.cf} onChange={(event) => updateQuery('cf', event.currentTarget.value)} placeholder="Codice fiscale o partita IVA"/></label>
-                <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder="Oggetto, materia, reato, rito..."/></label>
+                <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Materia amministrativa, oggetto ricorso o istanza' : 'Oggetto, materia, reato, rito...'}/></label>
               </div>
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)} onClick={runSearch}><Search size={15}/> {portalUsesOfficialAssistant ? 'Ricerca nella sessione assistita' : (pstHasYearSearch() ? 'Cerca fascicoli' : 'Cerca fascicolo')}</button>
                 <button type="button" disabled={!selection || busy === 'preview' || portalUsesOfficialAssistant} onClick={() => runPreview()}><FileText size={15}/> Carica anteprima</button>
-                {portalUsesOfficialAssistant ? <button type="button" onClick={() => setStep(4)}><ArrowRight size={15}/> Vai ai file raccolti</button> : null}
+                {portalUsesOfficialAssistant ? <button type="button" onClick={() => setStep(isPatAcquisition ? 3 : 4)}><ArrowRight size={15}/> {isPatAcquisition ? 'Vai al rientro ricevute' : 'Vai ai file raccolti'}</button> : null}
               </div>
               <div className="iu-tel-acq-results">
                 {results.map((result) => (
@@ -4162,7 +4555,47 @@ function AcquisitionWizard({
             </Panel>
           ) : null}
 
-          {step === 3 ? (
+          {step === 3 && isPatAcquisition ? (
+            <Panel title="Step 3 - Rientro ricevute SIGA" subtitle="Raccogli deposito, ricevute e comunicazioni ufficiali dopo la consegna" icon={<FileCheck2 size={17}/>}>
+              <div className="iu-tel-acq-step-brief">
+                <FileCheck2 size={18}/>
+                <div>
+                  <strong>Il portale è la fase finale, non il punto di partenza</strong>
+                  <span>Dopo l’invio nel SIGA, importa nel software il riepilogo deposito, le ricevute, il modulo usato, gli allegati firmati e le eventuali comunicazioni di cortesia.</span>
+                </div>
+              </div>
+              <section className="iu-tel-acq-fieldset">
+                <header>
+                  <strong>File ufficiali attesi</strong>
+                  <span>Questa lista deriva dal manuale del Portale Avvocato e dalla logica operativa PAT.</span>
+                </header>
+                <div className="iu-tel-acq-documents">
+                  {[
+                    'Riepilogo o ricevuta deposito SIGA',
+                    'Modulo PDF di deposito compilato',
+                    'Atto principale e allegati firmati quando richiesto',
+                    'Comunicazioni di cortesia o stato deposito',
+                    'Eventuali provvedimenti o file consultati dal fascicolo',
+                  ].map((label) => (
+                    <article key={label}>
+                      <FileText size={15}/>
+                      <div>
+                        <strong>{label}</strong>
+                        <small>Da collegare al fascicolo IUSENTRA prima della registrazione finale.</small>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+              <div className="iu-tel-acq-actions">
+                <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}><ExternalLink size={15}/> {assistantOpenLabel}</button>
+                <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={() => collectAssistantDownloads(false)}><Download size={15}/> {assistantCollectLabel}</button>
+                <button type="button" onClick={() => setStep(4)}><ArrowRight size={15}/> Vai ai file ufficiali</button>
+              </div>
+            </Panel>
+          ) : null}
+
+          {step === 3 && !isPatAcquisition ? (
             <Panel title="Step 3 - Anteprima" subtitle="Verifica i dati trovati prima della selezione" icon={<FileCheck2 size={17}/>}>
               {Object.keys(preview).length ? (
                 <>
@@ -4252,18 +4685,22 @@ function AcquisitionWizard({
           ) : null}
 
           {step === 4 ? (
-            <Panel title="Step 4 - Cosa scaricare" subtitle="Prepara i contenuti PST prima della destinazione" icon={<ClipboardCheck size={17}/>}>
+            <Panel
+              title={isPatAcquisition ? 'Step 4 - File ufficiali da registrare' : 'Step 4 - Cosa scaricare'}
+              subtitle={isPatAcquisition ? 'Ricevute, riepilogo, modulo PDF e allegati raccolti dalla sessione SIGA' : 'Prepara i contenuti PST prima della destinazione'}
+              icon={<ClipboardCheck size={17}/>}
+            >
               <div className="iu-tel-acq-step-brief">
                 <ClipboardCheck size={18}/>
                 <div>
-                  <strong>Scarico separato dall'importazione finale</strong>
-                  <span>Questo passaggio prepara documenti e dati. Il fascicolo interno si conferma nello Step 5, poi lo Step 7 registra tutto nel fascicolo.</span>
+                  <strong>{isPatAcquisition ? 'Registrazione separata dalla consegna ufficiale' : "Scarico separato dall'importazione finale"}</strong>
+                  <span>{isPatAcquisition ? 'La consegna avviene nel SIGA; IUSENTRA registra prove, ricevute e file ufficiali nel fascicolo interno dopo il rientro.' : 'Questo passaggio prepara documenti e dati. Il fascicolo interno si conferma nello Step 5, poi lo Step 7 registra tutto nel fascicolo.'}</span>
                 </div>
               </div>
               <section className="iu-tel-acq-fieldset">
                 <header>
-                  <strong>Dati da portare nel fascicolo</strong>
-                  <span>Seleziona le famiglie di dati che verranno importate dopo la verifica.</span>
+                  <strong>{isPatAcquisition ? 'Dati PAT da collegare' : 'Dati da portare nel fascicolo'}</strong>
+                  <span>{isPatAcquisition ? 'Seleziona cosa deve entrare nel fascicolo IUSENTRA dopo la consegna SIGA.' : 'Seleziona le famiglie di dati che verranno importate dopo la verifica.'}</span>
                 </header>
                 <div className="iu-tel-acq-switches">
                   <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => {
@@ -4271,20 +4708,20 @@ function AcquisitionWizard({
                     updateOption('importa_documenti', checked)
                     if (checked && previewDocumentKeys.length && !selectedDocumentKeys.length) setSelectedDocumentKeys(previewDocumentKeys)
                     if (!checked) setSelectedDocumentKeys([])
-                  }}/><span><strong>Documenti del fascicolo</strong><small>Scarica e registra i file selezionati come documenti e atti.</small></span></label>
-                  <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/><span><strong>Eventi di cancelleria</strong><small>Porta nel fascicolo la cronologia disponibile dal portale.</small></span></label>
-                  <label><input type="checkbox" checked={options.importa_scadenze} onChange={(event) => updateOption('importa_scadenze', event.currentTarget.checked)}/><span><strong>Scadenziario</strong><small>Usa date ministeriali o documenti fonte senza creare scadenze non verificate.</small></span></label>
-                  <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/><span><strong>Parti</strong><small>Aggiorna assistito, controparti e dati di ruolo quando esposti.</small></span></label>
+                  }}/><span><strong>{isPatAcquisition ? 'Documenti PAT ufficiali' : 'Documenti del fascicolo'}</strong><small>{isPatAcquisition ? 'Registra ricevute, modulo, riepilogo e allegati come documenti del fascicolo.' : 'Scarica e registra i file selezionati come documenti e atti.'}</small></span></label>
+                  <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'Stato deposito' : 'Eventi di cancelleria'}</strong><small>{isPatAcquisition ? 'Annota deposito inviato, depositato, rifiutato o in elaborazione se esposto dal SIGA.' : 'Porta nel fascicolo la cronologia disponibile dal portale.'}</small></span></label>
+                  <label><input type="checkbox" checked={options.importa_scadenze} onChange={(event) => updateOption('importa_scadenze', event.currentTarget.checked)}/><span><strong>Scadenziario</strong><small>{isPatAcquisition ? 'Crea scadenze solo da date ufficiali o documenti fonte verificati.' : 'Usa date ministeriali o documenti fonte senza creare scadenze non verificate.'}</small></span></label>
+                  <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/><span><strong>Parti</strong><small>{isPatAcquisition ? 'Collega ricorrenti, resistenti, controinteressati e difensori quando disponibili.' : 'Aggiorna assistito, controparti e dati di ruolo quando esposti.'}</small></span></label>
                 </div>
               </section>
               <section className="iu-tel-acq-fieldset">
                 <header>
-                  <strong>Formato dei documenti PST</strong>
-                  <span>Imposta come conservare i file scaricati dal portale.</span>
+                  <strong>{isPatAcquisition ? 'Conservazione documenti PAT' : 'Formato dei documenti PST'}</strong>
+                  <span>{isPatAcquisition ? 'Imposta come archiviare ricevute, riepilogo e file ufficiali SIGA.' : 'Imposta come conservare i file scaricati dal portale.'}</span>
                 </header>
                 <div className="iu-tel-acq-switches iu-tel-acq-switches--compact">
-                  <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/><span><strong>Originale portale</strong><small>Usa il file originale solo quando serve la copia ministeriale nativa.</small></span></label>
-                  <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/><span><strong>Struttura originale</strong><small>Mantieni cartelle e gruppi del PST per buste, allegati e ricevute.</small></span></label>
+                  <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'File ufficiale SIGA' : 'Originale portale'}</strong><small>{isPatAcquisition ? 'Conserva il file prodotto dal portale quando rappresenta prova del deposito.' : 'Usa il file originale solo quando serve la copia ministeriale nativa.'}</small></span></label>
+                  <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'Cartella PAT ordinata' : 'Struttura originale'}</strong><small>{isPatAcquisition ? 'Mantieni ricevute, moduli, allegati e comunicazioni in una struttura riconoscibile.' : 'Mantieni cartelle e gruppi del PST per buste, allegati e ricevute.'}</small></span></label>
                 </div>
               </section>
               {!structuredHearingLabel && deadlineSourceDocuments.length && options.importa_scadenze ? (
@@ -4343,11 +4780,11 @@ function AcquisitionWizard({
               ) : null}
               <section className="iu-tel-acq-fieldset">
                 <header>
-                  <strong>File già raccolti</strong>
-                  <span>Aggiungi ZIP, PDF, XML, EML o altri file ufficiali ottenuti dal portale.</span>
+                  <strong>{manualFilesTitle}</strong>
+                  <span>{manualFilesHelp}</span>
                 </header>
                 <label className="iu-tel-acq-file">
-                  <span>File, ZIP o dati autorizzati</span>
+                  <span>{isPatAcquisition ? 'Ricevute, PDF, allegati, ZIP o dati autorizzati' : 'File, ZIP o dati autorizzati'}</span>
                   <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
                 </label>
                 <div className="iu-tel-acq-results iu-tel-acq-results--compact">
@@ -4361,9 +4798,13 @@ function AcquisitionWizard({
           ) : null}
 
           {step === 5 ? (
-            <Panel title="Step 5 - Destinazione" subtitle="Crea una nuova pratica o usa un fascicolo locale" icon={<FolderOpen size={17}/>}>
+            <Panel
+              title={isPatAcquisition ? 'Step 5 - Fascicolo IUSENTRA' : 'Step 5 - Destinazione'}
+              subtitle={isPatAcquisition ? 'Collega l’esito SIGA al fascicolo già preparato o crea il fascicolo solo se manca' : 'Crea una nuova pratica o usa un fascicolo locale'}
+              icon={<FolderOpen size={17}/>}
+            >
               <div className="iu-tel-acq-mapping-mode">
-                {acquisitionMappingModes.map(([value, label, help]) => (
+                {mappingModes.map(([value, label, help]) => (
                   <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
                     <input type="radio" checked={mapping.mode === value} onChange={() => updateMapping('mode', value)} />
                     <strong>{label}</strong>
@@ -4387,7 +4828,11 @@ function AcquisitionWizard({
           ) : null}
 
           {step === 6 ? (
-            <Panel title="Step 6 - Verifica" subtitle="Blocchi, avvisi e semafori prima dell'import" icon={<ShieldCheck size={17}/>}>
+            <Panel
+              title={isPatAcquisition ? 'Step 6 - Verifica ricevute e allegati' : 'Step 6 - Verifica'}
+              subtitle={isPatAcquisition ? 'Controlla esito deposito, file obbligatori e coerenza col fascicolo' : "Blocchi, avvisi e semafori prima dell'import"}
+              icon={<ShieldCheck size={17}/>}
+            >
               {Object.keys(analysis).length ? (
                 <div className="iu-tel-acq-analysis">
                   <article><span>Punteggio</span><strong>{asText(analysis.score || analysis.punteggio, 'n.d.')}</strong></article>
@@ -4422,7 +4867,11 @@ function AcquisitionWizard({
           ) : null}
 
           {step === 7 ? (
-            <Panel title="Step 7 - Importa nel fascicolo" subtitle="Registrazione controllata nella pratica interna" icon={<UploadCloud size={17}/>}>
+            <Panel
+              title={isPatAcquisition ? 'Step 7 - Registra esito PAT nel fascicolo' : 'Step 7 - Importa nel fascicolo'}
+              subtitle={isPatAcquisition ? 'Registrazione controllata di deposito, ricevute e documenti ufficiali' : 'Registrazione controllata nella pratica interna'}
+              icon={<UploadCloud size={17}/>}
+            >
               <div className="iu-tel-acq-final-review" aria-label="Riepilogo importazione finale">
                 <article>
                   <span>Destinazione</span>
@@ -4440,9 +4889,9 @@ function AcquisitionWizard({
                   <small>{selectedMappingMode?.[2] || 'Importazione controllata nel gestionale.'}</small>
                 </article>
               </div>
-              <p className="iu-tel-acq-note">{portalUsesOfficialAssistant ? 'IUSENTRA registra nel fascicolo interno i file raccolti dalla sessione locale assistita e i dati autorizzati selezionati.' : "Questo comando registra nel fascicolo interno i documenti già scaricati, i file selezionati e i dati autorizzati. Non avvia uno scarico nascosto dal portale."}</p>
+              <p className="iu-tel-acq-note">{isPatAcquisition ? 'IUSENTRA registra nel fascicolo interno ricevute, riepilogo deposito, modulo PDF, allegati e stato SIGA selezionati. La consegna ufficiale resta documentata dai file riportati dal portale.' : portalUsesOfficialAssistant ? 'IUSENTRA registra nel fascicolo interno i file raccolti dalla sessione locale assistita e i dati autorizzati selezionati.' : "Questo comando registra nel fascicolo interno i documenti già scaricati, i file selezionati e i dati autorizzati. Non avvia uno scarico nascosto dal portale."}</p>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'import' || (mapping.mode === 'update_existing' && !mapping.target_fascicolo_id)} onClick={() => runImport()}><UploadCloud size={15}/> {mapping.mode === 'create_new' ? 'Crea pratica e importa' : 'Importa nel fascicolo selezionato'}</button>
+                <button type="button" disabled={busy === 'import' || (mapping.mode === 'update_existing' && !mapping.target_fascicolo_id)} onClick={() => runImport()}><UploadCloud size={15}/> {mapping.mode === 'create_new' ? isPatAcquisition ? 'Crea fascicolo e registra esito' : 'Crea pratica e importa' : isPatAcquisition ? 'Registra nel fascicolo selezionato' : 'Importa nel fascicolo selezionato'}</button>
                 <button type="button" disabled={busy === 'import'} onClick={() => setStep(5)}><FolderOpen size={15}/> Correggi destinazione</button>
               </div>
               {Object.keys(documentReport).length ? (
@@ -4477,9 +4926,9 @@ function AcquisitionWizard({
             <div className="iu-tel-acq-summary">
               <span><strong>Portale</strong>{portalLabel(portal)}</span>
               <span><strong>Ufficio</strong>{query.ufficioNome || query.ufficio || 'Non indicato'}</span>
-              <span><strong>Selezione</strong>{selection?.title || 'Nessun fascicolo selezionato'}</span>
+              <span><strong>{isPatAcquisition ? 'Esito SIGA' : 'Selezione'}</strong>{selection?.title || (isPatAcquisition ? 'In attesa di ricevute ufficiali' : 'Nessun fascicolo selezionato')}</span>
               <span><strong>File manuali</strong>{files.length}</span>
-              <span><strong>Mappatura</strong>{mapping.mode.replace('_', ' ')}</span>
+              <span><strong>Mappatura</strong>{mappingSummaryLabel}</span>
               <span><strong>Documenti</strong>{previewCount(preview, 'documenti')}</span>
               <span><strong>Eventi</strong>{previewCount(preview, 'eventi')}</span>
             </div>

@@ -1,5 +1,22 @@
 # Migrazione progressiva Flask + React
 
+## PAT/SIGA moduli compilabili interni - 2026-06-19 - 2.253.81
+
+La superficie `/pat` è stata corretta da catalogo/link a procedura software interna: il portale SIGA resta la fase finale dove l'avvocato consegna tutto, mentre IUSENTRA prepara prima fascicolo, deposito Formweb, modulo compilabile, allegati, firma e PDF dati modulo.
+
+Stato codice:
+
+- React `/pat` ora espone le sezioni `Fascicolo`, `Depositi`, `Moduli compilabili`, `Allegati e firme`, `Sessione SIGA` e fonti operative in fondo pagina;
+- React `/portali/pat/acquisizione` ora è specifica per PAT/SIGA: `Consegna finale PAT / SIGA e rientro ricevute`, passaggi `Accesso SIGA`, `Deposito`, `Rientro`, `File ufficiali`, `Fascicolo`, `Controlli`, `Registra`;
+- il wizard PAT non mostra più mappature tecniche in inglese come `create new` e non presenta il portale come luogo in cui ricostruire la pratica: IUSENTRA prepara tutto, SIGA resta la fase ufficiale di consegna e rientro ricevute;
+- aggiunti stati hover/focus leggibili per pulsanti, step e card acquisizione; su mobile le azioni della sessione SIGA sono impilate a tutta larghezza e i disabilitati hanno testo scuro leggibile;
+- aggiunto endpoint `/api/v1/ui/pat/moduli/prefill` per precompilare i moduli da `get_fascicoli()`, `get_clienti()` e `get_soggetti()` nel tenant corrente;
+- aggiunto endpoint `/api/v1/ui/pat/moduli/compila` per produrre un PDF compilato da IUSENTRA con validazione dei campi obbligatori;
+- il testo `Scarica modulo ufficiale` non è più presente nella workspace React come azione del flusso;
+- il portale ufficiale viene richiamato solo nella sezione finale `Sessione SIGA`, governata dal Local Connector.
+
+Verifiche locali eseguite su `2.253.81`: test mirati PAT/React, typecheck/build frontend, asset retention, UTF-8, OpenAPI, rebuild Docker locale e prova visiva reale su `127.0.0.1:8080/portali/pat/acquisizione` desktop/tablet/mobile con click Step 2/3/4, scroll completo e assenza di `Vai alla ricerca`, `create new`, `Scarica modulo ufficiale`. Restano per la chiusura complessiva: commit/push branch gemelli, GitHub checks e deploy Hetzner.
+
 ## PAT/SIGA Formweb e Portale Avvocato - 2026-06-19 - 2.253.80
 
 La superficie `/pat` viene estesa come cabina operativa del Portale Avvocato / SIGA: Formweb prioritario, moduli ufficiali, sessione SIGA governata da IUSENTRA tramite Local Connector del PC dell'avvocato e import ricevute/documenti nel fascicolo.

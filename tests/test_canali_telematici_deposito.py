@@ -92,9 +92,14 @@ def test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali():
     assert {"deposito_ricorso", "deposito_atto", "richieste_segreteria", "foglio_excel_parti"} <= set(modules)
     assert modules["deposito_ricorso"]["version"] == "4.02"
     assert modules["deposito_atto"]["version"] == "4.02"
+    assert modules["deposito_ricorso"]["fillable_fields"]
+    assert any(field["id"] == "tipo_ricorso" for field in modules["deposito_ricorso"]["fillable_fields"])
+    assert any(field["id"] == "contributo_unificato" for field in modules["deposito_ricorso"]["fillable_fields"])
     assert modules["foglio_excel_parti"]["url"].endswith("t=1748183957377")
     assert deposits["ricorso"]["module_id"] == "deposito_ricorso"
     assert deposits["successivo_notifiche"]["module_id"] == "deposito_atto"
+    assert "scarica-modulo" not in {step["id"] for step in payload["workflowSteps"]}
+    assert "Genera il PDF dati modulo da IUSENTRA." in payload["chromePdfGuide"]["steps"]
     assert suggest_pat_modules("rimborso contributo unificato")[0]["id"] == "rimborso_contributo_unificato"
     assert suggest_pat_modules("appalti cig pnrr")[0]["id"] == "deposito_ricorso"
 

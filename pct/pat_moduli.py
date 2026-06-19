@@ -71,8 +71,20 @@ class PatModule:
     recommended_for: tuple[str, ...]
     required_data: tuple[str, ...]
     attachments: tuple[str, ...]
+    fillable_fields: tuple["PatModuleField", ...]
     keywords: tuple[str, ...]
     note: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class PatModuleField:
+    id: str
+    label: str
+    type: str
+    required: bool = True
+    placeholder: str = ""
+    help: str = ""
+    options: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +103,62 @@ class PatWorkflowStep:
     title: str
     body: str
     actions: tuple[str, ...] = field(default_factory=tuple)
+
+
+COMMON_MODULE_FIELDS: tuple[PatModuleField, ...] = (
+    PatModuleField("sede", "Sede TAR / CDS / CGARS", "text", True, "TAR Lazio - Roma"),
+    PatModuleField("parte_depositante", "Parte depositante", "text", True, "Nome parte o difensore"),
+    PatModuleField("codice_fiscale", "Codice fiscale / partita IVA", "text", False, "CF o P.IVA"),
+    PatModuleField("oggetto", "Oggetto sintetico", "textarea", True, "Sintesi chiara dell'atto o della richiesta"),
+)
+
+RG_MODULE_FIELDS: tuple[PatModuleField, ...] = (
+    PatModuleField("nrg", "Numero RG / NRG", "text", True, "1234"),
+    PatModuleField("anno_rg", "Anno RG", "text", True, "2026"),
+)
+
+RICORSO_MODULE_FIELDS: tuple[PatModuleField, ...] = COMMON_MODULE_FIELDS + (
+    PatModuleField("tipo_ricorso", "Tipo ricorso", "select", True, options=("Ordinario", "Appalti", "Accesso", "Silenzio", "Ottemperanza", "Rito sportivo", "PNRR")),
+    PatModuleField("ricorrente", "Ricorrente", "text", True, "Nome o denominazione ricorrente"),
+    PatModuleField("resistente", "Amministrazione resistente", "text", True, "Amministrazione o controparte"),
+    PatModuleField("contributo_unificato", "Contributo unificato", "select", True, options=("Da pagare", "Pagato", "Esente", "Prenotato a debito")),
+)
+
+ATTO_MODULE_FIELDS: tuple[PatModuleField, ...] = COMMON_MODULE_FIELDS + RG_MODULE_FIELDS + (
+    PatModuleField("tipologia_atto", "Tipologia atto", "select", True, options=("Memoria", "Replica", "Motivi aggiunti", "Istanza cautelare", "Documenti", "Notifiche", "Altro atto")),
+    PatModuleField("descrizione_allegati", "Descrizione allegati", "textarea", False, "Elenco sintetico dei documenti depositati"),
+)
+
+SEGRETERIA_MODULE_FIELDS: tuple[PatModuleField, ...] = COMMON_MODULE_FIELDS + (
+    PatModuleField("riferimento_fascicolo", "Riferimento fascicolo", "text", False, "NRG, protocollo o altro riferimento"),
+    PatModuleField("tipo_richiesta", "Tipo richiesta", "select", True, options=("Rilascio copie", "Comunicazione", "Istanza amministrativa", "Correzione dati", "Altro")),
+    PatModuleField("dettaglio_richiesta", "Dettaglio richiesta", "textarea", True, "Cosa deve fare la segreteria"),
+)
+
+AUSILIARI_MODULE_FIELDS: tuple[PatModuleField, ...] = COMMON_MODULE_FIELDS + RG_MODULE_FIELDS + (
+    PatModuleField("qualifica_depositante", "Qualifica depositante", "select", True, options=("Ausiliario del giudice", "Commissario", "CTU", "Parte non rituale", "Altro")),
+    PatModuleField("descrizione_deposito", "Descrizione deposito", "textarea", True, "Relazione, istanza o documento prodotto"),
+)
+
+ANTE_CAUSAM_MODULE_FIELDS: tuple[PatModuleField, ...] = COMMON_MODULE_FIELDS + (
+    PatModuleField("istante", "Istante", "text", True, "Nome o denominazione istante"),
+    PatModuleField("amministrazione_resistente", "Amministrazione resistente", "text", True, "Amministrazione destinataria"),
+    PatModuleField("ragioni_urgenza", "Ragioni di urgenza", "textarea", True, "Fatti e ragioni della misura richiesta"),
+)
+
+RIMBORSO_MODULE_FIELDS: tuple[PatModuleField, ...] = COMMON_MODULE_FIELDS + RG_MODULE_FIELDS + (
+    PatModuleField("dati_pagamento", "Dati pagamento", "textarea", True, "IUV, F24, data, importo o ricevuta"),
+    PatModuleField("iban", "IBAN o dati rimborso", "text", False, "IBAN intestato al richiedente"),
+    PatModuleField("motivo_rimborso", "Motivo rimborso", "textarea", True, "Pagamento non dovuto, doppio pagamento o altra ragione"),
+)
+
+PARTI_EXCEL_FIELDS: tuple[PatModuleField, ...] = (
+    PatModuleField("ruolo_processuale", "Ruolo processuale", "select", True, options=("Ricorrente", "Resistente", "Controinteressato", "Interveniente", "Altro")),
+    PatModuleField("nome_parte", "Cognome, nome o denominazione", "text", True, "Parte da inserire"),
+    PatModuleField("codice_fiscale", "Codice fiscale / partita IVA", "text", False, "CF o P.IVA"),
+    PatModuleField("pec", "PEC o domicilio digitale", "text", False, "indirizzo@pec.it"),
+    PatModuleField("note", "Note parte", "textarea", False, "Qualifica, rappresentante, riferimenti"),
+)
 
 
 OFFICIAL_DOCUMENTS: tuple[PatOfficialDocument, ...] = (
@@ -151,8 +219,9 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("ricorso introduttivo", "appalti", "PNRR", "rito sportivo", "accesso", "silenzio", "ottemperanza"),
         ("sede TAR/CDS/CGARS", "tipo ricorso", "ricorrente", "resistente", "oggetto", "procura", "contributo unificato"),
         ("ricorso", "procura alle liti", "notifiche", "documenti", "ricevuta contributo unificato"),
+        RICORSO_MODULE_FIELDS,
         ("ricorso", "appalto", "appalti", "cig", "pnrr", "accesso", "silenzio", "ottemperanza", "sportivo"),
-        "Modulo residuale per deposito tramite PEC o preparazione dati; a regime Formweb resta il canale prioritario.",
+        "IUSENTRA compila i dati interni del modulo e prepara la scheda PDF; il modello ufficiale resta collegato come fonte/versione.",
     ),
     PatModule(
         "deposito_atto",
@@ -164,6 +233,7 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("atto successivo", "memoria", "replica", "motivi aggiunti", "istanza cautelare", "documenti successivi"),
         ("sede", "NRG", "anno", "parte depositante", "tipologia atto", "oggetto sintetico"),
         ("atto principale", "documenti", "prove", "relata o notifiche", "ricevute"),
+        ATTO_MODULE_FIELDS,
         ("atto", "memoria", "replica", "motivi aggiunti", "istanza", "cautelare", "documento", "notifiche"),
     ),
     PatModule(
@@ -176,6 +246,7 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("richieste alla segreteria", "istanze amministrative al fascicolo", "accesso copie"),
         ("sede", "NRG o riferimento", "richiedente", "oggetto richiesta"),
         ("istanza", "documenti a supporto"),
+        SEGRETERIA_MODULE_FIELDS,
         ("segreteria", "copie", "richiesta", "rilascio", "comunicazione"),
     ),
     PatModule(
@@ -189,6 +260,7 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("ausiliario del giudice", "parte non rituale", "CTU", "commissario"),
         ("sede", "riferimento fascicolo", "qualifica depositante", "oggetto deposito"),
         ("atto o relazione", "documenti allegati"),
+        AUSILIARI_MODULE_FIELDS,
         ("ausiliario", "ctu", "commissario", "parte non rituale", "relazione"),
     ),
     PatModule(
@@ -201,6 +273,7 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("istanza ante causam", "misura cautelare prima del ricorso"),
         ("sede", "istante", "amministrazione resistente", "oggetto", "ragioni urgenza"),
         ("istanza", "documenti", "procura se richiesta"),
+        ANTE_CAUSAM_MODULE_FIELDS,
         ("ante causam", "antecausam", "cautelare", "misura", "urgenza"),
     ),
     PatModule(
@@ -213,6 +286,7 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("rimborso contributo unificato", "contributo unificato", "pagamento non dovuto"),
         ("sede", "riferimento ricorso", "richiedente", "dati pagamento", "IBAN o dati rimborso se richiesti"),
         ("ricevuta pagamento", "documento identità se necessario", "documenti contabili"),
+        RIMBORSO_MODULE_FIELDS,
         ("rimborso", "contributo", "unificato", "f24", "pagamento"),
     ),
     PatModule(
@@ -225,8 +299,9 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("molte parti", "inserimento massivo parti", "ricorrenti o resistenti plurimi"),
         ("cognome o denominazione", "codice fiscale o partita IVA", "ruolo processuale", "PEC se prevista"),
         ("foglio parti compilato"),
+        PARTI_EXCEL_FIELDS,
         ("parti", "ricorrenti", "resistenti", "excel", "massivo"),
-        "Supporto opzionale quando le parti da indicare nel deposito sono numerose.",
+        "IUSENTRA raccoglie le righe parte e prepara i dati per il foglio massivo ufficiale.",
     ),
 )
 
@@ -308,15 +383,9 @@ WORKFLOW_STEPS: tuple[PatWorkflowStep, ...] = (
     ),
     PatWorkflowStep(
         "prepara-pdf",
-        "Prepara PDF e dati",
-        "Gli atti devono restare leggibili, senza link attivi rischiosi, con allegati ordinati e nomi file chiari.",
-        ("PDF/A se richiesto", "allegati ordinati", "foglio Excel parti quando utile"),
-    ),
-    PatWorkflowStep(
-        "scarica-modulo",
-        "Scarica modulo ufficiale se serve",
-        "I moduli 4.x vanno scaricati dal sito G.A. e aperti con Acrobat Reader, non compilati dentro il viewer del browser.",
-        ("Chrome impostato su Scarica PDF", "Acrobat Reader DC", "versione modulo corrente"),
+        "Compila modulo e PDF",
+        "IUSENTRA apre il modulo corretto, raccoglie i dati obbligatori e produce la scheda PDF compilata prima della sessione SIGA.",
+        ("campi obbligatori", "allegati ordinati", "PDF dati modulo generato dal software"),
     ),
     PatWorkflowStep(
         "firma-pades",
@@ -422,13 +491,12 @@ def build_pat_siga_payload() -> dict[str, Any]:
         "documents": documents,
         "chromePdfGuide": {
             "source": ISTRUZIONI_DOWNLOAD_PDF_URL,
-            "summary": "I moduli non vanno compilati nel viewer del browser: Chrome deve scaricare il PDF e Acrobat Reader lo apre in locale.",
+            "summary": "Il modello ufficiale resta disponibile come fonte e confronto; la compilazione operativa dei dati modulo avviene dentro IUSENTRA.",
             "steps": (
-                "Apri Impostazioni di Chrome.",
-                "Entra in Privacy e sicurezza, poi Impostazioni sito.",
-                "Apri Altre impostazioni contenuti e Documenti PDF.",
-                "Attiva Scarica PDF.",
-                "Apri il file scaricato con Acrobat Reader DC.",
+                "Compila i dati richiesti nella sezione Moduli compilabili.",
+                "Genera il PDF dati modulo da IUSENTRA.",
+                "Controlla allegati, firme PAdES e limiti Formweb.",
+                "Avvia la sessione ufficiale SIGA solo quando il fascicolo è pronto.",
             ),
         },
         "suggestedModules": suggest_pat_modules("ricorso appalti pnrr atto successivo"),
@@ -438,6 +506,7 @@ def build_pat_siga_payload() -> dict[str, Any]:
 __all__ = [
     "DOCUMENTATION_URL",
     "PORTALE_AVVOCATO_URL",
+    "PatModuleField",
     "PAT_MODULES",
     "FORMWEB_DEPOSITS",
     "build_pat_siga_payload",

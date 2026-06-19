@@ -98,8 +98,19 @@ export type PatProcedureModule = {
   recommendedFor: string[]
   requiredData: string[]
   attachments: string[]
+  fillableFields: PatProcedureField[]
   keywords: string[]
   note: string
+}
+
+export type PatProcedureField = {
+  id: string
+  label: string
+  type: 'text' | 'textarea' | 'select' | 'date'
+  required: boolean
+  placeholder: string
+  help: string
+  options: string[]
 }
 
 export type PatFormwebDeposit = {
@@ -449,8 +460,24 @@ function normalisePatModule(value: unknown, index: number): PatProcedureModule {
     recommendedFor: asList(item.recommendedFor ?? item.recommended_for).map((row) => display(row)).filter(Boolean),
     requiredData: asList(item.requiredData ?? item.required_data).map((row) => display(row)).filter(Boolean),
     attachments: asList(item.attachments).map((row) => display(row)).filter(Boolean),
+    fillableFields: asList(item.fillableFields ?? item.fillable_fields).map(normalisePatField),
     keywords: asList(item.keywords).map((row) => display(row)).filter(Boolean),
     note: display(item.note),
+  }
+}
+
+function normalisePatField(value: unknown, index: number): PatProcedureField {
+  const item = isRecord(value) ? value : {}
+  const rawType = text(item.type).toLowerCase()
+  const type = rawType === 'textarea' || rawType === 'select' || rawType === 'date' ? rawType : 'text'
+  return {
+    id: text(item.id, `campo-${index}`),
+    label: display(item.label, `Campo ${index + 1}`),
+    type,
+    required: item.required === undefined ? true : bool(item.required),
+    placeholder: display(item.placeholder),
+    help: display(item.help),
+    options: asList(item.options).map((row) => display(row)).filter(Boolean),
   }
 }
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.253.81 - 2026-06-19
+
+- PAT/SIGA: riorganizzata `/pat` come percorso operativo `Fascicolo IUSENTRA -> Deposito Formweb -> Modulo compilabile -> Allegati e firme -> Sessione SIGA`, lasciando il portale ufficiale come fase finale di consegna.
+- Moduli PAT: aggiunti campi compilabili interni per ricorso, atto, richieste segreteria, ausiliari, ante causam, rimborso contributo unificato e parti; la UI non mostra più `Scarica modulo ufficiale` come azione principale.
+- Precompilazione: nuovo endpoint `/api/v1/ui/pat/moduli/prefill` che legge fascicoli, clienti e soggetti reali del tenant corrente per compilare sede, RG, parte, controparte, oggetto, tipo ricorso e dati pagamento dove disponibili.
+- PDF interno: nuovo endpoint `/api/v1/ui/pat/moduli/compila` che genera un PDF compilato da IUSENTRA prima della sessione SIGA, con validazione dei campi obbligatori e riferimento al fascicolo selezionato.
+- Acquisizione PAT/SIGA: aggiornata `/portali/pat/acquisizione` come fase finale `Consegna finale PAT / SIGA e rientro ricevute`, con passaggi dedicati a accesso SIGA, deposito Formweb, rientro ricevute, file ufficiali, fascicolo IUSENTRA, controlli e registrazione esito. Rimossi testi generici come importazione pratica e mappatura `create new` visibile.
+- UI hover/focus: aggiunte regole specifiche per pulsanti, step e card del wizard acquisizione affinché testo e icone restino leggibili anche al passaggio del mouse, focus da tastiera, stato selezionato e disabilitato.
+- UI mobile PAT/SIGA: le azioni della sessione assistita sono impilate a tutta larghezza su smartphone e i pulsanti disabilitati usano testo scuro leggibile invece di opacità bassa.
+- Anti-regressione: aggiunti test mirati per payload PAT, UI React senza link di scarico come flusso primario, PDF generato e precompilazione dai repository reali.
+
 ## 2.253.80 - 2026-06-19
 
 - PAT/SIGA: aggiunto catalogo operativo dei moduli ufficiali 4.x, Formweb, limiti 50 file/300 MB, guida Chrome/Acrobat e fonti G.A. direttamente nel payload React `/pat`.

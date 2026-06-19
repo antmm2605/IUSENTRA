@@ -8,6 +8,7 @@ truth frontend.
 from __future__ import annotations
 
 import hashlib
+import io
 import ipaddress
 import json
 import os
@@ -3785,6 +3786,389 @@ def telematico_react_surface(surface: str):
             build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),
             logger=current_app.logger,
         )
+    )
+
+
+def _pat_module_prefill_text(value: Any, fallback: str = "") -> str:
+    return re.sub(r"\s+", " ", str(value or fallback).strip())
+
+
+def _pat_enum_text(value: Any) -> str:
+    return str(getattr(value, "value", value) or "").strip()
+
+
+def _pat_cliente_label(cliente: Any) -> str:
+    if cliente is None:
+        return ""
+    return _pat_module_prefill_text(
+        getattr(cliente, "nome_completo", "")
+        or getattr(cliente, "ragione_sociale", "")
+        or " ".join(
+            item
+            for item in (
+                str(getattr(cliente, "cognome", "") or "").strip(),
+                str(getattr(cliente, "nome", "") or "").strip(),
+            )
+            if item
+        )
+    )
+
+
+def _pat_cliente_identificativo(cliente: Any) -> str:
+    if cliente is None:
+        return ""
+    return _pat_module_prefill_text(
+        getattr(cliente, "identificativo_fiscale", "")
+        or getattr(cliente, "codice_fiscale", "")
+        or getattr(cliente, "partita_iva", "")
+    )
+
+
+def _pat_cliente_pec(cliente: Any) -> str:
+    recapiti = getattr(cliente, "recapiti", None)
+    return _pat_module_prefill_text(getattr(recapiti, "pec", "") or getattr(recapiti, "email", ""))
+
+
+def _pat_tipo_ricorso_from_fascicolo(fascicolo: Any) -> str:
+    haystack = " ".join(
+        _pat_module_prefill_text(getattr(fascicolo, field, ""))
+        for field in ("oggetto", "titolo", "tipo_procedimento", "procedura_operativa_nome", "area_pratica")
+    ).lower()
+    if any(token in haystack for token in ("appalt", "cig", "pnrr")):
+        return "Appalti"
+    if "accesso" in haystack:
+        return "Accesso"
+    if "silenzio" in haystack:
+        return "Silenzio"
+    if "ottemperanza" in haystack:
+        return "Ottemperanza"
+    if "sportiv" in haystack:
+        return "Rito sportivo"
+    return "Ordinario"
+
+
+def _pat_contributo_unificato_from_fascicolo(fascicolo: Any) -> str:
+    pagamenti = getattr(fascicolo, "pagamenti", {}) or {}
+    if not isinstance(pagamenti, Mapping):
+        return ""
+    raw = pagamenti.get("contributo_unificato") or pagamenti.get("contributo") or pagamenti.get("cu") or {}
+    text = ""
+    if isinstance(raw, Mapping):
+        text = " ".join(str(raw.get(key) or "") for key in ("stato", "status", "esito", "note"))
+    else:
+        text = str(raw or "")
+    normalized = text.lower()
+    if "esent" in normalized:
+        return "Esente"
+    if "prenot" in normalized:
+        return "Prenotato a debito"
+    if "pag" in normalized or "iuv" in normalized or "f24" in normalized:
+        return "Pagato"
+    return ""
+
+
+def _pat_dati_pagamento_from_fascicolo(fascicolo: Any) -> str:
+    pagamenti = getattr(fascicolo, "pagamenti", {}) or {}
+    if not isinstance(pagamenti, Mapping):
+        return ""
+    raw = pagamenti.get("contributo_unificato") or pagamenti.get("contributo") or pagamenti.get("cu") or {}
+    if isinstance(raw, Mapping):
+        values = [
+            raw.get("iuv"),
+            raw.get("numero"),
+            raw.get("data"),
+            raw.get("importo"),
+            raw.get("stato") or raw.get("status"),
+        ]
+        return _pat_module_prefill_text(" - ".join(str(value) for value in values if value))
+    return _pat_module_prefill_text(raw)
+
+
+def _pat_parti_fascicolo(id_fascicolo: str) -> list[tuple[Any, Any]]:
+    if not id_fascicolo:
+        return []
+    try:
+        return list(get_soggetti().parti_fascicolo(id_fascicolo))
+    except Exception:
+        current_app.logger.exception("PAT prefill: parti fascicolo non disponibili per %s", id_fascicolo)
+        return []
+
+
+def _pat_soggetto_label(soggetto: Any) -> str:
+    return _pat_module_prefill_text(
+        getattr(soggetto, "nome_completo", "")
+        or getattr(soggetto, "ragione_sociale", "")
+        or " ".join(
+            item
+            for item in (
+                str(getattr(soggetto, "cognome", "") or "").strip(),
+                str(getattr(soggetto, "nome", "") or "").strip(),
+            )
+            if item
+        )
+    )
+
+
+def _pat_first_party_by_roles(parti: Iterable[tuple[Any, Any]], roles: set[str]) -> str:
+    for parte, soggetto in parti:
+        role = _pat_enum_text(getattr(parte, "ruolo", "")).upper()
+        if role in roles:
+            return _pat_soggetto_label(soggetto)
+    return ""
+
+
+def _pat_prefill_item_from_fascicolo(fascicolo: Any) -> dict[str, Any]:
+    fascicolo_id = _pat_module_prefill_text(getattr(fascicolo, "id", ""))
+    cliente = None
+    cliente_id = _pat_module_prefill_text(getattr(fascicolo, "id_cliente", ""))
+    if cliente_id:
+        try:
+            cliente = get_clienti().get(cliente_id)
+        except Exception:
+            current_app.logger.exception("PAT prefill: cliente non disponibile per fascicolo %s", fascicolo_id)
+    cliente_label = _pat_cliente_label(cliente) or _pat_module_prefill_text(getattr(fascicolo, "nome_cliente", ""))
+    parti = _pat_parti_fascicolo(fascicolo_id)
+    controparte = (
+        _pat_first_party_by_roles(parti, {"CONTROPARTE", "PUBBLICA_AMMINISTRAZIONE", "ENTE"})
+        or _pat_module_prefill_text(getattr(fascicolo, "controparte", ""))
+    )
+    rg = _pat_module_prefill_text(getattr(fascicolo, "rg_completo", "") or getattr(fascicolo, "numero_rg", ""))
+    anno_rg = _pat_module_prefill_text(getattr(fascicolo, "anno_rg", ""))
+    numero_rg = _pat_module_prefill_text(getattr(fascicolo, "numero_rg", ""))
+    oggetto = _pat_module_prefill_text(getattr(fascicolo, "oggetto", "") or getattr(fascicolo, "titolo", ""))
+    documenti = list(getattr(fascicolo, "documenti", []) or [])[:8]
+    documenti_descrizione = ", ".join(_pat_module_prefill_text(getattr(doc, "nome", "")) for doc in documenti if getattr(doc, "nome", ""))
+    fields = {
+        "sede": _pat_module_prefill_text(getattr(fascicolo, "tribunale", "")),
+        "parte_depositante": cliente_label,
+        "codice_fiscale": _pat_cliente_identificativo(cliente) or _pat_module_prefill_text(getattr(fascicolo, "cf_controparte", "")),
+        "oggetto": oggetto,
+        "nrg": numero_rg,
+        "anno_rg": anno_rg,
+        "riferimento_fascicolo": rg or _pat_module_prefill_text(getattr(fascicolo, "numero", "")),
+        "tipo_ricorso": _pat_tipo_ricorso_from_fascicolo(fascicolo),
+        "ricorrente": cliente_label or _pat_first_party_by_roles(parti, {"ASSISTITO"}),
+        "resistente": controparte,
+        "amministrazione_resistente": controparte,
+        "istante": cliente_label,
+        "richiedente": cliente_label,
+        "contributo_unificato": _pat_contributo_unificato_from_fascicolo(fascicolo),
+        "dati_pagamento": _pat_dati_pagamento_from_fascicolo(fascicolo),
+        "tipologia_atto": _pat_module_prefill_text(getattr(fascicolo, "tipo_procedimento", "")),
+        "descrizione_allegati": documenti_descrizione,
+        "qualifica_depositante": "CTU" if _pat_module_prefill_text(getattr(fascicolo, "ctu", "")) else "",
+        "descrizione_deposito": oggetto,
+        "nome_parte": cliente_label,
+        "pec": _pat_cliente_pec(cliente),
+        "note": _pat_module_prefill_text(getattr(fascicolo, "note", "")),
+    }
+    fields = {key: value for key, value in fields.items() if value}
+    warnings = []
+    if not fields.get("sede"):
+        warnings.append("Sede TAR/CDS/CGARS assente nel fascicolo.")
+    if not fields.get("nrg"):
+        warnings.append("Numero RG non presente nel fascicolo.")
+    if not cliente_label:
+        warnings.append("Cliente o parte depositante da completare.")
+    if not controparte:
+        warnings.append("Controparte o amministrazione resistente da completare.")
+    return {
+        "id": fascicolo_id,
+        "title": _pat_module_prefill_text(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "") or "Fascicolo"),
+        "subtitle": _pat_module_prefill_text(getattr(fascicolo, "numero", "") or rg or "Fascicolo IUSENTRA"),
+        "rg": rg,
+        "office": fields.get("sede", ""),
+        "client": cliente_label,
+        "counterparty": controparte,
+        "source": "repository_fascicoli_clienti_soggetti",
+        "fields": fields,
+        "warnings": warnings,
+    }
+
+
+@api_v1_react.get("/pat/moduli/prefill")
+@_richiedi_auth
+def pat_moduli_prefill():
+    try:
+        fascicoli = get_fascicoli().tutti(archiviati=False)[:30]
+        matters = [_pat_prefill_item_from_fascicolo(fascicolo) for fascicolo in fascicoli]
+        return jsonify({
+            "ok": True,
+            "source": "repository_reali",
+            "generatedAt": _iso_now(),
+            "matters": matters,
+        })
+    except Exception as exc:
+        current_app.logger.exception("PAT prefill: repository non disponibile: %s", exc)
+        return jsonify({
+            "ok": False,
+            "errore": "Dati IUSENTRA non disponibili per la precompilazione PAT.",
+            "matters": [],
+        }), 500
+
+
+def _pat_pdf_text(value: Any, fallback: str = "") -> str:
+    text = str(value or fallback).strip()
+    return re.sub(r"\s+", " ", text)
+
+
+def _pat_module_pdf_name(module_id: str) -> str:
+    safe_id = re.sub(r"[^A-Za-z0-9_-]+", "-", module_id).strip("-") or "modulo-pat"
+    return f"{safe_id}-iusentra-compilato.pdf"
+
+
+def _pat_draw_wrapped(pdf: Any, text: str, x: float, y: float, max_width: float, *, line_height: float = 13) -> float:
+    words = _pat_pdf_text(text).split()
+    if not words:
+        return y
+    line = ""
+    for word in words:
+        candidate = f"{line} {word}".strip()
+        if pdf.stringWidth(candidate, "Helvetica", 9) <= max_width:
+            line = candidate
+            continue
+        pdf.drawString(x, y, line)
+        y -= line_height
+        line = word
+    if line:
+        pdf.drawString(x, y, line)
+        y -= line_height
+    return y
+
+
+def _build_pat_module_pdf(module: Any, fields: Mapping[str, Any], meta: Mapping[str, Any]) -> io.BytesIO:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    left = 22 * mm
+    right = width - 22 * mm
+    y = height - 24 * mm
+
+    def new_page_if_needed(required: float = 32 * mm) -> None:
+        nonlocal y
+        if y > required:
+            return
+        pdf.showPage()
+        y = height - 24 * mm
+
+    pdf.setTitle(f"IUSENTRA - {module.title}")
+    pdf.setAuthor("IUSENTRA")
+    pdf.setFont("Helvetica-Bold", 15)
+    pdf.drawString(left, y, "IUSENTRA - modulo PAT compilato")
+    y -= 8 * mm
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(left, y, f"Modulo: {module.title} - versione {module.version}")
+    y -= 5 * mm
+    pdf.drawString(left, y, f"Fonte ufficiale: {module.url}")
+    y -= 7 * mm
+    fascicolo_title = _pat_pdf_text(meta.get("fascicolo_title"))
+    if fascicolo_title:
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(left, y, "Fascicolo IUSENTRA")
+        y -= 5 * mm
+        pdf.setFont("Helvetica", 9)
+        y = _pat_draw_wrapped(pdf, fascicolo_title, left + 4 * mm, y, right - left - 4 * mm)
+        y -= 3 * mm
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(left, y, "Dati compilati nello studio")
+    y -= 6 * mm
+
+    for field in module.fillable_fields:
+        new_page_if_needed()
+        value = _pat_pdf_text(fields.get(field.id))
+        pdf.setFont("Helvetica-Bold", 9)
+        pdf.drawString(left, y, f"{field.label}{' *' if field.required else ''}")
+        y -= 5 * mm
+        pdf.setFont("Helvetica", 9)
+        y = _pat_draw_wrapped(pdf, value or "Non indicato", left + 4 * mm, y, right - left - 4 * mm)
+        y -= 2 * mm
+
+    new_page_if_needed(45 * mm)
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(left, y, "Allegati da controllare")
+    y -= 6 * mm
+    pdf.setFont("Helvetica", 9)
+    for index, attachment in enumerate(module.attachments, start=1):
+        new_page_if_needed()
+        y = _pat_draw_wrapped(pdf, f"{index}. {attachment}", left + 4 * mm, y, right - left - 4 * mm)
+
+    new_page_if_needed(42 * mm)
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(left, y, "Controllo operativo")
+    y -= 6 * mm
+    pdf.setFont("Helvetica", 9)
+    audit_lines = (
+        "Questo PDF è stato prodotto da IUSENTRA dalla compilazione interna del modulo PAT.",
+        "Non contiene credenziali, PIN, token o dati di accesso al Portale Avvocato.",
+        "Prima dell'invio verificare riepilogo Formweb ufficiale, firma PAdES e ricevute importate nel fascicolo.",
+        f"Generato il {_pat_pdf_text(meta.get('generated_at')) or datetime.now(ZoneInfo('Europe/Rome')).strftime('%d/%m/%Y %H:%M')}.",
+    )
+    for line in audit_lines:
+        new_page_if_needed()
+        y = _pat_draw_wrapped(pdf, line, left + 4 * mm, y, right - left - 4 * mm)
+
+    pdf.showPage()
+    pdf.save()
+    buffer.seek(0)
+    return buffer
+
+
+@api_v1_react.post("/pat/moduli/compila")
+@_richiedi_auth
+def pat_moduli_compila_pdf():
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "errore": "Payload modulo non valido."}), 400
+
+    from pct.pat_moduli import PAT_MODULES
+
+    module_id = _pat_pdf_text(payload.get("module_id") or payload.get("moduleId"))
+    module = next((item for item in PAT_MODULES if item.id == module_id), None)
+    if module is None:
+        return jsonify({"ok": False, "errore": "Modulo PAT non riconosciuto."}), 404
+
+    fascicolo_id = _pat_pdf_text(payload.get("fascicolo_id") or payload.get("fascicoloId"))
+    prefill_fields: dict[str, str] = {}
+    prefill_meta: dict[str, Any] = {}
+    if fascicolo_id:
+        fascicolo = get_fascicoli().get(fascicolo_id)
+        if fascicolo is None:
+            return jsonify({"ok": False, "errore": "Fascicolo IUSENTRA non trovato per la precompilazione."}), 404
+        prefill_meta = _pat_prefill_item_from_fascicolo(fascicolo)
+        prefill_fields = {
+            str(key): _pat_pdf_text(value)
+            for key, value in (prefill_meta.get("fields") or {}).items()
+            if _pat_pdf_text(value)
+        }
+
+    fields_payload = payload.get("fields") if isinstance(payload.get("fields"), dict) else {}
+    fields = dict(prefill_fields)
+    for key, value in fields_payload.items():
+        cleaned = _pat_pdf_text(value)
+        if cleaned:
+            fields[str(key)] = cleaned
+    missing = [field.label for field in module.fillable_fields if field.required and not fields.get(field.id)]
+    if missing:
+        return jsonify({
+            "ok": False,
+            "errore": "Compilare i campi obbligatori prima di produrre il PDF.",
+            "missing": missing,
+        }), 422
+
+    generated_at = datetime.now(ZoneInfo("Europe/Rome")).strftime("%d/%m/%Y %H:%M")
+    pdf = _build_pat_module_pdf(module, fields, {
+        "generated_at": generated_at,
+        "fascicolo_title": prefill_meta.get("title", ""),
+    })
+    return send_file(
+        pdf,
+        mimetype="application/pdf",
+        as_attachment=False,
+        download_name=_pat_module_pdf_name(module.id),
     )
 
 

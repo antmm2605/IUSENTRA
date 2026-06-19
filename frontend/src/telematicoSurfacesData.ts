@@ -80,6 +80,96 @@ export type OfficeRow = {
   }
 }
 
+export type PatProcedureDocument = {
+  id: string
+  title: string
+  url: string
+  kind: string
+  updated: string
+  note: string
+}
+
+export type PatProcedureModule = {
+  id: string
+  title: string
+  version: string
+  url: string
+  formwebTypes: string[]
+  recommendedFor: string[]
+  requiredData: string[]
+  attachments: string[]
+  keywords: string[]
+  note: string
+}
+
+export type PatFormwebDeposit = {
+  id: string
+  title: string
+  moduleId: string
+  steps: string
+  mandatoryFocus: string[]
+  produces: string[]
+}
+
+export type PatWorkflowStep = {
+  id: string
+  title: string
+  body: string
+  actions: string[]
+}
+
+export type PatProcedure = {
+  source: string
+  updatedAt: string
+  portal: {
+    label: string
+    officialUrl: string
+    infoUrl: string
+    faqUrl: string
+    authMethods: string[]
+    helpdesk: string
+    sessionMode: string
+  }
+  regime: {
+    currentPhase: string
+    formwebPriorityFrom: string
+    formwebPriorityLabel: string
+    pecResidual: boolean
+    portalUploadLegacyRemoved: boolean
+    note: string
+  }
+  limits: {
+    formweb: {
+      maxFiles: number
+      maxSingleFileSizeMb: number
+      maxTotalSizeMb: number
+      signature: string
+      requiresOfficialPortal: boolean
+    }
+    residualPdfPec: {
+      maxModuleSizeMb: number
+      maxSingleAttachmentSizeMb: number
+      signature: string
+      note: string
+    }
+    legacyUpload: {
+      maxModuleSizeMb: number
+      maxSingleAttachmentSizeMb: number
+      removedAtRegime: boolean
+    }
+  }
+  workflowSteps: PatWorkflowStep[]
+  formwebDeposits: PatFormwebDeposit[]
+  modules: PatProcedureModule[]
+  documents: PatProcedureDocument[]
+  chromePdfGuide: {
+    source: string
+    summary: string
+    steps: string[]
+  }
+  suggestedModules: PatProcedureModule[]
+}
+
 export type TelematicoSurfaceData = {
   source: string
   generatedAt: string
@@ -138,6 +228,7 @@ export type TelematicoSurfaceData = {
     macosUrl: string
     linuxUrl: string
   }
+  patProcedure: PatProcedure | null
 }
 
 const emptyControlTower: TelematicoControlTower = {
@@ -195,6 +286,7 @@ export const emptyTelematicoSurface: TelematicoSurfaceData = {
     macosUrl: '/polisWeb/local-signer/setup/macos',
     linuxUrl: '/polisWeb/local-signer/setup/linux',
   },
+  patProcedure: null,
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -346,6 +438,121 @@ function normaliseLocalSigner(value: unknown): TelematicoSurfaceData['localSigne
   }
 }
 
+function normalisePatModule(value: unknown, index: number): PatProcedureModule {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `modulo-pat-${index}`),
+    title: display(item.title, 'Modulo PAT'),
+    version: display(item.version),
+    url: text(item.url),
+    formwebTypes: asList(item.formwebTypes ?? item.formweb_types).map((row) => display(row)).filter(Boolean),
+    recommendedFor: asList(item.recommendedFor ?? item.recommended_for).map((row) => display(row)).filter(Boolean),
+    requiredData: asList(item.requiredData ?? item.required_data).map((row) => display(row)).filter(Boolean),
+    attachments: asList(item.attachments).map((row) => display(row)).filter(Boolean),
+    keywords: asList(item.keywords).map((row) => display(row)).filter(Boolean),
+    note: display(item.note),
+  }
+}
+
+function normalisePatDeposit(value: unknown, index: number): PatFormwebDeposit {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `deposito-pat-${index}`),
+    title: display(item.title, 'Deposito PAT'),
+    moduleId: text(item.moduleId ?? item.module_id),
+    steps: display(item.steps),
+    mandatoryFocus: asList(item.mandatoryFocus ?? item.mandatory_focus).map((row) => display(row)).filter(Boolean),
+    produces: asList(item.produces).map((row) => display(row)).filter(Boolean),
+  }
+}
+
+function normalisePatDocument(value: unknown, index: number): PatProcedureDocument {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `documento-pat-${index}`),
+    title: display(item.title, 'Fonte PAT'),
+    url: text(item.url),
+    kind: display(item.kind, 'guida'),
+    updated: display(item.updated),
+    note: display(item.note),
+  }
+}
+
+function normalisePatWorkflowStep(value: unknown, index: number): PatWorkflowStep {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `passo-pat-${index}`),
+    title: display(item.title, 'Passaggio PAT'),
+    body: display(item.body),
+    actions: asList(item.actions).map((row) => display(row)).filter(Boolean),
+  }
+}
+
+function normalisePatProcedure(value: unknown): PatProcedure | null {
+  if (!isRecord(value)) return null
+  const portal = isRecord(value.portal) ? value.portal : {}
+  const regime = isRecord(value.regime) ? value.regime : {}
+  const limits = isRecord(value.limits) ? value.limits : {}
+  const formweb = isRecord(limits.formweb) ? limits.formweb : {}
+  const residualPdfPecRaw = limits.residualPdfPec ?? limits.residual_pdf_pec
+  const residualPdfPec = isRecord(residualPdfPecRaw) ? residualPdfPecRaw : {}
+  const legacyUploadRaw = limits.legacyUpload ?? limits.legacy_upload
+  const legacyUpload = isRecord(legacyUploadRaw) ? legacyUploadRaw : {}
+  const chromePdfGuideRaw = value.chromePdfGuide ?? value.chrome_pdf_guide
+  const chromePdfGuide = isRecord(chromePdfGuideRaw) ? chromePdfGuideRaw : {}
+  return {
+    source: text(value.source, 'fonti_ufficiali_giustizia_amministrativa'),
+    updatedAt: text(value.updatedAt ?? value.updated_at),
+    portal: {
+      label: display(portal.label, 'Portale Avvocato / SIGA'),
+      officialUrl: text(portal.officialUrl ?? portal.official_url),
+      infoUrl: text(portal.infoUrl ?? portal.info_url),
+      faqUrl: text(portal.faqUrl ?? portal.faq_url),
+      authMethods: asList(portal.authMethods ?? portal.auth_methods).map((row) => display(row)).filter(Boolean),
+      helpdesk: text(portal.helpdesk),
+      sessionMode: display(portal.sessionMode ?? portal.session_mode),
+    },
+    regime: {
+      currentPhase: display(regime.currentPhase ?? regime.current_phase, 'regime Formweb'),
+      formwebPriorityFrom: text(regime.formwebPriorityFrom ?? regime.formweb_priority_from),
+      formwebPriorityLabel: display(regime.formwebPriorityLabel ?? regime.formweb_priority_label),
+      pecResidual: bool(regime.pecResidual ?? regime.pec_residual),
+      portalUploadLegacyRemoved: bool(regime.portalUploadLegacyRemoved ?? regime.portal_upload_legacy_removed),
+      note: display(regime.note),
+    },
+    limits: {
+      formweb: {
+        maxFiles: number(formweb.maxFiles ?? formweb.max_files),
+        maxSingleFileSizeMb: number(formweb.maxSingleFileSizeMb ?? formweb.max_single_file_size_mb),
+        maxTotalSizeMb: number(formweb.maxTotalSizeMb ?? formweb.max_total_size_mb),
+        signature: display(formweb.signature, 'PAdES'),
+        requiresOfficialPortal: bool(formweb.requiresOfficialPortal ?? formweb.requires_official_portal),
+      },
+      residualPdfPec: {
+        maxModuleSizeMb: number(residualPdfPec.maxModuleSizeMb ?? residualPdfPec.max_module_size_mb),
+        maxSingleAttachmentSizeMb: number(residualPdfPec.maxSingleAttachmentSizeMb ?? residualPdfPec.max_single_attachment_size_mb),
+        signature: display(residualPdfPec.signature, 'PAdES'),
+        note: display(residualPdfPec.note),
+      },
+      legacyUpload: {
+        maxModuleSizeMb: number(legacyUpload.maxModuleSizeMb ?? legacyUpload.max_module_size_mb),
+        maxSingleAttachmentSizeMb: number(legacyUpload.maxSingleAttachmentSizeMb ?? legacyUpload.max_single_attachment_size_mb),
+        removedAtRegime: bool(legacyUpload.removedAtRegime ?? legacyUpload.removed_at_regime),
+      },
+    },
+    workflowSteps: asList(value.workflowSteps ?? value.workflow_steps).map(normalisePatWorkflowStep),
+    formwebDeposits: asList(value.formwebDeposits ?? value.formweb_deposits).map(normalisePatDeposit),
+    modules: asList(value.modules).map(normalisePatModule),
+    documents: asList(value.documents).map(normalisePatDocument),
+    chromePdfGuide: {
+      source: text(chromePdfGuide.source),
+      summary: display(chromePdfGuide.summary),
+      steps: asList(chromePdfGuide.steps).map((row) => display(row)).filter(Boolean),
+    },
+    suggestedModules: asList(value.suggestedModules ?? value.suggested_modules).map(normalisePatModule),
+  }
+}
+
 function normaliseControlItem(value: unknown, index: number, fallbackBadge: string) {
   const item = isRecord(value) ? value : {}
   return {
@@ -469,6 +676,7 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
       },
     },
     localSigner: normaliseLocalSigner(payload.localSigner),
+    patProcedure: normalisePatProcedure(payload.patProcedure ?? payload.pat_procedure),
   }
 }
 

@@ -76,6 +76,22 @@ const surfacePortals: Partial<Record<TelematicoSurfaceId, 'pst' | 'pdp' | 'pat' 
   ptt: 'ptt',
 }
 
+function initialSurfaceData(surfaceId: TelematicoSurfaceId): TelematicoSurfaceData {
+  const fallback = surfaceFallbacks[surfaceId]
+  return {
+    ...emptyTelematicoSurface,
+    surface: {
+      ...emptyTelematicoSurface.surface,
+      id: surfaceId,
+      portal: surfacePortals[surfaceId] || '',
+      title: fallback.title,
+      appHref: surfaceAppPaths[surfaceId],
+      legacyHref: surfaceAppPaths[surfaceId],
+      officialHref: '',
+    },
+  }
+}
+
 type JsonRecord = Record<string, unknown>
 
 type AcquisitionQuery = {
@@ -173,6 +189,7 @@ type BrowserLocalSignerStatus = {
 
 type AssistantSession = {
   session_id: string
+  local_session_id: string
   portale: string
   official_url: string
   status: string
@@ -1173,8 +1190,341 @@ function LexPanel({ data }:{ data:TelematicoSurfaceData }) {
         <div className="iu-tel-surface-lex">
           {data.lexSuggestions.map((item) => <span key={item}><Sparkles size={15}/>{item}</span>)}
         </div>
-      ) : <p className="iu-empty">Lex non segnala ulteriori priorita su questa pagina.</p>}
+      ) : <p className="iu-empty">Lex non segnala ulteriori priorità su questa pagina.</p>}
     </Panel>
+  )
+}
+
+function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
+  const procedure = data.patProcedure
+  const [moduleQuery, setModuleQuery] = useState('')
+  const [portalSessionStarted, setPortalSessionStarted] = useState(false)
+  const [portalSession, setPortalSession] = useState<AssistantSession | null>(null)
+  const [portalSessionBusy, setPortalSessionBusy] = useState<'start' | 'collect' | 'close' | ''>('')
+  const [portalSessionMessage, setPortalSessionMessage] = useState('')
+  const modules = useMemo(() => {
+    const items = procedure?.modules || []
+    const needle = normaliseSearch(moduleQuery)
+    if (!needle) return items
+    return items.filter((module) => normaliseSearch([
+      module.title,
+      module.version,
+      module.formwebTypes.join(' '),
+      module.recommendedFor.join(' '),
+      module.requiredData.join(' '),
+      module.attachments.join(' '),
+      module.keywords.join(' '),
+    ].join(' ')).includes(needle))
+  }, [procedure, moduleQuery])
+  const depositsByModule = useMemo(() => {
+    const map = new Map<string, string[]>()
+    ;(procedure?.formwebDeposits || []).forEach((deposit) => {
+      const current = map.get(deposit.moduleId) || []
+      current.push(deposit.title)
+      map.set(deposit.moduleId, current)
+    })
+    return map
+  }, [procedure])
+
+  if (!procedure) return null
+
+  const patAssistantJson = async (path: string, body?: JsonRecord): Promise<JsonRecord> => {
+    const response = await fetch(`/api/portali/pat/assistant${path}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    })
+    const payload = asRecord(await response.json().catch(() => ({ ok: false, errore: 'Risposta non valida dalla sessione PAT.' })))
+    if (!response.ok || payload.ok === false) {
+      throw new Error(asText(payload.errore || payload.message, 'Sessione PAT non disponibile.'))
+    }
+    return payload
+  }
+
+  const patLocalConnectorJson = async (path: string, body?: JsonRecord): Promise<JsonRecord> => {
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
+    try {
+      const baseUrl = asText(data.localSigner.browserUrl, 'http://127.0.0.1:27272').replace(/\/+$/, '')
+      const response = await fetch(`${baseUrl}${path}`, {
+        method: body ? 'POST' : 'GET',
+        cache: 'no-store',
+        mode: 'cors',
+        headers: body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      })
+      const payload = asRecord(await response.json().catch(() => ({ ok: false, errore: 'Risposta non valida dal Local Connector.' })))
+      if (!response.ok || payload.ok === false) {
+        throw new Error(asText(payload.errore || payload.error || payload.message, `Local Connector non disponibile (${response.status}).`))
+      }
+      return payload
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Il Local Connector del PC non ha risposto entro il tempo massimo. Verifica che Local Signer sia attivo e riprova.')
+      }
+      throw error
+    } finally {
+      window.clearTimeout(timer)
+    }
+  }
+
+  const rememberPatSession = (payload: JsonRecord): AssistantSession => {
+    const session = {
+      session_id: asText(payload.session_id),
+      local_session_id: asText(payload.local_session_id || payload.localSessionId),
+      portale: asText(payload.portale || 'pat'),
+      official_url: asText(payload.official_url || procedure.portal.officialUrl),
+      status: asText(payload.status),
+      local_connector_available: Boolean(payload.local_connector_available),
+      downloaded_files: asList(payload.downloaded_files).map(asRecord),
+      message: asText(payload.message),
+    }
+    setPortalSession(session)
+    setPortalSessionStarted(session.status === 'portale_ufficiale_assistito_aperto' || session.status === 'monitor_download_attivo')
+    return session
+  }
+
+  const startOfficialSession = async () => {
+    setPortalSessionBusy('start')
+    setPortalSessionMessage('Avvio della sessione PAT/SIGA governata dal Local Connector...')
+    try {
+      const started = rememberPatSession(await patAssistantJson('/start', { purpose: 'deposito_formweb' }))
+      const localStarted = await patLocalConnectorJson('/portal-assistant/session/start', {
+        session_id: started.session_id,
+        portale: 'pat',
+        official_url: started.official_url || procedure.portal.officialUrl,
+        purpose: 'deposito_formweb',
+      })
+      const localSessionId = asText(localStarted.session_id || started.session_id)
+      const opened = await patLocalConnectorJson(`/portal-assistant/session/${encodeURIComponent(localSessionId)}/open`, {
+        official_url: started.official_url || procedure.portal.officialUrl,
+      })
+      const monitored = await patLocalConnectorJson(`/portal-assistant/session/${encodeURIComponent(localSessionId)}/watch-downloads`, {
+        portale: 'pat',
+      })
+      const synced = rememberPatSession({
+        ...started,
+        local_connector_available: true,
+        local_session_id: localSessionId,
+        status: asText(monitored.status || opened.status || localStarted.status, 'monitor_download_attivo'),
+        message: asText(monitored.message || opened.message || localStarted.message, 'Monitor download della sessione assistita attivo.'),
+      })
+      setPortalSessionStarted(true)
+      setPortalSessionMessage(synced.message || 'Sessione PAT/SIGA aperta: IUSENTRA resta cabina di lavoro e raccoglie i file ufficiali scaricati.')
+    } catch (error: unknown) {
+      setPortalSessionStarted(false)
+      setPortalSessionMessage(asText(error instanceof Error ? error.message : error, 'Sessione PAT/SIGA non avviata.'))
+    } finally {
+      setPortalSessionBusy('')
+    }
+  }
+
+  const collectOfficialFiles = async () => {
+    if (!portalSession?.session_id) return
+    setPortalSessionBusy('collect')
+    try {
+      const localFiles = portalSession.local_session_id
+        ? await patLocalConnectorJson(`/portal-assistant/session/${encodeURIComponent(portalSession.local_session_id)}/collect`, { portale: 'pat' })
+        : {}
+      const collected = rememberPatSession(await patAssistantJson(`/${encodeURIComponent(portalSession.session_id)}/collect`, {
+        files: asList(localFiles.files),
+      }))
+      const count = collected.downloaded_files.length
+      setPortalSessionMessage(count ? `${count} file ufficiali PAT raccolti e pronti per l'importazione nel fascicolo.` : collected.message || 'Nessun file ufficiale PAT ancora raccolto.')
+    } catch (error: unknown) {
+      setPortalSessionMessage(asText(error instanceof Error ? error.message : error, 'Raccolta file PAT non riuscita.'))
+    } finally {
+      setPortalSessionBusy('')
+    }
+  }
+
+  const closeOfficialSession = async () => {
+    if (!portalSession?.session_id) return
+    setPortalSessionBusy('close')
+    try {
+      if (portalSession.local_session_id) {
+        await patLocalConnectorJson(`/portal-assistant/session/${encodeURIComponent(portalSession.local_session_id)}/close`, { portale: 'pat' }).catch(() => ({}))
+      }
+      const closed = rememberPatSession(await patAssistantJson(`/${encodeURIComponent(portalSession.session_id)}/close`))
+      setPortalSessionStarted(false)
+      setPortalSessionMessage(closed.message || 'Sessione PAT/SIGA chiusa.')
+    } catch (error: unknown) {
+      setPortalSessionMessage(asText(error instanceof Error ? error.message : error, 'Chiusura sessione PAT/SIGA non riuscita.'))
+    } finally {
+      setPortalSessionBusy('')
+    }
+  }
+
+  return (
+    <section className="iu-pat-workspace iu-tel-anchor-target" id="procedura-pat">
+      <header className="iu-pat-workspace__head">
+        <div>
+          <span><FileText size={15}/> Procedura PAT / SIGA</span>
+          <h2>Sessione Portale Avvocato governata</h2>
+          <p>{procedure.regime.note}</p>
+        </div>
+        <aside>
+          <Badge tone="success">{procedure.regime.formwebPriorityLabel}</Badge>
+          <Badge tone="info">{procedure.limits.formweb.maxFiles} file</Badge>
+          <Badge tone="warning">{procedure.limits.formweb.maxTotalSizeMb} MB totali</Badge>
+          <Badge tone="purple">Firma {procedure.limits.formweb.signature}</Badge>
+        </aside>
+      </header>
+
+      <div className="iu-pat-overview">
+        <article>
+          <h3>Fasi operative</h3>
+          <div className="iu-pat-steps">
+            {procedure.workflowSteps.map((step, index) => (
+              <section key={step.id}>
+                <em>{index + 1}</em>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.body}</p>
+                  {step.actions.length ? (
+                    <ul>
+                      {step.actions.map((action) => <li key={action}>{action}</li>)}
+                    </ul>
+                  ) : null}
+                </div>
+              </section>
+            ))}
+          </div>
+        </article>
+
+        <article className="iu-pat-portal" id="portale-avvocato-siga">
+          <div className="iu-pat-portal__head">
+            <div>
+              <h3>Sessione ufficiale {procedure.portal.label}</h3>
+              <p>IUSENTRA prepara moduli, allegati e controlli, poi avvia il portale nel contesto sicuro richiesto da {procedure.portal.authMethods.join(', ')}. Questa pagina resta la cabina di lavoro per checklist, fascicolo, PDF e ricevute.</p>
+            </div>
+            <Badge tone={portalSessionStarted ? 'success' : 'warning'}>
+              {portalSessionStarted ? 'Sessione avviata' : 'Da avviare'}
+            </Badge>
+          </div>
+          <div className="iu-pat-session-board">
+            <section>
+              <strong>1. Prima dell'accesso</strong>
+              <span>Classifica deposito, materia, sede, modulo ufficiale e allegati obbligatori.</span>
+            </section>
+            <section>
+              <strong>2. Durante Formweb</strong>
+              <span>Carica i PDF preparati da IUSENTRA, firma in PAdES e completa il riepilogo ufficiale.</span>
+            </section>
+            <section>
+              <strong>3. Rientro in fascicolo</strong>
+              <span>Importa ricevuta di ricezione, ricevuta di registrazione e deposito originale.</span>
+            </section>
+          </div>
+          <div className="iu-pat-session-actions">
+            <div className="iu-pat-session-toolbar">
+              <button
+                type="button"
+                className="iu-pat-session-launch"
+                disabled={portalSessionBusy === 'start'}
+                onClick={startOfficialSession}
+              >
+                <ExternalLink size={15}/> {portalSessionBusy === 'start' ? 'Avvio sessione...' : 'Avvia sessione ufficiale SIGA'}
+              </button>
+              <button type="button" disabled={!portalSession?.session_id || portalSessionBusy === 'collect'} onClick={collectOfficialFiles}>
+                <Download size={15}/> Raccogli file ufficiali
+              </button>
+              <button type="button" disabled={!portalSession?.session_id || portalSessionBusy === 'close'} onClick={closeOfficialSession}>
+                <CheckCircle2 size={15}/> Chiudi sessione
+              </button>
+            </div>
+            <span>Il Local Connector apre il portale in un contesto browser locale governato; IUSENTRA non intercetta credenziali, PIN o token.</span>
+            {portalSession ? (
+              <div className="iu-pat-session-status">
+                <strong>Stato sessione</strong>
+                <span>{portalSession.status || 'Da verificare'}</span>
+                <small>{portalSession.downloaded_files.length ? `${portalSession.downloaded_files.length} file raccolti` : 'Nessun file ufficiale ancora raccolto'}</small>
+              </div>
+            ) : null}
+            {portalSessionMessage ? <p className="iu-pat-session-message">{portalSessionMessage}</p> : null}
+          </div>
+        </article>
+      </div>
+
+      <section className="iu-pat-deposits">
+        <header>
+          <div>
+            <span>Depositi Formweb</span>
+            <h3>Tipologie previste dal manuale</h3>
+          </div>
+          <a href={procedure.portal.faqUrl} target="_blank" rel="noreferrer"><ExternalLink size={14}/> FAQ nuovo portale</a>
+        </header>
+        <div>
+          {procedure.formwebDeposits.map((deposit) => (
+            <article key={deposit.id}>
+              <Badge tone="success">{deposit.steps}</Badge>
+              <strong>{deposit.title}</strong>
+              <span>{deposit.mandatoryFocus.join(' - ')}</span>
+              <small>Produce: {deposit.produces.join(' - ')}</small>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="iu-pat-modules" id="moduli-pat">
+        <header>
+          <div>
+            <span>Moduli ufficiali 4.x</span>
+            <h3>PDF compilabili e allegati per materia</h3>
+            <p>I PDF sono quelli pubblicati dalla Giustizia Amministrativa; IUSENTRA li seleziona in base a materia e tipo deposito.</p>
+          </div>
+          <label><Search size={15}/><input value={moduleQuery} onChange={(event) => setModuleQuery(event.target.value)} placeholder="Cerca materia, atto, appalti, rimborso..."/></label>
+        </header>
+        <div className="iu-pat-module-grid">
+          {modules.map((module) => {
+            const linkedDeposits = depositsByModule.get(module.id) || []
+            return (
+              <article key={module.id}>
+                <header>
+                  <Badge tone={module.id === 'deposito_ricorso' ? 'success' : 'info'}>v{module.version}</Badge>
+                  {linkedDeposits.length ? <Badge tone="warning">{linkedDeposits.length} percorsi</Badge> : null}
+                </header>
+                <h4>{module.title}</h4>
+                <p>{module.note || module.recommendedFor.join(' - ')}</p>
+                <dl>
+                  <div><dt>Uso</dt><dd>{module.recommendedFor.slice(0, 4).join(' - ')}</dd></div>
+                  <div><dt>Dati</dt><dd>{module.requiredData.slice(0, 5).join(' - ')}</dd></div>
+                  <div><dt>Allegati</dt><dd>{module.attachments.slice(0, 5).join(' - ')}</dd></div>
+                </dl>
+                <footer>
+                  <a href={module.url} target="_blank" rel="noreferrer"><Download size={15}/> Scarica modulo ufficiale</a>
+                </footer>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="iu-pat-guides" id="download-pdf-pat">
+        <article>
+          <h3>Chrome e Acrobat</h3>
+          <p>{procedure.chromePdfGuide.summary}</p>
+          <ol>
+            {procedure.chromePdfGuide.steps.map((step) => <li key={step}>{step}</li>)}
+          </ol>
+          <a href={procedure.chromePdfGuide.source} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Istruzioni ufficiali download PDF</a>
+        </article>
+        <article>
+          <h3>Fonti operative</h3>
+          <div className="iu-pat-source-list">
+            {procedure.documents.map((doc) => (
+              <a href={doc.url} target="_blank" rel="noreferrer" key={doc.id}>
+                <span>{doc.kind}</span>
+                <strong>{doc.title}</strong>
+                <small>{doc.updated || doc.note}</small>
+              </a>
+            ))}
+          </div>
+        </article>
+      </section>
+    </section>
   )
 }
 
@@ -3396,6 +3746,7 @@ function AcquisitionWizard({
   const rememberAssistantSession = (payload: JsonRecord): AssistantSession => {
     const session = {
       session_id: asText(payload.session_id),
+      local_session_id: asText(payload.local_session_id || payload.localSessionId),
       portale: asText(payload.portale || portal),
       official_url: asText(payload.official_url),
       status: asText(payload.status),
@@ -3407,10 +3758,18 @@ function AcquisitionWizard({
     return session
   }
 
-  const collectAssistantDownloads = async (silent = false, forcedSessionId = '') => {
+  const collectAssistantDownloads = async (silent = false, forcedSessionId = '', forcedLocalSessionId = '') => {
     const sessionId = forcedSessionId || assistantSession?.session_id
     if (!portalUsesOfficialAssistant || !sessionId) return
-    const payload = await assistantJson(`/${encodeURIComponent(sessionId)}/collect`)
+    let filesFromLocal: JsonRecord[] = []
+    const localSessionId = forcedLocalSessionId || assistantSession?.local_session_id || ''
+    if (localSessionId) {
+      const localPayload = await localSignerJson(`/portal-assistant/session/${encodeURIComponent(localSessionId)}/collect`, {
+        portale: portal,
+      }, LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
+      filesFromLocal = asList(localPayload.files).map(asRecord)
+    }
+    const payload = await assistantJson(`/${encodeURIComponent(sessionId)}/collect`, filesFromLocal.length ? { files: filesFromLocal } : {})
     const session = rememberAssistantSession(payload)
     const collected = assistantFilesToAcquisitionFiles(session.downloaded_files, options.scarica_originale_portale)
     if (!collected.length) {
@@ -3435,12 +3794,18 @@ function AcquisitionWizard({
     }
   }
 
-  const startAssistantMonitor = async (sessionId: string) => {
+  const startAssistantMonitor = async (session: AssistantSession) => {
     stopAssistantMonitor()
-    await assistantJson(`/${encodeURIComponent(sessionId)}/watch-downloads`)
+    if (session.local_session_id) {
+      await localSignerJson(`/portal-assistant/session/${encodeURIComponent(session.local_session_id)}/watch-downloads`, {
+        portale: portal,
+      }, LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
+    } else {
+      await assistantJson(`/${encodeURIComponent(session.session_id)}/watch-downloads`)
+    }
     setAssistantMonitoring(true)
     assistantTimerRef.current = window.setInterval(() => {
-      collectAssistantDownloads(true, sessionId).catch((error: unknown) => {
+      collectAssistantDownloads(true, session.session_id, session.local_session_id).catch((error: unknown) => {
         setMessage(asText(error instanceof Error ? error.message : error, 'Monitor download non disponibile.'))
       })
     }, 5000)
@@ -3453,12 +3818,25 @@ function AcquisitionWizard({
       const started = rememberAssistantSession(await assistantJson('/start', {
         fascicolo_id: mapping.target_fascicolo_id || acquisitionInitialFascicoloId(),
       }))
-      if (!started.local_connector_available) {
-        setMessage(started.message || 'Avvia Local Signer su questo PC e riprova la sessione assistita.')
-        return
-      }
-      const opened = rememberAssistantSession(await assistantJson(`/${encodeURIComponent(started.session_id)}/open`))
-      await startAssistantMonitor(opened.session_id)
+      const localStarted = await localSignerJson('/portal-assistant/session/start', {
+        session_id: started.session_id,
+        portale: portal,
+        official_url: started.official_url || officialPortalHref(portal),
+        fascicolo_id: mapping.target_fascicolo_id || acquisitionInitialFascicoloId(),
+        purpose: 'acquisizione',
+      }, LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
+      const localSessionId = asText(localStarted.session_id || started.session_id)
+      const localOpened = await localSignerJson(`/portal-assistant/session/${encodeURIComponent(localSessionId)}/open`, {
+        official_url: started.official_url || officialPortalHref(portal),
+      }, LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
+      const opened = rememberAssistantSession({
+        ...started,
+        local_connector_available: true,
+        local_session_id: localSessionId,
+        status: asText(localOpened.status || localStarted.status, 'portale_ufficiale_assistito_aperto'),
+        message: asText(localOpened.message || localStarted.message, 'Portale ufficiale aperto nella sessione assistita locale.'),
+      })
+      await startAssistantMonitor(opened)
       setMessage(opened.message || 'Sessione locale aperta. Resta in IUSENTRA: i file raccolti verranno importati nel fascicolo scelto.')
     } catch (error: unknown) {
       setMessage(asText(error instanceof Error ? error.message : error, 'Sessione assistita non avviata.'))
@@ -3468,11 +3846,17 @@ function AcquisitionWizard({
   }
 
   const closeAssistantSession = async () => {
-    const sessionId = assistantSession?.session_id
-    if (!sessionId) return
+    const currentSession = assistantSession
+    if (!currentSession?.session_id) return
+    const sessionId = currentSession.session_id
     stopAssistantMonitor()
     setBusy('assistant')
     try {
+      if (currentSession.local_session_id) {
+        await localSignerJson(`/portal-assistant/session/${encodeURIComponent(currentSession.local_session_id)}/close`, {
+          portale: portal,
+        }, LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS).catch(() => ({}))
+      }
       const closed = rememberAssistantSession(await assistantJson(`/${encodeURIComponent(sessionId)}/close`))
       setMessage(closed.message || 'Sessione assistita chiusa.')
     } catch (error: unknown) {
@@ -3563,7 +3947,7 @@ function AcquisitionWizard({
               <ExternalLink size={14}/> Sessione IUSENTRA
             </button>
           ) : null}
-          {official ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
+          {official && !portalUsesOfficialAssistant ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
         </aside>
       </header>
 
@@ -4124,7 +4508,7 @@ function AcquisitionWizard({
 
 export function TelematicoSurfacePage() {
   const surfaceId = surfaceFromCurrentPath()
-  const [data, setData] = useState<TelematicoSurfaceData>(emptyTelematicoSurface)
+  const [data, setData] = useState<TelematicoSurfaceData>(() => initialSurfaceData(surfaceId))
   const [loading, setLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState('')
   const [activeOperation, setActiveOperation] = useState<{ cardId:string; actionId:string } | null>(null)
@@ -4135,8 +4519,11 @@ export function TelematicoSurfacePage() {
     let active = true
     setActiveOperation(null)
     setLoading(true)
+    setData(initialSurfaceData(surfaceId))
     getTelematicoSurfacePage(surfaceId)
-      .then((payload) => { if (active) setData(payload) })
+      .then((payload) => {
+        if (active) setData(payload.surface.id === surfaceId ? payload : initialSurfaceData(surfaceId))
+      })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [surfaceId])
@@ -4297,6 +4684,8 @@ export function TelematicoSurfacePage() {
           onLex={openSurfaceLex}
         />
       ) : null}
+
+      {data.surface.id === 'pat' ? <PatProcedureWorkspace data={data}/> : null}
 
       <AcquisitionWizard surfaceId={surfaceId} data={data} localEvents={localAcquisitionEvents}/>
 

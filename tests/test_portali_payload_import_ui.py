@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import base64
 import hashlib
+import json
 
 import pytest
 
@@ -400,6 +401,52 @@ def test_assistant_start_accetta_ptt_pat_pdp(tmp_path: Path, portale: str):
     assert data["mode"] == MODE_OFFICIAL_PORTAL_ASSISTED
     assert data["session_id"]
     assert data["official_url"].startswith("https://")
+
+
+def test_assistant_start_docker_usa_local_connector_host_machine(tmp_path: Path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    monkeypatch.setenv("IUSENTRA_LOCAL_CONNECTOR_BASE_URL", "http://host.docker.internal:27272")
+
+    from web.services import telematico_runtime
+
+    calls: list[str] = []
+
+    class DummyResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "ok": True,
+                    "session_id": "assist-local-123",
+                    "status": "sessione_assistita_pronta",
+                }
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout=0):
+        calls.append(request.full_url)
+        assert request.full_url.startswith("http://host.docker.internal:27272/portal-assistant/session/start")
+        return DummyResponse()
+
+    monkeypatch.setattr(telematico_runtime.urllib_request, "urlopen", fake_urlopen)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post("/api/portali/pat/assistant/start", json={"fascicolo_id": ""})
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["local_connector_available"] is True
+    assert data["local_session_id"] == "assist-local-123"
+    assert data["status"] == "sessione_assistita_pronta"
+    assert calls == ["http://host.docker.internal:27272/portal-assistant/session/start"]
 
 
 def test_deposito_non_finalizza_senza_ricevuta_ufficiale(tmp_path: Path):

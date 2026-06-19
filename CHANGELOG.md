@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.253.80 - 2026-06-19
+
+- PAT/SIGA: aggiunto catalogo operativo dei moduli ufficiali 4.x, Formweb, limiti 50 file/300 MB, guida Chrome/Acrobat e fonti G.A. direttamente nel payload React `/pat`.
+- Portale Avvocato: la superficie React ora mostra la procedura PAT/SIGA con sessione ufficiale SIGA governata dal Local Connector del PC dell'avvocato, senza iframe fragile, senza `window.open` operativo o fallback esterno come soluzione, filtro moduli per materia/tipo deposito e checklist PAdES/ricevute senza logiche PCT `.cer`/`Atto.enc`.
+- Local Connector: il browser chiama direttamente `127.0.0.1:27272`, mentre il backend Docker usa `host.docker.internal:27272`; la sessione assistita resta così praticabile anche quando IUSENTRA gira su server e il `localhost` utile è quello del PC dell'avvocato.
+- React `/pat`: corretto lo skeleton iniziale per non mostrare più `PolisWeb / PST` durante il caricamento della superficie PAT; la prova visiva locale su `127.0.0.1:8080` ha coperto desktop/tablet/mobile, click sessione SIGA, raccolta file, chiusura, filtro `rimborso`, scroll completo, zero iframe e zero overflow.
+- Anti-fallback: aggiornata `AGENTS.md` con la regola che impedisce di presentare scorciatoie, percorsi alternativi o simulazioni come soluzione finale quando un problema reale resta da risolvere.
+- Anti-regressione: aggiunti test mirati per profilo `pat_siga`, catalogo moduli/Formweb, payload React PAT, Local Connector browser/Docker e asset React.
+
 ## 2.253.79 - 2026-06-19
 
 - Deposito telematico: corretto il validatore busta per non bloccare l'atto principale quando il documento è già un contenitore CAdES `.p7m`, anche se il vecchio flag storico `firmato_digitalmente` non è valorizzato.

@@ -12,6 +12,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
 from urllib import error as urllib_error
+from urllib.parse import urlparse
 from urllib import request as urllib_request
 
 from flask import Flask, g, url_for
@@ -3507,19 +3508,50 @@ def build_telematico_runtime(
             raise ValueError("Sessione assistita non trovata.")
         return dict(session)
 
+    def _normalize_local_connector_base_url(value: str) -> str:
+        raw = str(value or "").strip().rstrip("/")
+        if not raw:
+            return ""
+        parsed = urlparse(raw)
+        host = (parsed.hostname or "").lower()
+        if parsed.scheme != "http" or host not in {"127.0.0.1", "localhost", "host.docker.internal"}:
+            raise ValueError("Endpoint Local Connector non autorizzato.")
+        port = parsed.port or 27272
+        return f"http://{host}:{port}"
+
+    def _local_connector_base_urls() -> list[str]:
+        configured = str(os.getenv("IUSENTRA_LOCAL_CONNECTOR_BASE_URL", "") or "").strip()
+        raw_candidates = re.split(r"[\s,;]+", configured) if configured else []
+        raw_candidates.append("http://127.0.0.1:27272")
+        candidates: list[str] = []
+        for raw in raw_candidates:
+            try:
+                normalized = _normalize_local_connector_base_url(raw)
+            except ValueError:
+                continue
+            if normalized and normalized not in candidates:
+                candidates.append(normalized)
+        return candidates or ["http://127.0.0.1:27272"]
+
     def _local_connector_call(path: str, *, method: str = "POST", payload: dict[str, Any] | None = None, timeout: float = 2.0) -> dict[str, Any]:
-        url = f"http://127.0.0.1:27272{path}"
         data = None if method.upper() == "GET" else json.dumps(payload or {}).encode("utf-8")
-        req = urllib_request.Request(
-            url,
-            data=data,
-            method=method.upper(),
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
-        with urllib_request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8", errors="replace")
-        parsed = json.loads(raw or "{}")
-        return parsed if isinstance(parsed, dict) else {"ok": False, "raw": parsed}
+        errors: list[str] = []
+        for base_url in _local_connector_base_urls():
+            url = f"{base_url}{path}"
+            req = urllib_request.Request(
+                url,
+                data=data,
+                method=method.upper(),
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+            )
+            try:
+                with urllib_request.urlopen(req, timeout=timeout) as resp:
+                    raw = resp.read().decode("utf-8", errors="replace")
+                parsed = json.loads(raw or "{}")
+                return parsed if isinstance(parsed, dict) else {"ok": False, "raw": parsed}
+            except Exception as exc:
+                errors.append(f"{base_url}: {exc}")
+        raise urllib_error.URLError("; ".join(errors) or "Local Connector non raggiungibile")
 
     def _public_assisted_session(session: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -3532,6 +3564,7 @@ def build_telematico_runtime(
             "purpose": session.get("purpose", "acquisizione"),
             "status": session.get("status", ""),
             "local_connector_available": bool(session.get("local_connector_available")),
+            "local_session_id": session.get("local_session_id", ""),
             "downloaded_files": list(session.get("downloaded_files") or []),
             "message": session.get("message", ""),
         }

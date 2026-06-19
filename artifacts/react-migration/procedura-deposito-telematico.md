@@ -1722,3 +1722,68 @@ Doppia verifica documento per documento:
 - parsing tecnico di `Atto.enc`: CMS `enveloped_data`, algoritmo `aes256_cbc`.
 
 Nota ordine documenti: nell'`Atto.msg` l'ordine tecnico mette prima l'atto principale selezionato in UI, cioè `Note conclusive Alessi Robertino.pdf.p7m`, poi gli allegati. Il corpo PEC mostra invece gli 8 documenti operativi nell'ordine richiesto dall'utente. Non risultano documenti operativi aggiuntivi rispetto alla selezione prevista.
+
+## Aggiornamento 2.253.80 - PAT/SIGA Formweb e Portale Avvocato in React
+
+Data intervento: 2026-06-19.
+
+Fonti consultate:
+
+- documentazione ufficiale G.A. `Documentazione operativa, modulistica e manualistica`;
+- `Manuale_Avvocato_pe005_ITA (1).pdf` fornito dall'utente e manuale ufficiale pubblicato;
+- documento ufficiale `pubblicazione NTO del PAT Portale avvocato` sulle nuove regole Formweb;
+- istruzioni ufficiali `Istruzioni per il download dei pdf`;
+- istruzioni ufficiali per compilazione moduli di deposito aggiornate al 4 giugno 2025;
+- requisiti tecnici ufficiali per avvocati difensori e cittadini;
+- documento utente `Impostazione in chrome per download pdf.docx`.
+
+Decisione operativa:
+
+- per PAT/SIGA, dal regime 1 febbraio 2026 Formweb è trattato come canale prioritario;
+- PEC resta solo residuale quando il Formweb non è utilizzabile per ragioni tecniche documentate;
+- il vecchio upload dal nuovo portale non viene presentato come canale ordinario a regime;
+- PAT/SIGA non usa certificati `.cer` PST né `Atto.enc`; la firma da presidiare è PAdES;
+- i PDF ufficiali 4.x sono moduli dinamici da scaricare e aprire con Acrobat Reader, non da compilare nel viewer del browser.
+
+Modifiche applicate:
+
+- aggiunto `pct/pat_moduli.py` con catalogo ufficiale dei moduli PAT/SIGA, Formweb, limiti, fonti, guida Chrome/Acrobat e suggeritore modulo per materia/tipo deposito;
+- aggiornato il profilo `pat_siga` in `legal_deposit/policies.py` con limiti Formweb 50 file, 300 MB per file e 300 MB totali, priorità Formweb dal 1 febbraio 2026 e PEC residuale;
+- esteso `web/services/react_telematico_bridge.py` con `patProcedure`, card dedicate PAT, checklist Formweb/PAdES/ricevute e avviso operativo sul regime Formweb;
+- esteso `frontend/src/telematicoSurfacesData.ts` e `frontend/src/components/TelematicoSurfacePage.tsx` con pannello React PAT/SIGA: sessione ufficiale SIGA governata dal Local Connector del PC dell'avvocato, senza iframe fragile, senza `window.open` e senza fallback esterno come soluzione, fasi operative, tipologie Formweb, filtro moduli per materia e fonti ufficiali;
+- aggiornati gli stili in `frontend/src/components/TelematicoSurfacePage.css` con layout responsive desktop/tablet/mobile.
+- corretto lo stato iniziale della superficie React: su `/pat` lo skeleton interno mostra `PAT Amministrativo`, non eredita più il titolo generico `PolisWeb / PST` quando l'API è ancora in caricamento o non risponde.
+- aggiornato il resolver backend delle sessioni assistite: in Docker il container usa `host.docker.internal:27272`, mentre il browser chiama direttamente il Local Connector su `127.0.0.1:27272`; questo preserva il modello corretto anche su `https://app.iusentra.it`, dove il server non può raggiungere il `localhost` del PC dell'avvocato.
+
+Test automatici eseguiti:
+
+- `python -m py_compile pct/pat_moduli.py web/services/react_telematico_bridge.py legal_deposit/policies.py`;
+- `python -m py_compile pct/pat_moduli.py web/services/telematico_runtime.py web/services/react_telematico_bridge.py legal_deposit/policies.py`;
+- `python -m pytest tests/test_canali_telematici_deposito.py::test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali tests/test_react_shell.py::test_react_superfici_telematiche_collegate_nav_api_css tests/test_react_shell.py::test_react_superfici_telematiche_api_payload_reale -q`;
+- `python -m pytest tests/test_portali_payload_import_ui.py::test_assistant_start_docker_usa_local_connector_host_machine tests/test_portali_payload_import_ui.py::test_assistant_start_accetta_ptt_pat_pdp tests/test_react_shell.py::test_react_superfici_telematiche_api_payload_reale tests/test_web_bootstrap.py::test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina tests/test_canali_telematici_deposito.py::test_profili_pdp_pat_ptt_non_ereditano_busta_pct_o_pec_diretta tests/test_canali_telematici_deposito.py::test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser -q`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`;
+- `python -m pytest tests/test_canali_telematici_deposito.py::test_profili_pdp_pat_ptt_non_ereditano_busta_pct_o_pec_diretta tests/test_canali_telematici_deposito.py::test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali tests/test_react_shell.py::test_react_superfici_telematiche_api_payload_reale tests/test_react_asset_retention.py -q`.
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short`.
+
+Docker locale reale:
+
+- `docker compose build --no-cache app`;
+- `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`;
+- `docker compose ps`: `app`, `scheduler-worker`, `ocr-worker`, `redis`, `audit-postgres` e `audit-worm` healthy, `nginx` up;
+- `GET http://127.0.0.1:8080/api/pronto`: `ok=true`, `versione=2.253.80`;
+- `docker compose exec -T app python -c "import pct; print(pct.__version__)"`: `2.253.80`;
+- `GET http://127.0.0.1:27272/ping?light=1`: Local Connector `1.6.78` raggiungibile dalla macchina reale.
+
+Prova reale locale eseguita nel browser integrato visibile su `http://127.0.0.1:8080/pat`:
+
+- desktop `1280x900`: pagina autenticata, `h1=PAT Amministrativo`, zero iframe, nessun testo `Apri fuori`, nessun link esterno nella sezione sessione assistita, nessun overflow orizzontale;
+- click reale su `Avvia sessione ufficiale SIGA`: la URL resta `/pat`, stato `monitor_download_attivo`, messaggio `Monitor download della sessione assistita attivo`, nessun errore `Local Connector non raggiungibile`;
+- click reale su `Raccogli file ufficiali`: stato controllato, nessun file raccolto perché non è stato scaricato nulla dal portale ufficiale nella prova, nessun errore connettore;
+- click reale su `Chiudi sessione`: stato `sessione_chiusa` e messaggio `Sessione assistita chiusa`;
+- filtro moduli con testo `rimborso`: campo valorizzato, scheda `Modulo PDF deposito richiesta rimborso` visibile con comando `Scarica modulo ufficiale`;
+- scroll completo fino al fondo: visibili guida Chrome/PDF, manuale avvocato, fonti ufficiali e collegamenti rapidi, senza overflow;
+- tablet `820x1180`: `PAT Amministrativo` anche durante caricamento, nessun ritorno a `PolisWeb`, dati Formweb caricati, scroll completo fino al fondo, zero iframe, zero overflow e nessun errore console;
+- mobile `390x844`: `PAT Amministrativo`, zero iframe, zero overflow, pulsanti sessione impilati e leggibili a `259x44`; click reale su `Avvia sessione ufficiale SIGA` dopo scroll materiale, stato `monitor_download_attivo`, nessun errore Local Connector, chiusura sessione e scroll completo fino al fondo con fonti e guide visibili.
+
+Stato anti-regressione: i test mirati impediscono che PAT/SIGA torni a ereditare busta PCT, `.cer` PST, `Atto.enc` o PEC come canale ordinario, verificano che il payload React esponga moduli ufficiali, Formweb e portale ufficiale, e presidiano che l'avvio del Portale Avvocato passi da Local Connector/browser locale senza iframe o apertura esterna come soluzione finale.

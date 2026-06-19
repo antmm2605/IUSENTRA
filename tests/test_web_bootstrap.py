@@ -888,6 +888,7 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     assert 'profiles: ["ollama-sidecar"]' in compose
     assert "image: ollama/ollama:latest" in compose
     assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}" in compose
+    assert "IUSENTRA_LOCAL_CONNECTOR_BASE_URL: ${IUSENTRA_LOCAL_CONNECTOR_BASE_URL:-http://host.docker.internal:27272}" in compose
     assert "PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db" in compose
     assert 'PCT_STORAGE_MODE: "SQLITE"' in compose
     assert 'PCT_SQLITE_MODE: "1"' in compose

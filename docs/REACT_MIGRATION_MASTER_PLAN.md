@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## PAT/SIGA Formweb e Portale Avvocato - 2026-06-19 - 2.253.80
+
+La superficie `/pat` viene estesa come cabina operativa del Portale Avvocato / SIGA: Formweb prioritario, moduli ufficiali, sessione SIGA governata da IUSENTRA tramite Local Connector del PC dell'avvocato e import ricevute/documenti nel fascicolo.
+
+Copertura implementata:
+
+- catalogo `pct/pat_moduli.py` con fonti ufficiali G.A., moduli PDF 4.x, foglio Excel parti, guida Chrome/Acrobat, tipologie Formweb e suggerimento modulo per materia/tipo deposito;
+- payload React `patProcedure` in `/api/v1/ui/telematico/surface/pat`;
+- pannello React dedicato con fasi operative, limiti 50 file/300 MB, sessione ufficiale SIGA senza iframe fragile, senza `window.open` operativo e senza fallback esterno come soluzione, filtro moduli e fonti ufficiali;
+- profilo `pat_siga` aggiornato per non ereditare busta PCT, `.cer` PST o `Atto.enc`, con firma PAdES e PEC residuale;
+- test mirati su canale, catalogo moduli/Formweb, payload React, Local Connector browser/Docker e asset retention.
+
+Verifiche locali eseguite su `2.253.80`: `py_compile`, pytest canali/PAT/payload React/Local Connector, typecheck React, build Vite, asset retention, rebuild Docker reale, `/api/pronto` su `127.0.0.1:8080`, Local Connector `1.6.78` su `127.0.0.1:27272` e prova visiva completa `/pat` desktop/tablet/mobile. Nella prova reale: `Avvia sessione ufficiale SIGA` resta dentro IUSENTRA e produce `monitor_download_attivo`, `Raccogli file ufficiali` e `Chiudi sessione` reagiscono, il filtro `rimborso` mostra il modulo ufficiale, zero iframe, zero overflow e nessun errore console. Restano prima della chiusura complessiva: commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner.
+
 ## Impostazioni Firma Digitale e scadenza certificato - 2026-06-16 - 2.253.33
 
 La tranche collega `Impostazioni > Firma Digitale` al certificato selezionato dal Local Signer, così la scadenza del certificato dell'avvocato resta visibile e governata dalla configurazione dello studio.

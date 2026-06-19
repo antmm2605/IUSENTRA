@@ -1,5 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
+## PAT/SIGA Local Connector e iframe - 2.253.80 - 2026-06-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Blocco iframe del portale ufficiale SIGA | Browser reale locale `/pat` | Risolto localmente | La superficie React non incorpora più il sito ufficiale in iframe e non propone più l'apertura esterna come scorciatoia. Il portale viene avviato tramite sessione ufficiale assistita dal Local Connector del PC, mantenendo IUSENTRA sulla route `/pat` e acquisendo i file ufficiali scaricati nella sessione. | Confermare dopo commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner sullo stesso commit. |
+| Collegamento Docker / browser / Local Connector | Test mirati + Docker locale reale | Risolto localmente | Il browser chiama `127.0.0.1:27272`, mentre il backend nel container usa `host.docker.internal:27272`; `/api/pronto` locale risponde `2.253.80` e il Local Connector risponde `1.6.78`. | Mantenere i test `test_assistant_start_docker_usa_local_connector_host_machine` e `test_react_wizard_pst_verifica_local_signer_dal_browser`. |
+| Testi, pulsanti e responsive PAT | Browser reale `127.0.0.1:8080` desktop/tablet/mobile | Risolto localmente | Verificati titolo `PAT Amministrativo`, assenza di iframe, assenza di `Apri fuori`, click reali su `Avvia sessione ufficiale SIGA`, `Raccogli file ufficiali` e `Chiudi sessione`, filtro moduli, scroll completo, fonti ufficiali, guida Chrome/PDF e layout senza overflow su desktop, tablet e mobile. | Ripetere prova server dopo deploy e non dichiarare chiusura complessiva prima dei gate remoti verdi. |
+| Skeleton iniziale della route `/pat` | Tablet reale locale | Risolto localmente | La route `/pat` non mostra più `PolisWeb / PST` durante il caricamento o il fallback interno dei dati; può comparire solo il loader generale `Caricamento modulo` prima del mount della superficie React. | Nessuna azione ulteriore salvo modifiche future a shell, lazy route o payload iniziale. |
+
 ## Deposito simulazione PEC 2.253.77 - 2026-06-19
 
 | Area | Gate | Stato | Nota | Azione |

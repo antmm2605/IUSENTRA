@@ -62,7 +62,41 @@ def test_profili_pdp_pat_ptt_non_ereditano_busta_pct_o_pec_diretta():
 
     assert pat.signature_policy.format == "PADES"
     assert pat.accepted_signature_formats == ("PADES",)
+    assert pat.max_files == 50
+    assert pat.max_total_size_mb == 300
+    assert pat.max_single_file_size_mb == 300
+    assert pat.metadata["formweb_priority_from"] == "2026-02-01"
+    assert pat.metadata["portal_upload_removed_at_regime"] is True
     assert {"PADES", "CADES_BES"} <= set(ptt.accepted_signature_formats)
+
+
+def test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali():
+    from pct.pat_moduli import build_pat_siga_payload, suggest_pat_modules
+
+    payload = build_pat_siga_payload()
+    modules = {module["id"]: module for module in payload["modules"]}
+    deposits = {deposit["id"]: deposit for deposit in payload["formwebDeposits"]}
+
+    assert payload["portal"]["officialUrl"] == "https://pe.prod.cloud.giustizia-amministrativa.it"
+    assert payload["portal"]["sessionMode"] == "sessione ufficiale assistita dal Local Connector del PC, senza iframe o proxy delle credenziali"
+    assert payload["regime"]["formwebPriorityFrom"] == "2026-02-01"
+    assert payload["regime"]["pecResidual"] is True
+    assert payload["regime"]["portalUploadLegacyRemoved"] is True
+    assert payload["limits"]["formweb"] == {
+        "maxFiles": 50,
+        "maxSingleFileSizeMb": 300,
+        "maxTotalSizeMb": 300,
+        "signature": "PADES",
+        "requiresOfficialPortal": True,
+    }
+    assert {"deposito_ricorso", "deposito_atto", "richieste_segreteria", "foglio_excel_parti"} <= set(modules)
+    assert modules["deposito_ricorso"]["version"] == "4.02"
+    assert modules["deposito_atto"]["version"] == "4.02"
+    assert modules["foglio_excel_parti"]["url"].endswith("t=1748183957377")
+    assert deposits["ricorso"]["module_id"] == "deposito_ricorso"
+    assert deposits["successivo_notifiche"]["module_id"] == "deposito_atto"
+    assert suggest_pat_modules("rimborso contributo unificato")[0]["id"] == "rimborso_contributo_unificato"
+    assert suggest_pat_modules("appalti cig pnrr")[0]["id"] == "deposito_ricorso"
 
 
 def test_canale_pct_richiede_cer_e_atto_enc_aes256():

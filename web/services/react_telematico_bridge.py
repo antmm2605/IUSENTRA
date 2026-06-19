@@ -34,7 +34,7 @@ PORTAL_TITLES = {
 PORTAL_DESCRIPTIONS = {
     "pst": "Consultazione civile e import autorizzato dei fascicoli già scaricati.",
     "pdp": "Percorso penale, esiti, documenti collegati e controllo dell'avvocato.",
-    "pat": "Portale avvocato, fascicolo amministrativo e import guidato documenti.",
+    "pat": "Portale Avvocato / SIGA, Formweb, moduli ufficiali e import guidato di ricevute e documenti.",
     "ptt": "Telecontenzioso, SIGIT, fascicoli tributari e ricevute importate.",
 }
 PORTAL_TONES = {"pst": "primary", "pdp": "danger", "pat": "success", "ptt": "warning"}
@@ -115,7 +115,7 @@ SURFACE_SPECS = {
         "eyebrow": "Deposito e fascicolo penale",
         "subtitle": (
             "Percorso penale con accesso guidato, import fascicolo, ricevute, "
-            "attivita operative e collegamento alla cabina fascicolo."
+            "attività operative e collegamento alla cabina fascicolo."
         ),
         "tone": "danger",
     },
@@ -125,8 +125,8 @@ SURFACE_SPECS = {
         "title": "PAT Amministrativo",
         "eyebrow": "Portale Avvocato / SIGA",
         "subtitle": (
-            "Presidio del fascicolo amministrativo, import dei file gia scaricati e "
-            "controllo di ricevute, provvedimenti ed esiti."
+            "Deposito Formweb, scelta dei moduli ufficiali, sessione SIGA governata e "
+            "controllo di ricevute, provvedimenti, bozze ed esiti del fascicolo amministrativo."
         ),
         "tone": "success",
     },
@@ -446,6 +446,15 @@ def _surface_card(
     }
 
 
+def _pat_siga_payload(logger: Any | None = None) -> dict[str, Any]:
+    return _safe(
+        "pat_siga_payload",
+        lambda: __import__("pct.pat_moduli", fromlist=["build_pat_siga_payload"]).build_pat_siga_payload(),
+        {},
+        logger,
+    )
+
+
 def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any] | None) -> list[dict[str, Any]]:
     channel = dict(channel or {})
     tone = PORTAL_TONES.get(portal, "primary")
@@ -468,7 +477,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
         if portal in ASSISTED_OFFICIAL_PORTALS
         else _surface_action("official", "Portale ufficiale", official_href, tone=tone, external=True)
     )
-    return [
+    cards = [
         _surface_card(
             "importa-pratica",
             import_label,
@@ -513,7 +522,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
         ),
         _surface_card(
             "controlli",
-            "Controlli e qualita",
+            "Controlli e qualità",
             "Verifica connessioni, Local Signer, PEC, esiti in attesa e blocchi predeposito.",
             tone="warning",
             icon="shield",
@@ -523,13 +532,39 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             ],
         ),
     ]
+    if portal == "pat":
+        cards[1:1] = [
+            _surface_card(
+                "pat-formweb",
+                "Prepara deposito Formweb",
+                "Scegli tipologia, materia, modulo ufficiale e controlli PAdES prima di aprire la sessione SIGA.",
+                tone="success",
+                icon="workflow",
+                actions=[
+                    _surface_action("procedura", "Procedura PAT", _surface_href(surface_id, "#procedura-pat"), tone="success"),
+                    _surface_action("portale", "Sessione SIGA", _surface_href(surface_id, "#portale-avvocato-siga"), tone="neutral"),
+                ],
+            ),
+            _surface_card(
+                "pat-moduli",
+                "Moduli e allegati PAT",
+                "Consulta i PDF compilabili ufficiali 4.x, il foglio Excel parti e la guida Chrome per aprirli in Acrobat.",
+                tone="info",
+                icon="download",
+                actions=[
+                    _surface_action("moduli", "Vai ai moduli", _surface_href(surface_id, "#moduli-pat"), tone="info"),
+                    _surface_action("chrome", "Impostazioni PDF", _surface_href(surface_id, "#download-pdf-pat"), tone="warning"),
+                ],
+            ),
+        ]
+    return cards
 
 
 def _portal_checklist_groups(portal: str) -> list[dict[str, Any]]:
     common = [
         {
             "id": "identita",
-            "title": "Identita e accesso",
+            "title": "Identità e accesso",
             "items": [
                 {"id": "certificato", "label": "Certificato o Local Signer verificato", "description": "Il controllo reale del token USB avviene sul PC locale, non in cloud.", "critical": True},
                 {"id": "ufficio", "label": "Ufficio e registro coerenti", "description": "Codice ufficio, RG, anno e rito devono corrispondere al fascicolo reale.", "critical": True},
@@ -567,6 +602,59 @@ def _portal_checklist_groups(portal: str) -> list[dict[str, Any]]:
                     {"id": "review", "label": "Manual review completata", "description": "Ogni richiesta di accesso o deposito deve restare validata dall'avvocato.", "critical": True},
                 ],
             }
+        )
+    if portal == "pat":
+        common.extend(
+            [
+                {
+                    "id": "pat-formweb",
+                    "title": "Formweb e Portale Avvocato",
+                    "items": [
+                        {
+                            "id": "formweb",
+                            "label": "Formweb prioritario dal 1 febbraio 2026",
+                            "description": "PEC residuale solo quando il Formweb non è utilizzabile per ragioni tecniche documentate.",
+                            "critical": True,
+                        },
+                        {
+                            "id": "portale",
+                            "label": "Sessione ufficiale SIGA avviata da IUSENTRA",
+                            "description": "Accesso ufficiale con SPID, CIE o CNS; IUSENTRA mantiene checklist, fascicolo, moduli e rientro ricevute nella cabina PAT.",
+                            "critical": True,
+                        },
+                        {
+                            "id": "ricevute-pat",
+                            "label": "Ricevute PAT importate",
+                            "description": "Scaricare e collegare ricevuta di ricezione, ricevuta di registrazione e deposito originale.",
+                            "critical": True,
+                        },
+                    ],
+                },
+                {
+                    "id": "pat-moduli",
+                    "title": "Moduli, PDF e firma",
+                    "items": [
+                        {
+                            "id": "modulo-ufficiale",
+                            "label": "Modulo ufficiale corrente verificato",
+                            "description": "Usare solo moduli 4.x pubblicati dalla Giustizia Amministrativa e il foglio Excel parti quando serve.",
+                            "critical": True,
+                        },
+                        {
+                            "id": "chrome-download",
+                            "label": "Chrome scarica il PDF",
+                            "description": "I moduli compilabili vanno salvati in locale e aperti con Acrobat Reader, non nel visualizzatore del browser.",
+                            "critical": False,
+                        },
+                        {
+                            "id": "pades",
+                            "label": "Firma PAdES, nessun Atto.enc PAT",
+                            "description": "PAT/SIGA non usa certificati .cer PST né busta Atto.enc: la firma richiesta è PAdES.",
+                            "critical": True,
+                        },
+                    ],
+                },
+            ]
         )
     return common
 
@@ -666,6 +754,14 @@ def _surface_links(surface_id: str, portal: str = "") -> list[dict[str, Any]]:
             links.append({"label": "Sessione assistita IUSENTRA", "href": f"{PORTAL_IMPORT_FALLBACKS[portal]}#wizard-acquisizione", "kind": "operativo"})
         else:
             links.append({"label": "Portale ufficiale", "href": PORTAL_OFFICIAL_URLS[portal], "kind": "esterno"})
+        if portal == "pat":
+            links.extend(
+                [
+                    {"label": "Modulistica ufficiale PAT", "href": "#moduli-pat", "kind": "operativo"},
+                    {"label": "Manuale avvocato SIGA-PAT", "href": "#procedura-pat", "kind": "guida"},
+                    {"label": "Sessione ufficiale SIGA", "href": "#portale-avvocato-siga", "kind": "operativo"},
+                ]
+            )
     if surface_id == "firma":
         links.extend(
             [
@@ -786,6 +882,20 @@ def build_react_telematico_surface_payload(
     }
     offices, office_summary = _portal_office_rows(portal) if portal else ([], {})
     local_signer_release = _local_signer_release_payload()
+    pat_procedure = _pat_siga_payload(logger) if portal == "pat" else {}
+    notices = list(base.get("notices") or [])
+    if portal == "pat":
+        notices.insert(
+            0,
+            {
+                "tone": "success",
+                "title": "PAT/SIGA in regime Formweb",
+                "body": (
+                    "Dal 1 febbraio 2026 Formweb è il canale prioritario; IUSENTRA prepara moduli, "
+                    "allegati e controlli, poi l'invio resta nella sessione ufficiale del Portale Avvocato."
+                ),
+            },
+        )
     return {
         "source": "repository_reali",
         "generatedAt": _iso_now(),
@@ -800,7 +910,7 @@ def build_react_telematico_surface_payload(
             "portal": portal,
             "appHref": _surface_href(surface_id),
             "legacyHref": PORTAL_HOME_FALLBACKS.get(portal, ""),
-            "officialHref": PORTAL_OFFICIAL_URLS.get(portal, ""),
+            "officialHref": "" if portal == "pat" else PORTAL_OFFICIAL_URLS.get(portal, ""),
         },
         "summary": summary,
         "channel": channel,
@@ -810,11 +920,12 @@ def build_react_telematico_surface_payload(
         "recentCases": recent_cases,
         "recentEvents": recent_events,
         "links": _surface_links(surface_id, portal),
-        "notices": list(base.get("notices") or []),
+        "notices": notices,
         "lexSuggestions": list(base.get("lexSuggestions") or []),
         "offices": offices,
         "officeSummary": office_summary,
         "localSigner": local_signer_release,
+        "patProcedure": pat_procedure,
     }
 
 

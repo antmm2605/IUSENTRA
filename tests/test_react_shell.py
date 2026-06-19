@@ -1250,6 +1250,9 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "{ label: 'PTT Tributario', icon: FileText, href: '/sigit' }" in app_source
     assert "getTelematicoSurfacePage" in data_source
     assert "/api/v1/ui/telematico/surface/" in data_source
+    assert "function initialSurfaceData" in page_source
+    assert "useState<TelematicoSurfaceData>(() => initialSurfaceData(surfaceId))" in page_source
+    assert "payload.surface.id === surfaceId ? payload : initialSurfaceData(surfaceId)" in page_source
     assert "route.startsWith('/portali/pdp')" in page_source
     assert "route.startsWith('/portali/pst')" in page_source
     assert "OfficeDirectory" in page_source
@@ -1430,6 +1433,25 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
         assert payload["channel"]["quickActions"][0]["href"] == expected_href
         assert payload["channel"]["quickActions"][1]["href"] == expected_home
         assert not any(href.startswith("/app-v2/") for href in collect_hrefs(payload)), surface
+        if surface == "pat":
+            pat_procedure = payload["patProcedure"]
+            module_ids = {module["id"] for module in pat_procedure["modules"]}
+            assert pat_procedure["portal"]["officialUrl"] == "https://pe.prod.cloud.giustizia-amministrativa.it"
+            assert pat_procedure["regime"]["formwebPriorityFrom"] == "2026-02-01"
+            assert pat_procedure["regime"]["portalUploadLegacyRemoved"] is True
+            assert pat_procedure["limits"]["formweb"]["maxFiles"] == 50
+            assert pat_procedure["limits"]["formweb"]["maxTotalSizeMb"] == 300
+            assert pat_procedure["limits"]["formweb"]["signature"] == "PADES"
+            assert payload["surface"]["officialHref"] == ""
+            assert {"deposito_ricorso", "deposito_atto", "richieste_segreteria", "foglio_excel_parti"} <= module_ids
+            assert any(card["id"] == "pat-formweb" for card in payload["operationCards"])
+            assert any(
+                action["label"] == "Sessione SIGA"
+                for card in payload["operationCards"]
+                for action in card["actions"]
+            )
+            assert any(item["id"] == "pades" for group in payload["checklistGroups"] for item in group["items"])
+            assert not any(".cer PST" in item["description"] and item["critical"] is False for group in payload["checklistGroups"] for item in group["items"])
     assert not any(href.startswith("/app-v2/") for href in collect_hrefs(polisweb_payload))
     telematico_payload = client.get("/api/v1/ui/telematico", headers={"X-API-Key": "react-test-key"}).get_json()
     assert not any(href.startswith("/app-v2/") for href in collect_hrefs(telematico_payload))
@@ -1440,6 +1462,24 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert tribunali_payload["officeSummary"]["sources"]
     assert "PEC di deposito" in tribunali_payload["officeSummary"]["policy"]
     assert any(row["indirizziTelematici"] for row in tribunali_payload["offices"] if row["pec"])
+
+    component_source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    assert "function PatProcedureWorkspace" in component_source
+    pat_workspace_source = component_source.split("function PatProcedureWorkspace", 1)[1].split("function portalLabel", 1)[0]
+    assert 'id="portale-avvocato-siga"' in pat_workspace_source
+    assert "iu-pat-session-board" in pat_workspace_source
+    assert "iu-pat-session-launch" in pat_workspace_source
+    assert "/api/portali/pat/assistant" in pat_workspace_source
+    assert "data.localSigner.browserUrl" in pat_workspace_source
+    assert "patLocalConnectorJson('/portal-assistant/session/start'" in pat_workspace_source
+    assert "local_session_id" in pat_workspace_source
+    assert "Raccogli file ufficiali" in pat_workspace_source
+    assert "window.open" not in pat_workspace_source
+    assert "Avvia sessione ufficiale SIGA" in pat_workspace_source
+    assert "<iframe" not in pat_workspace_source
+    assert "Apri fuori" not in pat_workspace_source
+    assert "sandbox=" not in pat_workspace_source
+    assert "Scarica modulo ufficiale" in pat_workspace_source
 
 
 def test_react_user_facing_links_non_espongono_app_v2_prefix():
@@ -1519,6 +1559,8 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "localSignerJson('/pst/fascicolo-snapshot-job'" in source
     assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" in source
     assert "localSignerJson('/pst/download-documenti-batch'" in source
+    assert "localSignerJson('/portal-assistant/session/start'" in source
+    assert "{official && !portalUsesOfficialAssistant ?" in source
     assert "'/pst/download-documento'" not in source
     assert "const prepared = await ensurePstPortalSession(tribunale)" not in source
     assert "ensurePstPortalSession" not in source

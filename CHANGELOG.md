@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.83 - 2026-06-19
+
+- PAT/SIGA: il PDF generato da IUSENTRA ora si apre nel viewer del browser con dati compilati visibili e incorpora come allegato il modulo ministeriale XFA compilato, evitando l'apertura vuota dei PDF LiveCycle.
+- PAT/SIGA: separati i comandi `Apri PDF compilato` e `Scarica PDF`, così l'anteprima non forza più il download e il controllo visivo resta immediato dentro il browser.
+- UI PAT: rafforzato hover/focus del bottone `Avvia SIGA` per mantenere testo e icona sempre leggibili.
+- Allegati PAT: la selezione automatica dei documenti del fascicolo rispetta il limite Formweb di 50 file e segnala quanti documenti restano esclusi.
+
 ## 2.253.82 - 2026-06-19
 
 - PAT/SIGA: rifatta `/pat` come superficie operativa compatta con soli passaggi utili: fascicolo, deposito Formweb, documenti del fascicolo, modulo ufficiale e consegna SIGA.

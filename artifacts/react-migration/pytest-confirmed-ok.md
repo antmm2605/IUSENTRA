@@ -1,5 +1,18 @@
 # Pytest shard confermati OK
 
+## PAT/SIGA PDF visibile e hover SIGA 2.253.83 - 2026-06-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\react-migration\generate_api_contracts.py` | OK | OpenAPI e mappe contratti rigenerate dopo bump `2.253.83`. |
+| `python -m py_compile pct\pat_pdf_templates.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per generatore PDF PAT e API React. |
+| `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q` | OK | `8/8` passati: PDF visibile, XFA ufficiale allegato, link anteprima/download separati, limite 50 allegati e prefill fascicolo. |
+| `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata tests\test_utf8_integrity.py -q --tb=short` | OK | `5/5` passati: mappa sicurezza backend e integrità UTF-8. |
+| `npm run build` | OK | Bundle React rigenerato; `/pat` usa gli asset aggiornati di `TelematicoSurfacePage`. |
+| `docker compose build --no-cache app`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale ricostruita; `app`, `scheduler-worker`, `ocr-worker` healthy; `/api/pronto` `versione=2.253.83`. |
+| Browser integrato visibile su `http://127.0.0.1:8080/pat` | OK osservato | Fascicolo `DC5BF1DB`, `20` documenti del fascicolo allegati, generazione `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf`, anteprima senza `download=1`, viewer Chrome con pagina `1/2` compilata e hover `Avvia SIGA` leggibile. |
+| Responsive reale `768x900` e `390x844` | OK osservato | Sezione `5. Consegna SIGA` leggibile, nessun overflow orizzontale, `Avvia SIGA` bianco su blu. |
+
 ## PAT/SIGA moduli ufficiali e allegati fascicolo 2.253.82 - 2026-06-19
 
 | Comando / verifica | Esito | Nota |

@@ -1319,8 +1319,12 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
     const selected = new Set(selectedDocumentIds)
     return docs.filter((doc) => selected.has(doc.id))
   }, [selectedPrefillMatter, selectedDocumentIds])
+  const documentSelectionLimit = procedure?.limits.formweb.maxFiles || 50
+  const selectedMatterDocuments = selectedPrefillMatter?.documents || []
+  const selectedMatterDocumentsOverFileLimit = selectedMatterDocuments.length > documentSelectionLimit
+  const unselectedMatterDocumentsCount = selectedMatterDocuments.filter((doc) => !selectedDocumentIds.includes(doc.id)).length
   const selectedDocumentsSizeMb = selectedPatDocuments.reduce((total, doc) => total + doc.sizeBytes, 0) / (1024 * 1024)
-  const selectedDocumentsOverLimit = selectedPatDocuments.length > (procedure?.limits.formweb.maxFiles || 50)
+  const selectedDocumentsOverLimit = selectedPatDocuments.length > documentSelectionLimit
     || selectedDocumentsSizeMb > (procedure?.limits.formweb.maxTotalSizeMb || 300)
     || selectedPatDocuments.some((doc) => (doc.sizeBytes / (1024 * 1024)) > (procedure?.limits.formweb.maxSingleFileSizeMb || 300))
   const requiredFields = useMemo(
@@ -1439,6 +1443,10 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   }
 
   const toggleDocument = (documentId: string, checked: boolean) => {
+    if (checked && !selectedDocumentIds.includes(documentId) && selectedDocumentIds.length >= documentSelectionLimit) {
+      setDraftMessage(`Limite Formweb raggiunto: puoi allegare al massimo ${documentSelectionLimit} file. Deseleziona un documento prima di aggiungerne un altro.`)
+      return
+    }
     setSelectedDocumentIds((current) => {
       if (checked) return current.includes(documentId) ? current : [...current, documentId]
       return current.filter((item) => item !== documentId)
@@ -1447,7 +1455,11 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
 
   const setAllDocuments = (checked: boolean) => {
     const docs = selectedPrefillMatter?.documents || []
-    setSelectedDocumentIds(checked ? docs.map((doc) => doc.id) : [])
+    const nextIds = checked ? docs.slice(0, documentSelectionLimit).map((doc) => doc.id) : []
+    setSelectedDocumentIds(nextIds)
+    if (checked && docs.length > documentSelectionLimit) {
+      setDraftMessage(`Formweb accetta massimo ${documentSelectionLimit} file: IUSENTRA ha selezionato i primi ${documentSelectionLimit}. Puoi sostituire gli esclusi deselezionando un allegato.`)
+    }
   }
 
   const updateDocumentRole = (documentId: string, role: PatDocumentRole) => {
@@ -1466,7 +1478,8 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         if (allowed.has(key) && value.trim()) next[key] = value
     })
     setDraftValues((current) => ({ ...current, ...next }))
-    setSelectedDocumentIds(matter.documents.map((doc) => doc.id))
+    const selectedDocs = matter.documents.slice(0, documentSelectionLimit)
+    setSelectedDocumentIds(selectedDocs.map((doc) => doc.id))
     setDocumentRoles(() => {
       const nextRoles: Record<string, PatDocumentRole> = {}
       matter.documents.forEach((doc) => {
@@ -1481,7 +1494,11 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
       })
       return nextRequired
     })
-    setDraftMessage(`Dati del fascicolo "${matter.title}" applicati al modulo. Completa solo i campi mancanti.`)
+    setDraftMessage(
+      matter.documents.length > documentSelectionLimit
+        ? `Dati del fascicolo "${matter.title}" applicati. Formweb accetta massimo ${documentSelectionLimit} file: selezionati i primi ${documentSelectionLimit}, gli altri restano disponibili per sostituzione manuale.`
+        : `Dati del fascicolo "${matter.title}" applicati al modulo. Completa solo i campi mancanti.`,
+    )
   }
 
   const selectPrefillMatter = (matterId: string) => {
@@ -1806,6 +1823,11 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
               </button>
             </div>
           </div>
+          {selectedMatterDocumentsOverFileLimit ? (
+            <p className="iu-pat-limit-note">
+              Formweb accetta massimo {documentSelectionLimit} file per deposito: {selectedPatDocuments.length} selezionati, {unselectedMatterDocumentsCount} disponibili non selezionati. Deseleziona un allegato per sostituirlo.
+            </p>
+          ) : null}
           {selectedPrefillMatter?.documents.length ? (
             <div className="iu-pat-document-list" role="list">
               {selectedPrefillMatter.documents.map((doc) => {
@@ -1899,7 +1921,10 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
             <div className="iu-pat-pdf-ready">
               <strong>Modulo ufficiale pronto</strong>
               <span>{pdfFileName || 'PDF PAT compilato'} con {selectedPatDocuments.length} allegati selezionati dal fascicolo.</span>
-              <a href={pdfDownloadUrl || pdfPreviewUrl} target="_blank" rel="noreferrer">Apri PDF compilato</a>
+              <div className="iu-pat-pdf-ready__actions">
+                <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">Apri PDF compilato</a>
+                {pdfDownloadUrl ? <a href={pdfDownloadUrl} target="_blank" rel="noreferrer">Scarica PDF</a> : null}
+              </div>
             </div>
           ) : null}
           {pdfPreviewUrl ? (

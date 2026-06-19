@@ -1,5 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
+## PAT/SIGA PDF vuoto e hover `Avvia SIGA` - 2.253.83 - 2026-06-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| PDF PAT aperto vuoto nel browser | Browser reale locale `127.0.0.1:8080` + test mirati | Risolto localmente | Il viewer non apre più un XFA puro: l'anteprima è un PDF standard visibile con dati compilati, mentre il modulo ministeriale XFA compilato resta incorporato come allegato tecnico. Click reale su `Apri PDF compilato` mostra pagina `1/2` con `Modulo PAT compilato da IUSENTRA`, `Giudice di Pace - Palmi`, `Alessi Robertino` e dati del fascicolo. | Verificare produzione dopo deploy Hetzner sullo stesso commit. |
+| Link anteprima/download PDF | Browser reale locale | Risolto localmente | `Apri PDF compilato` non contiene `download=1`; `Scarica PDF` usa il download esplicito. | Mantenere test statico React sui due href. |
+| Hover/focus `Avvia SIGA` | Browser reale locale desktop/tablet/mobile | Risolto localmente | Hover reale su desktop: colore testo `rgb(255, 255, 255)`, fondo blu e testo leggibile. Tablet `768x900` e mobile `390x844` senza overflow. | Ripetere prova produzione dopo deploy. |
+| Produzione `https://app.iusentra.it/pat` | Hetzner + browser reale | Aperto fino a deploy | Locale `2.253.83` positiva; la chiusura complessiva richiede commit, push branch gemelli, check GitHub/CodeQL verdi, deploy Hetzner, `/api/pronto` produzione e prova visiva server. | Eseguire commit/push/deploy e aggiornare questo report dopo la prova server. |
+
 ## PAT/SIGA moduli ufficiali e allegati fascicolo - 2.253.82 - 2026-06-19
 
 | Area | Gate | Stato | Nota | Azione |

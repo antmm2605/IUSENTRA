@@ -1487,15 +1487,26 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert "Avvia SIGA" in pat_workspace_source
     assert "Documenti del fascicolo" in pat_workspace_source
     assert "Genera modulo ufficiale" in pat_workspace_source
+    assert "documentSelectionLimit" in pat_workspace_source
+    assert "docs.slice(0, documentSelectionLimit)" in pat_workspace_source
+    assert "Limite Formweb raggiunto" in pat_workspace_source
+    assert "Formweb accetta massimo" in pat_workspace_source
     assert "/api/v1/ui/pat/moduli/compila" in pat_workspace_source
     assert "/api/v1/ui/pat/moduli/prefill" in pat_workspace_source
     assert "X-IUSENTRA-PAT-Preview" in pat_workspace_source
     assert "pdfDownloadUrl" in pat_workspace_source
+    assert "iu-pat-pdf-ready__actions" in pat_workspace_source
+    assert "href={pdfPreviewUrl}" in pat_workspace_source
+    assert "pdfDownloadUrl || pdfPreviewUrl" not in pat_workspace_source
+    assert "Scarica PDF" in pat_workspace_source
     css_source = Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
     assert "iu-pat-op-grid" in css_source
     assert "iu-pat-doc-row" in css_source
     assert "iu-pat-preview-panel" in css_source
     assert "iu-pat-generated-pdf-viewer" in css_source
+    assert ".iu-pat-session-toolbar button.iu-pat-session-launch:hover:not(:disabled)" in css_source
+    assert ".iu-pat-session-toolbar button.iu-pat-session-launch:focus-visible" in css_source
+    assert "color:#ffffff" in css_source
     assert "<iframe" not in pat_workspace_source
     assert "setPreviewDocument(doc)" in pat_workspace_source
     assert "Anteprima documento" in pat_workspace_source
@@ -1536,9 +1547,14 @@ def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
     assert len(response.data) > 1_000_000
     assert "ModuloDepositoRicorso_4.02_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
     reader = PdfReader(io.BytesIO(response.data))
-    assert len(reader.pages) == 1
-    acroform = reader.trailer["/Root"]["/AcroForm"]
-    assert acroform.get("/XFA")
+    assert len(reader.pages) >= 2
+    extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Modulo PAT compilato da IUSENTRA" in extracted_text
+    assert "Mario Rossi" in extracted_text
+    assert "Impugnazione provvedimento amministrativo" in extracted_text
+    assert "requires Adobe Reader" not in extracted_text
+    embedded = reader.trailer["/Root"]["/Names"].get_object()["/EmbeddedFiles"].get_object()["/Names"]
+    assert any(str(item) == "ModuloDepositoRicorso_4.02_ufficiale_XFA_compilato.pdf" for item in embedded)
 
 
 def test_react_pat_modulo_compilabile_allega_documenti_del_fascicolo(tmp_path: Path):
@@ -1597,9 +1613,15 @@ def test_react_pat_modulo_compilabile_allega_documenti_del_fascicolo(tmp_path: P
 
     assert response.status_code == 200
     reader = PdfReader(io.BytesIO(response.data))
+    extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Modulo PAT compilato da IUSENTRA" in extracted_text
+    assert "Mario Rossi" in extracted_text
+    assert "Impugnazione gara appalti PNRR" in extracted_text
+    assert "requires Adobe Reader" not in extracted_text
     names = reader.trailer["/Root"].get("/Names")
     assert names
     embedded = names.get_object()["/EmbeddedFiles"].get_object()["/Names"]
+    assert any(str(item) == "ModuloDepositoRicorso_4.02_ufficiale_XFA_compilato.pdf" for item in embedded)
     assert any(str(item) == "Ricorso principale.pdf" for item in embedded)
 
 

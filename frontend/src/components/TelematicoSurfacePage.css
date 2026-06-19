@@ -2313,6 +2313,30 @@
   background:var(--iu-blue-800);
   color:#fff;
 }
+.iu-pat-session-toolbar button.iu-pat-session-launch,
+.iu-pat-session-toolbar button.iu-pat-session-launch:hover:not(:disabled),
+.iu-pat-session-toolbar button.iu-pat-session-launch:focus-visible{
+  border-color:#1d4ed8;
+  background:#1d4ed8;
+  color:#ffffff;
+  text-shadow:none;
+}
+.iu-pat-session-toolbar button.iu-pat-session-launch:hover:not(:disabled),
+.iu-pat-session-toolbar button.iu-pat-session-launch:focus-visible{
+  border-color:#1e3a8a;
+  background:#1e3a8a;
+  color:#ffffff;
+}
+.iu-pat-session-toolbar button.iu-pat-session-launch svg{
+  color:currentColor;
+  stroke:currentColor;
+}
+.iu-pat-session-toolbar button.iu-pat-session-launch:disabled{
+  border-color:#93c5fd;
+  background:#bfdbfe;
+  color:#1e3a8a;
+  opacity:1;
+}
 @media(max-width:1180px){
   .iu-tel-op-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-tel-surface-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -2719,6 +2743,18 @@
   font-weight:700;
 }
 
+.iu-pat-limit-note{
+  margin:0;
+  padding:10px 12px;
+  border:1px solid #fed7aa;
+  border-radius:10px;
+  background:#fff7ed;
+  color:#7c2d12;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.45;
+}
+
 .iu-pat-document-toolbar>div{
   display:flex;
   gap:8px;
@@ -3013,8 +3049,28 @@
 }
 
 .iu-pat-pdf-ready a{
+  min-height:40px;
+  padding:9px 12px;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  background:#ffffff;
+  color:#1d4ed8;
+  font-weight:900;
+  text-decoration:none;
+}
+.iu-pat-pdf-ready a:hover{
+  border-color:#1d4ed8;
+  background:#eff6ff;
+  color:#1e3a8a;
+}
+.iu-pat-pdf-ready__actions{
   grid-column:2;
   grid-row:1 / span 2;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
 }
 
 .iu-pat-generated-pdf-viewer{
@@ -3209,8 +3265,12 @@
     display:grid;
   }
   .iu-pat-pdf-ready a{
+    width:100%;
+  }
+  .iu-pat-pdf-ready__actions{
     grid-column:1;
     grid-row:auto;
+    justify-content:flex-start;
   }
   .iu-pat-preview-backdrop{
     padding:72px 12px 12px;

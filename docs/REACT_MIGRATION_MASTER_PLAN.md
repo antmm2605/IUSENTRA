@@ -1,5 +1,22 @@
 # Migrazione progressiva Flask + React
 
+## PAT/SIGA PDF visibile e hover SIGA - 2026-06-19 - 2.253.83
+
+La superficie `/pat` ora produce un PDF PAT apribile nel viewer del browser senza pagina bianca: il file principale è un PDF standard leggibile con i dati compilati, mentre il modulo ministeriale XFA compilato resta incorporato come allegato insieme ai documenti selezionati dal fascicolo.
+
+Stato codice:
+
+- `pct/pat_pdf_templates.py` genera il PDF visibile, incorpora il modulo XFA ufficiale compilato e conserva gli allegati selezionati;
+- React separa `Apri PDF compilato` da `Scarica PDF`, evitando `download=1` sull'anteprima;
+- React limita la selezione automatica a 50 documenti Formweb e segnala eventuali esclusi;
+- CSS PAT rafforza hover/focus/disabled del bottone `Avvia SIGA`.
+
+Verifiche locali eseguite su `2.253.83`: `python scripts\react-migration\generate_api_contracts.py`, `python -m py_compile pct\pat_pdf_templates.py web\blueprints\api_v1_react.py`, `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q`, `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata tests\test_utf8_integrity.py -q --tb=short`, `npm run build`, rebuild Docker locale no-cache e `/api/pronto` `versione=2.253.83`.
+
+Prova reale locale eseguita su Docker `127.0.0.1:8080`, browser integrato visibile: fascicolo `DC5BF1DB`, `20` documenti caricati dal fascicolo, modulo generato con link anteprima senza `download=1`, viewer Chrome su `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf` pagina `1/2` compilata e non vuota, hover `Avvia SIGA` con testo bianco leggibile. Responsive tablet `768x900` e mobile `390x844` senza overflow orizzontale.
+
+Restano prima della chiusura complessiva: commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner con prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
+
 ## PAT/SIGA documenti fascicolo e moduli ufficiali XFA - 2026-06-19 - 2.253.82
 
 La superficie `/pat` è stata ridotta a una cabina operativa: fascicolo, deposito Formweb, documenti del fascicolo, modulo ufficiale e consegna SIGA. Le sezioni descrittive, le card generiche e i pannelli non necessari non fanno più parte della pagina PAT principale.

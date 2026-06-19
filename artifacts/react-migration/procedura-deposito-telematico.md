@@ -2,6 +2,33 @@
 
 Aggiornato: 2026-06-19.
 
+## Aggiornamento 2.253.83 - PAT PDF visibile nel browser e hover SIGA
+
+Data intervento: 2026-06-19.
+
+Correzione applicata alla superficie React `/pat` e al generatore `pct/pat_pdf_templates.py`:
+
+- il PDF prodotto da `Genera modulo ufficiale` non viene più servito solo come XFA LiveCycle, che nel viewer del browser può risultare vuoto o mostrare il warning Adobe;
+- IUSENTRA genera un PDF operativo visibile nel browser con i dati compilati, mantiene il nome ufficiale del modulo e incorpora come allegato il modulo ministeriale XFA compilato, insieme agli allegati scelti dal fascicolo;
+- `Apri PDF compilato` punta alla rotta di anteprima senza `download=1`; `Scarica PDF` resta separato e usa il download esplicito;
+- la selezione documenti PAT rispetta il limite Formweb di 50 file anche quando il fascicolo contiene più allegati;
+- il bottone `Avvia SIGA` ha regole hover/focus/disabled dedicate, con testo e icona sempre leggibili.
+
+Prova reale locale eseguita su Docker `127.0.0.1:8080`, versione `2.253.83`, browser integrato visibile:
+
+- `/api/pronto` risponde `ok=true`, `versione=2.253.83`;
+- route `/pat` senza errori console, fascicolo `DC5BF1DB` selezionato, `20` documenti letti dal fascicolo, `20` allegati selezionati e totale visibile `4,7 MB`;
+- campi modulo precompilati dal fascicolo: `Giudice di Pace - Palmi`, `Alessi Robertino`, `Zurich Ass.Ni`, oggetto e tipo ricorso `Ordinario`; completato `Contributo unificato=Pagato`;
+- click reale su `Genera modulo ufficiale`: la UI mostra `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf`, `20` allegati e `PDF 6.1 MB`;
+- link `Apri PDF compilato` verificato senza `download=1`, link `Scarica PDF` verificato con `download=1`;
+- click reale su `Apri PDF compilato`: il viewer Chrome apre `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf`, pagina `1/2`, con titolo `Modulo PAT compilato da IUSENTRA` e campi compilati visibili. Non è stato visto PDF bianco;
+- hover reale su `Avvia SIGA`: colore calcolato `rgb(255, 255, 255)` su fondo blu, testo `Avvia SIGA` leggibile e nessun salto layout;
+- responsive reale: tablet `768x900` e mobile `390x844`, nessun overflow orizzontale, pulsanti SIGA impilati e leggibili.
+
+Guardrail tecnici eseguiti localmente: `python scripts\react-migration\generate_api_contracts.py`, `python -m py_compile pct\pat_pdf_templates.py web\blueprints\api_v1_react.py`, `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q`, `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata tests\test_utf8_integrity.py -q --tb=short`, `npm run build`, rebuild Docker locale no-cache e prova visiva reale.
+
+Stato operativo: il difetto PDF vuoto e il difetto hover/focus `Avvia SIGA` sono corretti e verificati localmente. Restano obbligatori commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner e prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
+
 ## Aggiornamento 2.253.82 - PAT/SIGA operativo con moduli ufficiali e allegati dal fascicolo
 
 Data intervento: 2026-06-19.

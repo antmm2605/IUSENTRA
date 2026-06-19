@@ -1678,7 +1678,24 @@ Doppia verifica fisica locale `2.253.79`:
 - tecnici presenti e distinti dai documenti operativi: `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`;
 - `Atto.enc`: CMS `enveloped_data`, algoritmo `aes256_cbc`, `aes256=true`.
 
-La prova server va ripetuta dopo deploy `2.253.79` prima di dichiarare chiuso anche `E5AE4668` in produzione.
+Prova reale server `2.253.79` eseguita su `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara#generazione-busta`, fascicolo `2026/330 - Marchetti Lucia`, ufficio `Tribunale di Vicenza`:
+
+- server Hetzner sul commit `a9b9ed11d5e7c941b77df0c793effaee5f5fa953`, `/api/pronto` pubblico `versione=2.253.79`, container app, scheduler e OCR healthy;
+- pagina React autenticata, senza fallback legacy e senza HTML grezzo;
+- `Simula invio PEC` cliccato e confermato dalla UI reale, senza invio SMTP;
+- esito visibile: `Simulazione PEC completata senza invio reale: compatibilità 100%`;
+- nessun blocco `Atto principale non firmato digitalmente` su `Autocertificazione ricorso.PDF.p7m`;
+- destinatario PEC confermato: `tribunale.vicenza@civile.ptel.giustiziacert.it`;
+- report UI con `Atto.enc ministeriale AES256`, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `11 documenti operativi indicati nella busta`, `PEC ufficio giudiziario`, `Corpo PEC verificabile`, `Simulazione senza invio SMTP`;
+- `Invia deposito reale` abilitato dopo la prova positiva.
+
+Doppia verifica fisica server `2.253.79`:
+
+- file prodotti nel container Hetzner: `/tmp/busta_3BF49C3F/Atto.msg` da `36.630.676` byte e `/tmp/busta_3BF49C3F/Atto.enc` da `36.631.506` byte;
+- allegati effettivi in `Atto.msg`: `DatiAtto.xml`, `Autocertificazione ricorso.PDF.p7m`, `Autocertificazione situazione reddituale.PDF.p7m`, `Carta Identità e C.F. Lucia Marchetti.PDF`, `Contratto 24-25.pdf.p7m`, `Contratto Rossi 2025-2026.pdf`, `Lettera di diffida Carta Docenti Marchetti Lucia.pdf`, `Procura.PDF.p7m`, `Richiesta pagamento annualità “CARTA DEL DOCENTE” - 2025-09-26T121520.067.eml`, `Richiesta pagamento annualità “CARTA DEL DOCENTE” - 2025-09-26T121525.647.eml`, `Richiesta pagamento annualità “CARTA DEL DOCENTE” - 2025-09-26T121528.773.eml`, `Ricorso.pdf`, `IndiceDocumentiDepositati.PDF`;
+- confronto sugli 11 documenti operativi in busta: `expected_present_count=11`, `missing=[]`, `extra_operativi=[]`;
+- tecnici presenti e distinti dai documenti operativi: `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`;
+- `Atto.enc`: CMS `enveloped_data`, algoritmo `aes256_cbc`, `aes256=true`.
 
 ## Aggiornamento 2.253.78 - Doppia verifica Atto.enc deposito Palmi
 

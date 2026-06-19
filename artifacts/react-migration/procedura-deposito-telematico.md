@@ -1642,3 +1642,29 @@ Prova reale server su Hetzner `2.253.76`:
 - screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-pagopa-produzione-225376.png` e `C:\Users\antmm\AppData\Local\Temp\iusentra-soggetti-modale-produzione-225376.png`.
 
 Stato: codice, Docker locale, GitHub, CodeQL/check remoti e server reale risultano allineati sul comportamento verificato. Il presente blocco documenta la prova server e va mantenuto come guardrail per future modifiche a fascicoli/PagoPA.
+
+## Aggiornamento 2.253.78 - Doppia verifica Atto.enc deposito Palmi
+
+Data intervento: 2026-06-19.
+
+Controllo eseguito sulla copia reale locale Docker `http://127.0.0.1:8080`, versione `/api/pronto=2.253.78`, fascicolo `DC5BF1DB`, `RG 466/2023 - Alessi Robertino`, ufficio `Giudice di Pace - Palmi`, PEC `gdp.palmi@civile.ptel.giustiziacert.it`, codice ministeriale `0800570152`.
+
+Esito prova reale UI:
+
+- pagina React autenticata, senza fallback legacy e senza HTML grezzo;
+- `Simula invio PEC` cliccato realmente dalla UI, conferma eseguita solo per simulazione senza invio;
+- report finale visibile: `Simulazione PEC completata senza invio reale: compatibilità 100%`;
+- report compatibilità: `Atto.enc ministeriale AES256`, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF`, `8 documenti operativi indicati nella busta`, `PEC ufficio giudiziario`, `Corpo PEC verificabile`, `Simulazione senza invio SMTP`;
+- `Invia deposito reale` risulta abilitato dopo la prova positiva;
+- nessuna richiesta di firma multipla e nessun tentativo di rifirma sui contenitori `.p7m`.
+
+Doppia verifica documento per documento:
+
+- corpo PEC predisposto: contiene la sezione `Il file Atto.enc contiene i seguenti documenti:` con gli 8 documenti operativi richiesti;
+- report UI `Documenti indicati nel pacchetto`: contiene gli stessi 8 documenti operativi, più i tecnici `DatiAtto.xml` e `IndiceDocumentiDepositati.PDF`;
+- file tecnici nel container reale: `/tmp/busta_EA46319E/Atto.msg` da `4.636.574` byte e `/tmp/busta_EA46319E/Atto.enc` da `4.637.389` byte;
+- parsing tecnico di `Atto.msg`: allegati presenti `DatiAtto.xml`, `Note conclusive Alessi Robertino.pdf.p7m`, `attoACQ.pdf.p7m`, `Note trattazione scritta Alessi Robertino c Zurich Ass.ni-signed.pdf.p7m`, `perizia_r_ino_alessi__zurich_ass_ni.pdf.p7m`, `giudice_di_pace_di_palmi2.pdf.p7m`, `MEMORIA_CONCLUSIVA_ZURICH.pdf.p7m`, `Istanza trattazione scritta Alessi Robertino.pdf.p7m`, `MOD. Inizio Attivita Peritali.pdf.p7m`, `IndiceDocumentiDepositati.PDF`;
+- confronto sugli 8 documenti operativi richiesti: `missing=[]`, `extra_operativi=[]`;
+- parsing tecnico di `Atto.enc`: CMS `enveloped_data`, algoritmo `aes256_cbc`.
+
+Nota ordine documenti: nell'`Atto.msg` l'ordine tecnico mette prima l'atto principale selezionato in UI, cioè `Note conclusive Alessi Robertino.pdf.p7m`, poi gli allegati. Il corpo PEC mostra invece gli 8 documenti operativi nell'ordine richiesto dall'utente. Non risultano documenti operativi aggiuntivi rispetto alla selezione prevista.

@@ -1,16 +1,10 @@
 """Deposit workflow routes extracted from web.app."""
-
 from __future__ import annotations
-
 import os
 from collections.abc import Callable
 from datetime import date
 from typing import Any
-
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
-
-from pct.deposito_compatibilita import build_deposito_compatibility_report
-from pct.deposito_simulazione import simulated_deposit_note
 from pct.pst_cifratura import PSTCifraturaError
 from web.blueprints.react_shell import render_react_shell_response
 from web.bootstrap.deposito_legacy_send_routes import register_deposito_legacy_send_route
@@ -32,9 +26,13 @@ from web.services.local_pec_runtime import (
     local_pec_required_response,
     local_pec_confirmation_result,
 )
+from web.services.deposito_pec_runtime import (
+    build_compatibility_report as _build_compatibility_report,
+    build_simulazione_pec_payload as _build_simulazione_pec_payload,
+    con_avviso_pec_mittente as _aggiungi_avviso_pec_mittente,
+    registra_prova_senza_invio_pec as _registra_prova_senza_invio_pec,
+)
 from web.services.security_redaction import redacted_json_response
-
-
 def register_deposito_routes(
     app: Flask,
     *,
@@ -50,34 +48,27 @@ def register_deposito_routes(
     polis_demo_mode: Callable[[], bool],
 ) -> None:
     """Register deposito guide pages and deposito workflow routes."""
-
     register_deposito_receipt_routes(
         app,
         get_fascicoli=get_fascicoli,
         get_config_studio=get_config_studio,
         audit=audit,
     )
-
     @app.route("/deposito/checklist")
     def deposito_checklist():
         """Checklist operativa per il deposito telematico."""
         return render_template("deposito_checklist.html")
-
     @app.route("/guida/firma-digitale")
     def guida_firma_digitale():
         """Guida interattiva per la firma digitale."""
         return render_template("guida_firma_digitale.html")
-
     def _documenti_busta_nomi(atto_path: str, allegati_busta: list[Any]) -> list[str]:
         from pathlib import Path as _Path
-
         from pct.busta import INDICE_DOCUMENTI_FILENAME
-
         nomi = ["DatiAtto.xml", _Path(atto_path).name]
         nomi.extend(_Path(str(getattr(allegato, "percorso", ""))).name for allegato in allegati_busta)
         nomi.append(INDICE_DOCUMENTI_FILENAME)
         return [nome for nome in nomi if nome]
-
     register_deposito_legacy_send_route(
         app,
         get_fascicoli=get_fascicoli,
@@ -88,7 +79,6 @@ def register_deposito_routes(
         polis_demo_mode=polis_demo_mode,
         documenti_busta_nomi=_documenti_busta_nomi,
     )
-
     @app.route("/fascicoli/<id_fasc>/depositi/aggiungi", methods=["POST"])
     def aggiungi_esito_deposito(id_fasc):
         """Registra manualmente un esito di deposito telematico nel fascicolo."""
@@ -108,7 +98,6 @@ def register_deposito_routes(
             app.logger.warning("Deposito manuale non valido %s: %s", id_fasc, exc)
             flash("Esito deposito non registrato. Verifica i dati e riprova.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
     @app.route("/fascicoli/<id_fasc>/depositi/<id_dep>/modifica", methods=["POST"])
     def modifica_esito_deposito(id_fasc, id_dep):
         """Modifica manualmente un esito di deposito telematico nel fascicolo."""
@@ -129,7 +118,6 @@ def register_deposito_routes(
             app.logger.warning("Modifica deposito non valida %s/%s: %s", id_fasc, id_dep, exc)
             flash("Deposito non aggiornato. Verifica i dati e riprova.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
     @app.route("/api/fascicoli/<id_fasc>/deposito/valida", methods=["POST"])
     def api_deposito_valida(id_fasc):
         try:
@@ -148,25 +136,21 @@ def register_deposito_routes(
         except Exception as exc:
             app.logger.exception("Errore api_deposito_valida: %s", exc)
             return jsonify({"ok": False, "errore": "Validazione deposito non completata. Verifica i dati e riprova."}), 200
-
     @app.route("/api/v1/ui/fascicoli/<id_fasc>/deposito/certificato-cifratura", methods=["GET", "POST"])
     def api_deposito_certificato_cifratura(id_fasc):
         """Controlla o salva il .cer PST usato per cifrare Atto.msg in Atto.enc."""
         from base64 import b64decode
         from binascii import Error as Base64Error
         from dataclasses import asdict
-
         from pct.pst_cifratura import (
             PSTCifraturaError as _PSTCifraturaError,
             certificato_cifratura_in_cache,
             salva_certificato_cifratura_ufficio,
         )
-
         try:
             fascicolo = get_fascicoli().get(id_fasc)
             if not fascicolo:
                 return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
-
             if request.method == "GET":
                 codice = str(request.args.get("codice_ufficio") or "").strip()
                 if not codice:
@@ -178,7 +162,6 @@ def register_deposito_routes(
                     "cached": bool(info),
                     "certificato": asdict(info) if info else None,
                 })
-
             payload_json = request.get_json(silent=True) or {}
             codice = str(payload_json.get("codice_ufficio") or "").strip()
             certificato_b64 = str(payload_json.get("certificato_b64") or "").strip()
@@ -217,15 +200,12 @@ def register_deposito_routes(
         except Exception as exc:
             app.logger.exception("Certificato PST deposito non salvato %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": "Certificato PST non salvato. Verifica Local Signer e riprova."}), 500
-
     @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])
     def deposito_genera_busta(id_fasc):
         """Genera la busta telematica reale e la restituisce come download."""
         import tempfile as _tmp
-
         from pct.busta import Allegato as AllegatoBusta
         from pct.busta import BustaTelematica, DatiBusta
-
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
         form = request.form
@@ -233,7 +213,6 @@ def register_deposito_routes(
         if not fascicolo:
             flash("Fascicolo non trovato.", "danger")
             return redirect(url_for("lista_fascicoli"))
-
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
         oggetto = _deposito_oggetto(form, fascicolo)
@@ -242,7 +221,6 @@ def register_deposito_routes(
         anno_rg = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fascicolo.anno_rg or None)
         atto_id = form.get("atto_principale_id", "").strip()
         allegati_ids = request.form.getlist("allegati_ids")
-
         validation = run_deposito_validation(
             fasc=fascicolo,
             gf=gestore_fascicoli,
@@ -257,11 +235,9 @@ def register_deposito_routes(
                 "danger",
             )
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
         if not atto_id:
             flash("Seleziona l'atto principale da includere nella busta.", "danger")
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
         selection_error = _validate_busta_document_selection(
             fascicolo,
             gestore_fascicoli,
@@ -275,13 +251,11 @@ def register_deposito_routes(
                 return jsonify({"ok": False, "errore": selection_error}), 400
             flash(selection_error, "danger")
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
         try:
             atto_path = str(gestore_fascicoli.percorso_documento(id_fasc, atto_id))
         except KeyError:
             flash("Documento principale non trovato nel fascicolo.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
         allegati_busta = _allegati_busta(
             fascicolo,
             gestore_fascicoli,
@@ -289,10 +263,8 @@ def register_deposito_routes(
             [item for item in allegati_ids if item != atto_id],
             AllegatoBusta,
         )
-
         ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
         codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
-
         dati = DatiBusta(
             codice_ufficio=codice_ufficio,
             codice_registro=codice_registro,
@@ -305,7 +277,6 @@ def register_deposito_routes(
             operatore=utente.username if utente else "",
             cf_mittente="",
         )
-
         try:
             output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
             busta = BustaTelematica(dati)
@@ -331,22 +302,18 @@ def register_deposito_routes(
             app.logger.exception("Errore genera_busta %s: %s", id_fasc, exc)
             flash("Errore nella generazione della busta. Verifica documenti e fascicolo.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
     @app.route("/fascicoli/<id_fasc>/deposito/indice-documenti", methods=["GET", "POST"])
     def deposito_indice_documenti(id_fasc):
         """Genera l'anteprima PDF dell'indice documenti sulla selezione corrente."""
         from io import BytesIO as _BytesIO
-
         from pct.busta import Allegato as AllegatoBusta
         from pct.busta import BustaTelematica, DatiBusta, INDICE_DOCUMENTI_FILENAME
-
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
         form = request.values
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
             return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
-
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
         oggetto = _deposito_oggetto(form, fascicolo)
@@ -355,10 +322,8 @@ def register_deposito_routes(
         anno_rg = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fascicolo.anno_rg or None)
         atto_id = form.get("atto_principale_id", "").strip()
         allegati_ids = form.getlist("allegati_ids")
-
         if not atto_id:
             return jsonify({"ok": False, "errore": "Seleziona l'atto principale prima di visualizzare l'indice."}), 400
-
         selection_error = _validate_busta_document_selection(
             fascicolo,
             gestore_fascicoli,
@@ -369,7 +334,6 @@ def register_deposito_routes(
         )
         if selection_error:
             return jsonify({"ok": False, "errore": selection_error}), 400
-
         try:
             atto_path = str(gestore_fascicoli.percorso_documento(id_fasc, atto_id))
             allegati_busta = _allegati_busta(
@@ -399,14 +363,12 @@ def register_deposito_routes(
         except Exception as exc:
             app.logger.exception("Errore indice documenti %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": "Indice documenti non generato. Verifica la selezione e riprova."}), 500
-
         return send_file(
             _BytesIO(pdf_bytes),
             as_attachment=False,
             download_name=INDICE_DOCUMENTI_FILENAME,
             mimetype="application/pdf",
         )
-
     @app.route("/fascicoli/<id_fasc>/deposito/invia-pec", methods=["POST"])
     def deposito_invia_pec(id_fasc):
         """Crea la busta telematica e la invia via PEC all'ufficio giudiziario."""
@@ -414,7 +376,6 @@ def register_deposito_routes(
         import tempfile as _tmp
         import uuid as _uuid
         from datetime import datetime as _dt
-
         from pct.busta import Allegato as AllegatoBusta
         from pct.busta import BustaTelematica, DatiBusta
         from pct.fascicoli import EsitoDepositoPCT
@@ -424,7 +385,6 @@ def register_deposito_routes(
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
             return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
-
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
         oggetto = _deposito_oggetto(form, fascicolo)
@@ -435,7 +395,6 @@ def register_deposito_routes(
         allegati_ids = request.form.getlist("allegati_ids")
         note = form.get("note", "").strip()
         canale_deposito = infer_canale_deposito(fascicolo, form.get("canale_deposito", ""))
-
         validation = run_deposito_validation(
             fasc=fascicolo,
             gf=gestore_fascicoli,
@@ -452,10 +411,8 @@ def register_deposito_routes(
                     "validation": _validation_summary(validation),
                 }
             ), 400
-
         if not atto_id:
             return jsonify({"ok": False, "errore": "Seleziona l'atto principale."}), 400
-
         selection_error = _validate_busta_document_selection(
             fascicolo,
             gestore_fascicoli,
@@ -466,16 +423,13 @@ def register_deposito_routes(
         )
         if selection_error:
             return jsonify({"ok": False, "errore": selection_error}), 400
-
         try:
             atto_path = str(gestore_fascicoli.percorso_documento(id_fasc, atto_id))
         except KeyError:
             return jsonify({"ok": False, "errore": "Documento principale non trovato."}), 400
-
         if canale_deposito == "PTT_TRIBUTARIO":
             from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
             from pct.sigit import ClientSIGIT, ClientSIGITDemo
-
             raw_ufficio = form.get("codice_ufficio", "").strip() or fascicolo.tribunale or ""
             ufficio = resolve_ufficio_destinatario(raw_ufficio)
             codice_commissione = str((ufficio or {}).get("codice") or raw_ufficio or "SCONOSCIUTO")
@@ -485,7 +439,6 @@ def register_deposito_routes(
                 or raw_ufficio
                 or "Commissione tributaria"
             )
-
             cfg_studio = None
             firma_cfg = None
             backend_firma = "nessuno"
@@ -496,7 +449,6 @@ def register_deposito_routes(
             except Exception:
                 cfg_studio = None
                 firma_cfg = None
-
             modalita_demo = True
             client_sigit = ClientSIGITDemo()
             try:
@@ -527,7 +479,6 @@ def register_deposito_routes(
                 app.logger.warning("Fallback demo SIGIT per %s: %s", id_fasc, exc)
                 modalita_demo = True
                 client_sigit = ClientSIGITDemo()
-
             risposta = client_sigit.deposita_atto(
                 codice_commissione=codice_commissione,
                 tipo_atto=tipo_atto,
@@ -544,7 +495,6 @@ def register_deposito_routes(
                         "validation": _validation_summary(validation),
                     }
                 ), 400
-
             id_dep = str(risposta.get("idDeposito") or _uuid.uuid4().hex[:8].upper())
             timestamp = str(risposta.get("dataDeposito") or _dt.now().isoformat())
             ricevuta_accettazione = _json.dumps(
@@ -562,7 +512,6 @@ def register_deposito_routes(
                 f"{'[DEMO] ' if modalita_demo else ''}Deposito SIGIT {id_dep} per {nome_commissione}. "
                 f"Tipo atto: {tipo_atto}. Procedimento: {numero_rg or 'nuovo'}/{anno_rg or date.today().year}."
             )
-
             esito = EsitoDepositoPCT(
                 id=id_dep,
                 timestamp=timestamp,
@@ -627,7 +576,6 @@ def register_deposito_routes(
                     },
                 }
             )
-
         allegati_busta = _allegati_busta(
             fascicolo,
             gestore_fascicoli,
@@ -635,7 +583,6 @@ def register_deposito_routes(
             [item for item in allegati_ids if item != atto_id],
             AllegatoBusta,
         )
-
         ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
         codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
         pec_dest = str(ufficio_deposito.get("pec_dest") or "")
@@ -646,7 +593,6 @@ def register_deposito_routes(
                     "errore": f"Indirizzo PEC non trovato per '{fascicolo.tribunale}'. Verifica il tribunale nel fascicolo.",
                 }
             ), 400
-
         prova_senza_invio = form.get("prova_senza_invio", "").strip() == "1"
         simula_invio_pec = form.get("simula_invio_pec", "").strip() == "1"
         controllo_senza_invio = prova_senza_invio or simula_invio_pec
@@ -664,7 +610,6 @@ def register_deposito_routes(
         except Exception:
             pec_config_error = "Configurazione PEC dello studio non leggibile."
             pec_cfg = None
-
         if pec_config_error and not (simula_invio_pec or prova_senza_invio):
             return jsonify(
                 {
@@ -679,22 +624,8 @@ def register_deposito_routes(
                     ],
                 }
             ), 400
-
         def _con_avviso_pec_mittente(payload: dict) -> dict:
-            if not pec_config_error:
-                return payload
-            next_actions = [
-                str(item or "").strip()
-                for item in payload.get("next_actions", [])
-                if str(item or "").strip()
-            ]
-            avviso = f"{pec_config_error} Configura la PEC dello studio prima dell'invio reale."
-            if avviso not in next_actions:
-                next_actions.append(avviso)
-            payload["next_actions"] = next_actions
-            payload["pec_sender_ready"] = False
-            return payload
-
+            return _aggiungi_avviso_pec_mittente(payload, pec_config_error)
         dati = DatiBusta(
             codice_ufficio=codice_ufficio,
             codice_registro=codice_registro,
@@ -719,9 +650,8 @@ def register_deposito_routes(
         )
         documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
         corpo_pec = form.get("corpo_pec", "").strip() or deposito_pec_body(documenti_busta)
-
         def _compatibility_report(attachment_path: str, busta_audit: dict[str, Any] | None = None) -> dict[str, Any]:
-            return build_deposito_compatibility_report(
+            return _build_compatibility_report(
                 id_deposito=id_dep,
                 pec_dest=pec_dest,
                 oggetto_pec=oggetto_pec,
@@ -737,7 +667,6 @@ def register_deposito_routes(
                 anno_rg=anno_rg,
                 simulazione_senza_invio=controllo_senza_invio,
             )
-
         try:
             enc_path = busta.crea_busta(output_dir)
             busta_audit = busta.audit_conformita_pst()
@@ -788,7 +717,6 @@ def register_deposito_routes(
         except Exception as exc:
             app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": "Creazione busta non completata. Verifica documenti e fascicolo."}), 500
-
         guided_response = _guided_transport_completion_response(
             busta=busta,
             id_deposito=id_dep,
@@ -809,7 +737,6 @@ def register_deposito_routes(
                 guided_payload,
                 200 if controllo_senza_invio else 409,
             )
-
         if prova_senza_invio:
             prova_payload = local_pec_required_response(
                 pec_cfg=pec_cfg,
@@ -831,9 +758,8 @@ def register_deposito_routes(
             )
             _con_avviso_pec_mittente(prova_payload)
             return redacted_json_response(prova_payload, 200)
-
         if simula_invio_pec:
-            sim_payload = local_pec_required_response(
+            sim_payload = _build_simulazione_pec_payload(
                 pec_cfg=pec_cfg,
                 pec_dest=pec_dest,
                 tipo_atto=tipo_atto,
@@ -845,79 +771,29 @@ def register_deposito_routes(
                 documenti=documenti_busta,
                 corpo_pec=corpo_pec,
                 busta_audit=busta_audit,
+                compatibility_report=compatibility_report,
+                pec_config_error=pec_config_error,
             )
-            sim_payload.update(
-                {
-                    "ok": True,
-                    "simulazione": True,
-                    "requires_local_pec": False,
-                    "package_ready": True,
-                    "compatibility_report": compatibility_report,
-                    "messaggio": (
-                        f"Simulazione PEC completata senza invio reale: compatibilità {compatibility_report.get('percentuale', 0)}%. "
-                        "Il pacchetto locale e l'allegato Atto.enc sono stati preparati come per l'invio reale dal PC locale."
-                    ),
-                    "next_actions": [
-                        "Controlla destinatario, oggetto e corpo PEC prima dell'invio reale.",
-                        "Quando l'avvocato conferma, usa Invia deposito reale: l'invio parte dal PC locale tramite Local Signer.",
-                        "Presidia ricevuta di accettazione, RdAC, controlli automatici ed esito cancelleria nel fascicolo.",
-                    ],
-                }
-            )
-            _con_avviso_pec_mittente(sim_payload)
             try:
-                from datetime import datetime as _dtnow
-
-                from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
-
-                atto_doc = next((doc for doc in fascicolo.documenti if doc.id == atto_id), None)
-                tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
-                label_atto = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
-                esito = EsitoDepositoPCT(
-                    id=id_dep,
+                _registra_prova_senza_invio_pec(
+                    fascicolo=fascicolo,
+                    gestore_fascicoli=gestore_fascicoli,
+                    atto_id=atto_id,
+                    allegati_ids=allegati_ids,
+                    id_deposito=id_dep,
                     timestamp=timestamp,
-                    stato="PROVA_SENZA_INVIO",
                     tipo_atto=tipo_atto,
-                    pec_destinatario=pec_dest,
-                    messaggio=(
-                        f"Prova senza invio PEC: busta {id_dep} predisposta verso {pec_dest}. "
-                        "Payload Local Signer completo con Atto.enc; Nessun invio esterno eseguito."
-                    ),
-                    note=simulated_deposit_note(note),
-                    registrato_da=utente.username if utente else "",
-                    documenti_ids=tutti_ids,
-                    nome_atto_principale=atto_doc.nome if atto_doc else "",
+                    pec_dest=pec_dest,
+                    note=note,
+                    username=utente.username if utente else "",
+                    audit=audit,
+                    sync_pubblica=sync_pubblica,
+                    id_fascicolo=id_fasc,
                 )
-                fascicolo.depositi_pct.append(esito)
-                fascicolo.attivita.append(
-                    AttivitaProcessuale(
-                        id=_uuid.uuid4().hex[:8].upper(),
-                        tipo=_tipo_attivita_da_tipo_atto(tipo_atto),
-                        data=date.today().isoformat(),
-                        titolo=f"Prova deposito telematico senza invio - {label_atto}",
-                        descrizione=(
-                            f"Tipo atto: {label_atto}. PEC: {pec_dest}. Busta: {id_dep}. "
-                            "Nessun invio reale eseguito."
-                        ),
-                        esito=EsitoAttivita.NON_APPLICABILE,
-                        id_deposito_pct=id_dep,
-                        avvocato=utente.username if utente else "",
-                    )
-                )
-                fascicolo.modificato_il = _dtnow.now().isoformat()
-                gestore_fascicoli._salva()
-                audit(
-                    "fascicoli.deposito.simula_invio_pec",
-                    "fascicolo",
-                    id_fasc,
-                    dettagli=f"Prova senza invio {id_dep} - {tipo_atto} -> {pec_dest}",
-                )
-                sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
             except Exception as exc:
                 app.logger.exception("Errore salvataggio prova senza invio PEC %s: %s", id_fasc, exc)
                 sim_payload["avviso"] = "La prova è stata generata, ma il salvataggio nel fascicolo non è stato completato."
             return redacted_json_response(sim_payload, 200)
-
         if form.get("local_pec_confirmed") == "1":
             try:
                 ris = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
@@ -944,12 +820,9 @@ def register_deposito_routes(
                 ),
                 200,
             )
-
         try:
             from datetime import datetime as _dtnow
-
             from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
-
             atto_doc = next((doc for doc in fascicolo.documenti if doc.id == atto_id), None)
             tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
             esito = EsitoDepositoPCT(
@@ -968,7 +841,6 @@ def register_deposito_routes(
             for documento in fascicolo.documenti:
                 if documento.id in tutti_ids:
                     documento.id_deposito_pct = id_dep
-
             label_atto = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
             fascicolo.attivita.append(
                 AttivitaProcessuale(
@@ -1004,7 +876,6 @@ def register_deposito_routes(
                     "tipo_atto": tipo_atto,
                 }
             )
-
         return jsonify(
             {
                 "ok": True,
@@ -1018,26 +889,21 @@ def register_deposito_routes(
                 "messaggio": "Deposito inviato via PEC e registrato nel fascicolo.",
             }
         )
-
     @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
     def deposito_prepara(id_fasc):
         """Mostra il riepilogo documenti e la guida al deposito telematico."""
         if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
             return render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")
-
         gestore_fascicoli = get_fascicoli()
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
             flash("Fascicolo non trovato.", "danger")
             return redirect(url_for("lista_fascicoli"))
-
         ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
         pec_tribunale = str(ufficio_deposito.get("pec_dest") or "")
-
         pdfa_stato: dict[str, Any] = {}
         try:
             from pct.validazione import verifica_dimensione, verifica_pdfa
-
             for documento in fascicolo.documenti:
                 try:
                     percorso = str(gestore_fascicoli.percorso_documento(id_fasc, documento.id))
@@ -1048,7 +914,6 @@ def register_deposito_routes(
                     continue
         except Exception:
             pass
-
         pec_configurata = False
         try:
             cfg = get_config_studio().config
@@ -1057,7 +922,6 @@ def register_deposito_routes(
             cfg = None
             pass
         firma_cfg = getattr(cfg, "firma", None) if cfg else None
-
         return render_template(
             "fascicoli/deposito_prepara.html",
             fascicolo=fascicolo,

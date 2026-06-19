@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.78 - 2026-06-19
+
+- Deposito telematico: estratti gli helper PEC locali dalla route bootstrap per rispettare il gate governance senza cambiare il comportamento già verificato.
+- Simulazione PEC reale locale: su `DC5BF1DB` la prova senza invio genera `Atto.msg` e `Atto.enc` AES256, mostra compatibilità 100% e abilita `Invia deposito reale` dopo i controlli.
+- Doppia verifica Atto.enc: `Atto.msg` contiene gli 8 documenti operativi previsti, nessun extra operativo e nessun mancante; `Atto.enc` è CMS `enveloped_data` con algoritmo `aes256_cbc`.
 ## 2.253.77 - 2026-06-19
 
 - Deposito telematico: la firma multipla non tenta più di rifirmare contenitori già firmati `.p7m`, `.sig` o `.pkcs7`; la UI li mostra come contenitori presenti senza dichiarare “Firmato digitale” se manca prova tecnica CAdES/PAdES.

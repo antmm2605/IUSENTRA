@@ -922,6 +922,16 @@ python -m pytest tests/ -v
   - Verificare sempre che i bottoni nelle card abbiano `position:relative;z-index` superiore a eventuali pseudo-elementi `::after` del container.
   - I titoli delle sezioni (es. "Atti") non devono sovrapporsi ai pulsanti: usare `d-flex align-items-center justify-content-between` per header sezione + pulsante "Aggiungi".
 
+## Ponytail workflow — Regola di sviluppo
+
+- Ponytail è ora un riferimento operativo permanente per la logica di sviluppo Codex in questa repo: https://github.com/DietrichGebert/ponytail/tree/main.
+- Applicare il principio "lazy senior dev": prima chiedersi se il codice serva davvero; poi preferire standard library, feature native, dipendenze già installate e diff minimo funzionante.
+- Non aggiungere nuove astrazioni, nuove dipendenze, scaffold "per dopo" o boilerplate non richiesto. Preferire cancellazione, semplicità, codice noioso e pochi file.
+- La regola Ponytail è subordinata ai vincoli IUSENTRA: non taglia mai validazione, sicurezza, accessibilità, gestione errori, tutela dati, audit, test mirati, prova reale su `127.0.0.1:8080`, commit/push/deploy o qualunque gate obbligatorio.
+- Se si introduce intenzionalmente una scorciatoia tecnica con limite noto, marcarla con commento `ponytail:` indicando limite e upgrade path.
+- Ogni logica non banale deve lasciare il più piccolo controllo eseguibile che fallisce se la logica si rompe; evitare test monolitici o framework aggiuntivi quando un controllo mirato basta.
+- Non installare Ponytail come dipendenza runtime di IUSENTRA e non copiare codice esterno nel prodotto: usare la repo come disciplina di lavoro, salvo richiesta esplicita diversa dell'utente.
+
 ## MetaHarness workflow — Regola di perimetro
 
 - MetaHarness e' ammesso solo come strumento esterno di sviluppo per ottimizzare harness, istruzioni Codex, script di test, script di validazione e documentazione operativa.

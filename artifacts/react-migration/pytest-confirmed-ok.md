@@ -10,6 +10,7 @@
 | Responsive reale desktop/tablet/mobile | OK osservato | Desktop top/centro/fondo; tablet `820x900` senza overflow; mobile `390x844` ha fatto emergere taglio reale dei campi modulo, corretto con `box-sizing:border-box` sui controlli PAT e riprovato: nessun overflow visibile sui controlli PAT. |
 | `python -m compileall web\blueprints\api_v1_react.py pct\pat_pdf_templates.py` | OK | Sintassi confermata per endpoint PAT e generatore template ufficiali. |
 | `python -m pytest tests\test_react_shell.py -k "pat_modulo or pat_prefill or superfici_telematiche" -q` | OK | `8/8` passati: PDF ufficiale XFA, allegati incorporati, sessione preview interna, prefill da fascicolo/clienti e guardrail UI PAT. |
+| `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata -q` | OK | Mappa sicurezza backend aggiornata per `/api/v1/ui/pat/moduli/preview/<token>` dopo il rosso GitHub `Lint + syntax` sullo SHA `8ffbe99`. |
 | `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Packaging sincronizzato e OpenAPI valido. |
 | `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py tests\test_react_asset_retention.py -q --tb=short` | OK | `16/16` passati: packaging, readiness, UTF-8 e asset React. |
 | `git diff --check` | OK | Nessun errore whitespace; solo avvisi CRLF/LF governati da Git. |

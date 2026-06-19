@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 253.
-- Endpoint con `_richiedi_auth`: 253/253.
+- Endpoint React API censiti: 254.
+- Endpoint con `_richiedi_auth`: 254/254.
 - Endpoint con metodo di scrittura o cancellazione: 127.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 116; critical: 18; high/P1: 75.
@@ -181,6 +181,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/notifiche-legali/prova-deposito` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/pat/moduli/compila` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/pat/moduli/prefill` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/pat/moduli/preview/<token>` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/preventivi` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/preventivi/<id_preventivo>` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/preventivi/<id_preventivo>/stato` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

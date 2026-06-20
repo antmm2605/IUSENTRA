@@ -18,7 +18,7 @@ Verifiche locali eseguite su codice prima del rebuild Docker: `python -m py_comp
 
 Prova reale locale post rebuild Docker `2.253.84`: su `127.0.0.1:8080/pat` selezionato fascicolo `DC5BF1DB`, caricati `20` documenti, generato `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf`; la preview nel container contiene nello XFA ricorrente, resistente `Zurich Ass.Ni`, oggetto e allegati. Verificati hover/focus `Avvia SIGA`, desktop, tablet `768x900` e mobile `390x844` senza overflow.
 
-Restano prima della chiusura complessiva: commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner con prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
+Chiusura release: commit finale `0cee6f6caffd853cbecbde4cf5b5c78828d74058` pushato su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`; required gate GitHub/CodeQL verdi sullo SHA finale; deploy Hetzner CPX42 completato dai workflow dei due branch. Produzione `https://app.iusentra.it/pat` verificata con browser integrato autenticato: superficie React `Prepara deposito PAT`, selezione fascicolo reale, pulsanti `Visualizza`, `Scarica`, `Genera modulo ufficiale`, `Avvia SIGA`, zero errori console e zero overflow. Nel container Hetzner il generatore `deposito_ricorso` produce `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf` con `/XFA=True`, una pagina e valori XFA presenti per ricorrente, codice fiscale, `Zurich Ass.Ni`, oggetto e allegati separati Formweb.
 
 ## PAT/SIGA PDF visibile e hover SIGA - 2026-06-19 - 2.253.83
 

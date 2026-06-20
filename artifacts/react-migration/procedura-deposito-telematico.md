@@ -1934,3 +1934,26 @@ Limiti residui prima della chiusura:
 - prova reale su `127.0.0.1:8080/pat` dopo rebuild Docker locale ancora da eseguire in questa tranche;
 - prova visiva produzione `https://app.iusentra.it/pat` ancora da eseguire dopo commit/push/deploy;
 - la consegna ufficiale resta nel portale SIGA/Formweb: IUSENTRA prepara modulo e allegati, poi importa ricevute e file ufficiali prodotti dalla sessione.
+## Aggiornamento 2.253.84 - PAT/SIGA modello ministeriale XFA ufficiale compilato
+
+Data intervento: 2026-06-20.
+
+Stato operativo: il comando `Genera modulo ufficiale` della superficie React `/pat` produce come file principale il modello ministeriale XFA originale compilato, non un riepilogo IUSENTRA e non un PDF standard alternativo. Gli allegati del fascicolo restano documenti separati, pronti per Formweb/SIGA.
+
+Decisioni operative confermate:
+
+- i template ufficiali PAT 4.x sono integrati in `pct/data/pat_moduli/` e vengono clonati preservando `/AcroForm` e `/XFA`;
+- il compilatore XFA valorizza ricorrente, resistente, codice fiscale, oggetto e nomi allegati nei campi del modello;
+- `ModuloDepositoRicorso_4.02.pdf` integrato nel repository è byte-identico al file ufficiale consegnato dall'utente per la verifica locale;
+- Chrome/PDFium può mostrare l'avviso Adobe sui moduli LiveCycle/XFA: questo non indica PDF vuoto. Il dato compilato vive nel pacchetto XFA e va aperto con Acrobat Reader per la resa ministeriale completa;
+- gli allegati selezionati dal fascicolo non vengono incorporati nel PDF modulo, perché Formweb li riceve come file separati.
+
+Verifiche concluse:
+
+- test locali mirati su compilatore PAT, superficie React, canali deposito, UTF-8, asset retention, OpenAPI e packaging;
+- Docker locale reale `127.0.0.1:8080` healthy con versione `2.253.84`;
+- browser integrato reale su `127.0.0.1:8080/pat`: fascicolo `DC5BF1DB`, `20` documenti letti dal fascicolo, PDF XFA generato con dati e allegati presenti, desktop/tablet/mobile senza overflow, `Avvia SIGA` leggibile;
+- commit finale `0cee6f6caffd853cbecbde4cf5b5c78828d74058` pushato sui branch gemelli e required gate GitHub/CodeQL verdi;
+- deploy Hetzner CPX42 completato, `https://app.iusentra.it/api/pronto` risponde `versione=2.253.84`, container app/scheduler/OCR healthy e cache Docker ripulita;
+- browser produzione autenticato su `https://app.iusentra.it/pat`: superficie React `Prepara deposito PAT`, selezione fascicolo reale, documenti con `Visualizza`/`Scarica`, `Genera modulo ufficiale`, `Avvia SIGA`, zero errori console;
+- probe nel container Hetzner: `build_pat_official_pdf("deposito_ricorso", ...)` produce `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf`, una pagina, `/XFA=True`, con `Mario`, `Rossi`, `RSSMRA80A01H501U`, `Zurich Ass.Ni`, oggetto e allegati `decretoGenerico.pdf`/`attoACQ.pdf.p7m` presenti nello XFA.

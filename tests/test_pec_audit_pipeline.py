@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import zipfile
+from datetime import date, timedelta
 from io import BytesIO
 import os
 import time
@@ -26,12 +27,14 @@ from pct.pec_pipeline import (
     _remote_hearing_note_lines,
     _remote_hearing_updates_for_existing,
     build_pec_procedural_profile,
+    build_pct_deposit_correlation,
     build_pct_deposit_lifecycle,
     build_validation_report,
     detect_pec_legal_context,
     detect_pct_deposit_stage,
     extract_text_with_coverage,
     ingest_synthetic_dataset,
+    parse_pec_message,
     synthetic_pec_messages,
 )
 
@@ -76,6 +79,29 @@ def _zip_pdf_with_clickable_room_link(link: str) -> bytes:
     with zipfile.ZipFile(zip_buffer, "w") as archive:
         archive.writestr("20200029s.pdf", pdf_buffer.getvalue())
     return zip_buffer.getvalue()
+
+
+def _pct_esito_mime(subject: str, xml_text: str, *, message_id: str, when: str) -> bytes:
+    msg = EmailMessage(policy=policy.SMTP)
+    msg["Subject"] = subject
+    msg["From"] = "cancelleria@giustiziapec.it"
+    msg["To"] = "studio@example.pec.it"
+    msg["Date"] = when
+    msg["Message-ID"] = message_id
+    msg.set_content(
+        "\n".join(
+            [
+                subject,
+                "Cliente: Mario Rossi",
+                "Parte processuale: Mario Rossi",
+                "Ufficio: Tribunale di Palmi",
+                "RG: 1733/2026",
+            ]
+        )
+    )
+    msg.add_attachment(xml_text.encode("utf-8"), maintype="application", subtype="xml", filename="EsitoAtto.xml")
+    msg.add_attachment(b"<postacert><tipo>avvenuta-consegna</tipo></postacert>", maintype="application", subtype="xml", filename="daticert.xml")
+    return msg.as_bytes(policy=policy.SMTP)
 
 
 def _gdp_hearing_message(*, hearing_date: str = "09/10/2026", hearing_time: str = "09:15", event: str = "FISSAZIONE UDIENZA") -> bytes:
@@ -1266,6 +1292,250 @@ def test_pct_deposit_manual_acceptance_is_final_ok():
     assert stage["status"] == "ok"
     assert lifecycle["expected_next"] == []
     assert "accettato" in lifecycle["communication"].lower()
+    assert lifecycle["final_state"] == "accepted_manually"
+    assert lifecycle["requires_new_deposit"] is False
+
+
+def test_pct_esito_atto_fixtures_extract_strong_correlation_and_receipt_profile():
+    fixtures = Path("tests/fixtures/pec")
+    controls_xml = (fixtures / "esito_atto_attesa_conferma.xml").read_text(encoding="utf-8")
+    acceptance_xml = (fixtures / "esito_atto_accettazione_manuale.xml").read_text(encoding="utf-8")
+
+    controls = parse_pec_message(
+        _pct_esito_mime(
+            "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO: Ricorso Punturiero RG: 1733/2026",
+            controls_xml,
+            message_id="<controls-35508878@example.test>",
+            when="Mon, 15 Jun 2026 16:09:20 +0200",
+        )
+    )
+    acceptance = parse_pec_message(
+        _pct_esito_mime(
+            "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO: Ricorso Punturiero RG: 1733/2026",
+            acceptance_xml,
+            message_id="<accepted-35508878@example.test>",
+            when="Tue, 16 Jun 2026 07:36:00 +0200",
+        )
+    )
+
+    correlation = build_pct_deposit_correlation(controls)
+    controls_report = build_validation_report(controls, [{"classification": "daticert", "filename": "daticert.xml"}])
+    acceptance_report = build_validation_report(acceptance, [{"classification": "daticert", "filename": "daticert.xml"}])
+
+    assert correlation["strategy"] == "idbusta"
+    assert correlation["idbusta"] == "35508878"
+    assert correlation["ref_id"] == "RefID_001_saAMJE8yxr"
+    assert correlation["practice_code"] == "JQ332-L01"
+    assert correlation["rg"] == "1733/2026"
+    assert correlation["document_name"] == "Ricorso Punturiero (originale notificato).pdf"
+    assert controls_report["event_type"] == "pct_deposito"
+    assert controls_report["deposit_lifecycle"]["final_state"] == "awaiting_clerk_confirmation"
+    assert controls_report["deposit_lifecycle"]["requires_new_deposit"] is False
+    assert controls_report["deposit_lifecycle"]["receipt"]["outcome_code"] == -1
+    assert acceptance_report["event_type"] == "pct_deposito"
+    assert acceptance_report["deposit_lifecycle"]["final_state"] == "accepted_manually"
+    assert acceptance_report["deposit_lifecycle"]["receipt"]["outcome_code"] == 2
+
+
+def test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    fixtures = Path("tests/fixtures/pec")
+    controls_xml = (fixtures / "esito_atto_attesa_conferma.xml").read_text(encoding="utf-8")
+    acceptance_xml = (fixtures / "esito_atto_accettazione_manuale.xml").read_text(encoding="utf-8")
+    fascicoli_db = tmp_path / "fascicoli.json"
+    fascicoli_docs = tmp_path / "documenti"
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs))
+    fascicolo = fascicoli.nuovo(
+        "Ricorso Punturiero",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Mario Rossi",
+        tribunale="Tribunale di Palmi",
+        numero_rg="1733",
+        anno_rg=2026,
+        controparte="Mario Rossi",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+    )
+    first = repo.ingest_mime(
+        _pct_esito_mime(
+            "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO: Ricorso Punturiero RG: 1733/2026",
+            controls_xml,
+            message_id="<controls-upsert-35508878@example.test>",
+            when="Mon, 15 Jun 2026 16:09:20 +0200",
+        )
+    )
+    repo.run_pending_jobs(limit=20, actor="codex-test")
+    second = repo.ingest_mime(
+        _pct_esito_mime(
+            "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO: Ricorso Punturiero RG: 1733/2026",
+            acceptance_xml,
+            message_id="<accepted-upsert-35508878@example.test>",
+            when="Tue, 16 Jun 2026 07:36:00 +0200",
+        )
+    )
+    repo.run_pending_jobs(limit=20, actor="codex-test")
+    repo.ingest_mime(
+        _pct_esito_mime(
+            "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO: Ricorso Punturiero RG: 1733/2026",
+            acceptance_xml,
+            message_id="<accepted-upsert-35508878@example.test>",
+            when="Tue, 16 Jun 2026 07:36:00 +0200",
+        )
+    )
+    repo.run_pending_jobs(limit=20, actor="codex-test")
+
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert saved is not None
+    assert len(saved.depositi_pct) == 1
+    deposito = saved.depositi_pct[0]
+    assert deposito.id_deposito_esterno == "35508878"
+    assert deposito.stato == "ACCETTATO_CANCELLERIA"
+    assert deposito.nome_atto_principale == "Ricorso Punturiero (originale notificato).pdf"
+    assert deposito.ricevuta_controlli_automatici
+    assert deposito.ricevuta_cancelleria
+    assert deposito.note.count("PEC_DEPOSIT_EVENT:") == 2
+    assert first["duplicate"] is False
+    assert second["duplicate"] is False
+
+
+def test_scadenziario_ignora_ricevute_generiche_senza_azione_operativa():
+    parsed = {
+        "headers": {"subject": "Ricevuta protocollo"},
+        "fields": {"tipo_ricevuta": {"value": "breve"}},
+        "body": {"text": "Ricevuta PEC senza udienza, termine, provvedimento o attività concreta da svolgere."},
+        "procedural_dates": [],
+    }
+
+    report = build_validation_report(parsed, [{"classification": "da confermare", "filename": "daticert.xml"}])
+    proposal = report["deadline_proposal"]
+
+    assert proposal["auto_create"] is False
+    assert proposal["calendar_scope"] == "presidio_pec"
+    assert proposal["title"] == ""
+    assert "non indica una data o un'attività giuridica certa" in proposal["reason"]
+
+
+def test_topbar_sopprime_ricevute_tecniche_deposito_grezze():
+    from web.services.topbar_operational import _is_raw_pct_deposit_receipt_email
+
+    technical = EmailRicevuta(
+        id="PEC-TECNICA",
+        oggetto="POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO: Ricorso RG 1733/2026",
+        corpo_testo="IDBUSTA: 35508878\nCodice esito: -1",
+        stato_pct="WARN_CONTROLLI",
+    )
+    ordinary = EmailRicevuta(
+        id="PEC-ORDINARIA",
+        oggetto="Comunicazione cancelleria fissazione udienza",
+        corpo_testo="RG 1754/2026. Udienza da remoto da verificare.",
+        stato_pct="WARN_CONTROLLI",
+    )
+
+    assert _is_raw_pct_deposit_receipt_email(technical) is True
+    assert _is_raw_pct_deposit_receipt_email(ordinary) is False
+
+
+def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    term_day = date.today() + timedelta(days=25)
+    hearing_day = date.today() + timedelta(days=35)
+    term_it = term_day.strftime("%d/%m/%Y")
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+    link = "https://teams.microsoft.com/l/meetup-join/19%3alex-presidio"
+
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Ricorso lavoro Punturiero",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Mario Rossi",
+        tribunale="Tribunale di Palmi",
+        giudice="TOSONI CLAUDIA",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="INPS",
+        oggetto="Ricorso ex art. 429 c.p.c.",
+    )
+    doc = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza.txt",
+        TipoDocumento.DECRETO,
+        (
+            "TRIBUNALE DI PALMI\n"
+            "FISSA per la discussione della causa, ai sensi dell'art. 127-ter c.p.c. in sostituzione dell'udienza, "
+            f"termine del {term_it} per il deposito di note scritte.\n"
+            "Fissa inoltre udienza da remoto del "
+            f"{hearing_it} ore 09:30 con collegamento audiovisivo.\n"
+            f"Link stanza virtuale: {link}\n"
+        ).encode("utf-8"),
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+
+    assert report["checked_fascicoli"] == 1
+    assert report["indexed_documents"] == 1
+    assert report["candidate_dates"] == 2
+    assert report["scheduled"] == 2
+    assert {item["retrieval_metadata"]["tenant_id"] for item in report["items"]} == {"default"}
+    assert {item["retrieval_metadata"]["fascicolo_id"] for item in report["items"]} == {fascicolo.id}
+    assert {item["retrieval_metadata"]["document_id"] for item in report["items"]} == {doc.id}
+    assert {item["retrieval_metadata"]["documento"] for item in report["items"]} == {"Decreto fissazione udienza.txt"}
+    assert {item["retrieval_metadata"]["sha256"] for item in report["items"]} == {doc.hash_sha256}
+    assert {item["retrieval_metadata"]["numero_rg"] for item in report["items"]} == {"1754/2026"}
+    assert {item["retrieval_metadata"]["ufficio"] for item in report["items"]} == {"Tribunale di Palmi"}
+    scadenze = GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)
+    assert len(scadenze) == 2
+    titles = "\n".join(item.titolo for item in scadenze)
+    descriptions = "\n".join(item.descrizione for item in scadenze)
+    assert "Deposito note scritte ex art. 127-ter c.p.c." in titles
+    assert "udienza" in titles.lower()
+    assert "Cliente: Mario Rossi" in descriptions
+    assert "Parte/soggetto: INPS" in descriptions
+    assert "Ufficio: Tribunale di Palmi" in descriptions
+    assert "Contesto letto:" in descriptions
+    assert "Link stanza virtuale: [link indicato nel campo udienza da remoto]" in descriptions
+    assert f"Link udienza audiovisiva: {link}" in descriptions
+    assert f"Link stanza virtuale: {link}" not in descriptions
+    assert any(item.tipo == TipoTermine.UDIENZA and item.remote_hearing_url == link for item in scadenze)
+    assert not any(item.tipo == TipoTermine.UDIENZA and item.remote_hearing_source == "Corpo PEC" for item in scadenze)
+    assert any(item.tipo == TipoTermine.ADEMPIMENTO and item.remote_hearing_url == "" for item in scadenze)
+    agenda_items = Agenda(str(agenda_db), studio_db=studio_db).tutti()
+    assert len(agenda_items) == 2
+    assert {item.cliente for item in agenda_items} == {"Mario Rossi"}
+    assert {item.tribunale for item in agenda_items} == {"Tribunale di Palmi"}
+    assert {item.procedimento for item in agenda_items} == {"RG 1754/2026"}
+
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(fascicolo.id)
+    assert saved is not None
+    assert saved.data_prossima_udienza == hearing_day.isoformat()
+    assert any(att.tipo == TipoAttivita.UDIENZA and att.id_documento == doc.id for att in saved.attivita)
+    assert any(att.tipo == TipoAttivita.TERMINE_SCADENZA and att.id_documento == doc.id for att in saved.attivita)
+
+    second = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+    assert second["scheduled"] == 0
+    assert second["already_presided"] == 2
+    assert len(GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)) == 2
+    assert len(Agenda(str(agenda_db), studio_db=studio_db).tutti()) == 2
 
 
 def test_lex_operational_tools_expose_pec_audit_control_context(tmp_path):

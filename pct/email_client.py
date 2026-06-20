@@ -1882,6 +1882,7 @@ class GestioneEmailRicevute:
         Popola em.stato_pct se riconosciuta.
         """
         sogg = em.oggetto.upper()
+        testo = " ".join([em.oggetto or "", em.corpo_testo or "", re.sub(r"<[^>]+>", " ", em.corpo_html or "")])
         e_pst = any(p.search(sogg) for p in _PATTERN_PST)
         if not e_pst:
             # Controlla il mittente: PST invia da @giustiziapec.it
@@ -1899,6 +1900,14 @@ class GestioneEmailRicevute:
             em.stato_pct = "CONSEGNATO"  # default se riconosciuta ma stato incerto
 
         # Prova a estrarre ID deposito dall'oggetto/corpo
+        match = re.search(r"\bID\s*BUSTA\s*[:=]\s*([A-Z0-9._/-]{4,64})", testo, re.I) or re.search(r"\bIDBUSTA\s*[:=]\s*([A-Z0-9._/-]{4,64})", testo, re.I)
+        if match:
+            em.id_deposito_pct = match.group(1).strip()
+            return
+        match = re.search(r"\[(RefID[_-][A-Z0-9._-]{3,120})\]", testo, re.I)
+        if match:
+            em.id_deposito_pct = match.group(1).strip()
+            return
         match = re.search(r"[A-Z0-9]{8,16}", sogg)
         if match:
             em.id_deposito_pct = match.group(0)

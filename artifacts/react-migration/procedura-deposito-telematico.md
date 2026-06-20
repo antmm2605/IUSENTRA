@@ -2,6 +2,44 @@
 
 Aggiornato: 2026-06-20.
 
+## Aggiornamento PEC presidiate - Lex AI, RAG e recupero documentale
+
+Data intervento: 2026-06-20.
+
+Obiettivo operativo: rendere automatico il presidio delle PEC e dei documenti di fascicolo quando l'avvocato deve produrre lavoro concreto: udienze, notifiche, termini, note scritte, memorie, lettura di provvedimenti e collegamenti audiovisivi. Le ricevute tecniche di deposito restano nel fascicolo e non entrano come scadenze generiche.
+
+Fonti tecniche consultate: OpenAI File Search/vector stores (`https://developers.openai.com/api/docs/guides/tools-file-search`), Microsoft Azure AI Search RAG e chunking (`https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview`, `https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents`), Qdrant payload filtering e hybrid queries (`https://qdrant.tech/documentation/search/filtering/`, `https://qdrant.tech/documentation/search/hybrid-queries/`), Pinecone data modeling (`https://docs.pinecone.io/guides/index-data/data-modeling`). Decisione applicativa: Lex AI e l'eventuale database vettoriale sono livelli di recupero/citazione, mentre le decisioni operative vengono normalizzate e salvate su repository applicativi con audit.
+
+Modifiche applicate:
+
+- i metadati delle sorgenti Lex dei documenti di fascicolo includono tenant, fascicolo, documento, hash, RG, ufficio, giudice, cliente, parte/soggetto e oggetto fascicolo, così un RAG o indice vettoriale può filtrare per contesto processuale senza usare il solo numero RG;
+- aggiunto presidio automatico `recover_missing_hearings_from_fascicolo_documents`: indicizza con Lex i documenti del fascicolo, legge testo e metadati, estrae udienze e termini futuri, scarta date non operative o scadute e scrive in fascicolo, scadenziario e agenda con chiave idempotente;
+- il presidio distingue termine e udienza anche quando lo stesso decreto contiene sia `termine per deposito note scritte` sia link audiovisivo: il link remoto viene applicato solo al candidato di udienza;
+- lo scheduler PEC richiama anche il presidio documentale dopo i job PEC ordinari e produce notifiche operative come `Presidio documentale Lex`, senza far comparire le ricevute tecniche grezze;
+- le comunicazioni in agenda/scadenziario includono profilo processuale leggibile: ufficio, giudice, RG, cliente, parte/soggetto, evento, fonte documentale, data e istruzioni/link se presenti.
+
+Test automatici eseguiti in questa tranche:
+
+- `python -m py_compile pct/pec_pipeline.py pct/document_intelligence/sources.py web/services/pec_pipeline_runtime.py pct/email_client.py web/services/topbar_operational.py`;
+- `python -m pytest -q tests/test_pec_audit_pipeline.py -k "documentale_lex or pct_deposit or scadenziario_ignora or topbar_sopprime" --tb=short`;
+- `python -m pytest -q tests/test_document_intelligence_api.py -k "lex_indexing or indicizza_file_anomalo or preferisce_record" --tb=short`;
+- `python -m pytest -q tests/test_pec_audit_pipeline.py --tb=short` (`53/53`);
+- `python -m pytest -q tests/test_react_scadenziario_additions.py tests/test_react_shell.py::test_react_agenda_bridge_presidio_documentale_lex_mostra_link_udienza_da_remoto tests/test_react_shell.py::test_react_agenda_bridge_presidio_documentale_lex_link_storico_da_controllare tests/test_react_shell.py::test_react_agenda_bridge_presidio_documentale_lex_non_confonde_deposito_note_con_udienza tests/test_react_shell.py::test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale --tb=short` (`14/14`);
+- `python -m pytest -q tests/test_utf8_integrity.py tests/test_react_asset_retention.py --tb=short` (`6/6`);
+- `python scripts/audit_tenant_data_structure.py --registry data/tenants.json --json` e `python scripts/audit_data_flow_contract.py --registry data/tenants.json --json` dopo pulizia dei dati runtime di prova (`ok=true`, `errors=0`, `operational_untracked=0`);
+- `corepack pnpm --filter @iusentra/studio build:vite`.
+
+Prova reale locale eseguita su `http://127.0.0.1:8080` con Docker locale healthy, `/api/pronto` `versione=2.253.84`. Dati controllati: fascicolo `0DAC92F3`, documento `D3E7D1E6`, cliente `Mario Rossi Codex`, parte/soggetto `INPS - Istituto Nazionale Previdenza Sociale`, RG `1754/2026`, ufficio `Tribunale di Palmi`.
+
+Verifica visiva reale:
+
+- Agenda dettaglio `/agenda/B125093A?data=2026-07-21`, desktop e mobile `390x844`: visibili cliente, RG, ufficio, parte/soggetto, udienza da remoto, link Teams, allegato `Decreto fissazione udienza CODEX-PEC-LEX-REAL-20260620-1008.txt` e stato `link verificato sull'allegato`; dopo fix CSS mobile non ci sono sovrapposizioni tra righe operative e metadati.
+- Scadenziario dettaglio `/scadenziario/f6e512d7-ad95-42f6-9324-3be15dda7632`: visibili `Udienza da remoto`, `Orario collegamento`, allegato completo, `Controllo link: Verificato sull'allegato`, operatività aperta e testo giuridico comprensibile per l'avvocato.
+- Nel perimetro verificato non compaiono `ACCETTAZIONE DEPOSITO TELEMATICO`, `ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO`, `Ricevuta protocollo` o testo generico `Sono presenti anomalie non bloccanti`.
+- Dopo la prova sono stati rimossi dal tenant locale il fascicolo, il documento, le scadenze, gli appuntamenti, l'utente test e i file Document AI marcati `CODEX-PEC-LEX-REAL`, senza toccare l'utente reale dello studio.
+
+Stato residuo prima della chiusura complessiva: commit, push dei branch gemelli, controlli GitHub/CodeQL e deploy Hetzner ancora da eseguire per questa tranche.
+
 ## Aggiornamento 2.253.84 - PAT modello ministeriale XFA ufficiale
 
 Data intervento: 2026-06-20.

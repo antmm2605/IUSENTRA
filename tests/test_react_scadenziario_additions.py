@@ -331,6 +331,38 @@ def test_react_scadenziario_bridge_nasconde_testi_tecnici_da_pec(tmp_path: Path)
         assert token.lower() not in visible.lower()
 
 
+def test_react_scadenziario_bridge_non_sintetizza_presidio_documentale_lex_come_pec_generica(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        gestione = get_scadenziario()
+        scadenza = gestione.nuova(
+            "Deposito note scritte ex art. 127-ter c.p.c. - 09/07/2026 - RG 1754/2026",
+            TipoTermine.ADEMPIMENTO,
+            "2026-07-09",
+            descrizione=(
+                "Presidio documentale Lex AI: verificare il provvedimento e predisporre l'attività processuale rilevata. "
+                "Ufficio: Tribunale di Palmi Giudice: TOSONI CLAUDIA RG: 1754/2026 "
+                "Cliente: Mario Rossi Codex Parte/soggetto: INPS - Istituto Nazionale Previdenza Sociale."
+            ),
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            source_event_type="documento_fascicolo_lex",
+            note="PEC_AUDIT:docpresidio:FASC:DOC:termine:2026-07-09\nTipo evento: documento_fascicolo_lex",
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert response.status_code == 200
+    assert row["title"].startswith("Deposito note scritte ex art. 127-ter c.p.c.")
+    assert "Udienza da PEC" not in row["title"]
+    assert row["sourceEventTypeLabel"] == "Deposito note scritte"
+    assert "Mario Rossi Codex" in row["description"]
+    assert "Tribunale di Palmi" in row["description"]
+    assert "INPS - Istituto Nazionale Previdenza Sociale" in row["detailDescription"]
+
+
 def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

@@ -1105,7 +1105,7 @@ export function ScadenziarioPage() {
           <div>
             <Badge tone={focusedRow.tone}>{focusedRow.statusLabel}</Badge>
             <h2>{focusedRow.title}</h2>
-            <p>{focusedRow.description || focusedRow.fascicoloLabel || 'Dettaglio operativo della scadenza selezionata.'}</p>
+            <p>{focusedRow.detailDescription || focusedRow.description || focusedRow.fascicoloLabel || 'Dettaglio operativo della scadenza selezionata.'}</p>
             <dl>
               <div><dt>Scadenza legale</dt><dd>{focusedRow.dateLabel}</dd></div>
               <div><dt>Scadenza operativa</dt><dd>{focusedRow.operationalDueLabel || 'Non impostata'}</dd></div>

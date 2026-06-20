@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<!DOCTYPE EsitoAtto
+  SYSTEM 'http://schemi.processotelematico.giustizia.it/Schemi/EsitoAtto.dtd'>
+<EsitoAtto>
+  <IdMsgMitt>DEPOSITO TELEMATICO: Ricorso Punturiero (originale notificato).pdf RG: 1733/2026  [JQ332-L01] [RefID_001_saAMJE8yxr]</IdMsgMitt>
+  <IdMsgPdA>
+    <CodicePdA/>
+    <Anno/>
+    <IdMsg>&lt;jpec1329.20260615160803.99187.407.1.1@pec.aruba.it&gt;</IdMsg>
+  </IdMsgPdA>
+  <DatiEsito>
+    <Impronta algoritmo="SHA-1" codifica="base64" tipoImpronta="File">MFW/1lX5G7V+bgLmag47T/wcpiU=</Impronta>
+    <MsgEsito>
+      <NumeroRuolo>1733/2026</NumeroRuolo>
+      <CodiceEsito>-1</CodiceEsito>
+      <DescrizioneEsito><![CDATA[
+--
+IDBUSTA: 35508878
+NOME FILE: DatiAtto.xml.p7m
+Atto non conforme alle specifiche. In attesa di conferma da parte della cancelleria: l'atto verra' comunque accettato non è necessario effettuare nuovamente il deposito]]></DescrizioneEsito>
+    </MsgEsito>
+    <Tempo>
+      <Data>2026-06-15</Data>
+      <Ora zoneDesignator="+0200">16:08:59</Ora>
+    </Tempo>
+    <RefId/>
+  </DatiEsito>
+</EsitoAtto>

@@ -76,6 +76,8 @@ class DocumentAISource:
 
     def public_metadata(self) -> dict[str, Any]:
         return {
+            "tenant_id": self.tenant_id,
+            "fascicolo_id": self.fascicolo_id,
             "source_id": self.source_id,
             "source_type": self.source_type,
             "filename": self.filename,
@@ -138,8 +140,47 @@ def collect_fascicolo_document_sources(
             decrypt=decrypt,
         )
         if source is not None:
+            source.metadata.update(
+                _fascicolo_retrieval_metadata(
+                    fascicolo,
+                    tenant_id=tenant_id,
+                    fascicolo_id=fascicolo_id,
+                    source_id=source.source_id,
+                    sha256=source.sha256,
+                    filename=source.filename,
+                )
+            )
             sources.append(source)
     return sources
+
+
+def _fascicolo_retrieval_metadata(
+    fascicolo: Any,
+    *,
+    tenant_id: str = "",
+    fascicolo_id: str = "",
+    source_id: str = "",
+    sha256: str = "",
+    filename: str = "",
+) -> dict[str, str]:
+    numero_rg = str(getattr(fascicolo, "numero_rg", "") or "").strip()
+    anno_rg = str(getattr(fascicolo, "anno_rg", "") or "").strip()
+    rg = f"{numero_rg}/{anno_rg}" if numero_rg and anno_rg and "/" not in numero_rg else numero_rg
+    return {
+        "tenant_id": str(tenant_id or "").strip(),
+        "fascicolo_id": str(fascicolo_id or getattr(fascicolo, "id", "") or "").strip(),
+        "document_id": str(source_id or "").strip(),
+        "documento": str(filename or "").strip(),
+        "sha256": str(sha256 or "").strip(),
+        "numero_rg": rg,
+        "ufficio": str(getattr(fascicolo, "tribunale", "") or "").strip(),
+        "giudice": str(getattr(fascicolo, "giudice", "") or "").strip(),
+        "cliente": str(getattr(fascicolo, "nome_cliente", "") or "").strip(),
+        "parte_processuale": str(
+            getattr(fascicolo, "attore_principale", "") or getattr(fascicolo, "controparte", "") or ""
+        ).strip(),
+        "oggetto_fascicolo": str(getattr(fascicolo, "oggetto", "") or getattr(fascicolo, "titolo", "") or "").strip(),
+    }
 
 
 def source_from_fascicolo_document(

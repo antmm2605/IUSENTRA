@@ -156,8 +156,52 @@ def _is_pec_operational_text(*values: Any) -> bool:
     return any(token in text for token in ("posta certificata", "pec_audit", "comunicazione_cancelleria", "presidio pec", "da pec"))
 
 
+def _is_document_presidio_lex_text(*values: Any) -> bool:
+    text = " ".join(str(value or "") for value in values).lower()
+    return "docpresidio:" in text or "documento_fascicolo_lex" in text or "presidio documentale lex" in text
+
+
+def _docpresidio_kind(*values: Any) -> str:
+    text = " ".join(str(value or "") for value in values).lower()
+    if "deposito note" in text:
+        return "deposito_note"
+    if "docpresidio:" in text and ":termine:" in text:
+        return "termine"
+    if "docpresidio:" in text and ":udienza:" in text:
+        return "udienza"
+    return ""
+
+
+def _extract_docpresidio_labeled(text: str, label: str, *, limit: int = 220) -> str:
+    match = re.search(
+        rf"\b{re.escape(label)}\s*:\s*(.*?)(?=\s+(?:Ufficio|Giudice|RG|Cliente|Parte/soggetto|Evento|Collegamento remoto|Attività per l'avvocato|Data letta|Fonte documentale|Contesto letto|Udienza da remoto|Orario collegamento|Link udienza audiovisiva|Allegato udienza|Link udienza|Fascicolo|Scadenza|Tipo evento|Decorrenza letta|Fonte|Sincronizzato da|Sorgente|UID esterno)\s*:|$)",
+        text,
+        re.IGNORECASE,
+    )
+    if not match:
+        return ""
+    return _clean_text(match.group(1), limit=limit).strip(" -:;.")
+
+
+def _extract_labeled_line(text: str, label: str, *, limit: int = 220) -> str:
+    prefix = f"{label}:".lower()
+    for raw_line in str(text or "").splitlines():
+        line = raw_line.strip()
+        if line.lower().startswith(prefix):
+            return _clean_text(line.split(":", 1)[1], limit=limit).strip(" -:;.")
+    return _extract_docpresidio_labeled(text, label, limit=limit)
+
+
+def _append_detail_line(lines: list[str], line: str, *, limit: int = 220) -> None:
+    cleaned = _clean_text(line, limit=limit)
+    if cleaned and cleaned.lower() not in " ".join(lines).lower():
+        lines.append(cleaned)
+
+
 def _agenda_origin_title(raw_title: str, legal_label: str, matter: str, notes: str) -> str:
     stripped = _strip_operational_prefix(raw_title)
+    if _is_document_presidio_lex_text(raw_title, notes):
+        return _clean_text(stripped or legal_label, limit=180)
     if not _is_pec_operational_text(raw_title, notes):
         return _clean_text(stripped or legal_label, limit=180)
     text = f"{raw_title} {notes}".lower()
@@ -186,6 +230,12 @@ def _extract_hearing_datetime(*values: Any) -> datetime | None:
 
 def _legal_label(title: str, kind: str, notes: str = "") -> str:
     text = f"{title} {kind} {notes}".lower()
+    if _is_document_presidio_lex_text(title, notes):
+        doc_kind = _docpresidio_kind(title, notes)
+        if doc_kind in {"deposito_note", "termine"}:
+            return "Deposito note scritte"
+        if doc_kind == "udienza":
+            return "Udienza"
     if "rinvio" in text or "rinviata" in text or "differimento" in text or "differita" in text:
         return "Rinvio udienza"
     if "fissazione udienza" in text or "fissata udienza" in text or "fissata l'udienza" in text or ("fissazione" in text and "udienza" in text):
@@ -232,6 +282,7 @@ def _operational_title(title: str, legal_label: str, client: str, matter: str, n
 
 def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str) -> list[str]:
     lines: list[str] = []
+    raw_notes = str(row.get("technicalNotes") or row.get("notes") or "")
     for label, key in (
         ("Cliente/parte", "client"),
         ("Fascicolo/RG", "matter"),
@@ -242,6 +293,33 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
         value = _visible_legal_text(row.get(key), limit=140)
         if value:
             lines.append(f"{label}: {value}")
+    if _is_document_presidio_lex_text(original_title, raw_notes):
+        party_subject = _extract_docpresidio_labeled(raw_notes, "Parte/soggetto", limit=180)
+        if party_subject and party_subject.lower() not in " ".join(lines).lower():
+            lines.append(f"Parte/soggetto: {party_subject}")
+        remote_link = (
+            _extract_labeled_line(raw_notes, "Link udienza audiovisiva", limit=240)
+            or _extract_labeled_line(raw_notes, "Collegamento remoto", limit=240)
+        )
+        if remote_link:
+            _append_detail_line(lines, f"Link udienza audiovisiva: {remote_link}", limit=280)
+        remote_source = (
+            _extract_labeled_line(raw_notes, "Fonte link udienza", limit=160)
+            or _extract_labeled_line(raw_notes, "Allegato udienza", limit=160)
+        )
+        remote_check = _extract_labeled_line(raw_notes, "Verifica link udienza", limit=180)
+        if remote_source:
+            remote_source_line = f"Allegato udienza: {remote_source}"
+            if remote_check and "identico" in remote_check.lower():
+                remote_source_line += " - link verificato sull'allegato"
+            elif remote_check or remote_link:
+                remote_source_line += " - link da controllare sull'allegato"
+            _append_detail_line(lines, remote_source_line, limit=260)
+        if remote_check:
+            if "identico" in remote_check.lower():
+                _append_detail_line(lines, "Link udienza verificato sull'allegato.")
+            else:
+                _append_detail_line(lines, "Link udienza da controllare sull'allegato.")
     status = _clean_text(row.get("status"), limit=80)
     if status:
         lines.append(f"Stato: {status}")
@@ -253,11 +331,11 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
         lines.append(f"Dettaglio: {notes}")
     if not lines:
         lines.append(f"Attività: {legal_label}")
-    return lines[:8]
+    return lines[:12]
 
 
 def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
-    raw_notes = str(row.get("notes") or "").strip()[:1200]
+    raw_notes = str(row.get("notes") or "").strip()[:4000]
     raw_title = str(row.get("title") or "Appuntamento").strip()
     original_title = _visible_legal_text(raw_title, limit=180) or "Appuntamento"
     notes = _visible_legal_text(raw_notes, limit=700)

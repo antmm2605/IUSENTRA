@@ -489,11 +489,286 @@ def extract_xml_texts(attachments: list[AttachmentPayload]) -> dict[str, str]:
 
 def xml_tag_value(xml_text: str, names: Iterable[str]) -> str:
     for name in names:
-        pattern = re.compile(rf"<(?:\w+:)?{re.escape(name)}[^>]*>(.*?)</(?:\w+:)?{re.escape(name)}>", re.I | re.S)
+        pattern = re.compile(rf"<(?:\w+:)?{re.escape(name)}(?:\s[^>]*)?>(.*?)</(?:\w+:)?{re.escape(name)}>", re.I | re.S)
         match = pattern.search(xml_text or "")
         if match:
-            return clean_text(re.sub(r"<[^>]+>", " ", match.group(1)))
+            content = str(match.group(1) or "").replace("<![CDATA[", " ").replace("]]>", " ")
+            return clean_text(re.sub(r"<[^>]+>", " ", content))
     return ""
+
+
+def _pct_token(value: Any, limit: int = 180) -> str:
+    text = clean_text(value, limit).strip(" <>[](){}.;,")
+    return text
+
+
+def _first_pct_regex(text: str, patterns: Iterable[str], *, limit: int = 180) -> str:
+    for pattern in patterns:
+        match = re.search(pattern, text or "", flags=re.I | re.S)
+        if match:
+            value = next((group for group in match.groups() if group), "")
+            if value:
+                return _pct_token(value, limit)
+    return ""
+
+
+def _profile_party_values(profile: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    for key in (
+        "cliente",
+        "parte_processuale",
+        "soggetto_processuale",
+        "attore_principale",
+        "convenuto_principale",
+        "parti_processuali",
+        "soggetti_processuali",
+    ):
+        value = profile.get(key)
+        if isinstance(value, list):
+            values.extend(str(item or "") for item in value)
+        else:
+            values.append(str(value or ""))
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        clean = clean_text(value, 220).strip(" ;,")
+        key = clean.casefold()
+        if clean and key not in seen:
+            seen.add(key)
+            out.append(clean)
+    return out
+
+
+def _trim_profile_label_value(value: Any, stop_labels: Iterable[str]) -> str:
+    text = clean_text(value, 260)
+    if not text:
+        return ""
+    pattern = r"\b(?:" + "|".join(re.escape(label) for label in stop_labels) + r")\s*:"
+    parts = re.split(pattern, text, maxsplit=1, flags=re.I)
+    return clean_text(parts[0], 240).strip(" .;:-")
+
+
+def build_pct_deposit_correlation(
+    parsed: dict[str, Any],
+    *,
+    xml_texts: dict[str, str] | None = None,
+    mime_sha256: str = "",
+) -> dict[str, Any]:
+    """Costruisce la chiave di correlazione PCT senza usare mai il solo RG."""
+
+    existing = parsed.get("pct_deposit_correlation") if isinstance(parsed.get("pct_deposit_correlation"), dict) else {}
+    if existing and not xml_texts and not mime_sha256:
+        return existing
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+    fields = parsed.get("fields") if isinstance(parsed.get("fields"), dict) else {}
+    profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    sources = xml_texts or {}
+    xml_joined = "\n".join(str(value or "") for value in sources.values())
+    text = "\n".join(
+        [
+            str(headers.get("subject") or ""),
+            str(body.get("text") or ""),
+            str(body.get("html_text") or ""),
+            xml_joined,
+        ]
+    )
+    text_for_tags = text.replace("<![CDATA[", " ").replace("]]>", " ")
+    readable = clean_text(re.sub(r"<[^>]+>", " ", text_for_tags), 30000)
+    rg_values = list(parsed.get("rg_candidates") or extract_rg_candidates(readable))
+    id_msg_mitt = xml_tag_value(xml_joined, ("IdMsgMitt", "idMsgMitt"))
+    source_message_id = xml_tag_value(xml_joined, ("IdMsg", "IDMSG", "idMsg"))
+    message_id = _pct_token(headers.get("message_id") or source_message_id or "", 240)
+    idbusta = (
+        xml_tag_value(xml_joined, ("IDBUSTA", "IdBusta", "idBusta", "id_busta"))
+        or _first_pct_regex(
+            readable,
+            (
+                r"\bID\s*BUSTA\s*[:=]\s*([A-Za-z0-9._/-]{4,64})",
+                r"\bIDBUSTA\s*[:=]\s*([A-Za-z0-9._/-]{4,64})",
+                r"\bIdBusta\s*[:=]\s*([A-Za-z0-9._/-]{4,64})",
+            ),
+        )
+    )
+    ref_id = (
+        xml_tag_value(xml_joined, ("RefId", "RefID", "refId", "RiferimentoId"))
+        or _first_pct_regex(
+            f"{readable}\n{id_msg_mitt}",
+            (
+                r"\[(RefID[_-][A-Za-z0-9._-]{3,120})\]",
+                r"\bRefID\s*[:=_-]\s*([A-Za-z0-9._-]{3,120})",
+                r"\bRiferimento\s+ID\s*[:=_-]\s*([A-Za-z0-9._-]{3,120})",
+            ),
+        )
+    )
+    practice_code = _first_pct_regex(
+        id_msg_mitt,
+        (
+            r"\[([A-Z]{1,6}\d{2,}-[A-Za-z0-9._-]{2,80})\]",
+            r"\b([A-Z]{1,6}\d{2,}-[A-Za-z0-9._-]{2,80})\b",
+        ),
+    )
+    impronta = (
+        xml_tag_value(xml_joined, ("Impronta", "Hash", "DigestValue"))
+        or _first_pct_regex(
+            readable,
+            (
+                r"\b(?:impronta|sha-?256|sha-?1|hash)\b[^A-Za-z0-9+/=]{0,24}([A-Za-z0-9+/=_-]{20,128})",
+            ),
+        )
+    )
+    document_name = _first_pct_regex(
+        id_msg_mitt,
+        (r"\bDEPOSITO\s+TELEMATICO\s*:\s*(.+?)\s+RG\s*:",),
+        limit=260,
+    )
+    atto = (
+        document_name
+        or xml_tag_value(xml_joined, ("NomeFile", "NOMEFILE", "NomeAtto", "Atto"))
+        or _first_pct_regex(readable, (r"\bNOME\s+FILE\s*[:=]\s*([^\r\n]+)",), limit=260)
+        or clean_text(profile.get("oggetto_evento") or profile.get("tipo_evento") or "", 260)
+    )
+    technical_filename = (
+        xml_tag_value(xml_joined, ("NomeFile", "NOMEFILE", "NomeAtto", "Atto"))
+        or _first_pct_regex(readable, (r"\bNOME\s+FILE\s*[:=]\s*([^\r\n]+)",), limit=260)
+    )
+    ufficio = clean_text(profile.get("ufficio") or "", 220)
+    if not ufficio:
+        ufficio = _first_pct_regex(
+            readable,
+            (
+                r"\b((?:Tribunale|Corte d['’]Appello|Giudice di Pace|Corte di Cassazione|TAR|Consiglio di Stato)\s+di\s+[A-Za-zÀ-ÿ' ]{3,60})",
+                r"\bUfficio(?:\s+giudiziario)?\s*[:=-]\s*([^\r\n]+)",
+            ),
+            limit=220,
+        )
+    parties = _profile_party_values(profile)
+    if not parties:
+        sender = (fields.get("mittente") or {}).get("value") if isinstance(fields.get("mittente"), dict) else {}
+        if isinstance(sender, dict):
+            parties = [clean_text(sender.get("name") or sender.get("email") or "", 220)]
+    strategy = "manual_review"
+    key = ""
+    manual_review = False
+    if idbusta:
+        strategy = "idbusta"
+        key = f"idbusta:{idbusta}"
+    elif ref_id:
+        strategy = "ref_id"
+        key = f"refid:{ref_id}"
+    elif message_id:
+        strategy = "message_id"
+        key = f"message-id:{message_id}"
+    elif impronta:
+        strategy = "impronta"
+        key = f"impronta:{impronta}"
+    elif rg_values and ufficio and atto and parties:
+        strategy = "controlled_compound"
+        compound = {
+            "rg": rg_values[0],
+            "ufficio": ufficio.casefold(),
+            "atto": atto.casefold(),
+            "parti": [item.casefold() for item in parties[:4]],
+        }
+        key = f"compound:{hashlib.sha256(canonical_json(compound).encode('utf-8')).hexdigest()[:24]}"
+    else:
+        manual_review = True
+    warnings: list[str] = []
+    if rg_values and not key:
+        warnings.append("Il numero RG da solo non è sufficiente per collegare il deposito.")
+    if key and strategy == "controlled_compound":
+        warnings.append("Correlazione composta: richiede RG, ufficio, atto e parte coerenti; non usare se un elemento è ambiguo.")
+    return {
+        "strategy": strategy,
+        "key": key,
+        "idbusta": idbusta,
+        "ref_id": ref_id,
+        "practice_code": practice_code,
+        "message_id": message_id,
+        "source_message_id": _pct_token(source_message_id, 240),
+        "impronta": impronta,
+        "mime_sha256": _pct_token(mime_sha256, 80),
+        "rg": rg_values[0] if rg_values else "",
+        "rg_candidates": rg_values,
+        "ufficio": ufficio,
+        "atto": atto,
+        "document_name": document_name,
+        "technical_filename": technical_filename,
+        "parties": parties,
+        "manual_review": manual_review,
+        "warnings": warnings,
+    }
+
+
+def build_pct_deposit_receipt_profile(
+    parsed: dict[str, Any],
+    *,
+    xml_texts: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+    sources = xml_texts or {}
+    xml_joined = "\n".join(str(value or "") for value in sources.values())
+    raw_text = "\n".join(
+            [
+                str(headers.get("subject") or ""),
+                str(body.get("text") or ""),
+                str(body.get("html_text") or ""),
+                re.sub(r"<[^>]+>", " ", xml_joined),
+            ]
+    )
+    raw_text = raw_text.replace("<![CDATA[", " ").replace("]]>", " ")
+    readable = clean_text(
+        re.sub(r"<[^>]+>", " ", raw_text),
+        30000,
+    )
+    description = xml_tag_value(xml_joined, ("DescrizioneEsito", "descrizioneEsito")) or _first_pct_regex(
+        readable,
+        (r"\bDescrizione\s+esito\s*[:=]\s*(.+)",),
+        limit=1200,
+    )
+    outcome_raw = xml_tag_value(xml_joined, ("CodiceEsito", "codiceEsito")) or _first_pct_regex(
+        readable,
+        (r"\bCodice\s+esito\s*[:=]?\s*(-?\d+)",),
+        limit=20,
+    )
+    data = xml_tag_value(xml_joined, ("Data", "data"))
+    ora = xml_tag_value(xml_joined, ("Ora", "ora"))
+    zone_match = re.search(r"<(?:\w+:)?Ora\b[^>]*\bzoneDesignator=[\"']([^\"']+)[\"']", xml_joined or "", flags=re.I)
+    zone = _pct_token(zone_match.group(1) if zone_match else "", 20)
+    occurred_at = ""
+    if data and ora:
+        clean_time = ora.replace(".", ":")
+        clean_zone = zone
+        if re.match(r"^[+-]\d{4}$", clean_zone):
+            clean_zone = f"{clean_zone[:3]}:{clean_zone[3:]}"
+        occurred_at = f"{data}T{clean_time}{clean_zone}" if clean_zone else f"{data}T{clean_time}"
+    id_msg_mitt = xml_tag_value(xml_joined, ("IdMsgMitt", "idMsgMitt"))
+    document_name = _first_pct_regex(id_msg_mitt, (r"\bDEPOSITO\s+TELEMATICO\s*:\s*(.+?)\s+RG\s*:",), limit=260)
+    status = ""
+    try:
+        outcome_code = int(outcome_raw)
+    except (TypeError, ValueError):
+        outcome_code = None
+    lower_description = description.casefold()
+    if outcome_code == 2 or "accettazione manuale avvenuta con successo" in lower_description:
+        status = "accepted_manually"
+    elif outcome_code == -1 and _pct_controls_non_blocking_acceptance(lower_description):
+        status = "awaiting_clerk_confirmation"
+    elif outcome_code is not None and outcome_code < 0:
+        status = "technical_error"
+    elif outcome_code is not None:
+        status = "technical_check"
+    return {
+        "outcome_code": outcome_code,
+        "outcome_code_raw": str(outcome_raw or ""),
+        "description": description,
+        "occurred_at": occurred_at,
+        "numero_ruolo": xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")) or (parsed.get("rg_candidates") or [""])[0],
+        "document_name": document_name,
+        "status": status,
+        "requires_redeposit": bool(outcome_code is not None and outcome_code < 0 and not _pct_controls_non_blocking_acceptance(lower_description)),
+    }
 
 
 def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> list[dict[str, Any]]:
@@ -535,15 +810,26 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
                 add_candidate(source=source, label=label, raw_date=value, context=f"{tag}: {value}", confidence=0.94)
         searchable = clean_text(re.sub(r"<[^>]+>", " ", text), 20000)
         for pattern in (
-            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|comparizione|rinvio|discussione)\b.{0,80}?\b(?:del|per il|per|al|il)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
-            r"\b(?P<label>termine|scadenza|deposito|costituzione)\b.{0,80}?\b(?:del|entro il|entro|al|il)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|comparizione|rinvio|discussione)\b[^.\n]{0,80}?\b(?:del|per il|per|al|il)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+            r"\b(?P<label>termine|scadenza|deposito|costituzione)\b[^.\n]{0,80}?\b(?:del|entro il|entro|al|il)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
         ):
             for match in re.finditer(pattern, searchable, flags=re.I):
                 start = max(0, match.start() - 90)
                 end = min(len(searchable), match.end() + 120)
+                label = match.group("label")
+                snippet = match.group(0).lower()
+                if "termine" in snippet and label.lower() in {
+                    "udienza",
+                    "pubblica udienza",
+                    "camera di consiglio",
+                    "comparizione",
+                    "rinvio",
+                    "discussione",
+                }:
+                    label = "termine"
                 add_candidate(
                     source=source,
-                    label=match.group("label"),
+                    label=label,
                     raw_date=match.group("date"),
                     context=searchable[start:end],
                     confidence=0.88,
@@ -551,15 +837,18 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
     if plain_text:
         searchable = clean_text(plain_text, 20000)
         for match in re.finditer(
-            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|termine|scadenza)\b.{0,80}?\b(?:del|per il|per|al|il|entro il|entro)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|termine|scadenza)\b[^.\n]{0,80}?\b(?:del|per il|per|al|il|entro il|entro)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
             searchable,
             flags=re.I,
         ):
             start = max(0, match.start() - 90)
             end = min(len(searchable), match.end() + 120)
+            label = match.group("label")
+            if "termine" in match.group(0).lower() and label.lower() in {"udienza", "pubblica udienza", "camera di consiglio"}:
+                label = "termine"
             add_candidate(
                 source="corpo PEC",
-                label=match.group("label"),
+                label=label,
                 raw_date=match.group("date"),
                 context=searchable[start:end],
                 confidence=0.74,
@@ -709,6 +998,30 @@ def build_pec_procedural_profile(
         "tipo_procedimento": _profile_value(readable, "Tipo procedimento", limit=240),
         "numero_rg": _profile_value(readable, ("Numero di Ruolo generale", "Numero Ruolo")) or (rg_values[0] if rg_values else ""),
         "giudice": _profile_value(readable, "Giudice"),
+        "cliente": _profile_value(
+            readable,
+            (
+                "Cliente",
+                "Assistito",
+                "Parte assistita",
+                "Nominativo cliente",
+                "Nome cliente",
+                "Denominazione cliente",
+            ),
+            limit=240,
+        ),
+        "parte_processuale": _profile_value(
+            readable,
+            (
+                "Parte",
+                "Soggetto processuale",
+                "Parte processuale",
+                "Nominativo parte",
+                "Soggetto",
+            ),
+            limit=240,
+        ),
+        "ruolo_parte": _profile_value(readable, ("Ruolo parte", "Ruolo soggetto", "Qualifica parte"), limit=120),
         "attore_principale": _profile_value(readable, ("Attore Principale", "Ricorr. principale"), limit=240),
         "convenuto_principale": _profile_value(readable, ("Convenuto Principale", "Resist. principale"), limit=240),
         "data_evento": _profile_value(readable, "Data Evento"),
@@ -730,6 +1043,31 @@ def build_pec_procedural_profile(
         "evento_pec": event_type,
         "documenti_letti": sorted(str(name) for name in sources.keys() if str(name or "").strip()),
     }
+    parti_processuali = [
+        item
+        for item in (
+            profile.get("parte_processuale"),
+            profile.get("attore_principale"),
+            profile.get("convenuto_principale"),
+        )
+        if str(item or "").strip()
+    ]
+    if parti_processuali:
+        profile["parti_processuali"] = list(dict.fromkeys(str(item) for item in parti_processuali))
+    profile["cliente"] = _trim_profile_label_value(
+        profile.get("cliente"),
+        ("Parte processuale", "Soggetto processuale", "Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO"),
+    )
+    profile["parte_processuale"] = _trim_profile_label_value(
+        profile.get("parte_processuale"),
+        ("Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO", "IdMsg", "Impronta"),
+    )
+    if profile.get("parti_processuali"):
+        trimmed_parties = [
+            _trim_profile_label_value(item, ("Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO", "IdMsg", "Impronta"))
+            for item in profile["parti_processuali"]
+        ]
+        profile["parti_processuali"] = list(dict.fromkeys(item for item in trimmed_parties if item))
     lower = readable.lower()
     hearing_datetime = _hearing_datetime_from_text(readable)
     if hearing_datetime:
@@ -754,6 +1092,11 @@ def build_pec_procedural_profile(
         essentials.append(f"Ufficio: {profile['ufficio']}")
     if profile["giudice"]:
         essentials.append(f"Giudice: {profile['giudice']}")
+    if profile.get("cliente"):
+        essentials.append(f"Cliente: {profile['cliente']}")
+    if profile.get("parte_processuale"):
+        role = f" ({profile['ruolo_parte']})" if profile.get("ruolo_parte") else ""
+        essentials.append(f"Parte processuale: {profile['parte_processuale']}{role}")
     if profile["numero_rg"]:
         essentials.append(f"RG: {profile['numero_rg']}")
     if profile["tipo_evento"] or profile["oggetto_evento"]:
@@ -800,11 +1143,14 @@ def build_pec_procedural_profile(
     ]
     if profile["giudice"]:
         questions.append("Il giudice indicato incide su udienza, fase decisoria o strategia del fascicolo?")
+    if not profile.get("cliente") or not _profile_party_values(profile):
+        questions.append("Cliente e parte processuale sono presenti in Comunicazione.xml o vanno verificati manualmente?")
     if "sentenza" in lower:
         questions.append("Quali termini decorrono dalla sentenza e cosa devo preparare per eventuale notifica o impugnazione?")
     if profile.get("udienza_data_ora") or profile.get("modalita_udienza"):
         questions.append("L'udienza va svolta in presenza o con strumenti audiovisivi, e dove si trova il link di collegamento?")
     profile["domande_lex"] = list(dict.fromkeys(questions))
+    profile["messaggio_operativo"] = _procedural_operational_message(profile)
 
     return {key: value for key, value in profile.items() if value not in ("", [], {})}
 
@@ -1212,10 +1558,10 @@ def _extract_remote_hearing_times(text: str) -> list[str]:
     values: list[str] = []
     seen: set[str] = set()
     patterns = (
-        r"\b(?:udienza|discussione|collegamento|connessione|videoconferenza|audiovisiv)[^\n]{0,180}?\b(?:il\s+)?(\d{1,2}[/-]\d{1,2}[/-]\d{4})\s+(\d{1,2}[:.]\d{2})",
-        r"\b(?:udienza|collegamento|connessione|videoconferenza)[^\n]{0,140}?\b(?:il\s+)?(\d{1,2}[/-]\d{1,2}[/-]\d{4})[^\n]{0,100}?\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})",
-        r"\b(?:udienza|collegamento|connessione|videoconferenza)[^\n]{0,140}?\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})",
-        r"\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})[^\n]{0,100}?\b(?:udienza|collegamento|connessione|videoconferenza)",
+        r"\b(?:udienza|discussione|collegamento|connessione|videoconferenza|audiovisiv)[^.\n]{0,180}?\b(?:il\s+)?(\d{1,2}[/-]\d{1,2}[/-]\d{4})\s+(\d{1,2}[:.]\d{2})",
+        r"\b(?:udienza|collegamento|connessione|videoconferenza)[^.\n]{0,140}?\b(?:il\s+)?(\d{1,2}[/-]\d{1,2}[/-]\d{4})[^.\n]{0,100}?\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})",
+        r"\b(?:udienza|collegamento|connessione|videoconferenza)[^.\n]{0,140}?\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})",
+        r"\b(?:ore|h\.?)\s*(\d{1,2}[:.]\d{2})[^.\n]{0,100}?\b(?:udienza|collegamento|connessione|videoconferenza)",
     )
     for pattern in patterns:
         for match in re.finditer(pattern, text or "", flags=re.I):
@@ -2297,6 +2643,22 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
             ["profilo_processuale", "comunicazione.xml"] if hearing_mode_value else [],
         ),
     }
+    parsed_for_deposit = {
+        "headers": {
+            "message_id": message_id,
+            "subject": subject,
+            "date": sent_date,
+        },
+        "fields": fields,
+        "procedural_profile": procedural_profile,
+        "rg_candidates": rg_values,
+        "body": {
+            "text": clean_text(text_body, 20000),
+            "html_text": clean_text(re.sub(r"<[^>]+>", " ", html_body), 20000),
+        },
+    }
+    pct_deposit_correlation = build_pct_deposit_correlation(parsed_for_deposit, xml_texts=xml_texts)
+    pct_deposit_receipt = build_pct_deposit_receipt_profile(parsed_for_deposit, xml_texts=xml_texts)
     return {
         "schema": "iusentra.pec.parsed.v2",
         "parser_version": SCHEMA_VERSION,
@@ -2312,6 +2674,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         "semantic_context": legal_context,
         "legal_workflow": legal_workflow,
         "procedural_profile": procedural_profile,
+        "pct_deposit_correlation": pct_deposit_correlation,
+        "pct_deposit_receipt": pct_deposit_receipt,
         "rg_candidates": rg_values,
         "body": {
             "text": clean_text(text_body, 20000),
@@ -2357,10 +2721,32 @@ def event_type_from_parsed(parsed: dict[str, Any], classes: Iterable[str]) -> st
         "domicilio_digitale",
     }:
         return event_hint
+    if _contains_any(
+        text,
+        (
+            "accettazione deposito telematico",
+            "esito controlli automatici deposito telematico",
+            "esito controlli deposito",
+            "deposito telematico",
+            "idbusta",
+        ),
+    ):
+        return "pct_deposito"
     legal_workflow = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
     legal_event = str(legal_workflow.get("event_type") or "")
     if legal_event and legal_event != "pec_non_riconosciuta":
         return legal_event
+    if _contains_any(
+        text,
+        (
+            "accettazione deposito telematico",
+            "esito controlli automatici deposito telematico",
+            "esito controlli deposito",
+            "deposito telematico",
+            "idbusta",
+        ),
+    ):
+        return "pct_deposito"
     if "deposito" in text or {"atto", "procura"} & class_set:
         return "deposito"
     if "notifica" in text:
@@ -2430,9 +2816,12 @@ def _pct_controls_non_blocking_acceptance(text: str) -> bool:
         text,
         (
             "verra comunque accettato",
+            "verra' comunque accettato",
+            "verrà comunque accettato",
             "verrà comunque accettato",
             "comunque accettato",
             "non e necessario effettuare nuovamente il deposito",
+            "non è necessario effettuare nuovamente il deposito",
             "non è necessario effettuare nuovamente il deposito",
             "in attesa di conferma da parte della cancelleria",
             "in attesa di conferma cancelleria",
@@ -2524,6 +2913,12 @@ def build_pct_deposit_lifecycle(parsed: dict[str, Any], attachments: list[dict[s
     if event_type not in {"deposito", "pct_deposito"} and "deposito" not in text:
         return {}
     stage = detect_pct_deposit_stage(parsed)
+    correlation = parsed.get("pct_deposit_correlation") if isinstance(parsed.get("pct_deposit_correlation"), dict) else {}
+    if not correlation:
+        correlation = build_pct_deposit_correlation(parsed)
+    receipt_profile = parsed.get("pct_deposit_receipt") if isinstance(parsed.get("pct_deposit_receipt"), dict) else {}
+    if not receipt_profile:
+        receipt_profile = build_pct_deposit_receipt_profile(parsed)
     attachment_classes = {str(item.get("classification") or "") for item in attachments}
     stage_status = str(stage.get("status") or "warning")
     expected_next = [
@@ -2548,9 +2943,42 @@ def build_pct_deposit_lifecycle(parsed: dict[str, Any], attachments: list[dict[s
         communication = "Deposito con rifiuto o errore critico: segnalare subito e preparare attività correttiva."
     else:
         communication = "Deposito da presidiare: comunicare lo stato intermedio e indicare quali PEC/esiti mancano ancora."
+    final_state = str(receipt_profile.get("status") or "")
+    if not final_state:
+        if str(stage.get("id") or "") == "accettazione_deposito":
+            final_state = "accepted_manually" if "manual" in text or "intervento" in text else "accepted"
+        elif str(stage.get("id") or "") == "rifiuto_deposito":
+            final_state = "rejected"
+        elif str(stage.get("id") or "") == "esito_controlli_deposito" and _pct_controls_non_blocking_acceptance(text):
+            final_state = "awaiting_clerk_confirmation"
+        else:
+            final_state = str(stage.get("id") or "pending")
+    requires_new_deposit = bool(receipt_profile.get("requires_redeposit"))
+    if not receipt_profile and stage_status == "danger":
+        requires_new_deposit = not _pct_controls_non_blocking_acceptance(text)
+    history_event = {
+        "correlation_key": correlation.get("key") or "",
+        "stage": stage.get("id") or "",
+        "status": final_state,
+        "outcome_code": receipt_profile.get("outcome_code"),
+        "occurred_at": receipt_profile.get("occurred_at") or "",
+        "requires_redeposit": requires_new_deposit,
+        "description": clean_text(receipt_profile.get("description") or stage.get("reason") or "", 1200),
+    }
     return {
         "kind": "pct_deposit_lifecycle",
         "current_stage": stage,
+        "correlation": correlation,
+        "receipt": receipt_profile,
+        "history_event": history_event,
+        "final_state": final_state,
+        "requires_new_deposit": requires_new_deposit,
+        "technical_notification_suppressed": str(stage.get("id") or "") in {
+            "accettazione_pec",
+            "consegna_pec",
+            "esito_controlli_deposito",
+            "accettazione_deposito",
+        },
         "expected_sequence": [dict(item) for item in PCT_DEPOSIT_EXPECTED_SEQUENCE],
         "expected_next": [dict(item) for item in expected_next],
         "checks": checks,
@@ -2593,6 +3021,25 @@ def _procedural_date_kind(candidate: dict[str, Any]) -> str:
     label = clean_text(candidate.get("label"), 120).lower()
     context = clean_text(candidate.get("context"), 420).lower()
     haystack = f"{label} {context}"
+    raw_date = clean_text(candidate.get("raw_date") or candidate.get("date") or "", 40)
+    date_pattern = re.escape(raw_date) if raw_date else r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}"
+    term_near_date = bool(
+        re.search(
+            rf"\b(?:termine|scadenza)\b[^.\n]{{0,80}}\b(?:del|entro il|entro|al|il)?\s*{date_pattern}",
+            context,
+            flags=re.I,
+        )
+        or re.search(
+            rf"{date_pattern}[^.\n]{{0,100}}\b(?:per\s+il\s+deposito|deposito\s+di|note\s+scritte|memorie|costituzion)",
+            context,
+            flags=re.I,
+        )
+    )
+    if term_near_date or (
+        any(needle in label for needle in ("termine", "scadenza", "costituzione", "deposito"))
+        and any(needle in context for needle in ("entro", "termine", "scadenza", "depositare", "deposito", "costituir", "note scritte"))
+    ):
+        return "termine"
     if any(
         needle in haystack
         for needle in (
@@ -2613,10 +3060,6 @@ def _procedural_date_kind(candidate: dict[str, Any]) -> str:
         )
     ):
         return "udienza"
-    if any(needle in label for needle in ("termine", "scadenza", "costituzione", "deposito")) and any(
-        needle in context for needle in ("entro", "termine", "scadenza", "depositare", "costituir")
-    ):
-        return "termine"
     return ""
 
 
@@ -2761,6 +3204,26 @@ def _hearing_time_for_procedural_date(parsed: dict[str, Any], candidate: dict[st
         if result:
             return result
     return ""
+
+
+def _remote_hearing_for_procedural_candidate(remote_hearing: dict[str, Any], candidate: dict[str, Any], *, kind: str) -> dict[str, Any]:
+    if kind != "udienza" or not isinstance(remote_hearing, dict) or not remote_hearing:
+        return {}
+    result = dict(remote_hearing)
+    target_iso = clean_text(candidate.get("date") or "", 20)
+    target_it = _date_label_it(target_iso)
+    raw_date = clean_text(candidate.get("raw_date") or "", 40)
+    date_tokens = {value for value in (target_iso, target_it, raw_date) if value}
+    times = [
+        clean_text(value, 80)
+        for value in list(remote_hearing.get("times") or [])
+        if clean_text(value, 80)
+    ]
+    if times and date_tokens:
+        matching = [value for value in times if any(token in value for token in date_tokens)]
+        if matching:
+            result["times"] = matching
+    return {key: value for key, value in result.items() if value not in ("", [], {})}
 
 
 def _deadline_responsible_actor(actor: str) -> str:
@@ -2920,6 +3383,9 @@ def build_deadline_proposal(
         deadline_kind = str(candidate.get("deadline_kind") or "")
         title = _deadline_title_for_procedural_date(parsed, candidate, kind=deadline_kind, subject=subject)
         description = _deadline_description_for_procedural_date(candidate, kind=deadline_kind, source=source)
+        profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+        operational_message = _procedural_operational_message(profile)
+        reason = "\n".join(part for part in (operational_message, description) if str(part or "").strip())
         hearing_time = _hearing_time_for_procedural_date(parsed, candidate) if deadline_kind == "udienza" else ""
         due_date = str(candidate.get("date") or "")
         return {
@@ -2934,7 +3400,7 @@ def build_deadline_proposal(
             "deadline_kind": deadline_kind,
             "calendar_scope": "agenda_and_scadenziario" if deadline_kind == "udienza" and hearing_time else "scadenziario",
             "event_time": hearing_time,
-            "reason": description,
+            "reason": clean_text(reason or description, 1600),
             "detected_procedural_date": candidate,
         }
     notice_events = {
@@ -2975,6 +3441,8 @@ def build_deadline_proposal(
             "reason": "Esito PEC critico: il software registra un presidio operativo immediato nello scadenziario e segnala verifica dell'avvocato.",
         }
     if event_type in {"comunicazione", "comunicazione_cancelleria"}:
+        profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+        operational_message = _procedural_operational_message(profile)
         return {
             "status": "review_required",
             "auto_create": False,
@@ -2985,9 +3453,21 @@ def build_deadline_proposal(
             "priority": "media",
             "legal_deadline": False,
             "calendar_scope": "revisione_professionale",
-            "reason": "Comunicazione di cancelleria rilevata senza udienza o termine certo: resta nel presidio PEC/fascicolo e non crea voci generiche in agenda o scadenziario.",
+            "reason": clean_text(
+                "\n".join(
+                    part
+                    for part in (
+                        operational_message,
+                        "Comunicazione di cancelleria rilevata senza udienza o termine certo: resta nel presidio PEC/fascicolo e non crea voci generiche in agenda o scadenziario.",
+                    )
+                    if part
+                ),
+                1600,
+            ),
         }
     if event_type in notice_events:
+        profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+        operational_message = _procedural_operational_message(profile)
         return {
             "status": "review_required",
             "auto_create": False,
@@ -2998,20 +3478,30 @@ def build_deadline_proposal(
             "priority": "alta",
             "legal_deadline": False,
             "calendar_scope": "revisione_professionale",
-            "reason": "Notifica giudiziaria rilevata senza termine certo: il software registra l'evento PEC, ma non crea una scadenza finché non viene letto un termine o un'udienza concreta.",
+            "reason": clean_text(
+                "\n".join(
+                    part
+                    for part in (
+                        operational_message,
+                        "Notifica giudiziaria rilevata senza termine certo: il software registra l'evento PEC, ma non crea una scadenza finché non viene letto un termine o un'udienza concreta.",
+                    )
+                    if part
+                ),
+                1600,
+            ),
         }
     if issues:
         return {
-            "status": "ready",
-            "auto_create": True,
-            "title": f"Presidio anomalie PEC: {subject}",
-            "due_date": _operational_due_date(source_date, lead_days=2),
+            "status": "review_required",
+            "auto_create": False,
+            "title": "",
+            "due_date": "",
             "source_event_at": source_date_iso,
             "source_event_type": event_type,
             "priority": "media",
             "legal_deadline": False,
-            "calendar_scope": "scadenziario",
-            "reason": "Sono presenti anomalie non bloccanti: il software registra un promemoria operativo per chiuderle.",
+            "calendar_scope": "presidio_pec",
+            "reason": "La PEC contiene avvisi non bloccanti ma non indica una data o un'attività giuridica certa da inserire nello scadenziario. Resta nel presidio PEC/fascicolo finché l'avvocato non conferma un'azione concreta.",
         }
     return {
         "status": "not_needed",
@@ -3243,6 +3733,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                     "detail": f"Link o istruzioni di collegamento rilevati in {first.get('source') or 'testo PEC/allegato'}: verificare e riportare in agenda.",
                 }
             )
+    procedural_profile["messaggio_operativo"] = _procedural_operational_message(procedural_profile, remote_hearing)
     severity = "ok"
     if any(item["severity"] == "warning" for item in issues):
         severity = "warning"
@@ -3265,6 +3756,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         "present": sorted(present),
         "issues": issues,
         "deposit_lifecycle": deposit_lifecycle,
+        "deposit_correlation": deposit_lifecycle.get("correlation") if isinstance(deposit_lifecycle, dict) else {},
         "semantic_context": semantic_context,
         "legal_workflow": legal_workflow,
         "procedural_profile": procedural_profile,
@@ -3391,6 +3883,261 @@ def _client_lookup_variants(cliente: Any) -> list[str]:
             seen.add(key)
             out.append(cleaned)
     return out
+
+
+_PCT_DEPOSIT_STATE_RANK = {
+    "": 0,
+    "PROVA_SENZA_INVIO": 1,
+    "INVIATO": 2,
+    "ACCETTATO_PEC": 3,
+    "CONSEGNATO": 4,
+    "WARN_CONTROLLI": 5,
+    "ERRORE_CONTROLLI": 6,
+    "ACCETTATO_CANCELLERIA": 7,
+    "RIFIUTATO_CANCELLERIA": 8,
+    "ERRORE": 9,
+}
+
+
+def _pct_deposit_state_from_lifecycle(lifecycle: dict[str, Any]) -> tuple[str, str]:
+    stage = lifecycle.get("current_stage") if isinstance(lifecycle.get("current_stage"), dict) else {}
+    stage_id = str(stage.get("id") or "")
+    stage_status = str(stage.get("status") or "")
+    if stage_id == "accettazione_pec":
+        return "ACCETTATO_PEC", ""
+    if stage_id == "consegna_pec":
+        return "CONSEGNATO", ""
+    if stage_id == "esito_controlli_deposito":
+        return ("ERRORE_CONTROLLI", "ERROR") if stage_status == "danger" else ("WARN_CONTROLLI", "WARN")
+    if stage_id in {"accettazione_deposito", "intervento_cancelleria"}:
+        return "ACCETTATO_CANCELLERIA", "OK"
+    if stage_id == "rifiuto_deposito":
+        return "RIFIUTATO_CANCELLERIA", "ERROR"
+    return "INVIATO", ""
+
+
+def _merge_text_once(existing: str, incoming: str, *, separator: str = "\n\n--- Ricevuta PEC correlata ---\n") -> str:
+    current = str(existing or "").strip()
+    value = str(incoming or "").strip()
+    if not value:
+        return current
+    if value in current:
+        return current
+    if not current:
+        return value
+    return f"{current}{separator}{value}"
+
+
+def _append_note_once(note: str, lines: Iterable[str]) -> str:
+    current = str(note or "").strip()
+    parts = [current] if current else []
+    haystack = f"\n{current}\n"
+    for line in lines:
+        clean = clean_text(line, 600)
+        if not clean or f"\n{clean}\n" in haystack:
+            continue
+        parts.append(clean)
+        haystack += f"{clean}\n"
+    return "\n".join(parts).strip()
+
+
+def _render_pct_deposit_receipt_text(parsed: dict[str, Any], lifecycle: dict[str, Any], attachments: list[dict[str, Any]]) -> str:
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+    receipt = lifecycle.get("receipt") if isinstance(lifecycle.get("receipt"), dict) else {}
+    correlation = lifecycle.get("correlation") if isinstance(lifecycle.get("correlation"), dict) else {}
+    lines = []
+    if headers.get("subject"):
+        lines.append(f"Oggetto: {headers.get('subject')}")
+    if headers.get("message_id"):
+        lines.append(f"Message-ID: {headers.get('message_id')}")
+    if headers.get("date"):
+        lines.append(f"Data PEC: {headers.get('date')}")
+    if receipt.get("occurred_at"):
+        lines.append(f"Data esito: {receipt.get('occurred_at')}")
+    if correlation.get("idbusta"):
+        lines.append(f"IDBUSTA: {correlation.get('idbusta')}")
+    if receipt.get("outcome_code") is not None:
+        lines.append(f"Codice esito: {receipt.get('outcome_code')}")
+    if receipt.get("description"):
+        lines.extend(["", str(receipt.get("description") or "").strip()])
+    else:
+        text = clean_text(body.get("text") or "", 4000)
+        if text:
+            lines.extend(["", text])
+    names = [clean_text(item.get("filename") or "", 180) for item in attachments if clean_text(item.get("filename") or "", 180)]
+    if names:
+        lines.extend(["", "Allegati conservati: " + ", ".join(list(dict.fromkeys(names))[:12])])
+    return "\n".join(str(line) for line in lines if str(line or "").strip()).strip()
+
+
+def _procedural_operational_message(profile: dict[str, Any], remote_hearing: dict[str, Any] | None = None) -> str:
+    parts: list[str] = []
+    if profile.get("fase_pratica"):
+        parts.append(str(profile["fase_pratica"]))
+    if profile.get("ufficio"):
+        parts.append(f"Ufficio: {profile['ufficio']}")
+    if profile.get("giudice"):
+        parts.append(f"Giudice: {profile['giudice']}")
+    if profile.get("numero_rg"):
+        parts.append(f"RG: {profile['numero_rg']}")
+    if profile.get("cliente"):
+        parts.append(f"Cliente: {profile['cliente']}")
+    parti = profile.get("parti_processuali")
+    if isinstance(parti, list):
+        party = profile.get("parte_processuale") or next((str(item or "") for item in parti if str(item or "").strip()), "")
+    else:
+        party = profile.get("parte_processuale") or str(parti or "")
+    if party:
+        role = f" ({profile.get('ruolo_parte')})" if profile.get("ruolo_parte") else ""
+        parts.append(f"Parte/soggetto: {party}{role}")
+    event = profile.get("tipo_evento") or profile.get("oggetto_evento")
+    if event:
+        parts.append(f"Evento: {event}")
+    if profile.get("udienza_data_ora"):
+        parts.append(f"Udienza: {profile['udienza_data_ora']}")
+    if profile.get("modalita_udienza"):
+        parts.append(f"Modalità: {profile['modalita_udienza']}")
+    remote = remote_hearing or profile.get("remote_hearing") if isinstance(profile.get("remote_hearing"), dict) else remote_hearing
+    if isinstance(remote, dict) and remote.get("links"):
+        first = remote["links"][0] if isinstance(remote["links"][0], dict) else {}
+        parts.append(f"Collegamento remoto: {first.get('url') or first.get('text') or 'link rilevato'}")
+    elif isinstance(remote, dict) and remote.get("pdf_required"):
+        pending = ", ".join(str(item) for item in list(remote.get("pdf_pending") or remote.get("pdf_sources") or [])[:3])
+        parts.append(f"Link udienza da verificare nel PDF/allegato{f': {pending}' if pending else ''}.")
+    return "\n".join(clean_text(part, 400) for part in parts if str(part or "").strip())
+
+
+def _fascicolo_rg_display(fascicolo: Any) -> str:
+    numero_rg = clean_text(getattr(fascicolo, "numero_rg", "") or "", 40)
+    anno_rg = clean_text(getattr(fascicolo, "anno_rg", "") or "", 10)
+    if numero_rg and anno_rg and "/" not in numero_rg:
+        return f"{numero_rg}/{anno_rg}"
+    return numero_rg
+
+
+def _fascicolo_parties_for_profile(fascicolo: Any) -> list[str]:
+    values = [
+        clean_text(getattr(fascicolo, "attore_principale", "") or "", 180),
+        clean_text(getattr(fascicolo, "nome_cliente", "") or "", 180),
+        clean_text(getattr(fascicolo, "controparte", "") or "", 180),
+    ]
+    return list(dict.fromkeys(value for value in values if value))
+
+
+def _document_presidio_message_id(*, fascicolo_id: str, document_id: str, kind: str, date_value: str) -> str:
+    raw = f"docpresidio:{fascicolo_id}:{document_id}:{kind}:{date_value}"
+    return re.sub(r"[^A-Za-z0-9_.:-]+", "_", raw)[:180]
+
+
+def _document_presidio_activity_label(candidate: dict[str, Any], *, kind: str) -> str:
+    context = clean_text(candidate.get("context") or "", 520).lower()
+    label = clean_text(candidate.get("label") or "", 120).lower()
+    if kind == "udienza":
+        if "127 ter" in context or "127-ter" in context:
+            return "Trattazione scritta ex art. 127-ter c.p.c."
+        if "discussione" in context:
+            return "Udienza di discussione"
+        if "camera di consiglio" in context:
+            return "Camera di consiglio"
+        return "Udienza"
+    if "note scritte" in context or "127 ter" in context or "127-ter" in context:
+        return "Deposito note scritte ex art. 127-ter c.p.c."
+    if "memoria" in context or "memorie" in context:
+        return "Deposito memoria"
+    if "costituzione" in context or "costituir" in context:
+        return "Costituzione in giudizio"
+    if "notific" in context:
+        return "Verifica o attività di notifica"
+    if "deposito" in label or "deposit" in context:
+        return "Deposito atto o documento"
+    return "Attività processuale da presidiare"
+
+
+def _document_presidio_context_snippet(candidate: dict[str, Any]) -> str:
+    context = clean_text(candidate.get("context") or "", 620)
+    if not context:
+        return ""
+    context = re.sub(r"\b(?:https?://|www\.)\S+", "[link indicato nel campo udienza da remoto]", context)
+    return clean_text(context, 520)
+
+
+def _document_presidio_profile(fascicolo: Any, *, document_name: str, candidate: dict[str, Any]) -> dict[str, Any]:
+    parties = _fascicolo_parties_for_profile(fascicolo)
+    cliente = clean_text(getattr(fascicolo, "nome_cliente", "") or "", 180)
+    cliente_key = _normalise_lookup(cliente)
+    parte_processuale = next(
+        (value for value in parties if _normalise_lookup(value) and _normalise_lookup(value) != cliente_key),
+        parties[0] if parties else "",
+    )
+    return {
+        "fase_pratica": "Presidio documentale Lex AI: verificare il provvedimento e predisporre l'attività processuale rilevata.",
+        "ufficio": clean_text(getattr(fascicolo, "tribunale", "") or "", 180),
+        "giudice": clean_text(getattr(fascicolo, "giudice", "") or "", 120),
+        "numero_rg": _fascicolo_rg_display(fascicolo),
+        "cliente": cliente,
+        "parte_processuale": parte_processuale,
+        "parti_processuali": parties,
+        "oggetto_evento": _document_presidio_activity_label(candidate, kind=_procedural_date_kind(candidate) or "termine"),
+        "descrizione_evento": _document_presidio_context_snippet(candidate),
+        "tipo_evento": clean_text(Path(document_name).stem or document_name, 160),
+    }
+
+
+def _document_presidio_deadline_proposal(
+    parsed: dict[str, Any],
+    candidate: dict[str, Any],
+    *,
+    kind: str,
+    document_name: str,
+    document_id: str,
+) -> dict[str, Any]:
+    target_date = clean_text(candidate.get("date") or "", 20)
+    profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    rg = clean_text(profile.get("numero_rg") or "", 40)
+    office = clean_text(profile.get("ufficio") or "", 100)
+    date_label = _date_label_it(target_date)
+    activity = _document_presidio_activity_label(candidate, kind=kind)
+    if kind == "udienza":
+        title = _deadline_title_for_procedural_date(parsed, candidate, kind=kind, subject=document_name)
+    else:
+        title_parts = [activity, date_label]
+        if rg:
+            title_parts.append(f"RG {rg}")
+        elif office:
+            title_parts.append(office)
+        title = clean_text(" - ".join(part for part in title_parts if part), 150)
+    context = _document_presidio_context_snippet(candidate)
+    reason = clean_text(
+        "\n".join(
+            part
+            for part in (
+                f"Attività per l'avvocato: {activity}.",
+                f"Data letta dal documento indicizzato Lex: {date_label}.",
+                f"Fonte documentale: {document_name}.",
+                f"Contesto letto: {context}" if context else "",
+                "Verificare il provvedimento e predisporre l'atto, le note o la comunicazione richiesta prima della scadenza.",
+            )
+            if part
+        ),
+        1400,
+    )
+    return {
+        "status": "auto_create",
+        "auto_create": True,
+        "calendar_scope": "documento_fascicolo_operativo",
+        "title": title or activity,
+        "due_date": target_date,
+        "reason": reason,
+        "source_event_type": "documento_fascicolo_lex",
+        "source_event_at": target_date,
+        "deadline_kind": kind,
+        "event_time": _hearing_time_for_procedural_date(parsed, candidate) if kind == "udienza" else "",
+        "detected_procedural_date": dict(candidate),
+        "document_name": document_name,
+        "document_id": document_id,
+        "force_agenda_without_time": True,
+    }
 
 
 class PecAuditRepository:
@@ -4092,24 +4839,31 @@ class PecAuditRepository:
         try:
             from pct.fascicoli import GestioneFascicoli
 
-            manager = GestioneFascicoli(db_path=str(self.fascicoli_db_path), documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"))
+            manager = GestioneFascicoli(
+                db_path=str(self.fascicoli_db_path),
+                documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+            )
             fascicoli = manager.tutti(archiviati=True)
         except Exception:
             return {"rg": [], "parties": [], "office": "", "keywords": []}, []
         headers = parsed.get("headers") or {}
         fields = parsed.get("fields") or {}
         body = parsed.get("body") or {}
+        profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
         rg = list(parsed.get("rg_candidates") or [])
         sender_field = (fields.get("mittente") or {}).get("value") or {}
         parties = [
             clean_text(sender_field.get("name") if isinstance(sender_field, dict) else ""),
             clean_text(sender_field.get("email") if isinstance(sender_field, dict) else ""),
         ]
+        parties.extend(_profile_party_values(profile))
         text = " ".join([str(headers.get("subject") or ""), str(body.get("text") or ""), str(body.get("html_text") or "")])
         office_match = re.search(r"\b(?:tribunale|corte|giudice di pace)\s+di\s+([A-Za-zÀ-ÿ' ]{3,40})", text, re.I)
-        office = clean_text(office_match.group(0) if office_match else "")
+        office = clean_text(profile.get("ufficio") or (office_match.group(0) if office_match else ""))
         keywords = [item.lower() for item in re.findall(r"\b[A-Za-zÀ-ÿ]{5,}\b", text)[:40]]
-        seeds = {"rg": rg, "parties": [item for item in parties if item], "office": office, "keywords": keywords[:12]}
+        parties = list(dict.fromkeys(item for item in parties if item))
+        seeds = {"rg": rg, "parties": parties, "office": office, "keywords": keywords[:12]}
         candidates: list[dict[str, Any]] = []
         for fascicolo in fascicoli:
             score = 0.0
@@ -4154,6 +4908,137 @@ class PecAuditRepository:
         candidates.sort(key=lambda item: float(item["score"]), reverse=True)
         return seeds, candidates[:5]
 
+    def _upsert_pct_deposit_from_report(
+        self,
+        message_id: str,
+        *,
+        parsed: dict[str, Any],
+        report: dict[str, Any],
+        attachments: list[dict[str, Any]],
+        fascicolo_id: str,
+        actor: str,
+    ) -> dict[str, Any]:
+        if not self.fascicoli_db_path or not fascicolo_id:
+            return {"ok": False, "skipped": True, "reason": "fascicolo_non_collegato"}
+        if str(report.get("event_type") or "") != "pct_deposito":
+            return {"ok": False, "skipped": True, "reason": "evento_non_deposito_pct"}
+        lifecycle = report.get("deposit_lifecycle") if isinstance(report.get("deposit_lifecycle"), dict) else {}
+        if not lifecycle:
+            return {"ok": False, "skipped": True, "reason": "lifecycle_assente"}
+        correlation = lifecycle.get("correlation") if isinstance(lifecycle.get("correlation"), dict) else {}
+        if not correlation:
+            correlation = build_pct_deposit_correlation(parsed)
+        if correlation.get("manual_review") or not correlation.get("key"):
+            return {"ok": False, "skipped": True, "reason": "correlazione_ambigua", "correlation": correlation}
+        try:
+            from pct.fascicoli import GestioneFascicoli
+
+            manager = GestioneFascicoli(
+                db_path=str(self.fascicoli_db_path),
+                documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+            )
+            fascicolo = manager.get(fascicolo_id)
+        except Exception as exc:
+            return {"ok": False, "skipped": True, "reason": f"fascicoli_non_disponibili: {exc}"}
+        if not fascicolo:
+            return {"ok": False, "skipped": True, "reason": "fascicolo_non_trovato"}
+
+        state, esito_controlli = _pct_deposit_state_from_lifecycle(lifecycle)
+        receipt_text = _render_pct_deposit_receipt_text(parsed, lifecycle, attachments)
+        stage = lifecycle.get("current_stage") if isinstance(lifecycle.get("current_stage"), dict) else {}
+        stage_id = str(stage.get("id") or "")
+        receipt = lifecycle.get("receipt") if isinstance(lifecycle.get("receipt"), dict) else {}
+        external_id = clean_text(correlation.get("idbusta") or correlation.get("ref_id") or correlation.get("key"), 180)
+        marker = f"PEC_DEPOSIT_CORRELATION:{correlation.get('key')}"
+        event_marker = f"PEC_DEPOSIT_EVENT:{message_id}:{stage_id}:{receipt.get('outcome_code') if receipt.get('outcome_code') is not None else ''}"
+        deposito = None
+        for dep in getattr(fascicolo, "depositi_pct", []) or []:
+            if external_id and external_id == clean_text(getattr(dep, "id_deposito_esterno", "") or "", 180):
+                deposito = dep
+                break
+            if marker in str(getattr(dep, "note", "") or ""):
+                deposito = dep
+                break
+
+        document_name = clean_text(
+            correlation.get("document_name") or correlation.get("atto") or receipt.get("document_name") or "Deposito telematico PEC",
+            260,
+        )
+        created = False
+        if deposito is None:
+            deposito = manager.aggiungi_esito_deposito(
+                fascicolo_id,
+                tipo_atto="DEPOSITO_PCT",
+                pec_destinatario="",
+                stato=state,
+                messaggio=f"Deposito telematico: {document_name}",
+                note=marker,
+                registrato_da=actor,
+                nome_atto_principale=document_name,
+            )
+            deposito.id_deposito_esterno = external_id
+            deposito.fonte_portale = "PEC_PCT"
+            deposito.servizio_portale = "PEC ricevute deposito"
+            created = True
+
+        if _PCT_DEPOSIT_STATE_RANK.get(state, 0) >= _PCT_DEPOSIT_STATE_RANK.get(str(getattr(deposito, "stato", "") or ""), 0):
+            deposito.stato = state
+        deposito.tipo_atto = getattr(deposito, "tipo_atto", "") or "DEPOSITO_PCT"
+        deposito.nome_atto_principale = getattr(deposito, "nome_atto_principale", "") or document_name
+        deposito.messaggio = f"Deposito telematico: {document_name}"
+        deposito.id_deposito_esterno = getattr(deposito, "id_deposito_esterno", "") or external_id
+        if stage_id == "accettazione_pec":
+            deposito.ricevuta_accettazione = _merge_text_once(getattr(deposito, "ricevuta_accettazione", ""), receipt_text)
+        elif stage_id == "consegna_pec":
+            deposito.ricevuta_consegna = _merge_text_once(getattr(deposito, "ricevuta_consegna", ""), receipt_text)
+        elif stage_id == "esito_controlli_deposito":
+            deposito.ricevuta_controlli_automatici = _merge_text_once(getattr(deposito, "ricevuta_controlli_automatici", ""), receipt_text)
+            deposito.esito_controlli = esito_controlli or getattr(deposito, "esito_controlli", "")
+        elif stage_id in {"accettazione_deposito", "intervento_cancelleria", "rifiuto_deposito"}:
+            deposito.ricevuta_cancelleria = _merge_text_once(getattr(deposito, "ricevuta_cancelleria", ""), receipt_text)
+            deposito.esito_controlli = esito_controlli or getattr(deposito, "esito_controlli", "")
+        note_lines = [
+            marker,
+            event_marker,
+            f"Evento PEC deposito: {receipt.get('occurred_at') or iso_now()} - {stage.get('label') or stage_id} - {lifecycle.get('final_state')}",
+        ]
+        if lifecycle.get("requires_new_deposit") is False:
+            note_lines.append("Nuovo deposito richiesto: no.")
+        deposito.note = _append_note_once(getattr(deposito, "note", ""), note_lines)
+        try:
+            fascicolo.modificato_il = datetime.now().isoformat()
+            manager._salva()
+        except Exception as exc:
+            return {"ok": False, "skipped": False, "reason": f"salvataggio_fascicolo_fallito: {exc}"}
+        try:
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.deposit.upserted",
+                    resource_type="pec_message",
+                    resource_id=message_id,
+                    payload={
+                        "fascicolo_id": fascicolo_id,
+                        "deposito_id": getattr(deposito, "id", ""),
+                        "created": created,
+                        "state": getattr(deposito, "stato", ""),
+                        "correlation": correlation,
+                        "history_event": lifecycle.get("history_event") or {},
+                    },
+                    actor=actor,
+                )
+        except Exception:
+            pass
+        return {
+            "ok": True,
+            "created": created,
+            "fascicolo_id": fascicolo_id,
+            "deposito_id": getattr(deposito, "id", ""),
+            "state": getattr(deposito, "stato", ""),
+            "correlation": correlation,
+        }
+
     def link_fascicolo(self, message_id: str, *, threshold: float = 0.78, actor: str = "pec-linker") -> dict[str, Any]:
         with self.connect() as conn:
             parsed_row = self.latest_parsed_row(conn, message_id)
@@ -4163,8 +5048,10 @@ class PecAuditRepository:
             seeds, candidates = self._fascicoli_candidates(parsed)
             best = candidates[0] if candidates else {}
             score = float(best.get("score") or 0.0)
-            fascicolo_id = str(best.get("id") or "") if score >= threshold else ""
-            status = "automatico" if fascicolo_id else "proposte" if candidates else "nessun_candidato"
+            reasons = {str(item or "") for item in list(best.get("reasons") or [])}
+            rg_only = bool(best) and reasons == {"RG coincidente"}
+            fascicolo_id = str(best.get("id") or "") if score >= threshold and not rg_only else ""
+            status = "automatico" if fascicolo_id else "rg_non_sufficiente" if rg_only else "proposte" if candidates else "nessun_candidato"
             link_id = uuid.uuid4().hex
             conn.execute(
                 """
@@ -4180,8 +5067,19 @@ class PecAuditRepository:
             )
             self.append_audit(conn, action="pec.fascicolo.reconciled", resource_type="pec_message", resource_id=message_id, payload={"status": status, "score": score, "candidates": candidates}, actor=actor)
         auto_deadline: dict[str, Any] = {}
+        deposit_upsert: dict[str, Any] = {}
         try:
-            report = self.get_message_detail(message_id).get("validation_report") or {}
+            detail = self.get_message_detail(message_id)
+            report = detail.get("validation_report") or {}
+            if fascicolo_id:
+                deposit_upsert = self._upsert_pct_deposit_from_report(
+                    message_id,
+                    parsed=detail.get("parsed") or parsed,
+                    report=report,
+                    attachments=list(detail.get("attachments") or []),
+                    fascicolo_id=fascicolo_id,
+                    actor=actor,
+                )
             proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
             if proposal.get("auto_create"):
                 auto_deadline = self.schedule_deadline(message_id, actor=actor)
@@ -4194,6 +5092,7 @@ class PecAuditRepository:
             "score": score,
             "candidates": candidates,
             "seeds": seeds,
+            "deposit_upsert": deposit_upsert,
             "auto_deadline": auto_deadline,
         }
 
@@ -4260,6 +5159,369 @@ class PecAuditRepository:
                     self.append_audit(conn, action=f"pec.job.{row['job_type']}.failed", resource_type="pec_job", resource_id=str(row["id"]), payload={"error": str(exc)}, actor=actor)
                 failed += 1
         return {"processed": processed, "failed": failed, "jobs": done}
+
+    def _fascicoli_manager(self):
+        if not self.fascicoli_db_path:
+            raise RuntimeError("Archivio fascicoli non configurato.")
+        from pct.fascicoli import GestioneFascicoli
+
+        return GestioneFascicoli(
+            db_path=str(self.fascicoli_db_path),
+            documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+            studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+        )
+
+    def _document_ai_service_for_fascicoli(self, fascicoli_manager: Any):
+        from pct.document_intelligence.repository import DocumentAIRepository
+        from pct.document_intelligence.service import DocumentAIService
+
+        structured_db = self._studio_db_for_data_path(self.fascicoli_db_path) if self.fascicoli_db_path else None
+        repository = DocumentAIRepository.from_fascicoli_db(
+            str(self.fascicoli_db_path),
+            structured_db=structured_db,
+        )
+        return DocumentAIService(repository, fascicoli_manager)
+
+    def _document_presidio_existing_deadline(self, *, fascicolo_id: str, target_date: str, kind: str) -> dict[str, Any]:
+        if not self.scadenziario_db_path:
+            return {}
+        try:
+            from pct.scadenziario import TipoTermine
+
+            expected = TipoTermine.UDIENZA if kind == "udienza" else TipoTermine.ADEMPIMENTO
+            manager = self._scadenziario_manager()
+            for item in manager.tutte(solo_aperte=False):
+                if str(getattr(item, "id_fascicolo", "") or "") != fascicolo_id:
+                    continue
+                if str(getattr(item, "data_scadenza", "") or "")[:10] != target_date[:10]:
+                    continue
+                tipo = getattr(item, "tipo", "")
+                if tipo == expected or kind == "termine":
+                    return {
+                        "deadline_id": str(getattr(item, "id", "") or ""),
+                        "title": str(getattr(item, "titolo", "") or ""),
+                        "due_date": str(getattr(item, "data_scadenza", "") or ""),
+                        "agenda_id": str(getattr(item, "id_appuntamento", "") or ""),
+                    }
+        except Exception:
+            return {}
+        return {}
+
+    def _upsert_document_presidio_activity(
+        self,
+        fascicoli_manager: Any,
+        *,
+        fascicolo_id: str,
+        document_id: str,
+        message_id: str,
+        kind: str,
+        target_date: str,
+        title: str,
+        description: str,
+        agenda_id: str,
+    ) -> dict[str, Any]:
+        try:
+            from pct.fascicoli import TipoAttivita
+        except Exception as exc:
+            return {"ok": False, "message": f"Attività fascicolo non aggiornata: {exc}"}
+        activity_type = TipoAttivita.UDIENZA if kind == "udienza" else TipoAttivita.TERMINE_SCADENZA
+        marker = f"PEC_DOCUMENT_PRESIDIO:{message_id}"
+        fascicolo = fascicoli_manager.get(fascicolo_id)
+        if not fascicolo:
+            return {"ok": False, "message": "Fascicolo non trovato per presidio documentale."}
+        for existing in list(getattr(fascicolo, "attivita", []) or []):
+            same_marker = marker in str(getattr(existing, "note", "") or "")
+            same_date = str(getattr(existing, "data", "") or "")[:10] == target_date[:10]
+            same_type = getattr(existing, "tipo", None) == activity_type
+            if same_marker or (same_date and same_type and clean_text(getattr(existing, "titolo", "") or "") == clean_text(title)):
+                updates: dict[str, Any] = {}
+                if agenda_id and not str(getattr(existing, "id_appuntamento", "") or ""):
+                    updates["id_appuntamento"] = agenda_id
+                if document_id and not str(getattr(existing, "id_documento", "") or ""):
+                    updates["id_documento"] = document_id
+                if updates:
+                    try:
+                        fascicoli_manager.aggiorna_attivita(fascicolo_id, str(getattr(existing, "id", "")), **updates)
+                    except Exception:
+                        pass
+                return {"ok": True, "already_exists": True, "activity_id": str(getattr(existing, "id", "") or "")}
+        try:
+            created = fascicoli_manager.aggiungi_attivita(fascicolo_id, activity_type, target_date[:10], title)
+            note = "\n".join(
+                part
+                for part in (
+                    marker,
+                    "Fonte: documento fascicolo indicizzato da Lex AI.",
+                    f"Scadenza/agenda collegate: {agenda_id}" if agenda_id else "",
+                )
+                if part
+            )
+            fascicoli_manager.aggiorna_attivita(
+                fascicolo_id,
+                str(getattr(created, "id", "") or ""),
+                descrizione=description,
+                note=note,
+                id_documento=document_id,
+                id_appuntamento=agenda_id,
+            )
+            return {"ok": True, "created": True, "activity_id": str(getattr(created, "id", "") or "")}
+        except Exception as exc:
+            return {"ok": False, "message": f"Attività fascicolo non registrata: {exc}"}
+
+    def recover_missing_hearings_from_fascicolo_documents(
+        self,
+        *,
+        limit: int = 50,
+        actor: str = "scheduler",
+    ) -> dict[str, Any]:
+        """Recupera da Lex AI udienze, termini e attività operative presenti nei documenti del fascicolo."""
+
+        report: dict[str, Any] = {
+            "checked_fascicoli": 0,
+            "checked_documents": 0,
+            "indexed_documents": 0,
+            "indexing_skipped": 0,
+            "candidate_dates": 0,
+            "scheduled": 0,
+            "already_presided": 0,
+            "skipped": 0,
+            "errors": [],
+            "items": [],
+            "notification_jobs": [],
+        }
+        if not self.fascicoli_db_path:
+            return {**report, "skipped_service": True, "reason": "archivio_fascicoli_non_configurato"}
+        if not self.scadenziario_db_path and not self.agenda_db_path:
+            return {**report, "skipped_service": True, "reason": "agenda_scadenziario_non_configurati"}
+        try:
+            from pct.document_intelligence.sources import collect_fascicolo_document_sources
+
+            fascicoli_manager = self._fascicoli_manager()
+            service = self._document_ai_service_for_fascicoli(fascicoli_manager)
+            fascicoli = fascicoli_manager.tutti(archiviati=False)[: max(1, int(limit or 50))]
+        except Exception as exc:
+            return {**report, "skipped_service": True, "reason": f"runtime_lex_non_disponibile: {exc}"}
+
+        user_context = {"user_id": actor, "skip_permission_check": True}
+        today = datetime.now(ROME_TZ).date()
+        for fascicolo in fascicoli:
+            fascicolo_id = str(getattr(fascicolo, "id", "") or "")
+            if not fascicolo_id:
+                continue
+            report["checked_fascicoli"] += 1
+            try:
+                sources = collect_fascicolo_document_sources(
+                    tenant_id=self.tenant_id,
+                    fascicolo_id=fascicolo_id,
+                    fascicolo=fascicolo,
+                    documents_root=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                )
+                report["checked_documents"] += len(sources)
+                if not sources:
+                    continue
+                indexing = service.process_lex_indexing_sources(
+                    self.tenant_id,
+                    fascicolo_id,
+                    sources,
+                    user_context,
+                    retry_errors=True,
+                )
+                report["indexed_documents"] += int(getattr(indexing, "indexed", 0) or 0)
+                report["indexing_skipped"] += int(getattr(indexing, "skipped", 0) or 0)
+                for warning in list(getattr(indexing, "errors", []) or [])[:5]:
+                    report["errors"].append(f"{fascicolo_id}: {warning}")
+                records = service.list_fascicolo_documents(self.tenant_id, fascicolo_id, user_context)
+                source_by_sha = {source.sha256: source for source in sources if source.sha256}
+                source_by_name = {source.filename.casefold(): source for source in sources if source.filename}
+                source_by_name.update({source.safe_filename.casefold(): source for source in sources if source.safe_filename})
+                for record in records:
+                    if str(getattr(record, "status", "") or "") != "ready":
+                        continue
+                    source = source_by_sha.get(str(getattr(record, "sha256", "") or "")) or source_by_name.get(
+                        str(getattr(record, "original_filename", "") or "").casefold()
+                    )
+                    if source is None:
+                        continue
+                    try:
+                        extracted = service.get_fascicolo_document_text(
+                            self.tenant_id,
+                            fascicolo_id,
+                            str(getattr(record, "id", "") or ""),
+                            user_context,
+                        )
+                    except Exception as exc:
+                        report["errors"].append(f"{fascicolo_id}/{source.filename}: testo Lex non leggibile ({exc})")
+                        continue
+                    text = clean_text(getattr(extracted, "text", "") or "", 50000)
+                    if not text:
+                        continue
+                    document_name = clean_text(source.filename or getattr(record, "original_filename", "") or "Documento fascicolo", 240)
+                    seen_document_candidates: set[tuple[str, str, str]] = set()
+                    for candidate in extract_procedural_dates({document_name: text}, plain_text=""):
+                        kind = _procedural_date_kind(candidate)
+                        if kind not in {"udienza", "termine"}:
+                            continue
+                        target_date = clean_text(candidate.get("date") or "", 20)
+                        dedupe_key = (source.source_id or str(getattr(record, "id", "") or ""), kind, target_date)
+                        if dedupe_key in seen_document_candidates:
+                            continue
+                        seen_document_candidates.add(dedupe_key)
+                        parsed_day = _date_from_iso_or_it(target_date)
+                        if not parsed_day or parsed_day < today:
+                            report["skipped"] += 1
+                            continue
+                        report["candidate_dates"] += 1
+                        message_id = _document_presidio_message_id(
+                            fascicolo_id=fascicolo_id,
+                            document_id=source.source_id or str(getattr(record, "id", "") or ""),
+                            kind=kind,
+                            date_value=target_date,
+                        )
+                        profile = _document_presidio_profile(fascicolo, document_name=document_name, candidate=candidate)
+                        attachment = {
+                            "filename": document_name,
+                            "content_type": source.mime_type or "",
+                            "classification": "atto",
+                            "ocr_text": text,
+                        }
+                        parsed = {
+                            "headers": {"subject": document_name, "date": iso_now()},
+                            "body": {"text": "", "html": ""},
+                            "fields": {},
+                            "rg_candidates": [_fascicolo_rg_display(fascicolo)] if _fascicolo_rg_display(fascicolo) else [],
+                            "procedural_dates": [candidate],
+                            "procedural_profile": profile,
+                            "attachments": [attachment],
+                        }
+                        remote_hearing_parsed = dict(parsed)
+                        remote_hearing_parsed["procedural_profile"] = {}
+                        remote_hearing = build_remote_hearing_profile(remote_hearing_parsed, [attachment])
+                        active_remote_hearing = _remote_hearing_for_procedural_candidate(remote_hearing, candidate, kind=kind)
+                        if active_remote_hearing:
+                            profile["remote_hearing"] = active_remote_hearing
+                        proposal = _document_presidio_deadline_proposal(
+                            parsed,
+                            candidate,
+                            kind=kind,
+                            document_name=document_name,
+                            document_id=source.source_id or str(getattr(record, "id", "") or ""),
+                        )
+                        report_payload = {
+                            "event_type": "documento_fascicolo_lex",
+                            "blocking": False,
+                            "issues": [],
+                            "procedural_profile": profile,
+                            "remote_hearing": active_remote_hearing,
+                            "deadline_proposal": proposal,
+                            "document_presidio": {
+                                "source": "lex_document_intelligence",
+                                "document_id": source.source_id,
+                                "document_ai_id": str(getattr(record, "id", "") or ""),
+                                "filename": document_name,
+                                "sha256": str(getattr(record, "sha256", "") or source.sha256 or ""),
+                                "retrieval_metadata": dict(source.metadata),
+                                "remote_hearing_evidence": remote_hearing,
+                            },
+                        }
+                        existing_deadline = self._document_presidio_existing_deadline(
+                            fascicolo_id=fascicolo_id,
+                            target_date=target_date,
+                            kind=kind,
+                        )
+                        if existing_deadline:
+                            report["already_presided"] += 1
+                            activity = self._upsert_document_presidio_activity(
+                                fascicoli_manager,
+                                fascicolo_id=fascicolo_id,
+                                document_id=source.source_id,
+                                message_id=message_id,
+                                kind=kind,
+                                target_date=target_date,
+                                title=proposal["title"],
+                                description=proposal["reason"],
+                                agenda_id=existing_deadline.get("agenda_id", ""),
+                            )
+                            report["items"].append(
+                                {
+                                    "status": "already_presided",
+                                    "fascicolo_id": fascicolo_id,
+                                    "message_id": message_id,
+                                    "document": document_name,
+                                    "due_date": target_date,
+                                    "kind": kind,
+                                    "retrieval_metadata": dict(source.metadata),
+                                    "deadline": existing_deadline,
+                                    "activity": activity,
+                                }
+                            )
+                            continue
+                        deadline = self.schedule_deadline_from_payload(
+                            message_id,
+                            parsed=parsed,
+                            report=report_payload,
+                            message={"linked_fascicolo_id": fascicolo_id},
+                            actor=actor,
+                            due_date=target_date,
+                        )
+                        agenda = deadline.get("agenda") if isinstance(deadline.get("agenda"), dict) else {}
+                        agenda_id = clean_text(agenda.get("agenda_id") or "")
+                        activity = self._upsert_document_presidio_activity(
+                            fascicoli_manager,
+                            fascicolo_id=fascicolo_id,
+                            document_id=source.source_id,
+                            message_id=message_id,
+                            kind=kind,
+                            target_date=target_date,
+                            title=proposal["title"],
+                            description=proposal["reason"],
+                            agenda_id=agenda_id,
+                        )
+                        item = {
+                            "status": "scheduled" if deadline.get("ok") else "not_scheduled",
+                            "fascicolo_id": fascicolo_id,
+                            "message_id": message_id,
+                            "document": document_name,
+                            "due_date": target_date,
+                            "kind": kind,
+                            "retrieval_metadata": dict(source.metadata),
+                            "deadline": deadline,
+                            "activity": activity,
+                        }
+                        report["items"].append(item)
+                        if deadline.get("ok"):
+                            report["scheduled"] += 1
+                            report["notification_jobs"].append(
+                                {
+                                    "job_type": "document_presidio",
+                                    "message_id": message_id,
+                                    "result": {"auto_deadline": deadline},
+                                }
+                            )
+                            try:
+                                with self.connect() as conn:
+                                    self.append_audit(
+                                        conn,
+                                        action="pec.document_presidio.scheduled",
+                                        resource_type="fascicolo",
+                                        resource_id=fascicolo_id,
+                                        payload={
+                                            "message_id": message_id,
+                                            "document": document_name,
+                                            "due_date": target_date,
+                                            "kind": kind,
+                                            "deadline": deadline,
+                                            "activity": activity,
+                                        },
+                                        actor=actor,
+                                    )
+                            except Exception:
+                                pass
+                        else:
+                            report["skipped"] += 1
+            except Exception as exc:
+                report["errors"].append(f"{fascicolo_id}: {exc}")
+        report["errors"] = list(report["errors"])[:30]
+        return report
 
     def enqueue_missing_operational_jobs(self, message_id: str, *, actor: str = "pec-presidio") -> dict[str, Any]:
         """Rimette in coda solo il prossimo passaggio mancante per una PEC già acquisita.
@@ -4738,6 +6000,7 @@ class PecAuditRepository:
             fascicoli = GestioneFascicoli(
                 db_path=str(self.fascicoli_db_path),
                 documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
             )
         except Exception:
             return {"ok": False, "message": "Ricerca fascicolo non disponibile in questo momento.", "requires_confirmation": False, "candidates": []}
@@ -4841,6 +6104,7 @@ class PecAuditRepository:
             manager = GestioneFascicoli(
                 db_path=str(self.fascicoli_db_path),
                 documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
             )
             subject = clean_text(((json.loads(row["metadata_json"] or "{}").get("headers") or {}).get("subject") or "PEC"), 80)
             doc = manager.aggiungi_documento(
@@ -4949,7 +6213,10 @@ class PecAuditRepository:
                 root = p.parent.parent if p.parent.name.lower() in tenant_child_dirs else p.parent
             else:
                 root = p.parent if p.name.lower() in tenant_child_dirs else p
-            return StudioDB.get(str(root / "studio.db"))
+            studio_db_path = root / "studio.db"
+            if not studio_db_path.exists():
+                return None
+            return StudioDB.get(str(studio_db_path))
         except Exception:
             return None
 
@@ -5009,23 +6276,38 @@ class PecAuditRepository:
             source_url = f"/api/pec/messages/{message_id}"
             remote_lines = _remote_hearing_note_lines(report, proposal)
             remote_extra = _remote_hearing_deadline_extra(report, proposal)
+            profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
+            remote_hearing_payload = report.get("remote_hearing") if isinstance(report.get("remote_hearing"), dict) else {}
+            operational_message = _procedural_operational_message(profile, remote_hearing_payload)
             data_ora = _agenda_datetime_for_pec_proposal(target_date, proposal, report, remote_extra)
             if not data_ora:
-                return {
-                    "ok": False,
-                    "agenda_skipped": True,
-                    "message": "Agenda non aggiornata: la PEC non contiene un'udienza o un impegno con orario certo.",
-                    "agenda_outcome": "skipped_no_certain_time",
-                }
+                fallback_day = _date_from_iso_or_it(target_date) if proposal.get("force_agenda_without_time") else None
+                if fallback_day:
+                    data_ora = datetime.combine(fallback_day, datetime.min.time()).replace(hour=9).isoformat(timespec="seconds")
+                else:
+                    return {
+                        "ok": False,
+                        "agenda_skipped": True,
+                        "message": "Agenda non aggiornata: la PEC non contiene un'udienza o un impegno con orario certo.",
+                        "agenda_outcome": "skipped_no_certain_time",
+                    }
             agenda_title = _agenda_title_for_pec_deadline(title)
             remote_hearing = bool(remote_extra.get("remote_hearing_detected") or remote_extra.get("remote_hearing_url"))
             is_hearing = remote_hearing or str(proposal.get("deadline_kind") or "") == "udienza" or "udienza" in agenda_title.lower()
             location = "Udienza da remoto" if remote_extra.get("remote_hearing_url") else ""
             duration = 60 if is_hearing else 45
+            agenda_cliente = clean_text(profile.get("cliente") or "", 160)
+            agenda_tribunale = clean_text(profile.get("ufficio") or "", 180)
+            agenda_procedimento = clean_text(profile.get("numero_rg") or "", 60)
+            if agenda_procedimento and not agenda_procedimento.upper().startswith("RG"):
+                agenda_procedimento = f"RG {agenda_procedimento}"
+            if not agenda_procedimento:
+                agenda_procedimento = linked_fascicolo_id
             description = "\n".join(
                 part
                 for part in (
                     f"PEC_AUDIT:{message_id}",
+                    operational_message,
                     clean_text(proposal.get("reason")) or "Presidio operativo generato dalla PEC.",
                     *remote_lines,
                     f"Fascicolo: {linked_fascicolo_id}" if linked_fascicolo_id else "",
@@ -5061,9 +6343,18 @@ class PecAuditRepository:
                 if last_report.get("outcome") != "conflict":
                     appuntamento = last_report.get("appuntamento")
                     agenda_id = str(getattr(appuntamento, "id", "") or "")
-                    if agenda_id and linked_fascicolo_id:
+                    agenda_updates = {
+                        key: value
+                        for key, value in {
+                            "procedimento": agenda_procedimento,
+                            "cliente": agenda_cliente,
+                            "tribunale": agenda_tribunale,
+                        }.items()
+                        if value
+                    }
+                    if agenda_id and agenda_updates:
                         try:
-                            appuntamento = agenda.modifica(agenda_id, procedimento=linked_fascicolo_id)
+                            appuntamento = agenda.modifica(agenda_id, **agenda_updates)
                         except Exception:
                             pass
                     related_updated = self._sync_related_pec_agenda_entries(
@@ -5082,7 +6373,7 @@ class PecAuditRepository:
                     )
                     return {
                         "ok": True,
-                        "message": "Udienza PEC collegata all'agenda.",
+                        "message": "Presidio operativo collegato all'agenda.",
                         "agenda_id": agenda_id,
                         "agenda_outcome": str(last_report.get("outcome") or ""),
                         "agenda_href": f"/agenda/{agenda_id}" if agenda_id else "/agenda",
@@ -5693,6 +6984,20 @@ class PecAuditRepository:
         marker = f"PEC_AUDIT:{message_id}"
         remote_extra = _remote_hearing_deadline_extra(report, proposal)
         remote_note_lines = _remote_hearing_note_lines(report, proposal)
+        profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
+        remote_hearing_payload = report.get("remote_hearing") if isinstance(report.get("remote_hearing"), dict) else {}
+        deadline_description = clean_text(
+            "\n".join(
+                part
+                for part in (
+                    _procedural_operational_message(profile, remote_hearing_payload),
+                    clean_text(proposal.get("reason")),
+                    *remote_note_lines,
+                )
+                if part
+            ),
+            1600,
+        ) or "Scadenza generata automaticamente dalla pipeline PEC audit-grade."
         try:
             from pct.scadenziario import TipoTermine
 
@@ -5751,7 +7056,7 @@ class PecAuditRepository:
                 else TipoTermine.ADEMPIMENTO,
                 data_scadenza=target_date,
                 id_fascicolo=str(message.get("linked_fascicolo_id") or ""),
-                descrizione=clean_text(proposal.get("reason")) or "Scadenza generata automaticamente dalla pipeline PEC audit-grade.",
+                descrizione=deadline_description,
                 note="\n".join(
                     part
                     for part in (
@@ -5835,6 +7140,9 @@ class PecAuditRepository:
         report = detail.get("validation_report") if isinstance(detail.get("validation_report"), dict) else {}
         proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
         target_date = due_date or clean_text(proposal.get("due_date"))
+        if due_date:
+            proposal = dict(proposal)
+            proposal["force_agenda_without_time"] = True
         if not target_date:
             return {"ok": False, "message": "Nessuna scadenza automatica calcolabile per questa PEC.", "proposal": proposal}
         if self._is_expired_deadline_date(target_date):
@@ -5858,6 +7166,20 @@ class PecAuditRepository:
         marker = f"PEC_AUDIT:{message_id}"
         remote_extra = _remote_hearing_deadline_extra(report, proposal)
         remote_note_lines = _remote_hearing_note_lines(report, proposal)
+        profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
+        remote_hearing_payload = report.get("remote_hearing") if isinstance(report.get("remote_hearing"), dict) else {}
+        deadline_description = clean_text(
+            "\n".join(
+                part
+                for part in (
+                    _procedural_operational_message(profile, remote_hearing_payload),
+                    clean_text(proposal.get("reason")),
+                    *remote_note_lines,
+                )
+                if part
+            ),
+            1600,
+        ) or "Scadenza generata automaticamente dalla pipeline PEC audit-grade."
         try:
             from pct.scadenziario import TipoTermine
 
@@ -5916,7 +7238,7 @@ class PecAuditRepository:
                 else TipoTermine.ADEMPIMENTO,
                 data_scadenza=target_date,
                 id_fascicolo=str(message.get("linked_fascicolo_id") or ""),
-                descrizione=clean_text(proposal.get("reason")) or "Scadenza generata automaticamente dalla pipeline PEC audit-grade.",
+                descrizione=deadline_description,
                 note="\n".join(
                     part
                     for part in (

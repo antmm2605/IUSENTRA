@@ -946,6 +946,8 @@ body.react-shell-page #root{
 .iu-ag-focus span{display:block;color:var(--iu-slate-500);font-size:11px;font-weight:950;text-transform:uppercase}
 .iu-ag-focus h2{margin:5px 0;color:var(--iu-navy-900);font-size:24px;line-height:1.1}
 .iu-ag-focus p{margin:0;color:var(--iu-slate-600);font-size:13px;font-weight:750}
+.iu-ag-focus__details{margin:12px 0 0;padding:0;display:grid;gap:6px;list-style:none}
+.iu-ag-focus__details li{padding:8px 10px;border:1px solid rgba(37,99,235,.12);border-radius:10px;background:rgba(255,255,255,.72);color:var(--iu-navy-900);font-size:12px;font-weight:800;line-height:1.35}
 .iu-ag-focus dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0}
 .iu-ag-focus dt{color:var(--iu-slate-500);font-size:11px;font-weight:950;text-transform:uppercase}
 .iu-ag-focus dd{margin:2px 0 0;color:var(--iu-navy-900);font-size:13px;font-weight:900}
@@ -953,6 +955,14 @@ body.react-shell-page #root{
 .iu-ag-focus__actions a,.iu-ag-focus__actions button{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 12px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:var(--iu-navy-900);font-size:12px;font-weight:950;text-decoration:none;cursor:pointer}
 .iu-ag-focus__actions a:first-child{background:var(--iu-navy-900);color:#fff}
 .iu-ag-focus__actions form{margin:0}
+@media (max-width: 720px){
+  .iu-ag-focus{grid-template-columns:minmax(0,1fr);padding:14px;gap:12px}
+  .iu-ag-focus h2{font-size:22px;line-height:1.15;overflow-wrap:anywhere}
+  .iu-ag-focus p,.iu-ag-focus__details li,.iu-ag-focus dd{overflow-wrap:anywhere}
+  .iu-ag-focus dl{grid-template-columns:minmax(0,1fr);gap:8px}
+  .iu-ag-focus__actions{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  .iu-ag-focus__actions a,.iu-ag-focus__actions button{width:100%;justify-content:center}
+}
 .iu-ag-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 .iu-ag-kpi{min-height:104px;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"icon label" "icon value" "icon note";align-items:center;column-gap:14px;padding:16px;border:1px solid var(--iu-border);border-radius:16px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft)}
 .iu-ag-kpi>div{grid-area:icon;width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:rgba(37,99,235,.09);color:var(--iu-blue-600)}

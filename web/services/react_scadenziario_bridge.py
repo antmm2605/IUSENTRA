@@ -80,6 +80,11 @@ def _pec_context(scadenza: Any) -> str:
     )
 
 
+def _is_document_presidio_lex(scadenza: Any) -> bool:
+    context = _normalise_for_matching(_pec_context(scadenza))
+    return "documento_fascicolo_lex" in context or "docpresidio:" in context
+
+
 def _pec_rg_label(context: str) -> str:
     match = PEC_RG_RE.search(context) or PEC_NUMBER_RE.search(context)
     if not match:
@@ -160,6 +165,10 @@ def _visible_legal_text(value: Any, limit: int = 160) -> str:
 
 
 def _legal_scadenza_title(scadenza: Any) -> str:
+    if _is_document_presidio_lex(scadenza):
+        title = _visible_legal_text(getattr(scadenza, "titolo", ""), 112)
+        if title:
+            return title
     if is_scadenza_pec(scadenza):
         context = _pec_context(scadenza)
         summary = _pec_event_summary(context)
@@ -182,6 +191,13 @@ def _legal_scadenza_title(scadenza: Any) -> str:
 
 
 def _legal_scadenza_description(scadenza: Any) -> str:
+    if _is_document_presidio_lex(scadenza):
+        description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 220)
+        if description:
+            return description
+        note = _visible_legal_text(getattr(scadenza, "note", ""), 220)
+        if note:
+            return note
     if is_scadenza_pec(scadenza):
         context = _pec_context(scadenza)
         summary = _pec_event_summary(context)
@@ -203,6 +219,17 @@ def _legal_scadenza_description(scadenza: Any) -> str:
     if description:
         return description
     return _visible_legal_text(getattr(scadenza, "note", ""), 150)
+
+
+def _legal_scadenza_detail_description(scadenza: Any) -> str:
+    if _is_document_presidio_lex(scadenza):
+        description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 900)
+        if description:
+            return description
+    description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 520)
+    if description:
+        return description
+    return _visible_legal_text(getattr(scadenza, "note", ""), 520)
 
 
 def _parse_date(value: Any) -> date | None:
@@ -286,7 +313,39 @@ def _source_event_label(value: Any) -> str:
     return labels.get(raw, raw.replace("_", " ").title())
 
 
+def _document_presidio_event_label(scadenza: Any) -> str:
+    tipo = _enum_value(getattr(scadenza, "tipo", ""))
+    title_context = _normalise_for_matching(getattr(scadenza, "titolo", ""))
+    context = _normalise_for_matching(
+        " ".join(
+            str(value or "")
+            for value in (
+                getattr(scadenza, "titolo", ""),
+                getattr(scadenza, "descrizione", ""),
+                getattr(scadenza, "note", ""),
+            )
+        )
+    )
+    if "deposito note" in title_context or "deposito note" in context:
+        return "Deposito note scritte"
+    if "deposito memoria" in title_context or "deposito memoria" in context or tipo == TipoTermine.DEPOSITO_MEMORIA.value:
+        return "Deposito memoria"
+    if "deposito atto" in title_context or "deposito atto" in context or tipo == TipoTermine.DEPOSITO_ATTO.value:
+        return "Deposito atto"
+    if "notifica" in title_context or "notifica" in context or tipo == TipoTermine.NOTIFICA.value:
+        return "Notifica"
+    if tipo == TipoTermine.UDIENZA.value or "fissazione udienza" in title_context or "udienza da remoto" in context:
+        return "Udienza"
+    if tipo in {TipoTermine.TERMINE_PERENTORIO.value, TipoTermine.TERMINE_ORDINATORIO.value}:
+        return "Termine processuale"
+    if tipo == TipoTermine.ADEMPIMENTO.value:
+        return "Attività processuale"
+    return "Presidio documentale Lex"
+
+
 def _source_event_label_for_scadenza(scadenza: Any) -> str:
+    if _is_document_presidio_lex(scadenza):
+        return _document_presidio_event_label(scadenza)
     if is_scadenza_pec(scadenza):
         summary = _pec_event_summary(_pec_context(scadenza))
         if "udienza" in summary:
@@ -514,6 +573,7 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
         "dateLabel": _format_date(due_date),
         "title": _legal_scadenza_title(scadenza),
         "description": _legal_scadenza_description(scadenza),
+        "detailDescription": _legal_scadenza_detail_description(scadenza),
         "type": _enum_value(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)) or TipoTermine.ALTRO.value,
         "typeLabel": _type_label(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)),
         "priority": priority,

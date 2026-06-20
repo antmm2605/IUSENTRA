@@ -29,6 +29,7 @@ def repository_from_paths(paths: Mapping[str, Any], *, tenant_label: str = "defa
         fascicoli_docs_path=_path_from_mapping(paths, "FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_path_from_mapping(paths, "SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
         agenda_db_path=_path_from_mapping(paths, "AGENDA_DB", "./agenda/appuntamenti.json"),
+        calendar_sync_db_path=_path_from_mapping(paths, "CALENDAR_SYNC_DB", "./agenda/calendar_sync_engine.json"),
     )
 
 
@@ -41,10 +42,26 @@ def run_workers_for_paths(paths: Mapping[str, Any], *, tenant_label: str, limit:
     repo = repository_from_paths(paths, tenant_label=tenant_label)
     report = repo.run_pending_jobs(limit=limit, actor="scheduler")
     try:
+        document_presidio = repo.recover_missing_hearings_from_fascicolo_documents(
+            limit=max(10, min(int(limit or 200), 80)),
+            actor="scheduler",
+        )
+        if (
+            document_presidio.get("scheduled")
+            or document_presidio.get("already_presided")
+            or document_presidio.get("errors")
+        ):
+            report["document_presidio"] = document_presidio
+    except Exception as exc:
+        report["document_presidio"] = {"ok": False, "errors": [str(exc)]}
+    try:
+        notification_jobs = list(report.get("jobs") or [])
+        if isinstance(report.get("document_presidio"), dict):
+            notification_jobs.extend(list((report["document_presidio"] or {}).get("notification_jobs") or []))
         notified = notify_auto_deadlines_for_paths(
             paths,
             tenant_label=tenant_label,
-            jobs=list(report.get("jobs") or []),
+            jobs=notification_jobs,
         )
         if notified.get("created") or notified.get("errors"):
             report["auto_deadline_notifications"] = notified
@@ -125,7 +142,8 @@ def notify_auto_deadlines_for_paths(
     report = {"created": 0, "duplicates": 0, "errors": 0, "recipients": 0}
     deadlines: list[tuple[str, dict[str, Any]]] = []
     for job in jobs:
-        if str(job.get("job_type") or "") != "link":
+        job_type = str(job.get("job_type") or "")
+        if job_type not in {"link", "document_presidio"}:
             continue
         result = job.get("result") if isinstance(job.get("result"), dict) else {}
         deadline = result.get("auto_deadline") if isinstance(result.get("auto_deadline"), dict) else {}
@@ -156,7 +174,8 @@ def notify_auto_deadlines_for_paths(
         source_id = message_id or str(deadline.get("deadline_id") or "")
         agenda_text = " e all'agenda" if agenda_id else ""
         due_text = f" per il {due_date}" if due_date else ""
-        body = f"Presidio PEC automatico: scadenza collegata allo scadenziario{agenda_text}{due_text}."
+        origin = "Presidio documentale Lex" if source_id.startswith("docpresidio:") else "Presidio PEC automatico"
+        body = f"{origin}: scadenza collegata allo scadenziario{agenda_text}{due_text}."
         for user_id in recipients:
             try:
                 _record, created, _summary = service.create_notification(
@@ -164,7 +183,7 @@ def notify_auto_deadlines_for_paths(
                     user_id=user_id,
                     type="pec_deadline",
                     priority="important",
-                    title="Scadenza PEC registrata",
+                    title="Scadenza operativa registrata" if source_id.startswith("docpresidio:") else "Scadenza PEC registrata",
                     body=body,
                     href="/scadenziario?vista=pec",
                     source_type="pec_deadline",

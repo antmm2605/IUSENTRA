@@ -47,6 +47,7 @@ export type ScadenziarioRow = {
   dateLabel: string
   title: string
   description: string
+  detailDescription: string
   type: string
   typeLabel: string
   priority: ScadenziarioPriority
@@ -461,6 +462,7 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     dateLabel: asString(item.dateLabel, asString(item.date, '-')),
     title: asString(item.title, 'Scadenza senza titolo'),
     description: asString(item.description),
+    detailDescription: asString(item.detailDescription, asString(item.description)),
     type: asString(item.type, 'ALTRO'),
     typeLabel: asString(item.typeLabel, asString(item.type, 'Altro')),
     priority,

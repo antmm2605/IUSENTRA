@@ -1,5 +1,19 @@
 # Pytest shard confermati OK
 
+## PEC presidiate e presidio documentale Lex - 2026-06-20
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/pec_pipeline.py pct/document_intelligence/sources.py web/services/pec_pipeline_runtime.py pct/email_client.py web/services/topbar_operational.py` | OK | Sintassi confermata per pipeline PEC, metadati Lex/RAG, worker scheduler e soppressione topbar ricevute tecniche. |
+| `python -m pytest -q tests/test_pec_audit_pipeline.py -k "documentale_lex or pct_deposit or scadenziario_ignora or topbar_sopprime" --tb=short` | OK | `7/7` passati: correlazione deposito PCT, scadenziario senza ricevute generiche, topbar senza ricevute tecniche, recupero Lex da documento fascicolo con udienza, termine note scritte, link remoto, metadati tenant/fascicolo/documento/hash/RG/ufficio e idempotenza. |
+| `python -m pytest -q tests/test_document_intelligence_api.py -k "lex_indexing or indicizza_file_anomalo or preferisce_record" --tb=short` | OK | `2/2` passati: indicizzazione Lex esistente preservata dopo arricchimento dei metadati delle sorgenti documentali. |
+| `python -m pytest -q tests/test_pec_audit_pipeline.py --tb=short` | OK | `53/53` passati sull'intera suite PEC audit/pipeline. |
+| `python -m pytest -q tests/test_react_scadenziario_additions.py tests/test_react_shell.py::test_react_agenda_bridge_presidio_documentale_lex_mostra_link_udienza_da_remoto tests/test_react_shell.py::test_react_agenda_bridge_presidio_documentale_lex_link_storico_da_controllare tests/test_react_shell.py::test_react_agenda_bridge_presidio_documentale_lex_non_confonde_deposito_note_con_udienza tests/test_react_shell.py::test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale --tb=short` | OK | `14/14` passati: scadenziario e agenda React espongono cliente, parte/soggetto, RG, ufficio, link audiovisivo, allegato fonte e stato link senza confondere deposito note con udienza. |
+| `python -m pytest -q tests/test_utf8_integrity.py tests/test_react_asset_retention.py --tb=short` | OK | `6/6` passati dopo testi italiani, accenti e nuovo bundle React. |
+| `corepack pnpm --filter @iusentra/studio build:vite` | OK | Bundle React generato con CSS responsive Agenda e manifest aggiornato. |
+| Docker locale reale `127.0.0.1:8080`; browser integrato desktop/mobile | OK osservato | `/api/pronto` `versione=2.253.84`; Agenda dettaglio udienza remota e Scadenziario dettaglio con cliente, parte/soggetto, Tribunale di Palmi, link Teams, allegato completo, stato link verificato, zero errori console e nessuna ricevuta tecnica grezza. |
+| Pulizia runtime controllata e audit tenant | OK | Rimossi dal tenant locale i marker `CODEX-PEC-LEX-REAL`, l'utente test `codex.visual.pec`, il fascicolo/scadenze/agenda/documenti Document AI generati dalla prova; `audit_tenant_data_structure.py --json` e `audit_data_flow_contract.py --json` confermano `ok=true`, `errors=0`, `operational_untracked=0`. |
+
 ## PAT/SIGA modello ministeriale XFA ufficiale 2.253.84 - 2026-06-20
 
 | Comando / verifica | Esito | Nota |

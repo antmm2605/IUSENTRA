@@ -4014,6 +4014,137 @@ def test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale(tmp
         assert token.lower() not in visible.lower()
 
 
+def test_react_agenda_bridge_presidio_documentale_lex_non_confonde_deposito_note_con_udienza(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    due_day = date(2026, 7, 9)
+
+    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Deposito note scritte ex art. 127-ter c.p.c. - 09/07/2026 - RG 1754/2026",
+        TipoAppuntamento.SCADENZA,
+        datetime.combine(due_day, datetime.min.time()).replace(hour=9).isoformat(timespec="minutes"),
+        durata_minuti=45,
+        cliente="Mario Rossi Codex",
+        procedimento="RG 1754/2026",
+        tribunale="Tribunale di Palmi",
+        note=(
+            "PEC_AUDIT:docpresidio:FASC:DOC:termine:2026-07-09\n"
+            "Presidio documentale Lex AI: verificare il provvedimento e predisporre l'attività processuale rilevata.\n"
+            "Ufficio: Tribunale di Palmi\n"
+            "Giudice: TOSONI CLAUDIA\n"
+            "RG: 1754/2026\n"
+            "Cliente: Mario Rossi Codex\n"
+            "Parte/soggetto: INPS - Istituto Nazionale Previdenza Sociale\n"
+            "Evento: Decreto fissazione udienza\n"
+            "Attività per l'avvocato: Deposito note scritte ex art. 127-ter c.p.c.. "
+            "Contesto letto: FISSA termine del 09/07/2026 per il deposito di note scritte. "
+            "Fissa inoltre udienza da remoto del 21/07/2026 ore 09:30."
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": due_day.isoformat(), "to": due_day.isoformat(), "selected_id": appointment.id},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    event = next(item for item in payload["events"] if item["id"] == appointment.id)
+
+    assert response.status_code == 200
+    assert event["legalLabel"] == "Deposito note scritte"
+    assert event["originTitle"].startswith("Deposito note scritte ex art. 127-ter c.p.c.")
+    assert "Mario Rossi Codex" in event["displayTitle"]
+    assert "RG 1754/2026" in event["displayTitle"]
+    assert any("Parte/soggetto: INPS - Istituto Nazionale Previdenza Sociale" in line for line in event["detailLines"])
+    assert "Fissazione udienza" not in event["legalLabel"]
+
+
+def test_react_agenda_bridge_presidio_documentale_lex_mostra_link_udienza_da_remoto(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    hearing_day = date(2026, 7, 21)
+    link = "https://teams.microsoft.com/l/meetup-join/19%3acodex-presidio-lex-palmi"
+    long_context = "Contesto letto: " + ("estratto documentale " * 95) + "\n"
+
+    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Fissazione udienza - 21/07/2026 - RG 1754/2026",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(hearing_day, datetime.min.time()).replace(hour=9, minute=30).isoformat(timespec="minutes"),
+        durata_minuti=30,
+        cliente="Mario Rossi Codex",
+        procedimento="RG 1754/2026",
+        tribunale="Tribunale di Palmi",
+        luogo="Udienza da remoto",
+        note=(
+            "PEC_AUDIT:docpresidio:FASC:DOC:udienza:2026-07-21\n"
+            "Presidio documentale Lex AI: verificare il provvedimento e predisporre l'attività processuale rilevata.\n"
+            "Ufficio: Tribunale di Palmi\n"
+            "Giudice: TOSONI CLAUDIA\n"
+            "RG: 1754/2026\n"
+            "Cliente: Mario Rossi Codex\n"
+            "Parte/soggetto: INPS - Istituto Nazionale Previdenza Sociale\n"
+            f"{long_context}"
+            f"Link udienza audiovisiva: {link}\n"
+            "Fonte link udienza: Decreto fissazione udienza 8960334s.pdf.zip\n"
+            "Verifica link udienza: identico al testo estratto dall'allegato"
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": hearing_day.isoformat(), "to": hearing_day.isoformat(), "selected_id": appointment.id},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    event = next(item for item in payload["events"] if item["id"] == appointment.id)
+
+    assert response.status_code == 200
+    assert event["legalLabel"] == "Udienza"
+    assert "Mario Rossi Codex" in event["displayTitle"]
+    assert "RG 1754/2026" in event["displayTitle"]
+    assert any(f"Link udienza audiovisiva: {link}" in line for line in event["detailLines"])
+    assert any("Allegato udienza: Decreto fissazione udienza 8960334s.pdf.zip" in line for line in event["detailLines"])
+    assert any("Link udienza verificato sull'allegato." in line for line in event["detailLines"])
+
+
+def test_react_agenda_bridge_presidio_documentale_lex_link_storico_da_controllare(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    hearing_day = date(2026, 7, 21)
+    link = "https://teams.microsoft.com/l/meetup-join/19%3acodex-presidio-lex-palmi"
+
+    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Fissazione udienza - 21/07/2026 - RG 1754/2026",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(hearing_day, datetime.min.time()).replace(hour=9, minute=30).isoformat(timespec="minutes"),
+        cliente="Mario Rossi Codex",
+        procedimento="RG 1754/2026",
+        tribunale="Tribunale di Palmi",
+        luogo="Udienza da remoto",
+        note=(
+            "PEC_AUDIT:docpresidio:FASC:DOC:udienza:2026-07-21\n"
+            "Cliente: Mario Rossi Codex\n"
+            "Parte/soggetto: INPS - Istituto Nazionale Previdenza Sociale\n"
+            f"Link udienza audiovisiva: {link}\n"
+            "Fonte link udienza: Decreto fissazione udienza 8960334s.pdf.zip"
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": hearing_day.isoformat(), "to": hearing_day.isoformat(), "selected_id": appointment.id},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    event = next(item for item in response.get_json()["events"] if item["id"] == appointment.id)
+
+    assert response.status_code == 200
+    assert any("Link udienza audiovisiva: https://teams.microsoft.com" in line for line in event["detailLines"])
+    assert any(
+        "Allegato udienza: Decreto fissazione udienza 8960334s.pdf.zip - link da controllare sull'allegato" in line
+        for line in event["detailLines"]
+    )
+
+
 def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

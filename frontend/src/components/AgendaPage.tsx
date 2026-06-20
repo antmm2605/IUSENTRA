@@ -119,6 +119,16 @@ function routeAgendaId(): string {
   return decodeURIComponent(match[1])
 }
 
+function initialAgendaDate(): Date {
+  const params = new URLSearchParams(window.location.search)
+  const raw = params.get('data') || params.get('date') || ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const parsed = new Date(`${raw}T12:00:00`)
+    if (!Number.isNaN(parsed.getTime())) return parsed
+  }
+  return new Date()
+}
+
 function localDateTimePayload(value: string): string {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
@@ -374,6 +384,7 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
   const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
   const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
   const completeHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/stato`
+  const visibleDetails = event.detailLines.filter((line) => line.trim()).slice(0, 8)
   return (
     <section className="iu-ag-focus">
       <div>
@@ -381,6 +392,11 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
         <span>Dettaglio operativo</span>
         <h2>{agendaLegalLabel(event)} · {agendaTitle(event)}</h2>
         <p>{event.subtitle || event.notes || event.location || 'Verifica il fascicolo collegato prima dell’attività.'}</p>
+        {visibleDetails.length ? (
+          <ul className="iu-ag-focus__details">
+            {visibleDetails.map((line) => <li key={line}>{line}</li>)}
+          </ul>
+        ) : null}
       </div>
       <dl>
         <div><dt>Data</dt><dd>{new Date(event.start).toLocaleDateString('it-IT')}</dd></div>
@@ -414,7 +430,7 @@ function MessageCircleIcon() {
 }
 
 export function AgendaPage() {
-  const [anchorDate, setAnchorDate] = useState(() => new Date())
+  const [anchorDate, setAnchorDate] = useState(initialAgendaDate)
   const [view, setView] = useState<AgendaView>('week')
   const [kind, setKind] = useState<AgendaKind>('tutti')
   const [query, setQuery] = useState('')

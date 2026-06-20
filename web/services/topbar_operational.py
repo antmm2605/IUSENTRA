@@ -289,6 +289,39 @@ def _email_manager() -> GestioneEmailRicevute:
     return GestioneEmailRicevute(_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
 
 
+def _is_raw_pct_deposit_receipt_email(email: Any) -> bool:
+    subject = _clean_text(getattr(email, "oggetto", ""), limit=500).lower()
+    body = _clean_text(
+        " ".join(
+            [
+                str(getattr(email, "corpo_testo", "") or ""),
+                str(getattr(email, "corpo_html", "") or ""),
+            ]
+        ),
+        limit=2500,
+    ).lower()
+    status = _clean_text(getattr(email, "stato_pct", ""), limit=80).upper()
+    haystack = f"{subject} {body}"
+    technical_subject = any(
+        token in haystack
+        for token in (
+            "accettazione deposito telematico",
+            "esito controlli automatici deposito telematico",
+            "esito controlli deposito",
+            "idbusta",
+        )
+    )
+    technical_state = status in {
+        "ACCETTATO_PEC",
+        "CONSEGNATO",
+        "WARN_CONTROLLI",
+        "ERRORE_CONTROLLI",
+        "ACCETTATO_CANCELLERIA",
+        "RIFIUTATO_CANCELLERIA",
+    } and "deposito" in haystack
+    return bool(technical_subject or technical_state)
+
+
 def _global_search_db_path() -> Path:
     configured = current_app.config.get("GLOBAL_SEARCH_INDEX")
     if configured:
@@ -766,6 +799,8 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
     if _has_perm(user, "messaggi.leggi"):
         try:
             for email in _email_manager().tutte(cartella=CartellaEmail.INBOX, solo_non_lette=True)[:10]:
+                if _is_raw_pct_deposit_receipt_email(email):
+                    continue
                 timestamp = email.timestamp or email.ricevuta_il
                 priority = "urgent" if getattr(email, "stato_pct", "") in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"} else "important" if getattr(email, "e_pst", False) else "normal"
                 items.append(

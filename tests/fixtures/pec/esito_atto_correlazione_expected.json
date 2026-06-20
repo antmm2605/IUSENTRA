@@ -1,0 +1,53 @@
+{
+  "correlation": {
+    "primary_key": "id_busta",
+    "primary_value": "35508878",
+    "fallback_keys": {
+      "rg": "1733/2026",
+      "reference_id": "RefID_001_saAMJE8yxr",
+      "practice_code": "JQ332-L01",
+      "source_message_id": "<jpec1329.20260615160803.99187.407.1.1@pec.aruba.it>",
+      "fingerprint": {
+        "algorithm": "SHA-1",
+        "encoding": "base64",
+        "value": "MFW/1lX5G7V+bgLmag47T/wcpiU="
+      }
+    }
+  },
+  "deposit": {
+    "rg": "1733/2026",
+    "document_name": "Ricorso Punturiero (originale notificato).pdf",
+    "display_subject": "Deposito telematico: Ricorso Punturiero (originale notificato).pdf",
+    "technical_messages_count": 2,
+    "visible_deposit_cards_count": 1,
+    "final_status": "accepted_manually",
+    "requires_redeposit": false,
+    "requires_human_review": false,
+    "history": [
+      {
+        "outcome_code": -1,
+        "occurred_at": "2026-06-15T16:08:59+02:00",
+        "status": "awaiting_clerk_confirmation",
+        "requires_redeposit": false,
+        "description_contains": "non è necessario effettuare nuovamente il deposito"
+      },
+      {
+        "outcome_code": 2,
+        "occurred_at": "2026-06-16T07:35:18+02:00",
+        "status": "accepted_manually",
+        "requires_redeposit": false,
+        "description_contains": "Accettazione manuale avvenuta con successo"
+      }
+    ]
+  },
+  "notifications": {
+    "raw_acceptance_notification_created": false,
+    "raw_automatic_checks_notification_created": false,
+    "topbar_raw_technical_notification_created": false,
+    "mobile_push_raw_technical_notification_created": false
+  },
+  "idempotency": {
+    "reimport_changes_deposit_count": false,
+    "reimport_changes_history_count": false
+  }
+}

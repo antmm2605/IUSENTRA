@@ -231,6 +231,7 @@ from web.services.react_fatturazione_bridge import (
     cancel_react_fatturazione_document,
     create_react_fattura,
     mark_react_fatturazione_paid,
+    update_react_fatturazione_numbering,
     update_react_fatturazione_status,
 )
 from web.services.react_compensi_forensi_bridge import (
@@ -5211,6 +5212,7 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
         return jsonify({"ok": False, "message": "Operazione non autorizzata.", "errors": {"permission": "Operazione non autorizzata."}}), 403
     result, status = update_react_fascicolo_payment(
         get_fascicoli=_fascicoli_loader(),
+        get_fatturazione=get_fatturazione,
         id_fasc=id_fasc,
         kind=kind,
         payload=_request_payload(),
@@ -7423,6 +7425,28 @@ def fatturazione_nuova_crea():
             "errors": {"server": "Errore applicativo controllato."},
             "item": None,
         }), 500
+
+
+@api_v1_react.post("/fatturazione/numerazione")
+@_richiedi_auth
+def fatturazione_configura_numerazione():
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "numbering": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = update_react_fatturazione_numbering(
+        get_fatturazione=get_fatturazione,
+        current_user=utente,
+        payload=payload,
+    )
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.get("/fatturazione/<id_documento>")

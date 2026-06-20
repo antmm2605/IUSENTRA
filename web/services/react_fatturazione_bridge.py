@@ -217,6 +217,25 @@ def _sdi_status_payload(parcella: Any) -> dict[str, Any]:
     }
 
 
+def _document_payload(parcella: Any) -> dict[str, Any]:
+    data = getattr(parcella, "dati_personalizzati", {}) or {}
+    if not isinstance(data, dict):
+        return {}
+    document = data.get("document")
+    return document if isinstance(document, dict) else {}
+
+
+def _is_proforma(parcella: Any) -> bool:
+    return _text(_document_payload(parcella).get("documento_operativo")).upper() == "PROFORMA"
+
+
+def _document_kind_label(parcella: Any) -> str:
+    if _is_proforma(parcella):
+        return "Proforma"
+    document = _document_payload(parcella)
+    return _text(document.get("tipo_documento_label")) or "Fattura"
+
+
 def _metric(mid: str, label: str, value: Any, note: str, tone: str) -> dict[str, Any]:
     return {"id": mid, "label": label, "value": value, "note": note, "tone": tone}
 
@@ -530,6 +549,9 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "state": status,
         "stateLabel": _status_label(status),
         "stateTone": _status_tone(status),
+        "isProforma": _is_proforma(parcella),
+        "documentKindLabel": _document_kind_label(parcella),
+        "proformaSourceLabel": "Sentenza Lex AI" if _text(getattr(parcella, "origine", "")) == "lex_ai_sentenza_tribunale" else "",
         "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
         "detailHref": f"/fatturazione/{pid}" if pid else "",
         "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
@@ -551,6 +573,8 @@ def _created_item(parcella: Any) -> dict[str, Any]:
         "state": status,
         "stateLabel": _status_label(status),
         "stateTone": _status_tone(status),
+        "isProforma": _is_proforma(parcella),
+        "documentKindLabel": _document_kind_label(parcella),
     }
     item.update(_sdi_status_payload(parcella))
     return item
@@ -767,17 +791,41 @@ def build_react_fatturazione_payload(
             "message": "L'utente corrente puo' consultare la pagina ma non creare parcelle.",
         })
 
-    anno = date.today().year
+    raw_query = query if isinstance(query, dict) else {}
+    try:
+        anno = int(_text(raw_query.get("anno") or raw_query.get("year")) or date.today().year)
+    except ValueError:
+        anno = date.today().year
+        warnings.append({"code": "anno_non_valido", "message": "Anno fatturazione non valido: uso l'anno corrente."})
+    if anno < 2000 or anno > 2100:
+        anno = date.today().year
+        warnings.append({"code": "anno_non_valido", "message": "Anno fatturazione fuori intervallo: uso l'anno corrente."})
     stats: dict[str, Any] = {}
     parcelle: list[Any] = []
     next_number = f"{anno}/001"
+    numbering: dict[str, Any] = {
+        "anno": anno,
+        "ultimoNumeroConfigurato": 0,
+        "ultimoNumeroEsistente": 0,
+        "prossimoNumero": next_number,
+        "updatedAt": "",
+        "updatedBy": "",
+    }
     try:
         manager = get_fatturazione()
         stats = manager.statistiche(anno) if callable(getattr(manager, "statistiche", None)) else {}
         parcelle = list(manager.tutte()) if callable(getattr(manager, "tutte", None)) else []
-        next_builder = getattr(manager, "_prossimo_numero", None)
-        if callable(next_builder):
-            next_number = _text(next_builder(anno))
+        numbering_loader = getattr(manager, "carica_numerazione", None)
+        if callable(numbering_loader):
+            loaded_numbering = numbering_loader(anno)
+            if isinstance(loaded_numbering, dict):
+                numbering.update(loaded_numbering)
+                next_number = _text(numbering.get("prossimoNumero")) or next_number
+        else:
+            next_builder = getattr(manager, "_prossimo_numero", None)
+            if callable(next_builder):
+                next_number = _text(next_builder(anno))
+                numbering["prossimoNumero"] = next_number
     except Exception as exc:
         warnings.append({
             "code": "fatturazione_non_disponibile",
@@ -843,6 +891,7 @@ def build_react_fatturazione_payload(
             ),
         },
         "nextNumber": next_number,
+        "numbering": numbering,
         "defaults": defaults,
         "fiscal_options": _fiscal_options(defaults),
         "actions": _actions_for(route, current_user),
@@ -888,6 +937,7 @@ def build_react_fatturazione_payload(
         "permissions": {
             "canCreate": _can(current_user, "fatturazione.scrivi"),
             "canUpdateStatus": _can(current_user, "fatturazione.scrivi"),
+            "canConfigureNumbering": _can(current_user, "fatturazione.scrivi"),
             "canArchive": False,
             "canCancel": _can(current_user, "fatturazione.scrivi"),
             "canMarkPaid": _can(current_user, "fatturazione.scrivi"),
@@ -925,6 +975,14 @@ def build_react_fatturazione_error_payload(
             "label": "Canale SdI non configurato",
             "message": "Invio automatico disponibile solo con canale accreditato o intermediario configurato.",
         },
+        "numbering": {
+            "anno": date.today().year,
+            "ultimoNumeroConfigurato": 0,
+            "ultimoNumeroEsistente": 0,
+            "prossimoNumero": "",
+            "updatedAt": "",
+            "updatedBy": "",
+        },
         "defaults": form["defaults"],
         "fiscal_options": _fiscal_options(form["defaults"]),
         "metrics": [],
@@ -934,6 +992,58 @@ def build_react_fatturazione_error_payload(
         "forms": [],
         "warnings": [{"code": "fatturazione_errore_controllato", "message": message}],
     }
+
+
+def update_react_fatturazione_numbering(
+    *,
+    get_fatturazione: Callable[[], Any],
+    current_user: Any,
+    payload: dict[str, Any],
+) -> tuple[dict[str, Any], int]:
+    if not _can(current_user, "fatturazione.scrivi"):
+        return {
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "numbering": None,
+        }, 403
+    errors: dict[str, str] = {}
+    try:
+        anno = int(_text(payload.get("anno") or payload.get("year")) or date.today().year)
+    except ValueError:
+        errors["anno"] = "Anno non valido."
+        anno = date.today().year
+    try:
+        ultimo = int(_text(payload.get("ultimoNumeroUsato") or payload.get("ultimo_numero_usato") or payload.get("lastNumberUsed")) or "0")
+    except ValueError:
+        errors["ultimoNumeroUsato"] = "Inserisci un numero intero."
+        ultimo = 0
+    if anno < 2000 or anno > 2100:
+        errors["anno"] = "Anno non valido."
+    if ultimo < 0:
+        errors["ultimoNumeroUsato"] = "Il numero non può essere negativo."
+    if errors:
+        return {"ok": False, "message": "Controlla la numerazione.", "errors": errors, "numbering": None}, 400
+    try:
+        manager = get_fatturazione()
+        configurator = getattr(manager, "configura_numerazione", None)
+        if not callable(configurator):
+            raise RuntimeError("Configurazione numerazione non disponibile.")
+        numbering = configurator(
+            anno,
+            ultimo,
+            updated_by=_text(getattr(current_user, "username", "") or getattr(current_user, "id", "")),
+        )
+    except ValueError as exc:
+        return {"ok": False, "message": _text(exc) or "Numerazione non valida.", "errors": {"payload": _text(exc)}, "numbering": None}, 400
+    except Exception as exc:
+        return {"ok": False, "message": "Numerazione non salvata.", "errors": {"server": str(exc)}, "numbering": None}, 500
+    return {
+        "ok": True,
+        "message": "Numerazione fatture aggiornata.",
+        "errors": {},
+        "numbering": numbering,
+    }, 200
 
 
 def _as_date(value: Any, field: str, errors: dict[str, str], *, required: bool) -> str:

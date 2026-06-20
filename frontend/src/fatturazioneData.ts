@@ -23,6 +23,9 @@ export type FatturazioneRecord = {
   state: string
   stateLabel: string
   stateTone: AdminTone
+  isProforma: boolean
+  documentKindLabel: string
+  proformaSourceLabel: string
   paymentMethod: string
   sdiState: string
   sdiStateLabel: string
@@ -52,6 +55,7 @@ export type FatturazioneStatus = {
 export type FatturazionePermissions = {
   canCreate: boolean
   canUpdateStatus: boolean
+  canConfigureNumbering: boolean
   canArchive: boolean
   canCancel: boolean
   canMarkPaid: boolean
@@ -82,6 +86,8 @@ export type FatturazioneMutationItem = {
   state: string
   stateLabel: string
   stateTone: AdminTone
+  isProforma: boolean
+  documentKindLabel: string
   paidAt: string
   paymentMethod: string
 }
@@ -91,6 +97,23 @@ export type FatturazioneMutationResult = {
   message: string
   errors: Record<string, string>
   item: FatturazioneMutationItem | null
+  status?: number
+}
+
+export type FatturazioneNumbering = {
+  anno: number
+  ultimoNumeroConfigurato: number
+  ultimoNumeroEsistente: number
+  prossimoNumero: string
+  updatedAt: string
+  updatedBy: string
+}
+
+export type FatturazioneNumberingResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  numbering: FatturazioneNumbering | null
   status?: number
 }
 
@@ -261,6 +284,7 @@ export type FatturazionePageData = {
   sdiWorkflow: FatturazioneSdiWorkflowStep[]
   sdiChannel: FatturazioneSdiChannel
   nextNumber: string
+  numbering: FatturazioneNumbering
   defaults: FatturazioneFormDefaults
   fiscal_options: FatturazioneFiscalOption[]
   metrics: AdminMetric[]
@@ -314,6 +338,8 @@ export type CreateFatturaItem = {
   state: string
   stateLabel: string
   stateTone: AdminTone
+  isProforma: boolean
+  documentKindLabel: string
 }
 
 export type CreateFatturaResult = {
@@ -429,12 +455,22 @@ const archiveWritesContract = 'json_api'
 const emptyPermissions: FatturazionePermissions = {
   canCreate: false,
   canUpdateStatus: false,
+  canConfigureNumbering: false,
   canArchive: false,
   canCancel: false,
   canMarkPaid: false,
   canDownloadPdf: false,
   canDownloadXml: false,
   canExport: false,
+}
+
+const emptyNumbering: FatturazioneNumbering = {
+  anno: new Date().getFullYear(),
+  ultimoNumeroConfigurato: 0,
+  ultimoNumeroEsistente: 0,
+  prossimoNumero: '',
+  updatedAt: '',
+  updatedBy: '',
 }
 
 export const emptyFatturazionePage: FatturazionePageData = {
@@ -460,6 +496,7 @@ export const emptyFatturazionePage: FatturazionePageData = {
     message: '',
   },
   nextNumber: '',
+  numbering: emptyNumbering,
   defaults: emptyDefaults,
   fiscal_options: [],
   metrics: [],
@@ -485,6 +522,13 @@ const mutationFallback: FatturazioneMutationResult = {
   message: 'Operazione non completata.',
   errors: { server: 'Il servizio non ha restituito una risposta valida.' },
   item: null,
+}
+
+const numberingFallback: FatturazioneNumberingResult = {
+  ok: false,
+  message: 'Numerazione non salvata.',
+  errors: { server: 'Il servizio non ha restituito una risposta valida.' },
+  numbering: null,
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -599,6 +643,9 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
     state: text(item.state),
     stateLabel: display(item.stateLabel) || display(item.state) || 'Stato non indicato',
     stateTone: tone(item.stateTone),
+    isProforma: bool(item.isProforma),
+    documentKindLabel: display(item.documentKindLabel) || 'Fattura',
+    proformaSourceLabel: display(item.proformaSourceLabel),
     paymentMethod: display(item.paymentMethod),
     sdiState: text(item.sdiState),
     sdiStateLabel: display(item.sdiStateLabel) || 'Da registrare',
@@ -662,12 +709,34 @@ function normalisePermissions(raw: unknown): FatturazionePermissions {
   return {
     canCreate: bool(item.canCreate),
     canUpdateStatus: bool(item.canUpdateStatus),
+    canConfigureNumbering: bool(item.canConfigureNumbering),
     canArchive: bool(item.canArchive),
     canCancel: bool(item.canCancel),
     canMarkPaid: bool(item.canMarkPaid),
     canDownloadPdf: bool(item.canDownloadPdf),
     canDownloadXml: bool(item.canDownloadXml),
     canExport: bool(item.canExport),
+  }
+}
+
+function numberValue(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value.trim())
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return fallback
+}
+
+function normaliseNumbering(raw: unknown): FatturazioneNumbering {
+  const item = asRecord(raw)
+  return {
+    anno: numberValue(item.anno, emptyNumbering.anno),
+    ultimoNumeroConfigurato: numberValue(item.ultimoNumeroConfigurato),
+    ultimoNumeroEsistente: numberValue(item.ultimoNumeroEsistente),
+    prossimoNumero: text(item.prossimoNumero),
+    updatedAt: text(item.updatedAt),
+    updatedBy: display(item.updatedBy),
   }
 }
 
@@ -878,6 +947,7 @@ function normalisePage(raw: unknown): FatturazionePageData {
     sdiWorkflow: list(page.sdiWorkflow).map(normaliseSdiWorkflowStep),
     sdiChannel: normaliseSdiChannel(page.sdiChannel),
     nextNumber: text(page.nextNumber),
+    numbering: normaliseNumbering(page.numbering),
     defaults,
     fiscal_options: list(page.fiscal_options)
       .map(normaliseFiscalOption)
@@ -912,6 +982,8 @@ function normaliseCreateResult(raw: unknown): CreateFatturaResult {
       state: text(created.state),
       stateLabel: display(created.stateLabel),
       stateTone: tone(created.stateTone),
+      isProforma: bool(created.isProforma),
+      documentKindLabel: display(created.documentKindLabel) || 'Fattura',
     } : null,
     redirect_href: safeHref(item.redirect_href),
     status: typeof item.status === 'number' ? item.status : undefined,
@@ -928,8 +1000,23 @@ function normaliseMutationItem(raw: unknown): FatturazioneMutationItem | null {
     state: text(item.state),
     stateLabel: display(item.stateLabel),
     stateTone: tone(item.stateTone),
+    isProforma: bool(item.isProforma),
+    documentKindLabel: display(item.documentKindLabel) || 'Fattura',
     paidAt: text(item.paidAt),
     paymentMethod: display(item.paymentMethod),
+  }
+}
+
+function normaliseNumberingResult(raw: unknown): FatturazioneNumberingResult {
+  const item = asRecord(raw)
+  return {
+    ok: item.ok === true,
+    message: display(item.message) || (item.ok === true ? 'Numerazione aggiornata.' : 'Numerazione non salvata.'),
+    errors: Object.fromEntries(
+      Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, display(rawValue)]),
+    ),
+    numbering: item.numbering && typeof item.numbering === 'object' ? normaliseNumbering(item.numbering) : null,
+    status: typeof item.status === 'number' ? item.status : undefined,
   }
 }
 
@@ -1005,4 +1092,9 @@ export async function cancelFatturazioneDocument(idDocumento: string): Promise<F
 export async function markFatturazionePaid(idDocumento: string, payload: Omit<UpdateFatturazioneStatusPayload, 'stato'> = {}): Promise<FatturazioneMutationResult> {
   const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/segna-pagata`, payload, mutationFallback)
   return normaliseMutationResult(result)
+}
+
+export async function saveFatturazioneNumbering(payload: { anno: number; ultimoNumeroUsato: number }): Promise<FatturazioneNumberingResult> {
+  const result = await apiPostJson<FatturazioneNumberingResult>('/api/v1/ui/fatturazione/numerazione', payload, numberingFallback)
+  return normaliseNumberingResult(result)
 }

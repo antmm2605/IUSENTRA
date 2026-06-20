@@ -9,6 +9,7 @@ from pct.document_intelligence.extraction import ExtractionResult
 from pct.document_intelligence.models import DocumentAIPageText, DocumentAIRecord, DocumentAIText, DocumentAIVersion, utc_now
 from pct.document_intelligence.repository import (
     POSTGRES_SCHEMA_DOCUMENTI_AI,
+    SQL_DOCUMENT_AI_FILE_TYPES,
     SQLITE_SCHEMA_DOCUMENTI_AI,
     DocumentAIRepository,
 )
@@ -153,7 +154,8 @@ def test_document_ai_migrazione_postgres_ha_schema_reale():
     assert "BIGSERIAL PRIMARY KEY" in schema
     assert "AUTOINCREMENT" not in schema
     assert "CHECK (status IN ('uploaded', 'processing', 'ready', 'error', 'archived'))" in schema
-    assert "CHECK (file_type IN ('pdf', 'docx', 'doc', 'txt', 'eml'))" in schema
+    for file_type in SQL_DOCUMENT_AI_FILE_TYPES:
+        assert f"'{file_type}'" in schema
     assert "fascicolo_documenti_ai_file_type_check" in schema
 
 

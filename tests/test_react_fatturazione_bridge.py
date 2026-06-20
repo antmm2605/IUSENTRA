@@ -8,6 +8,7 @@ from pct.fatturazione import GestioneFatturazione, VoceParcella
 from web.services.react_fatturazione_bridge import (
     build_react_fatturazione_payload,
     create_react_fattura,
+    update_react_fatturazione_numbering,
 )
 
 
@@ -163,6 +164,31 @@ def test_bridge_fatturazione_presidia_sdi_senza_falso_canale_accreditato(tmp_pat
     assert record["sdiStateLabel"] == "Scartata"
     assert record["sdiStateTone"] == "danger"
     assert "non emessa" in record["sdiStatusMessage"]
+
+
+def test_bridge_fatturazione_configura_numerazione_fatture(tmp_path):
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+
+    result, status = update_react_fatturazione_numbering(
+        get_fatturazione=lambda: manager,
+        current_user=_User(),
+        payload={"anno": 2024, "ultimoNumeroUsato": 40},
+    )
+    page = build_react_fatturazione_payload(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(),
+        get_fascicoli=lambda: _Loader(),
+        current_user=_User(),
+        query={"anno": "2024"},
+        route="/fatturazione",
+        config=_studio_config(),
+    )
+
+    assert status == 200
+    assert result["ok"] is True
+    assert result["numbering"]["prossimoNumero"] == "2024/041"
+    assert page["numbering"]["ultimoNumeroConfigurato"] == 40
+    assert page["nextNumber"] == "2024/041"
 
 
 def test_create_react_fattura_salva_snapshot_personalizzato_e_registra_audit(tmp_path):

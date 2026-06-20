@@ -75,6 +75,24 @@ def _status_label(status: str) -> str:
     }.get(status.upper(), status or "Non indicato")
 
 
+def _document_payload(parcella: Any) -> dict[str, Any]:
+    data = getattr(parcella, "dati_personalizzati", {}) or {}
+    if not isinstance(data, dict):
+        return {}
+    document = data.get("document")
+    return document if isinstance(document, dict) else {}
+
+
+def _is_proforma(parcella: Any) -> bool:
+    return _text(_document_payload(parcella).get("documento_operativo")).upper() == "PROFORMA"
+
+
+def _document_kind_label(parcella: Any) -> str:
+    if _is_proforma(parcella):
+        return "Proforma"
+    return _text(_document_payload(parcella).get("tipo_documento_label")) or "Fattura"
+
+
 def _client_label(cliente: Any) -> str:
     return (
         _text(getattr(cliente, "nome_completo", ""))
@@ -119,6 +137,8 @@ def _record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str, Any]) -
         "state": status,
         "stateLabel": _status_label(status),
         "stateTone": _status_tone(status),
+        "isProforma": _is_proforma(parcella),
+        "documentKindLabel": _document_kind_label(parcella),
         "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
         "detailHref": f"/fatturazione/{pid}" if pid else "",
         "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
@@ -169,6 +189,8 @@ def _status_result(item: Any) -> dict[str, Any]:
         "state": status,
         "stateLabel": _status_label(status),
         "stateTone": _status_tone(status),
+        "isProforma": _is_proforma(item),
+        "documentKindLabel": _document_kind_label(item),
         "paidAt": _date_label(getattr(item, "data_pagamento", "")),
         "paymentMethod": _text(getattr(item, "metodo_pagamento", "")),
     }

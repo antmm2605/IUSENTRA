@@ -23,6 +23,8 @@ from pct.legal_platform_catalog import build_operational_fields
 from pct.compensi_a_tempo import calcola_compenso_a_tempo_art22bis
 
 _REGIMI_SENZA_IVA = {"RF19", "RF02"}
+_NUMBERING_SECTION = "fatturazione_numerazione"
+_PROFORMA_OPERATIVA = "PROFORMA"
 
 
 # ================================================================ Enumerazioni
@@ -384,6 +386,130 @@ class GestioneFatturazione:
 
     # ---------------------------------------------------------------- Numerazione
 
+    def _numbering_fallback_path(self) -> str:
+        base = os.path.dirname(self.db_path) or "."
+        return os.path.join(base, "fatturazione_numerazione.json")
+
+    def _load_numbering_payload(self) -> Dict[str, Any]:
+        if self._studio_db is not None:
+            try:
+                from pct.impostazioni_config_repository import ensure_settings_config_schema
+
+                ensure_settings_config_schema(self._studio_db)
+                row = self._studio_db.conn.execute(
+                    "SELECT dati_json FROM settings_config WHERE section = ?",
+                    (_NUMBERING_SECTION,),
+                ).fetchone()
+                if row:
+                    return json.loads(row["dati_json"] or "{}")
+            except Exception:
+                return {}
+            return {}
+        path = self._numbering_fallback_path()
+        if not os.path.exists(path):
+            return {}
+        try:
+            with open(path, encoding="utf-8") as f:
+                payload = json.load(f)
+            return payload if isinstance(payload, dict) else {}
+        except Exception:
+            return {}
+
+    def _save_numbering_payload(self, payload: Dict[str, Any]) -> None:
+        clean = dict(payload or {})
+        if self._studio_db is not None:
+            from pct.impostazioni_config_repository import ensure_settings_config_schema
+
+            ensure_settings_config_schema(self._studio_db)
+            now = datetime.now().replace(microsecond=0).isoformat()
+            row = {
+                "section": _NUMBERING_SECTION,
+                "updated_at": now,
+                "source": "fatturazione",
+                "secret_fields_json": "[]",
+                "dati_json": json.dumps(clean, ensure_ascii=False, separators=(",", ":")),
+            }
+
+            def _insert(conn, item: Dict[str, Any]) -> None:
+                conn.execute(
+                    """
+                    INSERT INTO settings_config
+                    (section, updated_at, source, secret_fields_json, dati_json)
+                    VALUES (?,?,?,?,?)
+                    ON CONFLICT(section) DO UPDATE SET
+                        updated_at = excluded.updated_at,
+                        source = excluded.source,
+                        secret_fields_json = excluded.secret_fields_json,
+                        dati_json = excluded.dati_json
+                    """,
+                    (
+                        item["section"],
+                        item["updated_at"],
+                        item["source"],
+                        item["secret_fields_json"],
+                        item["dati_json"],
+                    ),
+                )
+
+            self._studio_db.salva_tabella("settings_config", [row], _insert, delete_all=False)
+            return
+        path = self._numbering_fallback_path()
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(clean, f, ensure_ascii=False, indent=2)
+
+    def carica_numerazione(self, anno: Optional[int] = None) -> Dict[str, Any]:
+        anno = anno or date.today().year
+        payload = self._load_numbering_payload()
+        by_year = payload.get("by_year") if isinstance(payload.get("by_year"), dict) else {}
+        raw_year = by_year.get(str(anno)) if isinstance(by_year, dict) else {}
+        configured_last = 0
+        if isinstance(raw_year, dict):
+            try:
+                configured_last = max(0, int(raw_year.get("ultimo_numero_usato") or 0))
+            except (TypeError, ValueError):
+                configured_last = 0
+        prefix = f"{anno}/"
+        used_numbers = [
+            int(p.numero[len(prefix):])
+            for p in self._parcelle.values()
+            if p.numero.startswith(prefix) and p.numero[len(prefix):].isdigit()
+        ]
+        max_existing = max(used_numbers) if used_numbers else 0
+        next_number = max(max_existing, configured_last) + 1
+        return {
+            "anno": int(anno),
+            "ultimoNumeroConfigurato": configured_last,
+            "ultimoNumeroEsistente": max_existing,
+            "prossimoNumero": f"{anno}/{next_number:03d}",
+            "updatedAt": str(raw_year.get("updated_at") or "") if isinstance(raw_year, dict) else "",
+            "updatedBy": str(raw_year.get("updated_by") or "") if isinstance(raw_year, dict) else "",
+        }
+
+    def configura_numerazione(
+        self,
+        anno: int,
+        ultimo_numero_usato: int,
+        *,
+        updated_by: str = "",
+    ) -> Dict[str, Any]:
+        year = int(anno or date.today().year)
+        if year < 2000 or year > 2100:
+            raise ValueError("Anno numerazione non valido.")
+        last_number = int(ultimo_numero_usato or 0)
+        if last_number < 0:
+            raise ValueError("Ultimo numero usato non valido.")
+        payload = self._load_numbering_payload()
+        by_year = payload.get("by_year") if isinstance(payload.get("by_year"), dict) else {}
+        by_year[str(year)] = {
+            "ultimo_numero_usato": last_number,
+            "updated_at": datetime.now().replace(microsecond=0).isoformat(),
+            "updated_by": str(updated_by or "").strip(),
+        }
+        payload["by_year"] = by_year
+        self._save_numbering_payload(payload)
+        return self.carica_numerazione(year)
+
     def _prossimo_numero(self, anno: Optional[int] = None) -> str:
         anno = anno or date.today().year
         prefix = f"{anno}/"
@@ -392,8 +518,54 @@ class GestioneFatturazione:
             for p in self._parcelle.values()
             if p.numero.startswith(prefix) and p.numero[len(prefix):].isdigit()
         ]
-        n = (max(numeri) + 1) if numeri else 1
+        configured = int(self.carica_numerazione(anno).get("ultimoNumeroConfigurato") or 0)
+        max_number = max(max(numeri) if numeri else 0, configured)
+        n = max_number + 1
         return f"{anno}/{n:03d}"
+
+    @staticmethod
+    def _year_from_iso(value: Optional[str]) -> int:
+        raw = str(value or "").strip()
+        if raw:
+            try:
+                return date.fromisoformat(raw[:10]).year
+            except ValueError:
+                pass
+        return date.today().year
+
+    @staticmethod
+    def _document_payload(parcella: Parcella) -> Dict[str, Any]:
+        data = parcella.dati_personalizzati if isinstance(parcella.dati_personalizzati, dict) else {}
+        document = data.get("document") if isinstance(data, dict) else {}
+        return document if isinstance(document, dict) else {}
+
+    @classmethod
+    def _is_proforma(cls, parcella: Parcella) -> bool:
+        document = cls._document_payload(parcella)
+        return str(document.get("documento_operativo") or "").strip().upper() == _PROFORMA_OPERATIVA
+
+    @classmethod
+    def _converti_proforma_se_fiscale(cls, parcella: Parcella, stato: StatoParcella) -> bool:
+        if stato not in {StatoParcella.EMESSA, StatoParcella.PAGATA} or not cls._is_proforma(parcella):
+            return False
+        data = dict(parcella.dati_personalizzati or {})
+        document = dict(data.get("document") or {})
+        document["documento_operativo"] = "FATTURA"
+        document["tipo_documento_label"] = "Fattura"
+        document["numero_documento"] = parcella.numero
+        document["data_conversione_proforma"] = datetime.now().replace(microsecond=0).isoformat()
+        data["document"] = document
+        data.setdefault("proforma", {})
+        if isinstance(data["proforma"], dict):
+            data["proforma"].update(
+                {
+                    "convertita": True,
+                    "convertita_il": document["data_conversione_proforma"],
+                    "stato_destinazione": stato.value,
+                }
+            )
+        parcella.dati_personalizzati = data
+        return True
 
     # ---------------------------------------------------------------- CRUD
 
@@ -434,6 +606,7 @@ class GestioneFatturazione:
              metodo_pagamento: str = "",
              dati_personalizzati: Optional[Dict[str, Any]] = None) -> Parcella:
         oggi = date.today().isoformat()
+        data_emissione_effettiva = data_emissione or oggi
         operational_fields = build_operational_fields(
             procedure_code=procedura_operativa_codice,
             practice_id=id_pratica,
@@ -443,10 +616,10 @@ class GestioneFatturazione:
         )
         p = Parcella(
             id=str(uuid.uuid4()),
-            numero=self._prossimo_numero(),
+            numero=self._prossimo_numero(self._year_from_iso(data_emissione_effettiva)),
             id_cliente=id_cliente,
             id_fascicolo=id_fascicolo,
-            data_emissione=data_emissione or oggi,
+            data_emissione=data_emissione_effettiva,
             data_scadenza=data_scadenza,
             voci=voci,
             stato=StatoParcella.BOZZA,
@@ -520,6 +693,7 @@ class GestioneFatturazione:
             p.data_pagamento = data_pagamento or date.today().isoformat()
             if metodo_pagamento:
                 p.metodo_pagamento = metodo_pagamento
+        self._converti_proforma_se_fiscale(p, stato)
         self._salva()
 
     def elimina(self, id_parcella: str):

@@ -2121,6 +2121,113 @@ class LocalAIService:
                 conn.commit()
                 raise
 
+    def index_text_document(
+        self,
+        *,
+        source_type: str,
+        source_id: str,
+        practice_id: str | None,
+        title: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        """Indicizza testo già estratto nello stesso archivio RAG dei documenti."""
+
+        normalized_text = _normalize_text(str(text or "")).strip()
+        if not normalized_text:
+            return {
+                "status": "unsupported",
+                "document_id": "",
+                "chunk_count": 0,
+                "mime_type": "text/plain",
+                "reason": "Testo vuoto: nessun contenuto da indicizzare.",
+            }
+        normalized_title = str(title or "Documento testuale").strip() or "Documento testuale"
+        clean_source_type = str(source_type or "text_document").strip() or "text_document"
+        clean_source_id = str(source_id or normalized_title).strip() or normalized_title
+        sha256 = _sha256_bytes(normalized_text.encode("utf-8"))
+        now = _now_iso()
+        with self._connect() as conn:
+            existing = self._document_by_source(conn, clean_source_type, clean_source_id)
+            if existing and not force and existing.get("sha256") == sha256 and str(existing.get("parse_state") or "") == "parsed":
+                return {
+                    "status": "skipped",
+                    "document_id": existing["id"],
+                    "chunk_count": int(existing.get("chunk_count") or 0),
+                    "mime_type": "text/plain",
+                    "language": str(existing.get("language") or _detect_language(normalized_text)),
+                }
+            document_id = self._upsert_document(
+                conn,
+                document_id=existing["id"] if existing else None,
+                source_type=clean_source_type,
+                source_id=clean_source_id,
+                practice_id=practice_id,
+                title=normalized_title,
+                file_path="",
+                mime_type="text/plain",
+                sha256=sha256,
+            )
+            section = {
+                "section_type": str((metadata or {}).get("section_type") or "scheda"),
+                "heading": normalized_title,
+                "text": normalized_text,
+                "page_from": None,
+                "page_to": None,
+            }
+            parsed = {
+                "title": normalized_title,
+                "mime_type": "text/plain",
+                "file_path": "",
+                "raw_text": normalized_text,
+                "pages": [{"page_number": None, "text": normalized_text}],
+                "sections": [section],
+                "language": _detect_language(normalized_text),
+            }
+            chunk_rows = self._build_chunk_rows(document_id=document_id, practice_id=practice_id, parsed=parsed)
+            clean_metadata = dict(metadata or {})
+            clean_metadata.update(
+                {
+                    "source_type": clean_source_type,
+                    "source_id": clean_source_id,
+                    "title": normalized_title,
+                }
+            )
+            for row in chunk_rows:
+                try:
+                    row_metadata = json.loads(row.get("metadata_json") or "{}")
+                except Exception:
+                    row_metadata = {}
+                row_metadata.update(clean_metadata)
+                row["metadata_json"] = json.dumps(row_metadata, ensure_ascii=False)
+            self._replace_document_chunks(conn, document_id, chunk_rows)
+            conn.execute(
+                """
+                UPDATE rag_documents
+                SET language = ?, parse_state = 'parsed', chunk_count = ?, last_indexed_at = ?, updated_at = ?,
+                    practice_id = ?, source_file_size = NULL, source_file_mtime_ns = NULL
+                WHERE id = ?
+                """,
+                (
+                    parsed.get("language"),
+                    len(chunk_rows),
+                    now,
+                    now,
+                    practice_id,
+                    document_id,
+                ),
+            )
+            conn.commit()
+            self._invalidate_runtime_caches(practice_id=practice_id)
+            return {
+                "status": "indexed",
+                "document_id": document_id,
+                "chunk_count": len(chunk_rows),
+                "mime_type": "text/plain",
+                "language": parsed.get("language"),
+            }
+
     def index_fascicolo_documents(self, fascicolo: Any, documents_dir: str, *, force: bool = False, limit: int | None = None) -> dict[str, Any]:
         results = {
             "indexed": 0,

@@ -297,6 +297,45 @@ def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
     assert "Atto di opposizione" in results[0]["citation"]
 
 
+def test_local_ai_index_text_document_usa_rag_chunks_idempotente(tmp_path: Path):
+    service = _service(tmp_path)
+    first = service.index_text_document(
+        source_type="lex_sentenza_tribunale",
+        source_id="tenant:FASC-1:doc:DOC-1",
+        practice_id="FASC-1",
+        title="Sentenza Tribunale n. 230/2024",
+        text="Scheda sentenza Tribunale. Liquidazione giudice 1100 euro. Contributo unificato 98 euro.",
+        metadata={"tipo_documento": "sentenza_tribunale", "data_sentenza": "2024-05-07"},
+    )
+    second = service.index_text_document(
+        source_type="lex_sentenza_tribunale",
+        source_id="tenant:FASC-1:doc:DOC-1",
+        practice_id="FASC-1",
+        title="Sentenza Tribunale n. 230/2024",
+        text="Scheda sentenza Tribunale. Liquidazione giudice 1100 euro. Contributo unificato 98 euro.",
+        metadata={"tipo_documento": "sentenza_tribunale", "data_sentenza": "2024-05-07"},
+    )
+
+    assert first["status"] == "indexed"
+    assert second["status"] == "skipped"
+    assert second["document_id"] == first["document_id"]
+
+    with service._connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT c.text, c.metadata_json, d.source_type
+            FROM rag_chunks c
+            JOIN rag_documents d ON d.id = c.document_id
+            WHERE c.document_id = ?
+            """,
+            (first["document_id"],),
+        ).fetchall()
+    assert len(rows) == first["chunk_count"]
+    assert "Liquidazione giudice" in rows[0]["text"]
+    assert rows[0]["source_type"] == "lex_sentenza_tribunale"
+    assert '"data_sentenza": "2024-05-07"' in rows[0]["metadata_json"]
+
+
 def test_local_ai_embedding_provider_gemini_usa_client_autorizzato(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
     document_path = tmp_path / "atto-gemini.txt"

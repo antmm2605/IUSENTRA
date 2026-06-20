@@ -15,6 +15,7 @@ from pct.document_intelligence.security import (
     DocumentAIValidationError,
 )
 from web.services.document_intelligence_runtime import (
+    apply_sentenza_automation_for_document_text,
     build_document_ai_service,
     build_lex_indexing_summary_payload,
     document_ai_tenant_id,
@@ -188,6 +189,25 @@ def upload_documento_ai(fascicolo_id: str):
         upload_result = service.last_upload_result or {}
         version = upload_result.get("version") or upload_outcome.version
         extraction = upload_result.get("extraction") or {}
+        sentence_automation = None
+        if upload_outcome.text is not None:
+            metadata = {
+                "tenant_id": _tenant_id(),
+                "fascicolo_id": fascicolo_id,
+                "document_id": document.id,
+                "sha256": document.sha256,
+                "filename": document.original_filename,
+                "safe_filename": document.safe_filename,
+                "source": "document_ai_upload",
+            }
+            sentence_automation = apply_sentenza_automation_for_document_text(
+                fascicolo_id=fascicolo_id,
+                tenant_id=_tenant_id(),
+                document_id=document.id,
+                text=upload_outcome.text.text,
+                metadata=metadata,
+                actor=str((_user_context() or {}).get("user_id") or "Document AI"),
+            )
         return (
             jsonify(
                 {
@@ -200,6 +220,7 @@ def upload_documento_ai(fascicolo_id: str):
                         "page_count": extraction.get("page_count"),
                         "warnings": extraction.get("warnings") or [],
                     },
+                    "sentenza_automation": sentence_automation,
                 }
             ),
             201,

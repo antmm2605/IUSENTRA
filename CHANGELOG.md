@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.253.86 - 2026-06-20
+
+- Fascicoli/Lex AI: le sentenze del Tribunale indicizzate come provvedimenti vengono lette in modo deterministico per data sentenza, RG, contributo unificato, fondo spese e liquidazione giudiziale.
+- Matrice economica fascicolo: la sentenza aggiorna `Prossima scad.`, stato `Definito`, contributo/fondo spese pagati, liquidazione pagata e parcella da emettere, con deduplica sul documento fonte.
+- Parcelle e fatture: creazione automatica della proforma collegata alla sentenza, conversione con un click in fattura/parcella e marcatura pagata quando viene registrato il bonifico sul fascicolo.
+- Numerazione: aggiunto il pannello React per inizializzare l'ultimo numero fattura usato per anno, così la numerazione prosegue dal sistema precedente senza salti.
+- Lex AI: la sentenza e la scheda strutturata alimentano il DB vettoriale tenant-aware con metadati su fascicolo, RG, data, importi, documento fonte e proforma, in modo idempotente.
+- Anti-regressione: aggiunti test mirati per estrazione sentenza, fondo spese, proforma unica, conversione/pagamento, numerazione e indicizzazione vettoriale Lex.
+
 ## 2.253.84 - 2026-06-20
 
 - PAT/SIGA: `Genera modulo ufficiale` produce come file principale il PDF ministeriale XFA originale compilato, non più un riepilogo IUSENTRA o un PDF alternativo.

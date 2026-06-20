@@ -6,6 +6,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Hash,
   Mail,
   Plus,
   ReceiptText,
@@ -23,6 +24,7 @@ import {
   getFatturazionePage,
   getNuovaFatturaPage,
   markFatturazionePaid,
+  saveFatturazioneNumbering,
   updateFatturazioneStatus,
   type CreateFatturaPayload,
   type CreateFatturaResult,
@@ -35,6 +37,7 @@ import {
   type FatturazionePersonalizedParty,
   type FatturazioneRecord,
   type FatturazioneMutationResult,
+  type FatturazioneNumberingResult,
   type FatturazioneVoiceDefault,
 } from '../fatturazioneData'
 import { Badge } from '../ui/Badge'
@@ -395,7 +398,11 @@ function InvoiceRow({
   return (
     <article className="iu-fatt-record">
       <div className="iu-fatt-record__main">
-        <span>{record.number || record.id}</span>
+        <div className="iu-fatt-record__meta">
+          <span>{record.number || record.id}</span>
+          <Badge tone={record.isProforma ? 'warning' : 'primary'}>{record.documentKindLabel}</Badge>
+          {record.proformaSourceLabel ? <small>{record.proformaSourceLabel}</small> : null}
+        </div>
         <strong>{record.customerName}</strong>
         {record.caseTitle ? <small>{record.caseTitle}</small> : null}
       </div>
@@ -423,13 +430,20 @@ function InvoiceRow({
               {data.statuses.map((status) => <option value={status.value} key={status.value}>{status.label}</option>)}
             </select>
             <Button type="button" tone="neutral" disabled={savingId === record.id || nextStatus === record.state} onClick={() => onStatus(record, nextStatus)}>
-              {savingId === record.id ? 'saving' : 'Aggiorna'}
+              {savingId === record.id ? 'Salvataggio' : 'Aggiorna'}
             </Button>
           </div>
         ) : null}
+        {data.permissions.canUpdateStatus && record.isProforma && record.state === 'BOZZA' ? (
+          <Button type="button" tone="primary" disabled={savingId === record.id} onClick={() => onStatus(record, 'EMESSA')}>
+            <ReceiptText size={15} />
+            Emetti parcella
+          </Button>
+        ) : null}
         {data.permissions.canMarkPaid && record.state !== 'PAGATA' ? (
           <Button type="button" tone="success" disabled={savingId === record.id} onClick={() => onPaid(record)}>
-            Segna pagata
+            <CheckCircle2 size={15} />
+            {record.isProforma ? 'Registra bonifico' : 'Segna pagata'}
           </Button>
         ) : null}
         {data.permissions.canCancel && record.state !== 'ANNULLATA' ? (
@@ -451,6 +465,78 @@ function InvoiceRow({
         ) : null}
       </div>
     </article>
+  )
+}
+
+function NumberingPanel({
+  data,
+  onSaved,
+}: {
+  data: FatturazionePageData
+  onSaved: (result: FatturazioneNumberingResult) => void
+}) {
+  const [anno, setAnno] = useState(String(data.numbering.anno || new Date().getFullYear()))
+  const [ultimoNumero, setUltimoNumero] = useState(String(data.numbering.ultimoNumeroConfigurato || ''))
+  const [saving, setSaving] = useState(false)
+  const [result, setResult] = useState<FatturazioneNumberingResult | null>(null)
+
+  useEffect(() => {
+    setAnno(String(data.numbering.anno || new Date().getFullYear()))
+    setUltimoNumero(String(data.numbering.ultimoNumeroConfigurato || ''))
+  }, [data.numbering.anno, data.numbering.ultimoNumeroConfigurato])
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSaving(true)
+    const response = await saveFatturazioneNumbering({
+      anno: Number(anno),
+      ultimoNumeroUsato: Number(ultimoNumero || 0),
+    })
+    setResult(response)
+    onSaved(response)
+    setSaving(false)
+  }
+
+  const errors = result?.errors || {}
+  return (
+    <Panel title="Numerazione fatture" subtitle={`Prossimo numero ${data.numbering.prossimoNumero || data.nextNumber || 'n.d.'}`}>
+      <form className="iu-fatt-numbering" onSubmit={submit}>
+        <label className="iu-fatt-field">
+          <span>Anno</span>
+          <input
+            value={anno}
+            onChange={(event) => setAnno(event.currentTarget.value)}
+            inputMode="numeric"
+            disabled={!data.permissions.canConfigureNumbering || saving}
+          />
+        </label>
+        <label className="iu-fatt-field">
+          <span>Ultimo numero usato</span>
+          <input
+            value={ultimoNumero}
+            onChange={(event) => setUltimoNumero(event.currentTarget.value)}
+            inputMode="numeric"
+            disabled={!data.permissions.canConfigureNumbering || saving}
+          />
+        </label>
+        <div className="iu-fatt-numbering__summary">
+          <Hash size={16} />
+          <span>Esistente {data.numbering.ultimoNumeroEsistente}</span>
+          <strong>{data.numbering.prossimoNumero || data.nextNumber || 'n.d.'}</strong>
+        </div>
+        <Button type="submit" tone="primary" disabled={!data.permissions.canConfigureNumbering || saving}>
+          <Save size={15} />
+          {saving ? 'Salvataggio' : 'Salva numerazione'}
+        </Button>
+      </form>
+      {result ? (
+        <section className={`iu-fatt-numbering-state ${result.ok ? 'is-success' : 'is-error'}`} aria-live="polite">
+          {result.ok ? <CheckCircle2 size={17} /> : <AlertTriangle size={17} />}
+          <span>{result.message}</span>
+          {Object.values(errors).map((error) => <small key={error}>{error}</small>)}
+        </section>
+      ) : null}
+    </Panel>
   )
 }
 
@@ -1436,6 +1522,12 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     setSavingId('')
   }
 
+  async function handleNumberingSaved(result: FatturazioneNumberingResult) {
+    if (result.ok) {
+      onReload(await getFatturazionePage())
+    }
+  }
+
   return (
     <>
       <section className="iu-fatt-banner" aria-label="Documenti economici">
@@ -1445,6 +1537,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
       <WarningPanel data={data} />
       <SdiWorkflowPanel data={data} />
       <MetricGrid data={data} />
+      <NumberingPanel data={data} onSaved={handleNumberingSaved} />
       <section className="iu-fatt-grid" aria-label="Sezioni fatturazione">
         {data.sections.map((section) => (
           <Panel title={section.title} subtitle={section.kind} key={section.id}>

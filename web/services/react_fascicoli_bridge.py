@@ -1058,6 +1058,10 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
         "dataPagamentoIso": payment_date,
         "metodo": _text(raw.get("metodo") or raw.get("method") or raw.get("metodo_pagamento")),
         "note": _italian_dates_in_text(raw.get("note")),
+        "proformaId": _text(raw.get("proforma_id") or raw.get("proformaId")),
+        "proformaNumber": _text(raw.get("proforma_number") or raw.get("proformaNumber")),
+        "origine": _text(raw.get("origine") or raw.get("origin")),
+        "documentoFonte": _text(raw.get("documento_fonte") or raw.get("documentSource")),
         "updatedAt": _text(raw.get("updated_at") or raw.get("updatedAt")),
         "updatedAtLabel": _date_label(raw.get("updated_at") or raw.get("updatedAt")) if _text(raw.get("updated_at") or raw.get("updatedAt")) else "",
         "updatedBy": _text(raw.get("updated_by") or raw.get("updatedBy")),
@@ -1140,6 +1144,7 @@ def _payment_date_iso(value: Any) -> tuple[str, str]:
 def update_react_fascicolo_payment(
     *,
     get_fascicoli: Callable[[], Any],
+    get_fatturazione: Callable[[], Any] | None = None,
     id_fasc: str,
     kind: str,
     payload: dict[str, Any],
@@ -1182,21 +1187,31 @@ def update_react_fascicolo_payment(
             "note": _short(payload.get("note"), 160),
         }
     )
-    payments[normalized_kind] = {
-        "kind": normalized_kind,
-        "label": PAYMENT_KIND_LABELS[normalized_kind],
-        "status": status,
-        "previsto": status != "non_previsto",
-        "pagato": status == "pagato",
-        "importo": amount,
-        "valuta": "EUR",
-        "data_pagamento": date_iso,
-        "metodo": _short(payload.get("metodo") or payload.get("method"), 80),
-        "note": _short(payload.get("note"), 400),
-        "updated_at": now,
-        "updated_by": operator,
-        "history": history[-25:],
-    }
+    next_payment = dict(previous_raw)
+    next_payment.update(
+        {
+            "kind": normalized_kind,
+            "label": PAYMENT_KIND_LABELS[normalized_kind],
+            "status": status,
+            "previsto": status != "non_previsto",
+            "pagato": status == "pagato",
+            "importo": amount,
+            "valuta": "EUR",
+            "data_pagamento": date_iso,
+            "metodo": _short(payload.get("metodo") or payload.get("method"), 80),
+            "note": _short(payload.get("note"), 400),
+            "updated_at": now,
+            "updated_by": operator,
+            "history": history[-25:],
+        }
+    )
+    payments[normalized_kind] = next_payment
+    linked_proforma = _sync_linked_proforma_payment(
+        get_fatturazione=get_fatturazione,
+        payment=next_payment,
+        status=status,
+        date_iso=date_iso,
+    )
     fid = _text(getattr(fascicolo, "id", id_fasc))
     if hasattr(repo, "aggiorna"):
         fascicolo = repo.aggiorna(fid, pagamenti=payments)
@@ -1212,7 +1227,42 @@ def update_react_fascicolo_payment(
         "payment": summary["items"][normalized_kind],
         "paymentSummary": summary,
         "fascicolo": {"id": fid},
+        "linkedProforma": linked_proforma,
     }, 200
+
+
+def _sync_linked_proforma_payment(
+    *,
+    get_fatturazione: Callable[[], Any] | None,
+    payment: dict[str, Any],
+    status: str,
+    date_iso: str,
+) -> dict[str, Any]:
+    proforma_id = _text(payment.get("proforma_id") or payment.get("proformaId"))
+    if status != "pagato" or not proforma_id or not callable(get_fatturazione):
+        return {}
+    try:
+        from pct.fatturazione import StatoParcella
+
+        manager = get_fatturazione()
+        item = manager.get(proforma_id)
+        if not item:
+            return {"ok": False, "id": proforma_id, "message": "Proforma collegata non trovata."}
+        manager.cambia_stato(
+            proforma_id,
+            StatoParcella.PAGATA,
+            data_pagamento=date_iso or None,
+            metodo_pagamento=_text(payment.get("metodo") or "Bonifico bancario"),
+        )
+        updated = manager.get(proforma_id)
+        return {
+            "ok": True,
+            "id": proforma_id,
+            "state": _enum_value(getattr(updated, "stato", "")),
+            "number": _text(getattr(updated, "numero", "")),
+        }
+    except Exception as exc:
+        return {"ok": False, "id": proforma_id, "message": str(exc)}
 
 
 # Stati modificabili inline dall'elenco fascicoli: chiave = valore frontend

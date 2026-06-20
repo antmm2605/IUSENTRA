@@ -17,6 +17,7 @@ from pct.fatturazione import StatoParcella
 from pct.global_search.repository import GlobalSearchRepository
 from pct.global_search.service import GlobalSearchService, default_global_search_db_path
 from pct.notifiche_legali import released_office_documents_from_pec
+from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
 from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.notifications import NotificationRecord, NotificationServiceError
 from web.services.notifications_runtime import (
@@ -444,6 +445,8 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
     if _has_perm(user, "agenda.leggi"):
         try:
             for appointment in get_agenda().per_giorno(day):
+                if is_legacy_pec_agenda_item(appointment):
+                    continue
                 if _enum_value(getattr(appointment, "tipo", "")) == TipoAppuntamento.UDIENZA.value:
                     summary["hearingsToday"] += 1
                     item_type = "hearing"
@@ -470,6 +473,8 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
     if _has_perm(user, "scadenziario.leggi"):
         try:
             for scadenza in get_scadenziario().tutte(solo_aperte=False):
+                if is_legacy_pec_deadline(scadenza):
+                    continue
                 due = _deadline_date(scadenza)
                 if due is None:
                     continue
@@ -576,6 +581,8 @@ def quick_deadlines_payload(user: Any) -> dict[str, Any]:
     except Exception as exc:
         raise TopbarApiError("Scadenziario non disponibile.", 503) from exc
     for scadenza in scadenze:
+        if is_legacy_pec_deadline(scadenza):
+            continue
         due = _deadline_date(scadenza)
         if due is None:
             continue
@@ -751,6 +758,8 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
     if _has_perm(user, "scadenziario.leggi"):
         try:
             for scadenza in get_scadenziario().tutte(solo_aperte=False):
+                if is_legacy_pec_deadline(scadenza):
+                    continue
                 due = _deadline_date(scadenza)
                 status = _deadline_status(scadenza, today)
                 if due is None or status == "completed":
@@ -776,6 +785,8 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
     if _has_perm(user, "agenda.leggi"):
         try:
             for appointment in get_agenda().tutti():
+                if is_legacy_pec_agenda_item(appointment):
+                    continue
                 dt = getattr(appointment, "data_ora_dt", None) or _parse_iso(getattr(appointment, "data_ora", ""))
                 if dt and dt.tzinfo is None:
                     dt = dt.replace(tzinfo=ROME_TZ)

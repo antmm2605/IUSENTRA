@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime, time
 from typing import Any
 
+from pct.pec_operational_cleanup import is_legacy_pec_notification_item
+
 from .models import (
     NotificationPreferences,
     NotificationRecord,
@@ -113,10 +115,14 @@ class NotificationService:
         user_id: str,
         items: list[dict[str, Any]],
     ) -> list[NotificationRecord]:
+        active_dedupe_keys: set[str] = set()
         for item in items:
+            if is_legacy_pec_notification_item(item):
+                continue
             item_id = clean_text(item.get("id"), limit=240)
             if not item_id:
                 continue
+            active_dedupe_keys.add(item_id)
             self.create_notification(
                 tenant_id=tenant_id,
                 user_id=user_id,
@@ -131,8 +137,15 @@ class NotificationService:
                 payload_json={
                     "actionLabel": clean_text(item.get("actionLabel"), limit=120),
                     "createdAt": clean_text(item.get("createdAt"), limit=60),
+                    "operationalSync": True,
                 },
             )
+        self.repository.expire_notifications_not_in_dedupe_keys(
+            tenant_id,
+            user_id,
+            active_dedupe_keys=active_dedupe_keys,
+            source_types={"deadline", "hearing", "task", "communication", "document", "filing", "pec_deadline"},
+        )
         return self.repository.list_notifications(tenant_id, user_id, limit=50)
 
     def mark_read(self, tenant_id: str, user_id: str, notification_id: str) -> None:

@@ -384,7 +384,7 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
   const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
   const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
   const completeHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/stato`
-  const visibleDetails = event.detailLines.filter((line) => line.trim()).slice(0, 8)
+  const visibleDetails = event.detailLines.filter((line) => line.trim()).slice(0, 12)
   return (
     <section className="iu-ag-focus">
       <div>

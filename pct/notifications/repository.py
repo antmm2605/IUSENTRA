@@ -168,6 +168,45 @@ class NotificationRepository:
             ).fetchall()
         return [NotificationRecord.from_mapping(self._dict_row(row)) for row in rows]
 
+    def expire_notifications_not_in_dedupe_keys(
+        self,
+        tenant_id: str,
+        user_id: str,
+        *,
+        active_dedupe_keys: set[str],
+        source_types: set[str],
+    ) -> int:
+        safe_sources = [str(value or "").strip() for value in source_types if str(value or "").strip()]
+        if not safe_sources:
+            return 0
+        active_keys = [str(value or "").strip() for value in active_dedupe_keys if str(value or "").strip()]
+        source_placeholders = ",".join("?" for _ in safe_sources)
+        key_clause = ""
+        params: list[Any] = [
+            utc_now_iso(),
+            str(tenant_id or ""),
+            str(user_id or ""),
+            utc_now_iso(),
+            *safe_sources,
+        ]
+        if active_keys:
+            key_placeholders = ",".join("?" for _ in active_keys)
+            key_clause = f" AND dedupe_key NOT IN ({key_placeholders})"
+            params.extend(active_keys)
+        with self._connect() as conn:
+            cur = conn.execute(
+                f"""
+                UPDATE notifications
+                SET expires_at = ?
+                WHERE tenant_id = ? AND user_id = ?
+                  AND (expires_at = '' OR expires_at IS NULL OR expires_at > ?)
+                  AND source_type IN ({source_placeholders})
+                  {key_clause}
+                """,
+                tuple(params),
+            )
+            return int(getattr(cur, "rowcount", 0) or 0)
+
     def mark_read(self, tenant_id: str, user_id: str, notification_id: str) -> bool:
         with self._connect() as conn:
             cur = conn.execute(

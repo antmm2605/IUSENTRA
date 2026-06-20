@@ -6,6 +6,7 @@ from datetime import date
 from typing import Any
 
 from pct.scadenziario import PrioritaTermine, Scadenza, StatoTermine, TipoTermine
+from pct.pec_operational_cleanup import is_legacy_pec_deadline
 
 
 VISTE_SCADENZIARIO_AMMESSE = {
@@ -100,13 +101,17 @@ def scadenze_per_vista(
     gs.scadute()
 
     def _base(solo_aperte: bool = True, stato: StatoTermine | None = None) -> list[Scadenza]:
-        return gs.tutte(
-            stato=stato,
-            tipo=tipo,
-            priorita=priorita,
-            id_fascicolo=id_fascicolo,
-            solo_aperte=solo_aperte,
-        )
+        return [
+            item
+            for item in gs.tutte(
+                stato=stato,
+                tipo=tipo,
+                priorita=priorita,
+                id_fascicolo=id_fascicolo,
+                solo_aperte=solo_aperte,
+            )
+            if not is_legacy_pec_deadline(item)
+        ]
 
     if vista == "completate":
         return _base(solo_aperte=False, stato=StatoTermine.COMPLETATO)
@@ -117,7 +122,7 @@ def scadenze_per_vista(
     if vista == "alte":
         return [s for s in _base(solo_aperte=True, stato=StatoTermine.APERTO) if s.priorita == PrioritaTermine.ALTA]
     if vista == "imminenti":
-        scadenze = gs.imminenti(entro_giorni=7)
+        scadenze = [s for s in gs.imminenti(entro_giorni=7) if not is_legacy_pec_deadline(s)]
         if tipo:
             scadenze = [s for s in scadenze if s.tipo == tipo]
         if priorita:

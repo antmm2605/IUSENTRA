@@ -756,6 +756,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
     assert "messageReminderHref" in agenda_page
     assert "linkedDeadlineHref" in agenda_page
+    assert "slice(0, 12)" in agenda_page
     assert 'action="/timesheet/nuovo"' in agenda_page
     assert "iusentra:open-floating-lex" in agenda_page
     assert 'href="/timesheet"' not in agenda_page
@@ -3976,7 +3977,7 @@ def test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale(tmp
     client = app.test_client()
     hearing_day = date(2026, 7, 9)
 
-    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+    legacy = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
         "Presidio PEC - Udienza da PEC: POSTA CERTIFICATA: COMUNICAZIONE 274/2026/CC",
         TipoAppuntamento.UDIENZA,
         datetime.combine(hearing_day, datetime.min.time()).replace(hour=9).isoformat(timespec="minutes"),
@@ -3989,6 +3990,25 @@ def test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale(tmp
             "Note: Notificato alla PEC / in cancelleria."
         ),
     )
+    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "AZZARO FILIPPO - CONFERMA UDIENZA EX ART. 171 BIS 3 c. CPC - RG 274/2026",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(hearing_day, datetime.min.time()).replace(hour=9, minute=30).isoformat(timespec="minutes"),
+        durata_minuti=30,
+        cliente="AZZARO FILIPPO",
+        procedimento="RG 274/2026",
+        tribunale="Tribunale di Palmi",
+        note=(
+            "Cliente: AZZARO FILIPPO\n"
+            "Parte/soggetto: Ricorrente principale: AZZARO FILIPPO\n"
+            "Ufficio: Tribunale di Palmi\n"
+            "Giudice: RUSCIO EMANUELA\n"
+            "Evento: CONFERMA UDIENZA EX ART. 171 BIS 3 c. CPC\n"
+            "Udienza: 09/07/2026 09:30\n"
+            "notifica/comunicazione che può generare termini\n"
+            "Attività per l'avvocato: verificare il provvedimento, preparare l'udienza e controllare eventuale collegamento remoto."
+        ),
+    )
 
     response = client.get(
         "/api/v1/ui/agenda",
@@ -3997,6 +4017,7 @@ def test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale(tmp
     )
     payload = response.get_json()
     event = next(item for item in payload["events"] if item["id"] == appointment.id)
+    ids = {item["id"] for item in payload["events"]}
     visible = " ".join(
         str(event.get(key) or "")
         for key in ("displayTitle", "subtitle", "notes", "originTitle", "detailTitle", "timeLabel")
@@ -4004,12 +4025,18 @@ def test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale(tmp
     visible = " ".join([visible, *event["detailLines"]])
 
     assert response.status_code == 200
+    assert legacy.id not in ids
     assert event["matter"] == "RG 274/2026"
     assert event["client"] == "AZZARO FILIPPO"
     assert event["displayTitle"] == "AZZARO FILIPPO · RG 274/2026"
-    assert event["originTitle"] == "Udienza da comunicazione di cancelleria - RG 274/2026"
+    assert event["originTitle"] == "AZZARO FILIPPO - CONFERMA UDIENZA EX ART. 171 BIS 3 c. CPC - RG 274/2026"
     assert event["timeLabel"] == "09:30"
     assert event["start"].startswith("2026-07-09T09:30")
+    assert any("Parte/soggetto: Ricorrente principale: AZZARO FILIPPO" in line for line in event["detailLines"])
+    assert any("Giudice: RUSCIO EMANUELA" in line for line in event["detailLines"])
+    assert any("Udienza: 09/07/2026 09:30" in line for line in event["detailLines"])
+    assert any("Attività per l'avvocato" in line for line in event["detailLines"])
+    assert "notifica/comunicazione" not in visible
     for token in ("POSTA CERTIFICATA", "Data processuale futura", "Presidio PEC", "PEC_AUDIT", "pipeline", "payload", "runtime", "backend", "frontend", "legacy", "json_api"):
         assert token.lower() not in visible.lower()
 
@@ -4472,6 +4499,102 @@ def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
     assert payload["items"][0]["href"] == f"/fascicoli/{fascicolo.id}"
     assert payload["items"][0]["editHref"] == f"/fascicoli/{fascicolo.id}/modifica"
     assert not payload["items"][0]["href"].startswith("/app-v2/")
+
+
+def test_react_fascicoli_prossima_scadenza_da_rg_univoco_presidiato(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    today = date.today()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    due = today + timedelta(days=19)
+    GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
+        "Deposito note scritte ex art. 127 ter c.p.c.",
+        TipoTermine.UDIENZA,
+        due.isoformat(),
+        id_fascicolo="RG 1754/2026",
+        descrizione=(
+            "Profilo processuale. Cliente: VINCI ROSA MARIA. Parte/soggetto: "
+            "Ricorr. principale VINCI ROSA MARIA. Ufficio: Tribunale di Milano. "
+            "Evento: decreto fissazione udienza da PDF del fascicolo."
+        ),
+    )
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+
+    assert response.status_code == 200
+    assert item["nextDeadlineIso"] == due.isoformat()
+    assert item["nextDeadline"] != "n.d."
+
+
+def test_react_fascicoli_non_collega_rg_ambiguo_senza_cliente_o_parte(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    today = date.today()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    vinci = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+    )
+    betti = fascicoli.nuovo(
+        "Betti Alice c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Betti Alice",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+    )
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    scadenziario.nuova(
+        "Udienza da PDF non ancora attribuita",
+        TipoTermine.UDIENZA,
+        (today + timedelta(days=12)).isoformat(),
+        id_fascicolo="RG 1754/2026",
+        descrizione="Il PDF richiama RG 1754/2026 ma non riporta cliente, parte o soggetto processuale.",
+    )
+    vinci_due = today + timedelta(days=9)
+    scadenziario.nuova(
+        "Udienza da remoto da Comunicazione.xml",
+        TipoTermine.UDIENZA,
+        vinci_due.isoformat(),
+        id_fascicolo="RG 1754/2026",
+        descrizione=(
+            "Profilo processuale. Cliente: VINCI ROSA MARIA. Parte/soggetto: "
+            "Ricorr. principale VINCI ROSA MARIA. Ufficio: Tribunale di Milano."
+        ),
+    )
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    by_id = {row["id"]: row for row in payload["items"]}
+
+    assert response.status_code == 200
+    assert by_id[vinci.id]["nextDeadlineIso"] == vinci_due.isoformat()
+    assert by_id[betti.id]["nextDeadline"] == "n.d."
 
 
 def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path: Path, monkeypatch):

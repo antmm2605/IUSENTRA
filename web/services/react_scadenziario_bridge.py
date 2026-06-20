@@ -22,6 +22,7 @@ from pct.scadenziario import (
     TipoTermine,
     profili_termine_builtin,
 )
+from pct.pec_operational_cleanup import is_legacy_pec_deadline
 from pct.termini_processuali import (
     CALENDAR_VERSION,
     DeadlinePracticeRepository,
@@ -55,7 +56,7 @@ OPERATIONAL_PREFIX_RE = re.compile(
     re.IGNORECASE,
 )
 PEC_SUBJECT_NOISE_RE = re.compile(
-    r"\b(?:POSTA\s+CERTIFICATA|COMUNICAZIONE\s+[A-Z0-9./_-]+|Notificazione\s+ai\s+sensi\s+del\s+D\.L\.\s*179/2012)\b:?",
+    r"\b(?:POSTA\s+CERTIFICATA|COMUNICAZIONE\s+\d+[A-Z0-9./_-]*|Notificazione\s+ai\s+sensi\s+del\s+D\.L\.\s*179/2012)\b:?",
     re.IGNORECASE,
 )
 PEC_RG_RE = re.compile(r"\b(?:N\.?\s*R\.?\s*G\.?|NRG|RG)\s*:?\s*(\d{1,8}/\d{4}(?:/[A-Z]+)?)\b", re.IGNORECASE)
@@ -164,6 +165,49 @@ def _visible_legal_text(value: Any, limit: int = 160) -> str:
     return _short_text(" ".join(parts), limit)
 
 
+def _pec_profile_value(context: str, label: str, *, limit: int = 180) -> str:
+    labels = (
+        "Cliente",
+        "Parte/soggetto",
+        "Parte processuale",
+        "Ufficio",
+        "Giudice",
+        "RG",
+        "Evento",
+        "Udienza",
+        "Modalita",
+        "Modalità",
+        "Collegamento remoto",
+        "Link udienza audiovisiva",
+        "Fonte link udienza",
+        "Scadenza",
+        "Tipo evento",
+        "Decorrenza letta",
+        "Attività per l'avvocato",
+        "Attivita per l'avvocato",
+        "Operatività",
+        "Operativita",
+    )
+    lookahead = "|".join(re.escape(item) for item in labels if item.lower() != label.lower())
+    match = re.search(
+        rf"\b{re.escape(label)}\s*:\s*(.+?)(?=\s+(?:{lookahead})\s*:|$)",
+        context or "",
+        flags=re.I | re.S,
+    )
+    if not match:
+        return ""
+    value = match.group(1)
+    if label.lower() == "udienza":
+        date_match = re.search(
+            r"\b\d{1,2}/\d{1,2}/\d{4}(?:\s+(?:alle\s+ore\s+|ore\s+)?\d{1,2}[:.]\d{2})?",
+            value,
+            flags=re.I,
+        )
+        if date_match:
+            return _short_text(date_match.group(0).replace(".", ":"), limit)
+    return _visible_legal_text(value, limit)
+
+
 def _legal_scadenza_title(scadenza: Any) -> str:
     if _is_document_presidio_lex(scadenza):
         title = _visible_legal_text(getattr(scadenza, "titolo", ""), 112)
@@ -173,6 +217,13 @@ def _legal_scadenza_title(scadenza: Any) -> str:
         context = _pec_context(scadenza)
         summary = _pec_event_summary(context)
         rg = _pec_rg_label(context)
+        cliente = _pec_profile_value(context, "Cliente", limit=90)
+        event = _pec_profile_value(context, "Evento", limit=90) or summary
+        if cliente and event:
+            details = [cliente, event]
+            if rg:
+                details.append(rg)
+            return _short_text(" - ".join(details), 112)
         if "udienza" in summary:
             details = [summary]
             if rg:
@@ -202,6 +253,19 @@ def _legal_scadenza_description(scadenza: Any) -> str:
         context = _pec_context(scadenza)
         summary = _pec_event_summary(context)
         rg = _pec_rg_label(context)
+        profile_parts = []
+        for label in ("Cliente", "Parte/soggetto", "Ufficio", "Udienza", "Giudice", "Evento"):
+            value = _pec_profile_value(context, label, limit=170)
+            if value:
+                profile_parts.append(f"{label}: {value}.")
+        if profile_parts:
+            if bool(getattr(scadenza, "remote_hearing_detected", False)):
+                profile_parts.append("Udienza da remoto: verificare link, stanza virtuale e istruzioni nell'allegato.")
+            elif "sentenza" in context.lower() or "provvedimento" in context.lower():
+                profile_parts.append("Operatività: leggere il provvedimento e valutare notifica, termini o attività da produrre.")
+            else:
+                profile_parts.append("Operatività: presidiare solo se emerge un termine, un'udienza o un atto da produrre.")
+            return _short_text(" ".join(profile_parts), 260)
         if "udienza" in summary:
             parts = ["Udienza rilevata da PEC."]
             if rg:
@@ -226,6 +290,32 @@ def _legal_scadenza_detail_description(scadenza: Any) -> str:
         description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 900)
         if description:
             return description
+    if is_scadenza_pec(scadenza):
+        context = _pec_context(scadenza)
+        details: list[str] = []
+        for label in ("Cliente", "Parte/soggetto", "Ufficio", "Giudice", "Evento", "Udienza"):
+            value = _pec_profile_value(context, label, limit=220)
+            if value:
+                details.append(f"{label}: {value}.")
+        rg = _pec_profile_value(context, "RG", limit=80) or _pec_rg_label(context).replace("RG ", "")
+        if rg:
+            rg_value = rg if str(rg).upper().startswith("RG") else f"RG {rg}"
+            details.insert(2 if len(details) >= 2 else len(details), f"{rg_value}.")
+        if bool(getattr(scadenza, "remote_hearing_detected", False)):
+            source = str(getattr(scadenza, "remote_hearing_source", "") or "").strip()
+            if str(getattr(scadenza, "remote_hearing_url", "") or "").strip():
+                details.append("Attività per l'avvocato: verificare link, stanza virtuale, orario e istruzioni di collegamento prima dell'udienza.")
+            elif source:
+                details.append(f"Attività per l'avvocato: leggere o acquisire con OCR l'allegato {source} per ricavare il collegamento audiovisivo.")
+            else:
+                details.append("Attività per l'avvocato: leggere l'allegato della comunicazione per ricavare il collegamento audiovisivo.")
+        elif "sentenza" in context.lower() or "provvedimento" in context.lower():
+            details.append("Attività per l'avvocato: leggere il provvedimento e valutare notifica, termini o atti da produrre.")
+        else:
+            details.append("Attività per l'avvocato: presidiare la data processuale e verificare se il provvedimento richiede atti, note o comunicazioni.")
+        unique_details = list(dict.fromkeys(item for item in details if item.strip()))
+        if unique_details:
+            return _short_text(" ".join(unique_details), 520)
     description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 520)
     if description:
         return description
@@ -436,6 +526,10 @@ def _fascicolo_label(fascicolo: Any, fallback_id: str = "") -> str:
 
 
 def _client_label(scadenza: Any, fascicolo: Any = None) -> str:
+    if is_scadenza_pec(scadenza):
+        pec_cliente = _pec_profile_value(_pec_context(scadenza), "Cliente", limit=120)
+        if pec_cliente:
+            return pec_cliente
     direct = str(
         getattr(scadenza, "nome_cliente", "")
         or getattr(scadenza, "cliente", "")
@@ -618,7 +712,7 @@ def _all_scadenze(gestione_scadenziario: Any) -> list[Any]:
     except Exception:
         pass
     try:
-        return list(gestione_scadenziario.tutte(solo_aperte=False))
+        return [item for item in gestione_scadenziario.tutte(solo_aperte=False) if not is_legacy_pec_deadline(item)]
     except Exception:
         return []
 

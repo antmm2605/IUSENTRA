@@ -15,6 +15,8 @@ from web.services.pec_pipeline_runtime import (
     email_rilevante_per_presidio_pec,
     local_email_sort_key,
     read_or_reconstruct_local_mime,
+    rebuild_operational_matrix_for_paths,
+    run_workers_for_paths,
 )
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -59,6 +61,32 @@ def _runtime_path(key: str, default: str, *aliases: str, required: bool = True) 
         if not required:
             return ""
         raise
+
+
+def _runtime_paths() -> dict[str, str]:
+    paths = {str(key): str(value) for key, value in (getattr(g, "data_paths", {}) or {}).items() if value}
+    defaults = {
+        "EMAIL_CASELLA_DB": ("./email/casella.json", ()),
+        "PEC_AUDIT_DB": ("", ()),
+        "CLIENTI_DB": ("./clienti/anagrafica.json", ()),
+        "FASCICOLI_DB": ("./fascicoli/fascicoli.json", ()),
+        "FASCICOLI_DOCS": ("./fascicoli/documenti", ()),
+        "SCADENZIARIO_DB": ("./scadenziario/scadenze.json", ()),
+        "AGENDA_DB": ("./agenda/appuntamenti.json", ()),
+        "CALENDAR_SYNC_DB": ("./agenda/calendar_sync.json", ()),
+        "NOTIFICATIONS_DB": ("./notifications/notifications.db", ()),
+        "AUTH_DB": ("./auth/utenti.json", ()),
+        "AUDIT_DB": ("./auth/audit.json", ()),
+    }
+    for key, (default, aliases) in defaults.items():
+        if key in paths and paths[key]:
+            continue
+        value = _runtime_path(key, default, *aliases, required=bool(default))
+        if value:
+            paths[key] = value
+    if not paths.get("PEC_AUDIT_DB") and paths.get("EMAIL_CASELLA_DB"):
+        paths["PEC_AUDIT_DB"] = str(Path(paths["EMAIL_CASELLA_DB"]).parent / "pec_audit.sqlite")
+    return paths
 
 
 def _repo() -> PecAuditRepository:
@@ -247,6 +275,12 @@ def pec_acquire_legacy_email(email_id: str):
         else:
             result = {"id": f"email:{email_id}", "duplicate": False, "audit_unavailable": True, "message": audit_error}
         message_id = str(result.get("id") or "") or f"email:{email_id}"
+        analysis_refresh: dict[str, Any] = {}
+        if audit_available and result.get("duplicate") and message_id:
+            try:
+                analysis_refresh = repo.refresh_message_analysis(message_id, actor=_actor())
+            except Exception as exc:
+                analysis_refresh = {"ok": False, "errors": [str(exc)[:240]]}
         deadline = _schedule_deadline_with_local_mime(
             repo,
             message_id=message_id,
@@ -307,6 +341,7 @@ def pec_acquire_legacy_email(email_id: str):
                 "mime_source": mime_source,
                 "duplicate": bool(result.get("duplicate")),
                 "ingest": result,
+                "analysis_refresh": analysis_refresh,
                 "deadline": deadline,
                 "workers": worker,
                 "pec_control_tower": control_tower,
@@ -329,21 +364,29 @@ def _schedule_deadline_with_local_mime(
     raw_mime: bytes,
     actor: str,
 ) -> dict[str, Any]:
+    persisted: dict[str, Any] = {}
     try:
         persisted = repo.schedule_deadline(message_id, actor=actor)
-        if persisted.get("ok") or persisted.get("expired"):
+        if persisted.get("expired"):
             return persisted
     except Exception as exc:
         persisted = {"ok": False, "message": f"Audit PEC non disponibile: {exc}"}
     try:
         parsed = parse_pec_message(raw_mime)
+        try:
+            detail = repo.get_message_detail(message_id)
+            message = detail.get("message") if isinstance(detail.get("message"), dict) else {}
+        except Exception:
+            message = {}
         return repo.schedule_deadline_from_payload(
             message_id,
             parsed=parsed,
-            message={"linked_fascicolo_id": ""},
+            message=message,
             actor=actor,
         )
     except Exception as exc:
+        if persisted.get("ok"):
+            return persisted
         return {
             "ok": False,
             "message": f"Presidio non pronto: {persisted.get('message') or 'report mancante'}; MIME locale non schedulabile: {exc}",
@@ -1094,8 +1137,41 @@ def pec_acquire_local_emails():
 @_richiedi_auth
 def pec_workers_run():
     try:
-        report = _repo().run_pending_jobs(limit=int(request.args.get("limit", "200") or 200), actor=_actor())
+        report = run_workers_for_paths(
+            _runtime_paths(),
+            tenant_label=_tenant_id(),
+            limit=int(request.args.get("limit", "200") or 200),
+        )
         return _json_success({"ok": True, "report": report})
+    except TenantDataPathError:
+        return _json_error(403)
+
+
+@pec_pipeline_api.post("/rebuild-matrix")
+@_richiedi_auth
+def pec_rebuild_operational_matrix():
+    try:
+        limit = max(0, min(int(request.args.get("limit", "0") or 0), 10000))
+    except ValueError:
+        limit = 0
+    try:
+        worker_limit = max(1, min(int(request.args.get("worker_limit", "800") or 800), 20000))
+    except ValueError:
+        worker_limit = 800
+    try:
+        report = rebuild_operational_matrix_for_paths(
+            _runtime_paths(),
+            tenant_label=_tenant_id(),
+            limit=limit,
+            worker_limit=worker_limit,
+        )
+        return _json_success(
+            {
+                "ok": True,
+                "message": "Matrice PEC riallineata: parser, fascicoli, agenda, scadenziario e notifiche sono stati riaccodati con la logica corrente.",
+                "report": report,
+            }
+        )
     except TenantDataPathError:
         return _json_error(403)
 

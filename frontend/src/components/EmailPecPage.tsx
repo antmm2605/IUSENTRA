@@ -450,11 +450,42 @@ function recordArray(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value) ? value.map((item) => record(item)).filter((item) => Object.keys(item).length > 0) : []
 }
 
+function uniqueText(values: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  values.forEach((value) => {
+    const clean = text(value)
+    const key = clean.toLocaleLowerCase('it-IT')
+    if (clean && !seen.has(key)) {
+      seen.add(key)
+      out.push(clean)
+    }
+  })
+  return out
+}
+
 function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSummary; compact?: boolean }) {
   if (!audit) return null
   const profile = record(audit.proceduralProfile)
   const remote = record(profile.remote_hearing ?? profile.remoteHearing)
+  const cliente = profileValue(audit, 'cliente')
+  const ruoloParte = profileValue(audit, 'ruolo_parte')
+  const parteProcessuale = profileValue(audit, 'parte_processuale') || profileValue(audit, 'soggetto_processuale')
+  const partiProcessuali = uniqueText(stringArray(profile.parti_processuali ?? profile.partiProcessuali))
+  const soggettiParti = recordArray(profile.soggetti_parti ?? profile.soggettiParti)
+    .map((item) => {
+      const ruolo = text(item.ruolo)
+      const nome = text(item.valore ?? item.nome ?? item.value ?? item.label)
+      if (!nome) return ''
+      return ruolo ? `${ruolo}: ${nome}` : nome
+    })
+    .filter(Boolean)
+  const parteConRuolo = parteProcessuale && ruoloParte ? `${parteProcessuale} (${ruoloParte})` : parteProcessuale
+  const partiLabel = uniqueText(soggettiParti.length ? soggettiParti : partiProcessuali).join(' / ')
   const facts = [
+    ['Cliente', cliente],
+    ['Parte/Soggetto', parteConRuolo],
+    ['Soggetti e parti', partiLabel],
     ['Ufficio', profileValue(audit, 'ufficio')],
     ['Giudice', profileValue(audit, 'giudice')],
     ['RG', profileValue(audit, 'numero_rg')],

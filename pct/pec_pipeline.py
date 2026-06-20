@@ -539,6 +539,77 @@ def _profile_party_values(profile: dict[str, Any]) -> list[str]:
     return out
 
 
+def _profile_party_label(label: str) -> str:
+    raw = clean_text(label, 80).strip(" .;:-").lower()
+    mapping = {
+        "ricorr. principale": "Ricorrente principale",
+        "ricorrente principale": "Ricorrente principale",
+        "attore principale": "Attore principale",
+        "resist. principale": "Resistente principale",
+        "resistente principale": "Resistente principale",
+        "conv. principale": "Convenuto principale",
+        "conven. principale": "Convenuto principale",
+        "convenuto principale": "Convenuto principale",
+        "convenuta principale": "Convenuto principale",
+        "parte": "Parte",
+        "soggetto processuale": "Soggetto processuale",
+    }
+    return mapping.get(raw, clean_text(label, 80).strip(" .;:-") or "Parte processuale")
+
+
+def _append_profile_party(
+    values: list[str],
+    structured: list[dict[str, str]],
+    *,
+    role: str,
+    value: Any,
+    source: str,
+) -> str:
+    name = _trim_profile_label_value(
+        clean_text(value, 240).strip(" ;,"),
+        ("Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO", "IdMsg", "Impronta"),
+    )
+    if not name:
+        return ""
+    key = name.casefold()
+    if all(existing.casefold() != key for existing in values):
+        values.append(name)
+    role_label = _profile_party_label(role)
+    if all(
+        item.get("nome", "").casefold() != key or item.get("ruolo", "").casefold() != role_label.casefold()
+        for item in structured
+    ):
+        structured.append({"ruolo": role_label, "nome": name, "valore": name, "fonte": source, "origine": source})
+    return name
+
+
+def _resolve_profile_office_from_code(codice_ufficio: str, fallback: str = "") -> tuple[str, dict[str, str]]:
+    code = clean_text(codice_ufficio, 80).strip()
+    if not code:
+        return clean_text(fallback, 180), {}
+    try:
+        from pct.uffici_giudiziari import risolvi_ufficio
+
+        row = risolvi_ufficio(code)
+    except Exception:
+        row = None
+    if not isinstance(row, dict):
+        return clean_text(fallback, 180), {"codice_ufficio": code}
+    office_name = clean_text(
+        row.get("nome")
+        or row.get("descrizione_ministero")
+        or row.get("comune_ministero")
+        or fallback,
+        180,
+    )
+    return office_name, {
+        "codice_ufficio": code,
+        "codice_iusentra": clean_text(row.get("codice") or "", 80),
+        "codice_ministero": clean_text(row.get("codice_ministero") or code, 80),
+        "nome": office_name,
+    }
+
+
 def _trim_profile_label_value(value: Any, stop_labels: Iterable[str]) -> str:
     text = clean_text(value, 260)
     if not text:
@@ -910,8 +981,18 @@ PROFILE_INLINE_LABELS = (
     "Giudice",
     "Attore Principale",
     "Convenuto Principale",
+    "Convenuta Principale",
+    "Conv. principale",
+    "Conven. principale",
     "Ricorr. principale",
+    "Ricorrente principale",
     "Resist. principale",
+    "Resistente principale",
+    "Cliente",
+    "Assistito",
+    "Parte assistita",
+    "Parte processuale",
+    "Soggetto processuale",
     "Oggetto",
     "Descrizione",
     "Note",
@@ -984,6 +1065,11 @@ def build_pec_procedural_profile(
         context = semantic_context or {}
         office = clean_text(context.get("office_hint") or "", 160)
 
+    codice_ufficio_value = xml_tag_value(xml_joined, ("CodiceUG", "codiceUG", "Ufficio"))
+    resolved_office, office_registry = _resolve_profile_office_from_code(codice_ufficio_value, office)
+    if resolved_office:
+        office = resolved_office
+
     profile = {
         "ufficio": office,
         "cancelleria": _first_profile_value(
@@ -1022,8 +1108,19 @@ def build_pec_procedural_profile(
             limit=240,
         ),
         "ruolo_parte": _profile_value(readable, ("Ruolo parte", "Ruolo soggetto", "Qualifica parte"), limit=120),
-        "attore_principale": _profile_value(readable, ("Attore Principale", "Ricorr. principale"), limit=240),
-        "convenuto_principale": _profile_value(readable, ("Convenuto Principale", "Resist. principale"), limit=240),
+        "attore_principale": _profile_value(readable, ("Attore Principale", "Ricorr. principale", "Ricorrente principale"), limit=240),
+        "convenuto_principale": _profile_value(
+            readable,
+            (
+                "Convenuto Principale",
+                "Convenuta Principale",
+                "Conv. principale",
+                "Conven. principale",
+                "Resist. principale",
+                "Resistente principale",
+            ),
+            limit=240,
+        ),
         "data_evento": _profile_value(readable, "Data Evento"),
         "tipo_evento": _profile_value(readable, "Tipo Evento", limit=240),
         "oggetto_evento": _profile_value(readable, "Oggetto", limit=280) or subject,
@@ -1036,24 +1133,13 @@ def build_pec_procedural_profile(
             ),
             limit=120,
         ),
-        "codice_ufficio": xml_tag_value(xml_joined, ("CodiceUG", "codiceUG", "Ufficio")),
+        "codice_ufficio": codice_ufficio_value,
         "codice_fiscale_destinatario": xml_tag_value(xml_joined, ("CodiceFiscaleDestinatario", "codiceFiscaleDestinatario")),
         "data_invio": sent_date,
         "data_consegna": delivery_date,
         "evento_pec": event_type,
         "documenti_letti": sorted(str(name) for name in sources.keys() if str(name or "").strip()),
     }
-    parti_processuali = [
-        item
-        for item in (
-            profile.get("parte_processuale"),
-            profile.get("attore_principale"),
-            profile.get("convenuto_principale"),
-        )
-        if str(item or "").strip()
-    ]
-    if parti_processuali:
-        profile["parti_processuali"] = list(dict.fromkeys(str(item) for item in parti_processuali))
     profile["cliente"] = _trim_profile_label_value(
         profile.get("cliente"),
         ("Parte processuale", "Soggetto processuale", "Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO"),
@@ -1062,12 +1148,73 @@ def build_pec_procedural_profile(
         profile.get("parte_processuale"),
         ("Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO", "IdMsg", "Impronta"),
     )
-    if profile.get("parti_processuali"):
-        trimmed_parties = [
-            _trim_profile_label_value(item, ("Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO", "IdMsg", "Impronta"))
-            for item in profile["parti_processuali"]
-        ]
-        profile["parti_processuali"] = list(dict.fromkeys(item for item in trimmed_parties if item))
+    profile["attore_principale"] = _trim_profile_label_value(
+        profile.get("attore_principale"),
+        (
+            "Conv. principale",
+            "Conven. principale",
+            "Convenuto principale",
+            "Convenuta principale",
+            "Resist. principale",
+            "Resistente principale",
+            "Oggetto",
+            "Descrizione",
+            "Note",
+            "Ufficio",
+            "RG",
+        ),
+    )
+    profile["convenuto_principale"] = _trim_profile_label_value(
+        profile.get("convenuto_principale"),
+        ("Oggetto", "Descrizione", "Note", "Ufficio", "RG", "Notificato alla PEC"),
+    )
+    parti_processuali: list[str] = []
+    soggetti_parti: list[dict[str, str]] = []
+    explicit_party = _append_profile_party(
+        parti_processuali,
+        soggetti_parti,
+        role=profile.get("ruolo_parte") or "Parte processuale",
+        value=profile.get("parte_processuale"),
+        source="Comunicazione.xml: Parte/Soggetto",
+    )
+    ricorrente = _append_profile_party(
+        parti_processuali,
+        soggetti_parti,
+        role="Ricorr. principale",
+        value=profile.get("attore_principale"),
+        source="Comunicazione.xml: Ricorr. principale",
+    )
+    convenuto_role = "Resist. principale"
+    for label in ("Conv. principale", "Conven. principale", "Convenuto principale", "Convenuta principale"):
+        if re.search(rf"\b{re.escape(label)}\s*:", readable, flags=re.I):
+            convenuto_role = label
+            break
+    resistente = _append_profile_party(
+        parti_processuali,
+        soggetti_parti,
+        role=convenuto_role,
+        value=profile.get("convenuto_principale"),
+        source=f"Comunicazione.xml: {convenuto_role}",
+    )
+    if not profile.get("cliente") and ricorrente:
+        profile["cliente"] = ricorrente
+        profile["cliente_origine"] = "Comunicazione.xml: Ricorr. principale"
+        profile["cliente_da_verificare"] = True
+    elif profile.get("cliente"):
+        profile["cliente_origine"] = "Comunicazione.xml: Cliente/Assistito"
+    if not profile.get("parte_processuale"):
+        selected_party = explicit_party or ricorrente or resistente
+        if selected_party:
+            profile["parte_processuale"] = selected_party
+            if not profile.get("ruolo_parte"):
+                profile["ruolo_parte"] = "Ricorrente principale" if selected_party == ricorrente else "Resistente principale" if selected_party == resistente else "Parte processuale"
+    if parti_processuali:
+        profile["parti_processuali"] = list(dict.fromkeys(parti_processuali))
+    if soggetti_parti:
+        profile["soggetti_parti"] = soggetti_parti
+    if office_registry:
+        profile["ufficio_registry"] = office_registry
+        profile["ufficio_risolto_da_codice"] = bool(office_registry.get("nome"))
     lower = readable.lower()
     hearing_datetime = _hearing_datetime_from_text(readable)
     if hearing_datetime:
@@ -2560,6 +2707,11 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
     office_value = procedural_profile.get("ufficio") or ""
     judge_value = procedural_profile.get("giudice") or ""
     event_value = procedural_profile.get("tipo_evento") or procedural_profile.get("oggetto_evento") or ""
+    client_value = procedural_profile.get("cliente") or ""
+    party_value = procedural_profile.get("parte_processuale") or ""
+    parties_value = procedural_profile.get("parti_processuali") or []
+    party_records_value = procedural_profile.get("soggetti_parti") or []
+    office_code_value = procedural_profile.get("codice_ufficio") or ""
     notice_time_value = procedural_profile.get("notificato_il") or delivery_date or sent_date
     hearing_time_value = procedural_profile.get("udienza_data_ora") or ""
     hearing_mode_value = procedural_profile.get("modalita_udienza") or ""
@@ -2612,11 +2764,41 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
             "Ufficio/cancelleria estratto da testo o XML della comunicazione" if office_value else "Ufficio non riconosciuto nei dati disponibili",
             ["profilo_processuale", "eml/xml"] if office_value else [],
         ),
+        "codice_ufficio": field_result(
+            office_code_value,
+            0.9 if office_code_value else 0.2,
+            "CodiceUG letto dalla Comunicazione.xml e usato per risolvere l'ufficio reale." if office_code_value else "Codice ufficio non presente nella comunicazione.",
+            ["Comunicazione.xml:CodiceUG"] if office_code_value else [],
+        ),
         "giudice": field_result(
             judge_value,
             0.86 if judge_value else 0.2,
             "Giudice estratto dalla comunicazione di cancelleria" if judge_value else "Giudice non indicato o non riconosciuto",
             ["profilo_processuale", "comunicazione.xml"] if judge_value else [],
+        ),
+        "cliente": field_result(
+            client_value,
+            0.86 if client_value and not procedural_profile.get("cliente_da_verificare") else 0.72 if client_value else 0.2,
+            "Cliente letto dalla Comunicazione.xml." if client_value and not procedural_profile.get("cliente_da_verificare") else "Cliente ricavato dalla parte principale indicata in Comunicazione.xml: verificare il fascicolo collegato." if client_value else "Cliente non riconosciuto nei dati disponibili.",
+            [str(procedural_profile.get("cliente_origine") or "profilo_processuale")] if client_value else [],
+        ),
+        "parte_processuale": field_result(
+            party_value,
+            0.86 if party_value else 0.2,
+            "Parte o soggetto processuale letto dalla Comunicazione.xml." if party_value else "Parte/soggetto processuale non riconosciuto.",
+            ["profilo_processuale", "comunicazione.xml"] if party_value else [],
+        ),
+        "parti_processuali": field_result(
+            parties_value,
+            0.88 if parties_value else 0.2,
+            "Elenco parti ricostruito da Ricorrente/Resistente o dai campi parte della Comunicazione.xml." if parties_value else "Elenco parti non riconosciuto.",
+            ["profilo_processuale", "comunicazione.xml"] if parties_value else [],
+        ),
+        "soggetti_parti": field_result(
+            party_records_value,
+            0.9 if party_records_value else 0.2,
+            "Parti processuali conservate con ruolo e fonte XML." if party_records_value else "Ruoli delle parti non riconosciuti.",
+            ["Comunicazione.xml:Contenuto"] if party_records_value else [],
         ),
         "evento_processuale": field_result(
             event_value,
@@ -3369,6 +3551,31 @@ def build_deadline_proposal(
             enriched = dict(item)
             enriched["deadline_kind"] = kind
             future_dates.append(enriched)
+    profile_for_hearing = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    profile_hearing_text = clean_text(profile_for_hearing.get("udienza_data_ora") or "", 120)
+    profile_hearing_day = _date_from_iso_or_it(profile_hearing_text)
+    if event_type != "pct_deposito" and profile_hearing_day and profile_hearing_day >= today:
+        hearing_key = profile_hearing_day.isoformat()
+        if not any(str(item.get("date") or "") == hearing_key and str(item.get("deadline_kind") or "") == "udienza" for item in future_dates):
+            future_dates.append(
+                {
+                    "date": hearing_key,
+                    "raw_date": profile_hearing_text,
+                    "label": "Udienza",
+                    "source": "Comunicazione.xml: profilo processuale",
+                    "context": "\n".join(
+                        part
+                        for part in (
+                            profile_for_hearing.get("messaggio_operativo"),
+                            profile_for_hearing.get("descrizione_evento"),
+                            profile_for_hearing.get("oggetto_evento"),
+                        )
+                        if str(part or "").strip()
+                    ),
+                    "confidence": 0.9,
+                    "deadline_kind": "udienza",
+                }
+            )
     if future_dates:
         candidate = sorted(
             future_dates,
@@ -4852,6 +5059,14 @@ class PecAuditRepository:
         body = parsed.get("body") or {}
         profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
         rg = list(parsed.get("rg_candidates") or [])
+        for value in (
+            profile.get("numero_rg"),
+            profile.get("rg"),
+            profile.get("numero_ruolo"),
+        ):
+            value_text = clean_text(value, 80)
+            if value_text and value_text not in rg:
+                rg.append(value_text)
         sender_field = (fields.get("mittente") or {}).get("value") or {}
         parties = [
             clean_text(sender_field.get("name") if isinstance(sender_field, dict) else ""),
@@ -5139,6 +5354,13 @@ class PecAuditRepository:
                     raise ValueError(f"Job PEC non riconosciuto: {job_type}")
                 with self.connect() as conn:
                     conn.execute(
+                        """
+                        DELETE FROM pec_jobs
+                        WHERE tenant_id=? AND message_id=? AND job_type=? AND status='done' AND id<>?
+                        """,
+                        (self.tenant_id, message_id, job_type, row["id"]),
+                    )
+                    conn.execute(
                         "UPDATE pec_jobs SET status='done', finished_at=?, error='', updated_at=? WHERE id=?",
                         (iso_now(), iso_now(), row["id"]),
                     )
@@ -5152,6 +5374,14 @@ class PecAuditRepository:
                     attempts = int(row["attempts"] or 0) + 1
                     if attempts < int(row["max_attempts"] or 3):
                         status = "queued"
+                    if status == "queued":
+                        conn.execute(
+                            """
+                            DELETE FROM pec_jobs
+                            WHERE tenant_id=? AND message_id=? AND job_type=? AND status='queued' AND id<>?
+                            """,
+                            (self.tenant_id, str(row["message_id"] or ""), str(row["job_type"] or ""), row["id"]),
+                        )
                     conn.execute(
                         "UPDATE pec_jobs SET status=?, error=?, available_at=?, updated_at=? WHERE id=?",
                         (status, str(exc), available_at, iso_now(), row["id"]),
@@ -5176,11 +5406,36 @@ class PecAuditRepository:
         from pct.document_intelligence.service import DocumentAIService
 
         structured_db = self._studio_db_for_data_path(self.fascicoli_db_path) if self.fascicoli_db_path else None
-        repository = DocumentAIRepository.from_fascicoli_db(
-            str(self.fascicoli_db_path),
-            structured_db=structured_db,
-        )
+        backend_kind = str(getattr(structured_db, "backend_kind", "") or "").lower()
+        if backend_kind == "postgresql" or self._structured_document_ai_backend_writable(structured_db):
+            repository = DocumentAIRepository.from_fascicoli_db(
+                str(self.fascicoli_db_path),
+                structured_db=structured_db,
+            )
+        else:
+            base = Path(self.fascicoli_db_path).resolve().parent / "documenti_ai"
+            repository = DocumentAIRepository.from_sqlite_db(
+                base / "documenti_ai.sqlite",
+                storage_root=base,
+            )
         return DocumentAIService(repository, fascicoli_manager)
+
+    def _structured_document_ai_backend_writable(self, structured_db: Any) -> bool:
+        if structured_db is None:
+            return False
+        try:
+            conn = getattr(structured_db, "conn", None)
+            if conn is None:
+                return False
+            query_only = conn.execute("PRAGMA query_only").fetchone()
+            if query_only and int(query_only[0] or 0):
+                return False
+            conn.execute("CREATE TEMP TABLE IF NOT EXISTS document_ai_write_probe (id INTEGER PRIMARY KEY)")
+            conn.execute("DELETE FROM document_ai_write_probe WHERE id < 0")
+            conn.commit()
+            return True
+        except Exception:
+            return False
 
     def _document_presidio_existing_deadline(self, *, fascicolo_id: str, target_date: str, kind: str) -> dict[str, Any]:
         if not self.scadenziario_db_path:
@@ -6235,6 +6490,149 @@ class PecAuditRepository:
             db_path=str(self.agenda_db_path),
             studio_db=self._studio_db_for_data_path(self.agenda_db_path),
         )
+
+    def cleanup_legacy_pec_operational_items(self, *, actor: str = "pec-worker") -> dict[str, int]:
+        from pct.pec_operational_cleanup import cleanup_legacy_pec_operational_items
+
+        report = cleanup_legacy_pec_operational_items(
+            scadenziario=self._scadenziario_manager() if self.scadenziario_db_path else None,
+            agenda=self._agenda_manager() if self.agenda_db_path else None,
+        )
+        if report.get("scadenziario_removed") or report.get("agenda_removed"):
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.legacy_operational_items.cleaned",
+                        resource_type="pec_operational_matrix",
+                        resource_id="agenda_scadenziario",
+                        payload=report,
+                        actor=actor,
+                    )
+            except Exception:
+                pass
+        return report
+
+    def _delete_queued_jobs_for_message(self, message_id: str, *, actor: str, reason: str) -> int:
+        clean_id = clean_text(message_id, 160)
+        if not clean_id:
+            return 0
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, job_type
+                FROM pec_jobs
+                WHERE tenant_id=? AND message_id=? AND status='queued'
+                """,
+                (self.tenant_id, clean_id),
+            ).fetchall()
+            if not rows:
+                return 0
+            conn.execute(
+                "DELETE FROM pec_jobs WHERE tenant_id=? AND message_id=? AND status='queued'",
+                (self.tenant_id, clean_id),
+            )
+            self.append_audit(
+                conn,
+                action="pec.jobs.queued_deleted",
+                resource_type="pec_message",
+                resource_id=clean_id,
+                payload={
+                    "reason": reason,
+                    "deleted": len(rows),
+                    "job_types": [str(row["job_type"] or "") for row in rows],
+                },
+                actor=actor,
+            )
+            return len(rows)
+
+    def refresh_message_analysis(self, message_id: str, *, actor: str = "pec-maintenance") -> dict[str, Any]:
+        """Ricalcola subito una PEC gia' acquisita con le regole correnti.
+
+        Il MIME resta unico; vengono create nuove versioni di parsing/report e
+        il link/scadenza esistente viene aggiornato in modo idempotente.
+        """
+
+        clean_id = clean_text(message_id, 160)
+        if not clean_id:
+            return {"ok": False, "message_id": "", "steps": [], "errors": ["message_id mancante"]}
+        steps: list[dict[str, Any]] = []
+        errors: list[str] = []
+        try:
+            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_pre")
+            steps.append({"step": "parse", "result": self.parse_and_store(clean_id, actor=actor)})
+            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_parse")
+            steps.append({"step": "classify", "result": self.classify_attachments(clean_id, actor=actor)})
+            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_classify")
+            steps.append({"step": "ocr", "result": self.ocr_attachments(clean_id, actor=actor)})
+            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_ocr")
+            steps.append({"step": "signcheck", "result": self.verify_signatures(clean_id, actor=actor)})
+            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_signcheck")
+            steps.append({"step": "validate", "result": self.validate_message(clean_id, actor=actor)})
+            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_validate")
+            steps.append({"step": "link", "result": self.link_fascicolo(clean_id, actor=actor)})
+            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_link")
+        except Exception as exc:
+            errors.append(str(exc)[:500])
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.analysis.refresh_failed",
+                        resource_type="pec_message",
+                        resource_id=clean_id,
+                        payload={"steps": steps, "errors": errors},
+                        actor=actor,
+                    )
+            except Exception:
+                pass
+            return {"ok": False, "message_id": clean_id, "steps": steps, "errors": errors}
+        try:
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.analysis.refreshed",
+                    resource_type="pec_message",
+                    resource_id=clean_id,
+                    payload={"steps": [item["step"] for item in steps]},
+                    actor=actor,
+                )
+        except Exception:
+            pass
+        return {"ok": True, "message_id": clean_id, "steps": steps, "errors": []}
+
+    def enqueue_operational_matrix_rebuild(self, *, limit: int = 0, actor: str = "pec-rebuild") -> dict[str, Any]:
+        max_items = max(0, int(limit or 0))
+        with self.connect() as conn:
+            query = """
+                SELECT id
+                FROM pec_messages
+                WHERE tenant_id=?
+                ORDER BY received_at DESC, ingested_at DESC
+            """
+            rows = conn.execute(query, (self.tenant_id,)).fetchall()
+            queued = 0
+            for row in rows:
+                if max_items and queued >= max_items:
+                    break
+                message_id = str(row["id"] or "")
+                if not message_id:
+                    continue
+                conn.execute(
+                    "DELETE FROM pec_jobs WHERE tenant_id=? AND message_id=? AND status='queued'",
+                    (self.tenant_id, message_id),
+                )
+                self.enqueue_job(conn, "parse", message_id=message_id, priority=20, actor=actor)
+                queued += 1
+            self.append_audit(
+                conn,
+                action="pec.operational_matrix.rebuild_queued",
+                resource_type="pec_operational_matrix",
+                resource_id=self.tenant_id,
+                payload={"queued": queued, "limit": max_items},
+                actor=actor,
+            )
+        return {"ok": True, "queued": queued, "limit": max_items, "tenant_id": self.tenant_id}
 
     def _push_local_calendar_item(self, local_type: str, local_id: str) -> dict[str, Any]:
         if not self.calendar_sync_db_path or not self.agenda_db_path or not self.scadenziario_db_path:

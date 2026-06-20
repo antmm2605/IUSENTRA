@@ -97,6 +97,21 @@ Il link remoto va cercato prima nei campi XML, poi nel testo del messaggio e nel
 - Qualunque termine calcolato resta bozza da confermare finché non è verificato sul documento fonte, salvo regole già presidiate e testate dal gestionale.
 - Lo scadenziario deve contenere solo attività realmente operative per l'avvocato: udienze, termini, notifiche, lettura di provvedimenti, produzione di atti o verifica puntuale di allegati. Ricevute tecniche, protocolli, accettazioni e conferme deposito restano nel fascicolo o nel presidio PEC e non devono creare scadenze generiche.
 
+## Fascicoli e prossima scadenza
+
+La lista React dei fascicoli deve mostrare `Prossima scad.` quando esiste una scadenza o udienza aperta già acquisita dalla matrice PEC/documenti, anche se il record storico dello scadenziario non contiene ancora l'ID interno del fascicolo ma contiene un riferimento processuale affidabile.
+
+Ordine di collegamento ammesso:
+
+1. ID interno del fascicolo;
+2. alias forti del fascicolo/importazione;
+3. RG univoco nel tenant;
+4. RG più cliente, parte/soggetto o profilo processuale ricavato da `Comunicazione.xml`, PEC o documento fonte.
+
+Se più fascicoli condividono lo stesso RG e la scadenza non contiene cliente, parte/soggetto o altro dato processuale distintivo, la lista deve lasciare `n.d.` e mantenere un presidio di collegamento ambiguo. Il solo RG non basta per fondere depositi né per assegnare automaticamente una scadenza a un fascicolo ambiguo.
+
+Quando la PEC è stata cancellata o non basta, il servizio automatico deve leggere i documenti indicizzati del fascicolo e creare/upsertare l'evento operativo corretto in agenda e scadenziario; a quel punto la stessa data deve diventare visibile anche nella colonna `Prossima scad.` del fascicolo.
+
 ## Lex AI, RAG e presidio documentale automatico
 
 Lex AI non deve limitarsi a inviare testo libero al RAG. La lettura dei documenti del fascicolo deve produrre tre livelli separati:
@@ -119,9 +134,11 @@ Esempio obbligatorio: se nel fascicolo esiste un `Decreto fissazione udienza` ch
 Fonti tecniche di riferimento consultate per la struttura:
 
 - OpenAI File Search: vector store con attributi/metadati e filtri;
-- Microsoft Azure AI Search RAG: chunking, OCR/PDF, hybrid search, grounding data e risposte strutturate;
-- Qdrant: filtri su payload e hybrid search;
-- Pinecone: chunk documentali con ID strutturati e metadati completi.
+- Microsoft Azure AI Search RAG, `https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview`: chunking, OCR/PDF, hybrid search, grounding data e risposte strutturate;
+- Microsoft Azure AI Search hybrid search, `https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview`: recupero full-text e vettoriale nello stesso ciclo, con fusione dei risultati;
+- Qdrant hybrid queries, `https://qdrant.tech/documentation/search/hybrid-queries/`: filtri su payload, recupero ibrido e fusione risultati;
+- Pinecone relevance/chunking, `https://docs.pinecone.io/guides/optimize/increase-relevance`: chunk documentali con ID strutturati, metadati completi, filtri e hybrid search;
+- Pinecone RAG chatbot, `https://docs.pinecone.io/guides/get-started/build-a-rag-chatbot`: recupero citabile e risposte grounded su documenti indicizzati.
 
 ## Politica notifiche
 
@@ -156,7 +173,9 @@ Aggiungere test eseguibili per:
 12. recupero da documenti fascicolo indicizzati Lex quando la PEC non basta o non è più presente;
 13. metadati RAG/vettoriali su tenant, fascicolo, RG, ufficio, cliente, parte, documento e hash;
 14. distinzione fra termine operativo e udienza remota quando lo stesso documento contiene sia scadenza sia link audiovisivo;
-15. idempotenza del presidio documentale: nessun duplicato in fascicolo, agenda o scadenziario al secondo passaggio.
+15. idempotenza del presidio documentale: nessun duplicato in fascicolo, agenda o scadenziario al secondo passaggio;
+16. popolamento di `Prossima scad.` nella lista fascicoli da scadenza/udienza aperta collegata tramite ID, alias forte, RG univoco o RG più cliente/parte;
+17. mancata assegnazione automatica di `Prossima scad.` quando il solo RG è ambiguo fra più fascicoli.
 
 Eseguire inoltre lint, typecheck, test e build previsti dal repository e documentare i comandi nella pull request.
 
@@ -166,6 +185,7 @@ Eseguire inoltre lint, typecheck, test e build previsti dal repository e documen
 - Cliente e parte sono visibili e coerenti in tutti i punti previsti.
 - Le notifiche tecniche grezze non compaiono in avvisi, topbar o push.
 - Udienze e termini vengono aggiornati senza duplicati.
+- La lista fascicoli non mostra `n.d.` se una scadenza o udienza aperta è già collegabile in modo affidabile da PEC o documento fascicolo.
 - Il link remoto viene conservato oppure esiste un presidio esplicito se manca.
 - I casi ambigui non vengono assegnati automaticamente.
 - Test, migrazioni e build risultano verdi.

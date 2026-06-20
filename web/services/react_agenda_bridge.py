@@ -6,6 +6,8 @@ import re
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Callable, Iterable
 
+from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
+
 
 RG_RE = re.compile(r"\b(?:R\.?\s*G\.?|RG|Ruolo generale)\s*(?:n\.?|numero|:)?\s*([0-9]{1,7}\s*/\s*[0-9]{4}(?:/[A-Z]+)?)", re.IGNORECASE)
 COMMUNICATION_RG_RE = re.compile(r"\bCOMUNICAZIONE\s+([0-9]{1,7}\s*/\s*[0-9]{4})(?:\s*/\s*[A-Z]+)?\b", re.IGNORECASE)
@@ -139,6 +141,9 @@ def _extract_rg(*values: Any) -> str:
 def _extract_party(*values: Any) -> str:
     for value in values:
         text = str(value or "")
+        client = _extract_labeled_line(text, "Cliente", limit=90)
+        if client:
+            return client
         match = PARTY_RE.search(text)
         if match:
             return _clean_text(match.group(1), limit=90)
@@ -190,6 +195,36 @@ def _extract_labeled_line(text: str, label: str, *, limit: int = 220) -> str:
         if line.lower().startswith(prefix):
             return _clean_text(line.split(":", 1)[1], limit=limit).strip(" -:;.")
     return _extract_docpresidio_labeled(text, label, limit=limit)
+
+
+def _has_structured_pec_profile(text: str) -> bool:
+    return bool(
+        _extract_labeled_line(text, "Cliente", limit=120)
+        and (
+            _extract_labeled_line(text, "Evento", limit=180)
+            or _extract_labeled_line(text, "Udienza", limit=120)
+        )
+    )
+
+
+def _pec_agenda_visible_notes(raw_notes: str, *, client: str = "", matter: str = "", court: str = "") -> str:
+    lines: list[str] = []
+    for label in ("Cliente", "Parte/soggetto", "Ufficio", "Giudice", "Evento", "Udienza"):
+        value = _extract_labeled_line(raw_notes, label, limit=220)
+        if value:
+            _append_detail_line(lines, f"{label}: {value}", limit=260)
+    if matter and "RG" not in " ".join(lines):
+        _append_detail_line(lines, f"Fascicolo/RG: {matter}", limit=180)
+    if court and "Ufficio:" not in " ".join(lines):
+        _append_detail_line(lines, f"Ufficio: {court}", limit=180)
+    if client and "Cliente:" not in " ".join(lines):
+        _append_detail_line(lines, f"Cliente: {client}", limit=180)
+    _append_detail_line(
+        lines,
+        "Attività per l'avvocato: verificare data, ora, fascicolo e provvedimento collegato; predisporre note, atti o comunicazioni se richiesti.",
+        limit=260,
+    )
+    return _clean_text(" ".join(lines), limit=700)
 
 
 def _append_detail_line(lines: list[str], line: str, *, limit: int = 220) -> None:
@@ -283,6 +318,7 @@ def _operational_title(title: str, legal_label: str, client: str, matter: str, n
 def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str) -> list[str]:
     lines: list[str] = []
     raw_notes = str(row.get("technicalNotes") or row.get("notes") or "")
+    is_pec_operational = _is_pec_operational_text(original_title, raw_notes) or _has_structured_pec_profile(raw_notes)
     for label, key in (
         ("Cliente/parte", "client"),
         ("Fascicolo/RG", "matter"),
@@ -293,6 +329,16 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
         value = _visible_legal_text(row.get(key), limit=140)
         if value:
             lines.append(f"{label}: {value}")
+    if is_pec_operational:
+        for label in ("Parte/soggetto", "Giudice", "Evento", "Udienza"):
+            value = _extract_labeled_line(raw_notes, label, limit=220)
+            if value:
+                _append_detail_line(lines, f"{label}: {value}", limit=260)
+        _append_detail_line(
+            lines,
+            "Attività per l'avvocato: verificare data, ora, fascicolo e provvedimento collegato; predisporre note, atti o comunicazioni se richiesti.",
+            limit=260,
+        )
     if _is_document_presidio_lex_text(original_title, raw_notes):
         party_subject = _extract_docpresidio_labeled(raw_notes, "Parte/soggetto", limit=180)
         if party_subject and party_subject.lower() not in " ".join(lines).lower():
@@ -326,7 +372,7 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
     visible_original = _strip_operational_prefix(original_title)
     if visible_original and visible_original != row.get("displayTitle"):
         lines.append(f"Oggetto: {_clean_text(visible_original, limit=180)}")
-    notes = _visible_legal_text(row.get("notes"), limit=220)
+    notes = "" if is_pec_operational else _visible_legal_text(row.get("notes"), limit=220)
     if notes:
         lines.append(f"Dettaglio: {notes}")
     if not lines:
@@ -344,6 +390,15 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
     client = _clean_text(row.get("client"), limit=120) or _extract_party(raw_notes, notes, raw_title, original_title)
     label = _legal_label(raw_title, kind, raw_notes or notes)
     origin_title = _agenda_origin_title(raw_title, label, matter, raw_notes or notes)
+    if _is_pec_operational_text(raw_title, raw_notes) or _has_structured_pec_profile(raw_notes):
+        structured_notes = _pec_agenda_visible_notes(
+            raw_notes,
+            client=client,
+            matter=matter,
+            court=_clean_text(row.get("court"), limit=120),
+        )
+        if structured_notes:
+            notes = structured_notes
     row["technicalNotes"] = raw_notes
     row["originTitle"] = origin_title
     row["legalLabel"] = label
@@ -414,6 +469,8 @@ def _sync_status(item: Any) -> str:
 
 
 def _agenda_event(item: Any) -> dict[str, Any] | None:
+    if is_legacy_pec_agenda_item(item):
+        return None
     start = getattr(item, "data_ora_dt", None)
     if not isinstance(start, datetime):
         try:
@@ -471,6 +528,8 @@ def _appointment_in_range(item: Any, start: date, end: date) -> bool:
 
 
 def _deadline_event(item: Any) -> dict[str, Any] | None:
+    if is_legacy_pec_deadline(item):
+        return None
     due = str(getattr(item, "data_scadenza", "") or getattr(item, "legal_due_at", "") or "").strip()
     if not due:
         return None

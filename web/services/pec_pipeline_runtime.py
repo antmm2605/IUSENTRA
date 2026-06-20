@@ -24,7 +24,7 @@ def repository_from_paths(paths: Mapping[str, Any], *, tenant_label: str = "defa
     audit_db = Path(str(paths.get("PEC_AUDIT_DB") or email_db.parent / "pec_audit.sqlite"))
     return PecAuditRepository(
         audit_db,
-        tenant_id="default",
+        tenant_id=str(tenant_label or "default"),
         fascicoli_db_path=_path_from_mapping(paths, "FASCICOLI_DB", "./fascicoli/fascicoli.json"),
         fascicoli_docs_path=_path_from_mapping(paths, "FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_path_from_mapping(paths, "SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
@@ -41,6 +41,12 @@ def repository_for_current_request() -> PecAuditRepository:
 def run_workers_for_paths(paths: Mapping[str, Any], *, tenant_label: str, limit: int = 200) -> dict[str, Any]:
     repo = repository_from_paths(paths, tenant_label=tenant_label)
     report = repo.run_pending_jobs(limit=limit, actor="scheduler")
+    try:
+        cleanup = repo.cleanup_legacy_pec_operational_items(actor="scheduler")
+        if cleanup.get("scadenziario_removed") or cleanup.get("agenda_removed") or cleanup.get("errors"):
+            report["legacy_cleanup"] = cleanup
+    except Exception as exc:
+        report["legacy_cleanup"] = {"errors": 1, "message": str(exc)[:180]}
     try:
         document_presidio = repo.recover_missing_hearings_from_fascicolo_documents(
             limit=max(10, min(int(limit or 200), 80)),
@@ -70,6 +76,13 @@ def run_workers_for_paths(paths: Mapping[str, Any], *, tenant_label: str, limit:
         # in scadenziario/agenda anche se il centro notifiche non è raggiungibile.
         pass
     return report
+
+
+def rebuild_operational_matrix_for_paths(paths: Mapping[str, Any], *, tenant_label: str, limit: int = 0, worker_limit: int = 500) -> dict[str, Any]:
+    repo = repository_from_paths(paths, tenant_label=tenant_label)
+    queued = repo.enqueue_operational_matrix_rebuild(limit=limit, actor="scheduler-rebuild")
+    workers = run_workers_for_paths(paths, tenant_label=tenant_label, limit=max(1, int(worker_limit or 500)))
+    return {"ok": True, "queued": queued, "workers": workers}
 
 
 def build_digest_for_paths(paths: Mapping[str, Any], *, tenant_label: str, digest_date: str | None = None) -> dict[str, Any]:

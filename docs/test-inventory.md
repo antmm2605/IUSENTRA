@@ -53,7 +53,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Area | Tipo test | File | Copre | Gap | Stato |
 | --- | --- | --- | --- | --- | --- |
 | API contracts | API contract | tests/test_ci_no_regression_contract.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
-| API contracts | API contract | tests/test_data_flow_contract.py | tenant, contratto, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| API contracts | API contract | tests/test_data_flow_contract.py | 403/RBAC, tenant, contratto, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | API contracts | API contract | tests/test_lex_widget_contract.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | API contracts | API contract | tests/test_openapi_contracts_phase6.py | tenant, contratto, file | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | API contracts | API contract | tests/test_template_atti_frontend_contract.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

@@ -298,7 +298,7 @@ def test_react_scadenziario_bridge_nasconde_testi_tecnici_da_pec(tmp_path: Path)
     client = app.test_client()
     with app.app_context():
         gestione = get_scadenziario()
-        scadenza = gestione.nuova(
+        legacy = gestione.nuova(
             "Udienza da PEC: POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV",
             TipoTermine.UDIENZA,
             (date.today() + timedelta(days=12)).isoformat(),
@@ -307,28 +307,63 @@ def test_react_scadenziario_bridge_nasconde_testi_tecnici_da_pec(tmp_path: Path)
             deadline_profile_code="PEC_AUTO_PRESIDIO",
             source_event_type="pct_deposito",
             note=(
+                "PEC_AUDIT:msg-tech-old\n"
+                "Scadenza: scad-old\n"
+                "Fonte: pipeline PEC audit-grade.\n"
+                "Fissazione udienza di discussione con strumenti audiovisivi."
+            ),
+        )
+        scadenza = gestione.nuova(
+            "VINCI ROSA MARIA - FISSAZIONE UDIENZA DI DISCUSSIONE - RG 3950/2026",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=12)).isoformat(),
+            id_fascicolo="RG 3950/2026",
+            descrizione=(
+                "Cliente: VINCI ROSA MARIA\n"
+                "Parte/soggetto: Ricorrente principale: VINCI ROSA MARIA\n"
+                "Ufficio: Tribunale di Milano\n"
+                "Giudice: TOSONI CLAUDIA\n"
+                "Evento: FISSAZIONE UDIENZA DI DISCUSSIONE\n"
+                "Udienza: 09/07/2026 09:30 notifica/comunicazione che può generare termini\n"
+                "Attività per l'avvocato: verificare provvedimento, link audiovisivo e istruzioni di collegamento."
+            ),
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            source_event_type="comunicazione_cancelleria",
+            note=(
                 "PEC_AUDIT:msg-tech\n"
                 "Scadenza: scad-123\n"
                 "Fonte: pipeline PEC audit-grade.\n"
-                "Fissazione udienza di discussione con strumenti audiovisivi."
+                "Link udienza audiovisiva: da acquisire dal PDF allegato."
             ),
         )
 
     response = client.get("/api/v1/ui/scadenziario?vista=pec", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
     row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+    ids = {item["id"] for item in payload["items"]}
     visible = " ".join(
         str(row.get(key) or "")
         for key in ("title", "description", "sourceEventTypeLabel", "officeLabel", "remoteHearingSource", "remoteHearingAccessInfo")
     )
 
     assert response.status_code == 200
-    assert row["title"] == "Udienza da PEC: fissazione udienza - RG 3950/2026"
-    assert row["description"].startswith("Udienza rilevata da PEC.")
+    assert legacy.id not in ids
+    assert row["title"] == "VINCI ROSA MARIA - FISSAZIONE UDIENZA DI DISCUSSIONE - RG 3950/2026"
+    assert "Cliente: VINCI ROSA MARIA" in row["description"]
+    assert "Parte/soggetto: Ricorrente principale: VINCI ROSA MARIA" in row["description"]
+    assert "Tribunale di Milano" in row["description"]
+    assert "Udienza: 09/07/2026 09:30" in row["description"]
+    assert "Cliente: VINCI ROSA MARIA" in row["detailDescription"]
+    assert "Parte/soggetto: Ricorrente principale: VINCI ROSA MARIA" in row["detailDescription"]
+    assert "Udienza: 09/07/2026 09:30" in row["detailDescription"]
+    assert "notifica/comunicazione" not in row["detailDescription"]
+    assert "Attività per l'avvocato" in row["detailDescription"]
+    assert row["detailDescription"].count("Cliente: VINCI ROSA MARIA") == 1
     assert row["sourceEventTypeLabel"] == "Udienza"
     assert "Fissazione udienza" not in visible
     for token in ("POSTA CERTIFICATA", "COMUNICAZIONE 3950/2026", "Data processuale futura", "PEC_AUDIT", "pipeline", "payload", "runtime", "backend", "source_event", "profile_id", "audit-grade", "Deposito telematico"):
         assert token.lower() not in visible.lower()
+        assert token.lower() not in row["detailDescription"].lower()
 
 
 def test_react_scadenziario_bridge_non_sintetizza_presidio_documentale_lex_come_pec_generica(tmp_path: Path):
@@ -368,17 +403,35 @@ def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: P
     client = app.test_client()
     with app.app_context():
         gestione = get_scadenziario()
-        futura = gestione.nuova(
+        legacy_futura = gestione.nuova(
             "Udienza da PEC operativa",
             TipoTermine.UDIENZA,
             (date.today() + timedelta(days=20)).isoformat(),
             deadline_profile_code="PEC_AUTO_PRESIDIO",
+            note="PEC_AUDIT:pec-futura-legacy",
+        )
+        futura = gestione.nuova(
+            "VINCI ROSA MARIA - Udienza da remoto - RG 1754/2026",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=20)).isoformat(),
+            descrizione=(
+                "Cliente: VINCI ROSA MARIA\n"
+                "Parte/soggetto: Ricorrente principale: VINCI ROSA MARIA\n"
+                "Ufficio: Tribunale di Milano\n"
+                "Link udienza audiovisiva: da acquisire dal PDF allegato."
+            ),
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
             note="PEC_AUDIT:pec-futura",
         )
         scaduta = gestione.nuova(
-            "Udienza da PEC già superata",
+            "VINCI ROSA MARIA - Udienza già superata - RG 1754/2026",
             TipoTermine.UDIENZA,
             (date.today() - timedelta(days=20)).isoformat(),
+            descrizione=(
+                "Cliente: VINCI ROSA MARIA\n"
+                "Parte/soggetto: Ricorrente principale: VINCI ROSA MARIA\n"
+                "Ufficio: Tribunale di Milano."
+            ),
             deadline_profile_code="PEC_AUTO_PRESIDIO",
             note="PEC_AUDIT:pec-scaduta",
         )
@@ -388,6 +441,7 @@ def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: P
     ids = {item["id"] for item in payload["items"]}
 
     assert response.status_code == 200
+    assert legacy_futura.id not in ids
     assert futura.id in ids
     assert scaduta.id not in ids
     assert payload["summary"]["pec"] == 1

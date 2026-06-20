@@ -11,6 +11,7 @@ from pct.data_flow_contract import (
     required_sqlite_tables,
 )
 from pct.database import GestioneDatabase
+from pct.storage import StudioDB
 from pct.tenant import GestioneTenant
 from scripts.audit_data_flow_contract import _audit_tenant, _json_sources
 
@@ -19,6 +20,34 @@ def _write_json(path: str, payload) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def test_studiodb_salva_tabella_riconnette_connessione_query_only(tmp_path):
+    db_path = tmp_path / "studio.db"
+    studio_db = StudioDB.get(str(db_path))
+    studio_db.conn.execute("CREATE TABLE IF NOT EXISTS storage_probe (id TEXT PRIMARY KEY, dati_json TEXT)")
+    studio_db.conn.commit()
+    studio_db.chiudi()
+
+    ro_uri = f"file:{db_path.resolve().as_posix()}?mode=ro&immutable=1"
+    readonly = sqlite3.connect(ro_uri, uri=True, timeout=5)
+    readonly.row_factory = sqlite3.Row
+    readonly.execute("PRAGMA query_only=ON")
+    studio_db._local._conn = readonly
+
+    def _insert(conn, row):
+        conn.execute(
+            "INSERT INTO storage_probe (id, dati_json) VALUES (?, ?)",
+            (row["id"], json.dumps(row, ensure_ascii=False)),
+        )
+
+    studio_db.salva_tabella("storage_probe", [{"id": "row-1", "value": "scrivibile"}], _insert)
+
+    row = studio_db.conn.execute("SELECT dati_json FROM storage_probe WHERE id='row-1'").fetchone()
+    assert row is not None
+    assert json.loads(row["dati_json"])["value"] == "scrivibile"
+    studio_db.chiudi()
+    StudioDB.invalidate(str(db_path))
 
 
 def test_data_flow_contract_copre_menu_operativo_storage_e_route_react():

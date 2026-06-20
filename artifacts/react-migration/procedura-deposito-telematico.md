@@ -2008,3 +2008,51 @@ Stato bloccante prima del lavoro applicativo:
 - le sezioni con pulsante `Aggiungi` devono essere trattate come array reali: parti, documenti, procure, notifiche, atti impugnati, CIG e versamenti;
 - gli allegati non possono essere considerati coperti quando viene scritto solo il nome file: vanno collegati ai documenti del fascicolo, con ruolo PAT, hash, firma e destinazione Formweb;
 - i campi difensore, PNRR, appalti/CIG, istanze, atti impugnati e rimborso richiedono struttura dati PAT dedicata prima di una validazione reale.
+
+## Aggiornamento 2.253.85 - PEC presidiate, scadenze operative e lista fascicoli
+
+Data intervento: 2026-06-20.
+
+Obiettivo operativo: rendere il presidio PEC un servizio automatico strutturato. Le PEC tecniche di deposito aggiornano il fascicolo/deposito senza produrre avvisi grezzi; le comunicazioni di cancelleria e i documenti del fascicolo producono invece solo eventi operativi chiari per l'avvocato, propagati a profilo processuale, agenda, scadenziario, topbar, push e lista fascicoli.
+
+Decisioni operative applicate:
+
+- `Comunicazione.xml` viene usato per esporre cliente, parte/soggetto processuale, giudice, RG, evento e ufficio reale quando il codice ufficio è risolvibile;
+- le notifiche tecniche `ACCETTAZIONE DEPOSITO TELEMATICO` ed `ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO` non devono comparire come eventi grezzi in topbar, push, agenda o scadenziario;
+- scadenziario e agenda mostrano solo attività realmente operative: udienze, termini, notifiche, lettura provvedimenti, produzione atti o verifica mirata di allegati/link;
+- la colonna `Prossima scad.` dei fascicoli legge le scadenze aperte già prodotte dalla matrice PEC/documenti anche quando il record storico non ha ancora l'ID interno del fascicolo;
+- il collegamento della prossima scadenza segue ID interno, alias forte, RG univoco oppure RG più cliente/parte; se il solo RG è ambiguo resta `n.d.` e non viene assegnato automaticamente.
+
+Stato tecnico locale prima della prova reale:
+
+- parser PEC, bridge React Email PEC, scadenziario, agenda, topbar, push e fascicoli aggiornati a livello codice;
+- test mirati documentati in `artifacts/react-migration/pytest-confirmed-ok.md`;
+- prova reale su `127.0.0.1:8080` eseguita dopo rebuild Docker della copia utente.
+
+Stato finale locale dopo rebuild e riparazione mirror SQLite:
+
+- Docker locale reale riavviato su `127.0.0.1:8080`, `/api/pronto` risponde `ok=true`, `versione=2.253.85`, app/scheduler/OCR healthy;
+- audit dati a freddo `scripts/audit_data_flow_contract.py --registry data/tenants.json --json` con `ok=true`, `source_of_truth=sqlite`, `quick_check=ok`, zero errori e zero warning bloccanti;
+- il mirror rigenerabile `moduli_json_records` del tenant `tenant-8bf98719c459` è stato ricostruito dopo corruzione SQLite limitata al mirror, senza perdita delle tabelle core: `fascicoli=7`, `scadenze=177`, `appuntamenti=352`, `clienti=24`, `moduli_json_records=10613` nell'audit finale;
+- la copia corrotta e i backup runtime della riparazione sono stati trattati come artefatti tecnici, non come dati applicativi da committare, e spostati fuori repository in `C:\Users\antmm\AppData\Local\Temp\iusentra-db-repair-backups\20260620-pec-presidiate`.
+
+Prova matrice PEC reale sulla sessione autenticata locale:
+
+- `POST /api/pec/rebuild-matrix?limit=0&worker_limit=1200`: `ok=true`, `processed=6`, `failed=0`;
+- messaggio PEC reale `pec_d2ff602838502a92f3af58c9`, email `63bd5d3db70c401ea29c5ba701f23afe`, oggetto `POSTA CERTIFICATA: COMUNICAZIONE 274/2026/CC`;
+- job correnti del tenant reale: una sola riga `done` per `parse`, `classify`, `ocr`, `signcheck`, `validate`, `link`; nessun `queued`, `error` o `failed` per `tenant-8bf98719c459`;
+- `Comunicazione.xml` propaga in UI `LOPRETE DOMENICO`, `LOPRETE DOMENICO (Ricorrente principale)`, `LAZZARO FILIPPO (Convenuto principale)`, `Tribunale di Palmi`, `RUSCIO EMANUELA`, `RG 274/2026`, `CONFERMA UDIENZA EX ART. 171 BIS 3 c. CPC`, `09/07/2026 09:30`;
+- scadenza automatica esistente `460714fe-7eda-419a-8650-257f9d7e2f24`, agenda collegata `34E102D2`, `deadline_kind=udienza`, `calendar_scope=agenda_and_scadenziario`, `event_time=09:30`.
+
+Prova visiva reale su Chrome/Browser autenticato `127.0.0.1:8080`:
+
+- PEC: screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-pec-profilo-loprete-post-repair-final.png`; il profilo processuale mostra cliente, parte/soggetto, soggetti e parti, ufficio reale, giudice, RG, evento e udienza;
+- Scadenziario desktop: screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-scadenziario-loprete-post-repair-hover.png`; la riga LOPRETE è leggibile, contiene udienza, ufficio, giudice, evento e attività operativa, senza `Ricevuta protocollo`, `Protocollo nr` o vecchi testi tecnici;
+- Scadenziario mobile: screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-scadenziario-loprete-mobile-post-repair.png`; la card mobile conserva `Udienza: 09/07/2026 09:30` e non taglia i dati essenziali;
+- Agenda dettaglio: screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-agenda-loprete-post-repair-final.png`; `/agenda/34E102D2` mostra cliente, parte/soggetto, ufficio, giudice, evento, udienza e `Attività per l'avvocato`;
+- Fascicoli: screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-fascicoli-prossima-scadenza-post-repair.png`; la colonna `Prossima scad.` è presente e valorizza solo le scadenze collegabili in modo affidabile. I fascicoli non presenti nel tenant SQL reale o collegabili soltanto con RG ambiguo restano `n.d.`;
+- Topbar notifiche: screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-topbar-notifiche-post-repair.png`; il pannello notifiche non mostra `ACCETTAZIONE DEPOSITO TELEMATICO`, `ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO`, `Ricevuta protocollo`, `Protocollo nr`, `Classifica PEC e conferma adempimenti` o `Presidio ricevute PEC`.
+
+Limite operativo verificato sul tenant locale:
+
+- la lista fascicoli locale contiene solo i fascicoli presenti nello SQLite reale del tenant, non tutte le righe mostrate nello screenshot utente storico; la nuova logica popola `Prossima scad.` quando trova ID, alias, RG univoco o RG più cliente/parte. Se la PEC è cancellata o non basta, il presidio documentale legge i testi indicizzati del fascicolo e crea/upserta l'evento operativo prima di far comparire la data.

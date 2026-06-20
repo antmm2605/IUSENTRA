@@ -154,6 +154,45 @@ def test_repository_notifiche_crea_deduplica_e_marca_letta(tmp_path):
     assert repo.list_notifications("tenant-b", "user-a") == []
 
 
+def test_sync_operational_items_ritira_notifiche_pec_non_piu_generate(tmp_path):
+    repo = _repo(tmp_path)
+    service = NotificationService(repo)
+    repo.upsert_notification(
+        _notification(
+            title="Classifica PEC e conferma adempimenti",
+            body="Scadenza superata",
+            source_id="old-pec-generic",
+            dedupe_key="deadline:old-pec-generic",
+        )
+    )
+
+    legacy_item = {
+        "id": "PEC_AUDIT:msg-legacy:deadline",
+        "type": "pec_deadline",
+        "priority": "urgent",
+        "title": "Ricevuta protocollo",
+        "message": "Sono presenti anomalie non bloccanti: il software registra un promemoria operativo per chiuderle.",
+        "href": "/scadenziario/legacy/modifica",
+    }
+    matrix_item = {
+        "id": "PEC_AUDIT:msg-current:deadline",
+        "type": "deadline",
+        "priority": "important",
+        "title": "VINCI ROSA MARIA - SENTENZA EX ART. 429, I comma CPC - RG 1754/2026",
+        "message": "Cliente: VINCI ROSA MARIA. Parte/soggetto: Ricorrente principale. Leggere la sentenza e valutare notifica o impugnazione.",
+        "href": "/scadenziario/current/modifica",
+    }
+
+    first_rows = service.sync_operational_items(tenant_id="tenant-a", user_id="user-a", items=[legacy_item, matrix_item])
+
+    assert [row.dedupe_key for row in first_rows] == ["PEC_AUDIT:msg-current:deadline"]
+
+    rows = service.sync_operational_items(tenant_id="tenant-a", user_id="user-a", items=[matrix_item])
+
+    assert [row.dedupe_key for row in rows] == ["PEC_AUDIT:msg-current:deadline"]
+    assert rows[0].title.startswith("VINCI ROSA MARIA")
+
+
 def test_repository_subscription_salva_e_revoca_solo_tenant_utente(tmp_path):
     repo = _repo(tmp_path)
     service = NotificationService(repo)

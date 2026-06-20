@@ -1784,6 +1784,7 @@
   font-size:11.5px;
   font-weight:800;
   line-height:1.25;
+  overflow-wrap:anywhere;
 }
 .iu-pec-profile-facts b{
   color:#0f766e;

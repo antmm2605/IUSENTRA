@@ -55,6 +55,11 @@ def _is_locked_error(exc: BaseException) -> bool:
     return "database is locked" in message or "database table is locked" in message
 
 
+def _is_readonly_write_error(exc: BaseException) -> bool:
+    message = str(exc).lower()
+    return "readonly" in message or "attempt to write" in message
+
+
 def _requires_delete_journal_for_mount(db_path: Path) -> bool:
     """Evita WAL sui bind mount Windows/9p dove i lock SQLite sono instabili."""
     mounts = Path("/proc/mounts")
@@ -109,6 +114,51 @@ class StudioDB:
         self.db_path = resolve_sqlite_path(db_path)
         self._local = threading.local()
         self._ensure_schema()
+
+    def _conn_query_only(self, conn: sqlite3.Connection) -> bool:
+        try:
+            row = conn.execute("PRAGMA query_only").fetchone()
+            return bool(row and int(row[0]) == 1)
+        except Exception:
+            return False
+
+    def _close_thread_connection(self) -> None:
+        conn = getattr(self._local, "_conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except sqlite3.Error:
+                pass
+        self._local._conn = None
+
+    def _conn_per_scrittura(self) -> sqlite3.Connection:
+        conn = getattr(self._local, "_conn", None)
+        if conn is not None and not self._conn_query_only(conn):
+            return conn
+        if conn is not None:
+            self._close_thread_connection()
+        last_error: sqlite3.OperationalError | None = None
+        for attempt in range(8):
+            try:
+                conn = self._connect_writable()
+                self._local._conn = conn
+                return conn
+            except sqlite3.OperationalError as exc:
+                last_error = exc
+                message = str(exc).lower()
+                retryable = _is_locked_error(exc) or "unable to open database file" in message
+                if not retryable or attempt == 7:
+                    raise
+                logger.warning(
+                    "SQLite tenant %s: connessione scrivibile occupata, ritento (%s/8): %s",
+                    self.db_path,
+                    attempt + 2,
+                    exc,
+                )
+                time.sleep(0.25 * (attempt + 1))
+        if last_error is not None:
+            raise last_error
+        raise sqlite3.OperationalError("connessione scrivibile non disponibile")
 
     @classmethod
     def get(cls, db_path: str) -> "StudioDB":
@@ -466,7 +516,7 @@ class StudioDB:
         """
         last_error: sqlite3.OperationalError | None = None
         for attempt in range(5):
-            conn = self.conn
+            conn = self._conn_per_scrittura()
             began = False
             try:
                 conn.execute("PRAGMA foreign_keys=OFF")
@@ -485,8 +535,14 @@ class StudioDB:
                         conn.execute("ROLLBACK")
                     except sqlite3.Error:
                         pass
+                if _is_readonly_write_error(exc):
+                    self._close_thread_connection()
+                    if attempt < 4:
+                        time.sleep(0.2 * (attempt + 1))
+                        continue
                 if not _is_locked_error(exc) or attempt == 4:
                     raise
+                self._close_thread_connection()
                 time.sleep(0.2 * (attempt + 1))
             except Exception:
                 if began:

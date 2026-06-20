@@ -27,6 +27,7 @@ from pct.pec_pipeline import (
     _remote_hearing_note_lines,
     _remote_hearing_updates_for_existing,
     build_pec_procedural_profile,
+    build_deadline_proposal,
     build_pct_deposit_correlation,
     build_pct_deposit_lifecycle,
     build_validation_report,
@@ -162,6 +163,39 @@ def test_pec_pipeline_deduplicates_by_message_id_and_mime_hash(tmp_path):
     assert first["duplicate"] is False
     assert duplicate["duplicate"] is True
     assert repo.list_messages(limit=10)[0]["id"] == first["id"]
+
+
+def test_pec_operational_matrix_rebuild_cleans_stale_queued_jobs(tmp_path):
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    _label, raw_mime = synthetic_pec_messages()[0]
+    first = repo.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="1")
+
+    first_run = repo.run_pending_jobs(limit=10, actor="pytest")
+    assert first_run["failed"] == 0
+    assert first_run["processed"] >= 5
+
+    with repo.connect() as conn:
+        repo.enqueue_job(conn, "classify", message_id=first["id"], priority=25, actor="pytest")
+        repo.enqueue_job(conn, "ocr", message_id=first["id"], priority=30, actor="pytest")
+        queued_before = conn.execute(
+            "SELECT COUNT(*) FROM pec_jobs WHERE message_id=? AND status='queued'",
+            (first["id"],),
+        ).fetchone()[0]
+    assert queued_before >= 2
+
+    result = repo.enqueue_operational_matrix_rebuild(actor="pytest")
+
+    assert result["queued"] == 1
+    with repo.connect() as conn:
+        rows = conn.execute(
+            "SELECT job_type, status FROM pec_jobs WHERE message_id=? AND status='queued' ORDER BY priority",
+            (first["id"],),
+        ).fetchall()
+    assert [(row["job_type"], row["status"]) for row in rows] == [("parse", "queued")]
+
+    second_run = repo.run_pending_jobs(limit=10, actor="pytest")
+    assert second_run["failed"] == 0
+    assert [item["job_type"] for item in second_run["jobs"]] == ["parse", "classify", "ocr", "signcheck", "validate", "link"]
 
 
 def test_pec_pipeline_recovers_stale_default_tenant_duplicate(tmp_path):
@@ -343,13 +377,227 @@ def test_pec_procedural_profile_reads_inline_comunicazione_xml_audiovisiva():
     )
 
     assert profile["numero_rg"] == "1263/2026"
+    assert profile["ufficio"] == "Tribunale di Brescia"
     assert profile["giudice"] == "ANGELI ISABELLA"
+    assert profile["cliente"] == "MARRA VALENTINA"
+    assert profile["cliente_da_verificare"] is True
+    assert profile["parte_processuale"] == "MARRA VALENTINA"
+    assert profile["ruolo_parte"] == "Ricorrente principale"
     assert profile["attore_principale"] == "MARRA VALENTINA"
     assert profile["convenuto_principale"] == "MINISTERO DELL'ISTRUZIONE E DEL MERITO"
+    assert profile["parti_processuali"] == ["MARRA VALENTINA", "MINISTERO DELL'ISTRUZIONE E DEL MERITO"]
+    assert profile["soggetti_parti"][0]["ruolo"] == "Ricorrente principale"
+    assert profile["soggetti_parti"][1]["ruolo"] == "Resistente principale"
     assert profile["udienza_data_ora"] == "29/10/2026 09:15"
     assert profile["modalita_udienza"] == "strumenti audiovisivi"
     assert any("PDF" in item for item in profile["checklist_avvocato"])
     assert any("strumenti audiovisivi" in item for item in profile["domande_lex"])
+
+
+def test_comunicazione_xml_separa_ricorrente_e_convenuto_sulla_stessa_riga():
+    xml_text = """
+    <Comunicazione>
+      <NumeroRuolo>274/2026/CC</NumeroRuolo>
+      <Oggetto>FISSAZIONE UDIENZA</Oggetto>
+      <Contenuto><![CDATA[
+      -- Comunicazione di cancelleria
+      Numero di Ruolo generale: 274/2026
+      Giudice: RUSCIO EMANUELA
+      Ricorr. principale: LOPRETE DOMENICO Conv. principale: LAZZARO FILIPPO
+      Oggetto: FISSAZIONE UDIENZA
+      Descrizione: FISSATA UDIENZA IL 09/07/2026 09:30
+      -- ]]></Contenuto>
+      <CodiceUG>0800570092</CodiceUG>
+    </Comunicazione>
+    """
+
+    profile = build_pec_procedural_profile(
+        subject="POSTA CERTIFICATA: COMUNICAZIONE 274/2026/CC",
+        body_text="",
+        xml_texts={"Comunicazione.xml": xml_text},
+        rg_candidates=[],
+        sent_date="2026-05-08T14:22:04+02:00",
+        delivery_date="2026-05-08T14:22:04+02:00",
+        event_type="comunicazione_cancelleria",
+        semantic_context={"office_hint": "Tribunale di Palmi"},
+    )
+
+    assert profile["cliente"] == "LOPRETE DOMENICO"
+    assert profile["parte_processuale"] == "LOPRETE DOMENICO"
+    assert profile["attore_principale"] == "LOPRETE DOMENICO"
+    assert profile["convenuto_principale"] == "LAZZARO FILIPPO"
+    assert profile["parti_processuali"] == ["LOPRETE DOMENICO", "LAZZARO FILIPPO"]
+    assert profile["soggetti_parti"] == [
+        {
+            "ruolo": "Ricorrente principale",
+            "nome": "LOPRETE DOMENICO",
+            "valore": "LOPRETE DOMENICO",
+            "fonte": "Comunicazione.xml: Ricorr. principale",
+            "origine": "Comunicazione.xml: Ricorr. principale",
+        },
+        {
+            "ruolo": "Convenuto principale",
+            "nome": "LAZZARO FILIPPO",
+            "valore": "LAZZARO FILIPPO",
+            "fonte": "Comunicazione.xml: Conv. principale",
+            "origine": "Comunicazione.xml: Conv. principale",
+        },
+    ]
+
+
+def test_deadline_proposal_crea_udienza_da_profilo_processuale_se_manca_procedural_dates():
+    hearing_day = date.today() + timedelta(days=20)
+    hearing_text = hearing_day.strftime("%d/%m/%Y") + " 09:30"
+    parsed = {
+        "headers": {"subject": "POSTA CERTIFICATA: COMUNICAZIONE 274/2026/CC"},
+        "fields": {"data_invio": {"value": date.today().isoformat()}},
+        "body": {"text": "Comunicazione di cancelleria con udienza futura."},
+        "procedural_dates": [],
+        "procedural_profile": {
+            "fase_pratica": "udienza o rinvio da calendarizzare",
+            "ufficio": "Tribunale di Palmi",
+            "giudice": "RUSCIO EMANUELA",
+            "numero_rg": "274/2026",
+            "cliente": "LOPRETE DOMENICO",
+            "parte_processuale": "LOPRETE DOMENICO",
+            "ruolo_parte": "Ricorrente principale",
+            "oggetto_evento": "FISSAZIONE UDIENZA",
+            "udienza_data_ora": hearing_text,
+            "messaggio_operativo": (
+                "udienza o rinvio da calendarizzare\n"
+                "Ufficio: Tribunale di Palmi\n"
+                "Giudice: RUSCIO EMANUELA\n"
+                "RG: 274/2026\n"
+                "Cliente: LOPRETE DOMENICO\n"
+                "Parte/soggetto: LOPRETE DOMENICO (Ricorrente principale)\n"
+                f"Udienza: {hearing_text}"
+            ),
+        },
+    }
+
+    proposal = build_deadline_proposal(
+        parsed,
+        event_type="ricevuta_pec",
+        issues=[],
+        deposit_lifecycle={},
+    )
+
+    assert proposal["auto_create"] is True
+    assert proposal["deadline_kind"] == "udienza"
+    assert proposal["calendar_scope"] == "agenda_and_scadenziario"
+    assert proposal["due_date"] == hearing_day.isoformat()
+    assert proposal["event_time"] == "09:30"
+    assert "Cliente: LOPRETE DOMENICO" in proposal["reason"]
+
+
+def test_comunicazione_xml_sentenza_espone_cliente_parti_e_ufficio_reale():
+    xml_text = """
+    <Comunicazione>
+      <NumeroRuolo>1754/2026/LAV</NumeroRuolo>
+      <Oggetto>SENTENZA EX ART. 429, I comma CPC</Oggetto>
+      <Contenuto><![CDATA[
+      --
+      Comunicazione di cancelleria
+      Sez/Coll.: LA
+      Tipo procedimento: Diritto del Lavoro
+      Numero di Ruolo generale: 1754/2026
+      Giudice: TOSONI CLAUDIA
+      Ricorr. principale: VINCI ROSA MARIA
+      Resist. principale: MIM - MINISTERO ISTRUZIONE E DEL MERITO
+      Oggetto: SENTENZA EX ART. 429, I comma CPC
+      Descrizione: SENTENZA EX ART. 429, I comma CPC NUMERO 3271/2026 (Accoglimento totale)
+      Note:
+      Notificato alla PEC / in cancelleria il 19/06/2026 10:51
+      Registrato da CAMPILONGO ALESSANDRO (SEZ LAVORO)
+      --
+      ]]></Contenuto>
+      <CodiceUG>0151460094</CodiceUG>
+      <CodiceFiscaleDestinatario>MNTGPP94L01G791A</CodiceFiscaleDestinatario>
+    </Comunicazione>
+    """
+
+    profile = build_pec_procedural_profile(
+        subject="POSTA CERTIFICATA: COMUNICAZIONE DI CANCELLERIA",
+        body_text="",
+        xml_texts={"Comunicazione.xml": xml_text},
+        rg_candidates=[],
+        sent_date="2026-06-19T10:51:00+02:00",
+        delivery_date="2026-06-19T10:51:00+02:00",
+        event_type="comunicazione_cancelleria",
+        semantic_context={"office_hint": "Ufficio giudiziario civile"},
+    )
+
+    assert profile["fase_pratica"] == "provvedimento/sentenza da leggere e notificare o presidiare"
+    assert profile["numero_rg"] == "1754/2026"
+    assert profile["ufficio"] == "Tribunale di Milano"
+    assert profile["ufficio_risolto_da_codice"] is True
+    assert profile["giudice"] == "TOSONI CLAUDIA"
+    assert profile["cliente"] == "VINCI ROSA MARIA"
+    assert profile["cliente_da_verificare"] is True
+    assert profile["parte_processuale"] == "VINCI ROSA MARIA"
+    assert profile["ruolo_parte"] == "Ricorrente principale"
+    assert profile["parti_processuali"] == ["VINCI ROSA MARIA", "MIM - MINISTERO ISTRUZIONE E DEL MERITO"]
+    assert profile["soggetti_parti"] == [
+        {
+            "ruolo": "Ricorrente principale",
+            "nome": "VINCI ROSA MARIA",
+            "valore": "VINCI ROSA MARIA",
+            "fonte": "Comunicazione.xml: Ricorr. principale",
+            "origine": "Comunicazione.xml: Ricorr. principale",
+        },
+        {
+            "ruolo": "Resistente principale",
+            "nome": "MIM - MINISTERO ISTRUZIONE E DEL MERITO",
+            "valore": "MIM - MINISTERO ISTRUZIONE E DEL MERITO",
+            "fonte": "Comunicazione.xml: Resist. principale",
+            "origine": "Comunicazione.xml: Resist. principale",
+        },
+    ]
+    assert "Cliente: VINCI ROSA MARIA" in profile["messaggio_operativo"]
+    assert "Parte/soggetto: VINCI ROSA MARIA (Ricorrente principale)" in profile["messaggio_operativo"]
+    assert any("Leggere la sentenza o il provvedimento" in item for item in profile["checklist_avvocato"])
+
+
+def test_legacy_pec_scadenze_e_agenda_filtrate_senza_rimuovere_nuova_matrice():
+    from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
+
+    old_deadline = SimpleNamespace(
+        titolo="Ricevuta protocollo",
+        descrizione="Sono presenti anomalie non bloccanti: il software registra un promemoria operativo per chiuderle.",
+        note="PEC_AUDIT: msg-1\nEvento: Ricevuta Pec",
+        deadline_profile_code="PEC_AUTO_PRESIDIO",
+        source_event_type="pct_deposito",
+    )
+    old_agenda = SimpleNamespace(
+        titolo="Udienza da PEC: fissazione udienza - RG 3001/2025",
+        note="Udienza rilevata da PEC. Fascicolo RG 3001/2025. Verificare provvedimento, fascicolo e attività collegate.",
+        external_uid="PEC_AUDIT:msg-2:hearing",
+        external_provider="pec_audit",
+    )
+    new_deadline = SimpleNamespace(
+        titolo="VINCI ROSA MARIA - SENTENZA EX ART. 429, I comma CPC - RG 1754/2026",
+        descrizione=(
+            "Cliente: VINCI ROSA MARIA\n"
+            "Parte/soggetto: Ricorrente principale: VINCI ROSA MARIA\n"
+            "Ufficio: Tribunale di Milano\n"
+            "Giudice: TOSONI CLAUDIA\n"
+            "Operatività: leggere la sentenza e valutare notifica, impugnazione o comunicazione al cliente."
+        ),
+        note="PEC_AUDIT: msg-3\npresidio documentale Lex",
+        deadline_profile_code="PEC_PROVVEDIMENTO",
+        source_event_type="comunicazione_cancelleria",
+    )
+    new_agenda = SimpleNamespace(
+        titolo="Udienza VINCI ROSA MARIA - RG 1754/2026",
+        note="Cliente: VINCI ROSA MARIA\nParte/soggetto: Ricorrente principale: VINCI ROSA MARIA\nLink udienza audiovisiva: da acquisire dal PDF allegato.",
+        external_uid="PEC_AUDIT:msg-4:hearing",
+        external_provider="pec_audit",
+    )
+
+    assert is_legacy_pec_deadline(old_deadline) is True
+    assert is_legacy_pec_agenda_item(old_agenda) is True
+    assert is_legacy_pec_deadline(new_deadline) is False
+    assert is_legacy_pec_agenda_item(new_agenda) is False
 
 
 def test_remote_hearing_report_uses_pdf_ocr_link_and_persists_lawyer_actions():
@@ -1536,6 +1784,28 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
     assert second["already_presided"] == 2
     assert len(GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)) == 2
     assert len(Agenda(str(agenda_db), studio_db=studio_db).tutti()) == 2
+
+
+def test_presidio_documentale_worker_usa_sqlite_documenti_ai_se_studio_db_sola_lettura(tmp_path):
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_db.parent.mkdir(parents=True, exist_ok=True)
+    fascicoli_db.write_text("[]", encoding="utf-8")
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    studio_db.conn.execute("PRAGMA query_only=ON")
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=tmp_path / "fascicoli" / "documenti",
+    )
+
+    service = repo._document_ai_service_for_fascicoli(SimpleNamespace())
+
+    assert service.repository.backend_kind == "sqlite"
+    assert Path(service.repository.structured_db.db_path) == tmp_path / "fascicoli" / "documenti_ai" / "documenti_ai.sqlite"
+    assert service.repository.storage_root == tmp_path / "fascicoli" / "documenti_ai"
 
 
 def test_lex_operational_tools_expose_pec_audit_control_context(tmp_path):

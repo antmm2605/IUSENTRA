@@ -590,6 +590,11 @@ def _provisional_pec_audit_summary(
     office_value = _safe_text(procedural_profile.get("ufficio"))
     judge_value = _safe_text(procedural_profile.get("giudice"))
     event_value = _safe_text(procedural_profile.get("tipo_evento") or procedural_profile.get("oggetto_evento"))
+    client_value = _safe_text(procedural_profile.get("cliente"))
+    party_value = _safe_text(procedural_profile.get("parte_processuale"))
+    parties_value = procedural_profile.get("parti_processuali") if isinstance(procedural_profile.get("parti_processuali"), list) else []
+    party_records_value = procedural_profile.get("soggetti_parti") if isinstance(procedural_profile.get("soggetti_parti"), list) else []
+    office_code_value = _safe_text(procedural_profile.get("codice_ufficio"))
     notice_time_value = _safe_text(procedural_profile.get("notificato_il") or sent_date)
     hearing_time_value = _safe_text(procedural_profile.get("udienza_data_ora"))
     hearing_mode_value = _safe_text(procedural_profile.get("modalita_udienza"))
@@ -642,11 +647,41 @@ def _provisional_pec_audit_summary(
             "Ufficio/cancelleria letto dal testo completo disponibile; confermare con audit MIME." if office_value else "Ufficio non riconosciuto nei dati disponibili.",
             ["profilo_processuale", "email_completa"] if office_value else [],
         ),
+        "codice_ufficio": field_result(
+            office_code_value,
+            0.74 if office_code_value and context_override else 0.6 if office_code_value else 0.2,
+            "Codice ufficio letto dal testo/XML disponibile; l'audit MIME lo userà per risolvere l'ufficio reale." if office_code_value else "Codice ufficio non riconosciuto.",
+            ["profilo_processuale", "email_completa"] if office_code_value else [],
+        ),
         "giudice": field_result(
             judge_value,
             0.72 if judge_value and context_override else 0.62 if judge_value else 0.2,
             "Giudice letto dalla comunicazione; confermare con Comunicazione.xml o allegati." if judge_value else "Giudice non indicato o non riconosciuto.",
             ["profilo_processuale", "email_completa"] if judge_value else [],
+        ),
+        "cliente": field_result(
+            client_value,
+            0.72 if client_value and context_override else 0.62 if client_value else 0.2,
+            "Cliente o assistito letto dai dati disponibili; confermare con fascicolo e Comunicazione.xml." if client_value else "Cliente non riconosciuto nei dati disponibili.",
+            ["profilo_processuale", "email_completa"] if client_value else [],
+        ),
+        "parte_processuale": field_result(
+            party_value,
+            0.72 if party_value and context_override else 0.62 if party_value else 0.2,
+            "Parte/soggetto processuale letto dai dati disponibili; confermare con Comunicazione.xml." if party_value else "Parte/soggetto processuale non riconosciuto.",
+            ["profilo_processuale", "email_completa"] if party_value else [],
+        ),
+        "parti_processuali": field_result(
+            parties_value,
+            0.72 if parties_value and context_override else 0.62 if parties_value else 0.2,
+            "Elenco parti processuali ricostruito dai dati disponibili." if parties_value else "Elenco parti non riconosciuto.",
+            ["profilo_processuale", "email_completa"] if parties_value else [],
+        ),
+        "soggetti_parti": field_result(
+            party_records_value,
+            0.72 if party_records_value and context_override else 0.62 if party_records_value else 0.2,
+            "Ruoli delle parti ricostruiti dai dati disponibili." if party_records_value else "Ruoli parte non riconosciuti.",
+            ["profilo_processuale", "email_completa"] if party_records_value else [],
         ),
         "evento_processuale": field_result(
             event_value,

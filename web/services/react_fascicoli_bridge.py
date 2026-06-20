@@ -275,6 +275,169 @@ def _fascicolo_lookup_keys(fascicolo: Any) -> set[str]:
     return {key for key in keys if key}
 
 
+_RG_PREFIXED_RE = re.compile(
+    r"\b(?:r\s*\.?\s*g\s*\.?|rg|n\s*\.?\s*causa|numero\s+di\s+ruolo(?:\s+generale)?)"
+    r"\s*[:#]?\s*(\d{1,7})\s*[/.-]\s*((?:19|20)\d{2})(?:\s*/\s*[A-Z]{1,8})?\b",
+    re.IGNORECASE,
+)
+_RG_STANDALONE_RE = re.compile(
+    r"^\s*(?:r\s*\.?\s*g\s*\.?|rg)?\s*[:#]?\s*(\d{1,7})\s*[/.-]\s*((?:19|20)\d{2})(?:\s*/\s*[A-Z]{1,8})?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _identity_key(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", _text(value).casefold()).strip()
+
+
+def _canonical_rg_reference(value: Any) -> str:
+    raw = _text(value)
+    if not raw:
+        return ""
+    match = _RG_STANDALONE_RE.match(raw) or _RG_PREFIXED_RE.search(raw)
+    if not match:
+        return ""
+    try:
+        number = str(int(match.group(1)))
+    except (TypeError, ValueError):
+        number = match.group(1).lstrip("0") or match.group(1)
+    return f"{number}/{match.group(2)}"
+
+
+def _fascicolo_rg_key(fascicolo: Any) -> str:
+    candidates = [
+        _rg(fascicolo),
+        getattr(fascicolo, "numero_rg", ""),
+    ]
+    numero = _text(getattr(fascicolo, "numero_rg", ""))
+    anno = _text(getattr(fascicolo, "anno_rg", ""))
+    if numero and anno:
+        candidates.append(f"{numero}/{anno}")
+    for candidate in candidates:
+        rg = _canonical_rg_reference(candidate)
+        if rg:
+            return rg
+    return ""
+
+
+def _deadline_text_blob(scadenza: Any) -> str:
+    fields = [
+        getattr(scadenza, "id_fascicolo", ""),
+        getattr(scadenza, "titolo", ""),
+        getattr(scadenza, "descrizione", ""),
+        getattr(scadenza, "note", ""),
+        getattr(scadenza, "judicial_office_name", ""),
+        getattr(scadenza, "remote_hearing_source", ""),
+        getattr(scadenza, "remote_hearing_access_info", ""),
+        getattr(scadenza, "trace_json", ""),
+    ]
+    return "\n".join(_text(field) for field in fields if _text(field))
+
+
+def _deadline_rg_candidates(scadenza: Any) -> set[str]:
+    values: set[str] = set()
+    for field in (
+        getattr(scadenza, "id_fascicolo", ""),
+        getattr(scadenza, "titolo", ""),
+        getattr(scadenza, "descrizione", ""),
+        getattr(scadenza, "note", ""),
+        getattr(scadenza, "trace_json", ""),
+    ):
+        raw = _text(field)
+        if not raw:
+            continue
+        direct = _canonical_rg_reference(raw)
+        if direct:
+            values.add(direct)
+        for match in _RG_PREFIXED_RE.finditer(raw):
+            values.add(f"{int(match.group(1))}/{match.group(2)}")
+    return values
+
+
+def _fascicolo_party_values(fascicolo: Any) -> set[str]:
+    values = [
+        getattr(fascicolo, "nome_cliente", ""),
+        getattr(fascicolo, "controparte", ""),
+        _fascicolo_client_label(fascicolo),
+        _fascicolo_party_from_title(fascicolo),
+    ]
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    if isinstance(snapshot, dict):
+        for key in ("parti", "controparti", "assistiti", "clienti"):
+            raw = snapshot.get(key)
+            if isinstance(raw, list):
+                values.extend(_text(item) for item in raw)
+            else:
+                values.append(_text(raw))
+        for key in ("parte", "controparte", "nome_cliente", "cliente"):
+            values.append(_text(snapshot.get(key)))
+    cleaned: set[str] = set()
+    for value in values:
+        text = re.sub(r"\s*\([^)]*da collegare[^)]*\)\s*$", "", _text(value), flags=re.IGNORECASE).strip()
+        identity = _identity_key(text)
+        if len(identity) >= 5 and identity not in {"cliente da collegare", "fascicolo"}:
+            cleaned.add(text)
+    return cleaned
+
+
+def _deadline_mentions_fascicolo_party(scadenza: Any, fascicolo: Any) -> bool:
+    blob = _identity_key(_deadline_text_blob(scadenza))
+    if not blob:
+        return False
+    return any(_identity_key(value) in blob for value in _fascicolo_party_values(fascicolo))
+
+
+def _fascicolo_alias_index(fascicoli: Iterable[Any]) -> tuple[dict[str, set[str]], dict[str, list[Any]], set[str]]:
+    aliases: dict[str, set[str]] = {}
+    by_rg: dict[str, list[Any]] = {}
+    ids: set[str] = set()
+    for fascicolo in fascicoli:
+        fid = _text(getattr(fascicolo, "id", ""))
+        if not fid:
+            continue
+        ids.add(fid)
+        keys = set(_fascicolo_lookup_keys(fascicolo))
+        rg = _fascicolo_rg_key(fascicolo)
+        if rg:
+            keys.update({rg, f"RG {rg}", f"R.G. {rg}"})
+            by_rg.setdefault(rg, []).append(fascicolo)
+        for key in keys:
+            normalized = _identity_key(key)
+            if normalized:
+                aliases.setdefault(normalized, set()).add(fid)
+    return aliases, by_rg, ids
+
+
+def _resolve_scadenza_fascicolo_ids(
+    scadenza: Any,
+    *,
+    alias_index: dict[str, set[str]],
+    by_rg: dict[str, list[Any]],
+    known_ids: set[str],
+) -> set[str]:
+    fid = _text(getattr(scadenza, "id_fascicolo", ""))
+    if fid in known_ids:
+        return {fid}
+    direct_aliases = alias_index.get(_identity_key(fid), set()) if fid else set()
+    if len(direct_aliases) == 1:
+        return set(direct_aliases)
+
+    matched: set[str] = set()
+    for rg in _deadline_rg_candidates(scadenza):
+        candidates = by_rg.get(rg, [])
+        if len(candidates) == 1:
+            matched.add(_text(getattr(candidates[0], "id", "")))
+            continue
+        party_matches = [
+            _text(getattr(fascicolo, "id", ""))
+            for fascicolo in candidates
+            if _deadline_mentions_fascicolo_party(scadenza, fascicolo)
+        ]
+        if len(set(party_matches)) == 1:
+            matched.add(party_matches[0])
+    return {item for item in matched if item}
+
+
 def _resolve_fascicolo(repo: Any, requested_id: str) -> Any:
     direct = repo.get(requested_id)
     if direct:
@@ -1442,21 +1605,55 @@ def _item_light(
     }
 
 
-def _group_scadenze_by_fasc(rows: Iterable[Any]) -> dict[str, list[Any]]:
+def _group_scadenze_by_fasc(rows: Iterable[Any], fascicoli: Iterable[Any] | None = None) -> dict[str, list[Any]]:
     grouped: dict[str, list[Any]] = {}
+    fascicoli_list = list(fascicoli or [])
+    alias_index, by_rg, known_ids = _fascicolo_alias_index(fascicoli_list) if fascicoli_list else ({}, {}, set())
     for item in rows:
         fid = _text(getattr(item, "id_fascicolo", ""))
-        if fid:
-            grouped.setdefault(fid, []).append(item)
+        if not fascicoli_list:
+            if fid:
+                grouped.setdefault(fid, []).append(item)
+            continue
+        target_ids = _resolve_scadenza_fascicolo_ids(
+            item,
+            alias_index=alias_index,
+            by_rg=by_rg,
+            known_ids=known_ids,
+        )
+        if not target_ids and fid:
+            target_ids = {fid}
+        for target_id in sorted(target_ids):
+            if target_id:
+                grouped.setdefault(target_id, []).append(item)
     return grouped
+
+
+def _resolved_scadenze_fascicolo_ids(grouped: dict[str, list[Any]]) -> dict[str, str]:
+    resolved: dict[str, str] = {}
+    for fid, rows in grouped.items():
+        for item in rows:
+            sid = _text(getattr(item, "id", ""))
+            if sid and fid:
+                resolved.setdefault(sid, fid)
+    return resolved
+
+
+def _resolved_scadenza_fascicolo_id(scadenza: Any, resolved_ids: dict[str, str] | None = None) -> str:
+    sid = _text(getattr(scadenza, "id", ""))
+    if resolved_ids and sid:
+        resolved = _text(resolved_ids.get(sid, ""))
+        if resolved:
+            return resolved
+    return _text(getattr(scadenza, "id_fascicolo", ""))
 
 
 def _open_scadenze(get_scadenziario: Callable[[], Any]) -> list[Any]:
     return list(_safe("scadenziario", lambda: get_scadenziario().tutte(solo_aperte=True), []))
 
 
-def _all_scadenze_by_fasc(get_scadenziario: Callable[[], Any]) -> dict[str, list[Any]]:
-    return _group_scadenze_by_fasc(_open_scadenze(get_scadenziario))
+def _all_scadenze_by_fasc(get_scadenziario: Callable[[], Any], fascicoli: Iterable[Any] | None = None) -> dict[str, list[Any]]:
+    return _group_scadenze_by_fasc(_open_scadenze(get_scadenziario), fascicoli)
 
 
 def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: int = 0) -> dict[str, Any]:
@@ -1514,14 +1711,20 @@ def _facets(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     }
 
 
-def _deadline_rows_from_scadenze(scadenze: Iterable[Any], items_by_id: dict[str, dict[str, Any]], days: int = 7) -> list[dict[str, Any]]:
+def _deadline_rows_from_scadenze(
+    scadenze: Iterable[Any],
+    items_by_id: dict[str, dict[str, Any]],
+    days: int = 7,
+    *,
+    resolved_matter_ids: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     horizon = date.today() + timedelta(days=days)
     out: list[dict[str, Any]] = []
     for scadenza in scadenze:
         due = _parse_date(getattr(scadenza, "data_scadenza", "") or getattr(scadenza, "data", ""))
         if not due or due > horizon:
             continue
-        fid = _text(getattr(scadenza, "id_fascicolo", ""))
+        fid = _resolved_scadenza_fascicolo_id(scadenza, resolved_matter_ids)
         matter = items_by_id.get(fid, {})
         out.append(
             {
@@ -1658,8 +1861,9 @@ def build_react_fascicoli_payload(
 ) -> dict[str, Any]:
     gf = get_fascicoli()
     scadenze_rows = _open_scadenze(get_scadenziario)
-    scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows)
     fascicoli = _safe("fascicoli", lambda: gf.tutti(archiviati=False), [])
+    scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows, fascicoli)
+    resolved_scadenze = _resolved_scadenze_fascicolo_ids(scadenze_by_fasc)
     archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
     light_items = [_item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc) for fascicolo in fascicoli]
     filtered = [
@@ -1684,7 +1888,7 @@ def build_react_fascicoli_payload(
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
     items_by_id = {item["id"]: item for item in light_items}
-    deadlines30 = len(_deadline_rows_from_scadenze(scadenze_rows, items_by_id, days=30))
+    deadlines30 = len(_deadline_rows_from_scadenze(scadenze_rows, items_by_id, days=30, resolved_matter_ids=resolved_scadenze))
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -1693,18 +1897,18 @@ def build_react_fascicoli_payload(
         "items": items,
         "pagination": pagination,
         "facets": _facets(light_items),
-        "deadlines": _deadline_rows_from_scadenze(scadenze_rows, items_by_id, days=7),
+        "deadlines": _deadline_rows_from_scadenze(scadenze_rows, items_by_id, days=7, resolved_matter_ids=resolved_scadenze),
         "actions": _list_actions(),
     }
 
 
 def build_react_archivio_payload(*, get_fascicoli: Callable[[], Any], get_scadenziario: Callable[[], Any], query: str = "") -> dict[str, Any]:
     gf = get_fascicoli()
-    scadenze_by_fasc = _all_scadenze_by_fasc(get_scadenziario)
     if query:
         fascicoli = _safe("archivio", lambda: gf.cerca(testo=query, stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
     else:
         fascicoli = _safe("archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
+    scadenze_by_fasc = _all_scadenze_by_fasc(get_scadenziario, fascicoli)
     items = _sort_list_items([_item(fascicolo, scadenze_by_fasc=scadenze_by_fasc, archived=True) for fascicolo in fascicoli], "rg")
     return {
         "source": "repository_reali",

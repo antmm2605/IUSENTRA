@@ -221,7 +221,7 @@ PAT_MODULES: tuple[PatModule, ...] = (
         ("ricorso", "procura alle liti", "notifiche", "documenti", "ricevuta contributo unificato"),
         RICORSO_MODULE_FIELDS,
         ("ricorso", "appalto", "appalti", "cig", "pnrr", "accesso", "silenzio", "ottemperanza", "sportivo"),
-        "IUSENTRA compila i dati interni del modulo e prepara la scheda PDF; il modello ufficiale resta collegato come fonte/versione.",
+        "IUSENTRA compila direttamente il modello ministeriale XFA 4.02; gli allegati restano file separati pronti per Formweb.",
     ),
     PatModule(
         "deposito_atto",
@@ -384,8 +384,8 @@ WORKFLOW_STEPS: tuple[PatWorkflowStep, ...] = (
     PatWorkflowStep(
         "prepara-pdf",
         "Compila modulo e PDF",
-        "IUSENTRA apre il modulo corretto, raccoglie i dati obbligatori e produce la scheda PDF compilata prima della sessione SIGA.",
-        ("campi obbligatori", "allegati ordinati", "PDF dati modulo generato dal software"),
+        "IUSENTRA apre il modulo corretto, raccoglie i dati obbligatori e produce il PDF ministeriale XFA compilato prima della sessione SIGA.",
+        ("campi obbligatori", "allegati ordinati", "modello ufficiale compilato dal software"),
     ),
     PatWorkflowStep(
         "firma-pades",
@@ -491,10 +491,10 @@ def build_pat_siga_payload() -> dict[str, Any]:
         "documents": documents,
         "chromePdfGuide": {
             "source": ISTRUZIONI_DOWNLOAD_PDF_URL,
-            "summary": "Il modello ufficiale resta disponibile come fonte e confronto; la compilazione operativa dei dati modulo avviene dentro IUSENTRA.",
+            "summary": "Il modello ministeriale XFA ufficiale viene compilato dentro IUSENTRA; gli allegati restano separati per il caricamento Formweb.",
             "steps": (
                 "Compila i dati richiesti nella sezione Moduli compilabili.",
-                "Genera il PDF dati modulo da IUSENTRA.",
+                "Genera il PDF ministeriale XFA compilato da IUSENTRA.",
                 "Controlla allegati, firme PAdES e limiti Formweb.",
                 "Avvia la sessione ufficiale SIGA solo quando il fascicolo è pronto.",
             ),

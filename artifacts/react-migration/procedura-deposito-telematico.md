@@ -1,8 +1,40 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-19.
+Aggiornato: 2026-06-20.
+
+## Aggiornamento 2.253.84 - PAT modello ministeriale XFA ufficiale
+
+Data intervento: 2026-06-20.
+
+Correzione applicata alla superficie React `/pat`, all'endpoint `/api/v1/ui/pat/moduli/compila` e al generatore `pct/pat_pdf_templates.py`:
+
+- `Genera modulo ufficiale` produce come file principale il modello ministeriale PAT XFA originale compilato, non un PDF riassuntivo IUSENTRA;
+- il generatore clona il template ufficiale presente in `pct/data/pat_moduli/`, preserva `/AcroForm` e `/XFA` e aggiorna i valori nel pacchetto XFA;
+- la route normalizza gli alias `parte`, `amministrazione`, `controparte`, `resistente` prima della validazione, così i dati provenienti dalla UI o dal fascicolo alimentano i campi canonici del modello;
+- il compilatore imposta anche i radio XFA persona fisica, persona giuridica e amministrazione per ricorrente e resistente, evitando moduli generati con controparte mancante;
+- i documenti del fascicolo selezionati restano allegati Formweb separati: IUSENTRA li legge, li mostra, li controlla e li prepara, ma non li incorpora dentro il PDF del modulo;
+- la UI indica che il PDF è un modello ministeriale XFA e che gli allegati sono file separati da caricare in Formweb;
+- il vecchio builder backend che produceva un PDF standard `Modulo PAT compilato da IUSENTRA` e incorporava allegati e modulo XFA come file allegati è stato rimosso dal percorso attivo.
+
+Nota tecnica importante per l'accettazione: i moduli ministeriali della Giustizia Amministrativa sono XFA/LiveCycle. Chrome/PDFium può mostrare la pagina di avviso Adobe Reader anche quando il file è esattamente il modello ufficiale compilato; per questo i test verificano i dati dentro il pacchetto XFA e il controllo operativo resta in IUSENTRA prima della consegna SIGA. L'apertura completa del modulo ministeriale compilato va fatta con Acrobat Reader.
+
+Guardrail tecnici già eseguiti localmente prima del rebuild Docker: `python -m py_compile pct\pat_pdf_templates.py pct\pat_moduli.py web\blueprints\api_v1_react.py`, `python -m pytest tests\test_react_shell.py -k "pat_modulo_compilabile or pat_prefill or superfici_telematiche" -q`, `python -m pytest tests\test_canali_telematici_deposito.py -q`, `pnpm --filter @iusentra/studio build`. Dopo il controllo binario del 20/06/2026 sono stati aggiunti fix e test per il caso `amministrazione=Zurich Ass.Ni`: lo XFA generato contiene `Alessi`, `Robertino`, `RSSMRA80A01H501U`, `Zurich Ass.Ni`, oggetto e allegati selezionati.
+
+Prova reale locale post rebuild Docker `2.253.84` eseguita il 20/06/2026 su `http://127.0.0.1:8080/pat`, browser integrato visibile:
+
+- `/api/pronto` risponde `ok=true`, `versione=2.253.84`; container `app`, `scheduler-worker`, `ocr-worker` healthy;
+- selezionato fascicolo `DC5BF1DB`, visibili `20` documenti del fascicolo, `20 selezionati, 4,7 MB`, pulsanti `Visualizza` e `Scarica`, ruoli allegato e flag `Firma PAdES`;
+- compilati `Tipo ricorso=Ordinario` e `Contributo unificato=Pagato`; `Genera modulo ufficiale` produce `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf` con link `Apri PDF compilato` e `Scarica PDF`;
+- la preview reale nel container `/tmp/iusentra-pat-previews/tenant-8bf98719c459/VCQtybhX8SvE9HqCQotc6VoE.pdf` è PDF 1 pagina con XFA; il pacchetto XFA contiene `Alessi`, `Robertino`, `Zurich Ass.Ni`, oggetto del fascicolo, `decretoGenerico.pdf` e `MEMORIA_CONCLUSIVA_ZURICH.pdf.p7m`;
+- Chrome mostra l'avviso Adobe Reader previsto per XFA, coerente con il modello ministeriale originale;
+- hover e focus di `Avvia SIGA` restano leggibili: testo `rgb(255, 255, 255)` su fondo blu e outline focus visibile;
+- responsive post rebuild: tablet `768x900` e mobile `390x844`, nessun overflow orizzontale, documenti leggibili e azioni SIGA impilate correttamente.
+
+Stato operativo: il comportamento corretto è implementato, testato e verificato sulla copia Docker reale locale. Restano obbligatori commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner e prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
 
 ## Aggiornamento 2.253.83 - PAT PDF visibile nel browser e hover SIGA
+
+Nota 2026-06-20: questa sezione resta come cronologia del tentativo precedente, ma il comportamento attuale è quello documentato in `2.253.84`: modello ministeriale XFA ufficiale come file principale e allegati Formweb separati.
 
 Data intervento: 2026-06-19.
 
@@ -30,6 +62,8 @@ Guardrail tecnici eseguiti localmente: `python scripts\react-migration\generate_
 Stato operativo: il difetto PDF vuoto e il difetto hover/focus `Avvia SIGA` sono corretti e verificati localmente. Restano obbligatori commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner e prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
 
 ## Aggiornamento 2.253.82 - PAT/SIGA operativo con moduli ufficiali e allegati dal fascicolo
+
+Nota 2026-06-20: la parte sugli allegati incorporati nel PDF è superata dalla release `2.253.84`; gli allegati del fascicolo restano file separati per Formweb.
 
 Data intervento: 2026-06-19.
 

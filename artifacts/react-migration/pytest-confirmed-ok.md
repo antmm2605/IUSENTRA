@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## PAT/SIGA modello ministeriale XFA ufficiale 2.253.84 - 2026-06-20
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\pat_pdf_templates.py pct\pat_moduli.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per generatore XFA ufficiale, catalogo PAT e API React. |
+| `python -m pytest tests\test_react_shell.py -k "pat_modulo_compilabile or pat_prefill or superfici_telematiche" -q` | OK | `8/8` passati: il PDF generato è il template ministeriale XFA compilato, contiene i dati nel pacchetto XFA, normalizza `amministrazione=Zurich Ass.Ni` in resistente e non incorpora gli allegati del fascicolo. |
+| `python -m pytest tests\test_canali_telematici_deposito.py -q` | OK | `14/14` passati: catalogo PAT/Formweb, guida Chrome/Acrobat e regole canale restano coerenti. |
+| `pnpm --filter @iusentra/studio build` | OK | Bundle React rigenerato; `/pat` usa i testi aggiornati per modello XFA ufficiale e allegati Formweb separati. |
+| Docker reale locale `127.0.0.1:8080/pat` post rebuild | OK osservato | `2.253.84`, fascicolo `DC5BF1DB`, `20` documenti, modulo generato; PDF preview nel container contiene nello XFA `Alessi`, `Robertino`, `Zurich Ass.Ni`, oggetto e allegati. Hover/focus `Avvia SIGA` leggibili; tablet `768x900` e mobile `390x844` senza overflow. |
+
 ## PAT/SIGA PDF visibile e hover SIGA 2.253.83 - 2026-06-19
 
 | Comando / verifica | Esito | Nota |

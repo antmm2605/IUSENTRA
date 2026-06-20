@@ -99,7 +99,7 @@ def test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali():
     assert deposits["ricorso"]["module_id"] == "deposito_ricorso"
     assert deposits["successivo_notifiche"]["module_id"] == "deposito_atto"
     assert "scarica-modulo" not in {step["id"] for step in payload["workflowSteps"]}
-    assert "Genera il PDF dati modulo da IUSENTRA." in payload["chromePdfGuide"]["steps"]
+    assert "Genera il PDF ministeriale XFA compilato da IUSENTRA." in payload["chromePdfGuide"]["steps"]
     assert suggest_pat_modules("rimborso contributo unificato")[0]["id"] == "rimborso_contributo_unificato"
     assert suggest_pat_modules("appalti cig pnrr")[0]["id"] == "deposito_ricorso"
 

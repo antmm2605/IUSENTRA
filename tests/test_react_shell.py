@@ -33,6 +33,31 @@ def _app(tmp_path: Path):
     return app
 
 
+def _xfa_template_text(pdf_bytes: bytes) -> str:
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    xfa = reader.trailer["/Root"]["/AcroForm"].get_object()["/XFA"]
+    for index in range(0, len(xfa), 2):
+        if str(xfa[index]) == "template":
+            return xfa[index + 1].get_object().get_data().decode("utf-8", errors="ignore")
+    return ""
+
+
+def _xfa_template_has_text(pdf_bytes: bytes, value: str) -> bool:
+    return value in _xfa_template_text(pdf_bytes)
+
+
+def _embedded_file_names(pdf_bytes: bytes) -> list[str]:
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    names = reader.trailer["/Root"].get("/Names")
+    if not names:
+        return []
+    embedded = names.get_object().get("/EmbeddedFiles")
+    if not embedded:
+        return []
+    raw = embedded.get_object().get("/Names") or []
+    return [str(raw[index]) for index in range(0, len(raw), 2)]
+
+
 def test_react_blueprints_registered(tmp_path: Path):
     app = _app(tmp_path)
 
@@ -1510,9 +1535,11 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert "<iframe" not in pat_workspace_source
     assert "setPreviewDocument(doc)" in pat_workspace_source
     assert "Anteprima documento" in pat_workspace_source
-    assert "Controllo PDF prodotto da IUSENTRA" in pat_workspace_source
+    assert "Controllo dati per il modello ufficiale" in pat_workspace_source
     assert "Dati compilati nel modulo ufficiale" in pat_workspace_source
-    assert "Allegati inclusi nel PDF" in pat_workspace_source
+    assert "Allegati pronti per Formweb" in pat_workspace_source
+    assert "modello ministeriale XFA" in pat_workspace_source
+    assert "Allegati inclusi nel PDF" not in pat_workspace_source
     assert "Anteprima PDF non disponibile nel browser" not in pat_workspace_source
     assert "Apri fuori" not in pat_workspace_source
     assert "sandbox=" not in pat_workspace_source
@@ -1535,7 +1562,7 @@ def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
                 "oggetto": "Impugnazione provvedimento amministrativo",
                 "tipo_ricorso": "Ordinario",
                 "ricorrente": "Mario Rossi",
-                "resistente": "Comune di Roma",
+                "amministrazione": "Zurich Ass.Ni",
                 "contributo_unificato": "Pagato",
             },
         },
@@ -1547,14 +1574,15 @@ def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
     assert len(response.data) > 1_000_000
     assert "ModuloDepositoRicorso_4.02_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
     reader = PdfReader(io.BytesIO(response.data))
-    assert len(reader.pages) >= 2
+    assert len(reader.pages) == 1
     extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
-    assert "Modulo PAT compilato da IUSENTRA" in extracted_text
-    assert "Mario Rossi" in extracted_text
-    assert "Impugnazione provvedimento amministrativo" in extracted_text
-    assert "requires Adobe Reader" not in extracted_text
-    embedded = reader.trailer["/Root"]["/Names"].get_object()["/EmbeddedFiles"].get_object()["/Names"]
-    assert any(str(item) == "ModuloDepositoRicorso_4.02_ufficiale_XFA_compilato.pdf" for item in embedded)
+    assert "requires Adobe Reader" in extracted_text
+    assert _xfa_template_has_text(response.data, "Mario")
+    assert _xfa_template_has_text(response.data, "Rossi")
+    assert _xfa_template_has_text(response.data, "Impugnazione provvedimento amministrativo")
+    assert _xfa_template_has_text(response.data, "Zurich Ass.Ni")
+    assert _xfa_template_has_text(response.data, "RSSMRA80A01H501U")
+    assert not _embedded_file_names(response.data)
 
 
 def test_react_pat_modulo_compilabile_allega_documenti_del_fascicolo(tmp_path: Path):
@@ -1614,15 +1642,10 @@ def test_react_pat_modulo_compilabile_allega_documenti_del_fascicolo(tmp_path: P
     assert response.status_code == 200
     reader = PdfReader(io.BytesIO(response.data))
     extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
-    assert "Modulo PAT compilato da IUSENTRA" in extracted_text
-    assert "Mario Rossi" in extracted_text
-    assert "Impugnazione gara appalti PNRR" in extracted_text
-    assert "requires Adobe Reader" not in extracted_text
-    names = reader.trailer["/Root"].get("/Names")
-    assert names
-    embedded = names.get_object()["/EmbeddedFiles"].get_object()["/Names"]
-    assert any(str(item) == "ModuloDepositoRicorso_4.02_ufficiale_XFA_compilato.pdf" for item in embedded)
-    assert any(str(item) == "Ricorso principale.pdf" for item in embedded)
+    assert "requires Adobe Reader" in extracted_text
+    assert _xfa_template_has_text(response.data, "Impugnazione gara appalti PNRR")
+    assert _xfa_template_has_text(response.data, "Ricorso principale.pdf")
+    assert not _embedded_file_names(response.data)
 
 
 def test_react_pat_modulo_compilabile_espone_anteprima_sessione(tmp_path: Path):

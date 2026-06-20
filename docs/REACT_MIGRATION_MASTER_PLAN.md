@@ -1,6 +1,28 @@
 # Migrazione progressiva Flask + React
 
+## PAT/SIGA modello ministeriale XFA ufficiale - 2026-06-20 - 2.253.84
+
+La superficie `/pat` e l'endpoint `/api/v1/ui/pat/moduli/compila` sono stati riallineati alla richiesta operativa: il PDF principale non è un riepilogo IUSENTRA e non è un PDF alternativo pensato per il viewer del browser. Il file generato parte dal modello ministeriale XFA originale, lo clona, compila i dati nel pacchetto XFA e lascia gli allegati del fascicolo come file separati da caricare in Formweb.
+
+Stato codice:
+
+- `pct/pat_pdf_templates.py` clona i template ufficiali PAT 4.x presenti in `pct/data/pat_moduli/`, preserva `/AcroForm` e `/XFA` e sostituisce solo i valori compilabili nel pacchetto XFA;
+- `/api/v1/ui/pat/moduli/compila` normalizza gli alias dei campi provenienti da UI e fascicolo (`parte`, `amministrazione`, `controparte`, `resistente`) prima della validazione dei campi obbligatori;
+- il compilatore XFA valorizza ricorrente, resistente, codice fiscale, oggetto, allegati e radio persona fisica/persona giuridica/amministrazione nel modello ministeriale;
+- il generatore non usa più ReportLab per creare un PDF PAT visibile alternativo e non incorpora più i documenti del fascicolo nel PDF del modulo;
+- i documenti selezionati dal fascicolo restano allegati Formweb separati, verificati per appartenenza al fascicolo e limiti 50 file / 300 MB;
+- React mostra che il PDF è il modello ministeriale XFA compilato e che gli allegati sono pronti per Formweb come file separati;
+- i test mirati verificano dati compilati nell'XFA, warning Adobe atteso nel rendering Chrome/PDFium del modello ufficiale e assenza di embedded files.
+
+Verifiche locali eseguite su codice prima del rebuild Docker: `python -m py_compile pct\pat_pdf_templates.py pct\pat_moduli.py web\blueprints\api_v1_react.py`, `python -m pytest tests\test_react_shell.py -k "pat_modulo_compilabile or pat_prefill or superfici_telematiche" -q`, `python -m pytest tests\test_canali_telematici_deposito.py -q`, `pnpm --filter @iusentra/studio build`. Il controllo binario del PDF generato conferma nello XFA `Alessi`, `Robertino`, `RSSMRA80A01H501U`, `Zurich Ass.Ni`, oggetto e allegati.
+
+Prova reale locale post rebuild Docker `2.253.84`: su `127.0.0.1:8080/pat` selezionato fascicolo `DC5BF1DB`, caricati `20` documenti, generato `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf`; la preview nel container contiene nello XFA ricorrente, resistente `Zurich Ass.Ni`, oggetto e allegati. Verificati hover/focus `Avvia SIGA`, desktop, tablet `768x900` e mobile `390x844` senza overflow.
+
+Restano prima della chiusura complessiva: commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner con prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
+
 ## PAT/SIGA PDF visibile e hover SIGA - 2026-06-19 - 2.253.83
+
+Nota 2026-06-20: questa sezione descrive un tentativo intermedio superato dalla release `2.253.84`. Il comportamento corrente non genera più un PDF standard alternativo e non incorpora gli allegati nel PDF modulo: il file principale è il modello ministeriale XFA ufficiale compilato, con allegati Formweb separati.
 
 La superficie `/pat` ora produce un PDF PAT apribile nel viewer del browser senza pagina bianca: il file principale è un PDF standard leggibile con i dati compilati, mentre il modulo ministeriale XFA compilato resta incorporato come allegato insieme ai documenti selezionati dal fascicolo.
 
@@ -18,6 +40,8 @@ Prova reale locale eseguita su Docker `127.0.0.1:8080`, browser integrato visibi
 Restano prima della chiusura complessiva: commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner con prova produzione `https://app.iusentra.it/pat` sullo stesso commit.
 
 ## PAT/SIGA documenti fascicolo e moduli ufficiali XFA - 2026-06-19 - 2.253.82
+
+Nota 2026-06-20: la parte sugli allegati incorporati nel PDF è superata dalla release `2.253.84`; gli allegati del fascicolo restano file separati per Formweb.
 
 La superficie `/pat` è stata ridotta a una cabina operativa: fascicolo, deposito Formweb, documenti del fascicolo, modulo ufficiale e consegna SIGA. Le sezioni descrittive, le card generiche e i pannelli non necessari non fanno più parte della pagina PAT principale.
 

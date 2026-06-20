@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.253.84 - 2026-06-20
+
+- PAT/SIGA: `Genera modulo ufficiale` produce come file principale il PDF ministeriale XFA originale compilato, non più un riepilogo IUSENTRA o un PDF alternativo.
+- Moduli ufficiali: il generatore clona i template PAT 4.x integrati nel repository, preserva `/AcroForm` e `/XFA`, compila il pacchetto XFA e mantiene il nome del modulo ufficiale.
+- Allegati PAT: i documenti del fascicolo restano file separati pronti per il caricamento Formweb; non vengono incorporati nel PDF del modulo, così il modello resta identico alla fonte ministeriale.
+- UI PAT: aggiornati testi e controlli per distinguere il modello XFA ufficiale dagli allegati Formweb e per evitare che l'avvocato interpreti il PDF come un documento riassuntivo prodotto da IUSENTRA.
+- Compilazione XFA: normalizzati gli alias dei campi `amministrazione`, `controparte`, `resistente` e `parte`, così validazione API e generatore compilano davvero ricorrente, resistente, codice fiscale, oggetto e allegati nel modello ministeriale.
+- Anti-regressione: rimossi i vecchi percorsi backend che generavano un PDF PAT standard con ReportLab e aggiornati i test per verificare XFA compilato, assenza di allegati incorporati e documenti del fascicolo allegabili separatamente.
+
 ## 2.253.83 - 2026-06-19
 
 - PAT/SIGA: il PDF generato da IUSENTRA ora si apre nel viewer del browser con dati compilati visibili e incorpora come allegato il modulo ministeriale XFA compilato, evitando l'apertura vuota dei PDF LiveCycle.

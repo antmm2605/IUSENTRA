@@ -1,6 +1,18 @@
 # Pytest issue aperte e risoluzioni
 
+## PAT/SIGA modello ufficiale XFA - 2.253.84 - 2026-06-20
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| PDF PAT non identico al modello ministeriale | Test XFA mirati + confronto template + Docker reale | Risolto localmente | Il file principale clona il PDF ministeriale XFA originale, preserva `/AcroForm` e `/XFA`, compila i dati nel pacchetto XFA e non genera più un riepilogo IUSENTRA. Prova reale `127.0.0.1:8080/pat` post rebuild confermata. | Ripetere su produzione dopo deploy Hetzner. |
+| Controparte non valorizzata nello XFA | Test route + controllo binario PDF + preview Docker | Risolto localmente | La route normalizza `amministrazione`, `controparte` e `resistente`; il compilatore XFA imposta denominazione resistente e radio persona giuridica/amministrazione. La preview reale Docker contiene `Zurich Ass.Ni`. | Ripetere su produzione dopo deploy server. |
+| Allegati del fascicolo dentro il PDF modulo | Test PDF mirati | Risolto nel codice | Gli allegati selezionati restano file separati per Formweb; il PDF del modulo non contiene `/EmbeddedFiles`. | Mantenere il test `pat_modulo_compilabile` e ripetere se cambia il generatore PDF. |
+| Viewer Chrome mostra warning Adobe sui moduli ufficiali XFA | Verifica PDF/browser | Comportamento ufficiale atteso, non blocco applicativo | Il warning Chrome/PDFium deriva dal formato LiveCycle/XFA del modello ministeriale; i dati sono nel pacchetto XFA e l'apertura completa va fatta in Acrobat Reader. | La UI deve spiegare il modello XFA ufficiale e non sostituirlo con PDF alternativi. |
+| Produzione `https://app.iusentra.it/pat` | Hetzner + browser reale | Aperto fino a deploy | Codice e test mirati locali pronti; la chiusura complessiva richiede push, check GitHub/CodeQL, deploy Hetzner, `/api/pronto` produzione e prova visiva server. | Eseguire commit/push/deploy e aggiornare questo report dopo la prova server. |
+
 ## PAT/SIGA PDF vuoto e hover `Avvia SIGA` - 2.253.83 - 2026-06-19
+
+Nota 2026-06-20: la soluzione descritta qui è stata superata dalla release `2.253.84`; il comportamento corrente usa il modello ministeriale XFA ufficiale come PDF principale e allegati Formweb separati.
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
@@ -10,6 +22,8 @@
 | Produzione `https://app.iusentra.it/pat` | Hetzner + browser reale | Aperto fino a deploy | Locale `2.253.83` positiva; la chiusura complessiva richiede commit, push branch gemelli, check GitHub/CodeQL verdi, deploy Hetzner, `/api/pronto` produzione e prova visiva server. | Eseguire commit/push/deploy e aggiornare questo report dopo la prova server. |
 
 ## PAT/SIGA moduli ufficiali e allegati fascicolo - 2.253.82 - 2026-06-19
+
+Nota 2026-06-20: la parte sugli allegati incorporati nel PDF è superata dalla release `2.253.84`; gli allegati del fascicolo restano file separati per Formweb.
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |

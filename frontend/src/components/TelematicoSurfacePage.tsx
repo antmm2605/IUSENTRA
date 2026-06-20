@@ -1518,7 +1518,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
       return
     }
     setPdfBusy(true)
-    setDraftMessage('Genero il modulo ufficiale PAT con i documenti selezionati...')
+    setDraftMessage('Compilo il modello ministeriale PAT originale con i dati del fascicolo...')
     try {
       const response = await fetch('/api/v1/ui/pat/moduli/compila', {
         method: 'POST',
@@ -1552,7 +1552,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
       setPdfFileName(asText(payload.filename, `${activeModule.id}-compilato-iusentra.pdf`))
       const sizeBytes = asNumber(payload.sizeBytes)
       setPdfSizeLabel(sizeBytes ? formatFileSize(sizeBytes) : '')
-      setDraftMessage('Modulo ufficiale compilato. Controlla PDF e allegati prima della sessione SIGA.')
+      setDraftMessage('Modulo ministeriale XFA compilato. Scarica il PDF ufficiale e carica in Formweb gli allegati selezionati.')
     } catch (error: unknown) {
       setDraftMessage(asText(error instanceof Error ? error.message : error, 'Generazione PDF non riuscita.'))
     } finally {
@@ -1920,7 +1920,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
           {pdfPreviewUrl ? (
             <div className="iu-pat-pdf-ready">
               <strong>Modulo ufficiale pronto</strong>
-              <span>{pdfFileName || 'PDF PAT compilato'} con {selectedPatDocuments.length} allegati selezionati dal fascicolo.</span>
+              <span>{pdfFileName || 'PDF PAT compilato'}; {selectedPatDocuments.length} allegati pronti per Formweb come file separati.</span>
               <div className="iu-pat-pdf-ready__actions">
                 <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">Apri PDF compilato</a>
                 {pdfDownloadUrl ? <a href={pdfDownloadUrl} target="_blank" rel="noreferrer">Scarica PDF</a> : null}
@@ -1930,8 +1930,8 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
           {pdfPreviewUrl ? (
             <div className="iu-pat-generated-pdf-viewer">
               <header>
-                <strong>Controllo PDF prodotto da IUSENTRA</strong>
-                <span>Verifica dati e allegati prima della firma e della consegna SIGA.</span>
+                <strong>Controllo dati per il modello ufficiale</strong>
+                <span>Il PDF generato è il modello ministeriale XFA; verifica dati e file da caricare prima della consegna SIGA.</span>
               </header>
               <div className="iu-pat-generated-review">
                 <section>
@@ -1946,8 +1946,8 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
                   </dl>
                 </section>
                 <section>
-                  <strong>Allegati inclusi nel PDF</strong>
-                  <span>{selectedPatDocuments.length} file selezionati dal fascicolo{pdfSizeLabel ? ` · PDF ${pdfSizeLabel}` : ''}</span>
+                  <strong>Allegati pronti per Formweb</strong>
+                  <span>{selectedPatDocuments.length} file selezionati dal fascicolo{pdfSizeLabel ? ` · modulo ${pdfSizeLabel}` : ''}</span>
                   <ul>
                     {selectedPatDocuments.map((doc) => (
                       <li key={`pdf-doc-${doc.id}`}>

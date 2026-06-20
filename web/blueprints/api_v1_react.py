@@ -4137,111 +4137,6 @@ def _pat_pdf_text(value: Any, fallback: str = "") -> str:
     return re.sub(r"\s+", " ", text)
 
 
-def _pat_module_pdf_name(module_id: str) -> str:
-    safe_id = re.sub(r"[^A-Za-z0-9_-]+", "-", module_id).strip("-") or "modulo-pat"
-    return f"{safe_id}-iusentra-compilato.pdf"
-
-
-def _pat_draw_wrapped(pdf: Any, text: str, x: float, y: float, max_width: float, *, line_height: float = 13) -> float:
-    words = _pat_pdf_text(text).split()
-    if not words:
-        return y
-    line = ""
-    for word in words:
-        candidate = f"{line} {word}".strip()
-        if pdf.stringWidth(candidate, "Helvetica", 9) <= max_width:
-            line = candidate
-            continue
-        pdf.drawString(x, y, line)
-        y -= line_height
-        line = word
-    if line:
-        pdf.drawString(x, y, line)
-        y -= line_height
-    return y
-
-
-def _build_pat_module_pdf(module: Any, fields: Mapping[str, Any], meta: Mapping[str, Any]) -> io.BytesIO:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.pdfgen import canvas
-
-    buffer = io.BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    left = 22 * mm
-    right = width - 22 * mm
-    y = height - 24 * mm
-
-    def new_page_if_needed(required: float = 32 * mm) -> None:
-        nonlocal y
-        if y > required:
-            return
-        pdf.showPage()
-        y = height - 24 * mm
-
-    pdf.setTitle(f"IUSENTRA - {module.title}")
-    pdf.setAuthor("IUSENTRA")
-    pdf.setFont("Helvetica-Bold", 15)
-    pdf.drawString(left, y, "IUSENTRA - modulo PAT compilato")
-    y -= 8 * mm
-    pdf.setFont("Helvetica", 9)
-    pdf.drawString(left, y, f"Modulo: {module.title} - versione {module.version}")
-    y -= 5 * mm
-    pdf.drawString(left, y, f"Fonte ufficiale: {module.url}")
-    y -= 7 * mm
-    fascicolo_title = _pat_pdf_text(meta.get("fascicolo_title"))
-    if fascicolo_title:
-        pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(left, y, "Fascicolo IUSENTRA")
-        y -= 5 * mm
-        pdf.setFont("Helvetica", 9)
-        y = _pat_draw_wrapped(pdf, fascicolo_title, left + 4 * mm, y, right - left - 4 * mm)
-        y -= 3 * mm
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(left, y, "Dati compilati nello studio")
-    y -= 6 * mm
-
-    for field in module.fillable_fields:
-        new_page_if_needed()
-        value = _pat_pdf_text(fields.get(field.id))
-        pdf.setFont("Helvetica-Bold", 9)
-        pdf.drawString(left, y, f"{field.label}{' *' if field.required else ''}")
-        y -= 5 * mm
-        pdf.setFont("Helvetica", 9)
-        y = _pat_draw_wrapped(pdf, value or "Non indicato", left + 4 * mm, y, right - left - 4 * mm)
-        y -= 2 * mm
-
-    new_page_if_needed(45 * mm)
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(left, y, "Allegati da controllare")
-    y -= 6 * mm
-    pdf.setFont("Helvetica", 9)
-    for index, attachment in enumerate(module.attachments, start=1):
-        new_page_if_needed()
-        y = _pat_draw_wrapped(pdf, f"{index}. {attachment}", left + 4 * mm, y, right - left - 4 * mm)
-
-    new_page_if_needed(42 * mm)
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(left, y, "Controllo operativo")
-    y -= 6 * mm
-    pdf.setFont("Helvetica", 9)
-    audit_lines = (
-        "Questo PDF è stato prodotto da IUSENTRA dalla compilazione interna del modulo PAT.",
-        "Non contiene credenziali, PIN, token o dati di accesso al Portale Avvocato.",
-        "Prima dell'invio verificare riepilogo Formweb ufficiale, firma PAdES e ricevute importate nel fascicolo.",
-        f"Generato il {_pat_pdf_text(meta.get('generated_at')) or datetime.now(ZoneInfo('Europe/Rome')).strftime('%d/%m/%Y %H:%M')}.",
-    )
-    for line in audit_lines:
-        new_page_if_needed()
-        y = _pat_draw_wrapped(pdf, line, left + 4 * mm, y, right - left - 4 * mm)
-
-    pdf.showPage()
-    pdf.save()
-    buffer.seek(0)
-    return buffer
-
-
 @api_v1_react.post("/pat/moduli/compila")
 @_richiedi_auth
 def pat_moduli_compila_pdf():
@@ -4285,6 +4180,13 @@ def pat_moduli_compila_pdf():
         cleaned = _pat_pdf_text(value)
         if cleaned:
             fields[str(key)] = cleaned
+    if fields.get("parte") and not fields.get("parte_depositante"):
+        fields["parte_depositante"] = fields["parte"]
+    resistente_alias = fields.get("amministrazione") or fields.get("controparte") or fields.get("resistente")
+    if resistente_alias and not fields.get("amministrazione_resistente"):
+        fields["amministrazione_resistente"] = resistente_alias
+    if resistente_alias and not fields.get("resistente"):
+        fields["resistente"] = resistente_alias
     missing = [field.label for field in module.fillable_fields if field.required and not fields.get(field.id)]
     if missing:
         return jsonify({

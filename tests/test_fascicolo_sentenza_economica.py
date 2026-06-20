@@ -111,6 +111,36 @@ def test_applicazione_sentenza_aggiorna_fascicolo_e_crea_una_sola_proforma(tmp_p
     assert proforme[0].dati_personalizzati["document"]["documento_operativo"] == "PROFORMA"
 
 
+def test_documento_duplicato_stessa_sentenza_riusa_proforma_esistente(tmp_path: Path):
+    fascicoli = FakeFascicoliRepository()
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+
+    first = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli,
+        fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1",
+        text=SENTENZA_TEXT,
+        document_metadata={"document_id": "DOC-1", "filename": "sentenza.pdf", "tipo_documento": "Sentenza Tribunale"},
+        actor="Lex AI",
+    )
+    duplicate = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli,
+        fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1",
+        text=SENTENZA_TEXT,
+        document_metadata={"document_id": "DOC-2", "filename": "sentenza-copia.pdf", "tipo_documento": "Sentenza Tribunale"},
+        actor="Lex AI",
+    )
+
+    automation = fascicoli.get("FASC-1").pagamenti[AUTOMATION_KEY]
+    assert first.proforma_id
+    assert duplicate.proforma_id == first.proforma_id
+    assert duplicate.changes["proformaCreated"] is False
+    assert len(fatturazione.per_fascicolo("FASC-1")) == 1
+    assert set(automation["processed_documents"]) == {"document_id:DOC-1", "document_id:DOC-2"}
+    assert automation["proforme"]["document_id:DOC-2"] == first.proforma_id
+
+
 def test_numerazione_configurata_e_conversione_proforma(tmp_path: Path):
     manager = GestioneFatturazione(str(tmp_path / "parcelle.json"))
     numbering = manager.configura_numerazione(2024, 15, updated_by="admin")

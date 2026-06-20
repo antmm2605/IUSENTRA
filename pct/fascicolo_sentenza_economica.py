@@ -149,7 +149,12 @@ def apply_sentenza_tribunale_automation(
     processed = set(str(item) for item in automation.get("processed_documents") or [])
     already_processed = bool(document_key and document_key in processed)
     proforma_id = _text((automation.get("proforme") or {}).get(document_key)) if document_key else ""
-    existing_proforma = _find_existing_proforma(fatturazione_repository, str(getattr(fascicolo, "id", fascicolo_id)), document_key)
+    existing_proforma = _find_existing_proforma(
+        fatturazione_repository,
+        str(getattr(fascicolo, "id", fascicolo_id)),
+        document_key,
+        extraction,
+    )
     if existing_proforma:
         proforma_id = _text(getattr(existing_proforma, "id", "")) or proforma_id
 
@@ -470,10 +475,31 @@ def _payment_method(previous: dict[str, Any], status: str) -> str:
     return "Bonifico bancario" if status == "pagato" else ""
 
 
-def _find_existing_proforma(fatturazione_repository: Any, fascicolo_id: str, document_key: str) -> Any | None:
+def _sentenza_fingerprint(extraction: SentenzaEconomicaExtraction | dict[str, Any] | None) -> str:
+    if not extraction:
+        return ""
+    getter = extraction.get if isinstance(extraction, dict) else lambda key, default="": getattr(extraction, key, default)
+    parts = [
+        _text(getter("sentence_date", "")),
+        _text(getter("sentence_number", "")),
+        _text(getter("sentence_year", "")),
+        _text(getter("rg_number", "")),
+        _text(getter("rg_year", "")),
+    ]
+    fingerprint = "|".join(parts)
+    return fingerprint if any(parts) else ""
+
+
+def _find_existing_proforma(
+    fatturazione_repository: Any,
+    fascicolo_id: str,
+    document_key: str,
+    extraction: SentenzaEconomicaExtraction | None = None,
+) -> Any | None:
     getter = getattr(fatturazione_repository, "per_fascicolo", None)
     if not callable(getter):
         return None
+    current_fingerprint = _sentenza_fingerprint(extraction)
     for item in getter(fascicolo_id):
         if _enum_value(getattr(item, "stato", "")) == StatoParcella.ANNULLATA.value:
             continue
@@ -482,6 +508,8 @@ def _find_existing_proforma(fatturazione_repository: Any, fascicolo_id: str, doc
         data = getattr(item, "dati_personalizzati", {}) or {}
         lex = data.get("lex_sentenza") if isinstance(data, dict) else {}
         if not document_key or _text((lex or {}).get("document_key")) == document_key:
+            return item
+        if current_fingerprint and current_fingerprint == _sentenza_fingerprint((lex or {}).get("extraction")):
             return item
     return None
 

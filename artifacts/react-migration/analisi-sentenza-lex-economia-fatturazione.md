@@ -123,6 +123,7 @@ Fatturazione:
 ## Rischi e contromisure
 
 - Reindicizzazione dello stesso documento: usare chiave documento/fascicolo e deduplica sulla proforma.
+- Duplicati dello stesso PDF o della stessa sentenza nello stesso fascicolo: riusare la proforma esistente quando coincidono data sentenza, numero sentenza e RG, anche se cambia `document_id`.
 - Importi ambigui nel testo: salvare solo importi estratti da contesti riconosciuti; in caso di dubbio lasciare nota/audit senza sovrascrivere dati esistenti.
 - Scadenza già valorizzata: non cancellare scadenze reali future se non è chiaramente un campo `n.d.` o mancante.
 - Numerazione già usata: calcolare sempre dal massimo reale, non solo dalla configurazione.
@@ -175,6 +176,7 @@ Prova reale obbligatoria:
 - Implementata alimentazione DB vettoriale Lex AI tramite `LocalAIService.index_text_document`, con fonte `lex_sentenza_tribunale`, metadati strutturati e deduplica su documento/fascicolo/tenant.
 - Implementato recupero delle sentenze già applicate prima dell'estensione vettoriale: se manca `vector_indexes`, Lex AI viene alimentato una sola volta senza riscrivere la matrice economica.
 - Test mirati, contratti API, build Vite e prova reale locale Docker/browser sono registrati in `pytest-confirmed-ok.md` e nel report dedicato `artifacts/react-migration/prova-reale-sentenza-lex-economia-fatturazione-2.253.86.md`.
+- Aggiunta protezione anti-duplicato per il backfill/server: nello stesso fascicolo una sentenza già riconosciuta con stessa data, numero sentenza e RG riusa la proforma Lex AI esistente invece di crearne una seconda.
 
 ## Prova reale locale 2.253.86
 

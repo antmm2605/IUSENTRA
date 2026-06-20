@@ -1957,3 +1957,16 @@ Verifiche concluse:
 - deploy Hetzner CPX42 completato, `https://app.iusentra.it/api/pronto` risponde `versione=2.253.84`, container app/scheduler/OCR healthy e cache Docker ripulita;
 - browser produzione autenticato su `https://app.iusentra.it/pat`: superficie React `Prepara deposito PAT`, selezione fascicolo reale, documenti con `Visualizza`/`Scarica`, `Genera modulo ufficiale`, `Avvia SIGA`, zero errori console;
 - probe nel container Hetzner: `build_pat_official_pdf("deposito_ricorso", ...)` produce `ModuloDepositoRicorso_4.02_compilato_iusentra.pdf`, una pagina, `/XFA=True`, con `Mario`, `Rossi`, `RSSMRA80A01H501U`, `Zurich Ass.Ni`, oggetto e allegati `decretoGenerico.pdf`/`attoACQ.pdf.p7m` presenti nello XFA.
+
+## Rettifica analisi copertura XFA PAT/SIGA - 2026-06-20
+
+La prova Acrobat confermata dall'utente riguarda un solo campo del modulo ministeriale XFA (`oggetto` del ricorso). Questo dimostra che IUSENTRA può scrivere valori visibili in Acrobat dentro il modello ufficiale, ma non equivale a copertura 100% dei moduli PAT.
+
+La matrice operativa completa è stata registrata in `artifacts/react-migration/pat-xfa-coverage-matrix-2026-06-20.md` con colonne: modulo, campo obbligatorio, percorso XFA, campo IUSENTRA, dato DB, prova PDF e prova visiva Acrobat.
+
+Stato bloccante prima del lavoro applicativo:
+
+- non dichiarare `copertura 100%` finché ogni campo obbligatorio o obbligatorio condizionato non ha percorso XFA, campo UI, dato DB, test XFA e prova visiva Acrobat;
+- le sezioni con pulsante `Aggiungi` devono essere trattate come array reali: parti, documenti, procure, notifiche, atti impugnati, CIG e versamenti;
+- gli allegati non possono essere considerati coperti quando viene scritto solo il nome file: vanno collegati ai documenti del fascicolo, con ruolo PAT, hash, firma e destinazione Formweb;
+- i campi difensore, PNRR, appalti/CIG, istanze, atti impugnati e rimborso richiedono struttura dati PAT dedicata prima di una validazione reale.

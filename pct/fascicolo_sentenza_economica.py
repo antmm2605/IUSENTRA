@@ -100,7 +100,7 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
     if not sentence_date:
         return SentenzaEconomicaExtraction(found=False, warnings=["Data sentenza non leggibile."])
 
-    rg_match = _RG_RE.search(compact)
+    rg_match = _extract_rg_near_sentence(compact, date_match)
     liquidation_amount, liquidation_title = _extract_liquidazione(compact)
     cu_amount, cu_title = _extract_amount_near(compact, _CU_PATTERNS)
     fondo_amount, fondo_title = _extract_amount_near(compact, _FONDO_PATTERNS)
@@ -121,6 +121,26 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
         spese_generali=bool(re.search(r"\bspese\s+generali\b", compact, re.IGNORECASE)),
         antistatario=bool(re.search(r"\bantistatari[oa]\b", compact, re.IGNORECASE)),
     )
+
+
+def _extract_rg_near_sentence(compact_text: str, sentence_match: re.Match[str]) -> re.Match[str] | None:
+    """Preferisce l'RG dell'intestazione rispetto a riferimenti citati nel corpo."""
+
+    after_start = sentence_match.end()
+    after_end = min(len(compact_text), after_start + 260)
+    header_match = _RG_RE.search(compact_text[after_start:after_end])
+    if header_match:
+        return header_match
+
+    start = max(0, sentence_match.start() - 120)
+    before_match = _RG_RE.search(compact_text[start:sentence_match.start()])
+    if before_match:
+        return before_match
+
+    early_match = _RG_RE.search(compact_text[: min(len(compact_text), sentence_match.end() + 900)])
+    if early_match:
+        return early_match
+    return _RG_RE.search(compact_text)
 
 
 def apply_sentenza_tribunale_automation(

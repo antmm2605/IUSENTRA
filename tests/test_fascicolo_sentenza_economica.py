@@ -68,6 +68,26 @@ def test_estrazione_sentenza_tribunale_con_cu_liquidazione_e_fondo_spese():
     assert extraction.antistatario is True
 
 
+def test_estrazione_rg_preferisce_intestazione_sentenza():
+    text = """
+    Nel corpo della motivazione viene richiamato il precedente RG n. 4593/2022.
+
+    Tribunale di Palmi
+    Sentenza n. 230/2024 pubbl. il 07/05/2024
+    RG n. 1548/2023
+    condanna il Ministero liquidando la complessiva somma di € 1.100,00.
+    """
+
+    extraction = analyze_sentenza_tribunale_text(
+        text,
+        {"tipo_documento": "provvedimento Sentenza Tribunale"},
+    )
+
+    assert extraction.found is True
+    assert extraction.rg_number == "1548"
+    assert extraction.rg_year == "2023"
+
+
 def test_applicazione_sentenza_aggiorna_fascicolo_e_crea_una_sola_proforma(tmp_path: Path):
     fascicoli = FakeFascicoliRepository()
     fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))

@@ -157,6 +157,7 @@ Prova reale obbligatoria:
 - registrazione pagamento reale o flusso controllato equivalente e verifica stato pagata;
 - inizializzazione numero fattura e conferma prossimo numero;
 - scroll completo e responsive desktop/tablet/mobile.
+- report visivo end-to-end della matrice richiesta: documento sentenza, riga fascicolo con `Prossima scad.` e `Stato`, tab economia con contributo/fondo spese/liquidazione/parcella, `Parcelle e Fatture` con proforma collegata e passaggio a fattura/parcella.
 
 ## Documentazione da aggiornare a fine lavoro
 
@@ -177,6 +178,14 @@ Prova reale obbligatoria:
 - Implementato recupero delle sentenze già applicate prima dell'estensione vettoriale: se manca `vector_indexes`, Lex AI viene alimentato una sola volta senza riscrivere la matrice economica.
 - Test mirati, contratti API, build Vite e prova reale locale Docker/browser sono registrati in `pytest-confirmed-ok.md` e nel report dedicato `artifacts/react-migration/prova-reale-sentenza-lex-economia-fatturazione-2.253.86.md`.
 - Aggiunta protezione anti-duplicato per il backfill/server: nello stesso fascicolo una sentenza già riconosciuta con stessa data, numero sentenza e RG riusa la proforma Lex AI esistente invece di crearne una seconda.
+
+## Correzione RG sentenza 2.253.87
+
+- Durante il dry-run di produzione sui documenti `extracted_text.json` del server Hetzner è emerso che alcune sentenze contengono nel corpo riferimenti a vecchi `RG n.` prima dell'intestazione ministeriale della sentenza.
+- L'estrazione RG ora preferisce il blocco immediatamente successivo a `Sentenza n. ... pubbl. il ...`; solo se quel blocco manca usa il fallback storico.
+- Questo evita che duplicati della stessa sentenza nello stesso fascicolo vengano considerati diverse sentenze solo perché nel corpo è citato un altro RG.
+- Il test `test_estrazione_rg_preferisce_intestazione_sentenza` presidia il caso reale prima del backfill sui fascicoli server.
+- Prima della chiusura resta obbligatorio produrre un test visivo completo che riporti tutti i dati della matrice fino alla fattura proforma/parcella, non solo il parser o i test automatici.
 
 ## Prova reale locale 2.253.86
 

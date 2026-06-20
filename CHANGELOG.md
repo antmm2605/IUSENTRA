@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.87 - 2026-06-21
+
+- Sentenze Lex AI: l'estrazione dell'RG ora privilegia l'intestazione vicino a `Sentenza n. ... pubbl. il ...`, evitando che riferimenti a vecchi RG citati nel corpo del provvedimento generino dedupliche o proforme non corrette.
+- Anti-regressione: aggiunto un test mirato sul caso server in cui un `RG n.` citato nella motivazione precede l'intestazione reale della sentenza.
+
 ## 2.253.86 - 2026-06-20
 
 - Fascicoli/Lex AI: le sentenze del Tribunale indicizzate come provvedimenti vengono lette in modo deterministico per data sentenza, RG, contributo unificato, fondo spese e liquidazione giudiziale.

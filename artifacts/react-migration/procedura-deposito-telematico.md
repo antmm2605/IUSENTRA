@@ -38,7 +38,7 @@ Verifica visiva reale:
 - Nel perimetro verificato non compaiono `ACCETTAZIONE DEPOSITO TELEMATICO`, `ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO`, `Ricevuta protocollo` o testo generico `Sono presenti anomalie non bloccanti`.
 - Dopo la prova sono stati rimossi dal tenant locale il fascicolo, il documento, le scadenze, gli appuntamenti, l'utente test e i file Document AI marcati `CODEX-PEC-LEX-REAL`, senza toccare l'utente reale dello studio.
 
-Stato residuo prima della chiusura complessiva: commit, push dei branch gemelli, controlli GitHub/CodeQL e deploy Hetzner ancora da eseguire per questa tranche.
+Stato rilascio della tranche PEC: commit applicativo `de196407d126a911bf74d6a2902d2cec5255c203` pushato su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`; required gate GitHub/CodeQL verdi sullo SHA corrente; deploy Hetzner CPX42 completato con `https://app.iusentra.it/api/pronto` `ok=true`, `versione=2.253.84`; server sullo stesso commit, container `iusentra-app-1`, `iusentra-scheduler-worker-1` e `iusentra-ocr-worker-1` healthy; `docker builder prune --all --force` eseguito (`0B`) e `/opt/iusentra/tmp-backup-snapshot` assente. Nota residua: la soppressione topbar delle ricevute tecniche PCT e' coperta da test, mentre la push mobile nativa non e' stata provata su dispositivo reale con permesso notifiche concesso.
 
 ## Aggiornamento 2.253.84 - PAT modello ministeriale XFA ufficiale
 

@@ -13,6 +13,9 @@
 | `corepack pnpm --filter @iusentra/studio build:vite` | OK | Bundle React generato con CSS responsive Agenda e manifest aggiornato. |
 | Docker locale reale `127.0.0.1:8080`; browser integrato desktop/mobile | OK osservato | `/api/pronto` `versione=2.253.84`; Agenda dettaglio udienza remota e Scadenziario dettaglio con cliente, parte/soggetto, Tribunale di Palmi, link Teams, allegato completo, stato link verificato, zero errori console e nessuna ricevuta tecnica grezza. |
 | Pulizia runtime controllata e audit tenant | OK | Rimossi dal tenant locale i marker `CODEX-PEC-LEX-REAL`, l'utente test `codex.visual.pec`, il fascicolo/scadenze/agenda/documenti Document AI generati dalla prova; `audit_tenant_data_structure.py --json` e `audit_data_flow_contract.py --json` confermano `ok=true`, `errors=0`, `operational_untracked=0`. |
+| `python tools\check_github_required_gates.py --event push --wait --check-branch-protection --report-md artifacts\ci\current-sha-required-gates.md --report-json artifacts\ci\current-sha-required-gates.json` | OK | Required gate reali su commit `de196407d126a911bf74d6a2902d2cec5255c203`: Lint, Governance, smoke, shard Pytest, Coverage 12/12, Frontend React, CodeQL, Local Signer/PKCS#11 e quality-gates verdi; Vercel esterno ignorato dal gate. |
+| Deploy Hetzner CPX42 e produzione `https://app.iusentra.it/api/pronto` | OK | Workflow `Deploy Hetzner CPX42` completato; server sul commit `de196407d126a911bf74d6a2902d2cec5255c203`, `/api/pronto` pubblico `ok=true`, `versione=2.253.84`, container app/scheduler/OCR healthy; `docker builder prune --all --force` eseguito e `/opt/iusentra/tmp-backup-snapshot` assente. |
+| Docker locale reale post-push `127.0.0.1:8080` | OK | Copia locale ancora healthy dopo push/deploy: `/api/pronto` `ok=true`, `versione=2.253.84`; `app`, `scheduler-worker`, `ocr-worker`, Redis e audit storage healthy. |
 
 ## PAT/SIGA modello ministeriale XFA ufficiale 2.253.84 - 2026-06-20
 

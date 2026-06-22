@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 
 from pct.fascicoli import Fascicolo, StatoFascicolo, TipoFascicolo
-from scripts.backfill_sentenza_lex_economics import _vector_relevant_excerpt, run_backfill
+from pct.fascicolo_sentenza_economica import SENTENZA_VECTOR_SCHEMA_VERSION
+from scripts.backfill_sentenza_lex_economics import _vector_relevant_excerpt, _vector_result_current, run_backfill
 
 
 SENTENZA_TEXT = """
@@ -48,6 +49,26 @@ def test_vector_relevant_excerpt_limita_testo_ma_preserva_importi():
     assert "€ 1.100,00" in excerpt
     assert "€ 98,00" in excerpt
     assert "spese generali" in excerpt
+
+
+def test_vector_result_current_richiede_schema_compatto_e_pending_zero():
+    old_result = {"ok": True, "document_id": "rag-old", "embedding": {"pending_remaining": 0}}
+    pending_result = {
+        "ok": True,
+        "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
+        "document_id": "rag-new",
+        "embedding": {"pending_remaining": 1},
+    }
+    current_result = {
+        "ok": True,
+        "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
+        "document_id": "rag-new",
+        "embedding": {"pending_remaining": 0},
+    }
+
+    assert _vector_result_current(old_result) is False
+    assert _vector_result_current(pending_result) is False
+    assert _vector_result_current(current_result) is True
 
 
 def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path: Path):

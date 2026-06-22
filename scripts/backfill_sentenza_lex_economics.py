@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -20,10 +19,12 @@ from pct.fascicoli import GestioneFascicoli
 from pct.fascicolo_sentenza_economica import (
     AUTOMATION_KEY,
     ORIGIN,
+    SENTENZA_VECTOR_SCHEMA_VERSION,
     SentenzaAutomationOutcome,
     SentenzaEconomicaExtraction,
     analyze_sentenza_tribunale_text,
     apply_sentenza_tribunale_automation,
+    sentenza_vector_relevant_excerpt,
 )
 from pct.fatturazione import GestioneFatturazione
 from pct.local_ai import LocalAIService
@@ -31,14 +32,6 @@ from pct.storage import StudioDB
 
 
 ROME = ZoneInfo("Europe/Rome")
-_VECTOR_EXCERPT_PATTERNS = (
-    re.compile(r"\bliquidando\b", re.IGNORECASE),
-    re.compile(r"\bcontribut[oi]\s+unificat[oi]\b", re.IGNORECASE),
-    re.compile(r"\bc\.?\s*u\.?\b", re.IGNORECASE),
-    re.compile(r"\bfond[oi]\s+spese\b", re.IGNORECASE),
-    re.compile(r"\bspese\s+generali\b", re.IGNORECASE),
-    re.compile(r"\bantistatari[oa]\b", re.IGNORECASE),
-)
 
 
 @dataclass(slots=True)
@@ -206,35 +199,7 @@ def _vector_title(extraction: SentenzaEconomicaExtraction, fascicolo: Any) -> st
 
 
 def _vector_relevant_excerpt(text: str, *, max_chars: int = 12000) -> str:
-    compact = " ".join(str(text or "").split())
-    if not compact:
-        return "n.d."
-    if len(compact) <= max_chars:
-        return compact
-
-    windows: list[tuple[int, int]] = [(0, min(len(compact), 2200))]
-    for pattern in _VECTOR_EXCERPT_PATTERNS:
-        for match in pattern.finditer(compact):
-            windows.append((max(0, match.start() - 700), min(len(compact), match.end() + 1200)))
-            break
-
-    merged: list[tuple[int, int]] = []
-    for start, end in sorted(windows):
-        if not merged or start > merged[-1][1] + 80:
-            merged.append((start, end))
-        else:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
-
-    excerpts: list[str] = []
-    for start, end in merged:
-        excerpt = compact[start:end].strip()
-        if excerpt and excerpt not in excerpts:
-            excerpts.append(excerpt)
-
-    result = "\n[...]\n".join(excerpts)
-    if len(result) > max_chars:
-        return result[: max_chars - 32].rstrip() + "\n[estratto ridotto]"
-    return result
+    return sentenza_vector_relevant_excerpt(text, max_chars=max_chars) or "n.d."
 
 
 def _vector_text(
@@ -288,6 +253,15 @@ def _existing_vector_result(fascicolo: Any, document_key: str) -> dict[str, Any]
     return dict(result) if isinstance(result, dict) else {}
 
 
+def _vector_result_current(result: dict[str, Any]) -> bool:
+    if not (result.get("ok") and result.get("document_id")):
+        return False
+    if result.get("schema_version") != SENTENZA_VECTOR_SCHEMA_VERSION:
+        return False
+    embedding = result.get("embedding") if isinstance(result.get("embedding"), dict) else {}
+    return int(embedding.get("pending_remaining") or 0) <= 0
+
+
 def _record_vector_result(fascicoli: GestioneFascicoli, fascicolo_id: str, document_key: str, result: dict[str, Any]) -> None:
     if not document_key:
         return
@@ -320,7 +294,7 @@ def _feed_vector_index(
     if not fascicolo:
         return {"ok": False, "status": "skipped", "error": "Fascicolo non trovato"}
     existing = _existing_vector_result(fascicolo, document_key)
-    if existing.get("ok") and existing.get("document_id"):
+    if _vector_result_current(existing):
         return existing
     try:
         service = _local_ai_service(tenant.root, repo_root)
@@ -348,6 +322,7 @@ def _feed_vector_index(
                 "fondo_spese": extraction.fondo_spese_importo,
                 "proforma_id": outcome.proforma_id,
                 "origin": ORIGIN,
+                "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
             },
         )
         embedding: dict[str, Any] = {}
@@ -363,6 +338,7 @@ def _feed_vector_index(
                 embedding = {"status": "error", "error": str(exc)}
         result = {
             "ok": True,
+            "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
             "status": indexed.get("status"),
             "document_id": document_id,
             "chunk_count": indexed.get("chunk_count"),

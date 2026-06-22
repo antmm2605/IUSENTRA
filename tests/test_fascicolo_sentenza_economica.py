@@ -5,6 +5,8 @@ from pct.fascicoli import StatoFascicolo
 from pct.fascicolo_sentenza_economica import (
     AUTOMATION_KEY,
     ORIGIN,
+    SENTENZA_VECTOR_SCHEMA_VERSION,
+    SentenzaAutomationOutcome,
     analyze_sentenza_tribunale_text,
     apply_sentenza_tribunale_automation,
 )
@@ -309,4 +311,32 @@ def test_sentenza_gia_applicata_alimenta_vector_db_una_sola_volta(tmp_path: Path
     assert second["applied"] is False
     assert second["vector_index"]["document_id"] == "rag-sentenza-1"
     assert vector_state["ok"] is True
+    assert vector_state["schema_version"] == SENTENZA_VECTOR_SCHEMA_VERSION
     assert local_ai.calls == 1
+
+
+def test_sentenza_vector_runtime_usa_estratto_compatto():
+    from web.services.document_intelligence_runtime import _sentenza_vector_text
+
+    long_text = SENTENZA_TEXT + (" motivazione istruttoria" * 2500)
+    extraction = analyze_sentenza_tribunale_text(long_text, {"tipo_documento": "Sentenza Tribunale"})
+    fascicolo = SimpleNamespace(
+        id="FASC-1",
+        titolo="Spagnolo Sara c. MIM",
+        numero_rg="1548/2023",
+        nome_cliente="Spagnolo Sara",
+    )
+    outcome = SentenzaAutomationOutcome(applied=False, extraction=extraction, proforma_id="PRO-1")
+
+    vector_text = _sentenza_vector_text(
+        extraction,
+        fascicolo,
+        {"document_id": "DOC-1", "filename": "sentenza.pdf"},
+        outcome,
+        long_text,
+    )
+
+    assert len(vector_text) < 14000
+    assert "Estratto sentenza rilevante:" in vector_text
+    assert "Sentenza n. 230/2024" in vector_text
+    assert "1.100,00" in vector_text

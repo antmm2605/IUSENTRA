@@ -14,6 +14,7 @@ from pct.fatturazione import StatoParcella, VoceParcella
 
 ORIGIN = "lex_ai_sentenza_tribunale"
 AUTOMATION_KEY = "_sentenza_tribunale_lex_ai"
+SENTENZA_VECTOR_SCHEMA_VERSION = "sentenza_tribunale_compact_v1"
 ROME = ZoneInfo("Europe/Rome")
 
 _SENTENZA_DATE_RE = re.compile(
@@ -44,6 +45,14 @@ _FONDO_PATTERNS = (
 _OFFICIAL_HEADER_SIGNAL_RE = re.compile(
     r"\b(?:Firmato\s+Da|Emesso\s+Da|Repert\.\s*n\.|Sentenza\s+n\.\s+cronol\.|Serial#)\b",
     re.IGNORECASE,
+)
+_VECTOR_EXCERPT_PATTERNS = (
+    re.compile(r"\bliquidando\b", re.IGNORECASE),
+    re.compile(r"\bcontribut[oi]\s+unificat[oi]\b", re.IGNORECASE),
+    re.compile(r"\bc\.?\s*u\.?\b", re.IGNORECASE),
+    re.compile(r"\bfond[oi]\s+spese\b", re.IGNORECASE),
+    re.compile(r"\bspese\s+generali\b", re.IGNORECASE),
+    re.compile(r"\bantistatari[oa]\b", re.IGNORECASE),
 )
 
 
@@ -337,6 +346,40 @@ def apply_sentenza_tribunale_automation(
 
 def _compact(value: str) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def sentenza_vector_relevant_excerpt(text: str, *, max_chars: int = 12000) -> str:
+    """Riduce il testo per Lex mantenendo intestazione e passaggi economici."""
+
+    compact = _compact(text)
+    if len(compact) <= max_chars:
+        return compact
+    windows: list[tuple[int, int]] = [(0, min(len(compact), 1800))]
+    for pattern in _VECTOR_EXCERPT_PATTERNS:
+        for match in pattern.finditer(compact):
+            windows.append((max(0, match.start() - 1400), min(len(compact), match.end() + 2600)))
+            if len(windows) >= 8:
+                break
+        if len(windows) >= 8:
+            break
+    windows.sort()
+    merged: list[tuple[int, int]] = []
+    for start, end in windows:
+        if not merged or start > merged[-1][1] + 80:
+            merged.append((start, end))
+        else:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+    pieces: list[str] = []
+    for start, end in merged:
+        piece = compact[start:end].strip()
+        if piece:
+            pieces.append(piece)
+        if sum(len(p) for p in pieces) >= max_chars:
+            break
+    excerpt = "\n...\n".join(pieces).strip()
+    if len(excerpt) > max_chars:
+        excerpt = excerpt[:max_chars].rsplit(" ", 1)[0].strip()
+    return excerpt
 
 
 def _text(value: Any, default: str = "") -> str:
@@ -645,8 +688,10 @@ def _create_proforma(
 __all__ = [
     "AUTOMATION_KEY",
     "ORIGIN",
+    "SENTENZA_VECTOR_SCHEMA_VERSION",
     "SentenzaAutomationOutcome",
     "SentenzaEconomicaExtraction",
     "analyze_sentenza_tribunale_text",
     "apply_sentenza_tribunale_automation",
+    "sentenza_vector_relevant_excerpt",
 ]

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.92 - 2026-06-22
+
+- Lex AI: il risultato vettoriale della Sentenza Tribunale ora porta una versione di schema `sentenza_tribunale_compact_v1`; i vecchi risultati senza versione o con embedding pendenti non bloccano più la reindicizzazione compatta.
+- Runtime Lex: anche l'indicizzazione avviata dalla UI usa l'estratto economico compatto, non il testo OCR esteso, mantenendo intestazione, RG, liquidazione, contributo, fondo spese e proforma.
+- Anti-regressione: aggiunti test mirati per schema vettoriale corrente, pending embedding e scheda runtime compatta.
+
 ## 2.253.91 - 2026-06-22
 
 - Lex AI: il backfill Sentenza non invia più l'intero testo OCR al DB vettoriale, ma una scheda strutturata con intestazione, RG, importi, proforma e brani economici selezionati.

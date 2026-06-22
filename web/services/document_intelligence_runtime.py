@@ -13,8 +13,10 @@ from pct.document_intelligence.sources import DocumentAISource, collect_fascicol
 from pct.fascicolo_sentenza_economica import (
     AUTOMATION_KEY,
     ORIGIN,
+    SENTENZA_VECTOR_SCHEMA_VERSION,
     SentenzaAutomationOutcome,
     apply_sentenza_tribunale_automation,
+    sentenza_vector_relevant_excerpt,
 )
 from web.helpers import get_fascicoli, get_fatturazione
 from web.services.storage_runtime import get_request_studio_db, get_request_storage_runtime
@@ -379,6 +381,7 @@ def _feed_sentenza_vector_index(
             "fondo_spese": extraction.fondo_spese_importo,
             "proforma_id": outcome.proforma_id,
             "origin": ORIGIN,
+            "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
         }
         indexed = service.index_text_document(
             source_type="lex_sentenza_tribunale",
@@ -397,6 +400,7 @@ def _feed_sentenza_vector_index(
                 embedded = {"status": "error", "error": str(exc)}
         return {
             "ok": True,
+            "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
             "status": indexed.get("status"),
             "document_id": document_id,
             "chunk_count": indexed.get("chunk_count"),
@@ -461,7 +465,12 @@ def _sentenza_vector_index_ok(
         fascicolo_id=fascicolo_id,
         document_key=document_key,
     )
-    return bool(result.get("ok") and result.get("document_id"))
+    if not (result.get("ok") and result.get("document_id")):
+        return False
+    if result.get("schema_version") != SENTENZA_VECTOR_SCHEMA_VERSION:
+        return False
+    embedding = result.get("embedding") if isinstance(result.get("embedding"), dict) else {}
+    return int(embedding.get("pending_remaining") or 0) <= 0
 
 
 def _rg_label(extraction: Any) -> str:
@@ -503,8 +512,8 @@ def _sentenza_vector_text(
         "Estratto liquidazione:",
         extraction.liquidazione_titolo or "n.d.",
         "",
-        "Testo sentenza:",
-        str(text or "")[:200000],
+        "Estratto sentenza rilevante:",
+        sentenza_vector_relevant_excerpt(text) or "n.d.",
     ]
     return "\n".join(str(row) for row in rows)
 

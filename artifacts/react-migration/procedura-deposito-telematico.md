@@ -2082,3 +2082,21 @@ Prova reale locale su Docker utente:
 - non è comparso l'errore `Allegato Atto.enc non e' base64 valido`.
 
 Stato residuo: per il deposito reale operativo l'avvocato deve inserire la password PEC locale nella finestra Local Signer. Il software arriva al punto corretto con busta conforme, payload locale e allegato `Atto.enc` valido.
+
+### Prova produzione Hetzner post-deploy 2.253.96 - 2026-06-23
+
+Deploy Hetzner completato sul commit `7712169c3c6d5ba17a6138045f3d09c09fb513bf`, senza backup preventivo e con `IUSENTRA_SKIP_BACKUP_CRON=1`. Le run GitHub `Deploy Hetzner CPX42` sui branch `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV` sono verdi. Verifica diretta server: `/opt/iusentra/repo` punta allo stesso commit, container `app`, `scheduler-worker` e `ocr-worker` healthy, `https://app.iusentra.it/api/pronto` risponde `ok=true`, `versione=2.253.96`.
+
+Nota sul fascicolo indicato dall'utente: l'URL `https://app.iusentra.it/fascicoli/E5AE4668/deposito/prepara#generazione-busta` apre React ma il server non trova quel record in SQL, quindi mostra `n.d.`, zero documenti e pulsanti bloccati. Query read-only su tutti i tenant PostgreSQL/SQLite di produzione: nessun tenant ha un fascicolo con `id=E5AE4668`. Per `Marchetti c. MIM`, `Carta docente`, `Tribunale di Vicenza`, il fascicolo SQL reale trovato sul tenant `studio-legale-giuseppe-montagnese` è `F08F92A2`, numero `2026/332`.
+
+Prova reale produzione eseguita quindi su `https://app.iusentra.it/fascicoli/F08F92A2/deposito/prepara#generazione-busta`:
+
+- pagina React reale con `#root`, `2026/332 - Marchetti Lucia`, `Tribunale di Vicenza`, canale `PCT lavoro / SICID`;
+- PEC destinatario verificata: `tribunale.vicenza@civile.ptel.giustiziacert.it`, profilo deposito SQL e codice `0640011 / 0241160092`;
+- 11 documenti operativi in busta, `DatiAtto.xml` generato, `IndiceDocumentiDepositati.PDF` generato, atto principale `Ricorso.pdf.p7m`, procura `Procura.PDF.p7m`;
+- click reale su `Simula invio PEC`, conferma modal `senza spedire nulla all'esterno`, barra avanzamento con documenti e `Atto.enc`;
+- esito `Compatibilità 100%`, `Atto.enc ministeriale AES256` OK, `DatiAtto.xml presente` OK, `IndiceDocumentiDepositati.PDF` OK, `Atto principale e allegati controllati` OK, `PEC ufficio giudiziario` OK, `Oggetto PEC deposito` OK, `Corpo PEC verificabile` OK, `Simulazione senza invio SMTP` OK;
+- il corpo PEC è stato rigenerato sui nomi finali effettivi: `DatiAtto.xml`, `Ricorso.pdf.p7m`, `Autocertificazione ricorso_63ee.PDF`, `Autocertificazione situazione reddituale_ff33.PDF`, `Carta Identità e C.F. Lucia Marchetti_d157.PDF`, `Contratto 24-25_81a0.pdf`, `Contratto Rossi 2025-2026_b301.pdf`, `Lettera di diffida Carta Docenti Marchetti Lucia_6df3.pdf`, `Procura.PDF.p7m`, le tre email con suffisso hash e `IndiceDocumentiDepositati.PDF`;
+- dopo la simulazione `Invia deposito reale` è attivo;
+- click reale su `Invia deposito reale` e conferma: il flusso arriva a `Invia dal PC locale` / password PEC locale, con `Atto.enc` nel payload locale e senza errore `Allegato Atto.enc non e' base64 valido`;
+- prova annullata senza inserire password PEC: nessuna PEC reale inviata.

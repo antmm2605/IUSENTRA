@@ -216,7 +216,9 @@ def apply_sentenza_automation_for_document_text(
     )
     document_key = _document_key(clean_metadata)
     vector_result: dict[str, Any] = {}
-    if outcome.extraction.found and not _sentenza_vector_index_ok(
+    context = outcome.changes.get("context") if isinstance(outcome.changes, dict) else None
+    context_ok = not isinstance(context, dict) or bool(context.get("ok"))
+    if outcome.extraction.found and context_ok and not _sentenza_vector_index_ok(
         fascicoli_repository=fascicoli,
         fascicolo_id=fascicolo_id,
         document_key=document_key,
@@ -235,7 +237,7 @@ def apply_sentenza_automation_for_document_text(
             document_key=document_key,
             vector_result=vector_result,
         )
-    elif outcome.extraction.found:
+    elif outcome.extraction.found and context_ok:
         vector_result = _existing_sentenza_vector_index(
             fascicoli_repository=fascicoli,
             fascicolo_id=fascicolo_id,

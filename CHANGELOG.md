@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.253.95 - 2026-06-22
+
+- Sentenze Lex AI: la matrice economia/fascicolo ora si applica solo quando il testo della sentenza conferma sia il cliente del fascicolo sia lo stesso RG; documenti strategici o giurisprudenza di supporto, anche se chiamati `Sentenza Tribunale`, vengono saltati e non alimentano Lex come sentenza del fascicolo.
+- Parcelle e Fatture: sostituite le vecchie card informative con card compatte operative per filtri rapidi, bonifico registrato, parcella emessa, nuova parcella, export CSV, numerazione e canale SdI.
+- Fatturazione: aggiunti filtri archivio per bonifico registrato, parcella emessa, cliente e nr fascicolo; il payload React espone anche `caseId`, `caseReference` e `caseRg`, mantenendo le azioni reali su dettaglio, PDF, XML, emissione e registrazione bonifico.
+
+## 2.253.94 - 2026-06-22
+
+- Parcelle e Fatture: corretto il layout delle card proforma/fattura per evitare sovrapposizioni tra cliente, origine Lex AI, date e azioni quando i testi sono lunghi.
+
 ## 2.253.93 - 2026-06-22
 
 - Sentenze Lex AI: il parser del contributo unificato non usa più l'importo della liquidazione quando il testo parla solo di rimborso del contributo senza importo espresso; aggiunta copertura per la formula `liquidate in complessivi € ...`.

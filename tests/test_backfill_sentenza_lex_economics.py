@@ -10,6 +10,7 @@ SENTENZA_TEXT = """
 Tribunale di Palmi
 Sentenza n. 230/2024 pubbl. il 07/05/2024
 RG n. 1548/2023
+nel procedimento promosso da Spagnolo Sara contro Ministero dell'Istruzione e del Merito
 condanna il Ministero alla rifusione delle spese di lite sostenute dai ricorrenti
 liquidando la complessiva somma di € 1.100,00, oltre ad € 98,00 per spese
 (sommatoria di tutti i c.u. versati dai ricorrenti), con maggiorazione di spese
@@ -21,6 +22,7 @@ SENTENZA_TEXT_2 = """
 Tribunale di Palmi
 Sentenza n. 231/2024 pubbl. il 08/05/2024
 RG n. 2000/2023
+nel procedimento promosso da Betti Alice contro Ministero dell'Istruzione e del Merito
 condanna il Ministero alla rifusione delle spese di lite
 liquidando la complessiva somma di € 900,00, oltre ad € 49,00 per spese di c.u.
 e con maggiorazione di spese generali ed accessori di legge.
@@ -167,6 +169,31 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
             "text": SENTENZA_TEXT_2,
         },
     )
+    _write_json(
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-1"
+        / "documenti_ai"
+        / "DOC-VICENZA-STRATEGIA"
+        / "v1"
+        / "extracted_text.json",
+        {
+            "tenant_id": "tenant-test",
+            "fascicolo_id": "FASC-1",
+            "document_id": "DOC-VICENZA-STRATEGIA",
+            "filename": "Sentenza Tribunale Vicenza.pdf",
+            "text": """
+            Tribunale di Vicenza
+            Sentenza n. 99/2024 pubbl. il 10/04/2024
+            RG n. 1548/2023
+            Pronuncia prodotta solo come precedente utile alla strategia difensiva.
+            Liquidando la complessiva somma di € 2.500,00 oltre accessori.
+            """,
+        },
+    )
 
     dry_run = run_backfill(
         data_root=data_root,
@@ -185,12 +212,15 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
         skip_lex=True,
     )
 
+    assert dry_run["totals"]["raw_sentenze_found"] == 4
     assert dry_run["totals"]["sentenze_found"] == 3
+    assert dry_run["totals"]["context_mismatch_skipped"] == 1
     assert dry_run["totals"]["unique_fascicoli_found"] == 2
     assert dry_run["totals"]["unique_sentenze"] == 2
     assert dry_run["totals"]["duplicates_skipped"] == 1
     assert dry_run["totals"]["applied"] == 0
     assert applied["totals"]["matrix_confirmed"] == 2
+    assert applied["totals"]["context_mismatch_skipped"] == 1
     assert applied["totals"]["duplicates_skipped"] == 1
     assert applied["totals"]["unique_fascicoli_applied"] == 2
     fascicoli = json.loads((tenant_root / "fascicoli" / "fascicoli.json").read_text(encoding="utf-8"))

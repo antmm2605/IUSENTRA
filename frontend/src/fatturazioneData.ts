@@ -15,6 +15,9 @@ export type FatturazioneRecord = {
   id: string
   number: string
   customerName: string
+  caseId: string
+  caseReference: string
+  caseRg: string
   caseTitle: string
   amountDisplay: string
   issuedAt: string
@@ -635,6 +638,9 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
     id: text(item.id),
     number: text(item.number),
     customerName: display(item.customerName) || 'Cliente non indicato',
+    caseId: text(item.caseId ?? item.case_id ?? item.id_fascicolo),
+    caseReference: display(item.caseReference ?? item.case_reference),
+    caseRg: display(item.caseRg ?? item.case_rg ?? item.numero_rg),
     caseTitle: display(item.caseTitle),
     amountDisplay: display(item.amountDisplay),
     issuedAt: text(item.issuedAt),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -62,6 +63,19 @@ _VECTOR_EXCERPT_PATTERNS = (
     re.compile(r"\bspese\s+generali\b", re.IGNORECASE),
     re.compile(r"\bantistatari[oa]\b", re.IGNORECASE),
 )
+_NAME_STOPWORDS = {
+    "c",
+    "ca",
+    "contro",
+    "vs",
+    "versus",
+    "ministero",
+    "mim",
+    "miur",
+    "rg",
+    "n",
+    "nr",
+}
 
 
 @dataclass(slots=True)
@@ -93,6 +107,22 @@ class SentenzaAutomationOutcome:
     changes: dict[str, Any] = field(default_factory=dict)
     proforma_id: str = ""
     proforma_number: str = ""
+    message: str = ""
+    warnings: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class SentenzaFascicoloContext:
+    ok: bool
+    fascicolo_id_match: bool = True
+    cliente_match: bool = False
+    rg_match: bool = False
+    expected_cliente: str = ""
+    expected_rg: str = ""
+    found_rg: str = ""
     message: str = ""
     warnings: list[str] = field(default_factory=list)
 
@@ -189,6 +219,23 @@ def apply_sentenza_tribunale_automation(
     fascicolo = fascicoli_repository.get(str(fascicolo_id or "").strip())
     if not fascicolo:
         return SentenzaAutomationOutcome(applied=False, extraction=extraction, message="Fascicolo non trovato.")
+
+    context = validate_sentenza_fascicolo_context(
+        text=text,
+        extraction=extraction,
+        fascicolo=fascicolo,
+        metadata=metadata,
+        fascicolo_id=fascicolo_id,
+    )
+    if not context.ok:
+        extraction.warnings.extend(context.warnings)
+        return SentenzaAutomationOutcome(
+            applied=False,
+            extraction=extraction,
+            changes={"context": context.to_dict()},
+            message=context.message,
+            warnings=list(context.warnings),
+        )
 
     document_key = _document_key(metadata)
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
@@ -354,6 +401,154 @@ def apply_sentenza_tribunale_automation(
 
 def _compact(value: str) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def _plain(value: Any) -> str:
+    raw = unicodedata.normalize("NFKD", str(value or ""))
+    ascii_text = "".join(ch for ch in raw if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", " ", ascii_text.casefold()).strip()
+
+
+def _tokens(value: Any) -> list[str]:
+    return [token for token in _plain(value).split() if len(token) > 1 and token not in _NAME_STOPWORDS]
+
+
+def _client_candidates(fascicolo: Any, metadata: dict[str, Any] | None = None) -> list[str]:
+    meta = metadata or {}
+    candidates = [
+        _text(getattr(fascicolo, "nome_cliente", "")),
+        _text(meta.get("cliente") or meta.get("client_name") or meta.get("nome_cliente")),
+    ]
+    title = _text(getattr(fascicolo, "titolo", ""))
+    if title:
+        for separator in (" c. ", " c ", " contro ", " vs ", " / "):
+            if separator in title.casefold():
+                candidates.append(title[: title.casefold().find(separator)].strip())
+                break
+        else:
+            candidates.append(title)
+    seen: set[str] = set()
+    result: list[str] = []
+    for candidate in candidates:
+        normalized = " ".join(_tokens(candidate))
+        if len(normalized.split()) < 2 or normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append(candidate)
+    return result
+
+
+def _client_name_in_text(text: str, fascicolo: Any, metadata: dict[str, Any] | None = None) -> tuple[bool, str]:
+    plain_text = f" {_plain(text)} "
+    for candidate in _client_candidates(fascicolo, metadata):
+        tokens = _tokens(candidate)
+        if len(tokens) < 2:
+            continue
+        phrase = " ".join(tokens)
+        if f" {phrase} " in plain_text:
+            return True, candidate
+        if all(f" {token} " in plain_text for token in tokens):
+            return True, candidate
+    expected = _text(getattr(fascicolo, "nome_cliente", "")) or _text((metadata or {}).get("cliente"))
+    return False, expected
+
+
+def _normalize_rg_number(value: Any) -> str:
+    raw = _text(value)
+    if "/" in raw:
+        raw = raw.split("/", 1)[0]
+    return re.sub(r"\D+", "", raw)
+
+
+def _rg_candidates_from_fascicolo(fascicolo: Any) -> list[tuple[str, str]]:
+    raw_number = _text(getattr(fascicolo, "numero_rg", ""))
+    raw_year = _text(getattr(fascicolo, "anno_rg", ""))
+    candidates: list[tuple[str, str]] = []
+    if raw_number and raw_year and raw_year not in {"0", "0.0"}:
+        candidates.append((_normalize_rg_number(raw_number), re.sub(r"\D+", "", raw_year)))
+    for value in (
+        getattr(fascicolo, "rg_completo", ""),
+        raw_number,
+        getattr(fascicolo, "numero", ""),
+        getattr(fascicolo, "source_external_id", ""),
+    ):
+        match = _RG_RE.search(str(value or ""))
+        if match:
+            candidates.append((_normalize_rg_number(match.group("num")), re.sub(r"\D+", "", match.group("year"))))
+        elif "/" in str(value or ""):
+            left, right = str(value).split("/", 1)
+            candidates.append((_normalize_rg_number(left), re.sub(r"\D+", "", right)[:4]))
+    seen: set[tuple[str, str]] = set()
+    result: list[tuple[str, str]] = []
+    for number, year in candidates:
+        if not number or not year or (number, year) in seen:
+            continue
+        seen.add((number, year))
+        result.append((number, year))
+    return result
+
+
+def _rg_matches_fascicolo(extraction: SentenzaEconomicaExtraction, fascicolo: Any) -> tuple[bool, str]:
+    found = (_normalize_rg_number(extraction.rg_number), re.sub(r"\D+", "", extraction.rg_year))
+    expected = _rg_candidates_from_fascicolo(fascicolo)
+    if not found[0] or not found[1]:
+        label = ", ".join(f"{num}/{year}" for num, year in expected)
+        return False, label
+    return found in expected, ", ".join(f"{num}/{year}" for num, year in expected)
+
+
+def validate_sentenza_fascicolo_context(
+    *,
+    text: str,
+    extraction: SentenzaEconomicaExtraction,
+    fascicolo: Any,
+    metadata: dict[str, Any] | None = None,
+    fascicolo_id: str = "",
+) -> SentenzaFascicoloContext:
+    """Conferma che la sentenza appartenga davvero al fascicolo, non a una fonte strategica."""
+
+    meta = metadata or {}
+    expected_fascicolo_id = _text(getattr(fascicolo, "id", "")) or _text(fascicolo_id)
+    meta_fascicolo_id = _text(meta.get("fascicolo_id"))
+    fascicolo_id_match = not meta_fascicolo_id or not expected_fascicolo_id or meta_fascicolo_id == expected_fascicolo_id
+    cliente_match, expected_cliente = _client_name_in_text(text, fascicolo, meta)
+    rg_match, expected_rg = _rg_matches_fascicolo(extraction, fascicolo)
+    found_number = _normalize_rg_number(extraction.rg_number)
+    found_year = re.sub(r"\D+", "", extraction.rg_year)
+    found_rg = f"{found_number}/{found_year}".strip("/")
+    warnings: list[str] = []
+    if not fascicolo_id_match:
+        warnings.append("fascicolo_id_documento_non_coincidente")
+    if not cliente_match:
+        warnings.append("cliente_non_presente_nella_sentenza")
+    if not rg_match:
+        warnings.append("rg_sentenza_non_coincidente_con_fascicolo")
+    ok = fascicolo_id_match and cliente_match and rg_match
+    if ok:
+        return SentenzaFascicoloContext(
+            ok=True,
+            fascicolo_id_match=True,
+            cliente_match=True,
+            rg_match=True,
+            expected_cliente=expected_cliente,
+            expected_rg=expected_rg,
+            found_rg=found_rg,
+            message="Sentenza confermata sullo stesso cliente e fascicolo.",
+        )
+    return SentenzaFascicoloContext(
+        ok=False,
+        fascicolo_id_match=fascicolo_id_match,
+        cliente_match=cliente_match,
+        rg_match=rg_match,
+        expected_cliente=expected_cliente,
+        expected_rg=expected_rg,
+        found_rg=found_rg,
+        message=(
+            "Sentenza non applicata: il documento non contiene una conferma completa "
+            "di cliente e RG del fascicolo. Può essere materiale strategico o giurisprudenza di supporto."
+        ),
+        warnings=warnings,
+    )
 
 
 def sentenza_vector_relevant_excerpt(text: str, *, max_chars: int = 12000) -> str:
@@ -730,7 +925,9 @@ __all__ = [
     "SENTENZA_VECTOR_SCHEMA_VERSION",
     "SentenzaAutomationOutcome",
     "SentenzaEconomicaExtraction",
+    "SentenzaFascicoloContext",
     "analyze_sentenza_tribunale_text",
     "apply_sentenza_tribunale_automation",
     "sentenza_vector_relevant_excerpt",
+    "validate_sentenza_fascicolo_context",
 ]

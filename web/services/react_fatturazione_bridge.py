@@ -297,6 +297,14 @@ def _case_label(fascicolo: Any) -> str:
     return title or rg or "Pratica senza titolo"
 
 
+def _case_reference(fascicolo: Any, fallback_id: str = "") -> str:
+    fid = _text(getattr(fascicolo, "id", "") or fallback_id)
+    rg = _text(getattr(fascicolo, "numero_rg", ""))
+    title = _text(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", ""), limit=120)
+    parts = [part for part in (fid, f"RG {rg}" if rg else "", title) if part]
+    return " - ".join(parts)
+
+
 def _client_option(cliente: Any) -> dict[str, Any]:
     cid = _text(getattr(cliente, "id", ""))
     fiscal = _text(getattr(cliente, "codice_fiscale", "")) or _text(getattr(cliente, "partita_iva", ""))
@@ -537,11 +545,15 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
     status = _enum(getattr(parcella, "stato", ""))
     id_cliente = _text(getattr(parcella, "id_cliente", ""))
     id_fascicolo = _text(getattr(parcella, "id_fascicolo", ""))
+    fascicolo = fascicoli.get(id_fascicolo)
     record = {
         "id": pid,
         "number": _text(getattr(parcella, "numero", "")) or pid,
         "customerName": _client_label(clienti.get(id_cliente)),
-        "caseTitle": _case_label(fascicoli.get(id_fascicolo)) if id_fascicolo else "",
+        "caseId": id_fascicolo,
+        "caseReference": _case_reference(fascicolo, id_fascicolo) if id_fascicolo else "",
+        "caseRg": _text(getattr(fascicolo, "numero_rg", "")) if fascicolo else "",
+        "caseTitle": _case_label(fascicolo) if id_fascicolo and fascicolo else "",
         "amountDisplay": _money(getattr(parcella, "totale", 0)),
         "issuedAt": _date_label(getattr(parcella, "data_emissione", "")),
         "dueAt": _date_label(getattr(parcella, "data_scadenza", "")),

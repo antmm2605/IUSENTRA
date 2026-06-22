@@ -5458,3 +5458,30 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\react-migration\generate_backend_security_map.py --check` | OK | Contratti API/OpenAPI, documenti test App V2 e mappa sicurezza backend riallineati dopo il bump `2.253.91`. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Docker locale reale ricostruito su porta `8080`; `/api/pronto` risponde `versione=2.253.91`, app/scheduler/OCR/Redis healthy. |
 | Chrome installato visibile su `http://127.0.0.1:8080/fascicoli` | OK osservato | Login studio riuscito, route full React con `#root`, hover/focus sul primo controllo visibile, screenshot `C:\Users\antmm\AppData\Local\Temp\iusentra-225391-fascicoli-local-desktop.png`. |
+
+## Sentenza Lex AI e card fatturazione 2.253.94 - 2026-06-22
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo la correzione CSS delle card parcella/proforma e delle liste compatte SdI. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata su `2.253.94`; gli asset generati localmente sono stati puliti dal repository perché Docker compila dalla sorgente e non devono restare untracked. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Packaging e OpenAPI allineati dopo il bump `2.253.94`. |
+| `python -m pytest tests\test_fascicolo_sentenza_economica.py tests\test_backfill_sentenza_lex_economics.py -q` | OK | 14/14 passati: parser contributo/liquidazione, backfill globale, deduplica e matrice sentenza preservati. |
+| `python -m py_compile pct\fascicolo_sentenza_economica.py scripts\backfill_sentenza_lex_economics.py web\services\document_intelligence_runtime.py` | OK | Sintassi confermata per parser/backfill/runtime Lex collegati alla matrice. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati prima dell'aggiornamento dei report 2.253.94. |
+| `docker compose build --no-cache`; `docker compose up -d --force-recreate`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto` | OK | Docker locale reale ricostruito e riavviato su porta `8080`; `/api/pronto` ha risposto `versione=2.253.94`, container app/scheduler/OCR/Redis/Postgres audit healthy. |
+| Chrome installato visibile su `http://127.0.0.1:8080/fatturazione` | OK osservato | Route full React con `#root`, scroll completo desktop/mobile, hover/focus su controllo visibile, `.iu-fatt-record` senza overlap, `.iu-fatt-list__item` senza overlap, mobile `scrollWidth=375` e `clientWidth=375`. Screenshot: `C:\Users\antmm\AppData\Local\Temp\iusentra-225394-local-fatturazione-card-fixed2-desktop.png`, `C:\Users\antmm\AppData\Local\Temp\iusentra-225394-local-fatturazione-card-fixed2-mobile.png`. |
+| Pulizia record controllato locale | OK | Il record `lex_ai_sentenza_tribunale_codex_visual_225394` creato per il solo test visuale locale è stato eliminato; verifica SQL finale `remaining_temp_records=0`. |
+
+## Sentenza Lex AI e filtri fatturazione 2.253.95 - 2026-06-22
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\fascicolo_sentenza_economica.py scripts\backfill_sentenza_lex_economics.py web\services\document_intelligence_runtime.py web\services\react_fatturazione_bridge.py` | OK | Sintassi confermata dopo validazione cliente+RG, conteggi backfill raw/accettati, gate runtime Lex e payload React fatturazione con riferimento fascicolo. |
+| `python -m pytest tests\test_react_fatturazione_bridge.py tests\test_fascicolo_sentenza_economica.py tests\test_backfill_sentenza_lex_economics.py -q` | OK | 22/22 passati: coperti applicazione matrice, duplicati, backfill globale, documento strategico `Sentenza Tribunale Vicenza`, sentenza con RG diverso e payload React con `caseId`/`caseReference`/`caseRg`. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori dopo card compatte operative, filtri archivio e normalizzazione `FatturazioneRecord` con riferimento fascicolo. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata dopo le modifiche a `FatturazionePage` e `fatturazioneData`; gli asset generati localmente restano runtime e saranno puliti prima del commit. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | UTF-8 4/4 e OpenAPI valido dopo bump `2.253.95`. |
+| `docker compose build --no-cache app`; `docker compose up -d --force-recreate app nginx`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale aggiornata su porta `8080`; `/api/pronto` risponde `versione=2.253.95`, container `app` healthy e Nginx riavviato. |
+| Browser integrato visibile su `http://127.0.0.1:8080/fatturazione` | OK osservato | Route autenticata full React con `#root`, 12 card compatte operative, click su `Bonifico registrato` e `Parcella emessa` collegati ai select reali, `Azzera filtri`, anchor `Numerazione`, link `Nuova parcella`, focus visibile sui filtri, console senza errori. Desktop senza overflow. |
+| Browser integrato mobile `390x844` su `http://127.0.0.1:8080/fatturazione` | OK osservato | Card in colonna singola, filtri visibili, click `Bonifico registrato` imposta il select a `Sì`, focus search con bordo/ombra visibile, `scrollWidth=375` e `clientWidth=375`, console senza errori. |

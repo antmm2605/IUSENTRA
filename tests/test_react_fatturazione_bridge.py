@@ -166,6 +166,34 @@ def test_bridge_fatturazione_presidia_sdi_senza_falso_canale_accreditato(tmp_pat
     assert "non emessa" in record["sdiStatusMessage"]
 
 
+def test_bridge_fatturazione_payload_espone_riferimento_fascicolo_per_filtri(tmp_path):
+    cliente = _cliente()
+    fascicolo = _fascicolo(cliente.id)
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    parcella = manager.crea(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=150.0)],
+        data_emissione="2026-06-02",
+    )
+
+    payload = build_react_fatturazione_payload(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(fascicolo),
+        current_user=_User(),
+        route="/fatturazione",
+        config=_studio_config(),
+    )
+
+    record = next(item for item in payload["records"] if item["id"] == parcella.id)
+
+    assert record["caseId"] == "FAS-001"
+    assert record["caseRg"] == "120/2026"
+    assert "FAS-001" in record["caseReference"]
+    assert "RG 120/2026" in record["caseReference"]
+
+
 def test_bridge_fatturazione_configura_numerazione_fatture(tmp_path):
     manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
 

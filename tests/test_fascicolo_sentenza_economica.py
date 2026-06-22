@@ -18,6 +18,7 @@ SENTENZA_TEXT = """
 Tribunale di Palmi
 Sentenza n. 230/2024 pubbl. il 07/05/2024
 RG n. 1548/2023
+nel procedimento promosso da Spagnolo Sara contro Ministero dell'Istruzione e del Merito
 condanna il Ministero alla rifusione delle spese di lite sostenute dai ricorrenti
 liquidando la complessiva somma di € 1.100,00, oltre ad € 98,00 per spese
 (sommatoria di tutti i c.u. versati dai ricorrenti), con maggiorazione di spese
@@ -207,6 +208,62 @@ def test_documento_duplicato_stessa_sentenza_riusa_proforma_esistente(tmp_path: 
     assert len(fatturazione.per_fascicolo("FASC-1")) == 1
     assert set(automation["processed_documents"]) == {"document_id:DOC-1", "document_id:DOC-2"}
     assert automation["proforme"]["document_id:DOC-2"] == first.proforma_id
+
+
+def test_sentenza_strategica_senza_nome_cliente_non_aggiorna_economia(tmp_path: Path):
+    fascicoli = FakeFascicoliRepository()
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    sentenza_vicenza_strategica = """
+    Tribunale di Vicenza
+    Sentenza n. 99/2024 pubbl. il 10/04/2024
+    RG n. 1548/2023
+    La presente pronuncia viene prodotta come precedente utile alla strategia difensiva.
+    Il Tribunale liquidando la complessiva somma di € 2.500,00, oltre rimborso del contributo unificato.
+    """
+
+    outcome = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli,
+        fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1",
+        text=sentenza_vicenza_strategica,
+        document_metadata={"document_id": "DOC-VICENZA", "filename": "Sentenza Tribunale Vicenza.pdf"},
+        actor="Lex AI",
+    )
+
+    fascicolo = fascicoli.get("FASC-1")
+    assert outcome.applied is False
+    assert "cliente_non_presente_nella_sentenza" in outcome.warnings
+    assert outcome.changes["context"]["cliente_match"] is False
+    assert getattr(fascicolo.stato, "value", fascicolo.stato) == StatoFascicolo.IN_CORSO.value
+    assert fascicolo.pagamenti == {}
+    assert fatturazione.per_fascicolo("FASC-1") == []
+
+
+def test_sentenza_con_cliente_ma_rg_diverso_non_aggiorna_economia(tmp_path: Path):
+    fascicoli = FakeFascicoliRepository()
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    sentenza_altro_rg = """
+    Tribunale di Palmi
+    Sentenza n. 231/2024 pubbl. il 08/05/2024
+    RG n. 9999/2023
+    nel procedimento promosso da Spagnolo Sara contro Ministero dell'Istruzione e del Merito
+    liquidando la complessiva somma di € 900,00, oltre ad € 49,00 per spese di c.u.
+    """
+
+    outcome = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli,
+        fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1",
+        text=sentenza_altro_rg,
+        document_metadata={"document_id": "DOC-RG-DIVERSO", "filename": "sentenza-altro-rg.pdf"},
+        actor="Lex AI",
+    )
+
+    assert outcome.applied is False
+    assert "rg_sentenza_non_coincidente_con_fascicolo" in outcome.warnings
+    assert outcome.changes["context"]["rg_match"] is False
+    assert fascicoli.get("FASC-1").pagamenti == {}
+    assert fatturazione.per_fascicolo("FASC-1") == []
 
 
 def test_numerazione_configurata_e_conversione_proforma(tmp_path: Path):

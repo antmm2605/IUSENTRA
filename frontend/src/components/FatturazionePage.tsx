@@ -68,6 +68,8 @@ type FormState = {
 }
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'validation' | 'permission' | 'server'
+type PaymentFilter = 'all' | 'bonifico' | 'senza_bonifico'
+type IssueFilter = 'all' | 'emessa' | 'da_emettere'
 
 const defaultVoice: VoiceRow = {
   rowId: 'voce-1',
@@ -85,6 +87,7 @@ const defaultFiscalOptions: FatturazioneFiscalDefaults = {
 }
 
 const noVatRegimes = new Set(['RF19', 'RF02'])
+const allStatesFilter = 'all'
 
 const fallbackFormState: FormState = {
   id_cliente: '',
@@ -377,6 +380,153 @@ function ContractPanel({ data }: { data: FatturazionePageData }) {
   )
 }
 
+function normalizeFilterValue(value: string | number | null | undefined) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function hasRegisteredTransfer(record: FatturazioneRecord) {
+  const method = normalizeFilterValue(record.paymentMethod)
+  return record.state === 'PAGATA' && (Boolean(record.paidAt) || method.includes('bonifico'))
+}
+
+function isIssuedInvoice(record: FatturazioneRecord) {
+  return ['EMESSA', 'PAGATA', 'SCADUTA'].includes(record.state)
+}
+
+function isToIssueInvoice(record: FatturazioneRecord) {
+  return record.state === 'BOZZA' || record.isProforma
+}
+
+function CompactOperations({
+  data,
+  totalRecords,
+  visibleRecords,
+  stateFilter,
+  paymentFilter,
+  issueFilter,
+  onStateFilter,
+  onPaymentFilter,
+  onIssueFilter,
+  exportAction,
+}: {
+  data: FatturazionePageData
+  totalRecords: number
+  visibleRecords: number
+  stateFilter: string
+  paymentFilter: PaymentFilter
+  issueFilter: IssueFilter
+  onStateFilter: (value: string) => void
+  onPaymentFilter: (value: PaymentFilter) => void
+  onIssueFilter: (value: IssueFilter) => void
+  exportAction?: FatturazionePageData['actions'][number]
+}) {
+  const stateItems = data.sections.find((section) => section.id === 'stati')?.items || []
+  const selectedState = stateFilter.toLowerCase()
+  const bonificoCount = data.records.filter(hasRegisteredTransfer).length
+  const issuedCount = data.records.filter(isIssuedInvoice).length
+
+  return (
+    <Panel title="Azioni rapide fatturazione" subtitle={`${visibleRecords} elementi filtrati su ${totalRecords}`}>
+      <div className="iu-fatt-quick-grid" aria-label="Filtri rapidi per stato parcella">
+        <button
+          type="button"
+          className={`iu-fatt-quick-card ${stateFilter === allStatesFilter ? 'is-active' : ''}`}
+          onClick={() => onStateFilter(allStatesFilter)}
+          data-tone="neutral"
+        >
+          <header>
+            <Hash size={16} />
+            <span>{totalRecords}</span>
+          </header>
+          <strong>Tutte</strong>
+          <small>Archivio completo</small>
+        </button>
+        {stateItems.map((item) => {
+          const code = item.id.toUpperCase()
+          return (
+            <button
+              type="button"
+              className={`iu-fatt-quick-card ${selectedState === item.id ? 'is-active' : ''}`}
+              onClick={() => onStateFilter(code)}
+              data-tone={item.tone}
+              key={item.id}
+            >
+              <header>
+                <ReceiptText size={16} />
+                <span>{item.value}</span>
+              </header>
+              <strong>{item.label}</strong>
+              <small>{item.note || 'Filtra archivio'}</small>
+            </button>
+          )
+        })}
+      </div>
+      <div className="iu-fatt-quick-grid iu-fatt-quick-grid--actions" aria-label="Azioni operative fatturazione">
+        <button
+          type="button"
+          className={`iu-fatt-quick-card ${paymentFilter === 'bonifico' ? 'is-active' : ''}`}
+          onClick={() => onPaymentFilter(paymentFilter === 'bonifico' ? 'all' : 'bonifico')}
+          data-tone="success"
+        >
+          <header>
+            <CheckCircle2 size={16} />
+            <span>{bonificoCount}</span>
+          </header>
+          <strong>Bonifico registrato</strong>
+          <small>Mostra documenti incassati con pagamento tracciato</small>
+        </button>
+        <button
+          type="button"
+          className={`iu-fatt-quick-card ${issueFilter === 'emessa' ? 'is-active' : ''}`}
+          onClick={() => onIssueFilter(issueFilter === 'emessa' ? 'all' : 'emessa')}
+          data-tone="primary"
+        >
+          <header>
+            <ReceiptText size={16} />
+            <span>{issuedCount}</span>
+          </header>
+          <strong>Parcella emessa</strong>
+          <small>Nasconde bozze e proforme da emettere</small>
+        </button>
+        <a className="iu-fatt-quick-card" href="/fatturazione/nuova" data-tone="primary">
+          <header>
+            <Plus size={16} />
+            <span>Nuova</span>
+          </header>
+          <strong>Nuova parcella</strong>
+          <small>Apri il form operativo</small>
+        </a>
+        {exportAction ? (
+          <a className="iu-fatt-quick-card" href={exportAction.href} data-tone="warning">
+            <header>
+              <Download size={16} />
+              <span>CSV</span>
+            </header>
+            <strong>Export CSV</strong>
+            <small>Scarica l'archivio fatturazione</small>
+          </a>
+        ) : null}
+        <a className="iu-fatt-quick-card" href="#fatturazione-numerazione" data-tone="info">
+          <header>
+            <Save size={16} />
+            <span>{data.nextNumber || 'n.d.'}</span>
+          </header>
+          <strong>Numerazione</strong>
+          <small>Inizializza o verifica il prossimo numero</small>
+        </a>
+        <a className="iu-fatt-quick-card" href="/impostazioni/sdi" data-tone={data.sdiChannel.configured ? 'success' : 'warning'}>
+          <header>
+            <Mail size={16} />
+            <span>{data.sdiChannel.configured ? 'Attivo' : 'Da fare'}</span>
+          </header>
+          <strong>Canale SdI</strong>
+          <small>{data.sdiChannel.configured ? 'Apri la configurazione' : 'Configura canale o intermediario'}</small>
+        </a>
+      </div>
+    </Panel>
+  )
+}
+
 function InvoiceRow({
   record,
   data,
@@ -594,7 +744,7 @@ function StatusMessage({
         <AlertTriangle size={20} />
         <div>
           <strong>Operazione non completata</strong>
-          <span>{result?.message || 'Il salvataggio non e\' stato completato.'}</span>
+          <span>{result?.message || 'Il salvataggio non è stato completato.'}</span>
         </div>
       </section>
     )
@@ -605,7 +755,7 @@ function StatusMessage({
       <AlertTriangle size={20} />
       <div>
         <strong>Controlla i campi evidenziati</strong>
-        {rows.length ? rows.map((row) => <span key={row}>{row}</span>) : <span>La richiesta non e stata accettata.</span>}
+        {rows.length ? rows.map((row) => <span key={row}>{row}</span>) : <span>La richiesta non è stata accettata.</span>}
       </div>
     </section>
   )
@@ -1456,6 +1606,11 @@ function ArchiveMutationState({ result, errors }: { result: FatturazioneMutation
 function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload: (data: FatturazionePageData) => void }) {
   const exportAction = data.actions.find((action) => action.id === 'export')
   const [query, setQuery] = useState('')
+  const [stateFilter, setStateFilter] = useState(allStatesFilter)
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all')
+  const [issueFilter, setIssueFilter] = useState<IssueFilter>('all')
+  const [clientFilter, setClientFilter] = useState('')
+  const [matterFilter, setMatterFilter] = useState('')
   const [detail, setDetail] = useState<FatturazioneDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [savingId, setSavingId] = useState('')
@@ -1463,14 +1618,34 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({})
   const [autoOpenedId, setAutoOpenedId] = useState('')
   const lowered = query.trim().toLowerCase()
+  const loweredClient = clientFilter.trim().toLowerCase()
+  const loweredMatter = matterFilter.trim().toLowerCase()
   const requestedDetailId = requestedFatturazioneDetailId()
   const records = data.records.filter((record) => {
+    if (stateFilter !== allStatesFilter && record.state !== stateFilter) return false
+    if (paymentFilter === 'bonifico' && !hasRegisteredTransfer(record)) return false
+    if (paymentFilter === 'senza_bonifico' && hasRegisteredTransfer(record)) return false
+    if (issueFilter === 'emessa' && !isIssuedInvoice(record)) return false
+    if (issueFilter === 'da_emettere' && !isToIssueInvoice(record)) return false
+    if (loweredClient && !record.customerName.toLowerCase().includes(loweredClient)) return false
+    const matterSearch = [record.caseId, record.caseReference, record.caseRg, record.caseTitle]
+      .join(' ')
+      .toLowerCase()
+    if (loweredMatter && !matterSearch.includes(loweredMatter)) return false
     if (!lowered) return true
-    return [record.number, record.customerName, record.caseTitle, record.stateLabel]
+    return [record.number, record.customerName, record.caseId, record.caseReference, record.caseRg, record.caseTitle, record.stateLabel, record.paymentMethod, record.documentKindLabel]
       .join(' ')
       .toLowerCase()
       .includes(lowered)
   })
+  const hasFilters = Boolean(
+    lowered ||
+    loweredClient ||
+    loweredMatter ||
+    stateFilter !== allStatesFilter ||
+    paymentFilter !== 'all' ||
+    issueFilter !== 'all'
+  )
 
   async function reloadAfter(result: FatturazioneMutationResult) {
     setMutationResult(result)
@@ -1528,6 +1703,15 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     }
   }
 
+  function resetFilters() {
+    setQuery('')
+    setStateFilter(allStatesFilter)
+    setPaymentFilter('all')
+    setIssueFilter('all')
+    setClientFilter('')
+    setMatterFilter('')
+  }
+
   return (
     <>
       <section className="iu-fatt-banner" aria-label="Documenti economici">
@@ -1537,27 +1721,21 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
       <WarningPanel data={data} />
       <SdiWorkflowPanel data={data} />
       <MetricGrid data={data} />
-      <NumberingPanel data={data} onSaved={handleNumberingSaved} />
-      <section className="iu-fatt-grid" aria-label="Sezioni fatturazione">
-        {data.sections.map((section) => (
-          <Panel title={section.title} subtitle={section.kind} key={section.id}>
-            {section.items.length ? (
-              <div className="iu-fatt-list">
-                {section.items.map((item) => (
-                  <div className="iu-fatt-list__item" key={item.id}>
-                    <span>{item.label}</span>
-                    <strong>{displayValue(item.value)}</strong>
-                    {item.note ? <small>{item.note}</small> : null}
-                    <Badge tone={item.tone}>{item.tone}</Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title={section.emptyMessage} />
-            )}
-          </Panel>
-        ))}
-      </section>
+      <CompactOperations
+        data={data}
+        totalRecords={data.records.length}
+        visibleRecords={records.length}
+        stateFilter={stateFilter}
+        paymentFilter={paymentFilter}
+        issueFilter={issueFilter}
+        onStateFilter={setStateFilter}
+        onPaymentFilter={setPaymentFilter}
+        onIssueFilter={setIssueFilter}
+        exportAction={exportAction}
+      />
+      <div id="fatturazione-numerazione">
+        <NumberingPanel data={data} onSaved={handleNumberingSaved} />
+      </div>
       <Panel
         title="Archivio parcelle e fatture"
         subtitle={`${records.length} elementi visualizzati su ${data.records.length}`}
@@ -1568,10 +1746,62 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
           </ButtonLink>
         ) : null}
       >
-        <label className="iu-fatt-search">
-          <Search size={16} />
-          <input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Cerca per cliente, numero, fascicolo o stato" />
-        </label>
+        <div className="iu-fatt-filters" aria-label="Filtri archivio fatturazione">
+          <label className="iu-fatt-search">
+            <Search size={16} />
+            <input
+              aria-label="Cerca nell'archivio fatturazione"
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              placeholder="Cerca per cliente, numero, fascicolo o stato"
+            />
+          </label>
+          <label className="iu-fatt-filter-field">
+            <span>Bonifico registrato</span>
+            <select
+              aria-label="Filtro bonifico registrato"
+              value={paymentFilter}
+              onChange={(event) => setPaymentFilter(event.currentTarget.value as PaymentFilter)}
+            >
+              <option value="all">Tutti</option>
+              <option value="bonifico">Sì</option>
+              <option value="senza_bonifico">No</option>
+            </select>
+          </label>
+          <label className="iu-fatt-filter-field">
+            <span>Parcella emessa</span>
+            <select
+              aria-label="Filtro parcella emessa"
+              value={issueFilter}
+              onChange={(event) => setIssueFilter(event.currentTarget.value as IssueFilter)}
+            >
+              <option value="all">Tutte</option>
+              <option value="emessa">Emessa</option>
+              <option value="da_emettere">Da emettere</option>
+            </select>
+          </label>
+          <label className="iu-fatt-filter-field">
+            <span>Cliente</span>
+            <input
+              aria-label="Filtro cliente"
+              value={clientFilter}
+              onChange={(event) => setClientFilter(event.currentTarget.value)}
+              placeholder="Nome cliente"
+            />
+          </label>
+          <label className="iu-fatt-filter-field">
+            <span>Nr fascicolo</span>
+            <input
+              aria-label="Filtro numero fascicolo"
+              value={matterFilter}
+              onChange={(event) => setMatterFilter(event.currentTarget.value)}
+              placeholder="RG o ID fascicolo"
+            />
+          </label>
+          <Button type="button" tone="neutral" disabled={!hasFilters} onClick={resetFilters}>
+            Azzera filtri
+          </Button>
+        </div>
         <ArchiveMutationState result={mutationResult} errors={mutationErrors} />
         {records.length ? (
           <div className="iu-fatt-records">
@@ -1591,7 +1821,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         ) : (
           <EmptyState
             title={data.records.length ? 'Nessun risultato' : 'Nessuna parcella visualizzabile'}
-            message={data.records.length ? 'La ricerca locale non ha trovato documenti nell elenco ricevuto.' : "L'archivio economico non contiene documenti per la vista corrente."}
+            message={data.records.length ? "La ricerca locale non ha trovato documenti nell'elenco ricevuto." : "L'archivio economico non contiene documenti per la vista corrente."}
             action={<ButtonLink href="/fatturazione/nuova" tone="primary">Nuova parcella</ButtonLink>}
           />
         )}

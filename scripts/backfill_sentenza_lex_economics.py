@@ -25,6 +25,7 @@ from pct.fascicolo_sentenza_economica import (
     analyze_sentenza_tribunale_text,
     apply_sentenza_tribunale_automation,
     sentenza_vector_relevant_excerpt,
+    validate_sentenza_fascicolo_context,
 )
 from pct.fatturazione import GestioneFatturazione
 from pct.local_ai import LocalAIService
@@ -56,6 +57,7 @@ class BackfillDocumentResult:
     proforma_number: str = ""
     vector_index: dict[str, Any] = field(default_factory=dict)
     extraction: dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -410,6 +412,7 @@ def run_backfill(
         "tenants": [],
         "totals": {
             "documents_seen": 0,
+            "raw_sentenze_found": 0,
             "sentenze_found": 0,
             "fascicoli_found": 0,
             "applied": 0,
@@ -417,6 +420,7 @@ def run_backfill(
             "vector_indexed": 0,
             "vector_embedding_errors": 0,
             "skipped_missing_fascicolo": 0,
+            "context_mismatch_skipped": 0,
             "duplicates_skipped": 0,
             "unique_sentenze": 0,
             "unique_fascicoli_found": 0,
@@ -433,6 +437,7 @@ def run_backfill(
         tenant_unique_fascicoli_confirmed: set[str] = set()
         tenant_unique_missing_fascicoli: set[str] = set()
         tenant_duplicates_skipped = 0
+        tenant_context_mismatch = 0
         tenant_matrix_confirmed = 0
         tenant_report: dict[str, Any] = {
             "tenant": tenant.tenant,
@@ -458,13 +463,11 @@ def run_backfill(
                 extraction = analyze_sentenza_tribunale_text(text, metadata)
                 if not extraction.found:
                     continue
-                report["totals"]["sentenze_found"] += 1
+                report["totals"]["raw_sentenze_found"] += 1
                 fascicolo_id = _text(metadata.get("fascicolo_id"))
                 fascicolo = fascicoli.get(fascicolo_id)
                 sentenza_key = _sentenza_key(tenant, metadata, extraction)
                 fascicolo_key = f"{tenant.storage_key}:{fascicolo_id}"
-                unique_sentenze.add(sentenza_key)
-                tenant_unique_sentenze.add(sentenza_key)
                 metadata["sentenza_key"] = sentenza_key
                 result = BackfillDocumentResult(
                     tenant=tenant.storage_key,
@@ -484,6 +487,24 @@ def run_backfill(
                     tenant_unique_missing_fascicoli.add(fascicolo_key)
                     tenant_report["documents"].append(result.to_dict())
                     continue
+                context = validate_sentenza_fascicolo_context(
+                    text=text,
+                    extraction=extraction,
+                    fascicolo=fascicolo,
+                    metadata=metadata,
+                    fascicolo_id=fascicolo_id,
+                )
+                result.context = context.to_dict()
+                if not context.ok:
+                    result.message = context.message
+                    result.warnings.extend(context.warnings)
+                    report["totals"]["context_mismatch_skipped"] += 1
+                    tenant_context_mismatch += 1
+                    tenant_report["documents"].append(result.to_dict())
+                    continue
+                unique_sentenze.add(sentenza_key)
+                tenant_unique_sentenze.add(sentenza_key)
+                report["totals"]["sentenze_found"] += 1
                 report["totals"]["fascicoli_found"] += 1
                 unique_fascicoli_found.add(fascicolo_key)
                 tenant_unique_fascicoli_found.add(fascicolo_key)
@@ -566,10 +587,16 @@ def run_backfill(
             tenant_report["documents"].append(result.to_dict())
         tenant_report["summary"] = {
             "documents_reported": len(tenant_report["documents"]),
-            "sentenze_found": sum(1 for item in tenant_report["documents"] if item.get("found")),
+            "raw_sentenze_found": sum(1 for item in tenant_report["documents"] if item.get("found")),
+            "sentenze_found": sum(
+                1
+                for item in tenant_report["documents"]
+                if item.get("found") and (item.get("context") or {}).get("ok")
+            ),
             "applied": sum(1 for item in tenant_report["documents"] if item.get("applied")),
             "matrix_confirmed": tenant_matrix_confirmed,
             "missing_fascicolo": sum(1 for item in tenant_report["documents"] if item.get("found") and not item.get("fascicolo_found")),
+            "context_mismatch_skipped": tenant_context_mismatch,
             "duplicates_skipped": tenant_duplicates_skipped,
             "unique_sentenze": len(tenant_unique_sentenze),
             "unique_fascicoli_found": len(tenant_unique_fascicoli_found),

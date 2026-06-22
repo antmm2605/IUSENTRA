@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -30,6 +31,14 @@ from pct.storage import StudioDB
 
 
 ROME = ZoneInfo("Europe/Rome")
+_VECTOR_EXCERPT_PATTERNS = (
+    re.compile(r"\bliquidando\b", re.IGNORECASE),
+    re.compile(r"\bcontribut[oi]\s+unificat[oi]\b", re.IGNORECASE),
+    re.compile(r"\bc\.?\s*u\.?\b", re.IGNORECASE),
+    re.compile(r"\bfond[oi]\s+spese\b", re.IGNORECASE),
+    re.compile(r"\bspese\s+generali\b", re.IGNORECASE),
+    re.compile(r"\bantistatari[oa]\b", re.IGNORECASE),
+)
 
 
 @dataclass(slots=True)
@@ -196,6 +205,38 @@ def _vector_title(extraction: SentenzaEconomicaExtraction, fascicolo: Any) -> st
     return f"{title} - {fascicolo_title}" if fascicolo_title else title
 
 
+def _vector_relevant_excerpt(text: str, *, max_chars: int = 12000) -> str:
+    compact = " ".join(str(text or "").split())
+    if not compact:
+        return "n.d."
+    if len(compact) <= max_chars:
+        return compact
+
+    windows: list[tuple[int, int]] = [(0, min(len(compact), 2200))]
+    for pattern in _VECTOR_EXCERPT_PATTERNS:
+        for match in pattern.finditer(compact):
+            windows.append((max(0, match.start() - 700), min(len(compact), match.end() + 1200)))
+            break
+
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(windows):
+        if not merged or start > merged[-1][1] + 80:
+            merged.append((start, end))
+        else:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+
+    excerpts: list[str] = []
+    for start, end in merged:
+        excerpt = compact[start:end].strip()
+        if excerpt and excerpt not in excerpts:
+            excerpts.append(excerpt)
+
+    result = "\n[...]\n".join(excerpts)
+    if len(result) > max_chars:
+        return result[: max_chars - 32].rstrip() + "\n[estratto ridotto]"
+    return result
+
+
 def _vector_text(
     *,
     extraction: SentenzaEconomicaExtraction,
@@ -218,8 +259,8 @@ def _vector_text(
         "Estratto liquidazione:",
         extraction.liquidazione_titolo or "n.d.",
         "",
-        "Testo sentenza:",
-        str(text or "")[:80000],
+        "Estratto sentenza rilevante:",
+        _vector_relevant_excerpt(text),
     ]
     return "\n".join(str(row) for row in rows)
 

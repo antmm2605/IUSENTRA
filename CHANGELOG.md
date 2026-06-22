@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.91 - 2026-06-22
+
+- Lex AI: il backfill Sentenza non invia più l'intero testo OCR al DB vettoriale, ma una scheda strutturata con intestazione, RG, importi, proforma e brani economici selezionati.
+- Backfill globale: ridotto drasticamente il carico di embedding per completare l'applicazione su tutti i fascicoli eleggibili senza lasciare job sincroni appesi per ore.
+- Anti-regressione: aggiunto un test che verifica il limite degli estratti vettoriali e la conservazione di liquidazione, contributo unificato e spese generali.
+
 ## 2.253.90 - 2026-06-22
 
 - Sentenze Lex AI: esteso il riconoscimento alle sentenze ufficiali con intestazione ministeriale, RG vicino e segnali di firma/cronologico anche quando il testo estratto non contiene esplicitamente la parola `Tribunale`.

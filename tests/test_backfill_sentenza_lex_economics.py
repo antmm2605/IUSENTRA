@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from pct.fascicoli import Fascicolo, StatoFascicolo, TipoFascicolo
-from scripts.backfill_sentenza_lex_economics import run_backfill
+from scripts.backfill_sentenza_lex_economics import _vector_relevant_excerpt, run_backfill
 
 
 SENTENZA_TEXT = """
@@ -29,6 +29,25 @@ e con maggiorazione di spese generali ed accessori di legge.
 def _write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def test_vector_relevant_excerpt_limita_testo_ma_preserva_importi():
+    filler = " motivazione molto lunga" * 2000
+    text = (
+        "Sentenza n. 230/2024 pubbl. il 07/05/2024 RG n. 1548/2023 "
+        + filler
+        + " condanna il Ministero liquidando la complessiva somma di € 1.100,00, "
+        "oltre ad € 98,00 per spese di c.u. e spese generali con antistatario."
+        + filler
+    )
+
+    excerpt = _vector_relevant_excerpt(text, max_chars=6000)
+
+    assert len(excerpt) <= 6000
+    assert "Sentenza n. 230/2024" in excerpt
+    assert "€ 1.100,00" in excerpt
+    assert "€ 98,00" in excerpt
+    assert "spese generali" in excerpt
 
 
 def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path: Path):

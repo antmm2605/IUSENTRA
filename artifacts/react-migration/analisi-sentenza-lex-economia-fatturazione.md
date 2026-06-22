@@ -189,6 +189,13 @@ Prova reale obbligatoria:
 - Il primo apply server precedente è stato interrotto perché la vecchia logica indicizzava troppi duplicati Lex AI; ha lasciato dati parziali reali su `10` fascicoli e `4` proforme Lex. La nuova riesecuzione deve completare il perimetro restante in modo idempotente e con embedding limitati per batch.
 - Restano obbligatori prima della chiusura: rebuild locale `127.0.0.1:8080`, dry-run server con codice 2.253.90, apply server senza backup, verifica dei conteggi SQL/Lex/proforme e prova visiva della matrice fino alla proforma/parcella.
 
+## Lex AI backfill 2.253.91
+
+- Il primo apply con `2.253.90` è stato fermato dopo oltre 30 minuti: il processo non era morto, Ollama stava lavorando, ma la scheda vettoriale conteneva fino a `80000` caratteri del testo OCR per sentenza e il costo di embedding rendeva il backfill globale troppo lento.
+- La correzione `2.253.91` mantiene la conoscenza Lex AI, ma indicizza una scheda compatta: dati sentenza, fascicolo, RG, importi, proforma, titolo liquidazione, intestazione e finestre testuali attorno a liquidazione, contributo unificato, fondo spese, spese generali e antistatario.
+- Il limite dell'estratto vettoriale è presidiato da test: deve restare abbastanza piccolo per completare il job, ma conservare importi e formule economiche che servono a Lex per rispondere.
+- Dopo il deploy `2.253.91` va ripetuto l'apply: i fascicoli già aggiornati dal tentativo precedente devono risultare `matrix_confirmed`, quelli mancanti devono essere applicati, e Lex AI deve essere alimentato con la scheda compatta.
+
 ## Backfill globale 2.253.89
 
 - Corretto il perimetro dell'incarico: la matrice dati non deve essere applicata a un fascicolo dimostrativo o a un singolo caso noto, ma a tutti i fascicoli reali che hanno documenti AI già estratti e riconoscibili come sentenza.

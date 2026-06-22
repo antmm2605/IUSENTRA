@@ -1480,6 +1480,12 @@ def _next_deadline(fascicolo: Any, scadenze_by_fasc: dict[str, list[Any]] | None
     return dated[0] if dated else None
 
 
+def _next_deadline_date_value(fascicolo: Any, next_deadline: Any | None) -> str:
+    if next_deadline:
+        return _text(getattr(next_deadline, "data_scadenza", "") or getattr(next_deadline, "data", ""))
+    return _text(_next_hearing_value(fascicolo))
+
+
 def _workspace_counts(fascicolo: Any) -> dict[str, int]:
     data = _safe("workspace_counts", lambda: build_fascicolo_workspace(fascicolo).get("counts", {}), {})
     return data if isinstance(data, dict) else {}
@@ -1518,7 +1524,7 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
     rg_order = _rg_order_from_fascicolo(fascicolo)
     n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
-    n_date = _text(getattr(n_scadenza, "data_scadenza", "") or getattr(n_scadenza, "data", "")) if n_scadenza else ""
+    n_date = _next_deadline_date_value(fascicolo, n_scadenza)
     docs = _governed_documents_count(fascicolo)
     deposits = getattr(fascicolo, "depositi_pct", []) or []
     unread = sum(1 for dep in deposits if _enum_value(getattr(dep, "stato", "")).upper() in {"WARN_CONTROLLI", "ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA", "ERRORE"})
@@ -1583,7 +1589,7 @@ def _item_light(
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
     rg_order = _rg_order_from_fascicolo(fascicolo)
     n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
-    n_date = _text(getattr(n_scadenza, "data_scadenza", "") or getattr(n_scadenza, "data", "")) if n_scadenza else ""
+    n_date = _next_deadline_date_value(fascicolo, n_scadenza)
     deposits = getattr(fascicolo, "depositi_pct", []) or []
     unread = sum(1 for dep in deposits if _enum_value(getattr(dep, "stato", "")).upper() in {"WARN_CONTROLLI", "ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA", "ERRORE"})
     alerts = unread
@@ -1711,6 +1717,8 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
     invoices_to_issue = sum(int((item.get("paymentSummary") or {}).get("parcelleDaEmettere") or 0) for item in items)
     registered_amount = round(sum(float((item.get("paymentSummary") or {}).get("totaleRegistrato") or 0.0) for item in items), 2)
     advances_to_recover = round(sum(float((item.get("paymentSummary") or {}).get("anticipazioniDaRecuperare") or 0.0) for item in items), 2)
+    today = date.today()
+    soon_limit = today + timedelta(days=7)
     return {
         "total": len(items) + archived_count,
         "active": sum(1 for item in items if item["status"] != "archiviato"),
@@ -1718,7 +1726,11 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
         "toArchive": sum(1 for item in items if item["status"] in {"definito", "da_archiviare"}),
         "archived": archived_count + sum(1 for item in items if item["status"] == "archiviato"),
         "suspended": sum(1 for item in items if item["status"] == "sospeso"),
-        "deadlines7": sum(1 for item in items if item.get("nextDeadlineIso") and (_parse_date(item["nextDeadlineIso"]) or date.max) <= date.today() + timedelta(days=7)),
+        "deadlines7": sum(
+            1
+            for item in items
+            if (parsed := _parse_date(item.get("nextDeadlineIso", ""))) and today <= parsed <= soon_limit
+        ),
         "deadlines30": deadlines30,
         "documents": sum(int(item.get("documents") or 0) for item in items),
         "documentsToClassify": sum(int(item.get("alerts") or 0) for item in items),

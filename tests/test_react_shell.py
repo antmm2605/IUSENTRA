@@ -4501,6 +4501,42 @@ def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
     assert not payload["items"][0]["href"].startswith("/app-v2/")
 
 
+def test_react_fascicoli_lista_mostra_data_sentenza_senza_scadenza_aperta(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Dalla Valle nuovo ricorso c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Dalla Valle Stefania",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="1548",
+        anno_rg=2023,
+        oggetto="222050 - Retribuzione",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        stato=StatoFascicolo.DEFINITO,
+        data_prossima_udienza="2024-05-07",
+        data_chiusura="2024-05-07",
+    )
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+
+    assert response.status_code == 200
+    assert item["status"] == "da_archiviare"
+    assert item["nextDeadlineIso"] == "2024-05-07"
+    assert item["nextDeadline"] == "07/05/2024"
+    assert payload["summary"]["deadlines7"] == 0
+
+
 def test_react_fascicoli_prossima_scadenza_da_rg_univoco_presidiato(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)

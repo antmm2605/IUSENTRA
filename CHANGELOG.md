@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.88 - 2026-06-22
+
+- Fascicoli: la lista React ora usa la data sentenza salvata in `data_prossima_udienza` come fallback di `Prossima scad.` quando non esiste una scadenza aperta collegata, mostrando correttamente la data della sentenza Lex AI.
+- Anti-regressione: aggiunto un test mirato per il fascicolo definito da sentenza senza scadenza aperta, verificando anche che una data storica non venga conteggiata come scadenza entro 7 giorni.
+
 ## 2.253.87 - 2026-06-21
 
 - Sentenze Lex AI: l'estrazione dell'RG ora privilegia l'intestazione vicino a `Sentenza n. ... pubbl. il ...`, evitando che riferimenti a vecchi RG citati nel corpo del provvedimento generino dedupliche o proforme non corrette.

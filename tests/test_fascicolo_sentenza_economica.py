@@ -70,6 +70,23 @@ def test_estrazione_sentenza_tribunale_con_cu_liquidazione_e_fondo_spese():
     assert extraction.antistatario is True
 
 
+def test_estrazione_contributo_unificato_non_prende_importo_liquidazione():
+    text = """
+    Firmato Da: CARUSO GIUSEPPE Emesso Da: TRUSTPRO QUALIFIED CA Serial#: 123
+    Sentenza n. 2208/2026 pubbl. il 28/04/2026
+    RG n. 3685/2026
+    condanna il Ministero alla rifusione in favore di parte ricorrente delle spese di lite,
+    liquidate in complessivi € 1.100,00 oltre spese generali 15% e accessori di legge,
+    oltre rimborso del contributo unificato.
+    """
+
+    extraction = analyze_sentenza_tribunale_text(text, {})
+
+    assert extraction.found is True
+    assert extraction.liquidazione_importo == 1100.00
+    assert extraction.contributo_unificato_importo is None
+
+
 def test_estrazione_rg_preferisce_intestazione_sentenza():
     text = """
     Nel corpo della motivazione viene richiamato il precedente RG n. 4593/2022.

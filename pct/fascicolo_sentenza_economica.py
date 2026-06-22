@@ -29,7 +29,7 @@ _MONEY_RE = re.compile(
 )
 _LIQUIDAZIONE_RE = re.compile(
     r"\bliquid(?:a|ando|ata|ato|ate|ati)\b.{0,160}?"
-    r"(?:complessiv[aoe]\s+)?(?:somma|importo)\s+(?:di\s+)?(?:\u20ac|EUR)\s*"
+    r"(?:(?:complessiv[aoei]\s+)?(?:somma|importo)\s+(?:di\s+)?|(?:in\s+)?complessiv[aoei]\s+)(?:\u20ac|EUR)\s*"
     r"(?P<amount>\d{1,3}(?:\.\d{3})*(?:,\d{2})?|\d+(?:[,.]\d{2})?)",
     re.IGNORECASE | re.DOTALL,
 )
@@ -41,6 +41,14 @@ _FONDO_PATTERNS = (
     re.compile(r"\bfondo\s+spese\b", re.IGNORECASE),
     re.compile(r"\bfondi\s+spese\b", re.IGNORECASE),
     re.compile(r"\bspese\s+anticipate\b", re.IGNORECASE),
+)
+_CU_BACKWARD_ACCEPT_RE = re.compile(
+    r"\b(?:c\.?\s*u\.?|contribut[oi]\s+unificat[oi]|spese\s+vive|spese|sommatoria|versat[eiio]?|anticipat[ei])\b",
+    re.IGNORECASE,
+)
+_CU_BACKWARD_REJECT_RE = re.compile(
+    r"\b(?:liquidat[aeio]?|liquidando|complessiv[aoei]|spese\s+generali|accessori\s+di\s+legge|iva|cpa)\b",
+    re.IGNORECASE,
 )
 _OFFICIAL_HEADER_SIGNAL_RE = re.compile(
     r"\b(?:Firmato\s+Da|Emesso\s+Da|Repert\.\s*n\.|Sentenza\s+n\.\s+cronol\.|Serial#)\b",
@@ -121,7 +129,7 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
 
     rg_match = _extract_rg_near_sentence(compact, date_match)
     liquidation_amount, liquidation_title = _extract_liquidazione(compact)
-    cu_amount, cu_title = _extract_amount_near(compact, _CU_PATTERNS)
+    cu_amount, cu_title = _extract_contributo_unificato(compact)
     fondo_amount, fondo_title = _extract_amount_near(compact, _FONDO_PATTERNS)
 
     return SentenzaEconomicaExtraction(
@@ -444,6 +452,37 @@ def _extract_amount_near(text: str, patterns: tuple[re.Pattern[str], ...], *, wi
         return None, ""
     match = best[1]
     return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=70)
+
+
+def _extract_contributo_unificato(text: str, *, window: int = 140) -> tuple[float | None, str]:
+    candidates: list[tuple[int, int, re.Match[str]]] = []
+    for pattern in _CU_PATTERNS:
+        for keyword in pattern.finditer(text):
+            right = min(len(text), keyword.end() + window)
+            for money in _MONEY_RE.finditer(text, keyword.end(), right):
+                between = text[keyword.end() : money.start()]
+                if _CU_BACKWARD_REJECT_RE.search(between):
+                    continue
+                candidates.append((0, money.start() - keyword.end(), money))
+
+            left = max(0, keyword.start() - window)
+            for money in _MONEY_RE.finditer(text, left, keyword.start()):
+                between = text[money.end() : keyword.start()]
+                if not _is_valid_contributo_unificato_before(between):
+                    continue
+                candidates.append((1, keyword.start() - money.end(), money))
+
+    if not candidates:
+        return None, ""
+    _, _, match = min(candidates, key=lambda item: (item[0], item[1]))
+    return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=70)
+
+
+def _is_valid_contributo_unificato_before(between: str) -> bool:
+    compact_between = _compact(between)
+    if not compact_between or _CU_BACKWARD_REJECT_RE.search(compact_between):
+        return False
+    return bool(_CU_BACKWARD_ACCEPT_RE.search(compact_between))
 
 
 def _document_key(metadata: dict[str, Any]) -> str:

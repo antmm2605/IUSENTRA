@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.93 - 2026-06-22
+
+- Sentenze Lex AI: il parser del contributo unificato non usa più l'importo della liquidazione quando il testo parla solo di rimborso del contributo senza importo espresso; aggiunta copertura per la formula `liquidate in complessivi € ...`.
+- Anti-regressione: aggiunto test sul caso reale in cui `€ 1.100,00` è liquidazione e non contributo unificato.
+
 ## 2.253.92 - 2026-06-22
 
 - Lex AI: il risultato vettoriale della Sentenza Tribunale ora porta una versione di schema `sentenza_tribunale_compact_v1`; i vecchi risultati senza versione o con embedding pendenti non bloccano più la reindicizzazione compatta.

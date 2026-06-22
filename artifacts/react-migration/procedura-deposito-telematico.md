@@ -2056,3 +2056,29 @@ Prova visiva reale su Chrome/Browser autenticato `127.0.0.1:8080`:
 Limite operativo verificato sul tenant locale:
 
 - la lista fascicoli locale contiene solo i fascicoli presenti nello SQLite reale del tenant, non tutte le righe mostrate nello screenshot utente storico; la nuova logica popola `Prossima scad.` quando trova ID, alias, RG univoco o RG più cliente/parte. Se la PEC è cancellata o non basta, il presidio documentale legge i testi indicizzati del fascicolo e crea/upserta l'evento operativo prima di far comparire la data.
+## Fix invio deposito reale, Atto.enc base64 e corpo PEC 2.253.96 - 2026-06-23
+
+Difetto reale corretto: nel click `Invia deposito reale` il Local Signer poteva ricevere un allegato `Atto.enc` non più base64 valido dopo la redazione JSON del payload, e la prova senza invio poteva restare al 92% quando il testo PEC arrivava da una bozza precedente non allineata ai nomi finali della busta.
+
+Decisioni operative applicate:
+
+- i campi payload binari `content_base64`, `contenuto_base64`, `base64`, `documento_b64`, `file_base64`, `firmato_b64` e `bytes_base64` non vengono più alterati dal redattore JSON tecnico;
+- il backend accetta un corpo PEC modificato dall'avvocato solo se richiama `Atto.enc` e tutti i documenti operativi finali della busta;
+- se il corpo PEC è vecchio o incompleto, il software lo rigenera automaticamente dai nomi finali effettivi del pacchetto;
+- il controllo `Corpo PEC verificabile` confronta documento per documento tutto l'elenco operativo, non solo i primi file;
+- anche il ramo `Invia deposito reale` restituisce il report di compatibilità collegato al pacchetto appena generato;
+- l'invio resta sempre demandato al PC locale tramite Local Signer: il server prepara destinatario, oggetto, corpo, `Atto.enc` e payload, ma non usa SMTP server-side per depositi legali.
+
+Prova reale locale su Docker utente:
+
+- `docker compose up -d --build app scheduler-worker ocr-worker`;
+- `http://127.0.0.1:8080/api/pronto` ha risposto `ok=true`, `versione=2.253.96`, app/scheduler/OCR healthy;
+- browser integrato autenticato su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta`;
+- il testo PEC visibile contiene esattamente gli 8 documenti previsti: `attoACQ.pdf.p7m`, `Note trattazione scritta Alessi Robertino c Zurich Ass.ni-signed.pdf.p7m`, `perizia_r_ino_alessi__zurich_ass_ni.pdf.p7m`, `giudice_di_pace_di_palmi2.pdf.p7m`, `MEMORIA_CONCLUSIVA_ZURICH.pdf.p7m`, `Note conclusive Alessi Robertino.pdf.p7m`, `Istanza trattazione scritta Alessi Robertino.pdf.p7m`, `MOD. Inizio Attivita Peritali.pdf.p7m`;
+- click reale su `Simula invio PEC`: barra di avanzamento visibile con i nomi dei documenti e `Atto.enc`; esito `compatibilità 100%`, `Atto.enc ministeriale AES256` OK, `Corpo PEC verificabile` OK, `Simulazione senza invio SMTP` OK;
+- dopo la simulazione il pulsante `Invia deposito reale` è attivo;
+- click reale su `Invia deposito reale` e conferma: la UI arriva alla finestra `Password PEC locale`, riepilogo allegato `Atto.enc`, testo `La password non viene salvata: viene inviata solo al Local Signer sul PC in uso per spedire il deposito`;
+- la prova è stata annullata nella finestra password, quindi nessuna PEC reale è stata inviata;
+- non è comparso l'errore `Allegato Atto.enc non e' base64 valido`.
+
+Stato residuo: per il deposito reale operativo l'avvocato deve inserire la password PEC locale nella finestra Local Signer. Il software arriva al punto corretto con busta conforme, payload locale e allegato `Atto.enc` valido.

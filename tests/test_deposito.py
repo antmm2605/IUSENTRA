@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import errno
 import os
@@ -1527,6 +1528,153 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
     assert not doc_reload.id_deposito_pct
 
 
+def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp_path, monkeypatch):
+    monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
+        lambda fascicolo: {
+            "codice_ufficio": "TEST001",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
+            "nome": "Tribunale di Test",
+        },
+    )
+
+    def fake_crea_busta(self, output_dir):
+        path = Path(output_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        enc = path / "Atto.enc"
+        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        self._last_transport_audit = {
+            "transport_mode": "atto_enc_aes256",
+            "required_encryption_algorithm": "AES256",
+            "uses_real_encryption": True,
+            "atto_msg_generated": True,
+            "atto_enc_path": str(enc),
+            "guided_next_actions": [],
+        }
+        return str(enc)
+
+    monkeypatch.setattr("pct.busta.BustaTelematica.crea_busta", fake_crea_busta)
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            pec=StudioConfigPEC(
+                indirizzo="studio@example.pec.it",
+                password="secret",
+                smtp_host="smtp.example.pec.it",
+                smtp_port=465,
+                use_ssl=True,
+            )
+        )
+    )
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pec-reale-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Ricorso civile",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Test",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "Ricorso.pdf.p7m",
+        TipoDocumento.RICORSO,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+    allegato = gf.aggiungi_documento(
+        fascicolo.id,
+        "Autocertificazione ricorso_63ee.PDF",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+        firmato=False,
+    )
+    procura = gf.aggiungi_documento(
+        fascicolo.id,
+        "Procura.PDF.p7m",
+        TipoDocumento.PROCURA,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    request_data = {
+        "tipo_atto": "RICORSO",
+        "codice_registro": "RG",
+        "codice_oggetto_pst": "014001",
+        "oggetto": "Ricorso civile",
+        "numero_rg": "123",
+        "anno_rg": "2026",
+        "atto_principale_id": atto.id,
+        "allegati_ids": [allegato.id, procura.id],
+        "corpo_pec": (
+            "Egregio sig. Cancelliere,\n\n"
+            "Allego alla presente il file crittografato Atto.enc per il deposito telematico.\n\n"
+            "Il file Atto.enc contiene i seguenti documenti:\n"
+            "- Autocertificazione ricorso.PDF"
+        ),
+    }
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pec-reale-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        simulation_response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data={**request_data, "simula_invio_pec": "1"},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data=request_data,
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert simulation_response.status_code == 200, simulation_response.get_data(as_text=True)
+    simulation_payload = simulation_response.get_json()
+    assert simulation_payload["compatibility_report"]["percentuale"] == 100
+    simulation_corpo_check = next(
+        item for item in simulation_payload["compatibility_report"]["checks"] if item["code"] == "CORPO_PEC"
+    )
+    assert simulation_corpo_check["status"] == "ok"
+    assert response.status_code == 200, response.get_data(as_text=True)
+    payload = response.get_json()
+    assert payload["requires_local_pec"] is True
+    local_payload = payload["local_pec"]["payload"]
+    attachment = local_payload["attachments"][0]
+    assert attachment["filename"] == "Atto.enc"
+    assert base64.b64decode(attachment["content_base64"], validate=True) == b"ATTO-ENC-CONFORME"
+    assert "Ricorso.pdf.p7m" in payload["corpo_pec"]
+    assert "Autocertificazione ricorso_63ee.PDF" in payload["corpo_pec"]
+    assert "Procura.PDF.p7m" in payload["corpo_pec"]
+    assert "Autocertificazione ricorso.PDF" not in payload["corpo_pec"]
+    corpo_check = next(item for item in payload["compatibility_report"]["checks"] if item["code"] == "CORPO_PEC")
+    assert corpo_check["status"] == "ok"
+
+
 def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(tmp_path, monkeypatch):
     monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
     monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
@@ -1611,7 +1759,8 @@ def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(t
     assert payload["ok"] is False
     assert payload["requires_guided_completion"] is True
     assert payload["package_ready"] is True
-    assert payload["pec_dest"] == "ufficio@example.pec.it"
+    assert payload["pec_dest"] == "tribunale.test@civile.ptel.giustiziacert.it"
+    assert payload["local_pec"]["payload"]["to"] == "tribunale.test@civile.ptel.giustiziacert.it"
     assert payload["pec_sender_ready"] is False
     assert "Atto.enc" in payload["message"]
     assert any(".cer" in action or "Atto.enc" in action for action in payload["next_actions"])
@@ -2082,7 +2231,8 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
     assert payload["ok"] is False
     assert payload["requires_local_pec"] is True
     assert payload["package_ready"] is True
-    assert payload["pec_dest"] == "ufficio@example.pec.it"
+    assert payload["pec_dest"] == "tribunale.test@civile.ptel.giustiziacert.it"
+    assert payload["local_pec"]["payload"]["to"] == "tribunale.test@civile.ptel.giustiziacert.it"
     assert payload["local_pec"]["payload"]["smtp_host"] == ""
     assert payload["pec_sender_ready"] is False
     assert any("PEC mittente dello studio non configurata" in item for item in payload["next_actions"])

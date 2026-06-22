@@ -34,6 +34,16 @@ _SENSITIVE_KEYS = {
     "debug",
 }
 
+_BASE64_PAYLOAD_KEYS = {
+    "base64",
+    "content_base64",
+    "contenuto_base64",
+    "documento_b64",
+    "file_base64",
+    "firmato_b64",
+    "bytes_base64",
+}
+
 
 def _looks_technical(value: str) -> bool:
     lowered = value.lower()
@@ -57,8 +67,14 @@ def redact_exception_details(value: Any) -> Any:
         cleaned: dict[str, Any] = {}
         for key, item in value.items():
             key_text = str(key)
-            if key_text.lower() in _SENSITIVE_KEYS:
+            key_lower = key_text.lower()
+            if key_lower in _SENSITIVE_KEYS:
                 cleaned[key_text] = "Dettaglio tecnico registrato nei log server."
+            elif key_lower in _BASE64_PAYLOAD_KEYS and isinstance(item, str):
+                # I payload binari leciti, come Atto.enc per il Local Signer, possono
+                # contenere casualmente parole che sembrano marker tecnici: non vanno
+                # alterati, altrimenti il browser consegna allegati non validi.
+                cleaned[key_text] = item
             else:
                 cleaned[key_text] = redact_exception_details(item)
         return cleaned

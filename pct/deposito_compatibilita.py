@@ -235,7 +235,7 @@ def build_deposito_compatibility_report(
         evidence=subject,
     )
 
-    body_reference_docs = operational_docs[: min(len(operational_docs), 4)]
+    body_reference_docs = operational_docs
     body_folded = _casefold(body)
     body_ok = _has_token(body, "Atto.enc") and bool(body_reference_docs) and all(item.casefold() in body_folded for item in body_reference_docs)
     _check(

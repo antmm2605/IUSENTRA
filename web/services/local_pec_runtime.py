@@ -105,6 +105,29 @@ def deposito_pec_body(documenti: list[str] | tuple[str, ...] | None = None) -> s
     )
 
 
+def deposito_pec_body_covers_documenti(corpo: str, documenti: list[str] | tuple[str, ...] | None = None) -> bool:
+    """Check that a custom PEC body still documents Atto.enc and each final package file."""
+
+    text = " ".join(str(corpo or "").strip().split()).casefold()
+    if "atto.enc" not in text:
+        return False
+    required = [
+        str(item or "").strip()
+        for item in (documenti or [])
+        if str(item or "").strip().casefold() not in {"datiatto.xml", "indicedocumentidepositati.pdf"}
+    ]
+    return bool(required) and all(item.casefold() in text for item in required)
+
+
+def resolve_deposito_pec_body(corpo_pec: str | None, documenti: list[str] | tuple[str, ...] | None = None) -> str:
+    """Use an edited body only when it matches the final generated package."""
+
+    custom = str(corpo_pec or "").strip()
+    if custom and deposito_pec_body_covers_documenti(custom, documenti):
+        return custom
+    return deposito_pec_body(documenti)
+
+
 def local_pec_required_response(
     *,
     pec_cfg: Any,

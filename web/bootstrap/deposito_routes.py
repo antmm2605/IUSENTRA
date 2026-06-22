@@ -21,10 +21,10 @@ from web.services.deposito_route_helpers import (
     wants_json_response as _wants_json_response,
 )
 from web.services.local_pec_runtime import (
-    deposito_pec_body,
     deposito_pec_subject,
     local_pec_required_response,
     local_pec_confirmation_result,
+    resolve_deposito_pec_body,
 )
 from web.services.deposito_pec_runtime import (
     build_compatibility_report as _build_compatibility_report,
@@ -649,7 +649,7 @@ def register_deposito_routes(
             tribunale=fascicolo.tribunale or "",
         )
         documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
-        corpo_pec = form.get("corpo_pec", "").strip() or deposito_pec_body(documenti_busta)
+        corpo_pec = resolve_deposito_pec_body(form.get("corpo_pec", ""), documenti_busta)
         def _compatibility_report(attachment_path: str, busta_audit: dict[str, Any] | None = None) -> dict[str, Any]:
             return _build_compatibility_report(
                 id_deposito=id_dep,
@@ -804,22 +804,21 @@ def register_deposito_routes(
         else:
             # Il deposito PCT/SIGP invia sempre dal PC dell'avvocato tramite
             # Local Signer, anche quando la UI e' aperta dal server pubblico.
-            return redacted_json_response(
-                local_pec_required_response(
-                    pec_cfg=pec_cfg,
-                    pec_dest=pec_dest,
-                    tipo_atto=tipo_atto,
-                    id_deposito=id_dep,
-                    timestamp=timestamp,
-                    oggetto_pec=oggetto_pec,
-                    attachment_path=enc_path,
-                    validation=validation,
-                    documenti=documenti_busta,
-                    corpo_pec=corpo_pec,
-                    busta_audit=busta_audit,
-                ),
-                200,
+            local_payload = local_pec_required_response(
+                pec_cfg=pec_cfg,
+                pec_dest=pec_dest,
+                tipo_atto=tipo_atto,
+                id_deposito=id_dep,
+                timestamp=timestamp,
+                oggetto_pec=oggetto_pec,
+                attachment_path=enc_path,
+                validation=validation,
+                documenti=documenti_busta,
+                corpo_pec=corpo_pec,
+                busta_audit=busta_audit,
             )
+            local_payload["compatibility_report"] = compatibility_report
+            return redacted_json_response(local_payload, 200)
         try:
             from datetime import datetime as _dtnow
             from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.96 - 2026-06-23
+
+- Deposito telematico: il payload `Atto.enc` consegnato al Local Signer resta base64 valido anche dopo la redazione JSON tecnica, evitando l'errore `Allegato Atto.enc non e' base64 valido` al click su `Invia deposito reale`.
+- Deposito telematico: il corpo PEC viene mantenuto solo se documenta `Atto.enc` e tutti i documenti finali della busta; in caso di bozza vecchia viene rigenerato automaticamente dai nomi reali del pacchetto.
+- Anti-regressione: aggiunti test mirati per redazione base64, corpo PEC documento per documento, simulazione 100% e ramo reale Local Signer senza invio server-side.
+
 ## 2.253.95 - 2026-06-22
 
 - Sentenze Lex AI: la matrice economia/fascicolo ora si applica solo quando il testo della sentenza conferma sia il cliente del fascicolo sia lo stesso RG; documenti strategici o giurisprudenza di supporto, anche se chiamati `Sentenza Tribunale`, vengono saltati e non alimentano Lex come sentenza del fascicolo.

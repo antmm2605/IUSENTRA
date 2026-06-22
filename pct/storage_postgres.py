@@ -163,6 +163,7 @@ CREATE TABLE IF NOT EXISTS utenti (
     permessi_negati TEXT DEFAULT '[]',
     creato_il TEXT,
     ultimo_accesso TEXT,
+    tenant_slug TEXT DEFAULT '',
     dati_json TEXT DEFAULT '{}'
 );
 
@@ -994,6 +995,8 @@ class PostgresStudioDB:
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS massimale_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS soglia_preapprovazione_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]'",
+                    "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS tenant_slug TEXT DEFAULT ''",
+                    "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS dati_json TEXT DEFAULT '{}'",
                 ):
                     cur.execute(ddl)
                 self._backfill_deposit_profiles(conn)

@@ -2227,6 +2227,48 @@ def test_studio_db_fallbacks_to_delete_when_wal_non_disponibile(tmp_path: Path, 
     assert row[0] == 1
 
 
+def test_studio_db_non_fallisce_se_journal_delete_bloccato_su_mount_locale(tmp_path: Path, monkeypatch):
+    from pct import storage as storage_module
+
+    real_connect = sqlite3.connect
+    statements: list[str] = []
+
+    class _ProxyConnection:
+        def __init__(self, conn):
+            self._conn = conn
+
+        @property
+        def row_factory(self):
+            return self._conn.row_factory
+
+        @row_factory.setter
+        def row_factory(self, value):
+            self._conn.row_factory = value
+
+        def execute(self, sql, *args, **kwargs):
+            statement = str(sql).strip()
+            statements.append(statement)
+            if statement.upper() == "PRAGMA JOURNAL_MODE=DELETE":
+                raise sqlite3.OperationalError("database is locked")
+            return self._conn.execute(sql, *args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+    monkeypatch.setattr(storage_module, "_requires_delete_journal_for_mount", lambda _path: True)
+    monkeypatch.setattr(
+        storage_module.sqlite3,
+        "connect",
+        lambda *args, **kwargs: _ProxyConnection(real_connect(*args, **kwargs)),
+    )
+
+    db = StudioDB(str(tmp_path / "studio.db"))
+    row = db.conn.execute("SELECT 1").fetchone()
+
+    assert any("PRAGMA journal_mode=DELETE" in sql for sql in statements)
+    assert row[0] == 1
+
+
 def test_studio_db_ensure_schema_riusa_connessione_thread_locale(tmp_path: Path, monkeypatch):
     from pct import storage as storage_module
 

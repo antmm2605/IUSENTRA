@@ -554,6 +554,16 @@ def test_backend_auth_sqlite_mantiene_json_allineato(tmp_path):
     assert saved["email"] == "antonella@studio.it"
     assert saved["tenant_slug"] == "studio-rossi"
 
+    row = studio_db.conn.execute(
+        "SELECT dati_json FROM utenti WHERE username = ?",
+        ("antonella",),
+    ).fetchone()
+    assert row is not None
+    stored = json.loads(row["dati_json"])
+    assert stored["email"] == "antonella@studio.it"
+    assert stored["tenant_slug"] == "studio-rossi"
+    assert stored["username"] == "antonella"
+
 
 # ------------------------------------------------------------------ Statistiche
 

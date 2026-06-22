@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import mimetypes
+import sqlite3
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -25,6 +26,24 @@ def _wants_json_response() -> bool:
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
         or "application/json" in request.headers.get("Accept", "")
     )
+
+
+def _sqlite_transient_message(exc: BaseException) -> str:
+    message = str(exc).lower()
+    if "database is locked" in message or "database table is locked" in message:
+        return "Il database locale è momentaneamente occupato. Riprova il salvataggio tra pochi secondi."
+    if "unable to open database file" in message:
+        return "Il database locale non è raggiungibile in scrittura in questo momento. Riprova dopo il ricaricamento della pagina."
+    return ""
+
+
+def _form_result(message: str, *, status: int, redirect_to: str = "", category: str = "danger"):
+    if _wants_json_response():
+        return jsonify({"ok": status < 400, "message": message, "redirect": redirect_to}), status
+    flash(message, category)
+    if redirect_to:
+        return redirect(redirect_to)
+    return None
 
 
 def register_fascicoli_management_routes(
@@ -183,11 +202,27 @@ def register_fascicoli_management_routes(
                     compenso_pattuito=float(form.get("compenso_pattuito") or 0),
                     note=form.get("note", ""),
                 )
-                flash("Fascicolo aggiornato.", "success")
                 sync_pubblica("modifica", "fascicoli", id_fasc)
-                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+                redirect_to = url_for("dettaglio_fascicolo", id_fasc=id_fasc)
+                result = _form_result("Fascicolo aggiornato.", status=200, redirect_to=redirect_to, category="success")
+                if result is not None:
+                    return result
+                return redirect(redirect_to)
             except (ValueError, KeyError) as exc:
-                flash(str(exc), "danger")
+                result = _form_result(str(exc), status=400)
+                if result is not None:
+                    return result
+            except sqlite3.OperationalError as exc:
+                app.logger.exception("Errore SQLite modifica_fascicolo %s: %s", id_fasc, exc)
+                message = _sqlite_transient_message(exc) or "Impossibile salvare il fascicolo per un errore del database locale."
+                result = _form_result(message, status=503)
+                if result is not None:
+                    return result
+            except Exception as exc:
+                app.logger.exception("Errore modifica_fascicolo %s: %s", id_fasc, exc)
+                result = _form_result("Errore imprevisto durante il salvataggio del fascicolo.", status=500)
+                if result is not None:
+                    return result
 
         return render_template(
             "fascicoli/form.html",

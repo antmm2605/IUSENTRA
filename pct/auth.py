@@ -529,6 +529,11 @@ class GestioneUtenti:
                     "ALTER TABLE utenti ADD COLUMN tenant_slug TEXT DEFAULT ''"
                 )
                 self._studio_db.conn.commit()
+            if "dati_json" not in cols:
+                self._studio_db.conn.execute(
+                    "ALTER TABLE utenti ADD COLUMN dati_json TEXT DEFAULT '{}'"
+                )
+                self._studio_db.conn.commit()
         except Exception:
             # Best effort: in assenza di schema SQLite o migrazione non disponibile
             # il backend JSON continua a funzionare senza interrompere l'avvio.
@@ -630,8 +635,8 @@ class GestioneUtenti:
                     INSERT INTO utenti
                     (id, username, email, nome_completo, ruolo, password_hash,
                      attivo, permessi_extra, permessi_negati, creato_il, ultimo_accesso,
-                     must_change_password, tenant_slug)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     must_change_password, tenant_slug, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         u.id, u.username, u.email, u.nome_completo,
@@ -642,6 +647,7 @@ class GestioneUtenti:
                         u.creato_il, u.ultimo_accesso,
                         1 if u.must_change_password else 0,
                         str(u.tenant_slug or "").strip().lower(),
+                        _json.dumps(u.to_dict(), ensure_ascii=False),
                     ),
                 )
 

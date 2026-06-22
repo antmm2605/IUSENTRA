@@ -1646,11 +1646,20 @@ function ArchivePage() {
   )
 }
 
+function dateInputValue(value: string | number | boolean | undefined): string {
+  const raw = String(value ?? '').trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  const italian = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (italian) return `${italian[3]}-${italian[2]}-${italian[1]}`
+  return ''
+}
+
 function Field({ label, name, defaultValue = '', type = 'text', required = false, readOnly = false, placeholder = '', children }:{label:string; name:string; defaultValue?:string|number|boolean; type?:string; required?:boolean; readOnly?:boolean; placeholder?:string; children?:ReactNode}) {
+  const value = type === 'date' ? dateInputValue(defaultValue) : String(defaultValue ?? '')
   return (
     <label className="iu-fas-field">
       <span>{label}{required ? <b>*</b> : null}</span>
-      {children || <input type={type} name={name} defaultValue={String(defaultValue ?? '')} required={required} readOnly={readOnly} placeholder={placeholder}/>}
+      {children || <input type={type} name={name} defaultValue={value} required={required} readOnly={readOnly} placeholder={placeholder}/>}
     </label>
   )
 }
@@ -2168,8 +2177,8 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
       </section>
       {loading ? <p className="iu-empty">Caricamento dati fascicolo...</p> : null}
       {data.correction?.active ? <section className="iu-fas-correction"><Badge tone="primary">Correzione</Badge><div><strong>{data.correction.title}</strong><span>{data.correction.help}</span></div></section> : null}
-      <section className="iu-fas-form-layout">
-        <JsonPostForm className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref} encType="multipart/form-data">
+      {!loading ? <section className="iu-fas-form-layout">
+        <JsonPostForm key={`${mode}-${id || 'new'}-${data.generatedAt || getValue(data, 'id') || 'ready'}`} className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref} encType="multipart/form-data">
           {mode === 'new' ? <><input type="hidden" name="source_preventivo" value={data.query.source_preventivo || ''}/><input type="hidden" name="source_conferimento" value={data.query.source_conferimento || ''}/><input type="hidden" name="from_page" value={data.query.from_page || ''}/></> : null}
           <CollapsibleFormPanel title={labels.sections.datiGenerali} subtitle="Pratica, oggetto, stato e date principali" icon={<FolderOpen size={17}/>}>
             <div className="iu-fas-form-grid">
@@ -2229,7 +2238,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
           <CollapsibleFormPanel title="Contesto fascicolo" icon={<BadgeCheck size={17}/>}><div className="iu-fas-help"><p><strong>RG</strong>: numero assegnato dall'ufficio quando la pratica è iscritta.</p><p><strong>Sezione</strong>: sezione competente, utile per filtri, udienze e notifiche.</p><p><strong>Valore causa</strong>: alimenta compensi, quadro economico e controllo incassi.</p></div></CollapsibleFormPanel>
           <CollapsibleFormPanel title="Guida Pratica facoltativa" icon={<ListChecks size={17}/>}><div className="iu-fas-help"><p>Dopo il salvataggio rientri nel fascicolo. Da lì puoi aprire Guida Pratica, documenti o deposito solo quando ti serve.</p></div></CollapsibleFormPanel>
         </aside>
-      </section>
+      </section> : null}
       <FloatingLex context="fascicolo-form" title="Lex AI fascicolo" body="Posso aiutarti a completare oggetto, tipo procedimento, checklist iniziale, scadenze e dati mancanti prima della creazione o modifica." primaryHref="#lex" primaryLabel="Apri Lex fascicolo" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />
     </main>
   )

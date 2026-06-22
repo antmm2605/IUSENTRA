@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.253.89 - 2026-06-22
+
+- Sentenze Lex AI: aggiunto lo script tenant-aware `scripts/backfill_sentenza_lex_economics.py` per scansionare tutti i documenti AI già estratti, riconoscere tutte le sentenze applicabili e applicare la matrice dati a ogni fascicolo reale collegato, con report dry-run/apply.
+- Sentenze Lex AI: il report del backfill distingue anche sentenze e fascicoli unici, così i duplicati dello stesso documento non possono mascherare il numero reale di fascicoli coperti.
+- Lex AI: il backfill alimenta il DB vettoriale tenant-aware con scheda strutturata della sentenza, metadati su fascicolo/RG/data/importi/proforma e deduplica sul documento fonte.
+- Fascicoli: rafforzato `StudioDB` sui bind mount Windows/Docker; un lock temporaneo sul journal SQLite non fa più fallire l'apertura scrivibile e le scritture full-table ritentano più a lungo prima di arrendersi.
+- Modifica fascicolo React: il POST `Salva modifiche` ora restituisce JSON leggibile a React anche in caso di errore, evitando pagine HTML 500 incollate dentro il messaggio utente.
+- Modifica fascicolo React: il form resta smontato finché i dati non sono caricati e i campi data normalizzano solo valori validi, evitando campi vuoti dopo il payload async e warning Chrome su `n.d.`.
+- Anti-regressione: aggiunti test mirati per backfill multi-documento, retry SQLite su journal occupato, parser/applicazione sentenza e proforma idempotente.
+
 ## 2.253.88 - 2026-06-22
 
 - Fascicoli: la lista React ora usa la data sentenza salvata in `data_prossima_udienza` come fallback di `Prossima scad.` quando non esiste una scadenza aperta collegata, mostrando correttamente la data della sentenza Lex AI.

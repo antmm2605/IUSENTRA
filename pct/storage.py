@@ -48,6 +48,8 @@ def _schema_sql() -> str:
 _instances: Dict[str, "StudioDB"] = {}
 _instances_lock = threading.Lock()
 logger = logging.getLogger(__name__)
+_SQLITE_BUSY_TIMEOUT_MS = 30000
+_SQLITE_WRITE_ATTEMPTS = 8
 
 
 def _is_locked_error(exc: BaseException) -> bool:
@@ -232,19 +234,8 @@ class StudioDB:
         )
         try:
             c.row_factory = sqlite3.Row
-            c.execute("PRAGMA busy_timeout=15000")
-            if _requires_delete_journal_for_mount(self.db_path):
-                c.execute("PRAGMA journal_mode=DELETE")
-            else:
-                try:
-                    c.execute("PRAGMA journal_mode=WAL")
-                except sqlite3.OperationalError as exc:
-                    logger.warning(
-                        "SQLite tenant %s: WAL non disponibile, fallback a modalita' DELETE (%s)",
-                        self.db_path,
-                        exc,
-                    )
-                    c.execute("PRAGMA journal_mode=DELETE")
+            c.execute(f"PRAGMA busy_timeout={_SQLITE_BUSY_TIMEOUT_MS}")
+            self._configure_journal_mode(c)
             c.execute("PRAGMA foreign_keys=ON")
             c.execute("PRAGMA synchronous=NORMAL")
             c.execute("PRAGMA cache_size=-16000")   # 16 MB page cache
@@ -253,6 +244,42 @@ class StudioDB:
         except Exception:
             c.close()
             raise
+
+    def _configure_journal_mode(self, conn: sqlite3.Connection) -> None:
+        """Configura il journal senza trasformare un lock temporaneo in 500."""
+
+        if _requires_delete_journal_for_mount(self.db_path):
+            try:
+                conn.execute("PRAGMA journal_mode=DELETE")
+            except sqlite3.OperationalError as exc:
+                if not (_is_locked_error(exc) or "unable to open database file" in str(exc).lower()):
+                    raise
+                logger.warning(
+                    "SQLite tenant %s: journal DELETE temporaneamente occupato, "
+                    "proseguo con la modalita' gia' attiva (%s)",
+                    self.db_path,
+                    exc,
+                )
+            return
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError as exc:
+            logger.warning(
+                "SQLite tenant %s: WAL non disponibile, fallback a modalita' DELETE (%s)",
+                self.db_path,
+                exc,
+            )
+            try:
+                conn.execute("PRAGMA journal_mode=DELETE")
+            except sqlite3.OperationalError as delete_exc:
+                if not _is_locked_error(delete_exc):
+                    raise
+                logger.warning(
+                    "SQLite tenant %s: fallback DELETE temporaneamente occupato, "
+                    "proseguo con la modalita' gia' attiva (%s)",
+                    self.db_path,
+                    delete_exc,
+                )
 
     def _connect_readonly_immutable(self) -> sqlite3.Connection:
         db_uri = f"file:{self.db_path.resolve().as_posix()}?mode=ro&immutable=1"
@@ -515,10 +542,11 @@ class StudioDB:
             Se True (default) cancella tutto e reinserisce (full-replace).
         """
         last_error: sqlite3.OperationalError | None = None
-        for attempt in range(5):
+        for attempt in range(_SQLITE_WRITE_ATTEMPTS):
             conn = self._conn_per_scrittura()
             began = False
             try:
+                conn.execute(f"PRAGMA busy_timeout={_SQLITE_BUSY_TIMEOUT_MS}")
                 conn.execute("PRAGMA foreign_keys=OFF")
                 conn.execute("BEGIN IMMEDIATE")
                 began = True
@@ -537,13 +565,21 @@ class StudioDB:
                         pass
                 if _is_readonly_write_error(exc):
                     self._close_thread_connection()
-                    if attempt < 4:
-                        time.sleep(0.2 * (attempt + 1))
+                    if attempt < _SQLITE_WRITE_ATTEMPTS - 1:
+                        time.sleep(min(0.35 * (attempt + 1), 2.0))
                         continue
-                if not _is_locked_error(exc) or attempt == 4:
+                if not _is_locked_error(exc) or attempt == _SQLITE_WRITE_ATTEMPTS - 1:
                     raise
                 self._close_thread_connection()
-                time.sleep(0.2 * (attempt + 1))
+                logger.warning(
+                    "SQLite tenant %s: tabella %s occupata, ritento (%s/%s): %s",
+                    self.db_path,
+                    table,
+                    attempt + 2,
+                    _SQLITE_WRITE_ATTEMPTS,
+                    exc,
+                )
+                time.sleep(min(0.35 * (attempt + 1), 2.0))
             except Exception:
                 if began:
                     try:

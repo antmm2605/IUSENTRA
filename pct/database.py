@@ -500,6 +500,7 @@ CREATE TABLE IF NOT EXISTS utenti (
     permessi_negati     TEXT DEFAULT '[]',
     creato_il           TEXT,
     ultimo_accesso      TEXT,
+    tenant_slug         TEXT DEFAULT '',
     dati_json           TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_utenti_ruolo     ON utenti(ruolo);
@@ -3298,8 +3299,9 @@ class GestioneDatabase:
                             INSERT OR REPLACE INTO utenti
                             (id, username, email, nome_completo, ruolo,
                              password_hash, attivo, must_change_password,
-                             permessi_extra, permessi_negati, creato_il, ultimo_accesso, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             permessi_extra, permessi_negati, creato_il, ultimo_accesso,
+                             tenant_slug, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             u.get("id"), u.get("username", ""),
                             u.get("email", ""), u.get("nome_completo", ""),
@@ -3309,6 +3311,7 @@ class GestioneDatabase:
                             json.dumps(u.get("permessi_extra", []), ensure_ascii=False),
                             json.dumps(u.get("permessi_negati", []), ensure_ascii=False),
                             u.get("creato_il", ""), u.get("ultimo_accesso", ""),
+                            str(u.get("tenant_slug") or "").strip().lower(),
                             json.dumps(u, ensure_ascii=False),
                         ))
                         u_count += 1

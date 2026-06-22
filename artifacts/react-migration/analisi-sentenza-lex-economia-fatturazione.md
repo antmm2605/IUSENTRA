@@ -179,6 +179,19 @@ Prova reale obbligatoria:
 - Test mirati, contratti API, build Vite e prova reale locale Docker/browser sono registrati in `pytest-confirmed-ok.md` e nel report dedicato `artifacts/react-migration/prova-reale-sentenza-lex-economia-fatturazione-2.253.86.md`.
 - Aggiunta protezione anti-duplicato per il backfill/server: nello stesso fascicolo una sentenza già riconosciuta con stessa data, numero sentenza e RG riusa la proforma Lex AI esistente invece di crearne una seconda.
 
+## Backfill globale 2.253.89
+
+- Corretto il perimetro dell'incarico: la matrice dati non deve essere applicata a un fascicolo dimostrativo o a un singolo caso noto, ma a tutti i fascicoli reali che hanno documenti AI già estratti e riconoscibili come sentenza.
+- Aggiunto `scripts/backfill_sentenza_lex_economics.py` con due modalità operative:
+  - dry-run: legge tutti gli `extracted_text.json` tenant-aware, riconosce le sentenze, indica fascicolo trovato/non trovato e non scrive dati;
+  - apply: applica la matrice al fascicolo, crea/riusa la proforma, aggiorna `contributo_unificato`, `fondo_spese`, `liquidazione_giudice`, `parcella`, stato, data sentenza e alimenta Lex AI nel DB vettoriale.
+- Il report del backfill espone `documents_seen`, `sentenze_found`, `fascicoli_found`, `applied`, `vector_indexed`, `skipped_missing_fascicolo`, errori e conteggi unici (`unique_sentenze`, `unique_fascicoli_found`, `unique_fascicoli_applied`, `unique_missing_fascicoli`), così il test non può limitarsi a un caso hardcoded o a duplicati dello stesso fascicolo.
+- Dry-run locale del 22/06/2026 su `tenant-8bf98719c459`: letti `666` testi estratti, riconosciuti `12` documenti sentenza, `3` sentenze uniche, `1` fascicolo corrente collegato, `2` fascicoli storici non presenti nel repository locale e zero errori; report JSON in `artifacts/react-migration/backfill-sentenza-local-dry-run-2.253.89.json`.
+- Test automatico esteso: `tests/test_backfill_sentenza_lex_economics.py` copre due fascicoli distinti e un duplicato della stessa sentenza nello stesso fascicolo, verificando che il backfill copra tutti i fascicoli eleggibili e non generi una seconda proforma per il duplicato.
+- Per il difetto segnalato su `Salva modifiche` fascicolo `DD242366`, `StudioDB` è stato rafforzato sui lock SQLite dei bind mount Windows/Docker e la rotta React di modifica fascicolo risponde con JSON leggibile invece di restituire una pagina HTML 500.
+- Prova reale locale del 22/06/2026 su `http://127.0.0.1:8080/fascicoli/DD242366/modifica`: Chrome installato visibile, form popolato dopo il caricamento async, hover/focus su `Salva modifiche`, POST JSON 200 in 1,883s, redirect a `/fascicoli/DD242366`, dettaglio completo caricato, mobile `390x844` senza warning console. Fix React aggiuntivo: i campi `type=date` normalizzano solo valori ISO/italiani e non passano più `n.d.` all'input HTML.
+- Prima della chiusura resta obbligatorio eseguire il dry-run e l'apply sul server reale, senza creare nuovi backup come richiesto dall'utente, e poi fare il test visivo end-to-end su più fascicoli reali fino a proforma/parcella.
+
 ## Correzione RG sentenza 2.253.87
 
 - Durante il dry-run di produzione sui documenti `extracted_text.json` del server Hetzner è emerso che alcune sentenze contengono nel corpo riferimenti a vecchi `RG n.` prima dell'intestazione ministeriale della sentenza.

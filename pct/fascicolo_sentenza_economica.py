@@ -41,6 +41,10 @@ _FONDO_PATTERNS = (
     re.compile(r"\bfondi\s+spese\b", re.IGNORECASE),
     re.compile(r"\bspese\s+anticipate\b", re.IGNORECASE),
 )
+_OFFICIAL_HEADER_SIGNAL_RE = re.compile(
+    r"\b(?:Firmato\s+Da|Emesso\s+Da|Repert\.\s*n\.|Sentenza\s+n\.\s+cronol\.|Serial#)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(slots=True)
@@ -90,10 +94,16 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
     has_sentence_signal = bool(date_match) or "sentenza" in meta_text
     has_tribunal_signal = "tribunale" in compact.casefold() or "tribunale" in meta_text
     has_document_type_signal = any(token in meta_text for token in ("sentenza", "provvedimento"))
+    header_window = compact[max(0, date_match.start() - 220) : min(len(compact), date_match.end() + 320)] if date_match else ""
+    has_official_header_signal = bool(
+        date_match
+        and _RG_RE.search(compact[date_match.end() : min(len(compact), date_match.end() + 260)])
+        and _OFFICIAL_HEADER_SIGNAL_RE.search(header_window)
+    )
 
     if not date_match or not has_sentence_signal:
         return SentenzaEconomicaExtraction(found=False)
-    if not (has_tribunal_signal or has_document_type_signal):
+    if not (has_tribunal_signal or has_document_type_signal or has_official_header_signal):
         return SentenzaEconomicaExtraction(found=False, warnings=["Documento con intestazione sentenza, ma senza classificazione Tribunale."])
 
     sentence_date = _parse_italian_date(date_match.group("date"))
@@ -394,7 +404,7 @@ def _extract_amount_near(text: str, patterns: tuple[re.Pattern[str], ...], *, wi
 
 
 def _document_key(metadata: dict[str, Any]) -> str:
-    for key in ("document_id", "documento_id", "source_id", "sha256", "filename"):
+    for key in ("sentenza_key", "document_id", "documento_id", "source_id", "sha256", "filename"):
         value = _text(metadata.get(key))
         if value:
             return f"{key}:{value}"

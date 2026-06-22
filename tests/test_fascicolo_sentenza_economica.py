@@ -88,6 +88,35 @@ def test_estrazione_rg_preferisce_intestazione_sentenza():
     assert extraction.rg_year == "2023"
 
 
+def test_estrazione_sentenza_ufficiale_senza_parola_tribunale():
+    text = """
+    Firmato Da: CARUSO GIUSEPPE Emesso Da: TRUSTPRO QUALIFIED CA Serial#: 123
+    Sentenza n. 376/2026 pubbl. il 13/05/2026
+    RG n. 2962/2023
+    Sentenza n. cronol. 2516/2026 del 13/05/2026
+    P.Q.M. condanna la resistente liquidando la complessiva somma di € 500,00.
+    """
+
+    extraction = analyze_sentenza_tribunale_text(text, {})
+
+    assert extraction.found is True
+    assert extraction.sentence_number == "376"
+    assert extraction.sentence_date == "2026-05-13"
+    assert extraction.rg_number == "2962"
+
+
+def test_estrazione_non_scambia_citazione_cassazione_per_sentenza_fascicolo():
+    text = """
+    Atto di diffida in riferimento alla sentenza n. 16715/2024 della Corte Suprema
+    di Cassazione Sezione Lavoro, pubblicata il 17/06/2024.
+    La parte chiede il riconoscimento delle somme dovute.
+    """
+
+    extraction = analyze_sentenza_tribunale_text(text, {})
+
+    assert extraction.found is False
+
+
 def test_applicazione_sentenza_aggiorna_fascicolo_e_crea_una_sola_proforma(tmp_path: Path):
     fascicoli = FakeFascicoliRepository()
     fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))

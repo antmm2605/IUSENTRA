@@ -60,6 +60,18 @@ class BackfillDocumentResult:
         return asdict(self)
 
 
+@dataclass(slots=True)
+class BackfillCandidate:
+    path: Path
+    text: str
+    metadata: dict[str, Any]
+    extraction: SentenzaEconomicaExtraction
+    result: BackfillDocumentResult
+    sentenza_key: str
+    fascicolo_key: str
+    score: int
+
+
 def _now_rome() -> str:
     return datetime.now(ROME).replace(microsecond=0).isoformat()
 
@@ -131,11 +143,27 @@ def _iter_extracted_texts(tenant_root: Path) -> list[Path]:
 
 
 def _document_key(metadata: dict[str, Any]) -> str:
-    for key in ("document_id", "documento_id", "source_id", "sha256", "filename"):
+    for key in ("sentenza_key", "document_id", "documento_id", "source_id", "sha256", "filename"):
         value = _text(metadata.get(key))
         if value:
             return f"{key}:{value}"
     return ""
+
+
+def _candidate_score(extraction: SentenzaEconomicaExtraction, text: str) -> int:
+    score = 0
+    if extraction.liquidazione_importo is not None:
+        score += 100
+    if extraction.contributo_unificato_importo is not None:
+        score += 40
+    if extraction.fondo_spese_importo is not None:
+        score += 30
+    if extraction.spese_generali:
+        score += 10
+    if extraction.antistatario:
+        score += 5
+    score += min(20, len(str(text or "")) // 5000)
+    return score
 
 
 def _rg_label(extraction: SentenzaEconomicaExtraction) -> str:
@@ -191,7 +219,7 @@ def _vector_text(
         extraction.liquidazione_titolo or "n.d.",
         "",
         "Testo sentenza:",
-        str(text or "")[:200000],
+        str(text or "")[:80000],
     ]
     return "\n".join(str(row) for row in rows)
 
@@ -243,6 +271,8 @@ def _feed_vector_index(
     text: str,
     metadata: dict[str, Any],
     outcome: SentenzaAutomationOutcome,
+    embed_batch_size: int = 64,
+    embed_max_batches: int = 3,
 ) -> dict[str, Any]:
     document_key = _document_key(metadata)
     fascicolo = fascicoli.get(fascicolo_id)
@@ -283,7 +313,11 @@ def _feed_vector_index(
         document_id = _text(indexed.get("document_id"))
         if document_id:
             try:
-                embedding = service.embed_all_pending_chunks(document_id=document_id, batch_size=100, max_batches=20)
+                embedding = service.embed_all_pending_chunks(
+                    document_id=document_id,
+                    batch_size=max(1, embed_batch_size),
+                    max_batches=max(1, embed_max_batches),
+                )
             except Exception as exc:
                 embedding = {"status": "error", "error": str(exc)}
         result = {
@@ -340,11 +374,14 @@ def run_backfill(
     apply: bool = False,
     skip_lex: bool = False,
     limit: int = 0,
+    lex_embed_batch_size: int = 64,
+    lex_embed_max_batches: int = 3,
 ) -> dict[str, Any]:
     selected = tenants or set()
     unique_sentenze: set[str] = set()
     unique_fascicoli_found: set[str] = set()
     unique_fascicoli_applied: set[str] = set()
+    unique_fascicoli_confirmed: set[str] = set()
     unique_missing_fascicoli: set[str] = set()
     report: dict[str, Any] = {
         "ok": True,
@@ -359,11 +396,15 @@ def run_backfill(
             "sentenze_found": 0,
             "fascicoli_found": 0,
             "applied": 0,
+            "matrix_confirmed": 0,
             "vector_indexed": 0,
+            "vector_embedding_errors": 0,
             "skipped_missing_fascicolo": 0,
+            "duplicates_skipped": 0,
             "unique_sentenze": 0,
             "unique_fascicoli_found": 0,
             "unique_fascicoli_applied": 0,
+            "unique_fascicoli_confirmed": 0,
             "unique_missing_fascicoli": 0,
             "errors": 0,
         },
@@ -372,7 +413,10 @@ def run_backfill(
         tenant_unique_sentenze: set[str] = set()
         tenant_unique_fascicoli_found: set[str] = set()
         tenant_unique_fascicoli_applied: set[str] = set()
+        tenant_unique_fascicoli_confirmed: set[str] = set()
         tenant_unique_missing_fascicoli: set[str] = set()
+        tenant_duplicates_skipped = 0
+        tenant_matrix_confirmed = 0
         tenant_report: dict[str, Any] = {
             "tenant": tenant.tenant,
             "storage_key": tenant.storage_key,
@@ -382,6 +426,8 @@ def run_backfill(
         }
         fascicoli, fatturazione = _build_repositories(tenant)
         paths = _iter_extracted_texts(tenant.root)
+        candidates: list[BackfillCandidate] = []
+        best_by_sentenza_key: dict[str, BackfillCandidate] = {}
         for path in paths:
             if limit and report["totals"]["documents_seen"] >= limit:
                 break
@@ -402,6 +448,7 @@ def run_backfill(
                 fascicolo_key = f"{tenant.storage_key}:{fascicolo_id}"
                 unique_sentenze.add(sentenza_key)
                 tenant_unique_sentenze.add(sentenza_key)
+                metadata["sentenza_key"] = sentenza_key
                 result = BackfillDocumentResult(
                     tenant=tenant.storage_key,
                     fascicolo_id=fascicolo_id,
@@ -423,39 +470,20 @@ def run_backfill(
                 report["totals"]["fascicoli_found"] += 1
                 unique_fascicoli_found.add(fascicolo_key)
                 tenant_unique_fascicoli_found.add(fascicolo_key)
-                if apply:
-                    outcome = apply_sentenza_tribunale_automation(
-                        fascicoli_repository=fascicoli,
-                        fatturazione_repository=fatturazione,
-                        fascicolo_id=fascicolo_id,
-                        text=text,
-                        document_metadata=metadata,
-                        actor="Lex AI backfill",
-                    )
-                    result.applied = bool(outcome.applied)
-                    result.message = outcome.message
-                    result.proforma_id = outcome.proforma_id
-                    result.proforma_number = outcome.proforma_number
-                    result.extraction = outcome.extraction.to_dict()
-                    if outcome.applied:
-                        report["totals"]["applied"] += 1
-                        unique_fascicoli_applied.add(fascicolo_key)
-                        tenant_unique_fascicoli_applied.add(fascicolo_key)
-                    if not skip_lex and outcome.extraction.found:
-                        result.vector_index = _feed_vector_index(
-                            tenant=tenant,
-                            repo_root=repo_root,
-                            fascicoli=fascicoli,
-                            fascicolo_id=fascicolo_id,
-                            text=text,
-                            metadata=metadata,
-                            outcome=outcome,
-                        )
-                        if result.vector_index.get("ok"):
-                            report["totals"]["vector_indexed"] += 1
-                else:
-                    result.message = "Dry-run: sentenza riconosciuta, matrice applicabile."
-                tenant_report["documents"].append(result.to_dict())
+                candidate = BackfillCandidate(
+                    path=path,
+                    text=text,
+                    metadata=metadata,
+                    extraction=extraction,
+                    result=result,
+                    sentenza_key=sentenza_key,
+                    fascicolo_key=fascicolo_key,
+                    score=_candidate_score(extraction, text),
+                )
+                candidates.append(candidate)
+                current_best = best_by_sentenza_key.get(sentenza_key)
+                if current_best is None or candidate.score > current_best.score:
+                    best_by_sentenza_key[sentenza_key] = candidate
             except Exception as exc:
                 report["ok"] = False
                 report["totals"]["errors"] += 1
@@ -469,20 +497,74 @@ def run_backfill(
                         "message": f"Errore backfill: {type(exc).__name__}: {exc}",
                     }
                 )
+        for candidate in candidates:
+            result = candidate.result
+            if best_by_sentenza_key.get(candidate.sentenza_key) is not candidate:
+                result.message = "Duplicato della stessa sentenza: matrice già contabilizzata sul documento migliore."
+                result.warnings.append("duplicato_sentenza_saltato")
+                report["totals"]["duplicates_skipped"] += 1
+                tenant_duplicates_skipped += 1
+                tenant_report["documents"].append(result.to_dict())
+                continue
+            if apply:
+                outcome = apply_sentenza_tribunale_automation(
+                    fascicoli_repository=fascicoli,
+                    fatturazione_repository=fatturazione,
+                    fascicolo_id=candidate.result.fascicolo_id,
+                    text=candidate.text,
+                    document_metadata=candidate.metadata,
+                    actor="Lex AI backfill",
+                )
+                result.applied = bool(outcome.applied)
+                result.message = outcome.message
+                result.proforma_id = outcome.proforma_id
+                result.proforma_number = outcome.proforma_number
+                result.extraction = outcome.extraction.to_dict()
+                report["totals"]["matrix_confirmed"] += 1
+                tenant_matrix_confirmed += 1
+                unique_fascicoli_confirmed.add(candidate.fascicolo_key)
+                tenant_unique_fascicoli_confirmed.add(candidate.fascicolo_key)
+                if outcome.applied:
+                    report["totals"]["applied"] += 1
+                    unique_fascicoli_applied.add(candidate.fascicolo_key)
+                    tenant_unique_fascicoli_applied.add(candidate.fascicolo_key)
+                if not skip_lex and outcome.extraction.found:
+                    result.vector_index = _feed_vector_index(
+                        tenant=tenant,
+                        repo_root=repo_root,
+                        fascicoli=fascicoli,
+                        fascicolo_id=candidate.result.fascicolo_id,
+                        text=candidate.text,
+                        metadata=candidate.metadata,
+                        outcome=outcome,
+                        embed_batch_size=lex_embed_batch_size,
+                        embed_max_batches=lex_embed_max_batches,
+                    )
+                    if result.vector_index.get("ok"):
+                        report["totals"]["vector_indexed"] += 1
+                    if str((result.vector_index.get("embedding") or {}).get("status") or "") == "error":
+                        report["totals"]["vector_embedding_errors"] += 1
+            else:
+                result.message = "Dry-run: sentenza riconosciuta, matrice applicabile."
+            tenant_report["documents"].append(result.to_dict())
         tenant_report["summary"] = {
             "documents_reported": len(tenant_report["documents"]),
             "sentenze_found": sum(1 for item in tenant_report["documents"] if item.get("found")),
             "applied": sum(1 for item in tenant_report["documents"] if item.get("applied")),
+            "matrix_confirmed": tenant_matrix_confirmed,
             "missing_fascicolo": sum(1 for item in tenant_report["documents"] if item.get("found") and not item.get("fascicolo_found")),
+            "duplicates_skipped": tenant_duplicates_skipped,
             "unique_sentenze": len(tenant_unique_sentenze),
             "unique_fascicoli_found": len(tenant_unique_fascicoli_found),
             "unique_fascicoli_applied": len(tenant_unique_fascicoli_applied),
+            "unique_fascicoli_confirmed": len(tenant_unique_fascicoli_confirmed),
             "unique_missing_fascicoli": len(tenant_unique_missing_fascicoli),
         }
         report["tenants"].append(tenant_report)
     report["totals"]["unique_sentenze"] = len(unique_sentenze)
     report["totals"]["unique_fascicoli_found"] = len(unique_fascicoli_found)
     report["totals"]["unique_fascicoli_applied"] = len(unique_fascicoli_applied)
+    report["totals"]["unique_fascicoli_confirmed"] = len(unique_fascicoli_confirmed)
     report["totals"]["unique_missing_fascicoli"] = len(unique_missing_fascicoli)
     report["finished_at"] = _now_rome()
     return report
@@ -500,6 +582,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tenant", action="append", default=[], help="Tenant/storage_key da processare; ripetibile.")
     parser.add_argument("--apply", action="store_true", help="Applica realmente la matrice. Senza questo flag esegue solo dry-run.")
     parser.add_argument("--skip-lex", action="store_true", help="Non alimenta il DB vettoriale Lex AI durante --apply.")
+    parser.add_argument("--lex-embed-batch-size", type=int, default=64, help="Chunk Lex AI per batch embedding durante --apply.")
+    parser.add_argument("--lex-embed-max-batches", type=int, default=3, help="Numero massimo batch embedding per sentenza durante --apply.")
     parser.add_argument("--limit", type=int, default=0, help="Limite globale documenti letti, utile per diagnosi mirate.")
     parser.add_argument("--report", default="", help="Percorso file JSON report.")
     args = parser.parse_args(argv)
@@ -515,6 +599,8 @@ def main(argv: list[str] | None = None) -> int:
         apply=bool(args.apply),
         skip_lex=bool(args.skip_lex),
         limit=max(0, int(args.limit or 0)),
+        lex_embed_batch_size=max(1, int(args.lex_embed_batch_size or 64)),
+        lex_embed_max_batches=max(1, int(args.lex_embed_max_batches or 3)),
     )
     if args.report:
         _write_report(Path(args.report), report)

@@ -148,7 +148,10 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
     assert dry_run["totals"]["sentenze_found"] == 3
     assert dry_run["totals"]["unique_fascicoli_found"] == 2
     assert dry_run["totals"]["unique_sentenze"] == 2
+    assert dry_run["totals"]["duplicates_skipped"] == 1
     assert dry_run["totals"]["applied"] == 0
+    assert applied["totals"]["matrix_confirmed"] == 2
+    assert applied["totals"]["duplicates_skipped"] == 1
     assert applied["totals"]["unique_fascicoli_applied"] == 2
     fascicoli = json.loads((tenant_root / "fascicoli" / "fascicoli.json").read_text(encoding="utf-8"))
     aggiornato = fascicoli["FASC-1"]

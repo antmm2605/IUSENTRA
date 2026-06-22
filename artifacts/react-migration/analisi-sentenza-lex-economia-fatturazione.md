@@ -1,6 +1,6 @@
 # Analisi operativa: Sentenza Lex AI, fascicolo, economia e fatturazione
 
-Ultimo aggiornamento: 2026-06-20.
+Ultimo aggiornamento: 2026-06-22.
 
 ## Regola di rilettura
 
@@ -178,6 +178,16 @@ Prova reale obbligatoria:
 - Implementato recupero delle sentenze già applicate prima dell'estensione vettoriale: se manca `vector_indexes`, Lex AI viene alimentato una sola volta senza riscrivere la matrice economica.
 - Test mirati, contratti API, build Vite e prova reale locale Docker/browser sono registrati in `pytest-confirmed-ok.md` e nel report dedicato `artifacts/react-migration/prova-reale-sentenza-lex-economia-fatturazione-2.253.86.md`.
 - Aggiunta protezione anti-duplicato per il backfill/server: nello stesso fascicolo una sentenza già riconosciuta con stessa data, numero sentenza e RG riusa la proforma Lex AI esistente invece di crearne una seconda.
+
+## Backfill globale 2.253.90
+
+- Dopo la segnalazione dell'utente è stato rieseguito un controllo allargato sul server reale: il perimetro dati contiene `331` fascicoli totali, `4237` testi `extracted_text.json`, `4200` testi non vuoti, `1321` occorrenze della parola `sentenza`, `622` testi con `Sentenza n.`, `110` testi con intestazione `Sentenza n. ... pubbl.` e `106` documenti riconosciuti dalla regola precedente.
+- Il numero operativo non coincide con le occorrenze testuali: molte citazioni di sentenze sono dentro atti, diffide o memorie e non devono aggiornare economia, stato fascicolo o proforma. Il backfill deve quindi distinguere documento-sentenza ufficiale, duplicato della stessa sentenza e citazione interna.
+- Il parser è stato esteso per riconoscere una sentenza ufficiale anche senza la parola `Tribunale`, quando vicino all'intestazione ci sono RG e segnali ministeriali come `Firmato Da`, `Emesso Da`, `Serial#`, repertorio o cronologico. Il test negativo su citazione Cassazione presidia il falso positivo opposto.
+- Il backfill ora raggruppa per chiave stabile `tenant:fascicolo:data_sentenza:numero_sentenza:RG`, sceglie il documento migliore quando la stessa sentenza è presente più volte, scarta i duplicati con warning esplicito e usa `sentenza_key` anche per l'idempotenza della proforma e dell'indice Lex AI.
+- Il report espone anche `matrix_confirmed`, `duplicates_skipped`, `vector_embedding_errors` e `unique_fascicoli_confirmed`, così una riesecuzione dopo un apply parziale distingue i fascicoli già corretti da quelli ancora da aggiornare.
+- Il primo apply server precedente è stato interrotto perché la vecchia logica indicizzava troppi duplicati Lex AI; ha lasciato dati parziali reali su `10` fascicoli e `4` proforme Lex. La nuova riesecuzione deve completare il perimetro restante in modo idempotente e con embedding limitati per batch.
+- Restano obbligatori prima della chiusura: rebuild locale `127.0.0.1:8080`, dry-run server con codice 2.253.90, apply server senza backup, verifica dei conteggi SQL/Lex/proforme e prova visiva della matrice fino alla proforma/parcella.
 
 ## Backfill globale 2.253.89
 

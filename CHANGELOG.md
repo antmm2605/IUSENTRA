@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.90 - 2026-06-22
+
+- Sentenze Lex AI: esteso il riconoscimento alle sentenze ufficiali con intestazione ministeriale, RG vicino e segnali di firma/cronologico anche quando il testo estratto non contiene esplicitamente la parola `Tribunale`.
+- Sentenze Lex AI: il parser scarta le citazioni interne di sentenze, per esempio riferimenti a Cassazione dentro atti o diffide, evitando aggiornamenti economici e proforme su documenti non qualificati.
+- Backfill globale: audit server allargato a tutto il perimetro dati (`331` fascicoli, `4237` testi estratti, `110` documenti con intestazione `Sentenza n. ... pubbl.`), con distinzione tra documenti ufficiali, duplicati e citazioni.
+- Backfill globale: deduplica per chiave sentenza/fascicolo, scelta del documento migliore quando esistono copie multiple della stessa sentenza, conteggio `matrix_confirmed` anche per fascicoli già aggiornati e limite controllato degli embedding Lex AI per evitare job lunghi.
+- Anti-regressione: aggiunti test mirati per sentenza ufficiale senza parola `Tribunale`, falsa citazione di Cassazione e duplicati della stessa sentenza nello stesso fascicolo.
+
 ## 2.253.89 - 2026-06-22
 
 - Sentenze Lex AI: aggiunto lo script tenant-aware `scripts/backfill_sentenza_lex_economics.py` per scansionare tutti i documenti AI già estratti, riconoscere tutte le sentenze applicabili e applicare la matrice dati a ogni fascicolo reale collegato, con report dry-run/apply.

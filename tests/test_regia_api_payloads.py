@@ -9,6 +9,44 @@ from web.app import create_app
 from web.services.storage_runtime import resolve_storage_runtime
 
 
+def _cades_signed_payload(documento: bytes) -> bytes:
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.firma_pkcs11 import _build_cades_bes, FirmaPKCS11
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Test CAdES")])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(issuer)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+        .sign(key, hashes.SHA256())
+    )
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(documento)
+    signed_attrs_der = FirmaPKCS11._build_signed_attrs(
+        object.__new__(FirmaPKCS11),
+        digest.finalize(),
+    )
+    signature = key.sign(signed_attrs_der, padding.PKCS1v15(), hashes.SHA256())
+    return _build_cades_bes(
+        documento=documento,
+        signature_bytes=signature,
+        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        signed_attrs_der=signed_attrs_der,
+        detached=False,
+    )
+
+
 def _app_with_fascicolo(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
     app.config["API_KEY"] = "regia-test-key"
@@ -313,3 +351,34 @@ def test_api_fascicolo_mostra_p7m_solo_con_firma_reale(tmp_path):
     assert documents[pades.id]["name"] == "Memoria autorizzata.PDF"
     assert documents[pades.id]["signed"] is True
     assert documents[pades.id]["statusLabel"] == "Firmato"
+
+
+def test_api_fascicolo_verifica_p7m_cifrato_a_riposo(tmp_path, monkeypatch):
+    monkeypatch.setenv("PCT_DOC_KEY", "regia-encrypted-cades-test")
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    signed_payload = _cades_signed_payload(pdfa_bytes())
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "Ricorso.pdf.p7m",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        signed_payload,
+        firmato=True,
+    )
+    from web.services.document_crypto import encrypt_doc
+
+    encrypted_payload = encrypt_doc(signed_payload)
+    path = gf.percorso_documento(fascicolo.id, doc.id)
+    path.write_bytes(encrypted_payload)
+    doc.dimensione_bytes = len(encrypted_payload)
+    gf._salva()
+
+    client = app.test_client()
+    response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all",
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    documents = {item["id"]: item for item in response.get_json()["documents"]}
+    assert documents[doc.id]["signed"] is True
+    assert documents[doc.id]["statusLabel"] == "Firmato"

@@ -5610,12 +5610,7 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         return jsonify({"errore": "Nessun documento indicato.", "mock_fallback": False}), 400
 
     documents_by_id = {str(getattr(doc, "id", "") or ""): doc for doc in getattr(ctx["fascicolo"], "documenti", []) or []}
-    if ctx["profile"] is None:
-        return jsonify({
-            "errore": "Profilo pratica non determinato: controlla canale deposito, registro e ufficio giudiziario prima della prova.",
-            "mock_fallback": False,
-        }), 400
-    slots = ctx["repo"].ensure_slots(id_fasc, ctx["profile"])
+    slots = ctx["repo"].ensure_slots(id_fasc, ctx["profile"]) if ctx["profile"] is not None else []
     linked_slots: list[str] = []
     updated_documents: list[dict[str, Any]] = []
     document_deposit_updates: list[dict[str, Any]] = []
@@ -5662,16 +5657,17 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
     if document_deposit_updates:
         ctx["gf"].aggiorna_documenti_deposito(id_fasc, document_deposit_updates)
 
-    run_predeposit_check(
-        ctx["repo"],
-        fascicolo=ctx["fascicolo"],
-        cliente=ctx["cliente"],
-        preventivo=ctx["preventivi"][0] if ctx["preventivi"] else None,
-        conferimento=ctx["conferimenti"][0] if ctx["conferimenti"] else None,
-        parcelle=ctx["parcelle"],
-        fascicoli_manager=ctx["gf"],
-        profile=ctx["profile"],
-    )
+    if ctx["profile"] is not None:
+        run_predeposit_check(
+            ctx["repo"],
+            fascicolo=ctx["fascicolo"],
+            cliente=ctx["cliente"],
+            preventivo=ctx["preventivi"][0] if ctx["preventivi"] else None,
+            conferimento=ctx["conferimenti"][0] if ctx["conferimenti"] else None,
+            parcelle=ctx["parcelle"],
+            fascicoli_manager=ctx["gf"],
+            profile=ctx["profile"],
+        )
     regia = build_regia_payload(
         ctx["repo"],
         fascicolo=ctx["fascicolo"],

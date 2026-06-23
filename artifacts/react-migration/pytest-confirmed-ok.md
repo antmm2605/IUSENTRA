@@ -5538,3 +5538,11 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests/test_regia_ui_react.py -q --tb=short` | OK | 5/5 passati: la regola di firma non usa più `doc.statusLabel`; `Da firmare`, `Non firmato` e `Senza firma` non diventano obbligo; la UI riusa `pin_session_id` per `DatiAtto.xml` dopo firma multipla. |
 | `python -m pytest tests/test_busta.py tests/test_deposito.py -q --tb=short -k "dati_atto or DatiAtto or busta_reale_usa_dati_atto_firmato or invia_pec_simula or local_pec or atto_enc or IndiceBusta"` | OK | 6/6 passati: simulazione PEC e busta ministeriale continuano a richiedere `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `IndiceDocumentiDepositati.PDF` e `Atto.enc` CMS/AES256. |
 | `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite completati dopo la correzione React. |
+
+## Deposito firma CAdES cifrata a riposo 2.253.99 - 2026-06-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_regia_api_payloads.py -q --tb=short` | OK | 8/8 passati: la API React riconosce un `.p7m` CAdES reale anche quando il file è salvato cifrato a riposo e decifrato prima della verifica. |
+| `python -m pytest tests/test_deposito.py tests/test_busta.py -q --tb=short -k "dati_atto or DatiAtto or busta_reale_usa_dati_atto_firmato or invia_pec_simula or local_pec or atto_enc or IndiceBusta"` | OK | 6/6 passati: la correzione firma non indebolisce DatiAtto, IndiceBusta, Atto.enc CMS/AES256, simulazione PEC e invio sempre dal PC locale. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata dopo il fix di validazione firma su documenti cifrati a riposo. |

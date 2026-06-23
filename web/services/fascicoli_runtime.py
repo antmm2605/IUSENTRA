@@ -33,6 +33,7 @@ from pct.pst_servizi_catalogo import (
 from pct.document_signature_state import (
     document_bytes_have_real_digital_signature,
     document_has_real_digital_signature,
+    document_has_signed_container,
 )
 from pct.reginde import ClientReGINde
 
@@ -54,14 +55,28 @@ def build_fascicoli_runtime(
     _decrypt_doc = decrypt_doc
     _sync = SimpleNamespace(pubblica=sync_pubblica)
     def _documento_firmato_reale(gf: GestioneFascicoli, fasc: Fascicolo, doc: Documento, percorso: Path) -> bool:
-        if document_has_real_digital_signature(doc):
-            return True
         try:
-            data = percorso.read_bytes()
+            data = _decrypt_doc(percorso.read_bytes())
         except OSError:
+            return document_has_real_digital_signature(doc) and not document_has_signed_container(
+                doc,
+                doc.nome,
+                doc.nome_originale,
+                doc.nome_portale,
+                str(percorso),
+            )
+        except Exception:
             return False
-        return document_bytes_have_real_digital_signature(
+        if document_bytes_have_real_digital_signature(
             data,
+            doc.nome,
+            doc.nome_originale,
+            doc.nome_portale,
+            str(percorso),
+        ):
+            return True
+        return document_has_real_digital_signature(doc) and not document_has_signed_container(
+            doc,
             doc.nome,
             doc.nome_originale,
             doc.nome_portale,

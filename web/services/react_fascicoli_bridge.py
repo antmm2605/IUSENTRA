@@ -2828,20 +2828,32 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
         return (field, text) if text else None
 
     def _real_signature(doc: Any, *display_names: Any) -> bool:
-        if document_has_real_digital_signature(doc):
-            return True
         if gestore_fascicoli is None or not fid or not _text(getattr(doc, "id", "")):
-            return False
+            return document_has_real_digital_signature(doc) and not document_has_signed_container(doc, *display_names)
         try:
             if hasattr(gestore_fascicoli, "percorso_documento_lettura"):
                 path = gestore_fascicoli.percorso_documento_lettura(fid, _text(getattr(doc, "id", "")))
             else:
                 path = gestore_fascicoli.percorso_documento(fid, _text(getattr(doc, "id", "")))
-            data = Path(path).read_bytes()
+            raw_data = Path(path).read_bytes()
+            from web.services.document_crypto import decrypt_doc
+
+            data = decrypt_doc(raw_data)
+        except OSError:
+            return document_has_real_digital_signature(doc) and not document_has_signed_container(doc, *display_names)
         except Exception:
             return False
-        return document_bytes_have_real_digital_signature(
+        if document_bytes_have_real_digital_signature(
             data,
+            *display_names,
+            getattr(doc, "nome", ""),
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome_portale", ""),
+            str(path),
+        ):
+            return True
+        return document_has_real_digital_signature(doc) and not document_has_signed_container(
+            doc,
             *display_names,
             getattr(doc, "nome", ""),
             getattr(doc, "nome_originale", ""),

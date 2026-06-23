@@ -2169,3 +2169,25 @@ Stato tecnico prima del deploy:
 - build React `pnpm --filter @iusentra/studio build` completata;
 - versione portata a `2.253.98`;
 - prova visiva server richiesta dall'utente da eseguire dopo deploy su `https://app.iusentra.it/fascicoli/F08F92A2/deposito/prepara`.
+
+## Deposito firma CAdES su documenti cifrati a riposo 2.253.99 - 2026-06-23
+
+Difetto reale visto in produzione dopo il deploy `2.253.98`: sul fascicolo `F08F92A2` (`Marchetti Lucia`, Tribunale di Vicenza) la pagina React mostrava correttamente `Ricorso.pdf.p7m` come firmato, ma il click reale su `Simula invio PEC` bloccava la busta con `Atto principale non firmato digitalmente`.
+
+Causa tecnica verificata: sul server i documenti del fascicolo sono cifrati a riposo con intestazione `PCTENC`. Il validator della simulazione e il payload React leggevano direttamente i byte cifrati invece del contenuto decifrato; quindi un contenitore CAdES valido veniva bocciato come non firmato. La verifica manuale sul server ha confermato che, dopo `decrypt_doc`, `Ricorso.pdf.p7m` è un PKCS#7/CAdES valido.
+
+Decisioni operative applicate:
+
+- la validazione firma del deposito decifra sempre i byte del documento prima di verificare CAdES/PAdES;
+- il payload React dei documenti usa la stessa prova tecnica, così `Firmato` e il blocco busta leggono la stessa verità;
+- i metadati storici non possono far passare un `.p7m` se il contenitore CAdES reale non è verificabile;
+- per PAdES o metadati tecnici non-container resta ammesso il fallback governato già previsto;
+- la route di classificazione deposito salva le scelte anche quando il profilo pratica deve ancora essere confermato, senza perdere la proposta busta.
+
+Stato tecnico prima del deploy:
+
+- test mirato aggiunto per `.p7m` CAdES salvato cifrato a riposo e poi letto dalla API React;
+- test deposito/busta mirati confermati verdi;
+- build React confermata;
+- versione portata a `2.253.99`;
+- prova visiva produzione da ripetere dopo deploy sullo stesso fascicolo `F08F92A2`, verificando che `Simula invio PEC` non mostri più `Atto principale non firmato digitalmente`.

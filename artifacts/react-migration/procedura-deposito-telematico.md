@@ -2148,3 +2148,24 @@ Prova reale produzione eseguita quindi su `https://app.iusentra.it/fascicoli/F08
 - dopo la simulazione `Invia deposito reale` è attivo;
 - click reale su `Invia deposito reale` e conferma: il flusso arriva a `Invia dal PC locale` / password PEC locale, con `Atto.enc` nel payload locale e senza errore `Allegato Atto.enc non e' base64 valido`;
 - prova annullata senza inserire password PEC: nessuna PEC reale inviata.
+
+## Deposito firma selettiva e Simula PEC ministeriale 2.253.98 - 2026-06-23
+
+Difetto reale corretto: la UI React del deposito poteva trasformare il vecchio `statusLabel` descrittivo del documento, per esempio `Da firmare`, in obbligo di firma nella busta. Questo poteva far apparire tutti gli allegati come documenti da firmare, allontanando il flusso dal problema reale segnalato dal PST (`Codice esito -1`, `Indice busta non trovato`).
+
+Decisioni operative applicate:
+
+- l'obbligo di firma deriva solo da ruolo ministeriale selezionato (`Atto principale`, `Procura alle liti`) o da richiesta esplicita di firma obbligatoria, non dal testo storico `Da firmare`, `Non firmato` o `Senza firma`;
+- i file già in contenitore CAdES/PKCS#7 (`.p7m`, `.sig`, `.pkcs7`) non vengono rifirmati e possono mostrare `Firmato` solo se il backend ha prova tecnica;
+- `Invia tutto` include i documenti in busta ma non imposta automaticamente la firma obbligatoria sugli allegati facoltativi;
+- il contatore `Firma software` mostra i soli documenti che saranno davvero firmati prima della busta, non tutti i candidati non firmati;
+- `DatiAtto.xml` viene presentato come metadato ministeriale della busta, non come allegato da scegliere; se la firma multipla ha già aperto una sessione PIN Local Signer, la firma tecnica di `DatiAtto.xml` riusa `pin_session_id`;
+- il riepilogo busta indica documento per documento se la firma è già presente, obbligatoria, richiesta o non necessaria;
+- il pulsante `Simula invio PEC` resta il controllo di confezionamento ministeriale: prima della PEC verifica `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `IndiceDocumentiDepositati.PDF`, `Atto.enc` CMS/PKCS#7 `EnvelopedData` AES256, PEC destinatario, oggetto, corpo PEC e piano ricevute, senza invio SMTP reale.
+
+Stato tecnico prima del deploy:
+
+- test mirati React deposito e busta PCT aggiornati e verdi;
+- build React `pnpm --filter @iusentra/studio build` completata;
+- versione portata a `2.253.98`;
+- prova visiva server richiesta dall'utente da eseguire dopo deploy su `https://app.iusentra.it/fascicoli/F08F92A2/deposito/prepara`.

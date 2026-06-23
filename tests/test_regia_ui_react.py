@@ -94,7 +94,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Prova senza invio reale" in source
     assert "Simula invio PEC" in source
     assert "Invia deposito reale" in source
-    assert "comando finale" in source
+    assert "IUSENTRA firma solo quelli obbligatori o scelti" in source
     assert "function DepositBatchSignaturePanel" in source
     assert "localSignerEndpoint('/firma-batch')" in source
     assert "LOCAL_SIGNER_BATCH_TIMEOUT_MS = 45000" in source
@@ -138,8 +138,26 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "File .p7m presente: non viene rifirmato" not in deposit_page
     assert "function documentHasSignedContainerExtension" in source
     assert "function documentExplicitlyRequiresSignature" in source
+    signature_rule = source[
+        source.index("function documentExplicitlyRequiresSignature"):
+        source.index("function packageDocumentSignatureLabel")
+    ]
+    assert "doc.statusLabel" not in signature_rule
+    assert "da firmare" not in signature_rule.lower()
+    assert "non firmato" not in signature_rule.lower()
+    assert "senza firma" not in signature_rule.lower()
+    assert "documentHasSignedContainerExtension(doc)) return false" in signature_rule
     assert "documentExplicitlyRequiresSignature(doc)" in source
     assert "role === 'atto_principale' || role === 'procura' || documentExplicitlyRequiresSignature(doc)" in source
+    assert "type BatchSignatureResult" in source
+    assert "batchSignaturePinSessionRef" in source
+    assert "pin_session_id: reusablePinSessionId || undefined" in source
+    assert "const pinSessionId = recordText(payload, 'pin_session_id')" in source
+    assert "if (result?.pinSessionId) batchSignaturePinSessionRef.current = result.pinSessionId" in source
+    assert "const unsignedCandidateDocuments = unsignedPackageDocuments.length" in deposit_page
+    assert "depositCandidateDocuments.filter((doc) => !doc.signed && requiresPackageSignature(doc)).length" not in deposit_page
+    assert "metadato ministeriale della busta, non un allegato da scegliere" in deposit_page
+    assert "const signatureLabel = willSign ? 'Da firmare' : packageDocumentSignatureLabel(doc)" in deposit_page
     assert "already_signed: Boolean(doc.signed)" in deposit_page
     assert "doc?.name.toLowerCase().match(/\\.(p7m|sig|pkcs7)$/)" not in source
     assert "Report compatibilità" in deposit_page
@@ -168,6 +186,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "requiresLocalPec: Boolean(payload.requires_local_pec)" in deposit_page
     assert "localPec: payload.local_pec" in deposit_page
     assert "completeDepositLocalPec" in deposit_page
+    assert "l’avvocato completa solo il passaggio ministeriale" not in deposit_page
     assert "localSignerEndpoint('/pec/send')" in deposit_page
     assert "assertLocalPecAttoEncBase64(localPayload)" in deposit_page
     assert "function assertLocalPecAttoEncBase64" in source

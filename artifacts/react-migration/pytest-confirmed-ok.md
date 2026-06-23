@@ -5530,3 +5530,11 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | GitHub required checks sullo SHA `c77875f21d170fdd6ae896c7e9dcf851188a6584` | OK | `tools/check_github_required_gates.py --event push --wait --check-branch-protection` ha confermato Lint, Governance, Smoke, Frontend React, CodeQL, coverage/shard Pytest, Local Signer Windows/macOS/Linux e quality overlay verdi. |
 | Deploy Hetzner CPX42 `2.253.97` | OK | Server su commit `c77875f21d170fdd6ae896c7e9dcf851188a6584`, `/api/pronto` `ok=true`, container `app`, `scheduler-worker`, `ocr-worker` healthy, `docker builder prune --all --force` eseguito e `/opt/iusentra/tmp-backup-snapshot` assente. |
 | Produzione reale `https://app.iusentra.it/fascicoli/F08F92A2/deposito/prepara#generazione-busta` | OK osservato con blocco corretto | UI React caricata; visibili `Tribunale di Vicenza`, PEC verificata, `11` documenti in busta, `9` da firmare e `2` firmati. `Simula invio PEC` mostra `DatiAtto.xml.p7m`, `IndiceBusta.xml` e `Atto.enc`, poi blocca con `Local Signer non rilevato` / `Token non pronto per la firma`, senza password PEC e senza invio reale. |
+
+## Deposito firma selettiva e Simula PEC 2.253.98 - 2026-06-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_regia_ui_react.py -q --tb=short` | OK | 5/5 passati: la regola di firma non usa più `doc.statusLabel`; `Da firmare`, `Non firmato` e `Senza firma` non diventano obbligo; la UI riusa `pin_session_id` per `DatiAtto.xml` dopo firma multipla. |
+| `python -m pytest tests/test_busta.py tests/test_deposito.py -q --tb=short -k "dati_atto or DatiAtto or busta_reale_usa_dati_atto_firmato or invia_pec_simula or local_pec or atto_enc or IndiceBusta"` | OK | 6/6 passati: simulazione PEC e busta ministeriale continuano a richiedere `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `IndiceDocumentiDepositati.PDF` e `Atto.enc` CMS/AES256. |
+| `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite completati dopo la correzione React. |

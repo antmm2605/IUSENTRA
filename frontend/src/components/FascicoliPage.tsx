@@ -407,7 +407,8 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
 }
 
 type DepositActionPayload = Record<string, string | string[]>
-type BatchSignatureAction = () => Promise<void>
+type BatchSignatureResult = { pinSessionId?: string; pinSessionTtlSeconds?: number }
+type BatchSignatureAction = () => Promise<BatchSignatureResult | void>
 type LocalSignatureCompletion = { payload: ActionPayload; submittedPayload: DepositActionPayload }
 type DepositDocumentRole = 'atto_principale' | 'procura' | 'allegato_prova' | 'allegato' | 'prova_notifica' | 'fuori_busta'
 
@@ -2854,6 +2855,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const [localSignaturePin, setLocalSignaturePin] = useState('')
   const [localSignaturePinError, setLocalSignaturePinError] = useState('')
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
+  const batchSignaturePinSessionRef = useRef('')
 
   const refreshDetail = (message?: string) => {
     if (message) {
@@ -2917,7 +2919,6 @@ function DepositPreparePage({ id }:{id:string}) {
   const portalCatalog = buildPortalCatalogRows(data)
   const depositCandidateDocuments = data.documents.filter(isDepositCandidateDocument)
   const signedCandidateDocuments = depositCandidateDocuments.filter((doc) => doc.signed).length
-  const unsignedCandidateDocuments = depositCandidateDocuments.filter((doc) => !doc.signed && requiresPackageSignature(doc)).length
   const communicationDocuments = data.documents.filter(isCommunicationDocument)
   const documentsToClassify = data.documents.filter((doc) => documentOperationalRole(doc).label === 'Da classificare')
   const mainActs = depositCandidateDocuments.filter((doc) => {
@@ -3046,6 +3047,7 @@ function DepositPreparePage({ id }:{id:string}) {
     const requested = mandatory || Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature)
     return !doc.signed && requested && requiresPackageSignature(doc)
   })
+  const unsignedCandidateDocuments = unsignedPackageDocuments.length
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
   const missingRequiredSlots = sortedSlots.filter((slot) => recordBool(slot, 'required') && !depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument, effectiveDepositClassificationById))
   const officeRecipientRequired = directPecReady || guidedCompletion || pecWorkflowAvailable
@@ -3104,8 +3106,9 @@ function DepositPreparePage({ id }:{id:string}) {
     }) : signerStatus
     const windowsCertificate = localSignerWindowsCertificate(signerStatus)
     const token = Array.isArray(signerStatus?.token) ? signerStatus?.token?.[0] : undefined
-    const pin = await requestLocalSignaturePin(localSignature)
-    if (!pin.trim()) {
+    const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
+    const pin = reusablePinSessionId ? '' : await requestLocalSignaturePin(localSignature)
+    if (!reusablePinSessionId && !pin.trim()) {
       throw new Error('PIN firma mancante. Inseriscilo per firmare DatiAtto.xml e proseguire.')
     }
     const signatureResponse = await fetch(endpoint, {
@@ -3113,7 +3116,8 @@ function DepositPreparePage({ id }:{id:string}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...signPayload,
-        pin: pin.trim(),
+        pin: reusablePinSessionId ? '' : pin.trim(),
+        pin_session_id: reusablePinSessionId || undefined,
         slot_id: token?.slot_id,
         cert_thumbprint: windowsCertificate?.thumbprint,
         visible_signature_mode: 'nessuna',
@@ -3125,6 +3129,8 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!signatureResponse.ok || signaturePayload.ok === false || !signedB64) {
       throw new Error(recordText(signaturePayload, 'errore', recordText(signaturePayload, 'messaggio', 'Firma DatiAtto.xml non completata dal Local Signer.')))
     }
+    const nextPinSessionId = recordText(signaturePayload, 'pin_session_id', reusablePinSessionId)
+    if (nextPinSessionId) batchSignaturePinSessionRef.current = nextPinSessionId
     const nextSubmittedPayload: DepositActionPayload = {
       ...submittedPayload,
       busta_id: recordText(payload, 'busta_id', recordText(localSignature, 'busta_id')),
@@ -3210,7 +3216,8 @@ function DepositPreparePage({ id }:{id:string}) {
       throw signatureInputRequired('Inserisci il PIN nel riquadro firma di questa fase. Il software firmerà i documenti e poi genererà la busta.')
     }
     try {
-      await batchSignatureActionRef.current()
+      const result = await batchSignatureActionRef.current()
+      if (result?.pinSessionId) batchSignaturePinSessionRef.current = result.pinSessionId
     } catch (err) {
       setActiveDepositPanel('generazione-busta')
       window.location.hash = 'generazione-busta'
@@ -3237,7 +3244,7 @@ function DepositPreparePage({ id }:{id:string}) {
         selected: true,
         role,
         alreadySigned: current[doc.id]?.alreadySigned ?? doc.signed,
-        requiresSignature: current[doc.id]?.requiresSignature ?? defaultSignatureRequiredForDepositRole(doc, role),
+        requiresSignature: defaultSignatureRequiredForDepositRole(doc, role),
       }]
     })))
   }
@@ -3476,7 +3483,7 @@ function DepositPreparePage({ id }:{id:string}) {
       href: '#firma-busta',
       index: '3',
       title: 'Firma',
-      state: signatureBatchRequired ? 'Firma nel comando' : 'Firme coerenti',
+      state: signatureBatchRequired ? 'Firma software' : 'Firme coerenti',
       detail: unsignedPackageDocuments.length === 1 ? '1 documento da firmare' : `${unsignedPackageDocuments.length} documenti da firmare`,
       tone: signaturePhaseTone,
     },
@@ -3718,7 +3725,7 @@ function DepositPreparePage({ id }:{id:string}) {
             }}
           >
             <strong>Firma metadato ministeriale</strong>
-            <p>Il deposito riprende solo dopo la firma locale di {localSignaturePinRequest.filename}. Il PIN resta sul PC in uso e non viene salvato.</p>
+            <p>{localSignaturePinRequest.filename} è il metadato ministeriale della busta, non un allegato da scegliere. Il software lo firma localmente e poi genera IndiceBusta.xml e Atto.enc. Il PIN resta sul PC in uso e non viene salvato.</p>
             <div className="iu-fas-local-pec-summary" aria-label="Riepilogo firma metadato">
               <span>Da firmare</span>
               <strong>{localSignaturePinRequest.filename}</strong>
@@ -3865,7 +3872,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <header>
                 <div>
                   <strong>Documenti da inviare</strong>
-                  <span>Puoi aggiungere documenti, includerli nella busta e lasciare al comando finale firma, hash, indice e controlli obbligatori.</span>
+                  <span>Puoi aggiungere documenti e includerli nella busta: IUSENTRA firma solo quelli obbligatori o scelti, poi calcola hash, indice e controlli.</span>
                   <span>Il software propone la busta dalla classificazione del fascicolo; l'avvocato può correggere la scelta prima di firmare e generare.</span>
                 </div>
                 <Badge tone={packageDocuments.length ? 'primary' : 'warning'}>
@@ -3896,12 +3903,16 @@ function DepositPreparePage({ id }:{id:string}) {
                   const selected = Boolean(classification.selected)
                   const isMainAct = mainActDocument?.id === doc.id
                   const roleValue = normaliseDepositRoleForUi(classification.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id))
+                  const roleDisplayLabel = depositRoleLabel(roleValue).label
                   const canRequestSignature = !doc.signed && requiresPackageSignature(doc)
                   const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, roleValue)
                   const signatureRequested = selected && canRequestSignature && (mandatorySignature || Boolean(classification.requiresSignature))
                   const signatureLabel = doc.signed
                     ? 'Firmato'
                     : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Firma facoltativa') : 'Firma non necessaria'
+                  const depositStatusLabel = doc.signed
+                    ? 'Firmato'
+                    : signatureRequested ? 'Da firmare' : (canRequestSignature ? 'Firma facoltativa' : 'Firma non necessaria')
                   const showSignatureControl = selected || doc.signed || canRequestSignature
                   return (
                     <article className={`iu-fas-deposit-selection__row${selected ? ' is-selected' : ''}${isMainAct ? ' is-main' : ''}`} key={`select-${doc.id}`}>
@@ -3916,9 +3927,9 @@ function DepositPreparePage({ id }:{id:string}) {
                       </label>
                       <div className="iu-fas-deposit-selection__document">
                         <strong>{doc.name}</strong>
-                        <span>{[doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
+                        <span>{[roleDisplayLabel, depositStatusLabel, doc.size].filter(Boolean).join(' - ')}</span>
                         {doc.signed ? <em>Firma digitale verificata</em> : null}
-                        {selected && signatureRequested ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
+                        {selected && signatureRequested ? <small>IUSENTRA lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
                       <div className="iu-fas-deposit-document-actions" aria-label={`Azioni documento ${doc.name}`}>
                         {doc.actions.preview ? (
@@ -3965,9 +3976,9 @@ function DepositPreparePage({ id }:{id:string}) {
 
           <DetailSection id="firma-busta" title="3. Firma documenti" icon={<FileCheck2 size={17}/>} open={activeDepositPanel === 'firma-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('firma-busta') }} count={unsignedPackageDocuments.length}>
             <div className="iu-fas-deposit-phase-note">
-              <Badge tone={signaturePhaseTone}>{signatureBatchRequired ? 'Firma nel comando' : 'Firme coerenti'}</Badge>
+              <Badge tone={signaturePhaseTone}>{signatureBatchRequired ? 'Firma software' : 'Firme coerenti'}</Badge>
               <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima della busta' : 'La proposta non richiede firme ulteriori prima della busta'}</strong>
-              <span>{signatureBatchRequired ? 'L’avvocato inserisce il PIN una sola volta nel comando finale; il software firma in lotto, salva gli esiti e aggiorna le impronte prima di generare il pacchetto.' : 'Puoi passare alla generazione: indice e pacchetto vengono costruiti dalla selezione corrente.'}</span>
+              <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e aggiorna le impronte prima di generare il pacchetto.' : 'Puoi passare alla generazione: indice e pacchetto vengono costruiti dalla selezione corrente.'}</span>
             </div>
             {signatureBatchRequired ? (
               <DepositBatchSignaturePanel
@@ -3998,8 +4009,8 @@ function DepositPreparePage({ id }:{id:string}) {
               <article className="iu-fas-package-main">
                 <Badge tone={mainActDocument ? (mainActDocument.signed ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
                 <strong>{mainActDocument?.name || 'Da selezionare'}</strong>
-                <span>{mainActDocument ? [mainActDocument.type, packageDocumentSignatureLabel(mainActDocument), mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
-                {mainActDocument && !mainActDocument.signed ? <small>Firma prevista nel comando finale.</small> : null}
+                <span>{mainActDocument ? [mainActDocument.type, mainActDocument.signed ? 'Firmato' : 'Da firmare', mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
+                {mainActDocument && !mainActDocument.signed ? <small>Firma software prevista prima della busta.</small> : null}
               </article>
               <article>
                 <Badge tone={selectedAttachmentIds.length ? 'primary' : 'neutral'}>Allegati</Badge>
@@ -4019,7 +4030,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <article>
                 <Badge tone={unsignedPackageDocuments.length ? 'warning' : 'success'}>Firme</Badge>
                 <strong>{unsignedPackageDocuments.length}</strong>
-                <span>{unsignedPackageDocuments.length ? 'Documenti che il comando finale firmerà con un solo PIN.' : 'Documenti selezionati già firmati o non bloccanti.'}</span>
+                <span>{unsignedPackageDocuments.length ? 'Documenti che IUSENTRA firmerà con un solo PIN.' : 'Documenti selezionati già firmati o non bloccanti.'}</span>
               </article>
             </div>
             <div className="iu-fas-package-docs">
@@ -4050,7 +4061,7 @@ function DepositPreparePage({ id }:{id:string}) {
               {packageDocuments.map((doc) => {
                 const proofLabel = notificationProofKind(doc) ? notificationProofLabel(doc) : ''
                 const willSign = unsignedPackageDocuments.some((item) => item.id === doc.id)
-                const signatureLabel = packageDocumentSignatureLabel(doc)
+                const signatureLabel = willSign ? 'Da firmare' : packageDocumentSignatureLabel(doc)
                 return (
                   <article key={`package-${doc.id}`}>
                     <FileText size={16}/>
@@ -4058,7 +4069,7 @@ function DepositPreparePage({ id }:{id:string}) {
                       <strong>{doc.name}</strong>
                       <span>{[proofLabel, doc.type, signatureLabel, doc.size].filter(Boolean).join(' - ')}</span>
                     </div>
-                    {willSign ? <small>Firma nel comando busta</small> : null}
+                    {willSign ? <small>Firma software prima della busta</small> : null}
                   </article>
                 )
               })}
@@ -4184,7 +4195,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 <Send size={15}/> Invia deposito reale
               </DepositActionButton>
               {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
-              {actionBlocked ? <small>{actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0)}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati nel comando finale con firma multipla. ` : ''}{directPecReady ? 'Il software prepara busta, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software prepara controlli, indice e pacchetto; l’avvocato completa solo il passaggio ministeriale che il software non può ancora produrre.' : 'Il software prepara la busta: il caricamento finale resta sul portale ufficiale.'}</small>}
+              {actionBlocked ? <small>{actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0)}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati da IUSENTRA con firma multipla. ` : ''}{directPecReady ? 'Il software prepara busta, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software governa controlli, indice, firma dei metadati, Atto.enc e invio dal PC locale; se manca un requisito fisico lo indica prima dell’invio.' : 'Il software prepara la busta e governa il caricamento finale sul portale ufficiale.'}</small>}
             </div>
             {packagePreview ? (
               <div className="iu-fas-package-preview" role="status">
@@ -4526,7 +4537,7 @@ function DepositBatchSignaturePanel({
       const message = 'Nessun documento da firmare: tutti i documenti selezionati hanno già una firma digitale verificata.'
       setMessage(message)
       onDone(message)
-      return
+      return undefined
     }
     if (restartSuggested || localSignerOutdated) {
       const next = await checkLocalSigner(true)
@@ -4603,6 +4614,8 @@ function DepositBatchSignaturePanel({
         window.clearTimeout(timeout)
       }
       const payload = await signResponse.json().catch(() => ({} as Record<string, unknown>))
+      const pinSessionId = recordText(payload, 'pin_session_id')
+      const pinSessionTtlSeconds = recordNumber(payload, 'pin_session_ttl_seconds', 0)
       const risultati = Array.isArray(payload.risultati) ? payload.risultati as Array<Record<string, unknown>> : []
       if (!risultati.length) {
         throw new Error(String(payload.errore || payload.messaggio || `Firma multipla non riuscita: HTTP ${signResponse.status}`))
@@ -4630,6 +4643,10 @@ function DepositBatchSignaturePanel({
       }
       setMessage(`Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.`)
       onDone(`Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.`)
+      return {
+        pinSessionId: pinSessionId || undefined,
+        pinSessionTtlSeconds: pinSessionTtlSeconds || undefined,
+      }
     } catch (exc) {
       const msg = exc instanceof Error ? exc.message : String(exc)
       setError(msg)
@@ -4981,15 +4998,15 @@ function documentHasSignedContainerExtension(doc: FascicoloDocument | undefined)
 
 function documentExplicitlyRequiresSignature(doc: FascicoloDocument | undefined): boolean {
   if (!doc) return false
-  const text = normaliseText(`${doc.name} ${doc.type} ${doc.statusLabel} ${doc.tags.join(' ')}`)
-  return documentHasSignedContainerExtension(doc)
-    || /(da firmare|firma richiesta|firma obbligatoria|non firmato|senza firma)/.test(text)
+  const text = normaliseText(`${doc.name} ${doc.type} ${doc.tags.join(' ')}`)
+  if (documentHasSignedContainerExtension(doc)) return false
+  return /(firma richiesta|firma obbligatoria|firmare obbligatoriamente|sottoscrizione obbligatoria|da sottoscrivere)/.test(text)
 }
 
 function packageDocumentSignatureLabel(doc: FascicoloDocument): string {
   if (doc.signed) return 'Firmato'
   if (documentExplicitlyRequiresSignature(doc)) return 'Da firmare'
-  return doc.statusLabel || 'Firma non necessaria'
+  return 'Firma non necessaria'
 }
 
 function defaultSignatureRequiredForDepositRole(doc: FascicoloDocument | undefined, role: DepositDocumentRole): boolean {
@@ -5253,8 +5270,8 @@ function depositActionBlockedReason(ready: boolean, mainAct: FascicoloDocument |
   if (!mainAct) return 'Seleziona l’atto principale prima di generare la busta.'
   if (missingSlots === 1) return '1 scelta obbligatoria richiede la conferma dell’avvocato.'
   if (missingSlots) return `${missingSlots} scelte obbligatorie richiedono la conferma dell’avvocato.`
-  if (unsignedDocs === 1) return '1 documento sarà firmato nel comando finale prima della busta.'
-  if (unsignedDocs) return `${unsignedDocs} documenti saranno firmati nel comando finale prima della busta.`
+  if (unsignedDocs === 1) return '1 documento sarà firmato da IUSENTRA prima della busta.'
+  if (unsignedDocs) return `${unsignedDocs} documenti saranno firmati da IUSENTRA prima della busta.`
   if (!ready) return 'Esegui e supera la verifica deposito prima dell’azione finale.'
   return ''
 }

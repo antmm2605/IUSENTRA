@@ -2191,3 +2191,21 @@ Stato tecnico prima del deploy:
 - build React confermata;
 - versione portata a `2.253.99`;
 - prova visiva produzione da ripetere dopo deploy sullo stesso fascicolo `F08F92A2`, verificando che `Simula invio PEC` non mostri più `Atto principale non firmato digitalmente`.
+
+## Deposito validator busta su CAdES cifrato 2.253.100 - 2026-06-23
+
+La prova reale produzione su `2.253.99` ha mostrato che il fix era presente in payload React e runtime fascicoli, ma non ancora nel validator effettivo dell'orchestratore `pct/deposito_guidato.py`: il blocco `Atto principale non firmato digitalmente` restava attivo durante `Simula invio PEC`.
+
+Correzione applicata:
+
+- anche `_document_has_verified_signature()` dell'orchestratore decifra il file con `decrypt_doc()` prima di verificare CAdES/PAdES;
+- se la decifratura fallisce, il validator resta bloccante e non usa il flag storico `firmato`;
+- aggiunto test specifico sull'orchestratore con `Ricorso.pdf.p7m` CAdES valido, salvato cifrato a riposo con `PCT_DOC_KEY`, per impedire la regressione del caso visto su `F08F92A2`.
+
+Stato tecnico prima del deploy:
+
+- test orchestratore CAdES non valido / CAdES reale / CAdES cifrato a riposo verdi;
+- test API React documenti firmati cifrati verdi;
+- test busta/PEC mirati verdi;
+- versione portata a `2.253.100`;
+- prova visiva produzione da ripetere dopo deploy, con chiusura del vecchio alert e nuova simulazione sul fascicolo `F08F92A2`.

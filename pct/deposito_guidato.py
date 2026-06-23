@@ -85,8 +85,15 @@ def _document_has_verified_signature(doc: dict[str, Any], path: Path | None = No
     try:
         from .document_signature_state import document_bytes_have_real_digital_signature
 
+        data = path.read_bytes()
+        try:
+            from web.services.document_crypto import decrypt_doc
+
+            data = decrypt_doc(data)
+        except ImportError:
+            pass
         return document_bytes_have_real_digital_signature(
-            path.read_bytes(),
+            data,
             str(doc.get("nome") or ""),
             str(doc.get("filename") or ""),
             str(doc.get("percorso") or ""),

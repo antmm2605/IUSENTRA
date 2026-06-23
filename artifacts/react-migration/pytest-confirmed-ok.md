@@ -5546,3 +5546,11 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests/test_regia_api_payloads.py -q --tb=short` | OK | 8/8 passati: la API React riconosce un `.p7m` CAdES reale anche quando il file è salvato cifrato a riposo e decifrato prima della verifica. |
 | `python -m pytest tests/test_deposito.py tests/test_busta.py -q --tb=short -k "dati_atto or DatiAtto or busta_reale_usa_dati_atto_firmato or invia_pec_simula or local_pec or atto_enc or IndiceBusta"` | OK | 6/6 passati: la correzione firma non indebolisce DatiAtto, IndiceBusta, Atto.enc CMS/AES256, simulazione PEC e invio sempre dal PC locale. |
 | `pnpm --filter @iusentra/studio build` | OK | Build Vite completata dopo il fix di validazione firma su documenti cifrati a riposo. |
+
+## Deposito validator CAdES cifrato orchestratore 2.253.100 - 2026-06-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_deposito_guidato.py::test_orchestratore_blocca_atto_principale_p7m_non_cades_senza_prova_tecnica tests/test_deposito_guidato.py::test_orchestratore_non_blocca_atto_principale_cades_reale_senza_flag_storico tests/test_deposito_guidato.py::test_orchestratore_non_blocca_atto_principale_cades_cifrato_a_riposo -q --tb=short` | OK | 3/3 passati: il validator blocca un `.p7m` senza prova tecnica, accetta CAdES reale e accetta CAdES reale cifrato a riposo dopo decifratura. |
+| `python -m pytest tests/test_regia_api_payloads.py -q --tb=short` | OK | 8/8 passati: payload React e stato `Firmato` restano basati su prova tecnica reale. |
+| `python -m pytest tests/test_deposito.py tests/test_busta.py -q --tb=short -k "dati_atto or DatiAtto or busta_reale_usa_dati_atto_firmato or invia_pec_simula or local_pec or atto_enc or IndiceBusta"` | OK | 6/6 passati: busta ministeriale, DatiAtto, IndiceBusta e Atto.enc non regrediscono. |

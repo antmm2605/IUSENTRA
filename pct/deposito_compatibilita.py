@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from pct.atto_enc_validation import inspect_atto_enc_payload
+from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 
 
 REFERENCE_SAMPLES: tuple[dict[str, Any], ...] = (
@@ -74,7 +76,10 @@ def _has_token(text: str, token: str) -> bool:
 def _file_info(path_value: str) -> dict[str, Any]:
     if not path_value:
         return {"exists": False, "name": "", "size_bytes": 0, "sha256": ""}
-    path = Path(path_value)
+    try:
+        path = resolve_runtime_path(path_value, extra_roots=(tempfile.gettempdir(), Path.cwd())).resolve()
+    except (OSError, RuntimeError, ValueError, UnsafeRuntimePath):
+        return {"exists": False, "name": Path(str(path_value)).name, "size_bytes": 0, "sha256": ""}
     if not path.is_file():
         return {"exists": False, "name": path.name, "size_bytes": 0, "sha256": ""}
     payload = path.read_bytes()

@@ -658,9 +658,8 @@ class BustaTelematica:
             Percorso ad Atto.enc.
         """
         output_dir = self._runtime_path(output_dir)
-        busta_dir = output_dir / f"busta_{self.id_busta[:8]}"
-        # lgtm[py/path-injection] Directory risolta con resolve_runtime_path prima della creazione.
-        busta_dir.mkdir(parents=True, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        busta_dir = self._runtime_path(tempfile.mkdtemp(prefix="busta_", dir=str(output_dir)))
 
         if require_dati_atto_firmato and not dati_atto_firmato:
             raise ValueError("DatiAtto.xml deve essere firmato prima di generare Atto.enc.")

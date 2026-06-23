@@ -653,7 +653,7 @@ def register_deposito_routes(
         )
         documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
         corpo_pec = resolve_deposito_pec_body(form.get("corpo_pec", ""), documenti_busta)
-        dati_atto_firmato, signature_response = _dati_atto_signature_gate(
+        dati_atto_firmato, signature_payload = _dati_atto_signature_gate(
             form,
             busta,
             id_deposito=id_dep,
@@ -664,8 +664,9 @@ def register_deposito_routes(
             corpo_pec=corpo_pec,
             documenti_busta=documenti_busta,
         )
-        if signature_response is not None:
-            return signature_response
+        if signature_payload is not None:
+            signature_status = int(signature_payload.pop("_status", 200))
+            return redacted_json_response(signature_payload, signature_status)
         def _compatibility_report(attachment_path: str, busta_audit: dict[str, Any] | None = None) -> dict[str, Any]:
             return _build_compatibility_report(
                 id_deposito=id_dep,

@@ -21,7 +21,6 @@ from web.services.deposito_route_helpers import (
     wants_json_response as _wants_json_response,
 )
 from web.services.local_pec_runtime import (
-    LOCAL_SIGNER_BASE_URL,
     deposito_pec_subject,
     local_pec_required_response,
     local_pec_confirmation_result,
@@ -32,6 +31,10 @@ from web.services.deposito_pec_runtime import (
     build_simulazione_pec_payload as _build_simulazione_pec_payload,
     con_avviso_pec_mittente as _aggiungi_avviso_pec_mittente,
     registra_prova_senza_invio_pec as _registra_prova_senza_invio_pec,
+)
+from web.services.deposito_signature_runtime import (
+    dati_atto_signature_gate as _dati_atto_signature_gate,
+    documenti_busta_nomi as _documenti_busta_nomi,
 )
 from web.services.security_redaction import redacted_json_response
 def register_deposito_routes(
@@ -63,13 +66,6 @@ def register_deposito_routes(
     def guida_firma_digitale():
         """Guida interattiva per la firma digitale."""
         return render_template("guida_firma_digitale.html")
-    def _documenti_busta_nomi(atto_path: str, allegati_busta: list[Any]) -> list[str]:
-        from pathlib import Path as _Path
-        from pct.busta import DATI_ATTO_FIRMATO_FILENAME, INDICE_BUSTA_FILENAME, INDICE_DOCUMENTI_FILENAME
-        nomi = [INDICE_BUSTA_FILENAME, DATI_ATTO_FIRMATO_FILENAME, _Path(atto_path).name]
-        nomi.extend(_Path(str(getattr(allegato, "percorso", ""))).name for allegato in allegati_busta)
-        nomi.append(INDICE_DOCUMENTI_FILENAME)
-        return [nome for nome in nomi if nome]
     register_deposito_legacy_send_route(
         app,
         get_fascicoli=get_fascicoli,
@@ -376,12 +372,9 @@ def register_deposito_routes(
         import json as _json
         import tempfile as _tmp
         import uuid as _uuid
-        import base64 as _base64
-        import hashlib as _hashlib
         from datetime import datetime as _dt
         from pct.busta import Allegato as AllegatoBusta
-        from pct.busta import BustaTelematica, DatiBusta, DATI_ATTO_FILENAME, DATI_ATTO_FIRMATO_FILENAME
-        from pct.firma import busta_cades_valida, estrai_contenuto_cades
+        from pct.busta import BustaTelematica, DatiBusta
         from pct.fascicoli import EsitoDepositoPCT
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
@@ -660,101 +653,19 @@ def register_deposito_routes(
         )
         documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
         corpo_pec = resolve_deposito_pec_body(form.get("corpo_pec", ""), documenti_busta)
-        dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
-        dati_atto_sha256 = _hashlib.sha256(dati_atto_xml).hexdigest().upper()
-        dati_atto_firmato: bytes | None = None
-        dati_atto_firmato_b64 = str(form.get("dati_atto_firmato_b64", "") or "").strip()
-        if dati_atto_firmato_b64:
-            try:
-                dati_atto_firmato = _base64.b64decode(dati_atto_firmato_b64, validate=True)
-            except Exception:
-                return jsonify(
-                    {
-                        "ok": False,
-                        "errore": "DatiAtto.xml.p7m non valido: la firma ricevuta non è base64 corretto.",
-                    }
-                ), 400
-            if not busta_cades_valida(dati_atto_firmato):
-                return jsonify(
-                    {
-                        "ok": False,
-                        "errore": "DatiAtto.xml.p7m non contiene una firma CAdES valida. Ripeti la firma dal PC locale.",
-                    }
-                ), 400
-            expected_hash = str(form.get("dati_atto_sha256", "") or "").strip().upper()
-            if expected_hash and expected_hash != dati_atto_sha256:
-                return jsonify(
-                    {
-                        "ok": False,
-                        "errore": (
-                            "DatiAtto.xml.p7m non corrisponde alla busta corrente: "
-                            "la firma è stata prodotta su metadati diversi. Ripeti la firma e l'invio."
-                        ),
-                    }
-                ), 400
-            contenuto_firmato = estrai_contenuto_cades(dati_atto_firmato)
-            if contenuto_firmato != dati_atto_xml:
-                return jsonify(
-                    {
-                        "ok": False,
-                        "errore": (
-                            "DatiAtto.xml.p7m non contiene il DatiAtto.xml generato per questa busta. "
-                            "Ripeti la firma dal PC locale senza cambiare documenti o selezione."
-                        ),
-                    }
-                ), 400
-        elif form.get("local_pec_confirmed") == "1":
-            return jsonify(
-                {
-                    "ok": False,
-                    "errore": "Conferma invio non accettata: DatiAtto.xml.p7m firmato non è stato ritrasmesso al server.",
-                }
-            ), 400
-        else:
-            audit_firma = busta.audit_conformita_pst()
-            return redacted_json_response(
-                {
-                    "ok": False,
-                    "requires_local_signature": True,
-                    "package_ready": False,
-                    "id_deposito": id_dep,
-                    "busta_id": busta.id_busta,
-                    "busta_timestamp": timestamp,
-                    "dati_atto_sha256": dati_atto_sha256,
-                    "pec_dest": pec_dest,
-                    "tipo_atto": tipo_atto,
-                    "timestamp": timestamp,
-                    "oggetto_pec": oggetto_pec,
-                    "corpo_pec": corpo_pec,
-                    "documenti_busta": documenti_busta,
-                    "busta_audit": audit_firma,
-                    "messaggio": (
-                        "DatiAtto.xml deve essere firmato digitalmente prima di creare Atto.enc. "
-                        "Inserisci il PIN: il software firmerà il metadato ministeriale e riprenderà la stessa fase."
-                    ),
-                    "next_actions": [
-                        "Firma DatiAtto.xml con Local Signer.",
-                        "Rigenera Atto.msg con IndiceBusta.xml e DatiAtto.xml.p7m.",
-                        "Cifra Atto.msg in Atto.enc AES256 prima della PEC reale.",
-                    ],
-                    "local_signature": {
-                        "endpoint": f"{LOCAL_SIGNER_BASE_URL}/firma",
-                        "filename": DATI_ATTO_FILENAME,
-                        "output_filename": DATI_ATTO_FIRMATO_FILENAME,
-                        "busta_id": busta.id_busta,
-                        "busta_timestamp": timestamp,
-                        "dati_atto_sha256": dati_atto_sha256,
-                        "requires_pin": True,
-                        "payload": {
-                            "documento": _base64.b64encode(dati_atto_xml).decode("ascii"),
-                            "nome": DATI_ATTO_FILENAME,
-                            "visible_signature_mode": "nessuna",
-                            "visible_signature_datetime_mode": "nessuna",
-                        },
-                    },
-                },
-                200,
-            )
+        dati_atto_firmato, signature_response = _dati_atto_signature_gate(
+            form,
+            busta,
+            id_deposito=id_dep,
+            timestamp=timestamp,
+            pec_dest=pec_dest,
+            tipo_atto=tipo_atto,
+            oggetto_pec=oggetto_pec,
+            corpo_pec=corpo_pec,
+            documenti_busta=documenti_busta,
+        )
+        if signature_response is not None:
+            return signature_response
         def _compatibility_report(attachment_path: str, busta_audit: dict[str, Any] | None = None) -> dict[str, Any]:
             return _build_compatibility_report(
                 id_deposito=id_dep,
